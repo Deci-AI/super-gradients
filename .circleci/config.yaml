@@ -1,0 +1,754 @@
+version: 2.1
+
+release_tag_filter: &release_tag_filter
+  filters:
+    branches:
+      ignore: /.*/
+    tags:
+      only: /^\d+\.\d+\.\d+$/
+
+release_candidate_filter: &release_candidate_filter
+  filters:
+    branches:
+      only: master
+
+commands:
+
+  run_on_account:
+    description: "Run a command using a given role"
+    parameters:
+      command:
+        type: string
+      aws_role:
+        type: string
+      env_name:
+        type: string
+    steps:
+      - run:
+          environment:
+            ENVIRONMENT_NAME: << parameters.env_name >>
+          name: Run a command on << parameters.aws_role >> aws account
+          command: scripts/aws-sudo.sh -c '<< parameters.command >>' << parameters.aws_role >>
+
+
+
+  set_env_login_details:
+    description: "log into codeartifcat specific repo "
+    parameters:
+      repo_name:
+        type: string
+      aws_account_id:
+        type: string
+      aws_role:
+        type: string
+      env_name:
+        type: string
+    steps:
+      - run_on_account:
+          aws_role: << parameters.aws_role >>
+          env_name: << parameters.env_name >>
+          command: |
+            aws codeartifact login --tool pip --repository << parameters.repo_name >> --domain deci-packages --domain-owner << parameters.aws_account_id >>
+      - run:
+          name: edit the pip conf
+          command: sed -i 's/^index-url/extra-index-url/g'  ~/.config/pip/pip.conf
+
+  create_github_release:
+    description: create a pull request on github
+    parameters:
+      directory_to_cd_into:
+        type: string
+      tag:
+        type: string
+      notes:
+        type: string
+        default: "Automated nightly release"
+    steps:
+      - run:
+          name: install gh cli
+          command: |
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh
+      - run:
+          name: authenticate
+          command: |
+            echo "$GITHUB_CLI_TOKEN" > token.txt
+            gh auth login --with-token < token.txt
+            rm  token.txt
+      - run:
+          name: create the release
+          command: |
+            cd << parameters.directory_to_cd_into >>
+            gh release create << parameters.tag >> --notes "<< parameters.notes >>"
+
+  tag_as:
+    description: "tag as a certain name"
+    parameters:
+      tag_name:
+        type: string
+      delete_remote:
+        type: boolean
+    steps:
+      - when:
+          condition: << parameters.delete_remote >>
+          steps:
+            - run:
+                name: Remove local and remote tag
+                command: |
+                  git tag -d << parameters.tag_name >>
+                  git push --delete origin << parameters.tag_name >>
+      - run:
+          name: Tag stable and push
+          command: |
+            git tag << parameters.tag_name >>
+            git push origin << parameters.tag_name >>
+
+  upload_package_run:
+    description: "uploads the package to dev and prod"
+    parameters:
+      version:
+        type: string
+        default: ""
+      py_version:
+        type: string
+        default: ""
+      clone_specific_tag:
+        type: boolean
+        default: false
+      tag_to_checkout_from:
+        type: string
+        default: ""
+    steps:
+      - upload_package:
+          aws_role: $AWS_DEV_ROLE
+          aws_account: $AWS_DEV_ACCOUNT_ID
+          version: << parameters.version >>
+          py_version: << parameters.py_version >>
+          clone_specific_tag: << parameters.clone_specific_tag >>
+          tag_to_checkout_from: << parameters.tag_to_checkout_from >>
+      - upload_package:
+          aws_role: $AWS_PROD_ROLE
+          aws_account: $AWS_PROD_ACCOUNT_ID
+          version: << parameters.version >>
+          py_version: << parameters.py_version >>
+          clone_specific_tag: << parameters.clone_specific_tag >>
+          tag_to_checkout_from: << parameters.tag_to_checkout_from >>
+
+  upload_package:
+    description: "uploads a package to a designated repo"
+    parameters:
+      aws_account:
+        type: string
+      aws_role:
+        type: string
+      version:
+        type: string
+        default: ""
+      py_version:
+        type: string
+        default: ""
+      clone_specific_tag:
+        type: boolean
+        default: false
+      tag_to_checkout_from:
+        type: string
+        default: ""
+      codeartifact_repository:
+        type: string
+        default: "deci-packages"
+    steps:
+      - unless:
+          condition: << parameters.clone_specific_tag >>
+          steps:
+            - checkout_and_skip_build
+      - when:
+          condition: << parameters.clone_specific_tag >>
+          steps:
+            - clone_specific_tag:
+                tag_to_checkout_from: << parameters.tag_to_checkout_from >>
+      - attach_workspace:
+          at: ~/
+      - restore_cache:
+          key: << parameters.py_version >>-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "requirements.txt" }}
+      - run:
+          name: Taking version from tag or env vars
+          command: |
+            echo "upload_package Command got version: << parameters.version >>"
+            NEW_VERSION=<< parameters.version >>
+            if [[ $NEW_VERSION ]]
+            then
+              export NEW_VERSION=$NEW_VERSION
+              echo "export NEW_VERSION=$NEW_VERSION" >> $BASH_ENV
+            else
+              cat ~/new-env-vars >> $BASH_ENV
+              source $BASH_ENV
+            fi
+
+            echo "new version is ${NEW_VERSION}"
+      #      - run: #TODO:implement linter
+      #          name: install Flake8 python linter
+      #          command: |
+      #            pip install --user flake8
+      #      - run:
+      #          name: Lint all python files changed since develop branch
+      #          command: |
+      #            flake8 --statistics --config  -v --exclude venv/,docs  scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$')
+      - run:
+          command: |
+            sudo apt-get update
+            pip install -U importlib-metadata>=3.6
+            pip install --user awscli twine wheel
+      - set_codeartifact_login:
+          aws_role: << parameters.aws_role >>
+          aws_account: << parameters.aws_account >>
+          tool: "twine"
+          repository: << parameters.codeartifact_repository >>
+      #      - run:
+      #          name: build documentation
+      #          command: |
+      #            sudo apt-get install python3-sphinx
+      #            . venv/bin/activate
+      #            pip install sphinx_rtd_theme jsonschema
+      #            sphinx-build -b html docs/source docs/html
+      #      - store_artifacts:
+      #          path: docs/html
+      - upload_package_and_edit_version:
+          version: $NEW_VERSION
+      - set_codeartifact_login:
+          aws_role: << parameters.aws_role >>
+          aws_account: << parameters.aws_account >>
+          tool: "pip"
+          repository: << parameters.codeartifact_repository >>
+      - test_on_clean_env:
+          package_name: "deci-trainer"
+          version: $NEW_VERSION
+          ## if test worked push to repo, otherwise delete from pypi
+      - run:
+          name: delete dist
+          command: |
+            rm -rf dist/*
+
+  run_on_aws_account:
+    description: "Run a command using a role"
+    parameters:
+      command:
+        type: string
+      aws_role:
+        type: string
+    steps:
+      - run:
+          name: Run a command using an aws account
+          command: |
+            scripts/aws-sudo.sh -c '<< parameters.command >>' << parameters.aws_role >>
+
+  set_codeartifact_login:
+    description: "Connecting to codeartifact"
+    parameters:
+      repository:
+        type: string
+        default: "deci-packages"
+      domain:
+        type: string
+        default: "deci-packages"
+      aws_role:
+        type: string
+      aws_account:
+        type: string
+      tool:
+        type: string
+    steps:
+      - run:
+          name: "remove old"
+          command: |
+            if [ -f ~/.config/pip/pip.conf ]; then
+              rm ~/.config/pip/pip.conf
+            fi
+      - run_on_aws_account:
+          aws_role: << parameters.aws_role >>
+          command: |
+            CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain << parameters.domain >> --domain-owner << parameters.aws_account >> --query authorizationToken --output text`
+            aws codeartifact login --tool << parameters.tool >> --repository << parameters.repository >> --domain << parameters.domain >> --domain-owner << parameters.aws_account >>
+
+  test_on_clean_env:
+    parameters:
+      package_name:
+        type: string
+      version:
+        type: string
+    steps:
+      - run:
+          name: install python dependencies
+          command: |
+            python3 -m venv clean_env
+            . clean_env/bin/activate
+            sed -i 's/^index-url/extra-index-url/g'  ~/.config/pip/pip.conf
+            python -m pip install << parameters.package_name >>==<< parameters.version >>
+      - run:
+          name: todo - implement tests for the package. Maybe use poc repo # TODO: Still need to get the tests going
+          command: |
+            . clean_env/bin/activate
+            echo "TODO: Still need to get the pacakge tests going"
+
+  upload_package_and_edit_version:
+    parameters:
+      version:
+        type: string
+    description: "Uploading a package to pypi"
+    steps:
+      - run:
+          name: edit package version
+          command: |
+            echo << parameters.version >> > version.txt
+      - run:
+          name: create packages
+          command: |
+            python setup.py bdist_wheel
+      - run:
+          name: upload to pypi using codeartifact
+          command: |
+            twine upload -r codeartifact dist/*
+
+
+
+  git_commit_and_tag:
+    parameters:
+      version:
+        type: string
+        default: ""
+      tag_remote:
+        type: boolean
+        default: true
+    steps:
+      - run:
+          name: Avoid hosts unknown for github
+          command: mkdir -p ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+      - run:
+          name: Commit and Push version file
+          command: |
+            git config --global user.email "circleci@deci.ai"
+            git config --global user.name  "CircleCI commit"
+            git commit version.txt -m "CircleCi - Changed version to << parameters.version >>"
+            git push --force --set-upstream origin master
+      - when:
+          condition: << parameters.tag_remote >>
+          steps:
+            - run:
+                name: tag git repository
+                command: |
+                  git tag << parameters.version >>
+                  git push origin << parameters.version >>
+
+
+  checkout_and_skip_build:
+    description: "Checkout code and check if we should skip the build"
+    steps:
+      - checkout
+      - run:
+          name: Check if we should skip build
+          command: |
+            if [[ ! $CIRCLE_TAG ]]; then
+              last_commit_user=$(git log -1 --pretty=format:'%an')
+              if [ "${last_commit_user}" == "CircleCI commit" ]; then
+                 echo "\n\n PLEASE NOTICE: Skipping Build to prevent commit loop since the last commit was genereated by automated CI/CD \n\n"
+                 circleci-agent step halt
+              fi
+            fi
+
+  clone_specific_tag:
+    description: "got clone and check out specific tag"
+    parameters:
+      tag_to_checkout_from:
+        type: string
+    steps:
+      - checkout
+      - run:
+          name: Checkout tag
+          command: |
+            cd super_gradients
+            git checkout tags/<< parameters.tag_to_checkout_from >>
+
+jobs:
+  get_version_info:
+    working_directory: ~/project
+    docker:
+      - image: cimg/base:2021.04
+    resource_class: small
+    description: "Putting latest tag in environment"
+    steps:
+      - checkout_and_skip_build
+      - run:
+          name: get latest tag
+          command: |
+            set +e
+
+            LATEST_RELEASE=$(git tag --list | grep --regexp="^[0-9]\+\.[0-9]\+\.[0-9]\+$" | sort -V | tail -n 1)
+            echo "export LATEST_RELEASE=${LATEST_RELEASE}" >> $BASH_ENV
+            NEW_VERSION=$(bash scripts/version-up.sh -v $LATEST_RELEASE -i)
+
+            BRANCH=<< pipeline.git.branch >>
+            echo "PIPELINE is ${BRANCH} "
+            case << pipeline.git.branch >> in
+            master)
+                  echo "export NEW_VERSION=${NEW_VERSION}rc${CIRCLE_BUILD_NUM}" >> $BASH_ENV
+                  ;;
+            *)
+                  echo "export NEW_VERSION=${NEW_VERSION}b${CIRCLE_BUILD_NUM}" >> $BASH_ENV
+                  ;;
+            esac
+            cat $BASH_ENV
+      - run: cat $BASH_ENV >> ~/new-env-vars
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - new-env-vars
+  build:
+    parameters:
+      py_version:
+        type: string
+        default: latest
+      package_name:
+        type: string
+    docker:
+      - image: circleci/python:<< parameters.py_version >>
+    steps:
+      - checkout_and_skip_build
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: set version at bash env
+          command: |
+            if [[ $CIRCLE_TAG ]]
+            then
+              echo "export NEW_VERSION=$CIRCLE_TAG" >> $BASH_ENV
+            else
+              cat ~/new-env-vars >> $BASH_ENV
+            fi
+
+      #      - restore_cache:
+      #          key: << parameters.py_version >>-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "requirements.txt" }}
+      - run:
+          name: install python dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            python -m pip install --upgrade pip
+            cat requirements.txt | cut -f1 -d"#" | xargs -n 1 -L 1 pip install --progress-bar off
+      #      - save_cache:
+      #          key: << parameters.py_version >>-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "requirements.txt" }}
+      #          paths:
+      #            - "venv"
+      - run:
+          name: edit package version
+          command: |
+            echo "${NEW_VERSION}" > version.txt
+            cat version.txt
+      - run:
+          name: setup custom environment variables
+          command: |
+            echo 'export PYTHONPATH=/home/circleci/super_gradients' >> $BASH_ENV
+      - run:
+          name: install package
+          no_output_timeout: 30m
+          command: |
+            . venv/bin/activate
+            cp requirements.txt tmp.txt
+            cat tmp.txt | head -n -1 > requirements.txt
+            rm tmp.txt
+            rm ~/.config/pip/pip.conf
+            python -m pip install .
+      - run:
+          name: run tests with coverage
+          no_output_timeout: 30m
+          command: |
+            . venv/bin/activate
+            coverage run --source=super_gradients -m unittest tests/deci_core_unit_test_suite_runner.py
+            coverage report
+            coverage html  # open htmlcov/index.html in a browser
+
+      - store_artifacts:
+          path: htmlcov
+
+      - store_artifacts:
+          path: ~/deci_logs
+
+
+  build_and_release:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - get_version_info
+      - build:
+          name: "build3.7"
+          py_version: "3.7"
+          package_name: "deci-trainer"
+          requires:
+            - get_version_info
+      - upload_package:
+          aws_role: $AWS_PROD_ROLE
+          aws_account: $AWS_PROD_ACCOUNT_ID
+          version: $CIRCLE_TAG
+          py_version: << parameters.py_version >>
+
+  release_candidate:
+    docker:
+      - image: circleci/python:3.7
+    parameters:
+      py_version:
+        type: string
+    steps:
+      - upload_package:
+          aws_role: $AWS_DEV_ROLE
+          aws_account: $AWS_DEV_ACCOUNT_ID
+          py_version: << parameters.py_version >>
+      - git_commit_and_tag:
+          version: $NEW_VERSION
+
+  release_version:
+    docker:
+      - image: circleci/python:3.7
+    parameters:
+      py_version:
+        type: string
+    steps:
+      - upload_package_run:
+          version: $CIRCLE_TAG
+          py_version: << parameters.py_version >>
+      - upload_package:
+          aws_role: $AWS_PROD_ROLE
+          aws_account: $AWS_PROD_ACCOUNT_ID
+          version: $CIRCLE_TAG
+          py_version: << parameters.py_version >>
+          codeartifact_repository: "deci-toolkit"
+      - git_commit_and_tag:
+          version: $CIRCLE_TAG
+          tag_remote: false
+      - tag_as:
+          tag_name: "stable"
+          delete_remote: true
+
+  release_version_from_rc:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: exit if $AUTO_RELEASED_VERSION is empty
+          command: |
+            if ! [[ -f ~/new-env-vars ]]; then
+              echo "no version to release"
+              circleci-agent step halt
+              exit 0
+            fi
+
+            cat ~/new-env-vars >> $BASH_ENV
+            source $BASH_ENV
+            if [[ -z $AUTO_RELEASED_VERSION ]]; then
+              echo "no version to release"
+              circleci-agent step halt
+              exit 0
+            else
+              echo "will create a release $AUTO_RELEASED_VERSION from  ${LATEST_RELEASE_AWS}"
+            fi
+      - clone_specific_tag:
+          tag_to_checkout_from: $LATEST_RELEASE_AWS
+      - run:
+          name: tag git repository
+          command: |
+            git tag $AUTO_RELEASED_VERSION
+            git push origin $AUTO_RELEASED_VERSION
+      - create_github_release:
+          directory_to_cd_into: "."
+          tag: $AUTO_RELEASED_VERSION
+          notes: "Automated nightly release. Generated from  ${LATEST_RELEASE_AWS}"
+
+
+  lines_of_code_cap:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/python:3.7.5
+    parameters:
+      lines_of_code_cap:
+        type: integer
+        default: 600
+    resource_class: small
+    steps:
+      - checkout
+      - when:
+          condition:
+            not:
+              equal: [ master, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: Enforcing << parameters.lines_of_code_cap >> Lines Of Code limit
+                command: |
+                  sudo apt install bc
+                  BASE_BRANCH="master"
+                  DIRS_TO_IGNORE=""
+
+                  git diff --shortstat $CIRCLE_BRANCH $BASE_BRANCH
+                  git diff --stat=300  ${CIRCLE_BRANCH} ${BASE_BRANCH} > changes.txt
+
+                  #for dir_to_ignore in cypress/ scripts/ .circleci/
+                  #do
+                  #  DIRS_TO_IGNORE="${DIRS_TO_IGNORE} | grep -v '${dir_to_ignore}'"
+                  #done
+                  #echo "dirs to ignore: ${DIRS_TO_IGNORE} "
+
+                  # in a perfect world I would use that list instead of hardcoding the "grep". However, there is an annoying issue that
+                  # makes the script look at | as a string and not pipe. this is not important enough to spend time on.
+
+                  LOC=$(cat changes.txt | grep -v 'tests/' | grep -v 'docs/' | grep -v '.circleci/' | awk -F"|" '{ print $2 }' | awk '{ print $1 }' | sed '/^$/d' | paste -sd+ -  | bc)
+                  echo " there are $LOC changes"
+                  if [[ $LOC -gt << parameters.lines_of_code_cap >> ]]; then
+                    echo "#######################################################"
+                    echo "#######################################################"
+                    echo "There are $LOC changed lines of code. We only allow << parameters.lines_of_code_cap >> for each PR."
+                    echo "Please break down your PR into a smaller one"
+                    echo "#######################################################"
+                    echo "#######################################################"
+                    exit 1
+                  fi
+
+  get_unreleased_rc:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/python:3.7.5
+    resource_class: small
+    steps:
+      - checkout
+      - run:
+          command: |
+            pip install --user awscli
+      - run_on_aws_account:
+          aws_role: $AWS_DEV_ROLE
+          command: |
+            LATEST_RELEASE_AWS="null"
+            LATEST_RELEASE_AWS=$(aws codeartifact list-package-versions --domain deci-packages  --domain-owner $AWS_DEV_ACCOUNT_ID --repository deci-packages --format pypi --package  deci-trainer --max-results 1 --sort-by PUBLISHED_TIME --query versions[0].version --output text)
+            echo "export LATEST_RELEASE_AWS=${LATEST_RELEASE_AWS}" >> $BASH_ENV
+      - run:
+          name: "check for unreleased rc"
+          command: |
+            source $BASH_ENV
+            LAST_REV=$(git rev-list --tags --max-count=1)
+            GIT_LATEST_TAG=$(git describe --tags "${LAST_REV}")
+            echo "latest tag: ${GIT_LATEST_TAG}"
+            echo "latest release on AWS: ${LATEST_RELEASE_AWS}"
+
+            if ! [[ "${GIT_LATEST_TAG}" =~ "rc" ]]; then
+              echo "latest is a release, nothing to do. Off for fusball"
+              circleci-agent step halt
+            elif [[ "${GIT_LATEST_TAG}" != "${LATEST_RELEASE_AWS}" ]]; then
+              echo "latest tag does not equal the latest release on dev account"
+              echo "something is phishy, we wont proceed"
+              circleci-agent step halt
+            else
+              echo "we have a release candidate to release - ${GIT_LATEST_TAG}"
+              AUTO_RELEASED_VERSION=$(echo $GIT_LATEST_TAG | cut -d 'r' -f1)
+              echo "version to release: $AUTO_RELEASED_VERSION"
+              echo "export AUTO_RELEASED_VERSION=${AUTO_RELEASED_VERSION}" >> $BASH_ENV
+            fi
+
+      - run: cat $BASH_ENV >> ~/new-env-vars
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - new-env-vars
+
+  login_to_codeartifact:
+    description: Authenticate to aws code artifact. By default authenticates to prod
+    docker:
+      - image: circleci/python:3.7.5
+    parameters:
+      dev_account:
+        description: authenticate to development codeartifact
+        type: boolean
+        default: false
+      pip_repo_name:
+        type: string
+    steps:
+      - checkout
+      - run:
+          command: |
+            pip install --user awscli
+      - when:
+          condition: << parameters.dev_account >>
+          steps:
+            - set_env_login_details:
+                repo_name: << parameters.pip_repo_name >>
+                aws_account_id: ${AWS_DEV_ACCOUNT_ID}
+                aws_role: ${AWS_DEV_ROLE}
+                env_name: "development"
+      - unless:
+          condition: << parameters.dev_account >>
+          steps:
+            - set_env_login_details:
+                repo_name: << parameters.pip_repo_name >>
+                aws_account_id: ${AWS_PROD_ACCOUNT_ID}
+                aws_role: ${AWS_PROD_ROLE}
+                env_name: "production"
+
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - .config/pip/pip.conf
+
+
+workflows:
+
+  #  timed_release:
+  #    triggers:
+  #      - schedule:
+  #          cron: "0 20 * * *" # 23:00 israel time
+  #          filters:
+  #            branches:
+  #              only:
+  #                - master
+  #    jobs:
+  #      - get_unreleased_rc
+  #      - release_version_from_rc:
+  #          requires:
+  #            - get_unreleased_rc
+
+  release:
+    jobs:
+      - login_to_codeartifact:
+          name: "login_to_codeartifact_release"
+          dev_account: false
+          pip_repo_name: "deci-clients"
+          <<: *release_tag_filter
+      - build:
+          name: "build3.7"
+          py_version: "3.7"
+          package_name: "deci-trainer"
+          requires:
+            - login_to_codeartifact_release
+          <<: *release_tag_filter
+      - release_version:
+          py_version: "3.7"
+          requires:
+            - "build3.7"
+          <<: *release_tag_filter
+
+  build_and_deploy:
+    jobs:
+      - lines_of_code_cap
+      - get_version_info
+      - login_to_codeartifact:
+          pip_repo_name: "deci-clients"
+          dev_account: false
+      - build:
+          name: "build3.7"
+          py_version: "3.7"
+          package_name: "deci-trainer"
+          requires:
+            - get_version_info
+            - login_to_codeartifact
+      - release_candidate: # happens on merge
+          py_version: "3.7"
+          requires:
+            - "build3.7"
+          <<: *release_candidate_filter
+
