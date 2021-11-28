@@ -1,0 +1,6 @@
+image_size: 456
+width_coefficient: 1.6
+min_depth:
+depth_coefficient: 2.2
+dropout_rate: 0.4
+num_classes:

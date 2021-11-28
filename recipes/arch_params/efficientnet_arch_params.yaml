@@ -1,0 +1,17 @@
+defaults:
+  - default_arch_params
+
+backbone_mode: False # cuts off classification head
+batch_norm_momentum: 0.99 # value used for the running_mean and running_var computation
+batch_norm_epsilon: 1e-3 # value added to the denominator for numerical stability
+image_size: # net's input size
+
+# see doc in super_gradients/training/models/efficientnet.py round_filters
+width_coefficient:
+depth_divisor: 8
+min_depth:
+depth_coefficient:
+
+dropout_rate: # dropout probability in final layer
+num_classes: # number of outputs of the classification head
+drop_connect_rate: 0.2 # connection dropout probability

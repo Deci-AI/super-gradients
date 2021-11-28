@@ -1,0 +1,2 @@
+batch_size: 256 # batch size for trainset
+val_batch_size: 512 # batch size for valset in DatasetInterface

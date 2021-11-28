@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.training.metrics.detection_metrics &mdash; SuperGradients 1.0 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../intro.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">super_gradients.training package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>super_gradients.training.metrics.detection_metrics</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for super_gradients.training.metrics.detection_metrics</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torchmetrics</span> <span class="kn">import</span> <span class="n">Metric</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.detection_utils</span> <span class="kn">import</span> <span class="n">calc_batch_prediction_accuracy</span><span class="p">,</span> <span class="n">DetectionPostPredictionCallback</span><span class="p">,</span> \
+    <span class="n">IouThreshold</span>
+<span class="kn">import</span> <span class="nn">super_gradients</span>
+
+
+<div class="viewcode-block" id="compute_ap"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.detection_metrics.compute_ap">[docs]</a><span class="k">def</span> <span class="nf">compute_ap</span><span class="p">(</span><span class="n">recall</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;interp&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Compute the average precision, given the recall and precision curves.</span>
+<span class="sd">    Source: https://github.com/rbgirshick/py-faster-rcnn.</span>
+<span class="sd">    # Arguments</span>
+<span class="sd">        :param recall:    The recall curve - ndarray [1, points in curve]</span>
+<span class="sd">        :param precision: The precision curve - ndarray [1, points in curve]</span>
+<span class="sd">        :param method: &#39;continuous&#39;, &#39;interp&#39;</span>
+<span class="sd">    # Returns</span>
+<span class="sd">        The average precision as computed in py-faster-rcnn.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># IN ORDER TO CALCULATE, WE HAVE TO MAKE SURE THE CURVES GO ALL THE WAY TO THE AXES (FROM X=0 TO Y=0)</span>
+    <span class="c1"># THIS IS HOW IT IS COMPUTED IN  ORIGINAL REPO - A MORE CORRECT COMPUTE WOULD BE ([0.], recall, [recall[-1] + 1E-3])</span>
+    <span class="n">wrapped_recall</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">0.</span><span class="p">],</span> <span class="n">recall</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]))</span>
+    <span class="n">wrapped_precision</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">1.</span><span class="p">],</span> <span class="n">precision</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.</span><span class="p">]))</span>
+
+    <span class="c1"># COMPUTE THE PRECISION ENVELOPE</span>
+    <span class="n">wrapped_precision</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">wrapped_precision</span><span class="p">)))</span>
+
+    <span class="c1"># INTEGRATE AREA UNDER CURVE</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;interp&#39;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>  <span class="c1"># 101-point interp (COCO)</span>
+        <span class="n">ap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">wrapped_recall</span><span class="p">,</span> <span class="n">wrapped_precision</span><span class="p">),</span> <span class="n">x</span><span class="p">)</span>  <span class="c1"># integrate</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># &#39;continuous&#39;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">wrapped_recall</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">!=</span> <span class="n">wrapped_recall</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># points where x axis (recall) changes</span>
+        <span class="n">ap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">wrapped_recall</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">wrapped_recall</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">wrapped_precision</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>  <span class="c1"># area under curve</span>
+
+    <span class="k">return</span> <span class="n">ap</span></div>
+
+
+<div class="viewcode-block" id="ap_per_class"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.detection_metrics.ap_per_class">[docs]</a><span class="k">def</span> <span class="nf">ap_per_class</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">conf</span><span class="p">,</span> <span class="n">pred_cls</span><span class="p">,</span> <span class="n">target_cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Compute the average precision, given the recall and precision curves.</span>
+<span class="sd">    Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.</span>
+<span class="sd">    # Arguments</span>
+<span class="sd">        tp:    True positives (nparray, nx1 or nx10).</span>
+<span class="sd">        conf:  Objectness value from 0-1 (nparray).</span>
+<span class="sd">        pred_cls: Predicted object classes (nparray).</span>
+<span class="sd">        target_cls: True object classes (nparray).</span>
+<span class="sd">    # Returns</span>
+<span class="sd">        The average precision as computed in py-faster-rcnn.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># SORT BY OBJECTNESS</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">conf</span><span class="p">)</span>
+    <span class="n">tp</span><span class="p">,</span> <span class="n">conf</span><span class="p">,</span> <span class="n">pred_cls</span> <span class="o">=</span> <span class="n">tp</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">conf</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">pred_cls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="c1"># FIND UNIQUE CLASSES</span>
+    <span class="n">unique_classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">target_cls</span><span class="p">)</span>
+
+    <span class="c1"># CREATE PRECISION-RECALL CURVE AND COMPUTE AP FOR EACH CLASS</span>
+    <span class="n">pr_score</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c1"># SCORE TO EVALUATE P AND R https://github.com/ultralytics/yolov3/issues/898</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="n">unique_classes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>  <span class="c1"># NUMBER CLASS, NUMBER IOU THRESHOLDS (I.E. 10 FOR MAP0.5...0.95)</span>
+    <span class="n">ap</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ci</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_classes</span><span class="p">):</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">pred_cls</span> <span class="o">==</span> <span class="n">c</span>
+        <span class="n">ground_truth_num</span> <span class="o">=</span> <span class="p">(</span><span class="n">target_cls</span> <span class="o">==</span> <span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>  <span class="c1"># NUMBER OF GROUND TRUTH OBJECTS</span>
+        <span class="n">predictions_num</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>  <span class="c1"># NUMBER OF PREDICTED OBJECTS</span>
+
+        <span class="k">if</span> <span class="n">predictions_num</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">ground_truth_num</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># ACCUMULATE FPS AND TPS</span>
+            <span class="n">fpc</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tp</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">tpc</span> <span class="o">=</span> <span class="n">tp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># RECALL</span>
+            <span class="n">recall</span> <span class="o">=</span> <span class="n">tpc</span> <span class="o">/</span> <span class="p">(</span><span class="n">ground_truth_num</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span>  <span class="c1"># RECALL CURVE</span>
+            <span class="n">r</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="o">-</span><span class="n">pr_score</span><span class="p">,</span> <span class="o">-</span><span class="n">conf</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">recall</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># R AT PR_SCORE, NEGATIVE X, XP BECAUSE XP DECREASES</span>
+
+            <span class="c1"># PRECISION</span>
+            <span class="n">precision</span> <span class="o">=</span> <span class="n">tpc</span> <span class="o">/</span> <span class="p">(</span><span class="n">tpc</span> <span class="o">+</span> <span class="n">fpc</span><span class="p">)</span>  <span class="c1"># precision curve</span>
+            <span class="n">p</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="o">-</span><span class="n">pr_score</span><span class="p">,</span> <span class="o">-</span><span class="n">conf</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">precision</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># P AT PR_SCORE</span>
+
+            <span class="c1"># AP FROM RECALL-PRECISION CURVE</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">ap</span><span class="p">[</span><span class="n">ci</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">compute_ap</span><span class="p">(</span><span class="n">recall</span><span class="p">[:,</span> <span class="n">j</span><span class="p">],</span> <span class="n">precision</span><span class="p">[:,</span> <span class="n">j</span><span class="p">])</span>
+
+    <span class="c1"># COMPUTE F1 SCORE (HARMONIC MEAN OF PRECISION AND RECALL)</span>
+    <span class="n">f1</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span> <span class="o">*</span> <span class="n">r</span> <span class="o">/</span> <span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="n">r</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">ap</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">unique_classes</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int32&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DetectionMetrics"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.detection_metrics.DetectionMetrics">[docs]</a><span class="k">class</span> <span class="nc">DetectionMetrics</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_cls</span><span class="p">,</span>
+                 <span class="n">post_prediction_callback</span><span class="p">:</span> <span class="n">DetectionPostPredictionCallback</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">iou_thres</span><span class="p">:</span> <span class="n">IouThreshold</span> <span class="o">=</span> <span class="n">IouThreshold</span><span class="o">.</span><span class="n">MAP_05_TO_095</span><span class="p">,</span>
+                 <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="sd">        @param post_prediction_callback:</span>
+<span class="sd">        @param iou_thres:</span>
+<span class="sd">        @param dist_sync_on_step:</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dist_sync_on_step</span><span class="o">=</span><span class="n">dist_sync_on_step</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_cls</span> <span class="o">=</span> <span class="n">num_cls</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iou_thres</span> <span class="o">=</span> <span class="n">iou_thres</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">map_str</span> <span class="o">=</span> <span class="s1">&#39;mAP@</span><span class="si">%.1f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">iou_thres</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">iou_thres</span><span class="o">.</span><span class="n">is_range</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;mAP@</span><span class="si">%.2f</span><span class="s1">:</span><span class="si">%.2f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">iou_thres</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Precision&quot;</span><span class="p">,</span> <span class="s2">&quot;Recall&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_str</span><span class="p">,</span> <span class="s2">&quot;F1&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">component_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_prediction_callback</span> <span class="o">=</span> <span class="n">post_prediction_callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span> <span class="o">=</span> <span class="n">super_gradients</span><span class="o">.</span><span class="n">is_distributed</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_state</span><span class="p">(</span><span class="s2">&quot;metrics&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[],</span> <span class="n">dist_reduce_fx</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DetectionMetrics.update"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.detection_metrics.DetectionMetrics.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">preds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_prediction_callback</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">metrics</span><span class="p">,</span> <span class="n">batch_images_counter</span> <span class="o">=</span> <span class="n">calc_batch_prediction_accuracy</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span>
+                                                                       <span class="bp">self</span><span class="o">.</span><span class="n">iou_thres</span><span class="p">)</span>
+        <span class="n">acc_metrics</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;metrics&quot;</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;metrics&quot;</span><span class="p">,</span> <span class="n">acc_metrics</span> <span class="o">+</span> <span class="n">metrics</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DetectionMetrics.compute"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.detection_metrics.DetectionMetrics.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">precision</span><span class="p">,</span> <span class="n">recall</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">mean_precision</span><span class="p">,</span> <span class="n">mean_recall</span><span class="p">,</span> <span class="n">mean_ap</span><span class="p">,</span> <span class="n">mf1</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;metrics&quot;</span><span class="p">)</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">metrics</span><span class="p">))]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
+            <span class="n">precision</span><span class="p">,</span> <span class="n">recall</span><span class="p">,</span> <span class="n">average_precision</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">ap_class</span> <span class="o">=</span> <span class="n">ap_per_class</span><span class="p">(</span><span class="o">*</span><span class="n">metrics</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iou_thres</span><span class="o">.</span><span class="n">is_range</span><span class="p">():</span>
+                <span class="n">precision</span><span class="p">,</span> <span class="n">recall</span><span class="p">,</span> <span class="n">average_precision</span><span class="p">,</span> <span class="n">f1</span> <span class="o">=</span> <span class="n">precision</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">recall</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">average_precision</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+                    <span class="mi">1</span><span class="p">),</span> <span class="n">average_precision</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">mean_precision</span><span class="p">,</span> <span class="n">mean_recall</span><span class="p">,</span> <span class="n">mean_ap</span><span class="p">,</span> <span class="n">mf1</span> <span class="o">=</span> <span class="n">precision</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">recall</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">average_precision</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">f1</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;Precision&quot;</span><span class="p">:</span> <span class="n">mean_precision</span><span class="p">,</span> <span class="s2">&quot;Recall&quot;</span><span class="p">:</span> <span class="n">mean_recall</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_str</span><span class="p">:</span> <span class="n">mean_ap</span><span class="p">,</span> <span class="s2">&quot;F1&quot;</span><span class="p">:</span> <span class="n">mf1</span><span class="p">}</span></div>
+
+    <span class="k">def</span> <span class="nf">_sync_dist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dist_sync_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">process_group</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        When in distributed mode, stats are aggregated after each forward pass to the metric state. Since these have all</span>
+<span class="sd">        different sizes we override the synchronization function since it works only for tensors (and use</span>
+<span class="sd">        all_gather_object)</span>
+<span class="sd">        @param dist_sync_fn:</span>
+<span class="sd">        @return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span><span class="p">:</span>
+            <span class="n">local_state_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">attr</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reductions</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+            <span class="n">gathered_state_dicts</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_size</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">barrier</span><span class="p">()</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">all_gather_object</span><span class="p">(</span><span class="n">gathered_state_dicts</span><span class="p">,</span> <span class="n">local_state_dict</span><span class="p">)</span>
+            <span class="n">metrics</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">state_dict</span> <span class="ow">in</span> <span class="n">gathered_state_dicts</span><span class="p">:</span>
+                <span class="n">metrics</span> <span class="o">+=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s2">&quot;metrics&quot;</span><span class="p">]</span>
+
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;metrics&quot;</span><span class="p">,</span> <span class="n">metrics</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

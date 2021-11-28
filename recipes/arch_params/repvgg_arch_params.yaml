@@ -1,0 +1,10 @@
+defaults:
+  - default_arch_params
+
+struct: # model's structure
+num_classes: # number of outputs of the classification head
+width_multiplier: # model's width multiplier
+use_se: False # use squeeze and excitation layer
+backbone_mode: False # cuts off classification head.
+build_residual_branches: True # whether to add residual connections or not
+in_channels: 3 # number of input channels

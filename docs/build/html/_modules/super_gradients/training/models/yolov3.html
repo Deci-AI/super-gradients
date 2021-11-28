@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.training.models.yolov3 &mdash; SuperGradients 1.0 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../intro.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">super_gradients.training package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>super_gradients.training.models.yolov3</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for super_gradients.training.models.yolov3</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Yolov3 code adapted from https://github.com/ultralytics/yolov3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">super_gradients.training.models</span> <span class="kn">import</span> <span class="n">SgModule</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.models.darknet53</span> <span class="kn">import</span> <span class="n">Darknet53</span><span class="p">,</span> <span class="n">DarkResidualBlock</span><span class="p">,</span> <span class="n">create_conv_module</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils</span> <span class="kn">import</span> <span class="n">HpmStruct</span><span class="p">,</span> <span class="n">get_param</span>
+
+
+<div class="viewcode-block" id="SPPLayer"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.SPPLayer">[docs]</a><span class="k">class</span> <span class="nc">SPPLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SPPLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SPPLayer.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.SPPLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x_1</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="n">x_2</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">x_3</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">x_4</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x_1</span><span class="p">,</span> <span class="n">x_2</span><span class="p">,</span> <span class="n">x_3</span><span class="p">,</span> <span class="n">x_4</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div></div>
+
+
+<div class="viewcode-block" id="Upsample"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.Upsample">[docs]</a><span class="k">class</span> <span class="nc">Upsample</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;nearest&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Upsample</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span> <span class="o">=</span> <span class="n">scale_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+<div class="viewcode-block" id="Upsample.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.Upsample.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div></div>
+
+
+<div class="viewcode-block" id="YOLOLayer"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YOLOLayer">[docs]</a><span class="k">class</span> <span class="nc">YOLOLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">anchors_mask</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">classes_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">anchors</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">onnx_stride</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">onnx_export_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        YOLOLayer</span>
+<span class="sd">            :param anchors_mask:</span>
+<span class="sd">            :param classes_num:</span>
+<span class="sd">            :param anchors:</span>
+<span class="sd">            :param image_size:</span>
+<span class="sd">            :param onnx_stride:</span>
+<span class="sd">            :param onnx_export_mode:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">YOLOLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anchors</span> <span class="o">=</span> <span class="n">anchors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span> <span class="o">=</span> <span class="n">onnx_export_mode</span>
+        <span class="n">masked_anchors</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">anchors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">anchors_mask</span><span class="p">]</span>
+        <span class="n">anchors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">masked_anchors</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anchors_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">anchors</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">anchors_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">anchors_mask</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span> <span class="o">=</span> <span class="n">classes_num</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_grid_points_num</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_grid_points_num</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">onnx_stride</span> <span class="o">=</span> <span class="n">onnx_stride</span>
+
+<div class="viewcode-block" id="YOLOLayer.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YOLOLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">img_size</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span><span class="p">:</span>
+            <span class="c1"># ALL OF THE GRIDS WERE CALCULATED IN init</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">y_grid_points_num</span><span class="p">,</span> <span class="n">x_grid_points_num</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_grid_points_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_grid_points_num</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="n">x_grid_points_num</span><span class="p">,</span> <span class="n">y_grid_points_num</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">create_grids</span><span class="p">(</span><span class="n">img_size</span><span class="p">,</span> <span class="p">(</span><span class="n">x_grid_points_num</span><span class="p">,</span> <span class="n">y_grid_points_num</span><span class="p">),</span> <span class="n">img</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># PREDICTION</span>
+        <span class="c1"># IMG.VIEW(BATCH_SIZE, PRE_YOLO_LAYER_SIZE(DEFAULT IS 255), 13, 13) --&gt; (BATCH_SIZE, 3, 13, 13, NUM_CLASSES + 5)</span>
+        <span class="c1"># (BS, ANCHORS_NUM, GRID, GRID, CLASSES + XYWH + OBJECTNESS)</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchors_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span> <span class="o">+</span> <span class="mi">5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_grid_points_num</span><span class="p">,</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">x_grid_points_num</span><span class="p">)</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">prediction</span>
+
+        <span class="c1"># INFERENCE - ONNX</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span><span class="p">:</span>
+            <span class="c1"># CONSTANTS CAN NOT BE BROADCASTED</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchors_num</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_grid_points_num</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_grid_points_num</span>
+            <span class="n">ngu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span><span class="o">.</span><span class="n">repeat</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">grid_xy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_xy</span><span class="o">.</span><span class="n">repeat</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchors_num</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">anchor_wh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor_wh</span><span class="o">.</span><span class="n">repeat</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_grid_points_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_grid_points_num</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span>
+                                                                                                              <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">ngu</span>
+
+            <span class="c1"># MOVE THE TENSORS TO SAME DEVICE AS prediction TO APPLY TENSOR CALCULATION</span>
+            <span class="n">ngu</span> <span class="o">=</span> <span class="n">ngu</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">grid_xy</span> <span class="o">=</span> <span class="n">grid_xy</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">anchor_wh</span> <span class="o">=</span> <span class="n">anchor_wh</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="n">prediction</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="mi">5</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span><span class="p">)</span>
+            <span class="n">xy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">prediction</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="n">grid_xy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># x, y</span>
+            <span class="n">wh</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">prediction</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span> <span class="o">*</span> <span class="n">anchor_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># width, height</span>
+            <span class="n">prediction_confidence</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">prediction</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:</span><span class="mi">5</span><span class="p">])</span>
+
+            <span class="c1"># CHANGE THE RESULTS TO BE A VECTOR OF CLASS CONF * OBJECTNESS CONF FOR EACH OF THE CLASSES (like SSD)</span>
+            <span class="n">cls_prediction</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">prediction</span><span class="p">[:,</span> <span class="mi">5</span><span class="p">:</span><span class="mi">5</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">prediction_confidence</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">xy</span> <span class="o">/</span> <span class="n">ngu</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">wh</span><span class="p">,</span> <span class="n">prediction_confidence</span><span class="p">,</span> <span class="n">cls_prediction</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">t</span><span class="p">()</span>
+
+        <span class="c1"># INFERENCE</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">inference_out</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="n">inference_out</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">inference_out</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_xy</span>
+            <span class="n">inference_out</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">inference_out</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor_wh</span>
+            <span class="n">inference_out</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid_</span><span class="p">(</span><span class="n">inference_out</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">4</span><span class="p">:])</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># IGNORE cls FOR SINGLE CLASS DATA SETS</span>
+                <span class="n">inference_out</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="c1"># RESHAPE FROM [1, 3, 13, 13, NUM_CLASSES + 5] TO [1, 507, NUM_CLASSES + 5]</span>
+            <span class="k">return</span> <span class="n">inference_out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span><span class="p">),</span> <span class="n">prediction</span></div>
+
+<div class="viewcode-block" id="YOLOLayer.create_grids"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YOLOLayer.create_grids">[docs]</a>    <span class="k">def</span> <span class="nf">create_grids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img_size</span><span class="o">=</span><span class="p">(</span><span class="mi">416</span><span class="p">,</span> <span class="mi">416</span><span class="p">),</span> <span class="n">grid_size</span><span class="o">=</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">13</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        create_grids - Creates the grids for image sizes that are different than the model&#39;s defualt image size</span>
+<span class="sd">            :param img_size:</span>
+<span class="sd">            :param grid_size:</span>
+<span class="sd">            :param device:</span>
+<span class="sd">            :param data_type:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span> <span class="o">=</span> <span class="n">grid_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">img_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">grid_size</span><span class="p">)</span>
+
+        <span class="c1"># build xy offsets</span>
+        <span class="n">yv</span><span class="p">,</span> <span class="n">xv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">ny</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nx</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_xy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">xv</span><span class="p">,</span> <span class="n">yv</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">data_type</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># build wh gains</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anchor_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchors_mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anchor_wh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor_vec</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchors_num</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">data_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">grid_size</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_grid_points_num</span> <span class="o">=</span> <span class="n">nx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_grid_points_num</span> <span class="o">=</span> <span class="n">ny</span></div></div>
+
+
+<div class="viewcode-block" id="YoloV3"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YoloV3">[docs]</a><span class="k">class</span> <span class="nc">YoloV3</span><span class="p">(</span><span class="n">SgModule</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    YoloV3</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span> <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">416</span><span class="p">,</span>
+                 <span class="n">arch_params</span><span class="p">:</span> <span class="n">HpmStruct</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">iou_t</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.225</span><span class="p">,</span> <span class="n">yolo_v3_anchors</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">onnx_export_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">YoloV3</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">arch_params</span><span class="p">:</span>
+            <span class="n">arch_params_dict</span> <span class="o">=</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">num_classes</span> <span class="k">if</span> <span class="s1">&#39;num_classes&#39;</span> <span class="ow">in</span> <span class="n">arch_params_dict</span> <span class="k">else</span> <span class="n">num_classes</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image_size</span> <span class="o">=</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">image_size</span> <span class="k">if</span> <span class="s1">&#39;image_size&#39;</span> <span class="ow">in</span> <span class="n">arch_params_dict</span> <span class="k">else</span> <span class="n">image_size</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iou_t</span> <span class="o">=</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">iou_t</span> <span class="k">if</span> <span class="s1">&#39;iou_t&#39;</span> <span class="ow">in</span> <span class="n">arch_params_dict</span> <span class="k">else</span> <span class="n">iou_t</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span> <span class="o">=</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">onnx_export_mode</span> <span class="k">if</span> \
+                <span class="s1">&#39;onnx_export_mode&#39;</span> <span class="ow">in</span> <span class="n">arch_params_dict</span> <span class="k">else</span> <span class="n">onnx_export_mode</span>
+            <span class="n">yolo_v3_anchors</span> <span class="o">=</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">yolo_v3_anchors</span> <span class="k">if</span> <span class="s1">&#39;yolo_v3_anchors&#39;</span> <span class="ow">in</span> <span class="n">arch_params_dict</span> <span class="k">else</span> <span class="n">yolo_v3_anchors</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image_size</span> <span class="o">=</span> <span class="n">image_size</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">num_classes</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iou_t</span> <span class="o">=</span> <span class="n">iou_t</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span> <span class="o">=</span> <span class="n">onnx_export_mode</span>
+
+        <span class="c1"># THIS IS THE LAYER SIZE THAT FEEDS THE YOLO LAYER</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_yolo_layer_size</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">+</span> <span class="mi">5</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span>
+
+        <span class="k">if</span> <span class="n">yolo_v3_anchors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># USE DEFAULT COCO DATA SET ANCHORS FOR YOLO V3</span>
+            <span class="n">yolo_v3_anchors</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="mf">10.</span><span class="p">,</span> <span class="mf">13.</span><span class="p">),</span> <span class="p">(</span><span class="mf">16.</span><span class="p">,</span> <span class="mf">30.</span><span class="p">),</span> <span class="p">(</span><span class="mf">33.</span><span class="p">,</span> <span class="mf">23.</span><span class="p">),</span>
+                <span class="p">(</span><span class="mf">30.</span><span class="p">,</span> <span class="mf">61.</span><span class="p">),</span> <span class="p">(</span><span class="mf">62.</span><span class="p">,</span> <span class="mf">45.</span><span class="p">),</span> <span class="p">(</span><span class="mf">59.</span><span class="p">,</span> <span class="mf">119.</span><span class="p">),</span>
+                <span class="p">(</span><span class="mf">116.</span><span class="p">,</span> <span class="mf">90.</span><span class="p">),</span> <span class="p">(</span><span class="mf">156.</span><span class="p">,</span> <span class="mf">198.</span><span class="p">),</span> <span class="p">(</span><span class="mf">373.</span><span class="p">,</span> <span class="mf">326.</span><span class="p">)]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">yolo_v3_anchors</span> <span class="o">=</span> <span class="n">yolo_v3_anchors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">module_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_modules_list</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yolo_layers_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_yolo_layers_indices</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prep_model_for_conversion</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">image_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_size</span><span class="p">])</span>
+
+<div class="viewcode-block" id="YoloV3.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YoloV3.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">img_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">yolo_output</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">route_layers</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">module_list</span><span class="p">):</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">YOLOLayer</span><span class="p">):</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">img_size</span><span class="o">=</span><span class="n">img_size</span><span class="p">)</span>
+                <span class="n">yolo_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+            <span class="c1"># CONCATENATE THE OUTPUTS OF PREVIOUS LAYERS</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">route_layers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">concatenate_layer_output</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">route_layers</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">yolo_output</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span><span class="p">:</span>
+            <span class="c1">#  CAT 3 LAYERS (NUM_CLASSES + 5) X (507, 2028, 8112) TO (NUM_CLASSES + 5) X 10647</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">yolo_output</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># ONNX SCORES, bboxes</span>
+            <span class="k">return</span> <span class="n">output</span><span class="p">[</span><span class="mi">5</span><span class="p">:</span><span class="mi">5</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">]</span><span class="o">.</span><span class="n">t</span><span class="p">(),</span> <span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">t</span><span class="p">()</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># INFERENCE</span>
+            <span class="n">inference_output</span><span class="p">,</span> <span class="n">training_output</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">yolo_output</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">inference_output</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">training_output</span></div>
+
+<div class="viewcode-block" id="YoloV3.initialize_param_groups"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YoloV3.initialize_param_groups">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_param_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">training_params</span><span class="p">:</span> <span class="n">HpmStruct</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        initialize_optimizer_for_model_param_groups - Initializes the optimizer group params,</span>
+<span class="sd">                                                      adds weight decay  *Only* to the Conv2D layers</span>
+<span class="sd">            :param lr:              lr to set for the optimizer</span>
+<span class="sd">            :param training_params:</span>
+<span class="sd">            :return:  A dictionary with named params and optimizer attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">optimizer_params</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">training_params</span><span class="p">,</span> <span class="s1">&#39;optimizer_params&#39;</span><span class="p">)</span>
+        <span class="c1"># OPTIMIZER PARAMETER GROUPS</span>
+        <span class="n">default_param_group</span><span class="p">,</span> <span class="n">weight_decay_param_group</span><span class="p">,</span> <span class="n">biases_param_group</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">())</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="s1">&#39;.bias&#39;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">:</span>
+                <span class="n">biases_param_group</span> <span class="o">+=</span> <span class="p">[[</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">]]</span>
+            <span class="k">elif</span> <span class="s1">&#39;Conv2d.weight&#39;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">:</span>
+                <span class="n">weight_decay_param_group</span> <span class="o">+=</span> <span class="p">[[</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">]]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">default_param_group</span> <span class="o">+=</span> <span class="p">[[</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">]]</span>
+
+        <span class="c1"># DEFAULT USAGE FOR YOLO TRAINING IS WITH NESTEROV</span>
+        <span class="n">nesterov</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s1">&#39;nesterov&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">optimizer_params</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="n">optimizer_params</span><span class="p">[</span><span class="s1">&#39;nesterov&#39;</span><span class="p">]</span>
+
+        <span class="n">default_param_group_optimizer_format</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;named_params&#39;</span><span class="p">:</span> <span class="n">default_param_group</span><span class="p">,</span>
+                                                <span class="s1">&#39;lr&#39;</span><span class="p">:</span> <span class="n">lr</span><span class="p">,</span>
+                                                <span class="s1">&#39;nesterov&#39;</span><span class="p">:</span> <span class="n">nesterov</span><span class="p">,</span>
+                                                <span class="s1">&#39;momentum&#39;</span><span class="p">:</span> <span class="n">optimizer_params</span><span class="p">[</span><span class="s1">&#39;momentum&#39;</span><span class="p">]}</span>
+
+        <span class="n">weight_decay_param_group_optimizer_format</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;named_params&#39;</span><span class="p">:</span> <span class="n">weight_decay_param_group</span><span class="p">,</span>
+                                                     <span class="s1">&#39;weight_decay&#39;</span><span class="p">:</span> <span class="n">optimizer_params</span><span class="p">[</span><span class="s1">&#39;weight_decay&#39;</span><span class="p">]}</span>
+
+        <span class="n">biases_param_group_optimizer_format</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;named_params&#39;</span><span class="p">:</span> <span class="n">biases_param_group</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">default_param_group_optimizer_format</span><span class="p">,</span>
+                <span class="n">weight_decay_param_group_optimizer_format</span><span class="p">,</span>
+                <span class="n">biases_param_group_optimizer_format</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="YoloV3.concatenate_layer_output"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YoloV3.concatenate_layer_output">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">concatenate_layer_output</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">layer_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">route_layers</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        concatenate_layer_output</span>
+<span class="sd">            :param x:               input for the layer</span>
+<span class="sd">            :param layer_index:     the layer index to decide how to concatenate to</span>
+<span class="sd">            :param route_layers:    the route layers list with previous data</span>
+<span class="sd">            :return:                tuple of x, route_layers</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># CONCATENATE THE OUTPUTS OF PREVIOUS LAYERS</span>
+        <span class="k">if</span> <span class="n">layer_index</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">26</span><span class="p">]:</span>
+            <span class="n">route_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">layer_index</span> <span class="o">==</span> <span class="mi">19</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">route_layers</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">layer_index</span> <span class="o">==</span> <span class="mi">29</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">route_layers</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">layer_index</span> <span class="o">==</span> <span class="mi">21</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">route_layers</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">layer_index</span> <span class="o">==</span> <span class="mi">31</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">route_layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">route_layers</span></div>
+
+<div class="viewcode-block" id="YoloV3.get_yolo_layers_indices"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YoloV3.get_yolo_layers_indices">[docs]</a>    <span class="k">def</span> <span class="nf">get_yolo_layers_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">module_list</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">YOLOLayer</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="YoloV3.add_yolo_layer_to_modules_list"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YoloV3.add_yolo_layer_to_modules_list">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">add_yolo_layer_to_modules_list</span><span class="p">(</span><span class="n">modules_list</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">,</span> <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">yolo_v3_anchors</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+                                       <span class="n">anchors_mask</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">onnx_stride</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                                       <span class="n">onnx_export_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        add_yolo_layer_to_modules_list - Adds a YoLo Head Layer to the nn.ModuleList</span>
+<span class="sd">            :param modules_list:            The Modules List</span>
+<span class="sd">            :param image_size:              The YoLo Model Image Size</span>
+<span class="sd">            :param yolo_v3_anchors:         The Anchors (K-Means) List for the YoLo Layer Initialization</span>
+<span class="sd">            :param anchors_mask:            the mask to get the relevant anchors</span>
+<span class="sd">            :param num_classes:             The number of different classes in the data</span>
+<span class="sd">            :param onnx_stride:             The stride of the layer for ONNX grid points calculation in YoLo Layer init</span>
+<span class="sd">            :param onnx_export_mode:        Alter the model YoLo Layer for ONNX Export</span>
+<span class="sd">            :return:                        The nn.ModuleList with the Added Yolo layer, and a Bias Initialization</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">[</span><span class="n">yolo_v3_anchors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">anchors_mask</span><span class="p">]</span>
+
+        <span class="n">b</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">5.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.0</span><span class="p">]</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="n">modules_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mask</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># PRE-YOLO-LAYER to 3x(NUM_CLASSES + 5)</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">bias</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">+=</span> <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">bias</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>  <span class="c1"># OBJECTNESS</span>
+            <span class="n">bias</span><span class="p">[:,</span> <span class="mi">5</span><span class="p">:]</span> <span class="o">+=</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">bias</span><span class="p">[:,</span> <span class="mi">5</span><span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>  <span class="c1"># CLASSIFICATION</span>
+            <span class="n">modules_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">bias</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="n">modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">YOLOLayer</span><span class="p">(</span><span class="n">anchors_mask</span><span class="o">=</span><span class="n">anchors_mask</span><span class="p">,</span> <span class="n">classes_num</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">anchors</span><span class="o">=</span><span class="n">yolo_v3_anchors</span><span class="p">,</span>
+                                      <span class="n">image_size</span><span class="o">=</span><span class="n">image_size</span><span class="p">,</span> <span class="n">onnx_stride</span><span class="o">=</span><span class="n">onnx_stride</span><span class="p">,</span>
+                                      <span class="n">onnx_export_mode</span><span class="o">=</span><span class="n">onnx_export_mode</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">modules_list</span></div>
+
+<div class="viewcode-block" id="YoloV3.named_sequential_module"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YoloV3.named_sequential_module">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">named_sequential_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        create_named_nn_sequential_module</span>
+<span class="sd">            :param module_name:</span>
+<span class="sd">            :param module:</span>
+<span class="sd">            :return: nn.Sequential() with the added relevant names</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">named_sequential_module</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">()</span>
+        <span class="n">named_sequential_module</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">named_sequential_module</span></div>
+
+<div class="viewcode-block" id="YoloV3.create_modules_list"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YoloV3.create_modules_list">[docs]</a>    <span class="k">def</span> <span class="nf">create_modules_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        create_modules_list</span>
+<span class="sd">            :param num_classes:</span>
+<span class="sd">            :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># DARKNET BACKBONE ARCHITECTURE</span>
+        <span class="n">darknet_53</span> <span class="o">=</span> <span class="n">Darknet53</span><span class="p">(</span><span class="n">backbone_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">yolo_modules_list</span> <span class="o">=</span> <span class="n">darknet_53</span><span class="o">.</span><span class="n">get_modules_list</span><span class="p">()</span>
+
+        <span class="c1"># YOLO V3 ARCHITECTURE</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DarkResidualBlock</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">shortcut</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>  <span class="c1"># 11</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 12</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SPPLayer</span><span class="p">())</span>  <span class="c1"># 13</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 14</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 15</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 16</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 17</span>
+
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;Conv2d&#39;</span><span class="p">,</span>
+                                                              <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+                                                                        <span class="n">out_channels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_yolo_layer_size</span><span class="p">,</span>
+                                                                        <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">)))</span>  <span class="c1"># 18</span>
+
+        <span class="n">yolo_modules_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_yolo_layer_to_modules_list</span><span class="p">(</span><span class="n">modules_list</span><span class="o">=</span><span class="n">yolo_modules_list</span><span class="p">,</span>  <span class="c1"># 19</span>
+                                                                <span class="n">image_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_size</span><span class="p">,</span>
+                                                                <span class="n">yolo_v3_anchors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">yolo_v3_anchors</span><span class="p">,</span>
+                                                                <span class="n">anchors_mask</span><span class="o">=</span><span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span>
+                                                                <span class="n">onnx_stride</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">onnx_export_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span><span class="p">)</span>
+
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 20</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Upsample</span><span class="p">(</span><span class="n">scale_factor</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">))</span>  <span class="c1"># 21</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">768</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 22</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 23</span>
+
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 24</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 25</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 26</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 27</span>
+
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;Conv2d&#39;</span><span class="p">,</span>
+                                                              <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+                                                                        <span class="n">out_channels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_yolo_layer_size</span><span class="p">,</span>
+                                                                        <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">)))</span>  <span class="c1"># 28</span>
+
+        <span class="n">yolo_modules_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_yolo_layer_to_modules_list</span><span class="p">(</span><span class="n">modules_list</span><span class="o">=</span><span class="n">yolo_modules_list</span><span class="p">,</span>  <span class="c1"># 29</span>
+                                                                <span class="n">image_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_size</span><span class="p">,</span>
+                                                                <span class="n">yolo_v3_anchors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">yolo_v3_anchors</span><span class="p">,</span>
+                                                                <span class="n">anchors_mask</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span>
+                                                                <span class="n">onnx_stride</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">onnx_export_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span><span class="p">)</span>
+
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 30</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Upsample</span><span class="p">(</span><span class="n">scale_factor</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">))</span>  <span class="c1"># 31</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">384</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 32</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 33</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 34</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 35</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 36</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 37</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;Conv2d&#39;</span><span class="p">,</span>
+                                                              <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+                                                                        <span class="n">out_channels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_yolo_layer_size</span><span class="p">,</span>
+                                                                        <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">)))</span>  <span class="c1"># 38</span>
+
+        <span class="n">yolo_modules_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_yolo_layer_to_modules_list</span><span class="p">(</span><span class="n">modules_list</span><span class="o">=</span><span class="n">yolo_modules_list</span><span class="p">,</span>  <span class="c1"># 39</span>
+                                                                <span class="n">image_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_size</span><span class="p">,</span>
+                                                                <span class="n">yolo_v3_anchors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">yolo_v3_anchors</span><span class="p">,</span>
+                                                                <span class="n">anchors_mask</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span>
+                                                                <span class="n">onnx_stride</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">onnx_export_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">yolo_modules_list</span></div>
+
+<div class="viewcode-block" id="YoloV3.prep_model_for_conversion"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.YoloV3.prep_model_for_conversion">[docs]</a>    <span class="k">def</span> <span class="nf">prep_model_for_conversion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_size</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method for preparing the Yolov3 and TinyYolov3 for conversion (ONNX, TRT, CoreML etc).</span>
+<span class="sd">        :param input_size: used for calculating the grid points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># ONNX EXPORT REQUIRES GRIDS TO BE CALCULATED IN init of YOLOLayer SO WE RE-RUN THE CALC METHOD</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">module_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">YOLOLayer</span><span class="p">):</span>
+                <span class="n">module</span><span class="o">.</span><span class="n">onnx_export_mode</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">x_grid_points_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">input_size</span> <span class="o">/</span> <span class="n">module</span><span class="o">.</span><span class="n">onnx_stride</span><span class="p">)</span>
+                <span class="n">y_grid_points_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">input_size</span> <span class="o">/</span> <span class="n">module</span><span class="o">.</span><span class="n">onnx_stride</span><span class="p">)</span>
+                <span class="n">module</span><span class="o">.</span><span class="n">create_grids</span><span class="p">((</span><span class="n">input_size</span><span class="p">,</span> <span class="n">input_size</span><span class="p">),</span> <span class="p">(</span><span class="n">x_grid_points_num</span><span class="p">,</span> <span class="n">y_grid_points_num</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="TinyYoloV3"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.TinyYoloV3">[docs]</a><span class="k">class</span> <span class="nc">TinyYoloV3</span><span class="p">(</span><span class="n">YoloV3</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    TinyYoloV3 - Inherits from YoLoV3 class and overloads the relevant methods and members</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span> <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">416</span><span class="p">,</span>
+                 <span class="n">arch_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">iou_t</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.225</span><span class="p">,</span> <span class="n">yolo_v3_anchors</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">arch_params</span><span class="p">:</span>
+            <span class="n">yolo_v3_anchors</span> <span class="o">=</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">yolo_v3_anchors</span> <span class="k">if</span> <span class="s1">&#39;yolo_v3_anchors&#39;</span> <span class="ow">in</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">else</span> <span class="n">yolo_v3_anchors</span>
+        <span class="k">if</span> <span class="n">yolo_v3_anchors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># DEFAULT ANCHORS FOR TINY YOLO V3</span>
+            <span class="n">yolo_v3_anchors</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">10.</span><span class="p">,</span> <span class="mf">14.</span><span class="p">),</span> <span class="p">(</span><span class="mf">23.</span><span class="p">,</span> <span class="mf">27.</span><span class="p">),</span> <span class="p">(</span><span class="mf">37.</span><span class="p">,</span> <span class="mf">58.</span><span class="p">),</span>
+                               <span class="p">(</span><span class="mf">81.</span><span class="p">,</span> <span class="mf">82.</span><span class="p">),</span> <span class="p">(</span><span class="mf">135.</span><span class="p">,</span> <span class="mf">169.</span><span class="p">),</span> <span class="p">(</span><span class="mf">344.</span><span class="p">,</span> <span class="mf">319.</span><span class="p">)]</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">TinyYoloV3</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">image_size</span><span class="o">=</span><span class="n">image_size</span><span class="p">,</span>
+                                         <span class="n">arch_params</span><span class="o">=</span><span class="n">arch_params</span><span class="p">,</span> <span class="n">iou_t</span><span class="o">=</span><span class="n">iou_t</span><span class="p">,</span> <span class="n">yolo_v3_anchors</span><span class="o">=</span><span class="n">yolo_v3_anchors</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TinyYoloV3.concatenate_layer_output"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.TinyYoloV3.concatenate_layer_output">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">concatenate_layer_output</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">layer_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">route_layers</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        concatenate_layer_output</span>
+<span class="sd">            :param x:               input for the layer</span>
+<span class="sd">            :param layer_index:     the layer index to decide how to concatenate to</span>
+<span class="sd">            :param route_layers:    the route layers list with previous data</span>
+<span class="sd">            :return:                tuple of x, route_layers</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># CONCATENATE THE OUTPUTS OF PREVIOUS LAYERS</span>
+        <span class="k">if</span> <span class="n">layer_index</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">14</span><span class="p">]:</span>
+            <span class="n">route_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">layer_index</span> <span class="o">==</span> <span class="mi">17</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">route_layers</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">layer_index</span> <span class="o">==</span> <span class="mi">19</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">route_layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">route_layers</span></div>
+
+<div class="viewcode-block" id="TinyYoloV3.create_modules_list"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.yolov3.TinyYoloV3.create_modules_list">[docs]</a>    <span class="k">def</span> <span class="nf">create_modules_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        create_tiny_modules_list</span>
+<span class="sd">            :param num_classes:     The Number of different Classes</span>
+<span class="sd">            :return:                nn.ModuleList with the Tiny-Yolo-V3 Architecture</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">yolo_modules_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">16</span><span class="p">))</span>  <span class="c1"># 0</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;MaxPool2d&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)))</span>  <span class="c1"># 1</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">))</span>  <span class="c1"># 2</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;MaxPool2d&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)))</span>  <span class="c1"># 3</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">))</span>  <span class="c1"># 4</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;MaxPool2d&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)))</span>  <span class="c1"># 5</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">))</span>  <span class="c1"># 6</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;MaxPool2d&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)))</span>  <span class="c1"># 7</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">))</span>  <span class="c1"># 8</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;MaxPool2d&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)))</span>  <span class="c1"># 9</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">))</span>  <span class="c1"># 10</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;ZeroPad2d&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">ZeroPad2d</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))))</span>  <span class="c1"># 11</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;MaxPool2d&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)))</span>  <span class="c1"># 12</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">1024</span><span class="p">))</span>  <span class="c1"># 13</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 14</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">))</span>  <span class="c1"># 15</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;Conv2d&#39;</span><span class="p">,</span>
+                                                              <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+                                                                        <span class="n">out_channels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_yolo_layer_size</span><span class="p">,</span>
+                                                                        <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">)))</span>  <span class="c1"># 16</span>
+
+        <span class="n">yolo_modules_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_yolo_layer_to_modules_list</span><span class="p">(</span><span class="n">modules_list</span><span class="o">=</span><span class="n">yolo_modules_list</span><span class="p">,</span>  <span class="c1"># 17</span>
+                                                                <span class="n">image_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_size</span><span class="p">,</span>
+                                                                <span class="n">yolo_v3_anchors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">yolo_v3_anchors</span><span class="p">,</span>
+                                                                <span class="n">anchors_mask</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span>
+                                                                <span class="n">onnx_stride</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">onnx_export_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span><span class="p">)</span>
+
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 18</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Upsample</span><span class="p">(</span><span class="n">scale_factor</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">))</span>  <span class="c1"># 19</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">create_conv_module</span><span class="p">(</span><span class="mi">384</span><span class="p">,</span> <span class="mi">256</span><span class="p">))</span>  <span class="c1"># 20</span>
+        <span class="n">yolo_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">named_sequential_module</span><span class="p">(</span><span class="s1">&#39;Conv2d&#39;</span><span class="p">,</span>
+                                                              <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+                                                                        <span class="n">out_channels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_yolo_layer_size</span><span class="p">,</span>
+                                                                        <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">)))</span>  <span class="c1"># 21</span>
+
+        <span class="c1"># THE [1, 2, 3] IN THE MASK IS NOT A BUG, BUT A FEATURE :)</span>
+        <span class="n">yolo_modules_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_yolo_layer_to_modules_list</span><span class="p">(</span><span class="n">modules_list</span><span class="o">=</span><span class="n">yolo_modules_list</span><span class="p">,</span>  <span class="c1"># 22</span>
+                                                                <span class="n">image_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">image_size</span><span class="p">,</span>
+                                                                <span class="n">yolo_v3_anchors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">yolo_v3_anchors</span><span class="p">,</span>
+                                                                <span class="n">anchors_mask</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span>
+                                                                <span class="n">onnx_stride</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">onnx_export_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">onnx_export_mode</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">yolo_modules_list</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

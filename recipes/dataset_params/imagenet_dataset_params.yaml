@@ -1,0 +1,14 @@
+batch_size: 64 # batch size for trainset in DatasetInterface
+val_batch_size: 200 # batch size for valset in DatasetInterface
+dataset_dir: /data/Imagenet # path to imagenet directory (local)
+traindir: train # dirname inside dataset_dir holding trainset files
+valdir: val # dirname inside dataset_dir holding valset files
+img_mean: [0.485, 0.456, 0.406] # mean for normalization
+img_std: [0.229, 0.224, 0.225] # std for normalization
+crop_size: 224 # crop size (size of net's input)
+resize_size: 256 # loaded image resize size (appplied first among preprocessing transforms)
+color_jitter: 0.0 # color jitter augmentation (applied only to trainset)
+imagenet_pca_aug: 0.0 # imagenet pca augmentation (applied only to trainset)
+train_interpolation: default # interpolation mode
+rand_augment_config_string: # randaugment config string (see super_gradients/training/datasets/auto_augment.py)
+random_erase_prob: 0.0 # random erase probability (applied only to trainset)

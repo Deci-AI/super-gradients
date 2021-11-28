@@ -1,0 +1,5 @@
+defaults:
+  - yolo_arch_params
+
+depth_mult_factor: 0.67  # depth multiplier for the entire model, overridden for predefined YoloV5S, YoloV5M, YoloV5L
+width_mult_factor: 0.75  # width multiplier for the entire model, overridden for predefined YoloV5S, YoloV5M, YoloV5L

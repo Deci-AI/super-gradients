@@ -1,0 +1,32 @@
+defaults:
+  - default_train_params
+
+max_epochs: 150
+lr_mode: cosine
+initial_lr: 0.1
+optimizer: SGD
+
+optimizer_params:
+  weight_decay: 0.00004
+
+lr_warmup_epochs: 5
+loss: cross_entropy
+criterion_params:
+  smooth_eps: 0.1
+
+zero_weight_decay_on_bias_and_bn: True
+ema: True
+
+loss_logging_items_names: [Loss]
+metric_to_watch: Accuracy
+greater_metric_to_watch_is_better: True
+
+train_metrics_list:                               # metrics for evaluation
+  - _target_: super_gradients.training.metrics.Accuracy
+  - _target_: super_gradients.training.metrics.Top5
+
+valid_metrics_list:                               # metrics for evaluation
+  - _target_: super_gradients.training.metrics.Accuracy
+  - _target_: super_gradients.training.metrics.Top5
+
+_convert_: all

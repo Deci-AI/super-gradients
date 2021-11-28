@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.training.models.densenet &mdash; SuperGradients 1.0 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../intro.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">super_gradients.training package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>super_gradients.training.models.densenet</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for super_gradients.training.models.densenet</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.models.sg_module</span> <span class="kn">import</span> <span class="n">SgModule</span>
+
+<span class="sd">&quot;&quot;&quot;Densenet-BC model class, based on</span>
+<span class="sd">&quot;Densely Connected Convolutional Networks&quot; &lt;https://arxiv.org/pdf/1608.06993.pdf&gt;`_</span>
+<span class="sd">Code source: https://github.com/pytorch/vision/blob/master/torchvision/models/densenet.py</span>
+<span class="sd">Performance reproducibility (4 GPUs):</span>
+<span class="sd"> training params: {&quot;max_epochs&quot;: 120, &quot;lr_updates&quot;: [30, 60, 90, 100, 110], &quot;lr_decay_factor&quot;: 0.1, &quot;initial_lr&quot;: 0.025}</span>
+<span class="sd"> dataset_params: {&quot;batch_size&quot;: 64}</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">_DenseLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_input_features</span><span class="p">,</span> <span class="n">growth_rate</span><span class="p">,</span> <span class="n">bn_size</span><span class="p">,</span> <span class="n">drop_rate</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_DenseLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;norm1&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">num_input_features</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;relu1&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;conv1&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">num_input_features</span><span class="p">,</span> <span class="n">bn_size</span> <span class="o">*</span> <span class="n">growth_rate</span><span class="p">,</span>
+                                           <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                           <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;norm2&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">bn_size</span> <span class="o">*</span> <span class="n">growth_rate</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;relu2&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;conv2&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">bn_size</span> <span class="o">*</span> <span class="n">growth_rate</span><span class="p">,</span> <span class="n">growth_rate</span><span class="p">,</span>
+                                           <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                           <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drop_rate</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">drop_rate</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">bn_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">concated_features</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">bottleneck_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">relu1</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">concated_features</span><span class="p">)))</span>  <span class="c1"># noqa: T484</span>
+        <span class="k">return</span> <span class="n">bottleneck_output</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>  <span class="c1"># noqa: F811</span>
+        <span class="n">prev_features</span> <span class="o">=</span> <span class="p">[</span><span class="nb">input</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="nb">input</span>
+        <span class="n">bottleneck_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn_function</span><span class="p">(</span><span class="n">prev_features</span><span class="p">)</span>
+
+        <span class="n">new_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">relu2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm2</span><span class="p">(</span><span class="n">bottleneck_output</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_rate</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">new_features</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">new_features</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">drop_rate</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_features</span>
+
+
+<span class="k">class</span> <span class="nc">_DenseBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">num_input_features</span><span class="p">,</span> <span class="n">bn_size</span><span class="p">,</span> <span class="n">growth_rate</span><span class="p">,</span> <span class="n">drop_rate</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_DenseBlock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+            <span class="n">layer</span> <span class="o">=</span> <span class="n">_DenseLayer</span><span class="p">(</span>
+                <span class="n">num_input_features</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">growth_rate</span><span class="p">,</span>
+                <span class="n">growth_rate</span><span class="o">=</span><span class="n">growth_rate</span><span class="p">,</span>
+                <span class="n">bn_size</span><span class="o">=</span><span class="n">bn_size</span><span class="p">,</span>
+                <span class="n">drop_rate</span><span class="o">=</span><span class="n">drop_rate</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;denselayer</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">layer</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">init_features</span><span class="p">):</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="p">[</span><span class="n">init_features</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">new_features</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_features</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_Transition</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_input_features</span><span class="p">,</span> <span class="n">num_output_features</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_Transition</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;norm&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">num_input_features</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">num_input_features</span><span class="p">,</span> <span class="n">num_output_features</span><span class="p">,</span>
+                                          <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;pool&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">AvgPool2d</span><span class="p">(</span><span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="DenseNet"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.densenet.DenseNet">[docs]</a><span class="k">class</span> <span class="nc">DenseNet</span><span class="p">(</span><span class="n">SgModule</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">growth_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">structure</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">num_init_features</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">bn_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">drop_rate</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                 <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param growth_rate:         number of filter to add each layer (noted as &#39;k&#39; in the paper)</span>
+<span class="sd">        :param structure:           how many layers in each pooling block - sequentially</span>
+<span class="sd">        :param num_init_features:   the number of filters to learn in the first convolutional layer</span>
+<span class="sd">        :param bn_size:             multiplicative factor for the number of bottle neck layers</span>
+<span class="sd">                                        (i.e. bn_size * k featurs in the bottleneck)</span>
+<span class="sd">        :param drop_rate:           dropout rate after each dense layer</span>
+<span class="sd">        :param num_classes:         number of classes in the classification task</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DenseNet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># First convolution</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">OrderedDict</span><span class="p">([</span>
+            <span class="p">(</span><span class="s1">&#39;conv0&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">num_init_features</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;norm0&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">num_init_features</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;relu0&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;pool0&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">))]))</span>
+
+        <span class="c1"># Each denseblock</span>
+        <span class="n">num_features</span> <span class="o">=</span> <span class="n">num_init_features</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">num_layers</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">structure</span><span class="p">):</span>
+            <span class="n">block</span> <span class="o">=</span> <span class="n">_DenseBlock</span><span class="p">(</span><span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span> <span class="n">num_input_features</span><span class="o">=</span><span class="n">num_features</span><span class="p">,</span> <span class="n">bn_size</span><span class="o">=</span><span class="n">bn_size</span><span class="p">,</span>
+                                <span class="n">growth_rate</span><span class="o">=</span><span class="n">growth_rate</span><span class="p">,</span> <span class="n">drop_rate</span><span class="o">=</span><span class="n">drop_rate</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;denseblock</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">block</span><span class="p">)</span>
+            <span class="n">num_features</span> <span class="o">=</span> <span class="n">num_features</span> <span class="o">+</span> <span class="n">num_layers</span> <span class="o">*</span> <span class="n">growth_rate</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">trans</span> <span class="o">=</span> <span class="n">_Transition</span><span class="p">(</span><span class="n">num_input_features</span><span class="o">=</span><span class="n">num_features</span><span class="p">,</span> <span class="n">num_output_features</span><span class="o">=</span><span class="n">num_features</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;transition</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">trans</span><span class="p">)</span>
+                <span class="n">num_features</span> <span class="o">=</span> <span class="n">num_features</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="c1"># Final batch norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s1">&#39;norm5&#39;</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">num_features</span><span class="p">))</span>
+
+        <span class="c1"># Linear layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">num_features</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+
+        <span class="c1"># Official init from torch repo.</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">):</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_normal_</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">):</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">):</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DenseNet.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.densenet.DenseNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">adaptive_avg_pool2d</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div></div>
+
+
+<div class="viewcode-block" id="CustomizedDensnet"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.densenet.CustomizedDensnet">[docs]</a><span class="k">def</span> <span class="nf">CustomizedDensnet</span><span class="p">(</span><span class="n">arch_params</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">DenseNet</span><span class="p">(</span><span class="n">growth_rate</span><span class="o">=</span><span class="n">arch_params</span><span class="o">.</span><span class="n">growth_rate</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">arch_params</span><span class="p">,</span> <span class="s2">&quot;growth_rate&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">32</span><span class="p">,</span>
+                    <span class="n">structure</span><span class="o">=</span><span class="n">arch_params</span><span class="o">.</span><span class="n">structure</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">arch_params</span><span class="p">,</span> <span class="s2">&quot;structure&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">16</span><span class="p">],</span>
+                    <span class="n">num_init_features</span><span class="o">=</span><span class="n">arch_params</span><span class="o">.</span><span class="n">num_init_features</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">arch_params</span><span class="p">,</span>
+                                                                               <span class="s2">&quot;num_init_features&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">64</span><span class="p">,</span>
+                    <span class="n">bn_size</span><span class="o">=</span><span class="n">arch_params</span><span class="o">.</span><span class="n">bn_size</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">arch_params</span><span class="p">,</span> <span class="s2">&quot;bn_size&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">4</span><span class="p">,</span>
+                    <span class="n">drop_rate</span><span class="o">=</span><span class="n">arch_params</span><span class="o">.</span><span class="n">drop_rate</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">arch_params</span><span class="p">,</span> <span class="s2">&quot;drop_rate&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="n">num_classes</span><span class="o">=</span><span class="n">arch_params</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="densenet121"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.densenet.densenet121">[docs]</a><span class="k">def</span> <span class="nf">densenet121</span><span class="p">(</span><span class="n">arch_params</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">DenseNet</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">16</span><span class="p">],</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="densenet161"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.densenet.densenet161">[docs]</a><span class="k">def</span> <span class="nf">densenet161</span><span class="p">(</span><span class="n">arch_params</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">DenseNet</span><span class="p">(</span><span class="mi">48</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">24</span><span class="p">],</span> <span class="mi">96</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="densenet169"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.densenet.densenet169">[docs]</a><span class="k">def</span> <span class="nf">densenet169</span><span class="p">(</span><span class="n">arch_params</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">DenseNet</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">],</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="densenet201"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.densenet.densenet201">[docs]</a><span class="k">def</span> <span class="nf">densenet201</span><span class="p">(</span><span class="n">arch_params</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">DenseNet</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">32</span><span class="p">],</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.training.models.laddernet &mdash; SuperGradients 1.0 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../intro.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">super_gradients.training package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>super_gradients.training.models.laddernet</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for super_gradients.training.models.laddernet</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+
+<span class="n">up_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="s1">&#39;bilinear&#39;</span><span class="p">,</span> <span class="s1">&#39;align_corners&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+
+
+<span class="c1"># from encoding.nn import SyncBatchNorm # FIXME - ORIGINAL CODE TORCH-ENCODING</span>
+
+
+<div class="viewcode-block" id="LadderBottleneck"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderBottleneck">[docs]</a><span class="k">class</span> <span class="nc">LadderBottleneck</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;ResNet Bottleneck</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># pylint: disable=unused-argument</span>
+    <span class="n">expansion</span> <span class="o">=</span> <span class="mi">4</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inplanes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">downsample</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">previous_dilation</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">norm_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">inplanes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span> <span class="o">=</span> <span class="n">norm_layer</span><span class="p">(</span><span class="n">planes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="n">planes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span> <span class="o">=</span> <span class="n">norm_layer</span><span class="p">(</span><span class="n">planes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="n">planes</span><span class="p">,</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn3</span> <span class="o">=</span> <span class="n">norm_layer</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span> <span class="o">=</span> <span class="n">downsample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span> <span class="o">=</span> <span class="n">dilation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+
+    <span class="k">def</span> <span class="nf">_sum_each</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)):</span>
+            <span class="n">z</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">z</span>
+
+<div class="viewcode-block" id="LadderBottleneck.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderBottleneck.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv3</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn3</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">residual</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">+=</span> <span class="n">residual</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span></div></div>
+
+
+<div class="viewcode-block" id="LadderResNet"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderResNet">[docs]</a><span class="k">class</span> <span class="nc">LadderResNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dilated Pre-trained ResNet Model, which preduces the stride of 8 featuremaps at conv5.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    block : Block</span>
+<span class="sd">        Class for the residual block. Options are BasicBlockV1, BottleneckV1.</span>
+<span class="sd">    layers : list of int</span>
+<span class="sd">        Numbers of layers in each block</span>
+<span class="sd">    classes : int, default 1000</span>
+<span class="sd">        Number of classification classes.</span>
+<span class="sd">    dilated : bool, default False</span>
+<span class="sd">        Applying dilation strategy to pretrained ResNet yielding a stride-8 model,</span>
+<span class="sd">        typically used in Semantic Segmentation.</span>
+<span class="sd">    norm_layer : object</span>
+<span class="sd">        Normalization layer used in backbone network (default: :class:`mxnet.gluon.nn.BatchNorm`;</span>
+<span class="sd">        for Synchronized Cross-GPU BachNormalization).</span>
+
+<span class="sd">    Reference:</span>
+
+<span class="sd">        - He, Kaiming, et al. &quot;Deep residual learning for image recognition.&quot; Proceedings of the IEEE conference on computer vision and pattern recognition. 2016.</span>
+
+<span class="sd">        - Yu, Fisher, and Vladlen Koltun. &quot;Multi-scale context aggregation by dilated convolutions.&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># pylint: disable=unused-variable</span>
+    <span class="c1"># def __init__(self, block, layers, num_classes=1000, dilated=False, norm_layer=SyncBatchNorm): # FIXME - ORIGINAL CODE</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">dilated</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">norm_layer</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">):</span>  <span class="c1"># FIXME - TIME MEASUREMENT CODE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inplanes</span> <span class="o">=</span> <span class="mi">64</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                               <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span> <span class="o">=</span> <span class="n">norm_layer</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxpool</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="n">layers</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dilated</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="n">layers</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                           <span class="n">dilation</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="n">layers</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                           <span class="n">dilation</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="n">layers</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                           <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layer4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="n">layers</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                           <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">avgpool</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">AvgPool2d</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">512</span> <span class="o">*</span> <span class="n">block</span><span class="o">.</span><span class="n">expansion</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+            <span class="kn">import</span> <span class="nn">math</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">):</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">m</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">m</span><span class="o">.</span><span class="n">out_channels</span>
+                <span class="n">m</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span> <span class="o">/</span> <span class="n">n</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">norm_layer</span><span class="p">):</span>
+                <span class="n">m</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">m</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_make_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">blocks</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">norm_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">downsample</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">stride</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">inplanes</span> <span class="o">!=</span> <span class="n">planes</span> <span class="o">*</span> <span class="n">block</span><span class="o">.</span><span class="n">expansion</span><span class="p">:</span>
+            <span class="n">downsample</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inplanes</span><span class="p">,</span> <span class="n">planes</span> <span class="o">*</span> <span class="n">block</span><span class="o">.</span><span class="n">expansion</span><span class="p">,</span>
+                          <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                <span class="n">norm_layer</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="n">block</span><span class="o">.</span><span class="n">expansion</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">dilation</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">dilation</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inplanes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                <span class="n">downsample</span><span class="o">=</span><span class="n">downsample</span><span class="p">,</span> <span class="n">previous_dilation</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span> <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">dilation</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inplanes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                <span class="n">downsample</span><span class="o">=</span><span class="n">downsample</span><span class="p">,</span> <span class="n">previous_dilation</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span> <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;=&gt; unknown dilation size: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dilation</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">inplanes</span> <span class="o">=</span> <span class="n">planes</span> <span class="o">*</span> <span class="n">block</span><span class="o">.</span><span class="n">expansion</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">blocks</span><span class="p">):</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inplanes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span> <span class="n">previous_dilation</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span>
+                                <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LadderResNet.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderResNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxpool</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer4</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">avgpool</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span></div></div>
+
+
+<div class="viewcode-block" id="LadderNetBackBone503433"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderNetBackBone503433">[docs]</a><span class="k">class</span> <span class="nc">LadderNetBackBone503433</span><span class="p">(</span><span class="n">LadderResNet</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">LadderBottleneck</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LadderNetBackBone50"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderNetBackBone50">[docs]</a><span class="k">class</span> <span class="nc">LadderNetBackBone50</span><span class="p">(</span><span class="n">LadderResNet</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">LadderBottleneck</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LadderNetBackBone101"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderNetBackBone101">[docs]</a><span class="k">class</span> <span class="nc">LadderNetBackBone101</span><span class="p">(</span><span class="n">LadderResNet</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">LadderBottleneck</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BaseNet"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.BaseNet">[docs]</a><span class="k">class</span> <span class="nc">BaseNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nclass</span><span class="p">,</span> <span class="n">backbone</span><span class="p">,</span> <span class="n">aux</span><span class="p">,</span> <span class="n">se_loss</span><span class="p">,</span> <span class="n">dilated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">norm_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">base_size</span><span class="o">=</span><span class="mi">576</span><span class="p">,</span> <span class="n">crop_size</span><span class="o">=</span><span class="mi">608</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="p">[</span><span class="mf">.485</span><span class="p">,</span> <span class="mf">.456</span><span class="p">,</span> <span class="mf">.406</span><span class="p">],</span>
+                 <span class="n">std</span><span class="o">=</span><span class="p">[</span><span class="mf">.229</span><span class="p">,</span> <span class="mf">.224</span><span class="p">,</span> <span class="mf">.225</span><span class="p">],</span> <span class="n">root</span><span class="o">=</span><span class="s1">&#39;~/.encoding/models&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BaseNet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nclass</span> <span class="o">=</span> <span class="n">nclass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aux</span> <span class="o">=</span> <span class="n">aux</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">se_loss</span> <span class="o">=</span> <span class="n">se_loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="n">mean</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std</span> <span class="o">=</span> <span class="n">std</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_size</span> <span class="o">=</span> <span class="n">base_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span> <span class="o">=</span> <span class="n">crop_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span>
+
+        <span class="c1"># copying modules from pretrained models</span>
+        <span class="k">if</span> <span class="n">backbone</span> <span class="o">==</span> <span class="s1">&#39;resnet50&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span> <span class="o">=</span> <span class="n">LadderNetBackBone50</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">backbone</span> <span class="o">==</span> <span class="s1">&#39;resnet50_3433&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span> <span class="o">=</span> <span class="n">LadderNetBackBone503433</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">backbone</span> <span class="o">==</span> <span class="s1">&#39;resnet101&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span> <span class="o">=</span> <span class="n">LadderNetBackBone101</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="c1"># elif backbone == &#39;resnet152&#39;:</span>
+        <span class="c1">#     self.pretrained = resnet.resnet152(pretrained=True, dilated=dilated,</span>
+        <span class="c1">#                                        norm_layer=norm_layer, root=root)</span>
+        <span class="c1"># elif backbone == &#39;resnet18&#39;:</span>
+        <span class="c1">#     self.pretrained = resnet.resnet18(pretrained=True, dilated=dilated,</span>
+        <span class="c1">#                                        norm_layer=norm_layer, root=root)</span>
+        <span class="c1"># elif backbone == &#39;resnet34&#39;:</span>
+        <span class="c1">#     self.pretrained = resnet.resnet34(pretrained=True, dilated=dilated,</span>
+        <span class="c1">#                                        norm_layer=norm_layer, root=root)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;unknown backbone: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">backbone</span><span class="p">))</span>
+        <span class="c1"># bilinear upsample options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_up_kwargs</span> <span class="o">=</span> <span class="n">up_kwargs</span>
+
+<div class="viewcode-block" id="BaseNet.base_forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.BaseNet.base_forward">[docs]</a>    <span class="k">def</span> <span class="nf">base_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">bn1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">maxpool</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">c1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">layer1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">c2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">layer2</span><span class="p">(</span><span class="n">c1</span><span class="p">)</span>
+        <span class="n">c3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">layer3</span><span class="p">(</span><span class="n">c2</span><span class="p">)</span>
+        <span class="n">c4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">layer4</span><span class="p">(</span><span class="n">c3</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">c3</span><span class="p">,</span> <span class="n">c4</span></div></div>
+
+    <span class="c1"># def evaluate(self, x, target=None):</span>
+    <span class="c1">#     pred = self.forward(x)</span>
+    <span class="c1">#     if isinstance(pred, (tuple, list)):</span>
+    <span class="c1">#         pred = pred[0]</span>
+    <span class="c1">#     if target is None:</span>
+    <span class="c1">#         return pred</span>
+    <span class="c1">#     correct, labeled = batch_pix_accuracy(pred.data, target.data)</span>
+    <span class="c1">#     inter, union = batch_intersection_union(pred.data, target.data, self.nclass)</span>
+    <span class="c1">#     return correct, labeled, inter, union</span>
+
+
+<span class="n">drop</span> <span class="o">=</span> <span class="mf">0.25</span>
+
+
+<div class="viewcode-block" id="conv3x3"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.conv3x3">[docs]</a><span class="k">def</span> <span class="nf">conv3x3</span><span class="p">(</span><span class="n">in_planes</span><span class="p">,</span> <span class="n">out_planes</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;3x3 convolution with padding&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_planes</span><span class="p">,</span> <span class="n">out_planes</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+                     <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BasicBlock"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.BasicBlock">[docs]</a><span class="k">class</span> <span class="nc">BasicBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="n">expansion</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inplanes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">downsample</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BasicBlock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">inplanes</span> <span class="o">!=</span> <span class="n">planes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv0</span> <span class="o">=</span> <span class="n">conv3x3</span><span class="p">(</span><span class="n">inplanes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">rate</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">inplanes</span> <span class="o">=</span> <span class="n">inplanes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">planes</span> <span class="o">=</span> <span class="n">planes</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">conv3x3</span><span class="p">(</span><span class="n">planes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">stride</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">planes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># self.conv2 = conv3x3(planes, planes)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">planes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span> <span class="o">=</span> <span class="n">downsample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drop</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout2d</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">drop</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BasicBlock.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.BasicBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inplanes</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planes</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv0</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">out1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span><span class="p">(</span><span class="n">out1</span><span class="p">)</span>
+        <span class="c1"># out1 = self.relu(out1)</span>
+
+        <span class="n">out2</span> <span class="o">=</span> <span class="n">out1</span> <span class="o">+</span> <span class="n">x</span>
+
+        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out2</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="Bottleneck"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.Bottleneck">[docs]</a><span class="k">class</span> <span class="nc">Bottleneck</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="n">expansion</span> <span class="o">=</span> <span class="mi">4</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inplanes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">downsample</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Bottleneck</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">inplanes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">planes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">planes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+                               <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">planes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">planes</span><span class="p">,</span> <span class="n">planes</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">expansion</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">expansion</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span> <span class="o">=</span> <span class="n">downsample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+
+<div class="viewcode-block" id="Bottleneck.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.Bottleneck.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv3</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn3</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">residual</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">+=</span> <span class="n">residual</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span></div></div>
+
+
+<div class="viewcode-block" id="Initial_LadderBlock"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.Initial_LadderBlock">[docs]</a><span class="k">class</span> <span class="nc">Initial_LadderBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">BasicBlock</span><span class="p">,</span> <span class="n">inplanes</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">planes</span> <span class="o">=</span> <span class="n">planes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">kernel</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inconv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="n">inplanes</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="n">planes</span><span class="p">,</span>
+                                <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_bn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">planes</span><span class="p">)</span>
+        <span class="c1"># create module list for down branch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_module_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">down_module_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">)))</span>
+
+        <span class="c1"># use strided conv instead of poooling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_conv_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">down_conv_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">,</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span>
+                          <span class="n">padding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">))</span>
+
+        <span class="c1"># create module for bottom block</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">layers</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">layers</span><span class="p">))</span>
+
+        <span class="c1"># create module list for up branch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="n">i</span><span class="p">),</span>
+                                                        <span class="n">out_channels</span><span class="o">=</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+                                                        <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                                        <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="Initial_LadderBlock.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.Initial_LadderBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inconv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_bn</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">down_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># down branch</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down_module_list</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">down_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down_conv_list</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="c1"># bottom branch</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">bottom</span> <span class="o">=</span> <span class="n">out</span>
+
+        <span class="c1"># up branch</span>
+        <span class="n">up_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bottom</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span> <span class="o">+</span> <span class="n">down_out</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="c1"># out = F.relu(out)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">up_out</span></div></div>
+
+
+<div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">BasicBlock</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">planes</span> <span class="o">=</span> <span class="n">planes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">kernel</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inconv</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">planes</span><span class="p">,</span> <span class="n">planes</span><span class="p">)</span>
+        <span class="c1"># create module for bottom block</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+
+        <span class="c1"># create module list for up branch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span>
+                                   <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                   <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="Decoder.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.Decoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># bottom branch</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">bottom</span> <span class="o">=</span> <span class="n">out</span>
+
+        <span class="c1"># up branch</span>
+        <span class="n">up_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bottom</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="c1"># out = F.relu(out)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">up_out</span></div></div>
+
+
+<div class="viewcode-block" id="LadderBlock"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderBlock">[docs]</a><span class="k">class</span> <span class="nc">LadderBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">BasicBlock</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">planes</span> <span class="o">=</span> <span class="n">planes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">kernel</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inconv</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">planes</span><span class="p">,</span> <span class="n">planes</span><span class="p">)</span>
+
+        <span class="c1"># create module list for down branch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_module_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">down_module_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">)))</span>
+
+        <span class="c1"># use strided conv instead of pooling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_conv_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">down_conv_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">,</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span>
+                          <span class="n">padding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">))</span>
+
+        <span class="c1"># create module for bottom block</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+
+        <span class="c1"># create module list for up branch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span>
+                                   <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                   <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="LadderBlock.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inconv</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">down_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># down branch</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down_module_list</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">down_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down_conv_list</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="c1"># bottom branch</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">bottom</span> <span class="o">=</span> <span class="n">out</span>
+
+        <span class="c1"># up branch</span>
+        <span class="n">up_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bottom</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span> <span class="o">+</span> <span class="n">down_out</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="c1"># out = F.relu(out)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">up_out</span></div></div>
+
+
+<div class="viewcode-block" id="Final_LadderBlock"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.Final_LadderBlock">[docs]</a><span class="k">class</span> <span class="nc">Final_LadderBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">BasicBlock</span><span class="p">,</span> <span class="n">inplanes</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block</span> <span class="o">=</span> <span class="n">LadderBlock</span><span class="p">(</span><span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Final_LadderBlock.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.Final_LadderBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="FCNHead"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.FCNHead">[docs]</a><span class="k">class</span> <span class="nc">FCNHead</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="n">norm_layer</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FCNHead</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">inter_channels</span> <span class="o">=</span> <span class="n">in_channels</span> <span class="o">//</span> <span class="mi">4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv5</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">inter_channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                                   <span class="n">norm_layer</span><span class="p">(</span><span class="n">inter_channels</span><span class="p">),</span>
+                                   <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+                                   <span class="n">nn</span><span class="o">.</span><span class="n">Dropout2d</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                                   <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">inter_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<div class="viewcode-block" id="FCNHead.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.FCNHead.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv5</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="LadderNet"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderNet">[docs]</a><span class="k">class</span> <span class="nc">LadderNet</span><span class="p">(</span><span class="n">BaseNet</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nclass</span><span class="p">,</span> <span class="n">backbone</span><span class="p">,</span> <span class="n">aux</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">se_loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lateral</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">arch_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="c1"># norm_layer=SyncBatchNorm, dilated=False, **kwargs):  # FIXME - ORIGINAL CODE TORCH-ENCODING</span>
+                 <span class="n">norm_layer</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">,</span> <span class="n">dilated</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># FIXME - TIME MEASUREMENT CODE</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nclass</span><span class="p">,</span> <span class="n">backbone</span><span class="p">,</span> <span class="n">aux</span><span class="p">,</span> <span class="n">se_loss</span><span class="p">,</span> <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">,</span> <span class="n">dilated</span><span class="o">=</span><span class="n">dilated</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">LadderHead</span><span class="p">(</span><span class="n">base_inchannels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">base_outchannels</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="n">nclass</span><span class="p">,</span>
+                               <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">,</span> <span class="n">se_loss</span><span class="o">=</span><span class="n">se_loss</span><span class="p">,</span> <span class="n">nclass</span><span class="o">=</span><span class="n">nclass</span><span class="p">,</span> <span class="n">up_kwargs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_up_kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">aux</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">auxlayer</span> <span class="o">=</span> <span class="n">FCNHead</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="n">nclass</span><span class="p">,</span> <span class="n">norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LadderNet.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">imsize</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_forward</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">features</span><span class="p">))</span>
+
+        <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">upsample</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">imsize</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_up_kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux</span><span class="p">:</span>
+            <span class="n">auxout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auxlayer</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">auxout</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">upsample</span><span class="p">(</span><span class="n">auxout</span><span class="p">,</span> <span class="n">imsize</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_up_kwargs</span><span class="p">)</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">auxout</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="LadderHead"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderHead">[docs]</a><span class="k">class</span> <span class="nc">LadderHead</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_inchannels</span><span class="p">,</span> <span class="n">base_outchannels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="n">norm_layer</span><span class="p">,</span> <span class="n">se_loss</span><span class="p">,</span> <span class="n">nclass</span><span class="p">,</span> <span class="n">up_kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LadderHead</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="n">base_inchannels</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="n">base_outchannels</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="n">base_inchannels</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="n">base_outchannels</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                               <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="n">base_inchannels</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="n">base_outchannels</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
+                               <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv4</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="n">base_inchannels</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">3</span><span class="p">,</span> <span class="n">out_channels</span><span class="o">=</span><span class="n">base_outchannels</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">3</span><span class="p">,</span>
+                               <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span> <span class="o">=</span> <span class="n">norm_layer</span><span class="p">(</span><span class="n">base_outchannels</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span> <span class="o">=</span> <span class="n">norm_layer</span><span class="p">(</span><span class="n">base_outchannels</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn3</span> <span class="o">=</span> <span class="n">norm_layer</span><span class="p">(</span><span class="n">base_outchannels</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn4</span> <span class="o">=</span> <span class="n">norm_layer</span><span class="p">(</span><span class="n">base_outchannels</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">3</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">Decoder</span><span class="p">(</span><span class="n">planes</span><span class="o">=</span><span class="n">base_outchannels</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ladder</span> <span class="o">=</span> <span class="n">LadderBlock</span><span class="p">(</span><span class="n">planes</span><span class="o">=</span><span class="n">base_outchannels</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">final</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">base_outchannels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">se_loss</span> <span class="o">=</span> <span class="n">se_loss</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">se_loss</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">selayer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">base_outchannels</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nclass</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LadderHead.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderHead.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="n">x4</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="n">out1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+        <span class="n">out1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span><span class="p">(</span><span class="n">out1</span><span class="p">)</span>
+        <span class="n">out1</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out1</span><span class="p">)</span>
+
+        <span class="n">out2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span>
+        <span class="n">out2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span><span class="p">(</span><span class="n">out2</span><span class="p">)</span>
+        <span class="n">out2</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out2</span><span class="p">)</span>
+
+        <span class="n">out3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv3</span><span class="p">(</span><span class="n">x3</span><span class="p">)</span>
+        <span class="n">out3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn3</span><span class="p">(</span><span class="n">out3</span><span class="p">)</span>
+        <span class="n">out3</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out3</span><span class="p">)</span>
+
+        <span class="n">out4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv4</span><span class="p">(</span><span class="n">x4</span><span class="p">)</span>
+        <span class="n">out4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn4</span><span class="p">(</span><span class="n">out4</span><span class="p">)</span>
+        <span class="n">out4</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out4</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">([</span><span class="n">out1</span><span class="p">,</span> <span class="n">out2</span><span class="p">,</span> <span class="n">out3</span><span class="p">,</span> <span class="n">out4</span><span class="p">])</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ladder</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">pred</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">final</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">se_loss</span><span class="p">:</span>
+            <span class="n">enc</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">2</span><span class="p">:])</span>
+            <span class="n">enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">se</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selayer</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span>
+            <span class="n">pred</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">se</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pred</span></div></div>
+
+
+<div class="viewcode-block" id="LadderNet50"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderNet50">[docs]</a><span class="k">class</span> <span class="nc">LadderNet50</span><span class="p">(</span><span class="n">LadderNet</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backbone</span><span class="o">=</span><span class="s1">&#39;resnet50&#39;</span><span class="p">,</span> <span class="n">nclass</span><span class="o">=</span><span class="mi">21</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LadderNet503433"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderNet503433">[docs]</a><span class="k">class</span> <span class="nc">LadderNet503433</span><span class="p">(</span><span class="n">LadderNet</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backbone</span><span class="o">=</span><span class="s1">&#39;resnet50_3433&#39;</span><span class="p">,</span> <span class="n">nclass</span><span class="o">=</span><span class="mi">21</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LadderNet101"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.laddernet.LadderNet101">[docs]</a><span class="k">class</span> <span class="nc">LadderNet101</span><span class="p">(</span><span class="n">LadderNet</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backbone</span><span class="o">=</span><span class="s1">&#39;resnet101&#39;</span><span class="p">,</span> <span class="n">nclass</span><span class="o">=</span><span class="mi">21</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

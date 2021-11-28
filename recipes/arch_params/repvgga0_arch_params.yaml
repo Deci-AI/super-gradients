@@ -1,0 +1,5 @@
+defaults:
+  - repvgg_arch_params
+
+struct: [2, 4, 14, 1]
+width_multiplier: [0.75, 0.75, 0.75, 2.5]

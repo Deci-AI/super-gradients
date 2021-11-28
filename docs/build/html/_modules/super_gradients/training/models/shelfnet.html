@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.training.models.shelfnet &mdash; SuperGradients 1.0 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../intro.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">super_gradients.training package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>super_gradients.training.models.shelfnet</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for super_gradients.training.models.shelfnet</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Shelfnet</span>
+
+<span class="sd">paper: https://arxiv.org/abs/1811.11254</span>
+<span class="sd">based on: https://github.com/juntang-zhuang/ShelfNet</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+
+<span class="kn">from</span> <span class="nn">super_gradients.training.models.sg_module</span> <span class="kn">import</span> <span class="n">SgModule</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils</span> <span class="kn">import</span> <span class="n">HpmStruct</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.models.resnet</span> <span class="kn">import</span> <span class="n">BasicBlock</span><span class="p">,</span> <span class="n">ResNet</span><span class="p">,</span> <span class="n">Bottleneck</span>
+
+
+<div class="viewcode-block" id="FCNHead"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.FCNHead">[docs]</a><span class="k">class</span> <span class="nc">FCNHead</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">inter_channels</span> <span class="o">=</span> <span class="n">in_channels</span> <span class="o">//</span> <span class="mi">4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fcn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">inter_channels</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+                                 <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">inter_channels</span><span class="p">),</span>
+                                 <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+                                 <span class="n">nn</span><span class="o">.</span><span class="n">Dropout2d</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                                 <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">inter_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<div class="viewcode-block" id="FCNHead.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.FCNHead.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fcn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ShelfBlock"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfBlock">[docs]</a><span class="k">class</span> <span class="nc">ShelfBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_planes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">planes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        S-Block implementation from the ShelfNet paper</span>
+<span class="sd">            :param in_planes:   input planes</span>
+<span class="sd">            :param planes:      output planes</span>
+<span class="sd">            :param stride:      convolution stride</span>
+<span class="sd">            :param dropout:     dropout percentage</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">in_planes</span> <span class="o">!=</span> <span class="n">planes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv0</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_planes</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">relu0</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_planes</span> <span class="o">=</span> <span class="n">in_planes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">planes</span> <span class="o">=</span> <span class="n">planes</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">planes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">planes</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">planes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relu1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout2d</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">planes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relu2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ShelfBlock.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_planes</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planes</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv0</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu0</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn1</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu1</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn2</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">x</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu2</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ShelfResNetBackBone"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfResNetBackBone">[docs]</a><span class="k">class</span> <span class="nc">ShelfResNetBackBone</span><span class="p">(</span><span class="n">ResNet</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ShelfResNetBackBone - A class that Inherits from the original ResNet class and manipulates the forward pass,</span>
+<span class="sd">                          to create a backbone for the ShelfNet architecture</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">width_mult</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">,</span> <span class="n">num_blocks</span><span class="o">=</span><span class="n">num_blocks</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">width_mult</span><span class="o">=</span><span class="n">width_mult</span><span class="p">,</span>
+                         <span class="n">backbone_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ShelfResNetBackBone.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfResNetBackBone.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bn1</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxpool</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">feat4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer1</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>  <span class="c1"># 1/4</span>
+        <span class="n">feat8</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span><span class="p">(</span><span class="n">feat4</span><span class="p">)</span>  <span class="c1"># 1/8</span>
+        <span class="n">feat16</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span><span class="p">(</span><span class="n">feat8</span><span class="p">)</span>  <span class="c1"># 1/16</span>
+        <span class="n">feat32</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer4</span><span class="p">(</span><span class="n">feat16</span><span class="p">)</span>  <span class="c1"># 1/32</span>
+        <span class="k">return</span> <span class="n">feat4</span><span class="p">,</span> <span class="n">feat8</span><span class="p">,</span> <span class="n">feat16</span><span class="p">,</span> <span class="n">feat32</span></div></div>
+
+
+<div class="viewcode-block" id="ShelfResNetBackBone18"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfResNetBackBone18">[docs]</a><span class="k">class</span> <span class="nc">ShelfResNetBackBone18</span><span class="p">(</span><span class="n">ShelfResNetBackBone</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">BasicBlock</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ShelfResNetBackBone34"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfResNetBackBone34">[docs]</a><span class="k">class</span> <span class="nc">ShelfResNetBackBone34</span><span class="p">(</span><span class="n">ShelfResNetBackBone</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">BasicBlock</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ShelfResNetBackBone503343"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfResNetBackBone503343">[docs]</a><span class="k">class</span> <span class="nc">ShelfResNetBackBone503343</span><span class="p">(</span><span class="n">ShelfResNetBackBone</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Bottleneck</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ShelfResNetBackBone50"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfResNetBackBone50">[docs]</a><span class="k">class</span> <span class="nc">ShelfResNetBackBone50</span><span class="p">(</span><span class="n">ShelfResNetBackBone</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Bottleneck</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ShelfResNetBackBone101"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfResNetBackBone101">[docs]</a><span class="k">class</span> <span class="nc">ShelfResNetBackBone101</span><span class="p">(</span><span class="n">ShelfResNetBackBone</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Bottleneck</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ShelfNetModuleBase"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetModuleBase">[docs]</a><span class="k">class</span> <span class="nc">ShelfNetModuleBase</span><span class="p">(</span><span class="n">SgModule</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ShelfNetModuleBase - Base class for the different Modules of the ShelfNet Architecture</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ShelfNetModuleBase.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetModuleBase.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ShelfNetModuleBase.get_params"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetModuleBase.get_params">[docs]</a>    <span class="k">def</span> <span class="nf">get_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">wd_params</span><span class="p">,</span> <span class="n">nowd_params</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">named_modules</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">):</span>
+                <span class="n">wd_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">module</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">nowd_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">):</span>
+                <span class="n">nowd_params</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">wd_params</span><span class="p">,</span> <span class="n">nowd_params</span></div></div>
+
+
+<div class="viewcode-block" id="ConvBNReLU"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ConvBNReLU">[docs]</a><span class="k">class</span> <span class="nc">ConvBNReLU</span><span class="p">(</span><span class="n">ShelfNetModuleBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_chan</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">out_chan</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ConvBNReLU</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_chan</span><span class="p">,</span>
+                              <span class="n">out_chan</span><span class="p">,</span>
+                              <span class="n">kernel_size</span><span class="o">=</span><span class="n">ks</span><span class="p">,</span>
+                              <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+                              <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
+                              <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">out_chan</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_weight</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ConvBNReLU.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ConvBNReLU.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+<div class="viewcode-block" id="ConvBNReLU.init_weight"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ConvBNReLU.init_weight">[docs]</a>    <span class="k">def</span> <span class="nf">init_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ly</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ly</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">):</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_normal_</span><span class="p">(</span><span class="n">ly</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ly</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="n">ly</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="DecoderBase"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.DecoderBase">[docs]</a><span class="k">class</span> <span class="nc">DecoderBase</span><span class="p">(</span><span class="n">ShelfNetModuleBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">kernel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">ShelfBlock</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">planes</span> <span class="o">=</span> <span class="n">planes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">kernel</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inconv</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">planes</span><span class="p">,</span> <span class="n">planes</span><span class="p">)</span>
+
+        <span class="c1"># CREATE MODULE FOR BOTTOM BLOCK</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+
+        <span class="c1"># CREATE MODULE LIST FOR UP BRANCH</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+
+<div class="viewcode-block" id="DecoderBase.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.DecoderBase.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<div class="viewcode-block" id="DecoderHW"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.DecoderHW">[docs]</a><span class="k">class</span> <span class="nc">DecoderHW</span><span class="p">(</span><span class="n">DecoderBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    DecoderHW - The Decoder for the Heavy-Weight ShelfNet Architecture</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">ShelfBlock</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">planes</span><span class="o">=</span><span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="n">layers</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                   <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="DecoderHW.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.DecoderHW.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># BOTTOM BRANCH</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">bottom</span> <span class="o">=</span> <span class="n">out</span>
+
+        <span class="c1"># UP BRANCH</span>
+        <span class="n">up_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bottom</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">up_out</span></div></div>
+
+
+<div class="viewcode-block" id="DecoderLW"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.DecoderLW">[docs]</a><span class="k">class</span> <span class="nc">DecoderLW</span><span class="p">(</span><span class="n">DecoderBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    DecoderLW - The Decoder for the Light-Weight ShelfNet Architecture</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">ShelfBlock</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">planes</span><span class="o">=</span><span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="n">layers</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">AttentionRefinementModule</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">ConvBNReLU</span><span class="p">(</span><span class="n">in_chan</span><span class="o">=</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span> <span class="n">out_chan</span><span class="o">=</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span>
+                           <span class="n">ks</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+<div class="viewcode-block" id="DecoderLW.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.DecoderLW.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># BOTTOM BRANCH</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">bottom</span> <span class="o">=</span> <span class="n">out</span>
+
+        <span class="c1"># UP BRANCH</span>
+        <span class="n">up_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bottom</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">out_interpolate</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out_interpolate</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">up_out</span></div></div>
+
+
+<div class="viewcode-block" id="AttentionRefinementModule"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.AttentionRefinementModule">[docs]</a><span class="k">class</span> <span class="nc">AttentionRefinementModule</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_chan</span><span class="p">,</span> <span class="n">out_chan</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">ConvBNReLU</span><span class="p">(</span><span class="n">in_chan</span><span class="p">,</span> <span class="n">out_chan</span><span class="p">,</span> <span class="n">ks</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_atten</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">out_chan</span><span class="p">,</span> <span class="n">out_chan</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bn_atten</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">out_chan</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid_atten</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_weight</span><span class="p">()</span>
+
+<div class="viewcode-block" id="AttentionRefinementModule.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.AttentionRefinementModule.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">feat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">atten</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">avg_pool2d</span><span class="p">(</span><span class="n">feat</span><span class="p">,</span> <span class="n">feat</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">2</span><span class="p">:])</span>
+        <span class="n">atten</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_atten</span><span class="p">(</span><span class="n">atten</span><span class="p">)</span>
+        <span class="n">atten</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn_atten</span><span class="p">(</span><span class="n">atten</span><span class="p">)</span>
+        <span class="n">atten</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid_atten</span><span class="p">(</span><span class="n">atten</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="n">feat</span><span class="p">,</span> <span class="n">atten</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="AttentionRefinementModule.init_weight"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.AttentionRefinementModule.init_weight">[docs]</a>    <span class="k">def</span> <span class="nf">init_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ly</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ly</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">):</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_normal_</span><span class="p">(</span><span class="n">ly</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ly</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="n">ly</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="LadderBlockBase"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.LadderBlockBase">[docs]</a><span class="k">class</span> <span class="nc">LadderBlockBase</span><span class="p">(</span><span class="n">ShelfNetModuleBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">kernel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">ShelfBlock</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">planes</span> <span class="o">=</span> <span class="n">planes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">kernel</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inconv</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">planes</span><span class="p">,</span> <span class="n">planes</span><span class="p">)</span>
+
+        <span class="c1"># CREATE MODULE LIST FOR DOWN BRANCH</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_module_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">down_module_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">)))</span>
+
+        <span class="c1"># USE STRIDED CONV INSTEAD OF POOLING</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_conv_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">down_conv_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">,</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">))</span>
+
+        <span class="c1"># CREATE MODULE FOR BOTTOM BLOCK</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">planes</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+
+        <span class="c1"># CREATE MODULE LIST FOR UP BRANCH</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+
+<div class="viewcode-block" id="LadderBlockBase.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.LadderBlockBase.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<div class="viewcode-block" id="LadderBlockHW"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.LadderBlockHW">[docs]</a><span class="k">class</span> <span class="nc">LadderBlockHW</span><span class="p">(</span><span class="n">LadderBlockBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    LadderBlockHW - LadderBlock for the Heavy-Weight ShelfNet Architecture</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">ShelfBlock</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">planes</span><span class="o">=</span><span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="n">layers</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+                                                        <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span>
+                                                        <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                                        <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                        <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                                        <span class="n">output_padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                                        <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="LadderBlockHW.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.LadderBlockHW.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inconv</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">down_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># down branch</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down_module_list</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">down_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down_conv_list</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="c1"># bottom branch</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">bottom</span> <span class="o">=</span> <span class="n">out</span>
+
+        <span class="c1"># up branch</span>
+        <span class="n">up_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bottom</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span> <span class="o">+</span> <span class="n">down_out</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">up_out</span></div></div>
+
+
+<div class="viewcode-block" id="LadderBlockLW"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.LadderBlockLW">[docs]</a><span class="k">class</span> <span class="nc">LadderBlockLW</span><span class="p">(</span><span class="n">LadderBlockBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    LadderBlockLW - LadderBlock for the Light-Weight ShelfNet Architecture</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">ShelfBlock</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">planes</span><span class="o">=</span><span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="n">layers</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">AttentionRefinementModule</span><span class="p">(</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">),</span> <span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">ConvBNReLU</span><span class="p">(</span><span class="n">in_chan</span><span class="o">=</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span> <span class="n">out_chan</span><span class="o">=</span><span class="n">planes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">layers</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span>
+                           <span class="n">ks</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+<div class="viewcode-block" id="LadderBlockLW.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.LadderBlockLW.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inconv</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">down_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># DOWN BRANCH</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down_module_list</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">down_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down_conv_list</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="c1"># BOTTOM BRANCH</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bottom</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">bottom</span> <span class="o">=</span> <span class="n">out</span>
+
+        <span class="c1"># UP BRANCH</span>
+        <span class="n">up_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bottom</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_conv_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">down_out</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">-</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up_dense_list</span><span class="p">[</span><span class="n">j</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">up_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">up_out</span></div></div>
+
+
+<div class="viewcode-block" id="NetOutput"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.NetOutput">[docs]</a><span class="k">class</span> <span class="nc">NetOutput</span><span class="p">(</span><span class="n">ShelfNetModuleBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_chan</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">mid_chan</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">classes_num</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NetOutput</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">ConvBNReLU</span><span class="p">(</span><span class="n">in_chan</span><span class="p">,</span> <span class="n">mid_chan</span><span class="p">,</span> <span class="n">ks</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_out</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">mid_chan</span><span class="p">,</span> <span class="n">classes_num</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                  <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_weight</span><span class="p">()</span>
+
+<div class="viewcode-block" id="NetOutput.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.NetOutput.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_out</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+<div class="viewcode-block" id="NetOutput.init_weight"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.NetOutput.init_weight">[docs]</a>    <span class="k">def</span> <span class="nf">init_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ly</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ly</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">):</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_normal_</span><span class="p">(</span><span class="n">ly</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ly</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="n">ly</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ShelfNetBase"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetBase">[docs]</a><span class="k">class</span> <span class="nc">ShelfNetBase</span><span class="p">(</span><span class="n">ShelfNetModuleBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ShelfNetBase - ShelfNet Base Generic Architecture</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backbone</span><span class="p">:</span> <span class="n">ShelfResNetBackBone</span><span class="p">,</span> <span class="n">planes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">classes_num</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">21</span><span class="p">,</span>
+                 <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
+                 <span class="n">net_output_mid_channels_num</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span> <span class="n">arch_params</span><span class="p">:</span> <span class="n">HpmStruct</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span> <span class="o">=</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">num_classes</span> <span class="k">if</span> <span class="p">(</span><span class="n">arch_params</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">arch_params</span><span class="p">,</span> <span class="s1">&#39;num_classes&#39;</span><span class="p">))</span> <span class="k">else</span> <span class="n">classes_num</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_size</span> <span class="o">=</span> <span class="n">arch_params</span><span class="o">.</span><span class="n">image_size</span> <span class="k">if</span> <span class="p">(</span><span class="n">arch_params</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">arch_params</span><span class="p">,</span> <span class="s1">&#39;image_size&#39;</span><span class="p">))</span> <span class="k">else</span> <span class="n">image_size</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">net_output_mid_channels_num</span> <span class="o">=</span> <span class="n">net_output_mid_channels_num</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span> <span class="o">=</span> <span class="n">backbone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">planes</span> <span class="o">=</span> <span class="n">planes</span>
+
+        <span class="c1"># INITIALIZE WITH AUXILARY HEAD OUTPUTS ONN -&gt; TURN IT OFF TO RUN A FORWARD PASS WITHOUT THE AUXILARY HEADS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auxilary_head_outputs</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># DECODER AND LADDER SHOULD BE IMPLEMENTED BY THE INHERITING CLASS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ladder</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># BUILD THE CONV_OUT LIST BASED ON THE AMOUNT OF LAYERS IN THE SHELFNET</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_out_list</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ShelfNetBase.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetBase.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ShelfNetBase.update_param_groups"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetBase.update_param_groups">[docs]</a>    <span class="k">def</span> <span class="nf">update_param_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_groups</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">iter</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">training_params</span><span class="p">:</span> <span class="n">HpmStruct</span><span class="p">,</span>
+                            <span class="n">total_batch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        update_optimizer_for_param_groups - Updates the specific parameters with different LR</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># LEARNING RATE FOR THE BACKBONE IS lr</span>
+        <span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_groups</span><span class="p">)):</span>
+            <span class="c1"># LEARNING RATE FOR OTHER SHELFNET PARAMS IS lr * 10</span>
+            <span class="n">param_groups</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr</span> <span class="o">*</span> <span class="mi">10</span>
+
+        <span class="k">return</span> <span class="n">param_groups</span></div></div>
+
+
+<div class="viewcode-block" id="ShelfNetHW"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetHW">[docs]</a><span class="k">class</span> <span class="nc">ShelfNetHW</span><span class="p">(</span><span class="n">ShelfNetBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ShelfNetHW - Heavy-Weight Version of ShelfNet</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ladder</span> <span class="o">=</span> <span class="n">LadderBlockHW</span><span class="p">(</span><span class="n">planes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">net_output_mid_channels_num</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">DecoderHW</span><span class="p">(</span><span class="n">planes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">net_output_mid_channels_num</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">se_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">net_output_mid_channels_num</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aux_head</span> <span class="o">=</span> <span class="n">FCNHead</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">final</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">net_output_mid_channels_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># THE MID CHANNELS NUMBER OF THE NET OUTPUT BLOCK</span>
+        <span class="n">net_out_planes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planes</span>
+        <span class="n">mid_channels_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">net_output_mid_channels_num</span>
+
+        <span class="c1"># INITIALIZE THE conv_out_list</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv_out_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">ConvBNReLU</span><span class="p">(</span><span class="n">in_chan</span><span class="o">=</span><span class="n">net_out_planes</span><span class="p">,</span> <span class="n">out_chan</span><span class="o">=</span><span class="n">mid_channels_num</span><span class="p">,</span> <span class="n">ks</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+            <span class="n">mid_channels_num</span> <span class="o">*=</span> <span class="mi">2</span>
+            <span class="n">net_out_planes</span> <span class="o">*=</span> <span class="mi">2</span>
+
+<div class="viewcode-block" id="ShelfNetHW.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetHW.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">image_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">2</span><span class="p">:]</span>
+
+        <span class="n">backbone_features_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">conv_bn_relu_results_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">feature</span><span class="p">,</span> <span class="n">conv_bn_relu</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">backbone_features_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_out_list</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">conv_bn_relu</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+            <span class="n">conv_bn_relu_results_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="n">decoder_out_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">conv_bn_relu_results_list</span><span class="p">)</span>
+        <span class="n">ladder_out_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ladder</span><span class="p">(</span><span class="n">decoder_out_list</span><span class="p">)</span>
+
+        <span class="n">preds</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">final</span><span class="p">(</span><span class="n">ladder_out_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])]</span>
+
+        <span class="c1"># SE_LOSS ENCODING</span>
+        <span class="n">enc</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="n">ladder_out_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">ladder_out_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">2</span><span class="p">:])</span>
+        <span class="n">enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">se</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">se_layer</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span>
+        <span class="n">preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">se</span><span class="p">)</span>
+
+        <span class="c1"># UP SAMPLING THE TOP LAYER FOR PREDICTION</span>
+        <span class="n">preds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">preds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">image_size</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">,</span> <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># AUXILARY HEAD OUTPUT (ONLY RELEVANT FOR LOSS CALCULATION) - USE self.auxilary_head_outputs=FALSE FOR INFERENCE</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">auxilary_head_outputs</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="n">aux_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_head</span><span class="p">(</span><span class="n">backbone_features_list</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">aux_out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">aux_out</span><span class="p">,</span> <span class="n">image_size</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">,</span> <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">preds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aux_out</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">preds</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">preds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ShelfNetHW.initialize_param_groups"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetHW.initialize_param_groups">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_param_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">training_params</span><span class="p">:</span> <span class="n">HpmStruct</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        initialize_optimizer_for_model_param_groups - Initializes the weights of the optimizer</span>
+<span class="sd">                                                      Initializes the Backbone, the Output and the Auxilary Head</span>
+<span class="sd">                                                      differently</span>
+<span class="sd">            :param optimizer_cls:   The nn.optim (optimizer class) to initialize</span>
+<span class="sd">            :param lr:              lr to set for the optimizer</span>
+<span class="sd">            :param training_params:</span>
+<span class="sd">            :return: list of dictionaries with named params and optimizer attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># OPTIMIZER PARAMETER GROUPS</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># OPTIMIZE BACKBONE USING DIFFERENT LR</span>
+        <span class="n">params_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;named_params&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">(),</span> <span class="s1">&#39;lr&#39;</span><span class="p">:</span> <span class="n">lr</span><span class="p">})</span>
+
+        <span class="c1"># OPTIMIZE MAIN SHELFNET ARCHITECTURE LAYERS</span>
+        <span class="n">params_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;named_params&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ladder</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">se_layer</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv_out_list</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">final</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">aux_head</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()),</span> <span class="s1">&#39;lr&#39;</span><span class="p">:</span> <span class="n">lr</span> <span class="o">*</span> <span class="mi">10</span><span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">params_list</span></div></div>
+
+
+<div class="viewcode-block" id="ShelfNetLW"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetLW">[docs]</a><span class="k">class</span> <span class="nc">ShelfNetLW</span><span class="p">(</span><span class="n">ShelfNetBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ShelfNetLW - Light-Weight Implementation for ShelfNet</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">net_output_list</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ladder</span> <span class="o">=</span> <span class="n">LadderBlockLW</span><span class="p">(</span><span class="n">planes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">DecoderLW</span><span class="p">(</span><span class="n">planes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">planes</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ShelfNetLW.forward"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetLW.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="mi">2</span><span class="p">:]</span>
+
+        <span class="c1"># SHELFNET LW ARCHITECTURE USES ONLY LAST 3 PARTIAL OUTPUTs OF THE BACKBONE&#39;S 4 OUTPUT LAYERS</span>
+        <span class="n">backbone_features_tuple</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ShelfNet18</span><span class="p">):</span>
+            <span class="c1"># FOR SHELFNET18 USE 1x1 CONVS AFTER THE BACKBONE&#39;S FORWARD PASS TO MANIPULATE THE CHANNELS FOR THE DECODER</span>
+            <span class="n">conv_bn_relu_results_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">feature</span><span class="p">,</span> <span class="n">conv_bn_relu</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">backbone_features_tuple</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_out_list</span><span class="p">):</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">conv_bn_relu</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+                <span class="n">conv_bn_relu_results_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># FOR SHELFNET34 THE CHANNELS ARE ALREADY ALIGNED</span>
+            <span class="n">conv_bn_relu_results_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">backbone_features_tuple</span><span class="p">)</span>
+
+        <span class="n">decoder_out_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">conv_bn_relu_results_list</span><span class="p">)</span>
+        <span class="n">ladder_out_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ladder</span><span class="p">(</span><span class="n">decoder_out_list</span><span class="p">)</span>
+
+        <span class="c1"># GET THE LAST ELEMENTS OF THE LADDER_BLOCK BASED ON THE AMOUNT OF SHELVES IN THE ARCHITECTURE AND REVERSE LIST</span>
+        <span class="n">feat_cp_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">ladder_out_list</span><span class="p">[(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):]))</span>
+
+        <span class="n">feat_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">net_output_list</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">feat_cp_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">feat_out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">feat_out</span><span class="p">,</span> <span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">,</span> <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">auxilary_head_outputs</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="n">features_out_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">feat_out</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">conv_output_layer</span><span class="p">,</span> <span class="n">feat_cp</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">net_output_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">feat_cp_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="n">feat_out_res</span> <span class="o">=</span> <span class="n">conv_output_layer</span><span class="p">(</span><span class="n">feat_cp</span><span class="p">)</span>
+                <span class="n">feat_out_res</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">feat_out_res</span><span class="p">,</span> <span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">,</span> <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">features_out_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feat_out_res</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">features_out_list</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># THIS DOES NOT CALCULATE THE AUXILARY HEADS THAT ARE CRITICAL FOR THE LOSS (USED MAINLY FOR INFERENCE)</span>
+            <span class="k">return</span> <span class="n">feat_out</span></div>
+
+<div class="viewcode-block" id="ShelfNetLW.initialize_param_groups"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNetLW.initialize_param_groups">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_param_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">training_params</span><span class="p">:</span> <span class="n">HpmStruct</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        initialize_optimizer_for_model_param_groups - Initializes the optimizer group params, with 10x learning rate</span>
+<span class="sd">                                                      for all but the backbone</span>
+
+<span class="sd">            :param lr:              lr to set for the backbone</span>
+<span class="sd">            :param training_params:</span>
+<span class="sd">            :return: list of dictionaries with named params and optimizer attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># OPTIMIZER PARAMETER GROUPS</span>
+        <span class="n">params_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># OPTIMIZE BACKBONE USING DIFFERENT LR</span>
+        <span class="n">params_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;named_params&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">(),</span> <span class="s1">&#39;lr&#39;</span><span class="p">:</span> <span class="n">lr</span><span class="p">})</span>
+
+        <span class="c1"># OPTIMIZE MAIN SHELFNET ARCHITECTURE LAYERS</span>
+        <span class="n">params_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;named_params&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ladder</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv_out_list</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">()),</span> <span class="s1">&#39;lr&#39;</span><span class="p">:</span> <span class="n">lr</span> <span class="o">*</span> <span class="mi">10</span><span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">params_list</span></div></div>
+
+
+<div class="viewcode-block" id="ShelfNet18"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNet18">[docs]</a><span class="k">class</span> <span class="nc">ShelfNet18</span><span class="p">(</span><span class="n">ShelfNetLW</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backbone</span><span class="o">=</span><span class="n">ShelfResNetBackBone18</span><span class="p">,</span> <span class="n">planes</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># INITIALIZE THE net_output_list AND THE conv_out LIST</span>
+        <span class="n">out_planes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planes</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+            <span class="c1"># THE MID CHANNELS NUMBER OF THE NET OUTPUT BLOCK</span>
+            <span class="n">mid_channels_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planes</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">net_output_mid_channels_num</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">net_output_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">NetOutput</span><span class="p">(</span><span class="n">out_planes</span><span class="p">,</span> <span class="n">mid_channels_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv_out_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">ConvBNReLU</span><span class="p">(</span><span class="n">out_planes</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">out_planes</span><span class="p">,</span> <span class="n">ks</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">out_planes</span> <span class="o">*=</span> <span class="mi">2</span></div>
+
+
+<div class="viewcode-block" id="ShelfNet34"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNet34">[docs]</a><span class="k">class</span> <span class="nc">ShelfNet34</span><span class="p">(</span><span class="n">ShelfNetLW</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backbone</span><span class="o">=</span><span class="n">ShelfResNetBackBone34</span><span class="p">,</span> <span class="n">planes</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># INITIALIZE THE net_output_list</span>
+        <span class="n">net_out_planes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planes</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+            <span class="c1"># IF IT&#39;S THE FIRST LAYER THAN THE MID-CHANNELS NUM IS ACTUALLY self.planes</span>
+            <span class="n">mid_channels_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">planes</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">net_output_mid_channels_num</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">net_output_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">NetOutput</span><span class="p">(</span><span class="n">net_out_planes</span><span class="p">,</span> <span class="n">mid_channels_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_num</span><span class="p">))</span>
+
+            <span class="n">net_out_planes</span> <span class="o">*=</span> <span class="mi">2</span></div>
+
+
+<div class="viewcode-block" id="ShelfNet503343"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNet503343">[docs]</a><span class="k">class</span> <span class="nc">ShelfNet503343</span><span class="p">(</span><span class="n">ShelfNetHW</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backbone</span><span class="o">=</span><span class="n">ShelfResNetBackBone503343</span><span class="p">,</span> <span class="n">planes</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ShelfNet50"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNet50">[docs]</a><span class="k">class</span> <span class="nc">ShelfNet50</span><span class="p">(</span><span class="n">ShelfNetHW</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backbone</span><span class="o">=</span><span class="n">ShelfResNetBackBone50</span><span class="p">,</span> <span class="n">planes</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ShelfNet101"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNet101">[docs]</a><span class="k">class</span> <span class="nc">ShelfNet101</span><span class="p">(</span><span class="n">ShelfNetHW</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backbone</span><span class="o">=</span><span class="n">ShelfResNetBackBone101</span><span class="p">,</span> <span class="n">planes</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

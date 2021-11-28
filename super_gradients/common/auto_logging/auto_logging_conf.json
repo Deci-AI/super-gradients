@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "fileFormatter": {
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+      "datefmt": "[%Y-%m-%d %H:%M:%S]"
+    },
+    "consoleFormatter": {
+      "format": "%(module)s -%(levelname)s- %(message)s",
+      "datefmt": "[%Y-%m-%d %H:%M:%S]"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "formatter": "consoleFormatter",
+      "stream": "ext://sys.stdout"
+    }
+  },
+  "loggers": {},
+  "root": {
+    "level": "WARN",
+    "handlers": [
+      "console"
+    ]
+  }
+}

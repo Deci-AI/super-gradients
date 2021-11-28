@@ -1,0 +1,24 @@
+batch_size: 64 # batch size for trainset in CoCoDetectionDatasetInterface
+val_batch_size: 64 # batch size for valset in CoCoDetectionDatasetInterface
+val_image_size: 320 # image size for valset in CoCoDetectionDatasetInterface
+train_image_size: 320 # image size for trainset in CoCoDetectionDatasetInterface
+
+val_collate_fn: # collate function for valset in CoCoDetectionDatasetInterface
+  _target_: super_gradients.training.utils.utils.load_func
+  dotpath: super_gradients.training.utils.detection_utils.base_detection_collate_fn
+
+train_collate_fn: # collate function for trainset in CoCoDetectionDatasetInterface
+  _target_: super_gradients.training.utils.utils.load_func
+  dotpath: super_gradients.training.utils.detection_utils.base_detection_collate_fn
+
+val_sample_loading_method: "default"
+dataset_hyper_param:
+  hsv_h: 0.015  # IMAGE HSV-Hue AUGMENTATION (fraction)
+  hsv_s: 0.7  # IMAGE HSV-Saturation AUGMENTATION (fraction)
+  hsv_v: 0.4  # IMAGE HSV-Value AUGMENTATION (fraction)
+  degrees: 0.0  # IMAGE ROTATION (+/- deg)
+  translate: 0.1  # IMAGE TRANSLATION (+/- fraction)
+  scale: 0.5  # IMAGE SCALE (+/- gain)
+  shear: 0.0  # IMAGE SHEAR (+/- deg)
+
+_convert_: all
