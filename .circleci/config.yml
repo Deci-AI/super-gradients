@@ -222,7 +222,7 @@ commands:
           tool: "pip"
           repository: << parameters.codeartifact_repository >>
       - test_on_clean_env:
-          package_name: "deci-trainer"
+          package_name: "super-gradients"
           version: $NEW_VERSION
           ## if test worked push to repo, otherwise delete from pypi
       - run:
@@ -471,7 +471,7 @@ jobs:
           path: htmlcov
 
       - store_artifacts:
-          path: ~/deci_logs
+          path: ~/sg_logs
 
 
   build_and_release:
@@ -482,7 +482,7 @@ jobs:
       - build:
           name: "build3.7"
           py_version: "3.7"
-          package_name: "deci-trainer"
+          package_name: "super-gradients"
           requires:
             - get_version_info
       - upload_package:
@@ -626,7 +626,7 @@ jobs:
           aws_role: $AWS_DEV_ROLE
           command: |
             LATEST_RELEASE_AWS="null"
-            LATEST_RELEASE_AWS=$(aws codeartifact list-package-versions --domain deci-packages  --domain-owner $AWS_DEV_ACCOUNT_ID --repository deci-packages --format pypi --package  deci-trainer --max-results 1 --sort-by PUBLISHED_TIME --query versions[0].version --output text)
+            LATEST_RELEASE_AWS=$(aws codeartifact list-package-versions --domain deci-packages  --domain-owner $AWS_DEV_ACCOUNT_ID --repository deci-packages --format pypi --package  super-gradients --max-results 1 --sort-by PUBLISHED_TIME --query versions[0].version --output text)
             echo "export LATEST_RELEASE_AWS=${LATEST_RELEASE_AWS}" >> $BASH_ENV
       - run:
           name: "check for unreleased rc"
@@ -722,7 +722,7 @@ workflows:
       - build:
           name: "build3.7"
           py_version: "3.7"
-          package_name: "deci-trainer"
+          package_name: "super-gradients"
           requires:
             - login_to_codeartifact_release
           <<: *release_tag_filter
@@ -742,7 +742,7 @@ workflows:
       - build:
           name: "build3.7"
           py_version: "3.7"
-          package_name: "deci-trainer"
+          package_name: "super-gradients"
           requires:
             - get_version_info
             - login_to_codeartifact
