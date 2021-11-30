@@ -32,7 +32,7 @@ phase_callbacks = [LRSchedulerCallback(scheduler=rop_lr_scheduler, phase=Phase.V
                    LRSchedulerCallback(scheduler=step_lr_scheduler, phase=Phase.TRAIN_EPOCH_END)]
 
 # Define Model
-model = SgModel("Cifar10_external_objects_example", multi_gpu=MultiGPUMode.OFF)
+model = SgModel("Cifar10_external_objects_example00000", multi_gpu=MultiGPUMode.OFF)
 
 # Connect Dataset
 dataset = Cifar10DatasetInterface(dataset_params={"batch_size": 64})

@@ -851,7 +851,9 @@ class SgModel:
                 self.phase_callback_handler(Phase.TRAIN_EPOCH_START, context)
 
                 # LOG LR THAT WILL BE USED IN CURRENT EPOCH AS IT IS UPDATED AT EPOCH END
-                self._write_lrs(epoch)
+                if not self.ddp_silent_mode:
+                    self._write_lrs(epoch)
+
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
 
                 # Phase.TRAIN_EPOCH_END
