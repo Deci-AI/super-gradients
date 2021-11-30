@@ -79,12 +79,8 @@ class Concat(nn.Module):
 
 class Detect(nn.Module):
 
-    def __init__(self, num_classes: int, anchors: Anchors, channels: list = None,
-                 width_mult_factor: float = 1.0):
+    def __init__(self, num_classes: int, anchors: Anchors, channels: list = None):
         super().__init__()
-
-        # CHANGING THE WIDTH OF EACH OF THE DETECTION LAYERS
-        channels = [width_multiplier(channel, width_mult_factor) for channel in channels]
 
         self.num_classes = num_classes
         self.num_outputs = num_classes + 5
@@ -172,9 +168,7 @@ class YoLoV5Head(nn.Module):
 
         width_mult = lambda channels: width_multiplier(channels, arch_params.width_mult_factor)
 
-        # THE MODULES LIST IS APPROACHABLE FROM "OUTSIDE THE CLASS - SO WE CAN CHANGE IT'S STRUCTURE"
         self._modules_list = nn.ModuleList()
-
         self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1))  # 10
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 11
         self._modules_list.append(Concat(1))  # 12
@@ -194,8 +188,7 @@ class YoLoV5Head(nn.Module):
         self._modules_list.append(BottleneckCSP(1024, 1024, 3, False, width_mult_factor=width_mult_factor,
                                                 depth_mult_factor=depth_mult_factor))  # 23
 
-        self._modules_list.append(Detect(num_classes, anchors, channels=[256, 512, 1024],
-                                         width_mult_factor=width_mult_factor))  # 24
+        self._modules_list.append(Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
 
     def forward(self, intermediate_output):
         """
