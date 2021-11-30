@@ -29,9 +29,9 @@ def get_version():
 
 
 setup(
-    name='deci-trainer',
+    name='super-gradients',
     version=get_version(),
-    description="Deci Trainer",
+    description="SuperGradients",
     author="Deci AI",
     author_email="rnd@deci.ai",
     url="https://deci.ai",
