@@ -160,7 +160,6 @@ class YoLoV5Head(nn.Module):
         super().__init__()
         # PARSE arch_params
         num_classes = arch_params.num_classes
-        depth_mult_factor = arch_params.depth_mult_factor
         width_mult_factor = arch_params.width_mult_factor
         anchors = arch_params.anchors
         self._skip_connections_dict = arch_params.skip_connections_dict
@@ -171,28 +170,26 @@ class YoLoV5Head(nn.Module):
         connector = arch_params.connection_layers_input_channel_size
 
         width_mult = lambda channels: width_multiplier(channels, arch_params.width_mult_factor)
+        depth_mult = lambda blocks: max(round(blocks * arch_params.depth_mult_factor), 1) if blocks > 1 else blocks
 
-        # THE MODULES LIST IS APPROACHABLE FROM "OUTSIDE THE CLASS - SO WE CAN CHANGE IT'S STRUCTURE"
         self._modules_list = nn.ModuleList()
-
         self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1))  # 10
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 11
         self._modules_list.append(Concat(1))  # 12
-        self._modules_list.append(BottleneckCSP(connector[1], 512, 3, False, width_mult_factor=width_mult_factor,
-                                                depth_mult_factor=depth_mult_factor))  # 13
+        self._modules_list.append(BottleneckCSP(width_mult(connector[1]), width_mult(512), depth_mult(3), False))  # 13
+
         self._modules_list.append(Conv(width_mult(512), width_mult(256), 1))  # 14
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 15
         self._modules_list.append(Concat(1))  # 16
-        self._modules_list.append(BottleneckCSP(connector[2], 256, 3, False, width_mult_factor=width_mult_factor,
-                                                depth_mult_factor=depth_mult_factor))  # 17
+        self._modules_list.append(BottleneckCSP(width_mult(connector[2]), width_mult(256), depth_mult(3), False))  # 17
+
         self._modules_list.append(Conv(width_mult(256), width_mult(256), 3, 2))  # 18
         self._modules_list.append(Concat(1))  # 19
-        self._modules_list.append(BottleneckCSP(512, 512, 3, False, width_mult_factor=width_mult_factor,
-                                                depth_mult_factor=depth_mult_factor))  # 20
+        self._modules_list.append(BottleneckCSP(width_mult(512), width_mult(512), depth_mult(3), False))  # 20
+
         self._modules_list.append(Conv(width_mult(512), width_mult(512), 3, 2))  # 21
         self._modules_list.append(Concat(1))  # 22
-        self._modules_list.append(BottleneckCSP(1024, 1024, 3, False, width_mult_factor=width_mult_factor,
-                                                depth_mult_factor=depth_mult_factor))  # 23
+        self._modules_list.append(BottleneckCSP(width_mult(1024), width_mult(1024), depth_mult(3), False))  # 23
 
         self._modules_list.append(Detect(num_classes, anchors, channels=[256, 512, 1024],
                                          width_mult_factor=width_mult_factor))  # 24
