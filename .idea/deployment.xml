@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="shay.aharon@10.243.69.203:22 key" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="shay.aharon@10.243.69.203:22 key">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/shay.aharon/PycharmProjects/super_gradients" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="shay.aharon@10.243.69.204:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/shay.aharon/PycharmProjects/super_gradients" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>
