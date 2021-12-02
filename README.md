@@ -114,7 +114,7 @@ You can do so by manually edit the file with your faivorite text editor, or run 
 
 Get started with our quick start notebook on Google Colab for a quick and easy start using free GPU hardware
 
-#### [Quick Start Notebook](https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK#scrollTo=laC45eIbZIXE)
+#### [Quick Start Notebook](https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing)
 
 # Computer Vision Models' Pretrained Checkpoints 
 
