@@ -8,11 +8,12 @@ repository.
 
 <!-- toc -->
 
+- [Quick Start Notebook](#quick-start-notebook)
 - [Installation Methods](#installation-methods)
     - [Quick Installation of stable version](#quick-installation-of-stable-version)
     - [Installing from GitHub](#installing-from-github)
     - [Installing from AWS Codeartifact PyPi repository](#installing-from-aws-codeartifact-pypi-repository)
-- [Computer Vision Models' Pretrained Checkpoints](#computer-vision-models'-pretrained-checkpoints)
+- [Computer Vision Models' Pretrained Checkpoints](#computer-vision-models-pretrained-checkpoints)
   - [Pretrained Classification PyTorch Checkpoints](#pretrained-classification-pytorch-checkpoints)
   - [Pretrained Object Detection PyTorch Checkpoints](#pretrained-object-detection-pytorch-checkpoints)
   - [Pretrained Semantic Segmentation PyTorch Checkpoints](#pretrained-semantic-segmentation-pytorch-checkpoints)
@@ -23,6 +24,15 @@ repository.
 - [Technical Debt](#technical-debt)
 
 <!-- tocstop -->
+
+## Quick Start Notebook
+
+Get started with our quick start notebook on Google Colab for a quick and easy start using free GPU hardware
+
+#### [Quick Start Notebook](https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing)
+
+
+
 
 ## Installation Methods
 
@@ -109,49 +119,50 @@ You can do so by manually edit the file with your faivorite text editor, or run 
   sed -i 's/^index-url/extra-index-url/g'  ~/.config/pip/pip.conf
 ```
 
-# Computer Vision Models' Pretrained Checkpoints 
 
-## Pretrained Classification PyTorch Checkpoints
+## Computer Vision Models' Pretrained Checkpoints 
 
-#### **  TODO - ADD HERE EFFICIENCY FRONTIER CLASSIFICATION MODELS GRAPH FOR LATENCY **
+### Pretrained Classification PyTorch Checkpoints
+
+##### **  TODO - ADD HERE EFFICIENCY FRONTIER CLASSIFICATION MODELS GRAPH FOR LATENCY **
 
 | Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency b1<sub>T4</sub> | Throughout b1<sub>T4</sub> | 
 |-------------------- |------ | ---------- |----------- |------ | -------- |  :------: |
-| [EfficientNet B0](https://link_to_model_file)       | ImageNet  |224x224   |  77.62   | 93.49  |**1.16ms** |**862fps** |
-| [RegNetY200](https://link_to_model_file)       | ImageNet  |224x224   |  70.88    |   89.35  |**-ms** |**-fps** |
-| [RegNetY400](https://link_to_model_file)       | ImageNet  |224x224   |  74.74    |   91.46  |**-ms** |**-fps** |
-| [RegNetY600](https://link_to_model_file)       | ImageNet  |224x224   |  76.18    |  92.34   |**-ms** |**-fps** |
-| [RegNetY800](https://link_to_model_file)       | ImageNet  |224x224   |  77.07    |  93.26   |**-ms** |**-fps** |
-| [ResNet18](https://link_to_model_file)       | ImageNet  |224x224   |  70.6    |   89.64 |**0.599ms** |**1669fps** |
-| [ResNet34](https://link_to_model_file)       | ImageNet  |224x224   |  74.13   |   91.7  |**0.89ms** |**1123fps** |
-| [ResNet50](https://link_to_model_file)       | ImageNet  |224x224   |  76.3    |   93.0  |**0.94ms** |**1063fps** |
-| [MobileNetV3_large-150 epochs](https://link_to_model_file)       | ImageNet  |224x224   |  73.79    |   91.54  |**0.87ms** |**1149fps** |
-| [MobileNetV3_large-300 epochs](https://link_to_model_file)       | ImageNet  |224x224   |  74.52    |  91.92 |**0.87ms** |**1149fps** |
-| [MobileNetV3_small](https://link_to_model_file)       | ImageNet  |224x224   |67.45    |  87.47   |**0.75ms** |**1333fps** |
-| [MobileNetV2_w1](https://link_to_model_file)       | ImageNet  |224x224   |  73.08 | 91.1  |**0.58ms** |**1724fps** |
+| EfficientNet B0 | ImageNet  |224x224   |  77.62   | 93.49  |**1.16ms** |**862fps** |
+| RegNetY200 | ImageNet  |224x224   |  70.88    |   89.35  |**-**|**-** |
+| RegNetY400  | ImageNet  |224x224   |  74.74    |   91.46  |**-** |**-** |
+| RegNetY600  | ImageNet  |224x224   |  76.18    |  92.34   |**-** |**-** |
+| RegNetY800   | ImageNet  |224x224   |  77.07    |  93.26   |**-** |**-** |
+| ResNet18   | ImageNet  |224x224   |  70.6    |   89.64 |**0.599ms** |**1669fps** |
+| ResNet34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.89ms** |**1123fps** |
+| ResNet50  | ImageNet  |224x224   |  76.3    |   93.0  |**0.94ms** |**1063fps** |
+| MobileNetV3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.87ms** |**1149fps** |
+| MobileNetV3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.87ms** |**1149fps** |
+| MobileNetV3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.75ms** |**1333fps** |
+| MobileNetV2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.58ms** |**1724fps** |
 
 
 
-## Pretrained Object Detection PyTorch Checkpoints
+### Pretrained Object Detection PyTorch Checkpoints
 
-#### ** TODO - ADD HERE THE EFFICIENCY FRONTIER OBJECT-DETECTION MODELS GRAPH FOR LATENCY **
+##### ** TODO - ADD HERE THE EFFICIENCY FRONTIER OBJECT-DETECTION MODELS GRAPH FOR LATENCY **
 
 
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
 |--------------------- |------ | ---------- |------ | -------- |   :------: |
-| [YOLOv5 small](https://link_to_model_file)      | CoCo |640x640 |37.3   |**10.09ms** |**101.85fps** |
-| [YOLOv5 medium](https://link_to_model_file)     | CoCo |640x640 |45.2   |**17.55ms** |**57.66fps** |
+| YOLOv5 small | CoCo |640x640 |37.3   |**10.09ms** |**101.85fps** |
+| YOLOv5 medium  | CoCo |640x640 |45.2   |**17.55ms** |**57.66fps** |
 
 
-## Pretrained Semantic Segmentation PyTorch Checkpoints
+### Pretrained Semantic Segmentation PyTorch Checkpoints
 
-#### ** TODO - ADD HERE THE EFFICIENCY FRONTIER SEMANTIC-SEGMENTATION MODELS GRAPH FOR LATENCY **
+##### ** TODO - ADD HERE THE EFFICIENCY FRONTIER SEMANTIC-SEGMENTATION MODELS GRAPH FOR LATENCY **
 
 
 | Model | Dataset |  Resolution | mIoU | Latency<sub>T4</sub> | Throughout<sub>T4</sub>  |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
-| [DDRNet23](https://link_to_model_file)      | Cityscapes |1024x2048      |78.65     |**-ms** |**-fps** |
-| [DDRNet23 slim](https://link_to_model_file)      | Cityscapes |1024x2048 |76.6    |**-ms** |**-fps** |
+| DDRNet23   | Cityscapes |1024x2048      |78.65     |**-** |**-** |
+| DDRNet23 slim   | Cityscapes |1024x2048 |76.6    |**-** |**-** |
 
 
 
