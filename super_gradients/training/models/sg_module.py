@@ -57,3 +57,11 @@ class SgModule(nn.Module):
         with convertible substitutes and remove all auxiliary or training related parts.
         :param input_size: [H,W]
         """
+
+    def replace_head(self, **kwargs):
+        """
+        Replace final layer for pretrained models. Since this varies between architectures, we leave it to the inheriting
+        class to implement.
+        """
+
+        raise NotImplementedError

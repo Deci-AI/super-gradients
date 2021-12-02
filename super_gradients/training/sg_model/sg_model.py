@@ -42,6 +42,7 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, WarmupLRCallback
 from super_gradients.common.environment import environment_config
+from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 
 logger = get_logger(__name__)
 
@@ -233,6 +234,11 @@ class SgModel:
 
         self.arch_params = core_utils.HpmStruct(**arch_params)
 
+        pretrained_weights = core_utils.get_param(self.arch_params, 'pretrained_weights', default_val=None)
+        if pretrained_weights is not None:
+            num_classes_new_head = self.arch_params.num_classes
+            self.arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
+
         # OVERRIDE THE INPUT PARAMS WITH THE arch_params VALUES
         load_weights_only = core_utils.get_param(self.arch_params, 'load_weights_only', default_val=load_weights_only)
 
@@ -254,9 +260,6 @@ class SgModel:
         else:
             self.net = architecture
 
-        pretrained_weights = core_utils.get_param(self.arch_params, 'pretrained_weights', default_val=None)
-        if pretrained_weights:
-            load_pretrained_weights(self.net, architecture, pretrained_weights)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
         if hasattr(self.net, 'structure'):
@@ -293,6 +296,11 @@ class SgModel:
             self._load_checkpoint_to_model(strict=strict_load, load_backbone=self.load_backbone,
                                            source_ckpt_folder_name=self.source_ckpt_folder_name,
                                            load_ema_as_net=load_ema_as_net)
+        if pretrained_weights:
+            load_pretrained_weights(self.net, architecture, pretrained_weights)
+            if num_classes_new_head != self.arch_params.num_classes:
+                self.net.module.replace_head(new_num_classes=num_classes_new_head)
+                self.arch_params.num_classes = num_classes_new_head
 
     def _train_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
         """
