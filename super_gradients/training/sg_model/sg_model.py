@@ -1430,7 +1430,7 @@ class SgModel:
 
     def _write_lrs(self, epoch):
         lrs = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
-        lr_titles = ['Param_group_' + str(i) + '_LR' for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ['LR0000']
+        lr_titles = ['Param_group_' + str(i) + '_LR' for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ['LR']
         sg_model_utils.write_training_results(self.tensorboard_writer, lr_titles, lrs, epoch)
         sg_model_utils.add_log_to_file(self.log_file, lr_titles, lrs, epoch, self.max_epochs)
 
