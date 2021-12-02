@@ -217,9 +217,13 @@ class ResNet(SgModule):
         else:
             super().load_state_dict(pretrained_model_weights_dict, strict)
 
-    def replace_head(self, new_num_classes):
-        self.linear = nn.Linear(width_multiplier(512, self.width_mult) * self.expansion, new_num_classes)
-
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self.linear = new_head
+        else:
+            self.linear = nn.Linear(width_multiplier(512, self.width_mult) * self.expansion, new_num_classes)
 
 
 def ResNet18(arch_params, num_classes=None, backbone_mode=None):

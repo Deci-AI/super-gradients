@@ -301,6 +301,7 @@ class SgModel:
             if num_classes_new_head != self.arch_params.num_classes:
                 self.net.module.replace_head(new_num_classes=num_classes_new_head)
                 self.arch_params.num_classes = num_classes_new_head
+                self.net.to(self.device)
 
     def _train_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
         """
