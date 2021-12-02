@@ -705,6 +705,9 @@ class SgModel:
             raise Exception('Model', 'No model found')
         if self.dataset_interface is None:
             raise Exception('Data', 'No dataset found')
+        if self.valid_loader is None or self.train_loader is None:
+            raise ValueError("Train and Validation dataloaders are required for training. "
+                             "self.dataset_interface.get_data_loaders(...) should return non empty data_loaders.")
 
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
@@ -1359,6 +1362,10 @@ class SgModel:
                                                    load_weights_only=self.load_weights_only,
                                                    load_ema_as_net=load_ema_as_net)
 
+        if 'ema_net' in self.checkpoint.keys():
+            logger.warning("[WARNING] Main network has been loaded from checkpoint but EMA network exists as well. It "
+                           " will only be loaded during validation when training with ema=True. ")
+
         # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS
         self.best_metric = self.checkpoint['acc'] if 'acc' in self.checkpoint.keys() else -1
         self.start_epoch = self.checkpoint['epoch'] if 'epoch' in self.checkpoint.keys() else 0
@@ -1387,6 +1394,14 @@ class SgModel:
         # WHEN TESTING WITHOUT A LOSS FUNCTION- CREATE EPOCH HEADERS FOR PRINTS
         if self.criterion is None:
             self.loss_logging_items_names = []
+
+        if self.test_metrics is None:
+            raise ValueError("Metrics are required to perform test. Pass them through test_metrics_list arg when "
+                             "calling test or through training_params when calling train(...)")
+        if self.test_loader is None:
+            raise ValueError("Test dataloader is required to perform test. Make sure to either pass it through "
+                             "test_loader arg or calling connect_dataset_interface upon a DatasetInterface instance "
+                             "with a non empty testset attribute.")
 
         # RESET METRIC RUNNERS
         self.test_metrics.reset()
