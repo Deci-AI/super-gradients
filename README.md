@@ -8,11 +8,11 @@ repository.
 
 <!-- toc -->
 
+- [Quick Start Notebook](#quick-start-notebook)
 - [Installation Methods](#installation-methods)
     - [Quick Installation of stable version](#quick-installation-of-stable-version)
     - [Installing from GitHub](#installing-from-github)
     - [Installing from AWS Codeartifact PyPi repository](#installing-from-aws-codeartifact-pypi-repository)
-- [Quick Start Notebook](#quick-start-notebook)
 - [Computer Vision Models' Pretrained Checkpoints](#computer-vision-models-pretrained-checkpoints)
   - [Pretrained Classification PyTorch Checkpoints](#pretrained-classification-pytorch-checkpoints)
   - [Pretrained Object Detection PyTorch Checkpoints](#pretrained-object-detection-pytorch-checkpoints)
@@ -24,6 +24,13 @@ repository.
 - [Technical Debt](#technical-debt)
 
 <!-- tocstop -->
+
+# Quick Start Notebook
+
+Get started with our quick start notebook on Google Colab for a quick and easy start using free GPU hardware
+
+#### [Quick Start Notebook](https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing)
+
 
 ## Installation Methods
 
@@ -110,11 +117,6 @@ You can do so by manually edit the file with your faivorite text editor, or run 
   sed -i 's/^index-url/extra-index-url/g'  ~/.config/pip/pip.conf
 ```
 
-# Quick Start Notebook
-
-Get started with our quick start notebook on Google Colab for a quick and easy start using free GPU hardware
-
-#### [Quick Start Notebook](https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing)
 
 # Computer Vision Models' Pretrained Checkpoints 
 
