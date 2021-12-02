@@ -25,11 +25,13 @@ repository.
 
 <!-- tocstop -->
 
-# Quick Start Notebook
+## Quick Start Notebook
 
 Get started with our quick start notebook on Google Colab for a quick and easy start using free GPU hardware
 
 #### [Quick Start Notebook](https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing)
+
+
 
 
 ## Installation Methods
@@ -118,11 +120,11 @@ You can do so by manually edit the file with your faivorite text editor, or run 
 ```
 
 
-# Computer Vision Models' Pretrained Checkpoints 
+## Computer Vision Models' Pretrained Checkpoints 
 
-## Pretrained Classification PyTorch Checkpoints
+### Pretrained Classification PyTorch Checkpoints
 
-#### **  TODO - ADD HERE EFFICIENCY FRONTIER CLASSIFICATION MODELS GRAPH FOR LATENCY **
+##### **  TODO - ADD HERE EFFICIENCY FRONTIER CLASSIFICATION MODELS GRAPH FOR LATENCY **
 
 | Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency b1<sub>T4</sub> | Throughout b1<sub>T4</sub> | 
 |-------------------- |------ | ---------- |----------- |------ | -------- |  :------: |
@@ -141,9 +143,9 @@ You can do so by manually edit the file with your faivorite text editor, or run 
 
 
 
-## Pretrained Object Detection PyTorch Checkpoints
+### Pretrained Object Detection PyTorch Checkpoints
 
-#### ** TODO - ADD HERE THE EFFICIENCY FRONTIER OBJECT-DETECTION MODELS GRAPH FOR LATENCY **
+##### ** TODO - ADD HERE THE EFFICIENCY FRONTIER OBJECT-DETECTION MODELS GRAPH FOR LATENCY **
 
 
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
@@ -152,9 +154,9 @@ You can do so by manually edit the file with your faivorite text editor, or run 
 | YOLOv5 medium  | CoCo |640x640 |45.2   |**17.55ms** |**57.66fps** |
 
 
-## Pretrained Semantic Segmentation PyTorch Checkpoints
+### Pretrained Semantic Segmentation PyTorch Checkpoints
 
-#### ** TODO - ADD HERE THE EFFICIENCY FRONTIER SEMANTIC-SEGMENTATION MODELS GRAPH FOR LATENCY **
+##### ** TODO - ADD HERE THE EFFICIENCY FRONTIER SEMANTIC-SEGMENTATION MODELS GRAPH FOR LATENCY **
 
 
 | Model | Dataset |  Resolution | mIoU | Latency<sub>T4</sub> | Throughout<sub>T4</sub>  |
