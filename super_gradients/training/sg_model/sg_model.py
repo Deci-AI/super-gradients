@@ -24,7 +24,8 @@ from super_gradients.training import metrics
 from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
-from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, get_logging_values, \
+from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
+    get_logging_values, \
     get_metrics_dict, get_train_loop_description_dict
 from super_gradients.training.models import SgModule
 from super_gradients.training.params import TrainingParams
@@ -259,7 +260,6 @@ class SgModel:
             self.net = architecture(self.arch_params)
         else:
             self.net = architecture
-
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
         if hasattr(self.net, 'structure'):
@@ -779,10 +779,10 @@ class SgModel:
         if self.lr_mode is not None:
             sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
             self.phase_callbacks.append(sg_lr_callback_cls(train_loader_len=len(self.train_loader),
-                                                             net=self.net,
-                                                             training_params=self.training_params,
-                                                             update_param_groups=self.update_param_groups,
-                                                             **self.training_params.to_dict()))
+                                                           net=self.net,
+                                                           training_params=self.training_params,
+                                                           update_param_groups=self.update_param_groups,
+                                                           **self.training_params.to_dict()))
         if self.training_params.lr_warmup_epochs > 0:
             self.phase_callbacks.append(WarmupLRCallback(train_loader_len=len(self.train_loader),
                                                          net=self.net,
@@ -1371,7 +1371,8 @@ class SgModel:
         self.best_metric = self.checkpoint['acc'] if 'acc' in self.checkpoint.keys() else -1
         self.start_epoch = self.checkpoint['epoch'] if 'epoch' in self.checkpoint.keys() else 0
 
-    def _prep_for_test(self, test_loader: torch.utils.data.DataLoader = None, loss=None, post_prediction_callback=None, test_metrics_list=None,
+    def _prep_for_test(self, test_loader: torch.utils.data.DataLoader = None, loss=None, post_prediction_callback=None,
+                       test_metrics_list=None,
                        loss_logging_items_names=None, test_phase_callbacks=None):
         """Run commands that are common to all SgModels"""
         # SET THE MODEL IN evaluation STATE
@@ -1430,7 +1431,7 @@ class SgModel:
         # CREATE A LOG FILE AND WRITE THE CURRENT CONFIGURATION TO IT
         self.log_file = sg_model_utils.init_log_file(self.checkpoints_dir_path,
                                                      hpmstructs=[self.arch_params, self.training_params,
-                                                                   self.dataset_params],
+                                                                 self.dataset_params],
                                                      special_conf=additional_log_items)
 
     def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int):

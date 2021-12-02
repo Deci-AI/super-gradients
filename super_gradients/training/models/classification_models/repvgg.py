@@ -261,6 +261,7 @@ class RepVGG(SgModule):
         else:
             self.linear = nn.Linear(int(512 * self.final_width_mult), new_num_classes)
 
+
 class RepVggCustom(RepVGG):
     def __init__(self, arch_params):
         super().__init__(struct=arch_params.struct, num_classes=arch_params.num_classes,
