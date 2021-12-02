@@ -1354,6 +1354,10 @@ class SgModel:
                                                    load_weights_only=self.load_weights_only,
                                                    load_ema_as_net=load_ema_as_net)
 
+        if 'ema_net' in self.checkpoint.keys():
+            logger.warning("[WARNING] Main network has been loaded from checkpoint but EMA network exists as well. It "
+                           " will only be loaded during validation when training with ema=True. ")
+
         # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS
         self.best_metric = self.checkpoint['acc'] if 'acc' in self.checkpoint.keys() else -1
         self.start_epoch = self.checkpoint['epoch'] if 'epoch' in self.checkpoint.keys() else 0
