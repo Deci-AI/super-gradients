@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+from functools import wraps
 
 from super_gradients.common.environment import environment_config
 
@@ -68,3 +69,12 @@ def init_trainer():
 
 def is_distributed() -> bool:
     return environment_config.DDP_LOCAL_RANK >= 0
+
+
+def multi_process_safe(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if environment_config.DDP_LOCAL_RANK <= 0:
+            return func(*args, **kwargs)
+
+    return wrapper

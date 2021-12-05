@@ -32,7 +32,16 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "lr_mode": None,
                            "phase_callbacks": [],
                            "log_installed_packages": True,
-                           "save_full_train_log": False
+                           "save_full_train_log": False,
+                           "sg_loggers":
+                               [{"sg_logger": "base_sg_logger",
+                                 "sg_logger_params":
+                                     {"tb_files_user_prompt": False,  # Asks User for Tensorboard Deletion Prompt
+                                      "launch_tensorboard": False,
+                                      "tensorboard_port": None,
+                                      "save_checkpoints_remote": True,  # upload checkpoint files to s3
+                                      "save_tensorboard_remote": True,  # upload tensorboard files to s3
+                                      "save_logs_remote": True}}]  # upload log files to s3
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}

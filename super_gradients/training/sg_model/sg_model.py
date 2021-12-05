@@ -1,13 +1,11 @@
 import os
-import signal
 import sys
+from collections import Sequence, Mapping
 from copy import deepcopy
 from enum import Enum
 from typing import Union, Tuple
 
 import numpy as np
-import pkg_resources
-import psutil
 import torch
 import torchvision.transforms as transforms
 from deprecated import deprecated
@@ -16,8 +14,11 @@ from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
-from super_gradients.common import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.sg_loggers import SG_LOGGERS
+from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
+from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
+from super_gradients.common.sg_loggers.compose import Compose
 from super_gradients.training import ARCHITECTURES, utils as core_utils
 from super_gradients.training.utils import sg_model_utils
 from super_gradients.training import metrics
@@ -160,17 +161,12 @@ class SgModel:
         self.ckpt_name = ckpt_name
         self.overwrite_local_checkpoint = overwrite_local_checkpoint
         self.model_checkpoints_location = model_checkpoints_location
-        self.model_checkpoints_data_interface = ADNNModelRepositoryDataInterfaces(
-            data_connection_location=model_checkpoints_location)
 
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
-        self.checkpoints_dir_path = pkg_resources.resource_filename('checkpoints', self.experiment_name)
+        self.checkpoints_dir_path = None
 
         # INITIALIZE THE DEVICE FOR THE MODEL
         self._initialize_device(requested_device=device, requested_multi_gpu=multi_gpu)
-
-        if not self.ddp_silent_mode and not os.path.isdir(self.checkpoints_dir_path):
-            os.makedirs(self.checkpoints_dir_path)
 
         self.post_prediction_callback = post_prediction_callback
         # SET THE DEFAULTS
@@ -354,9 +350,7 @@ class SgModel:
 
             progress_bar_train_loader.set_postfix(**pbar_message_dict)
 
-        if self.training_params.save_tensorboard_to_s3:
-            self.model_checkpoints_data_interface.save_remote_tensorboard_event_files(self.experiment_name,
-                                                                                      self.checkpoints_dir_path)
+        self.sg_logger.upload()
 
         return logging_values
 
@@ -409,8 +403,7 @@ class SgModel:
         """
         # WHEN THE validation_results_tuple IS NONE WE SIMPLY SAVE THE state_dict AS LATEST AND Return
         if validation_results_tuple is None:
-            checkpoint_file_path = os.path.join(self.checkpoints_dir_path, 'ckpt_latest_weights_only.pth')
-            torch.save({'net': self.net.state_dict()}, checkpoint_file_path)
+            self.sg_logger.add_checkpoint(tag='ckpt_latest_weights_only.pth', state_dict={'net': self.net.state_dict()}, global_step=epoch)
             return
 
         # COMPUTE THE CURRENT metric
@@ -430,18 +423,18 @@ class SgModel:
         if self.ema:
             state['ema_net'] = self.ema_model.ema.state_dict()
         # SAVES CURRENT MODEL AS ckpt_latest
-        torch.save(state, os.path.join(self.checkpoints_dir_path, 'ckpt_latest.pth'))
+        self.sg_logger.add_checkpoint(tag='ckpt_latest.pth', state_dict=state, global_step=epoch)
 
         # SAVE MODEL AT SPECIFIC EPOCHS DETERMINED BY save_ckpt_epoch_list
         if epoch in self.training_params.save_ckpt_epoch_list:
-            torch.save(state, os.path.join(self.checkpoints_dir_path, f'ckpt_epoch_{epoch}.pth'))
+            self.sg_logger.add_checkpoint(tag=f'ckpt_epoch_{epoch}.pth', state_dict=state, global_step=epoch)
 
         # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
         if (metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
                 metric < self.best_metric and not self.greater_metric_to_watch_is_better):
             # STORE THE CURRENT metric AS BEST
             self.best_metric = metric
-            torch.save(state, os.path.join(self.checkpoints_dir_path, 'ckpt_best.pth'))
+            self.sg_logger.add_checkpoint(tag='ckpt_best.pth', state_dict=state, global_step=epoch)
             if isinstance(metric, torch.Tensor):
                 metric = metric.item()
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(metric))
@@ -449,8 +442,7 @@ class SgModel:
         if self.training_params.average_best_models:
             averaged_model_sd = self.model_weight_averaging.get_average_model(self.net,
                                                                               validation_results_tuple=validation_results_tuple)
-            torch.save({'net': averaged_model_sd},
-                       os.path.join(self.checkpoints_dir_path, self.average_model_checkpoint_filename))
+            self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict={'net': averaged_model_sd}, global_step=epoch)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def train(self, training_params: dict = dict()):  # noqa: C901
@@ -620,14 +612,6 @@ class SgModel:
 
                     Whether to save the model checkpoints.
 
-                - `launch_tensorboard` : bool (default=False)
-
-                    Whether to launch a TensorBoard process.
-
-                - `tb_files_user_prompt` : bool
-
-                    Asks user for Tensorboard deletion prompt.
-
                 - `silent_mode` : bool
 
                     Silents the print outs.
@@ -635,11 +619,6 @@ class SgModel:
                 - `mixed_precision` : bool
 
                     Whether to use mixed precision or not.
-
-                - `tensorboard_port` : int, None (default=None)
-
-                    Specific port number for the tensorboard to use when launched (when set to None, some free port
-                    number will be used).
 
                 - `save_ckpt_epoch_list` : list(int) (default=[])
 
@@ -650,10 +629,6 @@ class SgModel:
                     If set, a snapshot dictionary file and the average model will be saved / updated at every epoch
                     and evaluated only when training is completed. The snapshot file will only be deleted upon
                     completing the training. The snapshot dict will be managed on cpu.
-
-                - `save_tensorboard_to_s3` : bool (default=False)
-
-                    Saves tensorboard in s3.
 
                 - `precise_bn` : bool (default=False)
 
@@ -697,9 +672,6 @@ class SgModel:
             raise Exception('Model', 'No model found')
         if self.dataset_interface is None:
             raise Exception('Data', 'No dataset found')
-        if self.valid_loader is None or self.train_loader is None:
-            raise ValueError("Train and Validation dataloaders are required for training. "
-                             "self.dataset_interface.get_data_loaders(...) should return non empty data_loaders.")
 
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
@@ -787,14 +759,14 @@ class SgModel:
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
         if not self.ddp_silent_mode:
-            self._initialize_logging_objects()
+            self._initialize_sg_logger_objects()
 
             if self.training_params.dataset_statistics:
-                dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.tensorboard_writer)
+                dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
                 dataset_statistics_logger.analyze(self.train_loader, dataset_params=self.dataset_params,
                                                   title="Train-set", anchors=self.net.module.arch_params.anchors)
-                dataset_statistics_logger.analyze(self.test_loader, dataset_params=self.dataset_params,
-                                                  title="Test-set")
+                dataset_statistics_logger.analyze(self.valid_loader, dataset_params=self.dataset_params,
+                                                  title="val-set")
             # AVERAGE BEST 10 MODELS PARAMS
             if self.training_params.average_best_models:
                 self.model_weight_averaging = ModelWeightAveraging(self.checkpoints_dir_path,
@@ -805,7 +777,7 @@ class SgModel:
                                                                    load_checkpoint=self.load_checkpoint,
                                                                    model_checkpoints_location=self.model_checkpoints_location)
         if self.training_params.save_full_train_log:
-            logger = get_logger(__name__, training_log_path=self.log_file.replace('.txt', 'full_train_log.log'))
+            logger = get_logger(__name__, training_log_path=self.sg_logger.log_file_path.replace('.txt', 'full_train_log.log'))
             sg_model_utils.log_uncaught_exceptions(logger)
 
         if not self.load_checkpoint or self.load_weights_only:
@@ -829,13 +801,8 @@ class SgModel:
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
-        if self.training_params.launch_tensorboard and not self.ddp_silent_mode:
-            # IGNORING THE TENSORBOARD PORT RETURN VALUE
-            tensorboard_port = self.training_params.tensorboard_port
-            tensor_board_process, _ = sg_model_utils.launch_tensorboard_process(self.checkpoints_dir_path,
-                                                                                port=tensorboard_port)
-
-        context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name, ckpt_dir=self.checkpoints_dir_path, lr_warmup_epochs=self.training_params.lr_warmup_epochs)
+        context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name, ckpt_dir=self.checkpoints_dir_path,
+                               lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
         try:
@@ -926,21 +893,13 @@ class SgModel:
                     torch.distributed.destroy_process_group()
 
             if not self.ddp_silent_mode:
-                if self.training_params.launch_tensorboard:
-                    try:
-                        logger.info('[CLEANUP] - Stopping tensorboard process')
-                        process = psutil.Process(tensor_board_process.pid)
-                        process.send_signal(signal.SIGTERM)
-                        logger.info('[CLEANUP] - Successfully stopped tensorboard process')
-                    except Exception as ex:
-                        logger.info('[CLEANUP] - Could not stop tensorboard process properly: ' + str(ex))
-
                 if self.model_checkpoints_location != 'local':
                     logger.info('[CLEANUP] - Saving Checkpoint files')
-                    log_file_name = self.log_file.split('/')[-1]
-                    self.model_checkpoints_data_interface.save_all_remote_checkpoint_files(self.experiment_name,
-                                                                                           self.checkpoints_dir_path,
-                                                                                           log_file_name)
+                    self.sg_logger.upload()
+
+                self.sg_logger.close()
+
+
             # PHASE.TRAIN_END
             self.phase_callback_handler(Phase.POST_TRAINING, context)
 
@@ -989,23 +948,22 @@ class SgModel:
         self.net.load_state_dict(keep_state_dict)
 
         if not self.ddp_silent_mode:
-            # LOG THE PERFORMANCE OF THE AVERAGED MODEL
-            sg_model_utils.add_log_to_file(self.log_file,
-                                           ['Average_Model_Results'] + ['-'] * (len(averaged_model_results_tuple) - 1),
-                                           averaged_model_results_tuple, self.max_epochs,
-                                           self.max_epochs)
-
-            # Adding values to tensorboard
+            # Adding values to sg_logger
             # looping over last titles which corresponds to validation (and average model) metrics.
+            all_titles = self.results_titles[-1 * len(averaged_model_results_tuple):]
+            result_dict = {all_titles[i]: averaged_model_results_tuple[i] for i in range(len(averaged_model_results_tuple))}
+
+            self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=self.max_epochs)
+
             average_model_tb_titles = ['Averaged Model ' + x for x in
                                        self.results_titles[-1 * len(averaged_model_results_tuple):]]
             write_struct = ''
             for ind, title in enumerate(average_model_tb_titles):
                 write_struct += '%s: %.3f  \n  ' % (title, averaged_model_results_tuple[ind])
-                self.tensorboard_writer.add_scalar(title, averaged_model_results_tuple[ind],
+                self.sg_logger.add_scalar(title, averaged_model_results_tuple[ind],
                                                    global_step=self.max_epochs)
 
-            self.tensorboard_writer.add_text("Averaged_Model_Performance", write_struct, self.max_epochs)
+            self.sg_logger.add_text("Averaged_Model_Performance", write_struct, self.max_epochs)
             if cleanup_snapshots_pkl_file:
                 self.model_weight_averaging.cleanup()
 
@@ -1403,41 +1361,74 @@ class SgModel:
         self.test_metrics.reset()
         self.test_metrics.to(self.device)
 
-    def _initialize_logging_objects(self):
-        """Initialize object that read or write from disk"""
-        # CREATE TENSORBOARD WRITER AND LAUNCH IT IN A SEPARATE THREAD
-        self.tensorboard_writer = sg_model_utils.init_summary_writer(self.checkpoints_dir_path, self.load_checkpoint,
-                                                                     self.training_params.tb_files_user_prompt)
+    def _initialize_sg_logger_objects(self):
+        """Initialize object that collect, write to disk, monitor and store remotely all training outputs"""
+        sg_loggers = core_utils.get_param(self.training_params, 'sg_loggers')
 
+        # OVERRIDE SOME PARAMETERS TO MAKE SURE THEY MATCH THE TRAINING PARAMETERS
+        general_sg_logger_params = {'project_name': 'project_name',  # TODO
+                                    'experiment_name': self.experiment_name,
+                                    'storage_location': self.model_checkpoints_location,
+                                    'resumed': self.load_checkpoint,
+                                    'training_params': self.training_params}
+
+        if sg_loggers is None:
+            raise RuntimeError('sg_loggers must be defined in training params (see default_training_params)')
+
+        if not isinstance(sg_loggers, Sequence) or len(sg_loggers) < 1:
+            raise RuntimeError('sg_loggers type must be an non-empty list (see default_training_params)')
+
+        sg_loggers_list = []
+        for sg_logger in sg_loggers:
+            if isinstance(sg_logger, AbstractSGLogger):
+                sg_loggers_list.append(sg_logger)
+            elif isinstance(sg_logger, Mapping):
+                sg_logger_type = core_utils.get_param(sg_logger, 'sg_logger')
+                sg_logger_params = core_utils.get_param(sg_logger, 'sg_logger_params', {})
+                if issubclass(SG_LOGGERS[sg_logger_type], BaseSGLogger):
+                    sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
+                sg_loggers_list.append(SG_LOGGERS[sg_logger_type](**sg_logger_params))
+            else:
+                raise RuntimeError('sg_logger can be either a dictionary {"sg_logger": ..., "sg_logger_params": {...}} or an AbstractSGLogger')
+
+        if len(sg_loggers_list) == 1:
+            self.sg_logger = sg_loggers_list[0]
+        else:
+            self.sg_logger = Compose(sg_loggers_list)
+
+        if not any(isinstance(c, BaseSGLogger) for c in sg_loggers_list):
+            logger.warning("WARNING! Using a user-defined sg_logger: files will not be automatically written to disk!\n"
+                           "Please make sure the provided sg_logger writes to disk or compose your sg_logger to BaseSGLogger")
+
+        self.checkpoints_dir_path = self.sg_logger.local_dir()
         additional_log_items = {'initial_LR': self.training_params.initial_lr,
                                 'num_devices': self.num_devices,
-                                'multi_gpu': str(self.multi_gpu)}
+                                'multi_gpu': str(self.multi_gpu),
+                                'device_type': torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu'}
 
         # ADD INSTALLED PACKAGE LIST + THEIR VERSIONS
         if self.training_params.log_installed_packages:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items['installed_packages'] = pkg_list
 
-        sg_model_utils.write_hpms(self.tensorboard_writer, hpmstructs=[self.arch_params, self.training_params,
-                                                                       self.dataset_params],
-                                  special_conf=additional_log_items)
+        self.sg_logger.add_config("hyper_params", {**self.arch_params.__dict__,
+                                   **self.training_params.__dict__,
+                                   **self.dataset_params.__dict__,
+                                   **additional_log_items})
 
-        # CREATE A LOG FILE AND WRITE THE CURRENT CONFIGURATION TO IT
-        self.log_file = sg_model_utils.init_log_file(self.checkpoints_dir_path,
-                                                     hpmstructs=[self.arch_params, self.training_params,
-                                                                   self.dataset_params],
-                                                     special_conf=additional_log_items)
+        self.sg_logger.flush()
 
     def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         # STORE VALUES IN A TENSORBOARD FILE
+        lrs = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
+        lr_titles = ['LR/Param_group_' + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ['LR']
 
-        train_results = list(train_metrics) + list(validation_results) + [inf_time]
-        all_titles = self.results_titles + ['Inference Time']
-        sg_model_utils.write_training_results(self.tensorboard_writer, all_titles, train_results, epoch)
+        train_results = list(train_metrics) + list(validation_results) + [inf_time] + lrs
+        all_titles = self.results_titles + ['Inference Time'] + lr_titles
 
-        # LOG THE DATA EVERY EPOCH
-        sg_model_utils.add_log_to_file(self.log_file, all_titles, train_results, epoch, self.max_epochs)
+        result_dict = {all_titles[i]: train_results[i] for i in range(len(train_results))}
+        self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
 
         # SAVE THE CHECKPOINT
         if self.training_params.save_model:
@@ -1446,8 +1437,8 @@ class SgModel:
     def _write_lrs(self, epoch):
         lrs = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
         lr_titles = ['Param_group_' + str(i) + '_LR' for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ['LR']
-        sg_model_utils.write_training_results(self.tensorboard_writer, lr_titles, lrs, epoch)
-        sg_model_utils.add_log_to_file(self.log_file, lr_titles, lrs, epoch, self.max_epochs)
+        lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
+        self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
     def test(self,  # noqa: C901
              test_loader: torch.utils.data.DataLoader = None,

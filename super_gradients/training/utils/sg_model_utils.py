@@ -97,20 +97,6 @@ def init_summary_writer(tb_dir, checkpoint_loaded, user_prompt=False):
     return SummaryWriter(tb_dir)
 
 
-def init_log_file(log_dir, hpmstructs=[], special_conf={}):
-    """Create a file and document the HpmStruct as plain text"""
-    filename = '{}/log_{}.txt'.format(log_dir, time.strftime('%b%d_%H_%M_%S', time.localtime()))
-    log_file = open(filename, 'a' if os.path.exists(log_dir) else 'w')
-    for hpm in hpmstructs:
-        for key, val in hpm.__dict__.items():
-            log_file.write('{}: {}\n'.format(key, val))
-    for key, val in special_conf.items():
-        log_file.write('{}: {}\n'.format(key, val))
-    log_file.write('\nTraining process:\n-----------------')
-    log_file.close()
-    return filename
-
-
 def add_log_to_file(filename, results_titles_list, results_values_list, epoch, max_epochs):
     """Add a message to the log file"""
     # -Note: opening and closing the file every time is in-efficient. It is done for experimental purposes
