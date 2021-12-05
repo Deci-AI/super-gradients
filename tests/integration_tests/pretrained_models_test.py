@@ -43,7 +43,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim"]
         self.cityscapes_pretrained_arch_params = {"ddrnet_23": {"pretrained_weights": "cityscapes", "num_classes": 19, "aux_head": True, "sync_bn": True}}
         self.cityscapes_pretrained_mious = {"ddrnet_23": 0.7865,
-                                            "ddrnet_23_slim": 0.766}
+                                            "ddrnet_23_slim": 0.7689}
         self.cityscapes_dataset = CityscapesDatasetInterface(dataset_params={
             "batch_size": 3,
             "val_batch_size": 3,
@@ -118,7 +118,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"])
         res = trainer.test(test_loader=self.cityscapes_dataset.val_loader, test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23"])
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23_slim"])
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
