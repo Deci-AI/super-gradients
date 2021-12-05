@@ -3,10 +3,11 @@ import super_gradients
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import SgModel
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface, \
-    ClassificationTestDatasetInterface
-from super_gradients.training.metrics import Accuracy
+    ClassificationTestDatasetInterface, CityscapesDatasetInterface
+from super_gradients.training.metrics import Accuracy, IoU
 import os
 import shutil
+import torchvision.transforms as transforms
 
 
 class PretrainedModelsTest(unittest.TestCase):
@@ -38,6 +39,19 @@ class PretrainedModelsTest(unittest.TestCase):
                                                      "loss_logging_items_names": ["Loss"],
                                                      "metric_to_watch": "Accuracy",
                                                      "greater_metric_to_watch_is_better": True}
+
+        self.cityscapes_pretrained_models = ["ddrnet_23"]
+        self.cityscapes_pretrained_arch_params = {"ddrnet_23": {"pretrained_weights": "cityscapes", "num_classes": 19, "aux_head": True, "sync_bn": True}}
+        self.cityscapes_pretrained_mious = {"ddrnet_23": 0.7894}
+        self.cityscapes_dataset = CityscapesDatasetInterface(dataset_params={
+            "batch_size": 3,
+            "val_batch_size": 3,
+            "dataset_dir": "/home/ofri/cityscapes/",
+            "crop_size": 1024,
+            "img_size": 1024,
+            "image_mask_transforms_aug": transforms.Compose([]),
+            "image_mask_transforms": transforms.Compose([])  # no transform for evaluation
+        }, cache_labels=False)
 
     def test_pretrained_resnet50_imagenet(self):
         trainer = SgModel('imagenet_pretrained_resnet50', model_checkpoints_location='local',
@@ -86,6 +100,15 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         trainer.build_model("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"])
         trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_ddrnet23_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_ddrnet23', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset, data_loader_num_workers=8)
+        trainer.build_model("ddrnet_23", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"])
+        res = trainer.test(test_loader=self.cityscapes_dataset.val_loader, test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23"])
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
