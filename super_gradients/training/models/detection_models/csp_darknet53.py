@@ -45,12 +45,9 @@ class Conv(nn.Module):
 class Bottleneck(nn.Module):
     # STANDARD BOTTLENECK
     def __init__(self, input_channels, output_channels, shortcut=True, groups=1,
-                 width_mult_factor: float = 1.0,
                  activation_func_type: type = nn.Hardswish):
         super().__init__()
 
-        input_channels = width_multiplier(input_channels, width_mult_factor)
-        output_channels = width_multiplier(output_channels, width_mult_factor)
         hidden_channels = output_channels
         self.cv1 = Conv(input_channels, hidden_channels, 1, 1, activation_func_type=activation_func_type)
         self.cv2 = Conv(hidden_channels, output_channels, 3, 1, groups=groups, activation_func_type=activation_func_type)
@@ -103,11 +100,9 @@ class BottleneckCSP(nn.Module):
 
 class SPP(nn.Module):
     # SPATIAL PYRAMID POOLING LAYER USED IN YOLOV3-SPP
-    def __init__(self, input_channels, output_channels, k=(5, 9, 13), width_mult_factor: float = 1.0):
+    def __init__(self, input_channels, output_channels, k=(5, 9, 13)):
         super().__init__()
 
-        input_channels = width_multiplier(input_channels, width_mult_factor)
-        output_channels = width_multiplier(output_channels, width_mult_factor)
         hidden_channels = input_channels // 2
         self.cv1 = Conv(input_channels, hidden_channels, 1, 1)
         self.cv2 = Conv(hidden_channels * (len(k) + 1), output_channels, 1, 1)
@@ -121,12 +116,10 @@ class SPP(nn.Module):
 class SPPF(nn.Module):
     # Spatial Pyramid Pooling - Fast (SPPF) layer for YOLOv5 by Glenn Jocher https://github.com/ultralytics/yolov5
     # equivalent to SPP(k=(5, 9, 13))
-    def __init__(self, input_channels, output_channels, k: int = 5, width_mult_factor: float = 1.0,
+    def __init__(self, input_channels, output_channels, k: int = 5,
                  activation_func_type: type = nn.SiLU):
         super().__init__()
 
-        input_channels = width_multiplier(input_channels, width_mult_factor)
-        output_channels = width_multiplier(output_channels, width_mult_factor)
         hidden_channels = input_channels // 2  # hidden channels
         self.cv1 = Conv(input_channels, hidden_channels, 1, 1, activation_func_type=activation_func_type)
         self.cv2 = Conv(hidden_channels * 4, output_channels, 1, 1, activation_func_type=activation_func_type)
@@ -141,11 +134,9 @@ class SPPF(nn.Module):
 
 class Focus(nn.Module):
     # FOCUS WH INFORMATION INTO C-SPACE
-    def __init__(self, input_channels, output_channels, kernel=1, stride=1, padding=None, groups=1,
-                 width_mult_factor: float = 1.0):
+    def __init__(self, input_channels, output_channels, kernel=1, stride=1, padding=None, groups=1):
         super().__init__()
 
-        output_channels = width_multiplier(output_channels, width_mult_factor)
         self.conv = Conv(input_channels * 4, output_channels, kernel, stride, padding, groups)
 
     def forward(self, x):  # x(b,c,w,h) -> y(b,4c,w/2,h/2)
@@ -180,7 +171,7 @@ class CSPDarknet53(SgModule):
 
         struct = [depth_mult(s) for s in struct]
         self._modules_list = nn.ModuleList()
-        self._modules_list.append(Focus(self.channels_in, 64, 3, width_mult_factor=self.width_mult_factor))  # 0
+        self._modules_list.append(Focus(self.channels_in, width_mult(64), 3))  # 0
         self._modules_list.append(Conv(width_mult(64), width_mult(128), 3, 2))  # 1
         self._modules_list.append(
             BottleneckCSP(width_mult(128), width_mult(128), struct[0]))  # 2
@@ -191,7 +182,7 @@ class CSPDarknet53(SgModule):
         self._modules_list.append(
             BottleneckCSP(width_mult(512), width_mult(512), struct[2]))  # 6
         self._modules_list.append(Conv(width_mult(512), width_mult(1024), 3, 2))  # 7
-        self._modules_list.append(SPP(1024, 1024, k=(5, 9, 13), width_mult_factor=self.width_mult_factor))  # 8
+        self._modules_list.append(SPP(width_mult(1024), width_mult(1024), k=(5, 9, 13)))  # 8
         self._modules_list.append(
             BottleneckCSP(width_mult(1024), width_mult(1024), struct[3], False))  # 9
 

@@ -79,12 +79,8 @@ class Concat(nn.Module):
 
 class Detect(nn.Module):
 
-    def __init__(self, num_classes: int, anchors: Anchors, channels: list = None,
-                 width_mult_factor: float = 1.0):
+    def __init__(self, num_classes: int, anchors: Anchors, channels: list = None):
         super().__init__()
-
-        # CHANGING THE WIDTH OF EACH OF THE DETECTION LAYERS
-        channels = [width_multiplier(channel, width_mult_factor) for channel in channels]
 
         self.num_classes = num_classes
         self.num_outputs = num_classes + 5
@@ -160,7 +156,6 @@ class YoLoV5Head(nn.Module):
         super().__init__()
         # PARSE arch_params
         num_classes = arch_params.num_classes
-        width_mult_factor = arch_params.width_mult_factor
         anchors = arch_params.anchors
         self._skip_connections_dict = arch_params.skip_connections_dict
         # FLATTEN THE SOURCE LIST INTO A LIST OF INDICES
@@ -191,8 +186,7 @@ class YoLoV5Head(nn.Module):
         self._modules_list.append(Concat(1))  # 22
         self._modules_list.append(BottleneckCSP(width_mult(1024), width_mult(1024), depth_mult(3), False))  # 23
 
-        self._modules_list.append(Detect(num_classes, anchors, channels=[256, 512, 1024],
-                                         width_mult_factor=width_mult_factor))  # 24
+        self._modules_list.append(Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
 
     def forward(self, intermediate_output):
         """
