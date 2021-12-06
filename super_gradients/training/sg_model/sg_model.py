@@ -1479,7 +1479,7 @@ class SgModel:
                             test_metrics_list=test_metrics_list,
                             loss_logging_items_names=loss_logging_items_names,
                             test_phase_callbacks=test_phase_callbacks,
-                            use_ema_net=use_ema_net)
+                            )
 
         test_results = self.evaluate(data_loader=self.test_loader,
                                      metrics=self.test_metrics,
