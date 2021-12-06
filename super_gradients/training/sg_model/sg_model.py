@@ -126,6 +126,7 @@ class SgModel:
         self.architecture_cls, self.device, self.multi_gpu = None, None, None
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = None, None, None, None, None
         self.ema = None
+        self.ema_model = None
         self.update_param_groups = None
         self.post_prediction_callback = None
         self.criterion = None
