@@ -11,7 +11,7 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
     check_anchor_order, check_img_size_divisibilty, matrix_non_max_suppression, NMS_Type, \
     DetectionPostPredictionCallback, Anchors
-from super_gradients.training.utils.export_utils import ExportableHardswish
+from super_gradients.training.utils.export_utils import ExportableHardswish, ExportableSiLU
 from super_gradients.training.utils.utils import HpmStruct, get_param, print_once
 import numpy as np
 
@@ -35,7 +35,7 @@ DEFAULT_YOLOV5_ARCH_PARAMS = {
     'add_nms': False,  # Add the NMS module to the computational graph
     'nms_conf': 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
     'nms_iou': 0.45,  # When add_nms is True IoU threshold for NMS algorithm
-                     # (with smaller value more boxed will be considered "the same" and removed)
+                      # (with smaller value more boxed will be considered "the same" and removed)
     'yolo_version': 'v6.0'
 }
 
@@ -394,9 +394,12 @@ class YoLoV5Base(SgModule):
 
         # Update the model with exportable operators
         for k, m in self.named_modules():
-            if isinstance(m, Conv) and isinstance(m.act, nn.Hardswish):
-                m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility
-                m.act = ExportableHardswish()  # assign activation
+            if isinstance(m, Conv):
+                if isinstance(m.act, nn.Hardswish):
+                    m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility
+                    m.act = ExportableHardswish()  # assign activation
+                elif isinstance(m.act, nn.SiLU):
+                    m.act = ExportableSiLU()  # assign activation
 
     def get_include_attributes(self) -> list:
         return ["grid", "anchors", "anchors_grid"]
