@@ -697,6 +697,9 @@ class SgModel:
             raise Exception('Model', 'No model found')
         if self.dataset_interface is None:
             raise Exception('Data', 'No dataset found')
+        if self.valid_loader is None or self.train_loader is None:
+            raise ValueError("Train and Validation dataloaders are required for training. "
+                             "self.dataset_interface.get_data_loaders(...) should return non empty data_loaders.")
 
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
@@ -849,6 +852,10 @@ class SgModel:
                 # RUN PHASE CALLBACKS
                 context.update_context(epoch=epoch)
                 self.phase_callback_handler(Phase.TRAIN_EPOCH_START, context)
+
+                # LOG LR THAT WILL BE USED IN CURRENT EPOCH AS IT IS UPDATED AT EPOCH END
+                if not self.ddp_silent_mode:
+                    self._write_lrs(epoch)
 
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
 
@@ -1351,6 +1358,10 @@ class SgModel:
                                                    load_weights_only=self.load_weights_only,
                                                    load_ema_as_net=load_ema_as_net)
 
+        if 'ema_net' in self.checkpoint.keys():
+            logger.warning("[WARNING] Main network has been loaded from checkpoint but EMA network exists as well. It "
+                           " will only be loaded during validation when training with ema=True. ")
+
         # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS
         self.best_metric = self.checkpoint['acc'] if 'acc' in self.checkpoint.keys() else -1
         self.start_epoch = self.checkpoint['epoch'] if 'epoch' in self.checkpoint.keys() else 0
@@ -1379,6 +1390,14 @@ class SgModel:
         # WHEN TESTING WITHOUT A LOSS FUNCTION- CREATE EPOCH HEADERS FOR PRINTS
         if self.criterion is None:
             self.loss_logging_items_names = []
+
+        if self.test_metrics is None:
+            raise ValueError("Metrics are required to perform test. Pass them through test_metrics_list arg when "
+                             "calling test or through training_params when calling train(...)")
+        if self.test_loader is None:
+            raise ValueError("Test dataloader is required to perform test. Make sure to either pass it through "
+                             "test_loader arg or calling connect_dataset_interface upon a DatasetInterface instance "
+                             "with a non empty testset attribute.")
 
         # RESET METRIC RUNNERS
         self.test_metrics.reset()
@@ -1412,11 +1431,9 @@ class SgModel:
     def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         # STORE VALUES IN A TENSORBOARD FILE
-        lrs = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
-        lr_titles = ['Param_group_' + str(i) + '_LR' for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ['LR']
 
-        train_results = list(train_metrics) + list(validation_results) + [inf_time] + lrs
-        all_titles = self.results_titles + ['Inference Time'] + lr_titles
+        train_results = list(train_metrics) + list(validation_results) + [inf_time]
+        all_titles = self.results_titles + ['Inference Time']
         sg_model_utils.write_training_results(self.tensorboard_writer, all_titles, train_results, epoch)
 
         # LOG THE DATA EVERY EPOCH
@@ -1425,6 +1442,12 @@ class SgModel:
         # SAVE THE CHECKPOINT
         if self.training_params.save_model:
             self.save_checkpoint(self.optimizer, epoch + 1, validation_results)
+
+    def _write_lrs(self, epoch):
+        lrs = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
+        lr_titles = ['Param_group_' + str(i) + '_LR' for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ['LR']
+        sg_model_utils.write_training_results(self.tensorboard_writer, lr_titles, lrs, epoch)
+        sg_model_utils.add_log_to_file(self.log_file, lr_titles, lrs, epoch, self.max_epochs)
 
     def test(self,  # noqa: C901
              test_loader: torch.utils.data.DataLoader = None,
