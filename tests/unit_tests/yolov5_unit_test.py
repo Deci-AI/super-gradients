@@ -3,14 +3,14 @@ import unittest
 import torch
 import torch.nn as nn
 
-from super_gradients.training.models.detection_models.yolov5 import YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, Custom_YoLoV5
+from super_gradients.training.models.detection_models.yolov5 import YoLoV5N, YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, Custom_YoLoV5
 from super_gradients.training.utils.utils import HpmStruct
 
 
 class TestYoloV5(unittest.TestCase):
     def setUp(self) -> None:
         self.arch_params = HpmStruct(num_classes=10)
-        self.yolo_classes = [YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, Custom_YoLoV5]
+        self.yolo_classes = [YoLoV5N, YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, Custom_YoLoV5]
 
     def test_yolov5_creation(self):
         """

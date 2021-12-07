@@ -36,7 +36,7 @@ DEFAULT_YOLOV5_ARCH_PARAMS = {
     'nms_conf': 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
     'nms_iou': 0.45,  # When add_nms is True IoU threshold for NMS algorithm
                       # (with smaller value more boxed will be considered "the same" and removed)
-    'yolo_version': 'v6.0'
+    'yolo_version': 'v6.0'  # Release version of Ultralytics to built a model from: v.6.0 and v3.0 are supported
 }
 
 
