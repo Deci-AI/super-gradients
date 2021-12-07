@@ -169,25 +169,25 @@ class YoLoV5Head(nn.Module):
                                                                                     arch_params.depth_mult_factor)
 
         self._modules_list = nn.ModuleList()
-        self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1, activation_type))  # 10
-        self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 11
-        self._modules_list.append(Concat(1))  # 12
+        self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1, activation_type))           # 10
+        self._modules_list.append(nn.Upsample(None, 2, 'nearest'))                                                  # 11
+        self._modules_list.append(Concat(1))                                                                        # 12
         self._modules_list.append(block(width_mult(connector[1]), width_mult(512), depth_mult(3), activation_type, False))  # 13
 
         self._modules_list.append(Conv(width_mult(512), width_mult(256), 1, 1, activation_type))                    # 14
-        self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 15
-        self._modules_list.append(Concat(1))  # 16
+        self._modules_list.append(nn.Upsample(None, 2, 'nearest'))                                                  # 15
+        self._modules_list.append(Concat(1))                                                                        # 16
         self._modules_list.append(block(width_mult(connector[2]), width_mult(256), depth_mult(3), activation_type, False))  # 17
 
         self._modules_list.append(Conv(width_mult(256), width_mult(256), 3, 2, activation_type))                    # 18
-        self._modules_list.append(Concat(1))  # 19
+        self._modules_list.append(Concat(1))                                                                        # 19
         self._modules_list.append(block(width_mult(512), width_mult(512), depth_mult(3), activation_type, False))   # 20
 
         self._modules_list.append(Conv(width_mult(512), width_mult(512), 3, 2, activation_type))                    # 21
-        self._modules_list.append(Concat(1))  # 22
+        self._modules_list.append(Concat(1))                                                                        # 22
         self._modules_list.append(block(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False)) # 23
 
-        self._modules_list.append(Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
+        self._modules_list.append(Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)])) # 24
 
     def forward(self, intermediate_output):
         """

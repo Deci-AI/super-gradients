@@ -204,18 +204,18 @@ class CSPDarknet53(SgModule):
         else:
             raise NotImplementedError(f'YoloV5 release version {yolo_version} is not supported, use "v3.0" or "v6.0"')
 
-        self._modules_list.append(Conv(width_mult(64), width_mult(128), 3, 2, activation_type))  # 1
+        self._modules_list.append(Conv(width_mult(64), width_mult(128), 3, 2, activation_type))                      # 1
         self._modules_list.append(block(width_mult(128), width_mult(128), struct[0], activation_type))               # 2
-        self._modules_list.append(Conv(width_mult(128), width_mult(256), 3, 2, activation_type))  # 3
+        self._modules_list.append(Conv(width_mult(128), width_mult(256), 3, 2, activation_type))                     # 3
         self._modules_list.append(block(width_mult(256), width_mult(256), struct[1], activation_type))               # 4
-        self._modules_list.append(Conv(width_mult(256), width_mult(512), 3, 2, activation_type))  # 5
+        self._modules_list.append(Conv(width_mult(256), width_mult(512), 3, 2, activation_type))                     # 5
         self._modules_list.append(block(width_mult(512), width_mult(512), struct[2], activation_type))               # 6
-        self._modules_list.append(Conv(width_mult(512), width_mult(1024), 3, 2, activation_type))  # 7
+        self._modules_list.append(Conv(width_mult(512), width_mult(1024), 3, 2, activation_type))                    # 7
         if yolo_version == 'v6.0':
             self._modules_list.append(block(width_mult(1024), width_mult(1024), struct[3], activation_type))         # 8
             self._modules_list.append(SPPF(width_mult(1024), width_mult(1024), 5, activation_type))                  # 9
         elif yolo_version == 'v3.0':
-            self._modules_list.append(SPP(width_mult(1024), width_mult(1024), (5, 9, 13), activation_type))  # 8
+            self._modules_list.append(SPP(width_mult(1024), width_mult(1024), (5, 9, 13), activation_type))          # 8
             self._modules_list.append(block(width_mult(1024), width_mult(1024), struct[3], activation_type, False))  # 9
         else:
             raise NotImplementedError(f'YoloV5 release version {yolo_version} is not supported, use "v3.0" or "v6.0"')
