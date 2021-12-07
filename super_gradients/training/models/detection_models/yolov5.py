@@ -6,7 +6,7 @@ from typing import Union, Type, List
 
 import torch
 import torch.nn as nn
-from super_gradients.training.models.detection_models.csp_darknet53 import width_multiplier, Conv, BottleneckCSP, CSPDarknet53
+from super_gradients.training.models.detection_models.csp_darknet53 import Conv, CSPDarknet53, get_yolo_version_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
     check_anchor_order, check_img_size_divisibilty, matrix_non_max_suppression, NMS_Type, \
@@ -25,7 +25,6 @@ DEFAULT_YOLOV5_ARCH_PARAMS = {
     'num_classes': 80,  # Number of classes to predict
     'depth_mult_factor': 1.0,  # depth multiplier for the entire model
     'width_mult_factor': 1.0,  # width multiplier for the entire model
-    'backbone_struct': [3, 9, 9, 3],  # the number of blocks in every stage of the backbone
     'channels_in': 3,  # # of classes the model predicts
     'skip_connections_dict': {12: [6], 16: [4], 19: [14], 22: [10], 24: [17, 20]},
     # A dictionary defining skip connections. format is 'target: [source1, source2, ...]'. Each item defines a skip
@@ -37,6 +36,7 @@ DEFAULT_YOLOV5_ARCH_PARAMS = {
     'nms_conf': 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
     'nms_iou': 0.45,  # When add_nms is True IoU threshold for NMS algorithm
                      # (with smaller value more boxed will be considered "the same" and removed)
+    'yolo_version': 'v6.0'
 }
 
 
@@ -164,28 +164,28 @@ class YoLoV5Head(nn.Module):
         # GET THREE CONNECTING POINTS CHANNEL INPUT SIZE
         connector = arch_params.connection_layers_input_channel_size
 
-        width_mult = lambda channels: width_multiplier(channels, arch_params.width_mult_factor)
-        depth_mult = lambda blocks: max(round(blocks * arch_params.depth_mult_factor), 1) if blocks > 1 else blocks
-        activation_type = nn.Hardswish
+        _, block, activation_type, width_mult, depth_mult = get_yolo_version_params(arch_params.yolo_version,
+                                                                                    arch_params.width_mult_factor,
+                                                                                    arch_params.depth_mult_factor)
 
         self._modules_list = nn.ModuleList()
         self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1, activation_type))  # 10
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 11
         self._modules_list.append(Concat(1))  # 12
-        self._modules_list.append(BottleneckCSP(width_mult(connector[1]), width_mult(512), depth_mult(3), activation_type, False))  # 13
+        self._modules_list.append(block(width_mult(connector[1]), width_mult(512), depth_mult(3), activation_type, False))  # 13
 
         self._modules_list.append(Conv(width_mult(512), width_mult(256), 1, 1, activation_type))                    # 14
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 15
         self._modules_list.append(Concat(1))  # 16
-        self._modules_list.append(BottleneckCSP(width_mult(connector[2]), width_mult(256), depth_mult(3), activation_type, False))  # 17
+        self._modules_list.append(block(width_mult(connector[2]), width_mult(256), depth_mult(3), activation_type, False))  # 17
 
         self._modules_list.append(Conv(width_mult(256), width_mult(256), 3, 2, activation_type))                    # 18
         self._modules_list.append(Concat(1))  # 19
-        self._modules_list.append(BottleneckCSP(width_mult(512), width_mult(512), depth_mult(3), activation_type, False))  # 20
+        self._modules_list.append(block(width_mult(512), width_mult(512), depth_mult(3), activation_type, False))   # 20
 
         self._modules_list.append(Conv(width_mult(512), width_mult(512), 3, 2, activation_type))                    # 21
         self._modules_list.append(Concat(1))  # 22
-        self._modules_list.append(BottleneckCSP(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False))  # 23
+        self._modules_list.append(block(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False)) # 23
 
         self._modules_list.append(Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
 
@@ -406,6 +406,13 @@ class Custom_YoLoV5(YoLoV5Base):
     def __init__(self, arch_params: HpmStruct):
         backbone = get_param(arch_params, 'backbone', YoLoV5DarknetBackbone)
         super().__init__(backbone=backbone, arch_params=arch_params)
+
+
+class YoLoV5N(YoLoV5Base):
+    def __init__(self, arch_params: HpmStruct):
+        arch_params.depth_mult_factor = 0.33
+        arch_params.width_mult_factor = 0.25
+        super().__init__(backbone=YoLoV5DarknetBackbone, arch_params=arch_params)
 
 
 class YoLoV5S(YoLoV5Base):

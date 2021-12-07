@@ -3,10 +3,12 @@ CSP Darknet
 
 credits: https://github.com/ultralytics
 """
+import math
 from typing import Tuple, Type
 
 import torch
 import torch.nn as nn
+
 from super_gradients.training.utils.utils import get_param, HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
@@ -18,8 +20,29 @@ def autopad(kernel, padding=None):
     return padding
 
 
-def width_multiplier(original, factor):
-    return int(original * factor)
+def width_multiplier(original, factor, divisor: int = None):
+    if divisor is None:
+        return int(original * factor)
+    else:
+        return math.ceil(int(original * factor) / divisor) * divisor
+
+
+def get_yolo_version_params(yolo_version: str, width_mult_factor: float, depth_mult_factor: float):
+    if yolo_version == 'v6.0':
+        struct = (3, 6, 9, 3)
+        block = C3
+        activation_type = nn.SiLU
+        width_mult = lambda channels: width_multiplier(channels, width_mult_factor, 8)
+    elif yolo_version == 'v3.0':
+        struct = (3, 9, 9, 3)
+        block = BottleneckCSP
+        activation_type = nn.Hardswish
+        width_mult = lambda channels: width_multiplier(channels, width_mult_factor)
+    else:
+        raise NotImplementedError(f'YoloV5 release version {yolo_version} is not supported, use "v3.0" or "v6.0"')
+
+    depth_mult = lambda blocks: max(round(blocks * depth_mult_factor), 1) if blocks > 1 else blocks
+    return struct, block, activation_type, width_mult, depth_mult
 
 
 class NumClassesMissingException(Exception):
@@ -162,27 +185,40 @@ class CSPDarknet53(SgModule):
         super().__init__()
         self.num_classes = arch_params.num_classes
         self.backbone_mode = get_param(arch_params, 'backbone_mode', False)
-        self.depth_mult_factor = get_param(arch_params, 'depth_mult_factor', 1.)
-        self.width_mult_factor = get_param(arch_params, 'width_mult_factor', 1.)
-        self.channels_in = get_param(arch_params, 'channels_in', 3)
-        struct = get_param(arch_params, 'backbone_struct', [3, 9, 9, 3])
+        depth_mult_factor = get_param(arch_params, 'depth_mult_factor', 1.)
+        width_mult_factor = get_param(arch_params, 'width_mult_factor', 1.)
+        channels_in = get_param(arch_params, 'channels_in', 3)
+        yolo_version = get_param(arch_params, 'yolo_version', 'v6.0')
 
-        width_mult = lambda channels: width_multiplier(channels, self.width_mult_factor)
-        depth_mult = lambda blocks: max(round(blocks * self.depth_mult_factor), 1) if blocks > 1 else blocks
-        activation_type = nn.Hardswish
+        struct, block, activation_type, width_mult, depth_mult = get_yolo_version_params(yolo_version,
+                                                                                         width_mult_factor,
+                                                                                         depth_mult_factor)
 
         struct = [depth_mult(s) for s in struct]
         self._modules_list = nn.ModuleList()
-        self._modules_list.append(Focus(self.channels_in, width_mult(64), 3, 1, activation_type))  # 0
+
+        if yolo_version == 'v6.0':
+            self._modules_list.append(Conv(channels_in, width_mult(64), 6, 2, activation_type, padding=2))    # 0
+        elif yolo_version == 'v3.0':
+            self._modules_list.append(Focus(channels_in, width_mult(64), 3, 1, activation_type))              # 0
+        else:
+            raise NotImplementedError(f'YoloV5 release version {yolo_version} is not supported, use "v3.0" or "v6.0"')
+
         self._modules_list.append(Conv(width_mult(64), width_mult(128), 3, 2, activation_type))  # 1
-        self._modules_list.append(BottleneckCSP(width_mult(128), width_mult(128), struct[0], activation_type))  # 2
+        self._modules_list.append(block(width_mult(128), width_mult(128), struct[0], activation_type))               # 2
         self._modules_list.append(Conv(width_mult(128), width_mult(256), 3, 2, activation_type))  # 3
-        self._modules_list.append(BottleneckCSP(width_mult(256), width_mult(256), struct[1], activation_type))  # 4
+        self._modules_list.append(block(width_mult(256), width_mult(256), struct[1], activation_type))               # 4
         self._modules_list.append(Conv(width_mult(256), width_mult(512), 3, 2, activation_type))  # 5
-        self._modules_list.append(BottleneckCSP(width_mult(512), width_mult(512), struct[2], activation_type))  # 6
+        self._modules_list.append(block(width_mult(512), width_mult(512), struct[2], activation_type))               # 6
         self._modules_list.append(Conv(width_mult(512), width_mult(1024), 3, 2, activation_type))  # 7
-        self._modules_list.append(SPP(width_mult(1024), width_mult(1024), (5, 9, 13), activation_type))  # 8
-        self._modules_list.append(BottleneckCSP(width_mult(1024), width_mult(1024), struct[3], activation_type, False))  # 9
+        if yolo_version == 'v6.0':
+            self._modules_list.append(block(width_mult(1024), width_mult(1024), struct[3], activation_type))         # 8
+            self._modules_list.append(SPPF(width_mult(1024), width_mult(1024), 5, activation_type))                  # 9
+        elif yolo_version == 'v3.0':
+            self._modules_list.append(SPP(width_mult(1024), width_mult(1024), (5, 9, 13), activation_type))  # 8
+            self._modules_list.append(block(width_mult(1024), width_mult(1024), struct[3], activation_type, False))  # 9
+        else:
+            raise NotImplementedError(f'YoloV5 release version {yolo_version} is not supported, use "v3.0" or "v6.0"')
 
         if not self.backbone_mode:
             # IF NOT USED AS A BACKEND BUT AS A CLASSIFIER WE ADD THE CLASSIFICATION LAYERS
