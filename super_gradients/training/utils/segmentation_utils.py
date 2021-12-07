@@ -3,6 +3,7 @@ from PIL import Image, ImageOps, ImageFilter
 import collections
 from typing import Optional, Union, Tuple, List
 import math
+import torchvision.transforms as transforms
 
 # FIXME: REFACTOR AUGMENTATIONS, CONSIDER USING A MORE EFFICIENT LIBRARIES SUCH AS, IMGAUG, DALI ETC.
 
@@ -286,6 +287,12 @@ class PadShortToCropSize:
             raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
 
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
+
+
+class ColorJitterSeg(transforms.ColorJitter):
+    def __call__(self, sample):
+        sample["image"] = super(ColorJitterSeg, self).__call__(sample["image"])
+        return sample
 
 
 def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple, List]):

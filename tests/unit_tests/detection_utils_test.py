@@ -11,10 +11,10 @@ from super_gradients.training.utils.detection_utils import base_detection_collat
 class TestDetectionUtils(unittest.TestCase):
     def test_visualization(self):
         # Create dataset
-        dataset_params = {"batch_size": 4, "test_batch_size": 4, "train_image_size": 320, "test_image_size": 320,
-                          "test_collate_fn": base_detection_collate_fn,
+        dataset_params = {"batch_size": 4, "val_batch_size": 4, "train_image_size": 320, "val_image_size": 320,
+                          "val_collate_fn": base_detection_collate_fn,
                           "train_collate_fn": base_detection_collate_fn,
-                          "test_sample_loading_method": "default"
+                          "val_sample_loading_method": "default"
                           }
         dataset = CoCoDetectionDatasetInterface(dataset_params)
 
@@ -25,9 +25,9 @@ class TestDetectionUtils(unittest.TestCase):
         model.connect_dataset_interface(dataset, data_loader_num_workers=8)
         model.build_model("yolo_v5s", load_checkpoint=False)
 
-        # Simulate one iteration of test
-        test_loader = model.test_loader
-        batch_i, (imgs, targets) = 0, next(iter(test_loader))
+        # Simulate one iteration of validation subset
+        valid_loader = model.valid_loader
+        batch_i, (imgs, targets) = 0, next(iter(valid_loader))
         imgs = core_utils.tensor_container_to_device(imgs, model.device)
         targets = core_utils.tensor_container_to_device(targets, model.device)
         output = model.net(imgs)
@@ -38,7 +38,7 @@ class TestDetectionUtils(unittest.TestCase):
 
         # Assert images ware created and delete them
         img_name = '{}/{}_{}.jpg'
-        for i in range(dataset_params['test_batch_size']):
+        for i in range(dataset_params['val_batch_size']):
             img_path = img_name.format(model.checkpoints_dir_path, batch_i, i)
             self.assertTrue(os.path.exists(img_path))
             os.remove(img_path)
