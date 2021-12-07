@@ -166,25 +166,26 @@ class YoLoV5Head(nn.Module):
 
         width_mult = lambda channels: width_multiplier(channels, arch_params.width_mult_factor)
         depth_mult = lambda blocks: max(round(blocks * arch_params.depth_mult_factor), 1) if blocks > 1 else blocks
+        activation_type = nn.Hardswish
 
         self._modules_list = nn.ModuleList()
-        self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1))  # 10
+        self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1, activation_type))  # 10
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 11
         self._modules_list.append(Concat(1))  # 12
-        self._modules_list.append(BottleneckCSP(width_mult(connector[1]), width_mult(512), depth_mult(3), False))  # 13
+        self._modules_list.append(BottleneckCSP(width_mult(connector[1]), width_mult(512), depth_mult(3), activation_type, False))  # 13
 
-        self._modules_list.append(Conv(width_mult(512), width_mult(256), 1))  # 14
+        self._modules_list.append(Conv(width_mult(512), width_mult(256), 1, 1, activation_type))                    # 14
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 15
         self._modules_list.append(Concat(1))  # 16
-        self._modules_list.append(BottleneckCSP(width_mult(connector[2]), width_mult(256), depth_mult(3), False))  # 17
+        self._modules_list.append(BottleneckCSP(width_mult(connector[2]), width_mult(256), depth_mult(3), activation_type, False))  # 17
 
-        self._modules_list.append(Conv(width_mult(256), width_mult(256), 3, 2))  # 18
+        self._modules_list.append(Conv(width_mult(256), width_mult(256), 3, 2, activation_type))                    # 18
         self._modules_list.append(Concat(1))  # 19
-        self._modules_list.append(BottleneckCSP(width_mult(512), width_mult(512), depth_mult(3), False))  # 20
+        self._modules_list.append(BottleneckCSP(width_mult(512), width_mult(512), depth_mult(3), activation_type, False))  # 20
 
-        self._modules_list.append(Conv(width_mult(512), width_mult(512), 3, 2))  # 21
+        self._modules_list.append(Conv(width_mult(512), width_mult(512), 3, 2, activation_type))                    # 21
         self._modules_list.append(Concat(1))  # 22
-        self._modules_list.append(BottleneckCSP(width_mult(1024), width_mult(1024), depth_mult(3), False))  # 23
+        self._modules_list.append(BottleneckCSP(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False))  # 23
 
         self._modules_list.append(Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
 
