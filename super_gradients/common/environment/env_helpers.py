@@ -72,9 +72,20 @@ def is_distributed() -> bool:
 
 
 def multi_process_safe(func):
+    """
+    A decorator for making sure a function runs only in main process.
+    If not in DDP mode (local_rank = -1), the function will run.
+    If in DDP mode, the function will run only in the main process (local_rank = 0)
+    This works only for functions with no return value
+    """
+    def do_nothing(*args, **kwargs):
+        pass
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         if environment_config.DDP_LOCAL_RANK <= 0:
             return func(*args, **kwargs)
+        else:
+            return do_nothing(*args, **kwargs)
 
     return wrapper
