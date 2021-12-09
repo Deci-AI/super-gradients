@@ -1,19 +1,17 @@
-# TODO: REPLICATE THE BELOW RESULTS BELOW AND ADD TENSORBOARDS, LOGS, TRAINING TIME ETC.
 # Yolo v5 Detection training on CoCo2017 Dataset:
-# Yolo v5s train on 320x320 mAP@0.5-0.95 (confidence 0.001, test on 320x320 images) ~28.4
-# Yolo v5s train in 640x640 mAP@0.5-0.95 (confidence 0.001, test on 320x320 images) ~29.1
-
-# batch size may need to change depending on model size and GPU (2080Ti, V100)
-# The code is optimized for running with a Mini-Batch of 64 examples... So depending on the amount of GPUs,
-# you should change the "batch_accumulate" param in the training_params dict to be batch_size * gpu_num * batch_accumulate = 64.
-
+# Yolo v5s trained in 640x640 mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images) ~37.3
+# Checkpoint path: s3://deci-model-repository-research/reproduce-yolo/yolos_new_640/ckpt_best.pth
+# Hardware: 1 3090Ti GPU
+#
 # Instructions:
 # Set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
 #   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
-# Then for 320x320 image size for training:
-#   python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolov5
-# And for 640x640 image size for training:
-#   python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolov5 dataset_params.train_image_size=640
+# python3 train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolov5.yaml \
+#    dataset_params.train_image_size=640 dataset_params.val_image_size=640 \
+#    dataset_params.batch_size=64 dataset_params.val_batch_size=64 \
+#    architecture=yolo_v5s experiment_name=yolo_v5s_coco2017_640 \
+#    training_hyperparams.mixed_precision=true dataset_params.val_sample_loading_method=rectangular multi_gpu=Off
+
 
 defaults:
   - training_hyperparams: coco2017_yolov5_train_params
@@ -38,7 +36,7 @@ multi_gpu:
   _target_: super_gradients.training.sg_model.MultiGPUMode
   value: 'DDP'
 
-deci_model:
+sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
   multi_gpu: ${multi_gpu}

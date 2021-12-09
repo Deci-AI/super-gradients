@@ -11,7 +11,7 @@ from super_gradients.training.models.detection_models.csp_darknet53 import CSPDa
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolov3 import YoloV3, TinyYoloV3
-from super_gradients.training.models.detection_models.yolov5 import YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, Custom_YoLoV5
+from super_gradients.training.models.detection_models.yolov5 import YoLoV5N, YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, Custom_YoLoV5
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18, ShelfNet34, ShelfNet50, \
     ShelfNet503343, ShelfNet101
@@ -75,6 +75,7 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "regnetY800": regnet.RegNetY800,
                  "custom_regnet": regnet.CustomRegNet,
                  "nas_regnet": regnet.NASRegNet,
+                 "yolo_v5n": YoLoV5N,
                  "yolo_v5s": YoLoV5S,
                  "yolo_v5m": YoLoV5M,
                  "yolo_v5l": YoLoV5L,
