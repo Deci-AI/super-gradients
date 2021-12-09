@@ -1,6 +1,6 @@
 import os
 
-from typing import Union, Optional
+from typing import Union, Optional, Any
 
 import numpy as np
 from PIL import Image
@@ -173,3 +173,6 @@ class WandBSGLogger(BaseSGLogger):
                 os.remove(os.path.join(self._local_dir, file))
 
         os.mknod(os.path.join(self._local_dir, f'{WANDB_ID_PREFIX}{id}'))
+
+    def add(self, tag: str, obj: Any, global_step: int = None):
+        pass

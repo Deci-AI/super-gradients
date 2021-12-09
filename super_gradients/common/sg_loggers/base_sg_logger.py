@@ -2,7 +2,7 @@ import os
 import time
 import signal
 
-from typing import Union
+from typing import Union, Any
 
 import pkg_resources
 import psutil
@@ -16,6 +16,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.environment.env_helpers import multi_process_safe
 from super_gradients.training.utils import sg_model_utils
+from super_gradients.training.params import TrainingParams
 
 logger = get_logger(__name__)
 
@@ -26,7 +27,7 @@ class BaseSGLogger(AbstractSGLogger):
                  experiment_name: str,
                  storage_location: str,
                  resumed: bool,
-                 training_params: dict,
+                 training_params: TrainingParams,
                  tb_files_user_prompt: bool = False,
                  launch_tensorboard: bool = False,
                  tensorboard_port: int = None,
@@ -38,7 +39,6 @@ class BaseSGLogger(AbstractSGLogger):
         :param experiment_name: Used for logging and loading purposes
         :param storage_location: If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
         :param resumed: if true, then old tensorboard files will *not* be deleted when tb_files_user_prompt=True
-        :param max_epochs: the number of epochs planned for this training
         :param tb_files_user_prompt: Asks user for Tensorboard deletion prompt.
         :param launch_tensorboard: Whether to launch a TensorBoard process.
         :param tensorboard_port: Specific port number for the tensorboard to use when launched (when set to None, some free port
@@ -254,6 +254,9 @@ class BaseSGLogger(AbstractSGLogger):
 
         if self.save_checkpoints_remote:
             self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
+
+    def add(self, tag: str, obj: Any, global_step: int = None):
+        pass
 
     def local_dir(self) -> str:
         return self._local_dir

@@ -18,7 +18,6 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
-from super_gradients.common.sg_loggers.compose import Compose
 from super_gradients.training import ARCHITECTURES, utils as core_utils
 from super_gradients.training.utils import sg_model_utils
 from super_gradients.training import metrics
@@ -663,7 +662,15 @@ class SgModel:
                     When set, a full log (of all super_gradients modules, including uncaught exceptions from any other
                      module) of the training will be saved in the checkpoint directory under full_train_log.log
 
+                -  `sg_logger` : Union[AbstractSGLogger, str] (defauls=base_sg_logger)
 
+                    Define the SGLogger object for this training process. The SGLogger handles all disk writes, logs, TensorBoard, remote logging
+                    and remote storage. By overriding the default base_sg_logger, you can change the storage location, support external monitoring and logging
+                    or support remote storage.
+
+                -   `sg_logger_params` : dict
+
+                    SGLogger parameters
         :return:
         """
         global logger
@@ -1363,7 +1370,7 @@ class SgModel:
 
     def _initialize_sg_logger_objects(self):
         """Initialize object that collect, write to disk, monitor and store remotely all training outputs"""
-        sg_loggers = core_utils.get_param(self.training_params, 'sg_loggers')
+        sg_logger = core_utils.get_param(self.training_params, 'sg_logger')
 
         # OVERRIDE SOME PARAMETERS TO MAKE SURE THEY MATCH THE TRAINING PARAMETERS
         general_sg_logger_params = {'project_name': 'project_name',  # TODO
@@ -1372,31 +1379,23 @@ class SgModel:
                                     'resumed': self.load_checkpoint,
                                     'training_params': self.training_params}
 
-        if sg_loggers is None:
-            raise RuntimeError('sg_loggers must be defined in training params (see default_training_params)')
+        if sg_logger is None:
+            raise RuntimeError('sg_logger must be defined in training params (see default_training_params)')
 
-        if not isinstance(sg_loggers, Sequence) or len(sg_loggers) < 1:
-            raise RuntimeError('sg_loggers type must be an non-empty list (see default_training_params)')
+        if isinstance(sg_logger, AbstractSGLogger):
+            self.sg_logger = sg_logger
+        elif isinstance(sg_logger, str):
+            sg_logger_params = core_utils.get_param(self.training_params, 'sg_logger_params', {})
+            if issubclass(SG_LOGGERS[sg_logger], BaseSGLogger):
+                sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
+            if sg_logger not in SG_LOGGERS:
+                raise RuntimeError('sg_logger not defined in SG_LOGGERS')
 
-        sg_loggers_list = []
-        for sg_logger in sg_loggers:
-            if isinstance(sg_logger, AbstractSGLogger):
-                sg_loggers_list.append(sg_logger)
-            elif isinstance(sg_logger, Mapping):
-                sg_logger_type = core_utils.get_param(sg_logger, 'sg_logger')
-                sg_logger_params = core_utils.get_param(sg_logger, 'sg_logger_params', {})
-                if issubclass(SG_LOGGERS[sg_logger_type], BaseSGLogger):
-                    sg_logger_params = {**sg_logger_params, **general_sg_logger_params}
-                sg_loggers_list.append(SG_LOGGERS[sg_logger_type](**sg_logger_params))
-            else:
-                raise RuntimeError('sg_logger can be either a dictionary {"sg_logger": ..., "sg_logger_params": {...}} or an AbstractSGLogger')
-
-        if len(sg_loggers_list) == 1:
-            self.sg_logger = sg_loggers_list[0]
+            self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
         else:
-            self.sg_logger = Compose(sg_loggers_list)
+            raise RuntimeError('sg_logger can be either an sg_logger name (str) or a subcalss of AbstractSGLogger')
 
-        if not any(isinstance(c, BaseSGLogger) for c in sg_loggers_list):
+        if not isinstance(self.sg_logger, BaseSGLogger) :
             logger.warning("WARNING! Using a user-defined sg_logger: files will not be automatically written to disk!\n"
                            "Please make sure the provided sg_logger writes to disk or compose your sg_logger to BaseSGLogger")
 

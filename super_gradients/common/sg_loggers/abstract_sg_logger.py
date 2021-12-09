@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import Union
+from typing import Union, Any
 
 import numpy as np
 from PIL import Image
@@ -17,6 +17,15 @@ class AbstractSGLogger(ABC):
     override all default output functionality. No files will saved to disk and no data will be collected.
     Make sure you either implement this functionality or use SGLoggers.Compose([BaseSGLogger(...), YourSGLogger(...)]) to build on top of it.
     """
+
+    @abstractmethod
+    def add(self, tag: str, obj: Any, global_step: int = None):
+        """
+        A generic function for adding any type of data to the SGLogger. By default, this function is not called by the SGModel, BaseSGLogger
+        does nothing with this type of data. But if you need to pass a data type which is not supported by any of the following abstract methods, use this
+        method.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def add_config(self, tag: str, config: dict):
