@@ -1,5 +1,5 @@
-batch_size: 24
-test_batch_size: 24
+batch_size: 4
+test_batch_size: 4
 dataset_dir: "/data/coco/"
 img_size: 608
 crop_size: 512

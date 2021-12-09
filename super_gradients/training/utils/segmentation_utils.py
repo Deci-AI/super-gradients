@@ -310,3 +310,14 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
         raise ValueError(f"Fill value must be a value from 0 to 255,"
                          f" found: fill_image = {fill_image}, fill_mask = {fill_mask}")
     return fill_mask, fill_image
+
+
+def coco_sub_classes_inclusion_tuples_list():
+    return [(0, 'background'), (5, 'airplane'), (2, 'bicycle'), (16, 'bird'),
+                                              (9, 'boat'),
+                                              (44, 'bottle'), (6, 'bus'), (3, 'car'), (17, 'cat'), (62, 'chair'),
+                                              (21, 'cow'),
+                                              (67, 'dining table'), (18, 'dog'), (19, 'horse'), (4, 'motorcycle'),
+                                              (1, 'person'),
+                                              (64, 'potted plant'), (20, 'sheep'), (63, 'couch'), (7, 'train'),
+                                              (72, 'tv')]
