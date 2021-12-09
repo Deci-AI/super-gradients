@@ -15,7 +15,7 @@ data_loader_num_workers: 8
 
 load_checkpoint: False
 
-experiment_name: coco_segmentation_shelfnet34
+experiment_name: coco_segmentation_21_subclass_shelfnet34
 
 multi_gpu:
   _target_: super_gradients.training.sg_model.MultiGPUMode
