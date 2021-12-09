@@ -144,6 +144,9 @@ class AnyNetX(SgModule):
             self.net.add_module("head", Head(ls_block_width[-1], num_classes, dropout_prob))
         self.initialize_weight()
 
+        self.ls_block_width = ls_block_width
+        self.dropout_prob = dropout_prob
+
     def initialize_weight(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -159,6 +162,14 @@ class AnyNetX(SgModule):
     def forward(self, x):
         x = self.net(x)
         return x
+
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self.net.head = new_head
+        else:
+            self.net.head = Head(self.ls_block_width[-1], new_num_classes, self.dropout_prob)
 
 
 class RegNetX(AnyNetX):
