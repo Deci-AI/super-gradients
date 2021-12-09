@@ -15,7 +15,7 @@ class TestModuleUtils(unittest.TestCase):
         yolov5x = YoLoV5X(arch_params=arch_params)
 
         new_activation = nn.ReLU()
-        activations_to_replace = [nn.Hardswish]
+        activations_to_replace = [nn.SiLU]
         yolov5x_relu = YoLoV5X(arch_params=arch_params)
         replace_activations(yolov5x_relu, new_activation, activations_to_replace)
 

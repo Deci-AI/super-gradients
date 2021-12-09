@@ -60,7 +60,7 @@ class TestRepVgg(unittest.TestCase):
             training_mode_sd = model.state_dict()
             for module in training_mode_sd:
                 self.assertFalse('reparam' in module)  # deployment block included in training mode
-            test_input = torch.rand((1, in_channels, image_size, image_size))
+            test_input = torch.ones((1, in_channels, image_size, image_size))
             model.eval()
             training_mode_output = model(test_input)
 
