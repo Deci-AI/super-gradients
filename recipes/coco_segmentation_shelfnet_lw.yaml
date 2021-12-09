@@ -1,0 +1,25 @@
+defaults:
+  - training_hyperparams: coco_segmentation_shelfnet_lw_train_params
+  - dataset_params: coco_segmentation_dataset_params
+  - arch_params: shelfnet_arch_params
+
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CoCoSegmentationDatasetInterface
+  dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+
+load_checkpoint: False
+
+experiment_name: coco_segmentation_shelfnet34
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: 'DDP'
+
+deci_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  multi_gpu: ${multi_gpu}
+
+architecture: shelfnet34
