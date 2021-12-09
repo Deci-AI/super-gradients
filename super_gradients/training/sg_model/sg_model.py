@@ -1363,7 +1363,7 @@ class SgModel:
         self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
                                                    load_backbone=load_backbone,
                                                    net=self.net,
-                                                   strict=strict.value,
+                                                   strict=strict.value if isinstance(strict, StrictLoad) else strict,
                                                    load_weights_only=self.load_weights_only,
                                                    load_ema_as_net=load_ema_as_net)
 
