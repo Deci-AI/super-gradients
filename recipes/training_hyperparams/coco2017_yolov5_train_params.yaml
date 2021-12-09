@@ -3,7 +3,7 @@ defaults:
 
 max_epochs: 300
 lr_mode: cosine
-cosine_final_lr_ratio: 0.2
+cosine_final_lr_ratio: 0.1
 lr_warmup_epochs: 3
 warmup_bias_lr: 0.1
 warmup_momentum: 0.8
