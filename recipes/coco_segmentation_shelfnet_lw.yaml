@@ -1,7 +1,7 @@
 defaults:
   - training_hyperparams: coco_segmentation_shelfnet_lw_train_params
   - dataset_params: coco_segmentation_dataset_params
-  - arch_params: shelfnet_arch_params
+  - arch_params: shelfnet34_arch_params
 
 sub_classes:
   _target_: super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list
