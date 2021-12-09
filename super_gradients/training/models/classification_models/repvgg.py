@@ -218,6 +218,8 @@ class RepVGG(SgModule):
             self.eval()  # fusing has to be made in eval mode. When called in init, model will be built in eval mode
             fuse_repvgg_blocks_residual_branches(self)
 
+        self.final_width_mult = width_multiplier[3]
+
     def _make_stage(self, planes, struct, stride):
         strides = [stride] + [1] * (struct - 1)
         blocks = []
@@ -250,6 +252,14 @@ class RepVGG(SgModule):
         assert not mode or self.build_residual_branches, "Trying to train a model without residual branches, " \
                                                          "set arch_params.build_residual_branches to True and retrain the model"
         super(RepVGG, self).train(mode=mode)
+
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self.linear = new_head
+        else:
+            self.linear = nn.Linear(int(512 * self.final_width_mult), new_num_classes)
 
 
 class RepVggCustom(RepVGG):
