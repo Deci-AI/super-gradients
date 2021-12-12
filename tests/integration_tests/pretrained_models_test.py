@@ -3,8 +3,9 @@ import super_gradients
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import SgModel
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface, \
-    ClassificationTestDatasetInterface
-from super_gradients.training.metrics import Accuracy
+    ClassificationTestDatasetInterface, CoCoSegmentationDatasetInterface
+from super_gradients.training.utils.segmentation_utils import coco_sub_classes_inclusion_tuples_list
+from super_gradients.training.metrics import Accuracy, IoU
 import os
 import shutil
 
@@ -39,6 +40,19 @@ class PretrainedModelsTest(unittest.TestCase):
                                                      "loss_logging_items_names": ["Loss"],
                                                      "metric_to_watch": "Accuracy",
                                                      "greater_metric_to_watch_is_better": True}
+
+        self.coco_segmentation_subclass_pretrained_models = ["shelfnet34"]
+        self.coco_segmentation_subclass_pretrained_arch_params = {"shelfnet34": {"pretrained_weights": "coco_segmentation_subclass",
+                                                                                 "num_classes": 21, "image_size": 512}}
+        self.coco_segmentation_subclass_pretrained_mious = {"shelfnet34": 0.651}
+        self.coco_segmentation_dataset = CoCoSegmentationDatasetInterface(dataset_params={
+            "batch_size": 24,
+            "val_batch_size": 24,
+            "dataset_dir": "/data/coco/",
+            "img_size": 608,
+            "crop_size": 512
+        }, dataset_classes_inclusion_tuples_list=coco_sub_classes_inclusion_tuples_list()
+        )
 
     def test_pretrained_resnet50_imagenet(self):
         trainer = SgModel('imagenet_pretrained_resnet50', model_checkpoints_location='local',
@@ -87,6 +101,15 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         trainer.build_model("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"])
         trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_coco_segmentation_subclass_pretrained_shelfnet34(self):
+        trainer = SgModel('coco_segmentation_subclass_pretrained_shelfnet34', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.coco_segmentation_dataset, data_loader_num_workers=8)
+        trainer.build_model("shelfnet34", arch_params=self.coco_segmentation_subclass_pretrained_arch_params["shelfnet34"])
+        res = trainer.test(test_loader=self.coco_segmentation_dataset.val_loader, test_metrics_list=[IoU(21)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.coco_segmentation_subclass_pretrained_mious["shelfnet34"], places=2)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):

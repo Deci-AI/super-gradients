@@ -99,6 +99,7 @@ class RandomRescale:
         scales: scale range tuple (min, max), if scales is a float range will be defined as (1, scales) if scales > 1,
             otherwise (scales, 1). must be a positive number.
     """
+
     def __init__(self, scales: Union[float, Tuple, List] = (0.5, 2.0)):
         self.scales = scales
 
@@ -142,7 +143,8 @@ class RandomRotate:
     Randomly rotates image and mask (synchronously) between 'min_deg' and 'max_deg'.
     """
 
-    def __init__(self, min_deg: float = -10, max_deg: float = 10, fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
+    def __init__(self, min_deg: float = -10, max_deg: float = 10, fill_mask: int = 0,
+                 fill_image: Union[int, Tuple, List] = 0):
         self.min_deg = min_deg
         self.max_deg = max_deg
         self.fill_mask = fill_mask
@@ -223,6 +225,7 @@ class RandomGaussianBlur:
     """
     Adds random Gaussian Blur to image with probability 'prob'.
     """
+
     def __init__(self, prob: float = 0.5):
         assert 0. <= prob <= 1., "Probability value must be between 0 and 1"
         self.prob = prob
@@ -246,7 +249,9 @@ class PadShortToCropSize:
     Pads image to 'crop_size'.
     Should be called only after "Rescale" or "RandomRescale" in augmentations pipeline.
     """
-    def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
+
+    def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0,
+                 fill_image: Union[int, Tuple, List] = 0):
         """
         :param crop_size: tuple of (width, height) for the final crop size, if is scalar size is a
             square (crop_size, crop_size)
@@ -314,10 +319,10 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
 
 def coco_sub_classes_inclusion_tuples_list():
     return [(0, 'background'), (5, 'airplane'), (2, 'bicycle'), (16, 'bird'),
-                                              (9, 'boat'),
-                                              (44, 'bottle'), (6, 'bus'), (3, 'car'), (17, 'cat'), (62, 'chair'),
-                                              (21, 'cow'),
-                                              (67, 'dining table'), (18, 'dog'), (19, 'horse'), (4, 'motorcycle'),
-                                              (1, 'person'),
-                                              (64, 'potted plant'), (20, 'sheep'), (63, 'couch'), (7, 'train'),
-                                              (72, 'tv')]
+            (9, 'boat'),
+            (44, 'bottle'), (6, 'bus'), (3, 'car'), (17, 'cat'), (62, 'chair'),
+            (21, 'cow'),
+            (67, 'dining table'), (18, 'dog'), (19, 'horse'), (4, 'motorcycle'),
+            (1, 'person'),
+            (64, 'potted plant'), (20, 'sheep'), (63, 'couch'), (7, 'train'),
+            (72, 'tv')]

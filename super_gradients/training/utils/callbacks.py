@@ -153,7 +153,6 @@ class ModelConversionCheckCallback(PhaseCallback):
         logger.info("Exported model has been tested with ONNXRuntime, and the result looks good!")
 
 
-
 class DeciLabUploadCallback(PhaseCallback):
     """
     Post-training callback for uploading and optimizing a model.
@@ -213,7 +212,6 @@ class DeciLabUploadCallback(PhaseCallback):
             self.platform_client.download_model(your_model_from_repo.model_id, download_to_path=download_path)
         except Exception as ex:
             logger.error(ex)
-
 
 
 class LRCallbackBase(PhaseCallback):
@@ -293,8 +291,8 @@ class PolyLRCallback(LRCallbackBase):
             effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
             effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs
 
-            current_iter = (self.train_loader_len * effective_epoch + context.batch_idx)/self.training_params.batch_accumulate
-            max_iter = self.train_loader_len * effective_max_epochs/self.training_params.batch_accumulate
+            current_iter = (self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
+            max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
             self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
             self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
