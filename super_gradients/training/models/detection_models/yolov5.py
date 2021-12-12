@@ -189,6 +189,8 @@ class YoLoV5Head(nn.Module):
 
         self._modules_list.append(Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)])) # 24
 
+        self.width_mult = width_mult
+        self.anchors = anchors
     def forward(self, intermediate_output):
         """
         :param intermediate_output: A list of the intermediate prediction of layers specified in the
@@ -403,6 +405,15 @@ class YoLoV5Base(SgModule):
 
     def get_include_attributes(self) -> list:
         return ["grid", "anchors", "anchors_grid"]
+
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self._head = new_head
+        else:
+            self.arch_params.num_classes = new_num_classes
+            self._modules_list[-1] = Detect(new_num_classes, self.anchors, channels=[self.width_mult(v) for v in (256, 512, 1024)])  # 24
 
 
 class Custom_YoLoV5(YoLoV5Base):
