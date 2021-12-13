@@ -1,10 +1,14 @@
 import torch.optim as optim
 import torch.nn as nn
-
+from torch.nn.modules.batchnorm import _BatchNorm
+from torch.nn.modules.conv import _ConvNd
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.params import DEFAULT_OPTIMIZER_PARAMS_SGD, DEFAULT_OPTIMIZER_PARAMS_ADAM, \
     DEFAULT_OPTIMIZER_PARAMS_RMSPROP, DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.optimizers.rmsprop_tf import RMSpropTF
+
+logger = get_logger(__name__)
 
 OPTIMIZERS_DICT = {"SGD": {"class": optim.SGD, "params": DEFAULT_OPTIMIZER_PARAMS_SGD},
                    "Adam": {"class": optim.Adam, "params": DEFAULT_OPTIMIZER_PARAMS_ADAM},
@@ -48,21 +52,21 @@ def _get_no_decay_param_ids(module: nn.Module):
     #  Use other common way to identify torch parameters other than id or layer names
     """
     Iterate over module.modules() and returns params id addresses of batch-norm and biases params.
+    NOTE - ALL MODULES WITH ATTRIBUTES NAMED BIAS AND ARE INSTANCE OF nn.Parameter WILL BE CONSIDERED A BIAS PARAM FOR
+        ZERO WEIGHT DECAY.
     """
-    weight_types = (
-        nn.Conv1d, nn.Conv2d, nn.Conv3d,
-        nn.ConvTranspose1d, nn.ConvTranspose2d, nn.ConvTranspose3d,
-        nn.Linear
-    )
-    batchnorm_types = (
-        nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d
-    )
+    batchnorm_types = (_BatchNorm,)
+    torch_weight_with_bias_types = (_ConvNd, nn.Linear)
     no_decay_ids = []
     for name, m in module.named_modules():
         if isinstance(m, batchnorm_types):
             no_decay_ids.append(id(m.weight))
             no_decay_ids.append(id(m.bias))
-        elif isinstance(m, weight_types) and m.bias is not None:
+        elif hasattr(m, "bias") and isinstance(m.bias, nn.Parameter):
+            if not isinstance(m, torch_weight_with_bias_types):
+                logger.warning(f"Module class: {m.__class__}, have a `bias` parameter attribute but is not instance of"
+                               f" torch primitive modules, this bias parameter will be part of param group with zero"
+                               f" weight decay.")
             no_decay_ids.append(id(m.bias))
     return no_decay_ids
 

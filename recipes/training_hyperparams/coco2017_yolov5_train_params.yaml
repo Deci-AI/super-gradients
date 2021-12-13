@@ -3,7 +3,7 @@ defaults:
 
 max_epochs: 300
 lr_mode: cosine
-cosine_final_lr_ratio: 0.2
+cosine_final_lr_ratio: 0.1
 lr_warmup_epochs: 3
 warmup_bias_lr: 0.1
 warmup_momentum: 0.8
@@ -25,7 +25,7 @@ mixed_precision: False
 valid_metrics_list:
   - _target_: super_gradients.training.metrics.DetectionMetrics
     post_prediction_callback:
-      _target_: super_gradients.training.models.yolov5.YoloV5PostPredictionCallback
+      _target_: super_gradients.training.models.detection_models.yolov5.YoloV5PostPredictionCallback
     num_cls: 80
 
 metric_to_watch: 'mAP@0.50:0.95'
