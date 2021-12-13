@@ -27,6 +27,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.imagenet_dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params={"batch_size": 128})
 
         self.transfer_classification_dataset = ClassificationTestDatasetInterface(image_size=224)
+
         self.transfer_classification_train_params = {"max_epochs": 3,
                                                      "lr_updates": [1],
                                                      "lr_decay_factor": 0.1,
