@@ -1,6 +1,6 @@
 from collections import OrderedDict
 import copy
-from typing import List
+from typing import List, Union, Tuple
 
 from torch import nn
 
@@ -142,3 +142,55 @@ def fuse_repvgg_blocks_residual_branches(model: nn.Module):
         if hasattr(module, 'fuse_block_residual_branches'):
             module.fuse_block_residual_branches()
     model.build_residual_branches = False
+
+
+class ConvBNReLU(nn.Module):
+    """
+    Class for Convolution2d-Batchnorm2d-Relu layer. Default behaviour is Conv-BN-Relu. To exclude Batchnorm module use
+        `use_normalization=False`, to exclude Relu activation use `use_activation=False`.
+    For convolution arguments documentation see `nn.Conv2d`.
+    For batchnorm arguments documentation see `nn.BatchNorm2d`.
+    For relu arguments documentation see `nn.Relu`.
+    """
+
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 kernel_size: Union[int, Tuple[int, int]],
+                 stride: Union[int, Tuple[int, int]] = 1,
+                 padding: Union[int, Tuple[int, int]] = 0,
+                 dilation: Union[int, Tuple[int, int]] = 1,
+                 groups: int = 1,
+                 bias: bool = True,
+                 padding_mode: str = 'zeros',
+                 use_normalization: bool = True,
+                 eps: float = 1e-5,
+                 momentum: float = 0.1,
+                 affine: bool = True,
+                 track_running_stats: bool = True,
+                 device=None,
+                 dtype=None,
+                 use_activation: bool = True,
+                 inplace: bool = False):
+
+        super(ConvBNReLU, self).__init__()
+        self.seq = nn.Sequential()
+        self.seq.add_module("conv", nn.Conv2d(in_channels,
+                                              out_channels,
+                                              kernel_size=kernel_size,
+                                              stride=stride,
+                                              padding=padding,
+                                              dilation=dilation,
+                                              groups=groups,
+                                              bias=bias,
+                                              padding_mode=padding_mode))
+
+        if use_normalization:
+            self.seq.add_module("bn", nn.BatchNorm2d(out_channels, eps=eps, momentum=momentum, affine=affine,
+                                                     track_running_stats=track_running_stats, device=device,
+                                                     dtype=dtype))
+        if use_activation:
+            self.seq.add_module("relu", nn.ReLU(inplace=inplace))
+
+    def forward(self, x):
+        return self.seq(x)
