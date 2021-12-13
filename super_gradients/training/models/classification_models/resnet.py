@@ -152,6 +152,8 @@ class ResNet(SgModule):
             self.linear = nn.Linear(width_multiplier(512, width_mult) * self.expansion, num_classes)
             self.avgpool = nn.AdaptiveAvgPool2d(1)
 
+        self.width_mult = width_mult
+
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
@@ -214,6 +216,14 @@ class ResNet(SgModule):
             super().load_state_dict(pretrained_backbone_weights_dict, strict)
         else:
             super().load_state_dict(pretrained_model_weights_dict, strict)
+
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self.linear = new_head
+        else:
+            self.linear = nn.Linear(width_multiplier(512, self.width_mult) * self.expansion, new_num_classes)
 
 
 def ResNet18(arch_params, num_classes=None, backbone_mode=None):

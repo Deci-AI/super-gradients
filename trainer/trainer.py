@@ -106,4 +106,4 @@ class Trainer:
             cfg = Trainer.scale_params_for_yolov5(cfg)
 
         # TRAIN
-        cfg.deci_model.train(training_params=cfg.training_hyperparams)
+        cfg.sg_model.train(training_params=cfg.training_hyperparams)
