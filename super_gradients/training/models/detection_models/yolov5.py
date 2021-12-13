@@ -327,9 +327,8 @@ class YoLoV5Base(SgModule):
                 b[:, 5:] += math.log(0.6 / (m.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
             mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
 
-    def _initialize_weights(self, module: torch.nn.Module = None):
-        modules = self.modules() if module is None else module.modules()
-        for m in modules:
+    def _initialize_weights(self):
+        for m in self.modules():
             t = type(m)
             if t is nn.Conv2d:
                 pass  # nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -417,7 +416,7 @@ class YoLoV5Base(SgModule):
             self._head._modules_list[-1] = Detect(new_num_classes, self.anchors, channels=[self.width_mult(v) for v in (256, 512, 1024)])  # 24
             self._check_strides_and_anchors()
             self._initialize_biases()
-            self._initialize_weights()
+            self._initialize_weights(self._head._modules_list[-1])
 
 
 class Custom_YoLoV5(YoLoV5Base):

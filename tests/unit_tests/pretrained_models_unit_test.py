@@ -20,6 +20,9 @@ class PretrainedModelsUnitTest(unittest.TestCase):
 
         self.test_dataset = ClassificationTestDatasetInterface(classes=range(1000))
 
+        self.coco_pretrained_models = ["yolo_v5s"]
+
+
     def test_pretrained_resnet50_imagenet(self):
         trainer = SgModel('imagenet_pretrained_resnet50_unit_test', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
