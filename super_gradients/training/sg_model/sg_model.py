@@ -128,6 +128,7 @@ class SgModel:
         self.architecture_cls, self.device, self.multi_gpu = None, None, None
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = None, None, None, None, None
         self.ema = None
+        self.ema_model = None
         self.update_param_groups = None
         self.post_prediction_callback = None
         self.criterion = None
@@ -914,10 +915,6 @@ class SgModel:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
                     self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch)
 
-                # EMA: Unless we are in the final epoch, we switch the model back to continue the training.
-                # If we are in the final epoch, we keep the averaged model as our self.net.
-                if self.ema and epoch == self.max_epochs - 1:
-                    self.net = self.ema_model.ema
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
                 self._validate_final_average_model(cleanup_snapshots_pkl_file=True)
@@ -1464,7 +1461,7 @@ class SgModel:
              loss: torch.nn.modules.loss._Loss = None,
              silent_mode: bool = False,
              test_metrics_list=None,
-             loss_logging_items_names=None, metrics_progress_verbose=False, test_phase_callbacks=None) -> tuple:
+             loss_logging_items_names=None, metrics_progress_verbose=False, test_phase_callbacks=None, use_ema_net=True) -> tuple:
         """
         Evaluates the model on given dataloader and metrics.
 
@@ -1472,23 +1469,39 @@ class SgModel:
         :param test_metrics_list: (list(torchmetrics.Metric)) metrics list for evaluation.
         :param silent_mode: (bool) controls verbosity
         :param metrics_progress_verbose: (bool) controls the verbosity of metrics progress (default=False). Slows down the program.
+        :param use_ema_net (bool) whether to perform test on self.ema_model.ema (when self.ema_model.ema exists,
+            otherwise self.net will be tested) (default=True)
         :return: results tuple (tuple) containing the loss items and metric values.
 
         All of the above args will override SgModel's corresponding attribute when not equal to None. Then evaluation
          is ran on self.test_loader with self.test_metrics.
         """
 
+        # IN CASE TRAINING WAS PERFROMED BEFORE TEST- MAKE SURE TO TEST THE EMA MODEL (UNLESS SPECIFIED OTHERWISE BY
+        # use_ema_net)
+
+        if use_ema_net and self.ema_model is not None:
+            keep_model = self.net
+            self.net = self.ema_model.ema
+
         self._prep_for_test(test_loader=test_loader,
                             loss=loss,
                             test_metrics_list=test_metrics_list,
                             loss_logging_items_names=loss_logging_items_names,
-                            test_phase_callbacks=test_phase_callbacks)
+                            test_phase_callbacks=test_phase_callbacks,
+                            )
 
-        return self.evaluate(data_loader=self.test_loader,
-                             metrics=self.test_metrics,
-                             evaluation_type=EvaluationType.TEST,
-                             silent_mode=silent_mode,
-                             metrics_progress_verbose=metrics_progress_verbose)
+        test_results = self.evaluate(data_loader=self.test_loader,
+                                     metrics=self.test_metrics,
+                                     evaluation_type=EvaluationType.TEST,
+                                     silent_mode=silent_mode,
+                                     metrics_progress_verbose=metrics_progress_verbose)
+
+        # SWITCH BACK BETWEEN NETS SO AN ADDITIONAL TRAINING CAN BE DONE AFTER TEST
+        if use_ema_net and self.ema_model is not None:
+            self.net = keep_model
+
+        return test_results
 
     def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
         """
