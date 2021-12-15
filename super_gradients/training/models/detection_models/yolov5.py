@@ -191,6 +191,8 @@ class YoLoV5Head(nn.Module):
 
         self.width_mult = width_mult
         self.anchors = anchors
+
+
     def forward(self, intermediate_output):
         """
         :param intermediate_output: A list of the intermediate prediction of layers specified in the
@@ -308,7 +310,9 @@ class YoLoV5Base(SgModule):
         # Do inference in train mode on a dummy image to get output stride of each head output layer
         s = 128  # twice the minimum acceptable image size 
         dummy_input = torch.zeros(1, self.arch_params.channels_in, s, s)
+        dummy_input = dummy_input.to(next(self._backbone.parameters()).device)
         stride = torch.tensor([s / x.shape[-2] for x in self._forward_once(dummy_input)])
+        stride = stride.to(dummy_input.device)
         if not torch.equal(m.stride, stride):
             raise RuntimeError('Provided anchor strides do not match the model strides')
         check_anchor_order(m)
@@ -369,7 +373,7 @@ class YoLoV5Base(SgModule):
         params_total = sum(p.numel() for p in self.parameters())
         optimizer_params_total = sum(p.numel() for g in param_groups for _, p in g['named_params'])
         assert params_total == optimizer_params_total, \
-            f"Parameters {[n for n, _ in self.named_parameters() if 'weight' not in n and 'bias' not in n]} " \
+            f"Parameters {[n for n, _ in self.named_parameters() if ('weight' not in n and 'bias' not in n) and n not in ['_head.anchors._stride', '_head.anchors._anchors', '_head.anchors._anchor_grid']]} " \
             f"weren't added to optimizer param groups"
 
         return param_groups
@@ -413,10 +417,12 @@ class YoLoV5Base(SgModule):
             self._head = new_head
         else:
             self.arch_params.num_classes = new_num_classes
-            self._head._modules_list[-1] = Detect(new_num_classes, self.anchors, channels=[self.width_mult(v) for v in (256, 512, 1024)])  # 24
+            new_last_layer = Detect(new_num_classes, self._head.anchors, channels=[self._head.width_mult(v) for v in (256, 512, 1024)])
+            new_last_layer = new_last_layer.to(next(self.parameters()).device)
+            self._head._modules_list[-1] = new_last_layer
             self._check_strides_and_anchors()
             self._initialize_biases()
-            self._initialize_weights(self._head._modules_list[-1])
+            self._initialize_weights()
 
 
 class Custom_YoLoV5(YoLoV5Base):

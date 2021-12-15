@@ -3,7 +3,7 @@ import super_gradients
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import SgModel
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface, \
-    ClassificationTestDatasetInterface, CoCoDetectionDatasetInterface
+    ClassificationTestDatasetInterface, CoCoDetectionDatasetInterface, DetectionTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, DetectionMetrics
 import os
 import shutil
@@ -41,15 +41,15 @@ class PretrainedModelsTest(unittest.TestCase):
                                                      "loss_logging_items_names": ["Loss"],
                                                      "metric_to_watch": "Accuracy",
                                                      "greater_metric_to_watch_is_better": True}
-        self.coco_pretrained_models = ["yolo_v5s"]
-        self.coco_pretrained_arch_params = {"yolo_v5s": {"pretrained_weights": "coco"}}
+        self.coco_pretrained_models = ["yolo_v5s", "yolo_v5m"]
+        self.coco_pretrained_arch_params = {"yolo_v5": {"pretrained_weights": "coco"}}
         self.coco_dataset = CoCoDetectionDatasetInterface(dataset_params={"batch_size": 64,
                                                                           "val_batch_size": 64,
                                                                           "train_image_size": 640,
-                                                                          "val_image_size": 320,
+                                                                          "val_image_size": 640,
                                                                           "val_collate_fn": base_detection_collate_fn,
                                                                           "val_collate_fn": base_detection_collate_fn,
-                                                                          "val_sample_loading_method": "default",
+                                                                          "val_sample_loading_method": "rectangular",
                                                                           "dataset_hyper_param": {
                                                                               "hsv_h": 0.015,
                                                                               "hsv_s": 0.7,
@@ -59,7 +59,8 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                               "scale": 0.5,  # IMAGE SCALE (+/- gain)
                                                                               "shear": 0.0}  # IMAGE SHEAR (+/- deg)
                                                                           })
-        self.coco_pretrained_maps = {"yolo_v5s": 37.3}
+        self.coco_pretrained_maps = {"yolo_v5s": 36.73585628224802}
+        self.transfer_detection_dataset = DetectionTestDatasetInterface(image_size=640)
 
     def test_pretrained_resnet50_imagenet(self):
         trainer = SgModel('imagenet_pretrained_resnet50', model_checkpoints_location='local',
@@ -113,13 +114,20 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer = SgModel('coco_pretrained_yolov5s', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset, data_loader_num_workers=8)
-        trainer.build_model("yolo_v5s", arch_params=self.coco_pretrained_arch_params["yolo_v5s"])
+        trainer.build_model("yolo_v5s", arch_params=self.coco_pretrained_arch_params["yolo_v5"])
         res = trainer.test(test_loader=self.coco_dataset.val_loader,
-                           test_metrics_list=[[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                 num_cls=len(
-                                                                    self.coco_dataset.coco_classes))]],
-                           metrics_progress_verbose=True)[2].cpu().item()
+                                                                    self.coco_dataset.coco_classes))],
+                           metrics_progress_verbose=True)[3]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5s"])
+
+    def test_transfer_learning_yolov5s_coco(self):
+        trainer = SgModel('coco_pretrained_yolov5s', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_detection_dataset, data_loader_num_workers=8)
+        trainer.build_model("yolo_v5s", arch_params=self.coco_pretrained_arch_params["yolo_v5"])
+        trainer.train(training_params=self.transfer_classification_train_params)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
