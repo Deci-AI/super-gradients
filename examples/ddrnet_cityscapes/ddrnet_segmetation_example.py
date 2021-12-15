@@ -74,19 +74,22 @@ dataset_params = {
         # ColorJitterSeg(brightness=0.5, contrast=0.5, saturation=0.5), # TODO - add
         RandomFlip(),
         RandomRescale(scales=(0.5, 2.0)),
-        PadShortToCropSize(args.img_size, fill_mask=CITYSCAPES_IGNORE_LABEL),
+        PadShortToCropSize(args.img_size, fill_mask=CITYSCAPES_IGNORE_LABEL,
+                           fill_image=(CITYSCAPES_IGNORE_LABEL, 0, 0)),  # Legacy padding color that works best with this recipe
         CropImageAndMask(crop_size=args.img_size, mode="random"),
     ]),
     "image_mask_transforms": transforms.Compose([])  # no transform for evaluation
 }
 
 # num_classes for IoU includes the ignore label
-train_metrics_list = [PixelAccuracy(), IoU(num_classes=20, ignore_index=CITYSCAPES_IGNORE_LABEL)]
-valid_metrics_list = [PixelAccuracy(), IoU(num_classes=20, ignore_index=CITYSCAPES_IGNORE_LABEL)]
+train_metrics_list = [PixelAccuracy(ignore_label=CITYSCAPES_IGNORE_LABEL),
+                      IoU(num_classes=20, ignore_index=CITYSCAPES_IGNORE_LABEL)]
+valid_metrics_list = [PixelAccuracy(ignore_label=CITYSCAPES_IGNORE_LABEL),
+                      IoU(num_classes=20, ignore_index=CITYSCAPES_IGNORE_LABEL)]
 
 train_params = {"max_epochs": args.max_epochs,
                 "initial_lr": 1e-2,
-                "loss": DDRNetLoss(ignore_label=CITYSCAPES_IGNORE_LABEL),
+                "loss": DDRNetLoss(ignore_label=CITYSCAPES_IGNORE_LABEL, num_pixels_exclude_ignored=False),
                 "lr_mode": "poly",
                 "ema": True,  # unlike the paper (not specified in paper)
                 "average_best_models": True,
@@ -95,11 +98,10 @@ train_params = {"max_epochs": args.max_epochs,
                 "optimizer_params":
                     {"weight_decay": 5e-4,
                      "momentum": 0.9},
-                "load_opt_params": False,
                 "train_metrics_list": train_metrics_list,
                 "valid_metrics_list": valid_metrics_list,
                 "loss_logging_items_names": ["main_loss", "aux_loss", "Loss"],
-                "metric_to_watch": "PixelAccuracy",
+                "metric_to_watch": "IoU",
                 "greater_metric_to_watch_is_better": True
                 }
 
@@ -116,6 +118,7 @@ model.connect_dataset_interface(dataset_interface, data_loader_num_workers=8 * d
 model.build_model(architecture="ddrnet_23_slim" if args.slim else "ddrnet_23",
                   arch_params=arch_params,
                   load_checkpoint=args.reload,
+                  load_weights_only=args.pretrained_bb_path is not None,
                   load_backbone=args.pretrained_bb_path is not None,
                   external_checkpoint_path=args.pretrained_bb_path)
 
