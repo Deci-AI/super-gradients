@@ -360,7 +360,8 @@ class SgModel:
 
             progress_bar_train_loader.set_postfix(**pbar_message_dict)
 
-        self.sg_logger.upload()
+        if not self.ddp_silent_mode:
+            self.sg_logger.upload()
 
         return logging_values
 
@@ -794,7 +795,7 @@ class SgModel:
                                                                    metric_idx=self.metric_idx_in_results_tuple,
                                                                    load_checkpoint=self.load_checkpoint,
                                                                    model_checkpoints_location=self.model_checkpoints_location)
-        if self.training_params.save_full_train_log:
+        if self.training_params.save_full_train_log and not self.ddp_silent_mode:
             logger = get_logger(__name__, training_log_path=self.sg_logger.log_file_path.replace('.txt', 'full_train_log.log'))
             sg_model_utils.log_uncaught_exceptions(logger)
 
