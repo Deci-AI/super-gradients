@@ -74,7 +74,7 @@ log_installed_packages: True # when set, the list of all installed packages (and
 save_full_train_log: False # When set, a full log (of all super_gradients modules, including uncaught exceptions from any other module) of training will be saved
 
 sg_logger: base_sg_logger
-c:
+sg_logger_params:
   tb_files_user_prompt: False # Asks User for Tensorboard Deletion Prompt
   launch_tensorboard: False
   tensorboard_port:
