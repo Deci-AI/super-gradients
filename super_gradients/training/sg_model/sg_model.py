@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Union, Tuple
 
 import numpy as np
+import pkg_resources
 import torch
 import torchvision.transforms as transforms
 from deprecated import deprecated
@@ -166,7 +167,7 @@ class SgModel:
         self.model_checkpoints_location = model_checkpoints_location
 
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
-        self.checkpoints_dir_path = None
+        self.checkpoints_dir_path = pkg_resources.resource_filename('checkpoints', self.experiment_name)
 
         # INITIALIZE THE DEVICE FOR THE MODEL
         self._initialize_device(requested_device=device, requested_multi_gpu=multi_gpu)
