@@ -2,13 +2,30 @@
 
 ## Introduction
 
-This repository contains a utility python package that helps individuals to train their code using SuperGradients' code.  
+Welcome to SuperGradients, a free open-source training library for PyTorch-based deep learning models.
 There are two ways you can install it on your local machine - using this GitHub repository or using SuperGradients' private PyPi
 repository.
+The library lets you train models from any Computer Vision tasks or import pre-trained SOTA models, such as object detection, classification of images, and semantic segmentation for videos or images use cases.*
 
+*Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation etc.
+In this notebook we present the modifications needed in order to launch your training so you can benefit from the various tools the SuperGradients has to offer.
+## "Wait, but what's in it for me?"
+
+Great question! our short answer is - Easy to use SOTA DL training library.
+
+Our long answer - 
+
+*   Train models from any Computer Vision tasks or import [pre-trained SOTA models](https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints) (detection, segmentation, and classification - YOLOv5, DDRNet, EfficientNet, RegNet, ResNet, MobileNet, etc.)
+*  Shorten the training process using tested and proven [recipes](https://github.com/Deci-AI/super-gradients/tree/master/recipes) & [code examples](https://github.com/Deci-AI/super-gradients/tree/master/examples)
+*  Easily configure your own or  use plug&play training, dataset , and architecture parameters.
+*  Save time and easily integrate it into your codebase.
+
+
+Table of Content:
 <!-- toc -->
 
 - [Quick Start Notebook](#quick-start-notebook)
+- [Walkthrough Notebook](#supergradients-walkthrough-notebook)
 - [Installation Methods](#installation-methods)
     - [Quick Installation of stable version](#quick-installation-of-stable-version)
     - [Installing from GitHub](#installing-from-github)
@@ -25,12 +42,42 @@ repository.
 
 <!-- tocstop -->
 
+
 ## Quick Start Notebook
 
 Get started with our quick start notebook on Google Colab for a quick and easy start using free GPU hardware
 
-#### [Quick Start Notebook](https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing)
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://colab.research.google.com/drive/1lole-odbkD4LBnM6debK31BLP5_aILwY?usp=sharing"><img src="https://www.tensorflow.org/images/colab_logo_32px.png" />SuperGradients Quick Start in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/quickstart.ipynb"><img src="https://www.tensorflow.org/images/download_logo_32px.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="https://www.tensorflow.org/images/GitHub-Mark-32px.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+ 
 
+
+## SuperGradients Walkthrough Notebook
+
+Learn more about SuperGradients training components with our walkthrough notebook on Google Colab for an easy to use tutorial using free GPU hardware
+
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="https://www.tensorflow.org/images/colab_logo_32px.png" />SuperGradients Walkthrough in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/SG_Walkthrough.ipynb"><img src="https://www.tensorflow.org/images/download_logo_32px.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="https://www.tensorflow.org/images/GitHub-Mark-32px.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
 
 
 
