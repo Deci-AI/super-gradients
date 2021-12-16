@@ -8,6 +8,8 @@ import torch.nn.functional as F
 import torchvision
 from PIL import Image
 import torch
+
+from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataSet
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -285,8 +287,8 @@ class DatasetStatisticsTensorboardLogger:
         'max_batches': 30
     }
 
-    def __init__(self, writer: SummaryWriter, summary_params: dict = DEFAULT_SUMMARY_PARAMS):
-        self.writer = writer
+    def __init__(self, sg_logger: AbstractSGLogger, summary_params: dict = DEFAULT_SUMMARY_PARAMS):
+        self.sg_logger = sg_logger
         self.summary_params = {**DatasetStatisticsTensorboardLogger.DEFAULT_SUMMARY_PARAMS, **summary_params}
 
     def analyze(self, data_loader: torch.utils.data.DataLoader, dataset_params: dict, title: str, anchors: list = None):
@@ -334,7 +336,7 @@ class DatasetStatisticsTensorboardLogger:
                                                                            box_thickness=1,
                                                                            gt_alpha=1.0)
 
-                    self.writer.add_images(tag=f'{title} sample images', img_tensor=np.stack(result_images)
+                    self.sg_logger.add_images(tag=f'{title} sample images', images=np.stack(result_images)
                                            .transpose([0, 3, 1, 2])[:, ::-1, :, :])
 
                 all_labels.append(labels)
@@ -360,8 +362,8 @@ class DatasetStatisticsTensorboardLogger:
                 summary += f'anchors: {anchors}  \n'
                 summary += f'anchors coverage: {coverage}  \n'
 
-            self.writer.add_text(tag=f'{title} Statistics', text_string=summary)
-            self.writer.flush()
+            self.sg_logger.add_text(tag=f'{title} Statistics', text_string=summary)
+            self.sg_logger.flush()
         except Exception as e:
             # any exception is caught here. we dont want the DatasetStatisticsLogger to crash any training
             DatasetStatisticsTensorboardLogger.logger.error(f'dataset analysis failed: {e}')
@@ -380,12 +382,12 @@ class DatasetStatisticsTensorboardLogger:
         plt.yticks(fontsize=STAT_LOGGER_FONT_SIZE)
         plt.title(f'{title} class distribution', fontsize=STAT_LOGGER_FONT_SIZE)
 
-        self.writer.add_figure(f"{title} class distribution", figure=f)
+        self.sg_logger.add_figure(f"{title} class distribution", figure=f)
         text_dist = ''
         for i, val in enumerate(hist):
             text_dist += f'[{i}]: {val}, '
 
-        self.writer.add_text(tag=f"{title} class distribution", text_string=text_dist)
+        self.sg_logger.add_text(tag=f"{title} class distribution", text_string=text_dist)
 
     def _analyze_object_size_distribution(self, labels: list, title: str):
         """
@@ -417,7 +419,7 @@ class DatasetStatisticsTensorboardLogger:
 
         plt.scatter(labels[:, 3], labels[:, 4], marker='.')
 
-        self.writer.add_figure(tag=f'{title} boxes w/h distribution', figure=fig)
+        self.sg_logger.add_figure(tag=f'{title} boxes w/h distribution', figure=fig)
 
     @staticmethod
     def _get_rect(w, h):
@@ -505,7 +507,7 @@ class DatasetStatisticsTensorboardLogger:
         cover_masks = np.stack(cover_masks)
         coverage = np.count_nonzero(np.any(cover_masks, axis=0)) / len(labels)
 
-        self.writer.add_figure(tag=f'{title} anchors coverage', figure=fig)
+        self.sg_logger.add_figure(tag=f'{title} anchors coverage', figure=fig)
         return coverage
 
 
