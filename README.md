@@ -9,9 +9,9 @@
 Welcome to SuperGradients, a free open-source training library for PyTorch-based deep learning models.
 There are two ways you can install it on your local machine - using this GitHub repository or using SuperGradients' private PyPi
 repository.
-The library lets you train models from any Computer Vision tasks or import pre-trained SOTA models, such as object detection, classification of images, and semantic segmentation for videos or images use cases.*
+The library lets you train models from any Computer Vision tasks or import pre-trained SOTA models, such as object detection, classification of images, and semantic segmentation for videos or images use cases.
 
-*Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation etc.
+Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation etc.
 In this notebook we present the modifications needed in order to launch your training so you can benefit from the various tools the SuperGradients has to offer.
 ## "Wait, but what's in it for me?"
 
@@ -240,54 +240,3 @@ If you want to be a part of SuperGradients growing community, hear about all the
 
 This project is released under the [Apache 2.0 license](LICENSE).
     
-## Development Flow
-
-### Feature and bugfix branches
-
-When working on a branch, you will probably want to be able to test your work locally. In order to do so while not
-adding noise to our PyPi repository, you can install the package directly from GitHub. There are 2 ways doing so - same
-as there are for cloning - via HTTPS and via SSH.
-
-Assuming your branch name is `feature/DLE-123_my_cool_feature` you can either:
-
-```bash
-    pip install git+https://github.com/Deci-AI/deci_trainer.git@feature/DLE-123_my_cool_feature
-```
-
-or using ssh -
-
-```bash
-     pip install git+ssh://git@github.com/Deci-AI/super_gradients.git@feature/DLE-123_my_cool_feature
-```
-
-### Debugging flow
-
-In order to apply new changes in the code to your local machine:
-
-1. Push the changes into the remote repository i.e. ```git push origin feature/DLE-123_my_cool_feature```
-2. ``` pip uninstall deci-trainer```
-3. ```pip install git+https://github.com/Deci-AI/deci_trainer.git@feature/DLE-123_my_cool_feature ```
-
-### Merging to Master
-
-When you are happy with your change, create a PR to master. After a code review by one of your peers, the branch will be
-merged into master. That merge will trigger an automation process that will, if successful, push a release candidate
-version of the package into SuperGradient's AWS Codeartifact repository. The package will be named X.Y.Zrc${CIRCLECI_BUILD}.  
-In addition, the commit will be tagged with a release candidate tag - the package is ready for **staging**
-
-### Creating a release
-
-When we are happy with a release candidate, let's assume `0.0.1rc234`, we will checkout from that tag and create a
-Release.  
-The release should be named according to [SemVer2](https://semver.org/) rules. Please make sure that you understand them
-before creating a release.
-
-## Technical Debt
-
-| Task | Jira Ticket|
-| :---: | :---: |
-| CI/CD does not support Patch version change | [OPS-143](https://deci.atlassian.net/browse/OPS-134) |  
-| Connect Documentation like [this one](https://195-349373294-gh.circle-artifacts.com/0/docs/html/introduction/api.html) to be automatically mentioned | [OPS-135](https://deci.atlassian.net/browse/OPS-135) |  
-| Add some test to make sure the CI flow is working | [OPS-136](https://deci.atlassian.net/browse/OPS-136) |  
-| delete remote package if does not pass the tests | [OPS-137](https://deci.atlassian.net/browse/OPS-137) |
-| Add PR numbers to RC versions in deci-trainer | [OPS-143](https://deci.atlassian.net/browse/OPS-143) |  
