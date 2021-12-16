@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/Deci-AI/super-gradients/SG_img/SG - Horizontal.png" width="600"/>
+  <img src="./SG_img/SG - Horizontal.png" width="600"/>
 </div>
 
 # SuperGradients
@@ -33,16 +33,14 @@ Table of Content:
 - [Installation Methods](#installation-methods)
     - [Quick Installation of stable version](#quick-installation-of-stable-version)
     - [Installing from GitHub](#installing-from-github)
-    - [Installing from AWS Codeartifact PyPi repository](#installing-from-aws-codeartifact-pypi-repository)
 - [Computer Vision Models' Pretrained Checkpoints](#computer-vision-models-pretrained-checkpoints)
   - [Pretrained Classification PyTorch Checkpoints](#pretrained-classification-pytorch-checkpoints)
   - [Pretrained Object Detection PyTorch Checkpoints](#pretrained-object-detection-pytorch-checkpoints)
   - [Pretrained Semantic Segmentation PyTorch Checkpoints](#pretrained-semantic-segmentation-pytorch-checkpoints)
-- [Development Flow](#development-flow)
-    - [Feature and bugfix branches](#feature-and-bugfix-branches)
-    - [Merging to Master](#merging-to-master)
-    - [Creating a release](#creating-a-release)
-- [Technical Debt](#technical-debt)
+- [Contributing](#contributing)
+- [Citation](#citation)
+- [Community](#community)
+- [License](#license)
 
 <!-- tocstop -->
 
@@ -53,13 +51,13 @@ Get started with our quick start notebook on Google Colab for a quick and easy s
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1lole-odbkD4LBnM6debK31BLP5_aILwY?usp=sharing"><img src="https://github.com/Deci-AI/super-gradients/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1lole-odbkD4LBnM6debK31BLP5_aILwY?usp=sharing"><img src="./SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
  </td>
   <td>
-   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/quickstart.ipynb"><img src="https://github.com/Deci-AI/super-gradients/SG_img/download_logo.png" />Download notebook</a>
+   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/quickstart.ipynb"><img src="./SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
-   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="https://github.com/Deci-AI/super-gradients/SG_img/GitHub_logo.png" />View source on GitHub</a>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="./SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
  </br></br>
@@ -72,19 +70,19 @@ Learn more about SuperGradients training components with our walkthrough noteboo
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="https://github.com/Deci-AI/super-gradients/SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="./SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
  </td>
   <td>
-   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/SG_Walkthrough.ipynb"><img src="https://github.com/Deci-AI/super-gradients/SG_img/download_logo.png" />Download notebook</a>
+   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/SG_Walkthrough.ipynb"><img src="./SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
-   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="https://github.com/Deci-AI/super-gradients/SG_img/GitHub_logo.png" />View source on GitHub</a>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="./SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
  </br></br>
 
 
-## Installations
+## Installation Methods
 
 ### Quick Installation of stable version
 **Not yet avilable in PyPi**
