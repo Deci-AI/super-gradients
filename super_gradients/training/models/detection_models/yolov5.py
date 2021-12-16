@@ -354,6 +354,7 @@ class YoLoV5Base(SgModule):
         optimizer_params = get_param(training_params, 'optimizer_params')
         # OPTIMIZER PARAMETER GROUPS
         default_param_group, weight_decay_param_group, biases_param_group = [], [], []
+        deprecated_params_total = 0
 
         for name, m in self.named_modules():
             if hasattr(m, 'bias') and isinstance(m.bias, nn.Parameter):  # bias
@@ -362,6 +363,9 @@ class YoLoV5Base(SgModule):
                 default_param_group.append((name, m.weight))
             elif hasattr(m, 'weight') and isinstance(m.weight, nn.Parameter):  # weight (with decay)
                 weight_decay_param_group.append((name, m.weight))
+            elif name == '_head.anchors':
+                deprecated_params_total += m.stride.numel() + m._anchors.numel() + m._anchor_grid.numel()
+
 
         # EXTRACT weight_decay FROM THE optimizer_params IN ORDER TO ASSIGN THEM MANUALLY
         weight_decay = optimizer_params.pop('weight_decay') if 'weight_decay' in optimizer_params.keys() else 0
@@ -372,8 +376,8 @@ class YoLoV5Base(SgModule):
         # Assert that all parameters were added to optimizer param groups
         params_total = sum(p.numel() for p in self.parameters())
         optimizer_params_total = sum(p.numel() for g in param_groups for _, p in g['named_params'])
-        assert params_total == optimizer_params_total, \
-            f"Parameters {[n for n, _ in self.named_parameters() if ('weight' not in n and 'bias' not in n) and n not in ['_head.anchors._stride', '_head.anchors._anchors', '_head.anchors._anchor_grid']]} " \
+        assert params_total == optimizer_params_total + deprecated_params_total, \
+            f"Parameters {[n for n, _ in self.named_parameters() if 'weight' not in n and 'bias' not in n]} " \
             f"weren't added to optimizer param groups"
 
         return param_groups
