@@ -1430,11 +1430,8 @@ class SgModel:
     def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         # STORE VALUES IN A TENSORBOARD FILE
-        lrs = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
-        lr_titles = ['LR/Param_group_' + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ['LR']
-
-        train_results = list(train_metrics) + list(validation_results) + [inf_time] + lrs
-        all_titles = self.results_titles + ['Inference Time'] + lr_titles
+        train_results = list(train_metrics) + list(validation_results) + [inf_time]
+        all_titles = self.results_titles + ['Inference Time']
 
         result_dict = {all_titles[i]: train_results[i] for i in range(len(train_results))}
         self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=epoch)
@@ -1445,7 +1442,7 @@ class SgModel:
 
     def _write_lrs(self, epoch):
         lrs = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
-        lr_titles = ['Param_group_' + str(i) + '_LR' for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ['LR']
+        lr_titles = ['LR/Param_group_' + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ['LR']
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
