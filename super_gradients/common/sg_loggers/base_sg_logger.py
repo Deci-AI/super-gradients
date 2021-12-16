@@ -70,15 +70,6 @@ class BaseSGLogger(AbstractSGLogger):
 
         self.tensor_board_process = None
         self.max_global_steps = training_params.max_epochs
-
-        # SET EXPERIMENT NAME
-        if experiment_name is None:
-            experiment_id = 1
-            self.experiment_name = f'exp_{experiment_id}'
-            
-            while os.path.exists(pkg_resources.resource_filename('checkpoints', self.experiment_name)):
-                experiment_id += 1
-                self.experiment_name = f'exp_{experiment_id}'
                 
         self._local_dir = pkg_resources.resource_filename('checkpoints', self.experiment_name)
 
