@@ -54,11 +54,11 @@ nbdiff notebook_1.ipynb notebook_2.ipynb
 ## Code Style Guidelines
 
 We are working hard to make sure all the code in this repository is readable, maintainable and testable.
-We follow the Google docstring guidlines outlined on this [styleguide](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings) page. For example:
+We follow the Google docstring guidelines outlined on this [styleguide](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings) page. For example:
 ```python
   def python_function(first_argument: int, second_argument: int) -> bool:
       """
-      This function will perform n bites on animal.
+      This function will do something with the two arguments.
 
       Args:
           first_argument (int): the first argument to the function
