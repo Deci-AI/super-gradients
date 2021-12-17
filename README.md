@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://drive.google.com/file/d/13zgOFFdstVGKVkA_x5Dw-JYAP7Yqovtk/view?usp=sharing" width="600"/>
+  <img src="https://github.com/Deci-AI/super-gradients/SG_img/SG - Horizontal.png" width="600"/>
 </div>
 
 # SuperGradients
@@ -53,13 +53,13 @@ Get started with our quick start notebook on Google Colab for a quick and easy s
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1lole-odbkD4LBnM6debK31BLP5_aILwY?usp=sharing"><img src="https://www.tensorflow.org/images/colab_logo_32px.png" />SuperGradients Quick Start in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1lole-odbkD4LBnM6debK31BLP5_aILwY?usp=sharing"><img src="https://github.com/Deci-AI/super-gradients/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
  </td>
   <td>
-   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/quickstart.ipynb"><img src="https://www.tensorflow.org/images/download_logo_32px.png" />Download notebook</a>
+   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/quickstart.ipynb"><img src="https://github.com/Deci-AI/super-gradients/SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
-   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="https://www.tensorflow.org/images/GitHub-Mark-32px.png" />View source on GitHub</a>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="https://github.com/Deci-AI/super-gradients/SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
  </br></br>
@@ -72,102 +72,31 @@ Learn more about SuperGradients training components with our walkthrough noteboo
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="https://www.tensorflow.org/images/colab_logo_32px.png" />SuperGradients Walkthrough in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="https://github.com/Deci-AI/super-gradients/SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
  </td>
   <td>
-   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/SG_Walkthrough.ipynb"><img src="https://www.tensorflow.org/images/download_logo_32px.png" />Download notebook</a>
+   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/SG_Walkthrough.ipynb"><img src="https://github.com/Deci-AI/super-gradients/SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
-   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="https://www.tensorflow.org/images/GitHub-Mark-32px.png" />View source on GitHub</a>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="https://github.com/Deci-AI/super-gradients/SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
  </br></br>
 
 
-
-## Installation Methods
+## Installations
 
 ### Quick Installation of stable version
-
-While being in the context of your environment, be it `venv` or `conda`, run:
-
+**Not yet avilable in PyPi**
 ```bash
-  pip install git+https://github.com/Deci-AI/deci_trainer.git@stable
-or
-  pip install git+ssh://git@github.com/Deci-AI/super_gradients.git@stable 
+  pip install super-gradients
 ```
 
 That's it !
 
 ### Installing from GitHub
-
-#### Prerequisites:
-
-1. Read access to this repository. If you can read this document, you probably have it.
-2. Know the version that you want to install. This can be done by viewing
-   the [Releases page](https://github.com/Deci-AI/deci_trainer/releases). It's recommended to take
-   the [latest one](https://github.com/Deci-AI/deci_trainer/releases/latest)
-
-#### Installation
-
-Let's assume the release that you would like to install is `0.0.1`. While being in the context of your environment, be
-it `venv` or `conda`, run:
-
 ```bash
-  pip install git+https://github.com/Deci-AI/deci_trainer.git@0.0.1
-```
-
-That's it!
-
-Notice that the command above is using http connection. You can alternatively use SSH by running:
-
-```bash
-  pip install git+ssh://git@github.com/Deci-AI/super_gradients.git@feature/DLE-123_my_cool_feature
-```
-
-### Installing from AWS Codeartifact PyPi repository
-
-In order to install from Codeartifact we will connect to the remote repository on AWS and modify our Pip config file.  
-As we have separate repositpries for development and production, the command changes accordingly.
-
-#### Prerequisites:
-
-1. Make sure that you have [access to AWS](https://github.com/Deci-AI/deci-devops/blob/master/README.md#from-the-cli)
-   using `aws sts get-caller-identity`.
-
-#### 1a. Install a Release Candidate:
-
-run:
-
-```bash
-  aws codeartifact login --tool pip --repository deci-packages --domain deci-packages --domain-owner 307629990626 --profile deci-dev
-```
-
-#### 1b. Install a Release Candidate (mutually exclusive with 1a):
-
-run:
-
-```bash
-  aws codeartifact login --tool pip --repository deci-packages --domain deci-packages --domain-owner 487290820248 --profile deci-prod
-```
-
-#### 2. Edit `pip.conf` config file
-
-AWS CLI configured the access token to our private PyPi repository in your ` ~/.config/pip/pip.conf` file.  
-If you will open it you should see something like this:
-
-```bash
-[global]
-index-url = https://aws:eyJ2ZXIiOjEsImlzdSI6MTYxNzcwMjc.....5OSwiZW5jIjoiQTcbp1rFfe_Ir_ATZUg@deci-packages-307629990626.d.codeartifact.us-east-1.amazonaws.com/pypi/deci-packages/simple/
-```
-
-We must add `extra-` prefix to `index-url` so it will become `extra-index-url = https://...`.  
-You can do so by manually edit the file with your faivorite text editor, or run the coomand:
-(you must have `sed` installed)
-
-```bash
-
-  sed -i 's/^index-url/extra-index-url/g'  ~/.config/pip/pip.conf
+pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ```
 
 
