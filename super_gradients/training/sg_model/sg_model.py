@@ -845,6 +845,11 @@ class SgModel:
                 if not self.ddp_silent_mode:
                     self._write_lrs(epoch)
 
+                # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
+                # DIFFERENT SEED EACH EPOCH START
+                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+                    self.train_loader.sampler.set_epoch(epoch)
+
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
 
                 # Phase.TRAIN_EPOCH_END
@@ -1329,7 +1334,7 @@ class SgModel:
         self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
                                                    load_backbone=load_backbone,
                                                    net=self.net,
-                                                   strict=strict.value,
+                                                   strict=strict.value if isinstance(strict, StrictLoad) else strict,
                                                    load_weights_only=self.load_weights_only,
                                                    load_ema_as_net=load_ema_as_net)
 
