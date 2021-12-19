@@ -404,6 +404,7 @@ class LadderBlockLW(LadderBlockBase):
 class NetOutput(ShelfNetModuleBase):
     def __init__(self, in_chan: int, mid_chan: int, classes_num: int, pixel_shuffle_sf: int):
         super(NetOutput, self).__init__()
+        self.pixel_shuffle_sf = pixel_shuffle_sf
         self.conv = ConvBNReLU(in_chan, mid_chan * pixel_shuffle_sf, ks=3, stride=1, padding=1)
         self.conv_out = nn.Conv2d(int(mid_chan / pixel_shuffle_sf), classes_num, kernel_size=3, bias=False, padding=1)
         self.init_weight()
