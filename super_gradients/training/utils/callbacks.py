@@ -154,6 +154,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         logger.info("Exported model has been tested with ONNXRuntime, and the result looks good!")
 
 
+
 class DeciLabUploadCallback(PhaseCallback):
     """
     Post-training callback for uploading and optimizing a model.
@@ -213,6 +214,7 @@ class DeciLabUploadCallback(PhaseCallback):
             self.platform_client.download_model(your_model_from_repo.model_id, download_to_path=download_path)
         except Exception as ex:
             logger.error(ex)
+
 
 
 class LRCallbackBase(PhaseCallback):

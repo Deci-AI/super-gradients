@@ -402,15 +402,15 @@ class LadderBlockLW(LadderBlockBase):
 
 
 class NetOutput(ShelfNetModuleBase):
-    def __init__(self, in_chan: int, mid_chan: int, classes_num: int):
+    def __init__(self, in_chan: int, mid_chan: int, classes_num: int, pixel_shuffle_sf: int):
         super(NetOutput, self).__init__()
-        self.conv = ConvBNReLU(in_chan, mid_chan, ks=3, stride=1, padding=1)
-        self.conv_out = nn.Conv2d(mid_chan, classes_num, kernel_size=3, bias=False,
-                                  padding=1)
+        self.conv = ConvBNReLU(in_chan, mid_chan * pixel_shuffle_sf, ks=3, stride=1, padding=1)
+        self.conv_out = nn.Conv2d(int(mid_chan / pixel_shuffle_sf), classes_num, kernel_size=3, bias=False, padding=1)
         self.init_weight()
 
     def forward(self, x):
         x = self.conv(x)
+        x = F.pixel_shuffle(x, self.pixel_shuffle_sf)
         x = self.conv_out(x)
         return x
 
@@ -432,7 +432,10 @@ class ShelfNetBase(ShelfNetModuleBase):
                  net_output_mid_channels_num: int = 64, arch_params: HpmStruct = None):
         self.classes_num = arch_params.num_classes if (arch_params and hasattr(arch_params, 'num_classes')) else classes_num
         self.image_size = arch_params.image_size if (arch_params and hasattr(arch_params, 'image_size')) else image_size
-
+        if arch_params.pixel_shuffle:
+            self.pixel_shuffle_sf = 4
+        else:
+            self.pixel_shuffle_sf = 1
         super().__init__()
         self.net_output_mid_channels_num = net_output_mid_channels_num
         self.backbone = backbone(self.classes_num)
@@ -638,7 +641,7 @@ class ShelfNet18(ShelfNetLW):
             mid_channels_num = self.planes if i == 0 else self.net_output_mid_channels_num
 
             self.net_output_list.append(
-                NetOutput(out_planes, mid_channels_num, self.classes_num))
+                NetOutput(out_planes, mid_channels_num, self.classes_num, self.pixel_shuffle_sf))
 
             self.conv_out_list.append(
                 ConvBNReLU(out_planes * 2, out_planes, ks=1, stride=1, padding=0)
@@ -657,7 +660,7 @@ class ShelfNet34(ShelfNetLW):
             # IF IT'S THE FIRST LAYER THAN THE MID-CHANNELS NUM IS ACTUALLY self.planes
             mid_channels_num = self.planes if i == 0 else self.net_output_mid_channels_num
             self.net_output_list.append(
-                NetOutput(net_out_planes, mid_channels_num, self.classes_num))
+                NetOutput(net_out_planes, mid_channels_num, self.classes_num, self.pixel_shuffle_sf))
 
             net_out_planes *= 2
 

@@ -99,7 +99,6 @@ class RandomRescale:
         scales: scale range tuple (min, max), if scales is a float range will be defined as (1, scales) if scales > 1,
             otherwise (scales, 1). must be a positive number.
     """
-
     def __init__(self, scales: Union[float, Tuple, List] = (0.5, 2.0)):
         self.scales = scales
 
@@ -225,7 +224,6 @@ class RandomGaussianBlur:
     """
     Adds random Gaussian Blur to image with probability 'prob'.
     """
-
     def __init__(self, prob: float = 0.5):
         assert 0. <= prob <= 1., "Probability value must be between 0 and 1"
         self.prob = prob
