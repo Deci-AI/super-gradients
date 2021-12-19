@@ -452,7 +452,8 @@ class SgModel:
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(metric))
 
         if self.training_params.average_best_models:
-            averaged_model_sd = self.model_weight_averaging.get_average_model(self.net,
+            net_for_averaging = self.ema_model.ema if self.ema else self.net
+            averaged_model_sd = self.model_weight_averaging.get_average_model(net_for_averaging,
                                                                               validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict={'net': averaged_model_sd}, global_step=epoch)
 
