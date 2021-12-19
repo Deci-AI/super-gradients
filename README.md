@@ -6,18 +6,9 @@
 
 ## Introduction
 
-Welcome to SuperGradients, a free open-source training library for PyTorch-based deep learning models.
-There are two ways you can install it on your local machine - using this GitHub repository or using SuperGradients' private PyPi
-repository.
-The library lets you train models from any Computer Vision tasks or import pre-trained SOTA models, such as object detection, classification of images, and semantic segmentation for videos or images use cases.
+Welcome to SuperGradients, a free open-source training acceleration library for PyTorch-based deep learning models. SuperGradients allows you to train models on any computer vision tasks or import pre-trained SOTA models, such as object detection, classification of images, and semantic segmentation for videos or images use cases.
 
-Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation etc.
-In this notebook we present the modifications needed in order to launch your training so you can benefit from the various tools the SuperGradients has to offer.
-## "Wait, but what's in it for me?"
-
-Great question! our short answer is - Easy to use SOTA DL training library.
-
-Our long answer - 
+Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation etc. In this notebook we present the modifications needed in order to launch your training so you can benefit from the various tools the SuperGradients has to offer:
 
 *   Train models from any Computer Vision tasks or import [pre-trained SOTA models](https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints) (detection, segmentation, and classification - YOLOv5, DDRNet, EfficientNet, RegNet, ResNet, MobileNet, etc.)
 *  Shorten the training process using tested and proven [recipes](https://github.com/Deci-AI/super-gradients/tree/master/recipes) & [code examples](https://github.com/Deci-AI/super-gradients/tree/master/examples)
@@ -25,11 +16,12 @@ Our long answer -
 *  Save time and easily integrate it into your codebase.
 
 
-Table of Content:
+### Table of Content:
 <!-- toc -->
 
-- [Quick Start Notebook](#quick-start-notebook)
-- [Walkthrough Notebook](#supergradients-walkthrough-notebook)
+- [Getting Started](#getting-started)
+    - [Quick Start Notebook](#quick-start-notebook)
+    - [Walkthrough Notebook](#supergradients-walkthrough-notebook)
 - [Installation Methods](#installation-methods)
     - [Quick Installation of stable version](#quick-installation-of-stable-version)
     - [Installing from GitHub](#installing-from-github)
@@ -44,8 +36,10 @@ Table of Content:
 
 <!-- tocstop -->
 
+## Getting Started
 
-## Quick Start Notebook
+
+### Quick Start Notebook
 
 Get started with our quick start notebook on Google Colab for a quick and easy start using free GPU hardware
 
@@ -64,7 +58,7 @@ Get started with our quick start notebook on Google Colab for a quick and easy s
  
 
 
-## SuperGradients Walkthrough Notebook
+### SuperGradients Walkthrough Notebook
 
 Learn more about SuperGradients training components with our walkthrough notebook on Google Colab for an easy to use tutorial using free GPU hardware
 
