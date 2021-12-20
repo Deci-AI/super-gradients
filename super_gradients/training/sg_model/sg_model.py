@@ -1389,8 +1389,7 @@ class SgModel:
         sg_logger = core_utils.get_param(self.training_params, 'sg_logger')
 
         # OVERRIDE SOME PARAMETERS TO MAKE SURE THEY MATCH THE TRAINING PARAMETERS
-        general_sg_logger_params = {'project_name': 'project_name',  # TODO
-                                    'experiment_name': self.experiment_name,
+        general_sg_logger_params = {'experiment_name': self.experiment_name,
                                     'storage_location': self.model_checkpoints_location,
                                     'resumed': self.load_checkpoint,
                                     'training_params': self.training_params}
