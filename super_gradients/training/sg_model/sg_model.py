@@ -246,7 +246,7 @@ class SgModel:
         strict_load = core_utils.get_param(self.arch_params, 'strict_load', default_val=strict_load)
 
         self.arch_params.sync_bn = core_utils.get_param(self.arch_params, 'sync_bn', default_val=False)
-        self.load_checkpoint = core_utils.get_param(self.arch_params, 'load_checkpoint', default_val=False) or load_checkpoint
+        self.load_checkpoint = load_checkpoint or core_utils.get_param(self.arch_params, 'load_checkpoint', default_val=False)
         self.load_backbone = core_utils.get_param(self.arch_params, 'load_backbone', default_val=load_backbone)
         self.external_checkpoint_path = core_utils.get_param(self.arch_params, 'external_checkpoint_path',
                                                              default_val=external_checkpoint_path)
