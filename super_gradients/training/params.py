@@ -36,6 +36,7 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "sg_logger": "base_sg_logger",
                            "sg_logger_params":
                                {"tb_files_user_prompt": False,  # Asks User for Tensorboard Deletion Prompt
+                                "project_name": "",
                                 "launch_tensorboard": False,
                                 "tensorboard_port": None,
                                 "save_checkpoints_remote": False,  # upload checkpoint files to s3
