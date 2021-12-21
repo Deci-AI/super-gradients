@@ -47,7 +47,7 @@ class PascalVOC2012DetectionDataSet(DetectionDataSet):
                 print(f'[WARNING] out of {num_files} lines, {num_missing_files} files were not loaded')
         super()._generate_samples_and_targets()
 
-    def target_loader(self, target_path: str) -> np.array:
+    def target_loader(self, target_path: str, class_inclusion_list=None, all_classes_list=None) -> np.array:
         """
         target_loader -               load targets from xml file
 
