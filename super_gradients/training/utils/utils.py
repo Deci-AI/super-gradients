@@ -4,7 +4,7 @@
     - progress_bar: progress bar mimic xlua.progress.
 """
 import time
-from typing import Union
+from typing import Union, Mapping
 from jsonschema import validate
 
 import torch
@@ -33,7 +33,7 @@ class HpmStruct:
         self.schema = schema
 
     def override(self, **entries):
-        self.__dict__.update(entries)
+        recursive_override(self.__dict__, entries)
 
     def to_dict(self):
         return self.__dict__
@@ -288,3 +288,14 @@ def check_models_have_same_weights(model_1: torch.nn.Module, model_2: torch.nn.M
         return True
     else:
         return False
+
+
+def recursive_override(base: dict, extension: dict):
+    for k, v in extension.items():
+        if k in base:
+            if isinstance(v, Mapping):
+                recursive_override(base[k], extension[k])
+            else:
+                base[k] = extension[k]
+        else:
+            base[k] = extension[k]
