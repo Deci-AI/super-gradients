@@ -10,8 +10,6 @@
 # you should change the "batch_accumulate" param in the training_params dict to be batch_size * gpu_num * batch_accumulate = 64.
 
 import super_gradients
-import argparse
-import torch
 from super_gradients.training import SgModel, MultiGPUMode
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import \
     PascalVOC2012DetectionDataSetInterface
@@ -25,39 +23,14 @@ from super_gradients.training.utils.detection_utils import Anchors
 
 super_gradients.init_trainer()
 
-parser = argparse.ArgumentParser()
-
-#################################
-# Model Options
-################################
-
-
-parser.add_argument("--depth", type=float, help='not applicable for default models(s/m/l/x)')
-parser.add_argument("--width", type=float, help='not applicable for default models(s/m/l/x)')
-parser.add_argument("--reload", action="store_true")
-parser.add_argument("--max_epochs", type=int, default=300)
-parser.add_argument("--batch", type=int, default=64)
-parser.add_argument("--test-img-size", type=int, default=320)
-parser.add_argument("--train-img-size", type=int, default=320)
-parser.add_argument("--multi-scale", action="store_true")
-parser.add_argument("--coco2014", action="store_true")
-
-args, _ = parser.parse_known_args()
-
 distributed = super_gradients.is_distributed()
 
-if args.multi_scale:
-    train_collate_fn = ComposedCollateFunction([base_detection_collate_fn,
-                                                MultiScaleCollateFunction(target_size=args.train_img_size)])
-else:
-    train_collate_fn = base_detection_collate_fn
-
-dataset_params = {"batch_size": 64,
-                  "val_batch_size": 64,
-                  "train_image_size": args.train_img_size,
-                  "val_image_size": args.test_img_size,
+dataset_params = {"batch_size": 48,
+                  "val_batch_size": 48,
+                  "train_image_size": 512,
+                  "val_image_size": 512,
                   "val_collate_fn": base_detection_collate_fn,
-                  "train_collate_fn": train_collate_fn,
+                  "train_collate_fn": base_detection_collate_fn,
                   "train_sample_loading_method": "mosaic",
                   "val_sample_loading_method": "rectangular",
                   "dataset_hyper_param": {
@@ -71,16 +44,16 @@ dataset_params = {"batch_size": 64,
                   }
 
 arch_params = {"pretrained_weights": "coco"}
-model = SgModel("pascal_train",
+model = SgModel("yolov5s_pascal_finetune_200",
                 multi_gpu=MultiGPUMode.OFF,
                 post_prediction_callback=YoloV5PostPredictionCallback())
 
 dataset_interface = PascalVOC2012DetectionDataSetInterface(dataset_params=dataset_params)
 model.connect_dataset_interface(dataset_interface, data_loader_num_workers=20)
-model.build_model("yolo_v5s", arch_params=arch_params, load_checkpoint=args.reload)
+model.build_model("yolo_v5s", arch_params=arch_params)
 
 post_prediction_callback = YoloV5PostPredictionCallback()
-training_params = {"max_epochs": args.max_epochs,
+training_params = {"max_epochs": 200,
                    "lr_mode": "cosine",
                    "initial_lr": 0.0032,
                    "cosine_final_lr_ratio": 0.12,
