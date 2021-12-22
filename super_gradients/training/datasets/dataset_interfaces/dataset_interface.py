@@ -19,6 +19,8 @@ from super_gradients.training.utils.detection_utils import base_detection_collat
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients. training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
+from torchvision.datasets.voc import VOCDetection
+from torch.utils.data import ConcatDataset
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -742,3 +744,8 @@ class CityscapesDatasetInterface(DatasetInterface):
             image_mask_transforms=image_mask_transforms)
 
         self.classes = self.trainset.classes
+
+
+class PascalVOCDetectionUnified(DatasetInterface):
+    def __init__(self, dataset_params=None):
+        trainset =
