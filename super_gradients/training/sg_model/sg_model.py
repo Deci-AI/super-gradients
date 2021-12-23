@@ -246,7 +246,7 @@ class SgModel:
         strict_load = core_utils.get_param(self.arch_params, 'strict_load', default_val=strict_load)
 
         self.arch_params.sync_bn = core_utils.get_param(self.arch_params, 'sync_bn', default_val=False)
-        self.load_checkpoint = core_utils.get_param(self.arch_params, 'load_checkpoint', default_val=load_checkpoint)
+        self.load_checkpoint = load_checkpoint or core_utils.get_param(self.arch_params, 'load_checkpoint', default_val=False)
         self.load_backbone = core_utils.get_param(self.arch_params, 'load_backbone', default_val=load_backbone)
         self.external_checkpoint_path = core_utils.get_param(self.arch_params, 'external_checkpoint_path',
                                                              default_val=external_checkpoint_path)
@@ -1389,8 +1389,7 @@ class SgModel:
         sg_logger = core_utils.get_param(self.training_params, 'sg_logger')
 
         # OVERRIDE SOME PARAMETERS TO MAKE SURE THEY MATCH THE TRAINING PARAMETERS
-        general_sg_logger_params = {'project_name': 'project_name',  # TODO
-                                    'experiment_name': self.experiment_name,
+        general_sg_logger_params = {'experiment_name': self.experiment_name,
                                     'storage_location': self.model_checkpoints_location,
                                     'resumed': self.load_checkpoint,
                                     'training_params': self.training_params}
