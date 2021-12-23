@@ -449,20 +449,17 @@ class YoLoV5X(YoLoV5Base):
 
 def yolov5_lr_warmup_fn(context: PhaseContext):
     training_params = context.training_params
-
-    if context.epoch < context.lr_warmup_epochs and iter is not None:
+    if context.epoch < context.lr_warmup_epochs and context.batch_idx is not None:
         # OVERRIDE THE lr FROM DeciModelBase WITH initial_lr, SINCE DeciModelBase MANIPULATE THE ORIGINAL VALUE
-        print_once('Using Yolo v5 warm-up lr (overriding ModelBase lr function)')
         lr = training_params.initial_lr
         momentum = get_param(training_params.optimizer_params, 'momentum')
         warmup_momentum = get_param(training_params, 'warmup_momentum', momentum)
         warmup_bias_lr = get_param(training_params, 'warmup_bias_lr', lr)
-        nw = context.lr_warmup_epochs * context.tr
-        ni = context.epoch * total_batch + iter
+        nw = context.lr_warmup_epochs * lr
+        ni = context.epoch * len(context.train_loader) + context.batch_idx
         xi = [0, nw]  # x interp
-        for x in param_groups:
+        for x in context.optimizer.param_groups:
             # BIAS LR FALLS FROM 0.1 TO LR0, ALL OTHER LRS RISE FROM 0.0 TO LR0
             x['lr'] = np.interp(ni, xi, [warmup_bias_lr if x['name'] == 'bias' else 0.0, lr])
             if 'momentum' in x:
                 x['momentum'] = np.interp(ni, xi, [warmup_momentum, momentum])
-        return param_groups
