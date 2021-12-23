@@ -10,8 +10,8 @@ lr_warmup_fn:
   dotpath: super_gradients.training.models.detection_models.yolov5.yolov5_lr_warmup_fn
 
 lr_warmup_phase:
-    _target_: super_gradients.training.sg_model.MultiGPUMode
-    value:
+    _target_: super_gradients.training.utils.callbacks.Phase
+    value: TRAIN_BATCH_END
 
 warmup_bias_lr: 0.1
 warmup_momentum: 0.8

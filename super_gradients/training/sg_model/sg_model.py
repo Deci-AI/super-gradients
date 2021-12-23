@@ -770,7 +770,9 @@ class SgModel:
                                                            update_param_groups=self.update_param_groups,
                                                            **self.training_params.to_dict()))
         if self.training_params.lr_warmup_epochs > 0:
-            self.phase_callbacks.append(WarmupLRCallback(train_loader_len=len(self.train_loader),
+            warmup_callback_phase = self.training_params.lr_warmup_phase or Phase.TRAIN_EPOCH_START
+            self.phase_callbacks.append(WarmupLRCallback(phase=warmup_callback_phase,
+                                                         train_loader_len=len(self.train_loader),
                                                          net=self.net,
                                                          training_params=self.training_params,
                                                          update_param_groups=self.update_param_groups,

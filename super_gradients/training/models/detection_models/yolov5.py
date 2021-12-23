@@ -6,6 +6,8 @@ from typing import Union, Type, List
 
 import torch
 import torch.nn as nn
+
+import super_gradients.training.utils.callbacks
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, CSPDarknet53, get_yolo_version_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
@@ -282,25 +284,7 @@ class YoLoV5Base(SgModule):
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int,
                             training_params: HpmStruct, total_batch: int) -> list:
 
-        lr_warmup_epochs = get_param(training_params, 'lr_warmup_epochs', 0)
-        if epoch < lr_warmup_epochs and iter is not None:
-            # OVERRIDE THE lr FROM DeciModelBase WITH initial_lr, SINCE DeciModelBase MANIPULATE THE ORIGINAL VALUE
-            print_once('Using Yolo v5 warm-up lr (overriding ModelBase lr function)')
-            lr = training_params.initial_lr
-            momentum = get_param(training_params.optimizer_params, 'momentum')
-            warmup_momentum = get_param(training_params, 'warmup_momentum', momentum)
-            warmup_bias_lr = get_param(training_params, 'warmup_bias_lr', lr)
-            nw = lr_warmup_epochs * total_batch
-            ni = epoch * total_batch + iter
-            xi = [0, nw]  # x interp
-            for x in param_groups:
-                # BIAS LR FALLS FROM 0.1 TO LR0, ALL OTHER LRS RISE FROM 0.0 TO LR0
-                x['lr'] = np.interp(ni, xi, [warmup_bias_lr if x['name'] == 'bias' else 0.0, lr])
-                if 'momentum' in x:
-                    x['momentum'] = np.interp(ni, xi, [warmup_momentum, momentum])
-            return param_groups
-        else:
-            return super().update_param_groups(param_groups, lr, epoch, iter, training_params, total_batch)
+        return super().update_param_groups(param_groups, lr, epoch, iter, training_params, total_batch)
 
     def _check_strides_and_anchors(self):
         m = self._head._modules_list[-1]  # Detect()
