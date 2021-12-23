@@ -1,95 +1,79 @@
-import infery
-from torch.utils.data import DataLoader
-import os
-import shutil
-from typing import Union
-
+import xml.etree.ElementTree as ET
+from tqdm import tqdm
+from pathlib import Path
+from zipfile import ZipFile
 import torch
-import logging
-from super_gradients.training import SgModel
-from super_gradients.training.datasets import DatasetInterface
-from super_gradients.training.metrics import Accuracy, Top5, DetectionMetrics, PixelAccuracy, IoU
-from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
-from super_gradients.training.datasets.dataset_interfaces import ImageNetDatasetInterface
+import os
+
+NAMES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog',
+        'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+
+def download(url, dir='.', unzip=True, delete=True, curl=False, threads=1):
+    # Multi-threaded file download and unzip function, used in data.yaml for autodownload
+    def download_one(url, dir):
+        # Download 1 file
+        f = dir / Path(url).name  # filename
+        if Path(url).is_file():  # exists in current path
+            Path(url).rename(f)  # move to dir
+        elif not f.exists():
+            print(f'Downloading {url} to {f}...')
+            if curl:
+                os.system(f"curl -L '{url}' -o '{f}' --retry 9 -C -")  # curl download, retry and resume on fail
+            else:
+                torch.hub.download_url_to_file(url, f, progress=True)  # torch download
+        if unzip and f.suffix in ('.zip', '.gz'):
+            print(f'Unzipping {f}...')
+            if f.suffix == '.zip':
+                ZipFile(f).extractall(path=dir)  # unzip
+            elif f.suffix == '.gz':
+                os.system(f'tar xfz {f} --directory {f.parent}')  # unzip
+            if delete:
+                f.unlink()  # remove zip
+
+    dir = Path(dir)
+    dir.mkdir(parents=True, exist_ok=True)  # make directory
+    for u in [url] if isinstance(url, (str, Path)) else url:
+        download_one(u, dir)
+
+def convert_label(path, lb_path, year, image_id):
+    def convert_box(size, box):
+        dw, dh = 1. / size[0], 1. / size[1]
+        x, y, w, h = (box[0] + box[1]) / 2.0 - 1, (box[2] + box[3]) / 2.0 - 1, box[1] - box[0], box[3] - box[2]
+        return x * dw, y * dh, w * dw, h * dh
+
+    in_file = open(path / f'VOC{year}/Annotations/{image_id}.xml')
+    out_file = open(lb_path, 'w')
+    tree = ET.parse(in_file)
+    root = tree.getroot()
+    size = root.find('size')
+    w = int(size.find('width').text)
+    h = int(size.find('height').text)
+    for obj in root.iter('object'):
+        cls = obj.find('name').text
+        if cls in NAMES and not int(obj.find('difficult').text) == 1:
+            xmlbox = obj.find('bndbox')
+            bb = convert_box((w, h), [float(xmlbox.find(x).text) for x in ('xmin', 'xmax', 'ymin', 'ymax')])
+            cls_id = NAMES.index(cls)  # class id
+            out_file.write(" ".join([str(a) for a in (cls_id, *bb)]) + '\n')
 
 
-
-
-def test_metrics(inferencer,
-                 data_loader: Union[DatasetInterface, DataLoader],
-                 task: str,
-                 device: str = 'cpu',
-                 post_predict_callback: DetectionPostPredictionCallback = None,
-                 num_cls: int = None,
-                 task_metrics: list = None) -> ...:
-    """
-    run the test() function of the model
-    :param data_loader:             a deci DatasetInterface or DataLoader
-    :param task:                    one of ['classification', 'detection','segmentation']
-    :param device:                  device ['cpu', 'cuda'] to carry the test on
-    :param post_predict_callback:   a callback which will be executed by the test() function after the model
-                                    prediction. Typically, this will receive the prediction output to preform some
-                                    post processing
-    :param task_metrics              list metrics to be tested, if not given default metrics for the task are set.
-    :return:                        the result tuple from the test() function
-    """
-    if task_metrics is None:
-        if task == 'classification':
-            task_metrics = [Accuracy(), Top5()]
-        elif task == 'detection':
-            task_metrics = [DetectionMetrics(post_prediction_callback=post_predict_callback,
-                                             num_cls=num_cls,
-                                             img_ids=data_loader.testset.get_img_ids(),
-                                             height=data_loader.testset.img_size,
-                                             width=data_loader.testset.img_size)]
-        elif task == 'segmentation':
-            task_metrics = [IoU(num_cls), PixelAccuracy()]
-        else:
-            raise RuntimeError(f'Metric for task {task} is not defined')
-
-    deci_model = SgModel("inferencer_test_metrics", device=device, model_checkpoints_location='local')
-
-    # FIXME: OTHER CASES THAN CLASSIFICATION ARE NOT CURRENTLY TESTED
-    if isinstance(data_loader, DatasetInterface):
-        deci_model.connect_dataset_interface(data_loader, data_loader_num_workers=8)
-        # not all datasets have a testset and test_loader, use val_loader instead.
-        if deci_model.test_loader is None:
-            deci_model.test_loader = deci_model.valid_loader
-            logging.info("test_loader of dataset interface is None, using valid_loader instead.")
-    elif isinstance(data_loader, DataLoader):
-        deci_model.test_loader = data_loader
-    else:
-        raise NotImplementedError(f'{data_loader} is not a supported input for data_loader, please'
-                                  f'use either DatasetInterface or DataLoader')
-
-    deci_model.net = InferencerTestMetricsConnector(inferencer, device)
-    results_tuple = deci_model.test(test_metrics_list=task_metrics)
-
-    # Delete the temporary checkpoint folder
-    if os.path.isdir(deci_model.checkpoints_dir_path):
-        shutil.rmtree(deci_model.checkpoints_dir_path)
-
-    return results_tuple
-
-
-class InferencerTestMetricsConnector:
-    """
-    An abstract class for connecting the BaseInferencer to the SgModel class, so that the latter's
-    test methods (accuracy on real data set etc) can be used in conjunction with the Inferencer.
-    """
-
-    def __init__(self, inferencer, device: str = 'cpu'):
-        self.inferencer = inferencer
-        self.device = device
-
-    def __call__(self, x):
-        x = x.cpu().numpy()
-        output_list = self.inferencer.predict(x)
-        torch_output = [torch.from_numpy(output).to(self.device) for output in output_list]
-        return torch_output[0] if len(torch_output) == 1 else torch_output
-
-    def eval(self):
-        pass  # Needed so SgModel's test() method doesn't break
-dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params={"batch_size": 128})
-model = infery.load(model_path="/home/shay.aharon/decinets/decinet1_1_1.pkl", framework_type="trt", inference_hardware="gpu")
-test_metrics(data_loader=dataset, inferencer=model, device="gpu", num_cls=1000, task="classification")
+# Download
+dir = "/data/pascal_unified" # dataset root dir
+url = 'https://github.com/ultralytics/yolov5/releases/download/v1.0/'
+urls = [url + 'VOCtrainval_06-Nov-2007.zip',  # 446MB, 5012 images
+        url + 'VOCtest_06-Nov-2007.zip',  # 438MB, 4953 images
+        url + 'VOCtrainval_11-May-2012.zip']  # 1.95GB, 17126 images
+download(urls, dir=dir / 'images', delete=False)
+# Convert
+path = dir / f'images/VOCdevkit'
+for year, image_set in ('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test'):
+    imgs_path = dir / 'images' / f'{image_set}{year}'
+    lbs_path = dir / 'labels' / f'{image_set}{year}'
+    imgs_path.mkdir(exist_ok=True, parents=True)
+    lbs_path.mkdir(exist_ok=True, parents=True)
+    image_ids = open(path / f'VOC{year}/ImageSets/Main/{image_set}.txt').read().strip().split()
+    for id in tqdm(image_ids, desc=f'{image_set}{year}'):
+        f = path / f'VOC{year}/JPEGImages/{id}.jpg'  # old img path
+        lb_path = (lbs_path / f.name).with_suffix('.txt')  # new label path
+        f.rename(imgs_path / f.name)  # move image
+        convert_label(path, lb_path, year, id)  # convert labels to YOLO format
