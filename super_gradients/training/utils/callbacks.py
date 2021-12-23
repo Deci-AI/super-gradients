@@ -42,7 +42,8 @@ class PhaseContext:
 
     def __init__(self, epoch=None, batch_idx=None, optimizer=None, metrics_dict=None, inputs=None, preds=None,
                  target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
-                 device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None):
+                 device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None,
+                 training_params=None):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -61,6 +62,7 @@ class PhaseContext:
         self.net = net
         self.lr_warmup_epochs = lr_warmup_epochs
         self.sg_logger = sg_logger
+        self.training_params = training_params
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():
@@ -253,11 +255,14 @@ class WarmupLRCallback(LRCallbackBase):
 
     """
 
-    def __init__(self, **kwargs):
-        super(WarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
+    def __init__(self, phase=Phase.TRAIN_EPOCH_START, lr_warmup_fn=None, **kwargs):
+        self.lr_warmup_fn = lr_warmup_fn
+        super(WarmupLRCallback, self).__init__(phase=phase, **kwargs)
 
     def __call__(self, context: PhaseContext):
-        if self.training_params.lr_warmup_epochs >= context.epoch:
+        if self.lr_warmup_fn is not None:
+            self.lr_warmup_fn(context)
+        elif self.training_params.lr_warmup_epochs >= context.epoch:
             self.lr = self.initial_lr * (context.epoch + 1) / (self.training_params.lr_warmup_epochs + 1)
             self.update_lr(context.optimizer, context.epoch, None)
 

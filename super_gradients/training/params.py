@@ -41,7 +41,9 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                                 "tensorboard_port": None,
                                 "save_checkpoints_remote": False,  # upload checkpoint files to s3
                                 "save_tensorboard_remote": False,  # upload tensorboard files to s3
-                                "save_logs_remote": False}  # upload log files to s3
+                                "save_logs_remote": False},  # upload log files to s3
+                           "lr_warmup_fn": None,
+                           "lr_warmup_phase": None
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}

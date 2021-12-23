@@ -325,7 +325,8 @@ class SgModel:
                                loss_avg_meter=loss_avg_meter,
                                criterion=self.criterion,
                                device=self.device,
-                               lr_warmup_epochs=self.training_params.lr_warmup_epochs)
+                               lr_warmup_epochs=self.training_params.lr_warmup_epochs,
+                               training_params=self.training_params)
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
             batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
@@ -823,7 +824,7 @@ class SgModel:
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
         context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name, ckpt_dir=self.checkpoints_dir_path,
-                               lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger)
+                               lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger, training_params=self.training_params, )
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
         try:
@@ -1541,7 +1542,8 @@ class SgModel:
                                loss_avg_meter=loss_avg_meter,
                                criterion=self.criterion,
                                device=self.device,
-                               lr_warmup_epochs=lr_warmup_epochs)
+                               lr_warmup_epochs=lr_warmup_epochs,
+                               training_params=self.training_params)
 
         if not silent_mode:
             # PRINT TITLES

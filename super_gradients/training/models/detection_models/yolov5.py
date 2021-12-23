@@ -14,6 +14,7 @@ from super_gradients.training.utils.detection_utils import non_max_suppression, 
 from super_gradients.training.utils.export_utils import ExportableHardswish, ExportableSiLU
 from super_gradients.training.utils.utils import HpmStruct, get_param, print_once
 import numpy as np
+from super_gradients.training.utils.callbacks import PhaseContext
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [30, 61, 62, 45, 59, 119],
@@ -444,3 +445,24 @@ class YoLoV5X(YoLoV5Base):
         arch_params.depth_mult_factor = 1.33
         arch_params.width_mult_factor = 1.25
         super().__init__(backbone=YoLoV5DarknetBackbone, arch_params=arch_params)
+
+
+def yolov5_lr_warmup_fn(context: PhaseContext):
+    training_params = context.training_params
+
+    if context.epoch < context.lr_warmup_epochs and iter is not None:
+        # OVERRIDE THE lr FROM DeciModelBase WITH initial_lr, SINCE DeciModelBase MANIPULATE THE ORIGINAL VALUE
+        print_once('Using Yolo v5 warm-up lr (overriding ModelBase lr function)')
+        lr = training_params.initial_lr
+        momentum = get_param(training_params.optimizer_params, 'momentum')
+        warmup_momentum = get_param(training_params, 'warmup_momentum', momentum)
+        warmup_bias_lr = get_param(training_params, 'warmup_bias_lr', lr)
+        nw = context.lr_warmup_epochs * context.tr
+        ni = context.epoch * total_batch + iter
+        xi = [0, nw]  # x interp
+        for x in param_groups:
+            # BIAS LR FALLS FROM 0.1 TO LR0, ALL OTHER LRS RISE FROM 0.0 TO LR0
+            x['lr'] = np.interp(ni, xi, [warmup_bias_lr if x['name'] == 'bias' else 0.0, lr])
+            if 'momentum' in x:
+                x['momentum'] = np.interp(ni, xi, [warmup_momentum, momentum])
+        return param_groups

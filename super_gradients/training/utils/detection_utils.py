@@ -18,7 +18,7 @@ from torch import nn
 from torch.nn import functional as F
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from omegaconf import ListConfig
-
+from super_gradients.training.utils.utils import get_param
 
 def base_detection_collate_fn(batch):
     """
