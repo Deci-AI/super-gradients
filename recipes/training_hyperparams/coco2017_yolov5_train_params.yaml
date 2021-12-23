@@ -5,6 +5,14 @@ max_epochs: 300
 lr_mode: cosine
 cosine_final_lr_ratio: 0.1
 lr_warmup_epochs: 3
+lr_warmup_fn:
+  _target_: super_gradients.training.utils.utils.load_func
+  dotpath: super_gradients.training.models.detection_models.yolov5.yolov5_lr_warmup_fn
+
+lr_warmup_phase:
+    _target_: super_gradients.training.sg_model.MultiGPUMode
+    value:
+
 warmup_bias_lr: 0.1
 warmup_momentum: 0.8
 initial_lr: 0.01  # will be scaled according to num DDP processes
