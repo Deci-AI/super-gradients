@@ -241,5 +241,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     url = MODEL_URLS[model_url_key]
     map_location = torch.device('cpu') if not torch.cuda.is_available() else None
     pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location)
+    if 'ema_net' in pretrained_state_dict.keys():
+        pretrained_state_dict['net'] = pretrained_state_dict['ema_net']
     adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(model_state_dict=model.state_dict(), source_ckpt=pretrained_state_dict)
     model.load_state_dict(adapted_pretrained_state_dict['net'])
