@@ -2,12 +2,15 @@ import shutil
 import tempfile
 import unittest
 import os
+
+from super_gradients.common.sg_loggers import BaseSGLogger
 from super_gradients.training import SgModel
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from super_gradients.training.sg_model.sg_model import StrictLoad
+from super_gradients.training.utils import HpmStruct
 
 
 class Net(nn.Module):
@@ -51,6 +54,8 @@ class StrictLoadEnumTest(unittest.TestCase):
         # Save the model's state_dict checkpoint in SgModel format
         cls.sg_model = SgModel("load_checkpoint_test", model_checkpoints_location='local')  # Saves in /checkpoints
         cls.sg_model.build_model(cls.original_torch_net, arch_params={'num_classes': 10})
+        # FIXME: after uniting init and build_model we should remove this
+        cls.sg_model.sg_logger = BaseSGLogger('project_name', 'load_checkpoint_test', 'local', resumed=False, training_params=HpmStruct(max_epochs=10))
         cls.sg_model.save_checkpoint()
 
     @classmethod
