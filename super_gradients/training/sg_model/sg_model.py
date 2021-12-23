@@ -246,7 +246,7 @@ class SgModel:
         strict_load = core_utils.get_param(self.arch_params, 'strict_load', default_val=strict_load)
 
         self.arch_params.sync_bn = core_utils.get_param(self.arch_params, 'sync_bn', default_val=False)
-        self.load_checkpoint = core_utils.get_param(self.arch_params, 'load_checkpoint', default_val=load_checkpoint)
+        self.load_checkpoint = load_checkpoint or core_utils.get_param(self.arch_params, 'load_checkpoint', default_val=False)
         self.load_backbone = core_utils.get_param(self.arch_params, 'load_backbone', default_val=load_backbone)
         self.external_checkpoint_path = core_utils.get_param(self.arch_params, 'external_checkpoint_path',
                                                              default_val=external_checkpoint_path)
@@ -1584,7 +1584,7 @@ class SgModel:
                     # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
                     logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
                     pbar_message_dict = get_train_loop_description_dict(logging_values,
-                                                                        self.train_metrics,
+                                                                        metrics,
                                                                         self.loss_logging_items_names)
 
                     progress_bar_data_loader.set_postfix(**pbar_message_dict)
@@ -1595,7 +1595,7 @@ class SgModel:
             # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
             logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
             pbar_message_dict = get_train_loop_description_dict(logging_values,
-                                                                self.train_metrics,
+                                                                metrics,
                                                                 self.loss_logging_items_names)
 
             progress_bar_data_loader.set_postfix(**pbar_message_dict)
