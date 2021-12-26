@@ -26,6 +26,7 @@ model_checkpoints_location: local
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
 
 architecture: resnet18_cifar
 
