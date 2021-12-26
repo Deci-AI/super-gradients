@@ -1241,7 +1241,7 @@ class SgModel:
         """
 
         if isinstance(requested_multi_gpu, str):
-            requested_multi_gpu = MultiGPUMode[requested_multi_gpu]
+            requested_multi_gpu = MultiGPUMode(requested_multi_gpu)
 
         # SELECT CUDA DEVICE
         if requested_device == 'cuda':
