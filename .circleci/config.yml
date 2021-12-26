@@ -99,11 +99,11 @@ commands:
                 command: |
                   git tag -d << parameters.tag_name >>
                   git push --delete origin << parameters.tag_name >>
-#      - run:
-#          name: Tag stable and push
-#          command: |
-#            git tag << parameters.tag_name >>
-#            git push origin << parameters.tag_name >>
+      - run:
+          name: Tag stable and push
+          command: |
+            git tag << parameters.tag_name >>
+            git push origin << parameters.tag_name >>
 
   upload_package_run:
     description: "uploads the package to dev and prod"
@@ -524,9 +524,9 @@ jobs:
       - git_commit_and_tag:
           version: $CIRCLE_TAG
           tag_remote: false
-#      - tag_as:
-#          tag_name: "stable"
-#          delete_remote: true
+      - tag_as:
+          tag_name: "stable"
+          delete_remote: true
 
   release_version_from_rc:
     docker:
