@@ -44,11 +44,11 @@ class PretrainedModelsTest(unittest.TestCase):
                                                      "metric_to_watch": "Accuracy",
                                                      "greater_metric_to_watch_is_better": True}
 
-        self.coco_segmentation_subclass_pretrained_models = ["shelfnet34"]
+        self.coco_segmentation_subclass_pretrained_models = ["shelfnet34_lw"]
         self.coco_segmentation_subclass_pretrained_arch_params = {
-            "shelfnet34": {"pretrained_weights": "coco_segmentation_subclass",
+            "shelfnet34_lw": {"pretrained_weights": "coco_segmentation_subclass",
                            "num_classes": 21, "image_size": 512}}
-        self.coco_segmentation_subclass_pretrained_mious = {"shelfnet34": 0.651}
+        self.coco_segmentation_subclass_pretrained_mious = {"shelfnet34_lw": 0.651}
         self.coco_segmentation_dataset = CoCoSegmentationDatasetInterface(dataset_params={
             "batch_size": 24,
             "val_batch_size": 24,
@@ -174,15 +174,15 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"])
         trainer.train(training_params=self.transfer_segmentation_train_params)
 
-    def test_pretrained_coco_segmentation_subclass_pretrained_shelfnet34(self):
-        trainer = SgModel('coco_segmentation_subclass_pretrained_shelfnet34', model_checkpoints_location='local',
+    def test_pretrained_coco_segmentation_subclass_pretrained_shelfnet34_lw(self):
+        trainer = SgModel('coco_segmentation_subclass_pretrained_shelfnet34_lw', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_segmentation_dataset, data_loader_num_workers=8)
-        trainer.build_model("shelfnet34",
-                            arch_params=self.coco_segmentation_subclass_pretrained_arch_params["shelfnet34"])
+        trainer.build_model("shelfnet34_lw",
+                            arch_params=self.coco_segmentation_subclass_pretrained_arch_params["shelfnet34_lw"])
         res = trainer.test(test_loader=self.coco_segmentation_dataset.val_loader, test_metrics_list=[IoU(21)],
                            metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.coco_segmentation_subclass_pretrained_mious["shelfnet34"], places=2)
+        self.assertAlmostEqual(res, self.coco_segmentation_subclass_pretrained_mious["shelfnet34_lw"], places=2)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
