@@ -1,5 +1,6 @@
 version: 2.1
 
+# This filter operates on SemVer2 tags only
 release_tag_filter: &release_tag_filter
   filters:
     branches:
@@ -317,9 +318,9 @@ commands:
       version:
         type: string
         default: ""
-      tag_remote:
+      is_release:
         type: boolean
-        default: true
+        default: false
     steps:
       - run:
           name: Avoid hosts unknown for github
@@ -331,14 +332,9 @@ commands:
             git config --global user.name  "CircleCI commit"
             git commit version.txt -m "CircleCi - Changed version to << parameters.version >>"
             git push --force --set-upstream origin master
-      - when:
-          condition: << parameters.tag_remote >>
-          steps:
-            - run:
-                name: tag git repository
-                command: |
-                  git tag << parameters.version >>
-                  git push origin << parameters.version >>
+      - tag_as:
+          tag_name: << parameters.version >>
+          delete_remote: << parameters.is_release >>
 
 
   checkout_and_skip_build:
@@ -523,7 +519,7 @@ jobs:
           codeartifact_repository: "deci-toolkit"
       - git_commit_and_tag:
           version: $CIRCLE_TAG
-          tag_remote: false
+          is_release: true
       - tag_as:
           tag_name: "stable"
           delete_remote: true
@@ -697,21 +693,6 @@ jobs:
 
 
 workflows:
-
-  #  timed_release:
-  #    triggers:
-  #      - schedule:
-  #          cron: "0 20 * * *" # 23:00 israel time
-  #          filters:
-  #            branches:
-  #              only:
-  #                - master
-  #    jobs:
-  #      - get_unreleased_rc
-  #      - release_version_from_rc:
-  #          requires:
-  #            - get_unreleased_rc
-
   release:
     jobs:
       - login_to_codeartifact:
