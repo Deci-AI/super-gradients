@@ -113,7 +113,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 | MobileNetV3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.75ms** |**1333fps** |
 | MobileNetV2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.58ms** |**1724fps** |
 
-
+> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1
 
 ### Pretrained Object Detection PyTorch Checkpoints
 
@@ -122,21 +122,23 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
 |--------------------- |------ | ---------- |------ | -------- |   :------: |
-| YOLOv5 small | CoCo |640x640 |37.3   |**10.09ms** |**101.85fps** |
-| YOLOv5 medium  | CoCo |640x640 |45.2   |**17.55ms** |**57.66fps** |
-
+| YOLOv5 small | CoCo |640x640 |37.3   |**7.13ms** |**159.44fps** |
+| YOLOv5 medium  | CoCo |640x640 |45.2   |**8.95ms** |**121.78fps** |
+  
+> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (througput)
 
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
 ##### ** TODO - ADD HERE THE EFFICIENCY FRONTIER SEMANTIC-SEGMENTATION MODELS GRAPH FOR LATENCY **
 
 
-| Model | Dataset |  Resolution | mIoU | Latency<sub>T4</sub> | Throughout<sub>T4</sub>  |
+| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
-| DDRNet23   | Cityscapes |1024x2048      |78.65     |**-** |**-** |
-| DDRNet23 slim   | Cityscapes |1024x2048 |76.6    |**-** |**-** |
+| DDRNet23   | Cityscapes |1024x2048      |78.65     |**25.48ms** |**37.4fps** |
+| DDRNet23 slim   | Cityscapes |1024x2048 |76.6    |**22.24ms** |**45.7fps** |
 
-
+> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency) and batch size 64 (througput)
+  
 
 ## Contributing
 
