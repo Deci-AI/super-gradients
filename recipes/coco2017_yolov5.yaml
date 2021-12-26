@@ -35,6 +35,7 @@ experiment_name: ${architecture}_coco2017_320
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
 
 training_hyperparams:
   criterion_params:

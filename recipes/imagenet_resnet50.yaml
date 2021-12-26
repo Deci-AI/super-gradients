@@ -34,5 +34,6 @@ experiment_name: resnet50_imagenet
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
 
 architecture: resnet50

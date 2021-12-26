@@ -35,5 +35,6 @@ experiment_name: repvgg_a0_imagenet_reproduce_fix
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
 
 architecture: repvgg_a0

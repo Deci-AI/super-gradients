@@ -23,5 +23,6 @@ experiment_name: mobileNetv3_large_training
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
 
 architecture: efficientnet_b0
