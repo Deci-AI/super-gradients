@@ -1577,7 +1577,7 @@ class SgModel:
                     # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
                     logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
                     pbar_message_dict = get_train_loop_description_dict(logging_values,
-                                                                        self.train_metrics,
+                                                                        metrics,
                                                                         self.loss_logging_items_names)
 
                     progress_bar_data_loader.set_postfix(**pbar_message_dict)
@@ -1588,7 +1588,7 @@ class SgModel:
             # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
             logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
             pbar_message_dict = get_train_loop_description_dict(logging_values,
-                                                                self.train_metrics,
+                                                                metrics,
                                                                 self.loss_logging_items_names)
 
             progress_bar_data_loader.set_postfix(**pbar_message_dict)

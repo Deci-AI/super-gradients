@@ -341,6 +341,9 @@ class DDRNet(SgModule):
             self.final_layer = SegmentHead(highres_planes * layer5_bottleneck_expansion,
                                            head_width, num_classes, 8, inter_mode=self.segmentation_inter_mode)
 
+        self.highres_planes = highres_planes
+        self.layer5_bottleneck_expansion = layer5_bottleneck_expansion
+        self.head_width = head_width
         self._initialize_weights()
 
     def _initialize_weights(self):
@@ -393,6 +396,20 @@ class DDRNet(SgModule):
                 return x, x_extra
             else:
                 return x
+
+    def replace_head(self, new_num_classes=None, new_head=None, new_aux_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_aux_head is not None:
+            self.seghead_extra = new_aux_head
+        if new_head is not None:
+            self.final_layer = new_head
+        else:
+            self.final_layer = SegmentHead(self.highres_planes * self.layer5_bottleneck_expansion,
+                                           self.head_width, new_num_classes, 8, inter_mode=self.segmentation_inter_mode)
+            if self.aux_head:
+                self.seghead_extra = SegmentHead(self.highres_planes, self.head_width, new_num_classes, 8,
+                                                 inter_mode=self.segmentation_inter_mode)
 
 
 class DDRNetCustom(DDRNet):
