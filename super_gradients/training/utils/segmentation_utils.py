@@ -142,8 +142,7 @@ class RandomRotate:
     Randomly rotates image and mask (synchronously) between 'min_deg' and 'max_deg'.
     """
 
-    def __init__(self, min_deg: float = -10, max_deg: float = 10, fill_mask: int = 0,
-                 fill_image: Union[int, Tuple, List] = 0):
+    def __init__(self, min_deg: float = -10, max_deg: float = 10, fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
         self.min_deg = min_deg
         self.max_deg = max_deg
         self.fill_mask = fill_mask
@@ -247,9 +246,7 @@ class PadShortToCropSize:
     Pads image to 'crop_size'.
     Should be called only after "Rescale" or "RandomRescale" in augmentations pipeline.
     """
-
-    def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0,
-                 fill_image: Union[int, Tuple, List] = 0):
+    def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
         """
         :param crop_size: tuple of (width, height) for the final crop size, if is scalar size is a
             square (crop_size, crop_size)
