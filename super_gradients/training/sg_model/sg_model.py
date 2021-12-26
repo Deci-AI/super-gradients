@@ -16,7 +16,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
-from super_gradients import is_distributed
+from super_gradients.common.environment import env_helpers
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
@@ -1275,7 +1275,7 @@ class SgModel:
                         logger.warning('\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n')
                 else:
                     if requested_multi_gpu == MultiGPUMode.AUTO:
-                        if is_distributed():
+                        if env_helpers.is_distributed():
                             requested_multi_gpu = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
                         else:
                             requested_multi_gpu = MultiGPUMode.DATA_PARALLEL
