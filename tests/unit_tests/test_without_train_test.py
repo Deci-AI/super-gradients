@@ -65,7 +65,7 @@ class TestWithoutTrainTest(unittest.TestCase):
 
         dataset_interface = SegmentationTestDatasetInterface()
         model.connect_dataset_interface(dataset_interface, data_loader_num_workers=8)
-        model.build_model('shelfnet34', arch_params=shelfnet_lw_arch_params)
+        model.build_model('shelfnet34_lw', arch_params=shelfnet_lw_arch_params)
         return model
 
     def test_test_without_train(self):
