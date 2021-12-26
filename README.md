@@ -45,7 +45,7 @@ Get started with our quick start notebook on Google Colab for a quick and easy s
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1lole-odbkD4LBnM6debK31BLP5_aILwY?usp=sharing"><img src="./SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing"><img src="./SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/quickstart.ipynb"><img src="./SG_img/download_logo.png" />Download notebook</a>
