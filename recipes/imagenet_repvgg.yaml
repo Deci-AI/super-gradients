@@ -32,13 +32,8 @@ load_checkpoint: False
 
 experiment_name: repvgg_a0_imagenet_reproduce_fix
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
-
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
-  multi_gpu: ${multi_gpu}
 
 architecture: repvgg_a0

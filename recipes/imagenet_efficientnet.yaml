@@ -20,13 +20,8 @@ load_checkpoint: False
 
 experiment_name: mobileNetv3_large_training
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
-
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
-  multi_gpu: ${multi_gpu}
 
 architecture: efficientnet_b0
