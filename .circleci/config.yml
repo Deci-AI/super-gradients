@@ -524,6 +524,11 @@ jobs:
       - tag_as:
           tag_name: "stable"
           delete_remote: true
+      - create_github_release:
+          directory_to_cd_into: "."
+          tag: $CIRCLE_TAG
+          notes: "This GitHub Release was done automatically by CircleCI"
+
 
   release_version_from_rc:
     docker:
