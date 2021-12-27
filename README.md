@@ -101,10 +101,10 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 | Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency b1<sub>T4</sub> | Throughout b1<sub>T4</sub> | 
 |-------------------- |------ | ---------- |----------- |------ | -------- |  :------: |
 | EfficientNet B0 | ImageNet  |224x224   |  77.62   | 93.49  |**1.16ms** |**862fps** |
-| RegNetY200 | ImageNet  |224x224   |  70.88    |   89.35  |**-**|**-** |
-| RegNetY400  | ImageNet  |224x224   |  74.74    |   91.46  |**-** |**-** |
-| RegNetY600  | ImageNet  |224x224   |  76.18    |  92.34   |**-** |**-** |
-| RegNetY800   | ImageNet  |224x224   |  77.07    |  93.26   |**-** |**-** |
+| RegNetY200 | ImageNet  |224x224   |  70.88    |   89.35  |**1.07ms**|**928.3fps** |
+| RegNetY400  | ImageNet  |224x224   |  74.74    |   91.46  |**1.22ms** |**816.5fps** |
+| RegNetY600  | ImageNet  |224x224   |  76.18    |  92.34   |**1.19ms** |**838.5fps** |
+| RegNetY800   | ImageNet  |224x224   |  77.07    |  93.26   |**1.18ms** |**841.4fps** |
 | ResNet18   | ImageNet  |224x224   |  70.6    |   89.64 |**0.599ms** |**1669fps** |
 | ResNet34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.89ms** |**1123fps** |
 | ResNet50  | ImageNet  |224x224   |  76.3    |   93.0  |**0.94ms** |**1063fps** |
