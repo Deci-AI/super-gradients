@@ -638,7 +638,7 @@
         <span class="c1"># SHELFNET LW ARCHITECTURE USES ONLY LAST 3 PARTIAL OUTPUTs OF THE BACKBONE&#39;S 4 OUTPUT LAYERS</span>
         <span class="n">backbone_features_tuple</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">backbone</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
 
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ShelfNet18</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ShelfNet18_LW</span><span class="p">):</span>
             <span class="c1"># FOR SHELFNET18 USE 1x1 CONVS AFTER THE BACKBONE&#39;S FORWARD PASS TO MANIPULATE THE CHANNELS FOR THE DECODER</span>
             <span class="n">conv_bn_relu_results_list</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -695,7 +695,7 @@
         <span class="k">return</span> <span class="n">params_list</span></div></div>
 
 
-<div class="viewcode-block" id="ShelfNet18"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNet18">[docs]</a><span class="k">class</span> <span class="nc">ShelfNet18</span><span class="p">(</span><span class="n">ShelfNetLW</span><span class="p">):</span>
+<div class="viewcode-block" id="ShelfNet18"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNet18">[docs]</a><span class="k">class</span> <span class="nc">ShelfNet18_LW</span><span class="p">(</span><span class="n">ShelfNetLW</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backbone</span><span class="o">=</span><span class="n">ShelfResNetBackBone18</span><span class="p">,</span> <span class="n">planes</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
@@ -715,7 +715,7 @@
             <span class="n">out_planes</span> <span class="o">*=</span> <span class="mi">2</span></div>
 
 
-<div class="viewcode-block" id="ShelfNet34"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNet34">[docs]</a><span class="k">class</span> <span class="nc">ShelfNet34</span><span class="p">(</span><span class="n">ShelfNetLW</span><span class="p">):</span>
+<div class="viewcode-block" id="ShelfNet34"><a class="viewcode-back" href="../../../../super_gradients.training.models.html#super_gradients.training.models.shelfnet.ShelfNet34">[docs]</a><span class="k">class</span> <span class="nc">ShelfNet34_LW</span><span class="p">(</span><span class="n">ShelfNetLW</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">backbone</span><span class="o">=</span><span class="n">ShelfResNetBackBone34</span><span class="p">,</span> <span class="n">planes</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
