@@ -570,7 +570,7 @@ class ShelfNetLW(ShelfNetBase):
         # SHELFNET LW ARCHITECTURE USES ONLY LAST 3 PARTIAL OUTPUTs OF THE BACKBONE'S 4 OUTPUT LAYERS
         backbone_features_tuple = self.backbone(x)[1:]
 
-        if isinstance(self, ShelfNet18):
+        if isinstance(self, ShelfNet18_LW):
             # FOR SHELFNET18 USE 1x1 CONVS AFTER THE BACKBONE'S FORWARD PASS TO MANIPULATE THE CHANNELS FOR THE DECODER
             conv_bn_relu_results_list = []
 
@@ -627,7 +627,7 @@ class ShelfNetLW(ShelfNetBase):
         return params_list
 
 
-class ShelfNet18(ShelfNetLW):
+class ShelfNet18_LW(ShelfNetLW):
     def __init__(self, *args, **kwargs):
         super().__init__(backbone=ShelfResNetBackBone18, planes=64, layers=3, *args, **kwargs)
 
@@ -647,7 +647,7 @@ class ShelfNet18(ShelfNetLW):
             out_planes *= 2
 
 
-class ShelfNet34(ShelfNetLW):
+class ShelfNet34_LW(ShelfNetLW):
     def __init__(self, *args, **kwargs):
         super().__init__(backbone=ShelfResNetBackBone34, planes=128, layers=3, *args, **kwargs)
 
