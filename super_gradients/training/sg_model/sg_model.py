@@ -42,7 +42,7 @@ from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path,
     load_checkpoint_to_model, load_pretrained_weights
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
-    MetricsUpdateCallback, WarmupLRCallback
+    MetricsUpdateCallback, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment import environment_config
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 
@@ -346,6 +346,10 @@ class SgModel:
                                    **additional_batch_items)
 
             self.phase_callback_handler(Phase.TRAIN_BATCH_END, context)
+
+            # LOG LR THAT WILL BE USED IN CURRENT EPOCH AND AFTER FIRST WARMUP/LR_SCHEDULER UPDATE BEFORE WEIGHT UPDATE
+            if not self.ddp_silent_mode and batch_idx == 0:
+                self._write_lrs(epoch)
 
             self.backward_step(loss, epoch, batch_idx, context)
 
@@ -768,11 +772,12 @@ class SgModel:
                                                            update_param_groups=self.update_param_groups,
                                                            **self.training_params.to_dict()))
         if self.training_params.lr_warmup_epochs > 0:
-            self.phase_callbacks.append(WarmupLRCallback(train_loader_len=len(self.train_loader),
-                                                         net=self.net,
-                                                         training_params=self.training_params,
-                                                         update_param_groups=self.update_param_groups,
-                                                         **self.training_params.to_dict()))
+            warmup_callback_cls = LR_WARMUP_CLS_DICT[self.training_params.warmup_mode]
+            self.phase_callbacks.append(warmup_callback_cls(train_loader_len=len(self.train_loader),
+                                                            net=self.net,
+                                                            training_params=self.training_params,
+                                                            update_param_groups=self.update_param_groups,
+                                                            **self.training_params.to_dict()))
 
         self.phase_callbacks.append(MetricsUpdateCallback(Phase.TRAIN_BATCH_END))
         self.phase_callbacks.append(MetricsUpdateCallback(Phase.VALIDATION_BATCH_END))
@@ -841,9 +846,6 @@ class SgModel:
                 context.update_context(epoch=epoch)
                 self.phase_callback_handler(Phase.TRAIN_EPOCH_START, context)
 
-                # LOG LR THAT WILL BE USED IN CURRENT EPOCH AS IT IS UPDATED AT EPOCH END
-                if not self.ddp_silent_mode:
-                    self._write_lrs(epoch)
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
