@@ -27,6 +27,7 @@ sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
   model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: Off
 
 architecture: resnet18_cifar
 
