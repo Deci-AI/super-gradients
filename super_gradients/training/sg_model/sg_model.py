@@ -1,6 +1,5 @@
 import os
 import sys
-from collections import Sequence, Mapping
 from copy import deepcopy
 from enum import Enum
 from typing import Union, Tuple
@@ -197,7 +196,8 @@ class SgModel:
         """
         self.dataset_interface = dataset_interface
         self.train_loader, self.valid_loader, self.test_loader, self.classes = \
-            self.dataset_interface.get_data_loaders(batch_size_factor=self.num_devices, num_workers=data_loader_num_workers,
+            self.dataset_interface.get_data_loaders(batch_size_factor=self.num_devices,
+                                                    num_workers=data_loader_num_workers,
                                                     distributed_sampler=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
 
         self.dataset_params = self.dataset_interface.get_dataset_params()
@@ -246,7 +246,8 @@ class SgModel:
         strict_load = core_utils.get_param(self.arch_params, 'strict_load', default_val=strict_load)
 
         self.arch_params.sync_bn = core_utils.get_param(self.arch_params, 'sync_bn', default_val=False)
-        self.load_checkpoint = load_checkpoint or core_utils.get_param(self.arch_params, 'load_checkpoint', default_val=False)
+        self.load_checkpoint = load_checkpoint or core_utils.get_param(self.arch_params, 'load_checkpoint',
+                                                                       default_val=False)
         self.load_backbone = core_utils.get_param(self.arch_params, 'load_backbone', default_val=load_backbone)
         self.external_checkpoint_path = core_utils.get_param(self.arch_params, 'external_checkpoint_path',
                                                              default_val=external_checkpoint_path)
@@ -311,7 +312,8 @@ class SgModel:
         # SET THE MODEL IN training STATE
         self.net.train()
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
-        progress_bar_train_loader = tqdm(self.train_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode)
+        progress_bar_train_loader = tqdm(self.train_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True,
+                                         disable=silent_mode)
         progress_bar_train_loader.set_description(f"Train epoch {epoch}")
 
         # RESET/INIT THE METRIC LOGGERS
@@ -380,7 +382,8 @@ class SgModel:
             loss_logging_items = loss.unsqueeze(0).detach()
 
         if len(loss_logging_items) != len(self.loss_logging_items_names):
-            raise ValueError("Loss output length must match loss_logging_items_names. Got " + str(len(loss_logging_items)) + ', and ' + str(len(self.loss_logging_items_names)))
+            raise ValueError("Loss output length must match loss_logging_items_names. Got " + str(
+                len(loss_logging_items)) + ', and ' + str(len(self.loss_logging_items_names)))
         # RETURN AND THE LOSS LOGGING ITEMS COMPUTED DURING LOSS FORWARD PASS
         return loss, loss_logging_items
 
@@ -419,7 +422,8 @@ class SgModel:
         """
         # WHEN THE validation_results_tuple IS NONE WE SIMPLY SAVE THE state_dict AS LATEST AND Return
         if validation_results_tuple is None:
-            self.sg_logger.add_checkpoint(tag='ckpt_latest_weights_only.pth', state_dict={'net': self.net.state_dict()}, global_step=epoch)
+            self.sg_logger.add_checkpoint(tag='ckpt_latest_weights_only.pth', state_dict={'net': self.net.state_dict()},
+                                          global_step=epoch)
             return
 
         # COMPUTE THE CURRENT metric
@@ -459,7 +463,8 @@ class SgModel:
             net_for_averaging = self.ema_model.ema if self.ema else self.net
             averaged_model_sd = self.model_weight_averaging.get_average_model(net_for_averaging,
                                                                               validation_results_tuple=validation_results_tuple)
-            self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict={'net': averaged_model_sd}, global_step=epoch)
+            self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename,
+                                          state_dict={'net': averaged_model_sd}, global_step=epoch)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def train(self, training_params: dict = dict()):  # noqa: C901
@@ -751,7 +756,8 @@ class SgModel:
                     self.ema_model.ema.load_state_dict(self.checkpoint['ema_net'])
                 else:
                     self.ema = False
-                    logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
+                    logger.warning(
+                        "[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
 
         self.run_validation_freq = self.training_params.run_validation_freq
         validation_results_tuple = (0, 0)
@@ -803,7 +809,8 @@ class SgModel:
                                                                    load_checkpoint=self.load_checkpoint,
                                                                    model_checkpoints_location=self.model_checkpoints_location)
         if self.training_params.save_full_train_log and not self.ddp_silent_mode:
-            logger = get_logger(__name__, training_log_path=self.sg_logger.log_file_path.replace('.txt', 'full_train_log.log'))
+            logger = get_logger(__name__,
+                                training_log_path=self.sg_logger.log_file_path.replace('.txt', 'full_train_log.log'))
             sg_model_utils.log_uncaught_exceptions(logger)
 
         if not self.load_checkpoint or self.load_weights_only:
@@ -827,7 +834,8 @@ class SgModel:
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
-        context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name, ckpt_dir=self.checkpoints_dir_path,
+        context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name,
+                               ckpt_dir=self.checkpoints_dir_path,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
@@ -845,7 +853,6 @@ class SgModel:
                 # RUN PHASE CALLBACKS
                 context.update_context(epoch=epoch)
                 self.phase_callback_handler(Phase.TRAIN_EPOCH_START, context)
-
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
@@ -923,7 +930,6 @@ class SgModel:
 
                 self.sg_logger.close()
 
-
             # PHASE.TRAIN_END
             self.phase_callback_handler(Phase.POST_TRAINING, context)
 
@@ -975,7 +981,8 @@ class SgModel:
             # Adding values to sg_logger
             # looping over last titles which corresponds to validation (and average model) metrics.
             all_titles = self.results_titles[-1 * len(averaged_model_results_tuple):]
-            result_dict = {all_titles[i]: averaged_model_results_tuple[i] for i in range(len(averaged_model_results_tuple))}
+            result_dict = {all_titles[i]: averaged_model_results_tuple[i] for i in
+                           range(len(averaged_model_results_tuple))}
 
             self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=self.max_epochs)
 
@@ -984,8 +991,7 @@ class SgModel:
             write_struct = ''
             for ind, title in enumerate(average_model_tb_titles):
                 write_struct += '%s: %.3f  \n  ' % (title, averaged_model_results_tuple[ind])
-                self.sg_logger.add_scalar(title, averaged_model_results_tuple[ind],
-                                                   global_step=self.max_epochs)
+                self.sg_logger.add_scalar(title, averaged_model_results_tuple[ind], global_step=self.max_epochs)
 
             self.sg_logger.add_text("Averaged_Model_Performance", write_struct, self.max_epochs)
             if cleanup_snapshots_pkl_file:
@@ -1314,7 +1320,8 @@ class SgModel:
         self.net.to(self.device)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def _load_checkpoint_to_model(self, strict: StrictLoad, load_backbone: bool, source_ckpt_folder_name: str, load_ema_as_net: bool):  # noqa: C901 - too complex
+    def _load_checkpoint_to_model(self, strict: StrictLoad, load_backbone: bool, source_ckpt_folder_name: str,
+                                  load_ema_as_net: bool):  # noqa: C901 - too complex
         """
         Copies the source checkpoint to a local folder and loads the checkpoint's data to the model
         :param strict:           See StrictLoad class documentation for details.
@@ -1412,7 +1419,7 @@ class SgModel:
         else:
             raise RuntimeError('sg_logger can be either an sg_logger name (str) or a subcalss of AbstractSGLogger')
 
-        if not isinstance(self.sg_logger, BaseSGLogger) :
+        if not isinstance(self.sg_logger, BaseSGLogger):
             logger.warning("WARNING! Using a user-defined sg_logger: files will not be automatically written to disk!\n"
                            "Please make sure the provided sg_logger writes to disk or compose your sg_logger to BaseSGLogger")
 
@@ -1428,9 +1435,9 @@ class SgModel:
             additional_log_items['installed_packages'] = pkg_list
 
         self.sg_logger.add_config("hyper_params", {**self.arch_params.__dict__,
-                                   **self.training_params.__dict__,
-                                   **self.dataset_params.__dict__,
-                                   **additional_log_items})
+                                                   **self.training_params.__dict__,
+                                                   **self.dataset_params.__dict__,
+                                                   **additional_log_items})
 
         self.sg_logger.flush()
 
@@ -1449,7 +1456,8 @@ class SgModel:
 
     def _write_lrs(self, epoch):
         lrs = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
-        lr_titles = ['LR/Param_group_' + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ['LR']
+        lr_titles = ['LR/Param_group_' + str(i) for i in range(len(self.optimizer.param_groups))] if len(
+            self.optimizer.param_groups) > 1 else ['LR']
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
@@ -1458,7 +1466,8 @@ class SgModel:
              loss: torch.nn.modules.loss._Loss = None,
              silent_mode: bool = False,
              test_metrics_list=None,
-             loss_logging_items_names=None, metrics_progress_verbose=False, test_phase_callbacks=None, use_ema_net=True) -> tuple:
+             loss_logging_items_names=None, metrics_progress_verbose=False, test_phase_callbacks=None,
+             use_ema_net=True) -> tuple:
         """
         Evaluates the model on given dataloader and metrics.
 
@@ -1514,9 +1523,12 @@ class SgModel:
         self.valid_metrics.reset()
         self.valid_metrics.to(self.device)
 
-        return self.evaluate(data_loader=self.valid_loader, metrics=self.valid_metrics, evaluation_type=EvaluationType.VALIDATION, epoch=epoch, silent_mode=silent_mode)
+        return self.evaluate(data_loader=self.valid_loader, metrics=self.valid_metrics,
+                             evaluation_type=EvaluationType.VALIDATION, epoch=epoch, silent_mode=silent_mode)
 
-    def evaluate(self, data_loader: torch.utils.data.DataLoader, metrics: MetricCollection, evaluation_type: EvaluationType, epoch: int = None, silent_mode: bool = False, metrics_progress_verbose: bool = False):
+    def evaluate(self, data_loader: torch.utils.data.DataLoader, metrics: MetricCollection,
+                 evaluation_type: EvaluationType, epoch: int = None, silent_mode: bool = False,
+                 metrics_progress_verbose: bool = False):
         """
         Evaluates the model on given dataloader and metrics.
 
@@ -1533,7 +1545,8 @@ class SgModel:
         """
 
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
-        progress_bar_data_loader = tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode)
+        progress_bar_data_loader = tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True,
+                                        disable=silent_mode)
         loss_avg_meter = core_utils.utils.AverageMeter()
         logging_values = None
         loss_tuple = None
@@ -1586,7 +1599,6 @@ class SgModel:
 
         # NEED TO COMPUTE METRICS FOR THE FIRST TIME IF PROGRESS VERBOSITY IS NOT SET
         if not metrics_progress_verbose:
-
             # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
             logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
             pbar_message_dict = get_train_loop_description_dict(logging_values,

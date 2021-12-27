@@ -12,13 +12,12 @@ from super_gradients.training.utils.detection_utils import non_max_suppression, 
     check_anchor_order, check_img_size_divisibilty, matrix_non_max_suppression, NMS_Type, \
     DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.export_utils import ExportableHardswish, ExportableSiLU
-from super_gradients.training.utils.utils import HpmStruct, get_param, print_once
-import numpy as np
+from super_gradients.training.utils.utils import HpmStruct, get_param
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [30, 61, 62, 45, 59, 119],
                                                   [116, 90, 156, 198, 373, 326]],
-                                                  strides=[8, 16, 32])  # output strides of all yolo outputs
+                                                 strides=[8, 16, 32])  # output strides of all yolo outputs
 
 DEFAULT_YOLOV5_ARCH_PARAMS = {
     'anchors': COCO_DETECTION_80_CLASSES_BBOX_ANCHORS,  # The sizes of the anchors predicted by the model
@@ -35,7 +34,7 @@ DEFAULT_YOLOV5_ARCH_PARAMS = {
     'add_nms': False,  # Add the NMS module to the computational graph
     'nms_conf': 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
     'nms_iou': 0.45,  # When add_nms is True IoU threshold for NMS algorithm
-                      # (with smaller value more boxed will be considered "the same" and removed)
+    # (with smaller value more boxed will be considered "the same" and removed)
     'yolo_version': 'v6.0'  # Release version of Ultralytics to built a model from: v.6.0 and v3.0 are supported
 }
 
@@ -87,7 +86,7 @@ class Detect(nn.Module):
         self.detection_layers_num = anchors.detection_layers_num
         self.num_anchors = anchors.num_anchors
         self.grid = [torch.zeros(1)] * self.detection_layers_num  # init grid
-        
+
         self.register_buffer('stride', anchors.stride)
         self.register_buffer('anchors', anchors.anchors)
         self.register_buffer('anchor_grid', anchors.anchor_grid)
@@ -169,25 +168,29 @@ class YoLoV5Head(nn.Module):
                                                                                     arch_params.depth_mult_factor)
 
         self._modules_list = nn.ModuleList()
-        self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1, activation_type))           # 10
-        self._modules_list.append(nn.Upsample(None, 2, 'nearest'))                                                  # 11
-        self._modules_list.append(Concat(1))                                                                        # 12
-        self._modules_list.append(block(width_mult(connector[1]), width_mult(512), depth_mult(3), activation_type, False))  # 13
+        self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1, activation_type))  # 10
+        self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 11
+        self._modules_list.append(Concat(1))  # 12
+        self._modules_list.append(
+            block(width_mult(connector[1]), width_mult(512), depth_mult(3), activation_type, False))  # 13
 
-        self._modules_list.append(Conv(width_mult(512), width_mult(256), 1, 1, activation_type))                    # 14
-        self._modules_list.append(nn.Upsample(None, 2, 'nearest'))                                                  # 15
-        self._modules_list.append(Concat(1))                                                                        # 16
-        self._modules_list.append(block(width_mult(connector[2]), width_mult(256), depth_mult(3), activation_type, False))  # 17
+        self._modules_list.append(Conv(width_mult(512), width_mult(256), 1, 1, activation_type))  # 14
+        self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 15
+        self._modules_list.append(Concat(1))  # 16
+        self._modules_list.append(
+            block(width_mult(connector[2]), width_mult(256), depth_mult(3), activation_type, False))  # 17
 
-        self._modules_list.append(Conv(width_mult(256), width_mult(256), 3, 2, activation_type))                    # 18
-        self._modules_list.append(Concat(1))                                                                        # 19
-        self._modules_list.append(block(width_mult(512), width_mult(512), depth_mult(3), activation_type, False))   # 20
+        self._modules_list.append(Conv(width_mult(256), width_mult(256), 3, 2, activation_type))  # 18
+        self._modules_list.append(Concat(1))  # 19
+        self._modules_list.append(block(width_mult(512), width_mult(512), depth_mult(3), activation_type, False))  # 20
 
-        self._modules_list.append(Conv(width_mult(512), width_mult(512), 3, 2, activation_type))                    # 21
-        self._modules_list.append(Concat(1))                                                                        # 22
-        self._modules_list.append(block(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False)) # 23
+        self._modules_list.append(Conv(width_mult(512), width_mult(512), 3, 2, activation_type))  # 21
+        self._modules_list.append(Concat(1))  # 22
+        self._modules_list.append(
+            block(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False))  # 23
 
-        self._modules_list.append(Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)])) # 24
+        self._modules_list.append(
+            Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
 
     def forward(self, intermediate_output):
         """
@@ -290,7 +293,7 @@ class YoLoV5Base(SgModule):
     def _check_strides_and_anchors(self):
         m = self._head._modules_list[-1]  # Detect()
         # Do inference in train mode on a dummy image to get output stride of each head output layer
-        s = 128  # twice the minimum acceptable image size 
+        s = 128  # twice the minimum acceptable image size
         dummy_input = torch.zeros(1, self.arch_params.channels_in, s, s)
         stride = torch.tensor([s / x.shape[-2] for x in self._forward_once(dummy_input)])
         if not torch.equal(m.stride, stride):
@@ -370,7 +373,7 @@ class YoLoV5Base(SgModule):
         max_stride = int(max(self.stride))
 
         # Validate the image size
-        image_dims = input_size[-2:]    # assume torch uses channels first layout
+        image_dims = input_size[-2:]  # assume torch uses channels first layout
         for dim in image_dims:
             res_flag, suggestion = check_img_size_divisibilty(dim, max_stride)
             if not res_flag:
