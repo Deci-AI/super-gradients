@@ -6,13 +6,15 @@
 
 ## Introduction
 
-Welcome to SuperGradients, a free open-source training library for PyTorch-based deep learning models. SuperGradients allows you to train models on any computer vision tasks or import pre-trained SOTA models, such as object detection, classification of images, and semantic segmentation for videos or images use cases.
+Welcome to SuperGradients, a free open-source training library for PyTorch-based deep learning models. SuperGradients allows you to train models of any computer vision tasks or import pre-trained SOTA models, such as object detection, classification of images, and semantic segmentation for videos and images.
 
-Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation etc. In this notebook we present the modifications needed in order to launch your training so you can benefit from the various tools the SuperGradients has to offer:
+Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation, etc., and thus you experienced with how difficult it is to develop a production ready deep learning model, the overhead of integrating with existing training tools with very different and stiff formats and conventions, how much effort it is to find a suitable architecture for your needs when every repo is focusing on just one task.
 
-*   Train models from any Computer Vision tasks or import [pre-trained SOTA models](https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints) (detection, segmentation, and classification - YOLOv5, DDRNet, EfficientNet, RegNet, ResNet, MobileNet, etc.)
+With SuperGradients you can:
+
+*   Train models for any Computer Vision task or import production-ready [pre-trained SOTA models](https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints) (detection, segmentation, and classification - YOLOv5, DDRNet, EfficientNet, RegNet, ResNet, MobileNet, etc.)
 *  Shorten the training process using tested and proven [recipes](https://github.com/Deci-AI/super-gradients/tree/master/recipes) & [code examples](https://github.com/Deci-AI/super-gradients/tree/master/examples)
-*  Easily configure your own or  use plug&play training, dataset , and architecture parameters.
+*  Easily configure your own or use plug&play training, dataset, and architecture parameters.
 *  Save time and easily integrate it into your codebase.
 
 
