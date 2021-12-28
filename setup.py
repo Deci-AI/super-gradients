@@ -39,7 +39,7 @@ setup(
     install_requires=get_requirements(),
     include_package_data=True,
     packages=find_packages(exclude=["tests"]),
-    package_data={'recipes': ['**/*.yaml']},
+    package_data={'super_gradients.recipes': ['**/*.yaml']},
     data_files=[('config', ['super_gradients/common/auto_logging/auto_logging_conf.json'])],
     long_description=readme()
 )
