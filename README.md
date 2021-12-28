@@ -25,6 +25,7 @@ With SuperGradients you can:
     - [Quick Start Notebook](#quick-start-notebook)
     - [Walkthrough Notebook](#supergradients-walkthrough-notebook)
 - [Installation Methods](#installation-methods)
+    - [Prerequisites](#prerequisites)
     - [Quick Installation of stable version](#quick-installation-of-stable-version)
     - [Installing from GitHub](#installing-from-github)
 - [Computer Vision Models' Pretrained Checkpoints](#computer-vision-models-pretrained-checkpoints)
@@ -39,7 +40,6 @@ With SuperGradients you can:
 <!-- tocstop -->
 
 ## Getting Started
-
 
 ### Quick Start Notebook
 
@@ -79,6 +79,16 @@ Learn more about SuperGradients training components with our walkthrough noteboo
 
 
 ## Installation Methods
+### Prerequisites
+General requirements:
+- Python 3.7, 3.8 or 3.9 installed.
+- torch>=1.9.0
+- requirements.txt
+
+To train on nvidia GPUs:
+- [Nvidia CUDA Toolkit >= 11.2](https://developer.nvidia.com/cuda-11.2.0-download-archive?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu)
+- CuDNN >= 8.1.x
+- Nvidia Driver with CUDA >= 11.2 support (≥460.x)
 
 ### Quick Installation of stable version
 **Not yet avilable in PyPi**
