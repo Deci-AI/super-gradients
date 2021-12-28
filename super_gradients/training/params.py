@@ -54,6 +54,8 @@ DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF = {"weight_decay": 1e-4, "momentum": 0.9}
 
 TRAINING_PARAM_SCHEMA = {"type": "object",
                          "properties": {
+                             "max_epochs": {"type": "number", "minimum": 1},
+
                              # FIXME: CHECK THE IMPORTANCE OF THE COMMENTED SCHEMA- AS IT CAUSES HYDRA USE TO CRASH
 
                              # "lr_updates": {"type": "array", "minItems": 1},
