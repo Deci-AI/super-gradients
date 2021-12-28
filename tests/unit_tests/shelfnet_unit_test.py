@@ -1,7 +1,7 @@
 import torch
 import unittest
 
-from super_gradients.training.models import ShelfNet18, ShelfNet34, ShelfNet50, ShelfNet101
+from super_gradients.training.models import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, ShelfNet101
 
 
 class TestShelfNet(unittest.TestCase):
@@ -12,11 +12,11 @@ class TestShelfNet(unittest.TestCase):
         """
         dummy_input = torch.randn(1, 3, 512, 512)
 
-        shelfnet18_model = ShelfNet18(classes_num=21)
+        shelfnet18_model = ShelfNet18_LW(classes_num=21)
         # VALIDATES INNER CONV LIST WAS INITIALIZED CORRECTLY
         self.assertTrue(shelfnet18_model.conv_out_list)
 
-        shelfnet34_model = ShelfNet34(classes_num=21)
+        shelfnet34_model = ShelfNet34_LW(classes_num=21)
         # VALIDATES INNER CONV LIST WAS INITIALIZED CORRECTLY
         self.assertTrue(shelfnet34_model.conv_out_list)
 

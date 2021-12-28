@@ -40,9 +40,9 @@ class WandBSGLogger(BaseSGLogger):
         :param save_tensorboard_remote: Saves tensorboard in s3.
         :param save_logs_remote: Saves log files in s3.
         """
-
+        self.s3_location_available = storage_location.startswith('s3')
         super().__init__(project_name, experiment_name, storage_location, resumed, training_params, tb_files_user_prompt, launch_tensorboard, tensorboard_port,
-                         save_checkpoints_remote, save_tensorboard_remote, save_logs_remote)
+                         self.s3_location_available, self.s3_location_available, self.s3_location_available)
 
         if api_server is not None:
             if api_server != os.getenv('WANDB_BASE_URL'):
@@ -50,7 +50,8 @@ class WandBSGLogger(BaseSGLogger):
                 os.putenv('WANDB_BASE_URL', api_server)
 
         wandb_id = None
-        if resumed:
+        self.resumed = resumed
+        if self.resumed:
             wandb_id = self._get_wandb_id()
 
         run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
@@ -63,7 +64,7 @@ class WandBSGLogger(BaseSGLogger):
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
         super(WandBSGLogger, self).add_config(tag=tag, config=config)
-        wandb.config.update(config)
+        wandb.config.update(config, allow_val_change=self.resumed)
 
     @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: int = 0):
@@ -150,7 +151,8 @@ class WandBSGLogger(BaseSGLogger):
         torch.save(state_dict, path)
 
         if self.save_checkpoints_wandb:
-            self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
+            if self.s3_location_available:
+                self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
             wandb.save(glob_str=path, base_path=self._local_dir, policy='now')
 
     def _get_tensorboard_file_name(self):

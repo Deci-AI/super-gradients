@@ -246,7 +246,7 @@ class SgModel:
         strict_load = core_utils.get_param(self.arch_params, 'strict_load', default_val=strict_load)
 
         self.arch_params.sync_bn = core_utils.get_param(self.arch_params, 'sync_bn', default_val=False)
-        self.load_checkpoint = core_utils.get_param(self.arch_params, 'load_checkpoint', default_val=load_checkpoint)
+        self.load_checkpoint = load_checkpoint or core_utils.get_param(self.arch_params, 'load_checkpoint', default_val=False)
         self.load_backbone = core_utils.get_param(self.arch_params, 'load_backbone', default_val=load_backbone)
         self.external_checkpoint_path = core_utils.get_param(self.arch_params, 'external_checkpoint_path',
                                                              default_val=external_checkpoint_path)
@@ -452,7 +452,8 @@ class SgModel:
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(metric))
 
         if self.training_params.average_best_models:
-            averaged_model_sd = self.model_weight_averaging.get_average_model(self.net,
+            net_for_averaging = self.ema_model.ema if self.ema else self.net
+            averaged_model_sd = self.model_weight_averaging.get_average_model(net_for_averaging,
                                                                               validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict={'net': averaged_model_sd}, global_step=epoch)
 
@@ -843,6 +844,11 @@ class SgModel:
                 # LOG LR THAT WILL BE USED IN CURRENT EPOCH AS IT IS UPDATED AT EPOCH END
                 if not self.ddp_silent_mode:
                     self._write_lrs(epoch)
+
+                # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
+                # DIFFERENT SEED EACH EPOCH START
+                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+                    self.train_loader.sampler.set_epoch(epoch)
 
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
 
@@ -1328,7 +1334,7 @@ class SgModel:
         self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
                                                    load_backbone=load_backbone,
                                                    net=self.net,
-                                                   strict=strict.value,
+                                                   strict=strict.value if isinstance(strict, StrictLoad) else strict,
                                                    load_weights_only=self.load_weights_only,
                                                    load_ema_as_net=load_ema_as_net)
 
@@ -1383,8 +1389,7 @@ class SgModel:
         sg_logger = core_utils.get_param(self.training_params, 'sg_logger')
 
         # OVERRIDE SOME PARAMETERS TO MAKE SURE THEY MATCH THE TRAINING PARAMETERS
-        general_sg_logger_params = {'project_name': 'project_name',  # TODO
-                                    'experiment_name': self.experiment_name,
+        general_sg_logger_params = {'experiment_name': self.experiment_name,
                                     'storage_location': self.model_checkpoints_location,
                                     'resumed': self.load_checkpoint,
                                     'training_params': self.training_params}
@@ -1572,7 +1577,7 @@ class SgModel:
                     # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
                     logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
                     pbar_message_dict = get_train_loop_description_dict(logging_values,
-                                                                        self.train_metrics,
+                                                                        metrics,
                                                                         self.loss_logging_items_names)
 
                     progress_bar_data_loader.set_postfix(**pbar_message_dict)
@@ -1583,7 +1588,7 @@ class SgModel:
             # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
             logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
             pbar_message_dict = get_train_loop_description_dict(logging_values,
-                                                                self.train_metrics,
+                                                                metrics,
                                                                 self.loss_logging_items_names)
 
             progress_bar_data_loader.set_postfix(**pbar_message_dict)
