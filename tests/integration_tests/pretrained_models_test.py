@@ -3,7 +3,8 @@ import super_gradients
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import SgModel
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface, \
-    CoCoDetectionDatasetInterface, DetectionTestDatasetInterface,     ClassificationTestDatasetInterface, CityscapesDatasetInterface, SegmentationTestDatasetInterface, \
+    CoCoDetectionDatasetInterface, DetectionTestDatasetInterface, ClassificationTestDatasetInterface, \
+    CityscapesDatasetInterface, SegmentationTestDatasetInterface, \
     CoCoSegmentationDatasetInterface
 from super_gradients.training.metrics import Accuracy, DetectionMetrics, IoU
 import os
@@ -14,6 +15,7 @@ from super_gradients.training.utils.detection_utils import Anchors
 import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 from super_gradients.training.utils.segmentation_utils import coco_sub_classes_inclusion_tuples_list
+
 
 class PretrainedModelsTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -73,8 +75,10 @@ class PretrainedModelsTest(unittest.TestCase):
                                                 "batch_accumulate": 1,
                                                 "warmup_bias_lr": 0.1,
                                                 "loss": "yolo_v5_loss",
-                                                "criterion_params": {"anchors": Anchors(anchors_list=[[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]],
-                                                                                        strides=[8, 16, 32]),
+                                                "criterion_params": {"anchors": Anchors(
+                                                    anchors_list=[[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119],
+                                                                  [116, 90, 156, 198, 373, 326]],
+                                                    strides=[8, 16, 32]),
                                                                      "obj_loss_gain": 1.0,
                                                                      "box_loss_gain": 0.05,
                                                                      "cls_loss_gain": 0.5,
@@ -86,20 +90,18 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                      "nesterov": True},
                                                 "train_metrics_list": [],
                                                 "valid_metrics_list": [
-                                                    DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
-                                                                     num_cls=len(
-                                                                   self.coco_dataset.coco_classes))],
+                                                    DetectionMetrics(
+                                                        post_prediction_callback=YoloV5PostPredictionCallback(),
+                                                        num_cls=len(
+                                                            self.coco_dataset.coco_classes))],
                                                 "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],
                                                 "metric_to_watch": "mAP@0.50:0.95",
                                                 "greater_metric_to_watch_is_better": True}
 
-
-
-
         self.coco_segmentation_subclass_pretrained_models = ["shelfnet34_lw"]
         self.coco_segmentation_subclass_pretrained_arch_params = {
             "shelfnet34_lw": {"pretrained_weights": "coco_segmentation_subclass",
-                           "num_classes": 21, "image_size": 512}}
+                              "num_classes": 21, "image_size": 512}}
         self.coco_segmentation_subclass_pretrained_mious = {"shelfnet34_lw": 0.651}
         self.coco_segmentation_dataset = CoCoSegmentationDatasetInterface(dataset_params={
             "batch_size": 24,

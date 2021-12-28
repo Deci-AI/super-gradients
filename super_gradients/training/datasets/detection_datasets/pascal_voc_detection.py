@@ -12,7 +12,7 @@ PASCAL_VOC_2012_CLASSES = [
 ]
 
 
-class PascalVOC2012DetectionDataSet(DetectionDataSet):
+class PascalVOCDetectionDataSet(DetectionDataSet):
     """
     PascalVOC2012DtectionDataSet - Detection Data Set Class pascal_voc Data Set
     """
