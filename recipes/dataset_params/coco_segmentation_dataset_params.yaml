@@ -1,0 +1,6 @@
+batch_size: 8
+val_batch_size: 24
+dataset_dir: "/data/coco/"
+img_size: 608
+crop_size: 512
+train_loader_drop_last: True
