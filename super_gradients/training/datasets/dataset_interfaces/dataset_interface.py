@@ -355,8 +355,7 @@ class ClassificationTestDatasetInterface(TestDatasetInterface):
     def __init__(self, dataset_params={}, image_size=32, batch_size=5, classes=None):
         trainset = torch.utils.data.TensorDataset(torch.Tensor(np.zeros((batch_size, 3, image_size, image_size))),
                                                   torch.LongTensor(np.zeros((batch_size))))
-        super(ClassificationTestDatasetInterface, self).__init__(trainset=trainset, dataset_params=dataset_params,
-                                                                 classes=classes)
+        super(ClassificationTestDatasetInterface, self).__init__(trainset=trainset, dataset_params=dataset_params, classes=classes)
 
 
 class SegmentationTestDatasetInterface(TestDatasetInterface):

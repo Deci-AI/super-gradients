@@ -18,7 +18,7 @@ class YoLoV5DetectionLoss(_Loss):
                  cls_pos_weight: Union[float, List[float]] = 1.0, obj_pos_weight: float = 1.0,
                  obj_loss_gain: float = 1.0, box_loss_gain: float = 0.05, cls_loss_gain: float = 0.5,
                  focal_loss_gamma: float = 0.0,
-                 cls_objectness_weights: Union[List[float], torch.Tensor] = None):
+                 cls_objectness_weights: Union[List[float], torch.Tensor] = None, anchor_t=4.0):
         """
         :param anchors:                 the anchors of the model (same anchors used for training)
         :param cls_pos_weight:          pos_weight for BCE in L_classification,
@@ -41,6 +41,8 @@ class YoLoV5DetectionLoss(_Loss):
         self.cls_loss_gain = cls_loss_gain
         self.focal_loss_gamma = focal_loss_gamma
 
+        self.anchor_t = anchor_t
+
         self.anchors = anchors
 
         self.cls_obj_weights = cls_objectness_weights
@@ -56,7 +58,7 @@ class YoLoV5DetectionLoss(_Loss):
 
         return self.compute_loss(predictions, targets)
 
-    def build_targets(self, predictions: List[torch.Tensor], targets: torch.Tensor, anchor_threshold=4.0) \
+    def build_targets(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
             -> Tuple[List[torch.Tensor], List[torch.Tensor], List[Tuple[torch.Tensor]], List[torch.Tensor]]:
         """
         Assign targets to anchors to use in L_boxes & L_classification calculation:
@@ -98,7 +100,7 @@ class YoLoV5DetectionLoss(_Loss):
             if num_targets:
                 # Match: filter targets by anchor size ratio
                 r = t[:, :, 4:6] / anch[:, None]  # wh ratio
-                filtered_targets_ids = torch.max(r, 1. / r).max(2)[0] < anchor_threshold  # compare
+                filtered_targets_ids = torch.max(r, 1. / r).max(2)[0] < self.anchor_t  # compare
                 t = t[filtered_targets_ids]
 
                 # Find coordinates of targets on a grid

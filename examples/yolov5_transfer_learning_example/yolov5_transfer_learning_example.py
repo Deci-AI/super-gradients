@@ -15,11 +15,8 @@ from super_gradients.training.datasets.dataset_interfaces.dataset_interface impo
     PascalVOC2UnifiedDetectionDataSetInterface
 from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
-from super_gradients.training.datasets.datasets_utils import ComposedCollateFunction, MultiScaleCollateFunction
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.utils.detection_utils import Anchors
-
-# torch.backends.cudnn.benchmark = True
 
 super_gradients.init_trainer()
 
@@ -32,7 +29,7 @@ dataset_params = {"batch_size": 48,
                   "val_collate_fn": base_detection_collate_fn,
                   "train_collate_fn": base_detection_collate_fn,
                   "train_sample_loading_method": "mosaic",
-                  "val_sample_loading_method": "rectangular",
+                  "val_sample_loading_method": "default",
                   "dataset_hyper_param": {
                       "hsv_h": 0.0138,  # IMAGE HSV-Hue AUGMENTATION (fraction)
                       "hsv_s": 0.664,  # IMAGE HSV-Saturation AUGMENTATION (fraction)
@@ -40,20 +37,20 @@ dataset_params = {"batch_size": 48,
                       "degrees": 0.373,  # IMAGE ROTATION (+/- deg)
                       "translate": 0.245,  # IMAGE TRANSLATION (+/- fraction)
                       "scale": 0.898,  # IMAGE SCALE (+/- gain)
-                      "shear": 0.602}  # IMAGE SHEAR (+/- deg)
+                      "shear": 0.602,
+                      "mixup": 0.243}  # IMAGE SHEAR (+/- deg)
                   }
 
-arch_params = {"pretrained_weights": "coco"}
-model = SgModel("yolov5s_pascal_finetune_200",
+model = SgModel("yolov5m_pascal_finetune",
                 multi_gpu=MultiGPUMode.OFF,
                 post_prediction_callback=YoloV5PostPredictionCallback())
 
 dataset_interface = PascalVOC2UnifiedDetectionDataSetInterface(dataset_params=dataset_params)
 model.connect_dataset_interface(dataset_interface, data_loader_num_workers=20)
-model.build_model("yolo_v5s", arch_params=arch_params)
+model.build_model("yolo_v5m", arch_params={"pretrained_weights": "coco"})
 
 post_prediction_callback = YoloV5PostPredictionCallback()
-training_params = {"max_epochs": 200,
+training_params = {"max_epochs": 50,
                    "lr_mode": "cosine",
                    "initial_lr": 0.0032,
                    "cosine_final_lr_ratio": 0.12,
@@ -64,12 +61,12 @@ training_params = {"max_epochs": 200,
                    "criterion_params": {"anchors": Anchors(
                        anchors_list=[[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119],
                                      [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]),
-                                        "box_loss_gain": 0.0296,
-                                        "cls_loss_gain": 0.243,
-                                        "cls_pos_weight": 0.631,
-                                        "obj_loss_gain": 0.301,
-                                        "obj_pos_weight": 0.911}
-    ,
+                       "box_loss_gain": 0.0296,
+                       "cls_loss_gain": 0.243,
+                       "cls_pos_weight": 0.631,
+                       "obj_loss_gain": 0.301,
+                       "obj_pos_weight": 0.911,
+                       "anchor_t": 2.91},
                    "optimizer": "SGD",
                    "warmup_momentum": 0.8,
                    "optimizer_params": {"momentum": 0.843,
