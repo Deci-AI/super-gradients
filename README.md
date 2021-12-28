@@ -83,7 +83,8 @@ Learn more about SuperGradients training components with our walkthrough noteboo
 General requirements:
 - Python 3.7, 3.8 or 3.9 installed.
 - torch>=1.9.0
-- requirements.txt
+  - https://pytorch.org/get-started/locally/
+- The python packages that are specified in requirements.txt;
 
 To train on nvidia GPUs:
 - [Nvidia CUDA Toolkit >= 11.2](https://developer.nvidia.com/cuda-11.2.0-download-archive?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu)
