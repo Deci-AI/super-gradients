@@ -38,10 +38,11 @@ dataset_params = {"batch_size": 48,
                       "translate": 0.245,  # IMAGE TRANSLATION (+/- fraction)
                       "scale": 0.898,  # IMAGE SCALE (+/- gain)
                       "shear": 0.602,
-                      "mixup": 0.243}  # IMAGE SHEAR (+/- deg)
+                      "mixup": 0.243
+                  }  # IMAGE SHEAR (+/- deg)
                   }
 
-model = SgModel("yolov5m_pascal_finetune",
+model = SgModel("yolov5m_pascal_finetune_mixup",
                 multi_gpu=MultiGPUMode.OFF,
                 post_prediction_callback=YoloV5PostPredictionCallback())
 
@@ -56,7 +57,7 @@ training_params = {"max_epochs": 50,
                    "cosine_final_lr_ratio": 0.12,
                    "lr_warmup_epochs": 2,
                    "batch_accumulate": 1,
-                   "warmup_bias_lr": 0.1,
+                   "warmup_bias_lr": 0.05,
                    "loss": "yolo_v5_loss",
                    "criterion_params": {"anchors": Anchors(
                        anchors_list=[[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119],
@@ -68,7 +69,7 @@ training_params = {"max_epochs": 50,
                        "obj_pos_weight": 0.911,
                        "anchor_t": 2.91},
                    "optimizer": "SGD",
-                   "warmup_momentum": 0.8,
+                   "warmup_momentum": 0.5,
                    "optimizer_params": {"momentum": 0.843,
                                         "weight_decay": 0.00036,
                                         "nesterov": True},
@@ -80,6 +81,7 @@ training_params = {"max_epochs": 50,
                                                                dataset_interface.classes))],
                    "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],
                    "metric_to_watch": "mAP@0.50:0.95",
-                   "greater_metric_to_watch_is_better": True}
+                   "greater_metric_to_watch_is_better": True,
+                   "warmup_mode": "yolov5_warmup"}
 
 model.train(training_params=training_params)
