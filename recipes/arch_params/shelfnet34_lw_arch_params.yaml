@@ -1,0 +1,10 @@
+defaults:
+  - default_arch_params
+
+num_classes: 21
+image_size: 512
+load_checkpoint: True
+strict_load: True
+load_weights_only: True
+load_backbone: True
+source_ckpt_folder_name: resnet_34

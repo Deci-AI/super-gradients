@@ -1,0 +1,23 @@
+max_epochs: 150
+initial_lr: 5e-3
+loss: shelfnet_ohem_loss
+optimizer: SGD
+mixed_precision: True
+batch_accumulate: 3
+lr_mode: poly
+optimizer_params:
+  momentum: 0.9
+  weight_decay: 1e-4
+  nesterov: False
+load_opt_params: False
+train_metrics_list:
+  - _target_: super_gradients.training.metrics.segmentation_metrics.PixelAccuracy
+  - _target_: super_gradients.training.metrics.segmentation_metrics.IoU
+    num_classes: 21
+valid_metrics_list:
+  - _target_: super_gradients.training.metrics.segmentation_metrics.PixelAccuracy
+  - _target_: super_gradients.training.metrics.segmentation_metrics.IoU
+    num_classes: 21
+loss_logging_items_names: [Loss1/4, Loss1/8, Loss1/16, Loss]
+metric_to_watch: IoU
+greater_metric_to_watch_is_better: True

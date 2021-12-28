@@ -13,7 +13,7 @@ from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1,
 from super_gradients.training.models.detection_models.yolov3 import YoloV3, TinyYoloV3
 from super_gradients.training.models.detection_models.yolov5 import YoLoV5N, YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, Custom_YoLoV5
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
-from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18, ShelfNet34, ShelfNet50, \
+from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, \
     ShelfNet503343, ShelfNet101
 
 # IF YOU UPDATE THE ARCHITECTURE DICT PLEASE ALSO UPDATE THE ENUM CLASS DOWN BELOW.
@@ -43,8 +43,8 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "densenet161": densenet.densenet161,
                  "densenet169": densenet.densenet169,
                  "densenet201": densenet.densenet201,
-                 "shelfnet18": ShelfNet18,
-                 "shelfnet34": ShelfNet34,
+                 "shelfnet18_lw": ShelfNet18_LW,
+                 "shelfnet34_lw": ShelfNet34_LW,
                  "shelfnet50_3343": ShelfNet503343,
                  "shelfnet50": ShelfNet50,
                  "shelfnet101": ShelfNet101,

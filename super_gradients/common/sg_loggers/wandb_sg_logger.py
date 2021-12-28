@@ -50,7 +50,8 @@ class WandBSGLogger(BaseSGLogger):
                 os.putenv('WANDB_BASE_URL', api_server)
 
         wandb_id = None
-        if resumed:
+        self.resumed = resumed
+        if self.resumed:
             wandb_id = self._get_wandb_id()
 
         run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
@@ -63,7 +64,7 @@ class WandBSGLogger(BaseSGLogger):
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
         super(WandBSGLogger, self).add_config(tag=tag, config=config)
-        wandb.config.update(config)
+        wandb.config.update(config, allow_val_change=self.resumed)
 
     @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: int = 0):
