@@ -37,9 +37,11 @@ setup(
     url="https://deci.ai",
     keywords=["Deci", "AI", "Training"],
     install_requires=get_requirements(),
-    include_package_data=True,
-    packages=find_packages(exclude=["tests"]),
-    package_data={'super_gradients.recipes': ['*.yaml', '**/*.yaml']},
-    data_files=[('config', ['super_gradients/common/auto_logging/auto_logging_conf.json'])],
+    packages=find_packages(where='./src'),
+    package_dir={'': 'src'},
+    package_data={
+        'super_gradients.recipes': ['*.yaml', '**/*.yaml'],
+        'super_gradients.common': ['auto_logging/auto_logging_conf.json']
+    },
     long_description=readme()
 )
