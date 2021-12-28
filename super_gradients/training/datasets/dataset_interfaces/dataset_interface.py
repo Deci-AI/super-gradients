@@ -622,7 +622,8 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
             'degrees': 1.98,  # IMAGE ROTATION (+/- deg)
             'translate': 0.05,  # IMAGE TRANSLATION (+/- fraction)
             'scale': 0.05,  # IMAGE SCALE (+/- gain)
-            'shear': 0.641}  # IMAGE SHEAR (+/- deg)
+            'shear': 0.641,  # IMAGE SHEAR (+/- deg)
+            'mixup': 0.0}  # IMAGE MIXUP AUGMENTATION (fraction)
 
         self.coco_dataset_hyper_params = core_utils.get_param(self.dataset_params, 'dataset_hyper_param',
                                                               default_val=default_hyper_params)

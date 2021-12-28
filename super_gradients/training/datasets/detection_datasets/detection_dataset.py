@@ -74,6 +74,9 @@ class DetectionDataSet(ListDataset):
         if self.sample_loading_method == 'mosaic' and self.augment:
             # LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)
             img, labels = self.load_mosaic(index)
+            # MixUp augmentation
+            if random.random() < self.dataset_hyperparams['mixup']:
+                img, labels = self.mixup(img, labels, *self.load_mosaic(random.randint(0, len(self.img_files) - 1)))
 
         else:
             # LOAD A SINGLE IMAGE
@@ -130,6 +133,15 @@ class DetectionDataSet(ListDataset):
         img = self.sample_post_process(img)
 
         return img, labels_out
+
+    @staticmethod
+    def mixup(im, labels, im2, labels2):
+        # Applies MixUp augmentation https://arxiv.org/pdf/1710.09412.pdf
+        # https://github.com/ultralytics/yolov5
+        r = np.random.beta(32.0, 32.0)  # mixup ratio, alpha=beta=32.0
+        im = (im * r + im2 * (1 - r)).astype(np.uint8)
+        labels = np.concatenate((labels, labels2), 0)
+        return im, labels
 
     @staticmethod
     def sample_post_process(image):
