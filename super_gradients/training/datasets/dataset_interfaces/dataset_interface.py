@@ -233,7 +233,7 @@ class ExternalDatasetInterface(DatasetInterface):
         # NO SHUFFLE IN DISTRIBUTED TRAINING
         if distributed_sampler:
             self.batch_size_factor = 1
-            train_sampler = DistributedSampler(self.trainset)
+            train_sampler = DistributedSampler(self.trainset, shuffle=True)
             val_sampler = DistributedSampler(self.valset)
             train_shuffle = False
         else:

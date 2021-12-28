@@ -42,7 +42,7 @@ class PhaseContext:
 
     def __init__(self, epoch=None, batch_idx=None, optimizer=None, metrics_dict=None, inputs=None, preds=None,
                  target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
-                 device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None):
+                 device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -60,6 +60,7 @@ class PhaseContext:
         self.ckpt_dir = ckpt_dir
         self.net = net
         self.lr_warmup_epochs = lr_warmup_epochs
+        self.sg_logger = sg_logger
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():
@@ -293,8 +294,8 @@ class PolyLRCallback(LRCallbackBase):
             effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
             effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs
 
-            current_iter = self.train_loader_len * effective_epoch + context.batch_idx
-            max_iter = self.train_loader_len * effective_max_epochs
+            current_iter = (self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
+            max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
             self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
             self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
