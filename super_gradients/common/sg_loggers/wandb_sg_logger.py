@@ -40,6 +40,7 @@ class WandBSGLogger(BaseSGLogger):
         :param save_checkpoints_remote: Saves checkpoints in s3.
         :param save_tensorboard_remote: Saves tensorboard in s3.
         :param save_logs_remote: Saves log files in s3.
+        :param save_code: save current code to wandb
         """
         self.s3_location_available = storage_location.startswith('s3')
         super().__init__(project_name, experiment_name, storage_location, resumed, training_params, tb_files_user_prompt, launch_tensorboard, tensorboard_port,
