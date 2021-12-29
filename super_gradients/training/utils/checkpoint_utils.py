@@ -239,7 +239,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
         raise MissingPretrainedWeightsException(model_url_key)
 
     url = MODEL_URLS[model_url_key]
-    unique_fname = url.split("https://deci-pretrained-models.s3.amazonaws.com/")[1].replace('/', '_')
+    unique_fname = url.split("https://deci-pretrained-models.s3.amazonaws.com/")[1].replace('/', '_').replace(' ', '_')
     map_location = torch.device('cpu') if not torch.cuda.is_available() else None
     pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_fname)
     if 'ema_net' in pretrained_state_dict.keys():

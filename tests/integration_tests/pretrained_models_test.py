@@ -69,7 +69,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                               "scale": 0.5,  # IMAGE SCALE (+/- gain)
                                                                               "shear": 0.0}  # IMAGE SHEAR (+/- deg)
                                                                           })
-        self.coco_pretrained_maps = {"yolo_v5s": 0.362, "yolo_v5m": 0.441, "yolo_v5l": 0.48, "yolo_v5n": 0.28}
+        self.coco_pretrained_maps = {"yolo_v5s": 0.362, "yolo_v5m": 0.441, "yolo_v5l": 0.47, "yolo_v5n": 0.27}
         self.transfer_detection_dataset = DetectionTestDatasetInterface(image_size=640)
         self.transfer_detection_train_params = {"max_epochs": 3,
                                                 "lr_mode": "cosine",
@@ -365,7 +365,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer = SgModel('coco_pretrained_yolov5l', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset, data_loader_num_workers=8)
-        trainer.build_model("yolo_v5l ", arch_params=self.coco_pretrained_arch_params["yolo_v5"])
+        trainer.build_model("yolo_v5l", arch_params=self.coco_pretrained_arch_params["yolo_v5"])
         res = trainer.test(test_loader=self.coco_dataset.val_loader,
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
@@ -384,6 +384,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                    self.coco_dataset.coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5n"], delta=0.001)
+        
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
             shutil.rmtree('~/.cache/torch/hub/')
