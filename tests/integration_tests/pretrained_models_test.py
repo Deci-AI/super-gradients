@@ -27,7 +27,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                "resnet34": 0.7413,
                                                "resnet18": 0.706,
                                                "repvgg_a0": 0.7205,
-                                               "regnetY800": 0.7605,
+                                               "regnetY800": 0.7707,
                                                "regnetY600": 0.7618,
                                                "regnetY400": 0.7474,
                                                "regnetY200": 0.7088}

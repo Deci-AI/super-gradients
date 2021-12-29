@@ -1,4 +1,4 @@
-MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/regnetY800_imagenet.pth",
+MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/RegnetY800/average_model.pth",
               "regnetY600_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/RegnetY600/average_model_regnety600.pth",
               "regnetY400_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/RegnetY400/average_model_regnety400.pth",
               "regnetY200_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/RegnetY200/average_model_regnety200.pth",
