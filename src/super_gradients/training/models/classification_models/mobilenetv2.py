@@ -145,7 +145,7 @@ class MobileNetV2(SgModule):
         if new_head is not None:
             self.classifier = new_head
         else:
-            self.classifier = nn.Linear(self.classifier.in_features, new_num_classes)
+            self.classifier = nn.Linear(self.classifier[-1].in_features, new_num_classes)
 
     def _extract_connection_layers_input_channel_size(self):
         """
