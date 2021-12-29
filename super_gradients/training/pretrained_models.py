@@ -16,8 +16,11 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
                                       "/ddrnet23_cityscapes.pth ",
               "ddrnet_23_slim_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet23_cityscapes/ddrnet23_slim_cityscapes.pth",
               "efficientnet_b0_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/efficientnet_b0/average_model-3.pth",
-              "yolo_v5s_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolov5s_coco.pth",
-              "yolo_v5m_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+m/ckpt_best.pth"}
+              "yolo_v5s_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolov5_s/ckpt_best.pth",
+              "yolo_v5m_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+m/ckpt_best.pth",
+              "yolo_v5l_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+l/ckpt_best.pth",
+              "yolo_v5n_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+n/ckpt_best.pth"
+              }
 
 PRETRAINED_NUM_CLASSES = {"imagenet": 1000,
                           "coco_segmentation_subclass": 21,
