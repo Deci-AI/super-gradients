@@ -29,8 +29,12 @@ With SuperGradients you can:
 *  Easily configure your own or use plug&play training, dataset, and architecture parameters.
 *  Save time and easily integrate it into your codebase.
 
-<img src="https://deci.ai/wp-content/themes/deci/resources/js/images/img_0.png">
+<div align="center">
+<img src="./docs/assets/SG_img/Deci-decinets-demo.jpg" width="600px">
+</div>
 
+______________________________________________________________________
+    
 ### Table of Content:
 <!-- toc -->
 
