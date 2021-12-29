@@ -70,7 +70,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                               "scale": 0.5,  # IMAGE SCALE (+/- gain)
                                                                               "shear": 0.0}  # IMAGE SHEAR (+/- deg)
                                                                           })
-        self.coco_pretrained_maps = {"yolo_v5s": 36.73585628224802}
+        self.coco_pretrained_maps = {"yolo_v5s": 0.373}
         self.transfer_detection_dataset = DetectionTestDatasetInterface(image_size=640)
         self.transfer_detection_train_params = {"max_epochs": 3,
                                                 "lr_mode": "cosine",
@@ -347,8 +347,8 @@ class PretrainedModelsTest(unittest.TestCase):
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
                                                                    self.coco_dataset.coco_classes))],
-                           metrics_progress_verbose=True)[3]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5s"])
+                           metrics_progress_verbose=True)[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5s"], delta=0.001)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
