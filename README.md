@@ -1,5 +1,17 @@
 <div align="center">
   <img src="./docs/assets/SG_img/SG - Horizontal.png" width="600"/>
+ <br/><br/>
+  
+**Easily train or fine-tune any SOTA computer vision model from one training repository.**
+______________________________________________________________________
+  
+  <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/badge/release-1.0.1-blue" />
+  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-19-brightgreen" />
+  <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
+  <br/>
+  <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
+  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
+
 </div>
 
 # SuperGradients
@@ -17,6 +29,7 @@ With SuperGradients you can:
 *  Easily configure your own or use plug&play training, dataset, and architecture parameters.
 *  Save time and easily integrate it into your codebase.
 
+<img src="https://deci.ai/wp-content/themes/deci/resources/js/images/img_0.png">
 
 ### Table of Content:
 <!-- toc -->
@@ -160,6 +173,10 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ## Contributing
 
 To learn about making a contribution to SuperGradients, please see our [Contribution page](CONTRIBUTING.md).
+
+<a href = "https://github.com/Deci-AI/super-gradients/graphs/contributors">
+  <img src = "https://contrib.rocks/image?repo = oferbaratz/Deci-AI/super-gradients"/>
+</a>
 
 ## Citation
 
