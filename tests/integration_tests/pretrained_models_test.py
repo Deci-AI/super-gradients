@@ -74,7 +74,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                               "scale": 0.5,  # IMAGE SCALE (+/- gain)
                                                                               "shear": 0.0}  # IMAGE SHEAR (+/- deg)
                                                                           })
-        self.coco_pretrained_maps = {"yolo_v5s": 0.362, "yolo_v5m": 0.441, "yolo_v5l": 0.471, "yolo_v5n": 0.27}
+        self.coco_pretrained_maps = {"yolo_v5s": 0.362, "yolo_v5m": 0.441, "yolo_v5l": 0.471, "yolo_v5n": 0.267}
         self.transfer_detection_dataset = DetectionTestDatasetInterface(image_size=640)
         self.transfer_detection_train_params = {"max_epochs": 3,
                                                 "lr_mode": "cosine",
