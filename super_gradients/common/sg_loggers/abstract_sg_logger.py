@@ -136,9 +136,11 @@ class AbstractSGLogger(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def upload(self):
+    def upload(self, file_name: str = None):
         """
-        Upload any files which should be stored on remote storage
+        Upload file to remote storage (if remote storage was provided)
+        If file_name is None - upload any files which should be stored on remote storage
+        :param file_name - name of file from the checkpoint dir
         """
         raise NotImplementedError
 
