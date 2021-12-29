@@ -124,10 +124,10 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
 |--------------------- |------ | ---------- |------ | -------- |   :------: |
-| YOLOv5 nano | CoCo |640x640 |27.7  |**6.55ms** |**177.62fps** |
-| YOLOv5 small | CoCo |640x640 |37.3   |**7.13ms** |**159.44fps** |
-| YOLOv5 medium  | CoCo |640x640 |45.2   |**8.95ms** |**121.78fps** |
-| YOLOv5 large | CoCo |640x640 |48.0   |**11.49ms** |**95.99fps** |
+| YOLOv5 nano | COCO |640x640 |27.7  |**6.55ms** |**177.62fps** |
+| YOLOv5 small | COCO |640x640 |37.3   |**7.13ms** |**159.44fps** |
+| YOLOv5 medium  | COCO |640x640 |45.2   |**8.95ms** |**121.78fps** |
+| YOLOv5 large | COCO |640x640 |48.0   |**11.49ms** |**95.99fps** |
   
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (througput)
 
