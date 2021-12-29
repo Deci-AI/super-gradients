@@ -1,8 +1,7 @@
-super\_gradients.training package
+Training
 =================================
-
-Subpackages
------------
+.. autosummary::
+   :toctree: generated
 
 .. toctree::
    :maxdepth: 4
@@ -16,8 +15,6 @@ Subpackages
    super_gradients.training.sg_model
    super_gradients.training.utils
 
-Submodules
-----------
 
 super\_gradients.training.params module
 ---------------------------------------

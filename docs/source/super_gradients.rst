@@ -1,9 +1,6 @@
 super\_gradients package
 ========================
 
-Subpackages
------------
-
 .. toctree::
    :maxdepth: 4
 

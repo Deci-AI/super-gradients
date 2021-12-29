@@ -7,3 +7,10 @@ Installation
 ============
 
 `pip install super_gradients`
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

@@ -8,9 +8,10 @@ Welcome to SuperGradients's documentation!
 
 .. toctree::
    :maxdepth: 4
-   :caption: Contents:
+   :caption: SuperGradients
 
-   intro
+   welcome
+   super_gradients.common
    super_gradients.training
 
 Indices and tables

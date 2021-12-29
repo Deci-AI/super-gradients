@@ -1,8 +1,5 @@
-super\_gradients.common package
+Common
 ===============================
-
-Subpackages
------------
 
 .. toctree::
    :maxdepth: 4

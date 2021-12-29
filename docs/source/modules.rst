@@ -2,6 +2,6 @@ super_gradients
 ===============
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 8
 
    super_gradients
