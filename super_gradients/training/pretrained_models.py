@@ -21,7 +21,9 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "yolo_v5l_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+l/ckpt_best.pth",
               "yolo_v5n_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+n/ckpt_best.pth",
 
-              "mobilenet_v3_large":""
+              "mobilenet_v3_large": "https://deci-pretrained-models.s3.amazonaws.com/mobilenetv3+large+300epoch/average_model.pth",
+              "mobilenet_v3_small": "https://deci-pretrained-models.s3.amazonaws.com/mobilenetv3+small/ckpt_best.pth",
+
               }
 
 PRETRAINED_NUM_CLASSES = {"imagenet": 1000,
