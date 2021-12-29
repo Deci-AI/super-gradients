@@ -408,7 +408,7 @@ jobs:
       package_name:
         type: string
     docker:
-      - image: circleci/python:<< parameters.py_version >>
+      - image: cimg/python:<< parameters.py_version >>
     steps:
       - checkout_and_skip_build
       - attach_workspace:
@@ -473,7 +473,7 @@ jobs:
 
   build_and_release:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     steps:
       - get_version_info
       - build:
@@ -490,7 +490,7 @@ jobs:
 
   release_candidate:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     parameters:
       py_version:
         type: string
@@ -504,7 +504,7 @@ jobs:
 
   release_version:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     parameters:
       py_version:
         type: string
@@ -532,7 +532,7 @@ jobs:
 
   release_version_from_rc:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     steps:
       - attach_workspace:
           at: ~/
@@ -570,7 +570,7 @@ jobs:
   lines_of_code_cap:
     working_directory: ~/repo
     docker:
-      - image: circleci/python:3.7.5
+      - image: cimg/python:3.7.5
     parameters:
       lines_of_code_cap:
         type: integer
@@ -617,7 +617,7 @@ jobs:
   get_unreleased_rc:
     working_directory: ~/repo
     docker:
-      - image: circleci/python:3.7.5
+      - image: cimg/python:3.7.5
     resource_class: small
     steps:
       - checkout
@@ -662,7 +662,7 @@ jobs:
   login_to_codeartifact:
     description: Authenticate to aws code artifact. By default authenticates to prod
     docker:
-      - image: circleci/python:3.7.5
+      - image: cimg/python:3.7.5
     parameters:
       dev_account:
         description: authenticate to development codeartifact
