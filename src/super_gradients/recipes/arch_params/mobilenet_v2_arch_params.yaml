@@ -1,0 +1,7 @@
+defaults:
+  - default_arch_params
+
+structure: # model structure
+num_classes: # number of outputs of the classification head
+width_mult: # model's width multiplier
+dropout: # dropout probability of classifier fully-connected layer
