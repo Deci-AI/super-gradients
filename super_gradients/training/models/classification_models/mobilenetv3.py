@@ -164,6 +164,14 @@ class MobileNetV3(SgModule):
         x = self.classifier(x)
         return x
 
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self.classifier = new_head
+        else:
+            self.classifier[-1] = nn.Linear(self.classifier[-1].in_features, new_num_classes)
+
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

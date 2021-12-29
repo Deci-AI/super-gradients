@@ -135,6 +135,14 @@ class MobileNetV2(SgModule):
         x = self.classifier(x)
         return x
 
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self.classifier = new_head
+        else:
+            self.classifier = nn.Linear(self.classifier.in_features, new_num_classes)
+
     def _extract_connection_layers_input_channel_size(self):
         """
         Extracts the number of channels out when using mobilenetV2 as yolo backbone
