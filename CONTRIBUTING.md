@@ -16,7 +16,7 @@ Here is a simple guideline to get you started with your first contribution
 1. Create relevant tests for the issue, please make sure you are covering unit, integration and e2e tests where required.
 1. Make code changes.
 1. Ensure all the tests pass and code formatting is up to standards, and follows [PEP8](https://www.python.org/dev/peps/pep-0008/).
-1. We use [pre-commit](https://pre-commit.com/) package to run our pre-commit hooks. Black formatter and flake8 linter will be ran on each commit. In order to set up pre-commit on your machine, follow the steps here, please note that you only need to run these steps the first time you use pre-commit for this project.
+<!--1. We use [pre-commit](https://pre-commit.com/) package to run our pre-commit hooks. Black formatter and flake8 linter will be ran on each commit. In order to set up pre-commit on your machine, follow the steps here, please note that you only need to run these steps the first time you use pre-commit for this project.)
 
     * Install pre-commit from pypi
    ```
@@ -29,13 +29,15 @@ Here is a simple guideline to get you started with your first contribution
    ```
    $ git commit -m "message"
    ```
+   
     * Each time you commit, git will run the pre-commit hooks (black and flake8 for now) on any python files that are getting committed and are part of the git index.  If black modifies/formats the file, or if flake8 finds any linting errors, the commit will not succeed. You will need to stage the file again if black changed the file, or fix the issues identified by flake8 and and stage it again.
 
     * To run pre-commit on all files just run
    ```
    $ pre-commit run --all-files
    ```
-1. Create a pull request against <b>master</b> branch.
+-->
+7. Create a pull request against <b>master</b> branch.
 
 
 
