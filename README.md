@@ -156,8 +156,8 @@ If you use SuperGradients library or benchmark in your research, please cite Sup
 If you want to be a part of SuperGradients growing community, hear about all the exciting news and updates, need help, request for advanced features, 
     or want to file a bug or issue report, we would love to welcome you aboard!
 
-* [Slack](https://) is the place to be and ask questions about SuperGradients and get support. [Click here to join our Slack](
-  https://).
+* Slack is the place to be and ask questions about SuperGradients and get support. [Click here to join our Slack](
+  https://supergradient-ump8655.slack.com.).
 * To report a bug, [file an issue](https://github.com/Deci-AI/super-gradients/issues) on GitHub.
 * You can also join the [community mailing list](https://)
   to ask questions about the project and receive announcements.
