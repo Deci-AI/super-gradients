@@ -9,10 +9,10 @@ import super_gradients
 from omegaconf import DictConfig
 import hydra
 import pkg_resources
-from trainer import Trainer
+from super_gradients.training.trainer import Trainer
 
 
-@hydra.main(config_path=pkg_resources.resource_filename("recipes", ""))
+@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""))
 def main(cfg: DictConfig) -> None:
     Trainer.train(cfg)
 
