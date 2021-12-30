@@ -343,11 +343,24 @@ commands:
     steps:
       - checkout
       - run:
-          name: Check if we should skip build
+          name: Check if we should skip build when not triggered by tag
           command: |
-            if [[ ! $CIRCLE_TAG ]] || [[ ! "${CIRCLE_TAG}" =~ "rc" ]]; then
+            if [[ ! $CIRCLE_TAG ]]; then
               last_commit_user=$(git log -1 --pretty=format:'%an')
               if [ "${last_commit_user}" == "CircleCI commit" ]; then
+                 echo "\n\n PLEASE NOTICE: Skipping Build to prevent commit loop since the last commit was genereated by automated CI/CD \n\n"
+                 circleci-agent step halt
+              fi
+            fi
+      - run:
+          name: Check if we should skip build when triggered by tag
+          command: |
+            if [[ $CIRCLE_TAG ]]; then
+              circle_ci_user="CircleCI commit"
+              last_commit_user=$(git log -3 --pretty=format:'%an' | head -1)
+              user_before_last_commit_user=$(git log -3 --pretty=format:'%an' | tail -1)
+              echo "last_commit_user: ${last_commit_user}, user_before_last_commit_user: ${user_before_last_commit_user}"
+              if [[ "${last_commit_user}" == "${circle_ci_user}" ]] && [[ "${user_before_last_commit_user}" == "${circle_ci_user}" ]]; then
                  echo "\n\n PLEASE NOTICE: Skipping Build to prevent commit loop since the last commit was genereated by automated CI/CD \n\n"
                  circleci-agent step halt
               fi
