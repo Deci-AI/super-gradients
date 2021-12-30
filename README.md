@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./docs/assets/SG_img/SG_sticker.png" width="600"/>
+  <img src="./docs/assets/SG_img/SG - Horizontal.png" width="600"/>
  <br/><br/>
   
 **Easily train or fine-tune SOTA computer vision models from one training repository.**
