@@ -169,7 +169,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
 | DDRNet23   | Cityscapes |1024x2048      |78.65     |**25.48ms** |**37.4fps** |
 | DDRNet23 slim   | Cityscapes |1024x2048 |76.6    |**22.24ms** |**45.7fps** |
-| ShelfNet34  | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |
+| ShelfNet34 (with background)  | COCO Segmentation (21 classes from PASCAL) |512x512 |65.1  |**-** |**-** |
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency) and batch size 64 (througput)
 
