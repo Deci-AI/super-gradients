@@ -120,6 +120,26 @@ class PretrainedModelsTest(unittest.TestCase):
         }, dataset_classes_inclusion_tuples_list=coco_sub_classes_inclusion_tuples_list()
         )
 
+        self.shelfnet_transfer_segmentation_train_params = {"max_epochs": 3,
+                                                            "initial_lr": 1e-2,
+                                                            "loss": "shelfnet_ohem_loss",
+                                                            "lr_mode": "poly",
+                                                            "ema": True,  # unlike the paper (not specified in paper)
+                                                            "average_best_models": True,
+                                                            "optimizer": "SGD",
+                                                            "mixed_precision": False,
+                                                            "optimizer_params":
+                                                                {"weight_decay": 5e-4,
+                                                                 "momentum": 0.9},
+                                                            "load_opt_params": False,
+                                                            "train_metrics_list": [IoU(5)],
+                                                            "valid_metrics_list": [IoU(5)],
+                                                            "loss_logging_items_names": ["Loss1/4", "Loss1/8",
+                                                                                         "Loss1/16", "Loss"],
+                                                            "metric_to_watch": "IoU",
+                                                            "greater_metric_to_watch_is_better": True
+                                                            }
+
         self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim"]
         self.cityscapes_pretrained_arch_params = {
             "ddrnet_23": {"pretrained_weights": "cityscapes", "num_classes": 19, "aux_head": True, "sync_bn": True}}
@@ -135,24 +155,24 @@ class PretrainedModelsTest(unittest.TestCase):
             "image_mask_transforms": transforms.Compose([])  # no transform for evaluation
         }, cache_labels=False)
         self.transfer_segmentation_dataset = SegmentationTestDatasetInterface(image_size=1024)
-        self.transfer_segmentation_train_params = {"max_epochs": 3,
-                                                   "initial_lr": 1e-2,
-                                                   "loss": DDRNetLoss(),
-                                                   "lr_mode": "poly",
-                                                   "ema": True,  # unlike the paper (not specified in paper)
-                                                   "average_best_models": True,
-                                                   "optimizer": "SGD",
-                                                   "mixed_precision": False,
-                                                   "optimizer_params":
-                                                       {"weight_decay": 5e-4,
-                                                        "momentum": 0.9},
-                                                   "load_opt_params": False,
-                                                   "train_metrics_list": [IoU(5)],
-                                                   "valid_metrics_list": [IoU(5)],
-                                                   "loss_logging_items_names": ["main_loss", "aux_loss", "Loss"],
-                                                   "metric_to_watch": "IoU",
-                                                   "greater_metric_to_watch_is_better": True
-                                                   }
+        self.ddrnet_transfer_segmentation_train_params = {"max_epochs": 3,
+                                                          "initial_lr": 1e-2,
+                                                          "loss": DDRNetLoss(),
+                                                          "lr_mode": "poly",
+                                                          "ema": True,  # unlike the paper (not specified in paper)
+                                                          "average_best_models": True,
+                                                          "optimizer": "SGD",
+                                                          "mixed_precision": False,
+                                                          "optimizer_params":
+                                                              {"weight_decay": 5e-4,
+                                                               "momentum": 0.9},
+                                                          "load_opt_params": False,
+                                                          "train_metrics_list": [IoU(5)],
+                                                          "valid_metrics_list": [IoU(5)],
+                                                          "loss_logging_items_names": ["main_loss", "aux_loss", "Loss"],
+                                                          "metric_to_watch": "IoU",
+                                                          "greater_metric_to_watch_is_better": True
+                                                          }
 
     def test_pretrained_resnet50_imagenet(self):
         trainer = SgModel('imagenet_pretrained_resnet50', model_checkpoints_location='local',
@@ -307,14 +327,14 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         trainer.build_model("ddrnet_23", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"])
-        trainer.train(training_params=self.transfer_segmentation_train_params)
+        trainer.train(training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_transfer_learning_ddrnet23_slim_cityscapes(self):
         trainer = SgModel('cityscapes_pretrained_ddrnet23_slim_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         trainer.build_model("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"])
-        trainer.train(training_params=self.transfer_segmentation_train_params)
+        trainer.train(training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_pretrained_coco_segmentation_subclass_pretrained_shelfnet34_lw(self):
         trainer = SgModel('coco_segmentation_subclass_pretrained_shelfnet34_lw', model_checkpoints_location='local',
@@ -325,6 +345,14 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(test_loader=self.coco_segmentation_dataset.val_loader, test_metrics_list=[IoU(21)],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.coco_segmentation_subclass_pretrained_mious["shelfnet34_lw"], delta=0.001)
+
+    def test_transfer_learning_coco_segmentation_subclass_pretrained_shelfnet34_lw(self):
+        trainer = SgModel('coco_segmentation_subclass_pretrained_shelfnet34_lw_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
+        trainer.build_model("shelfnet34_lw",
+                            arch_params=self.coco_segmentation_subclass_pretrained_arch_params["shelfnet34_lw"])
+        trainer.train(training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_pretrained_efficientnet_b0_imagenet(self):
         trainer = SgModel('imagenet_pretrained_efficientnet_b0', model_checkpoints_location='local',
