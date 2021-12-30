@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="documentation/assets/SG_img/SG - Horizontal.png" width="600"/>
+  <img src="docs/assets/SG_img/SG - Horizontal.png" width="600"/>
  <br/><br/>
   
 **Easily train or fine-tune SOTA computer vision models from one training repository.**
@@ -64,7 +64,7 @@ Get started with our quick start notebook on Google Colab for a quick and easy s
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing"><img src="documentation/assets/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples/SG_quickstart_.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -83,7 +83,7 @@ Learn more about SuperGradients training components with our walkthrough noteboo
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="documentation/assets/SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
  </td>
   <td>
    <a href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples/SG_Walkthrough.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>

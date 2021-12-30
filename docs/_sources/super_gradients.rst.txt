@@ -6,11 +6,3 @@ super\_gradients package
 
    super_gradients.common
    super_gradients.training
-
-Module contents
----------------
-
-.. automodule:: super_gradients
-   :members:
-   :undoc-members:
-   :show-inheritance:

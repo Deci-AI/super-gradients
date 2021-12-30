@@ -1,22 +1,43 @@
-Common
+Common package
 ===============================
 
-.. toctree::
-   :maxdepth: 4
-
-   super_gradients.common.abstractions
-   super_gradients.common.auto_logging
-   super_gradients.common.aws_connection
-   super_gradients.common.data_connection
-   super_gradients.common.data_interface
-   super_gradients.common.data_types
-   super_gradients.common.decorators
-   super_gradients.common.environment
-
-Module contents
----------------
+.. autosummary::
+   :toctree: generated
 
 .. automodule:: super_gradients.common
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: super_gradients.auto_logging
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: super_gradients.aws_connection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: super_gradients.data_interface
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: super_gradients.data_types
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: super_gradients.decorators
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: super_gradients.environment
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------

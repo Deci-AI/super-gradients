@@ -1,11 +1,12 @@
-Training
+Training package
 =================================
+
 .. autosummary::
    :toctree: generated
 
 .. toctree::
    :maxdepth: 4
-
+   super_gradients.training
    super_gradients.training.datasets
    super_gradients.training.exceptions
    super_gradients.training.legacy
@@ -15,19 +16,75 @@ Training
    super_gradients.training.sg_model
    super_gradients.training.utils
 
-
-super\_gradients.training.params module
+super\_gradients.training module
 ---------------------------------------
 
-.. automodule:: super_gradients.training.params
+.. automodule:: super_gradients.training
    :members:
    :undoc-members:
    :show-inheritance:
 
-super\_gradients.training.pretrained\_models module
+super\_gradients.training.datasets module
+---------------------------------------
+
+.. automodule:: super_gradients.training.datasets
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+super\_gradients.training.exceptions module
+---------------------------------------
+
+.. automodule:: super_gradients.training.exceptions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+super\_gradients.training.legacy module
+---------------------------------------
+
+.. automodule:: super_gradients.training.legacy
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+super\_gradients.training.losses_models module
 ---------------------------------------------------
 
-.. automodule:: super_gradients.training.pretrained_models
+.. automodule:: super_gradients.training.losses
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+super\_gradients.training.metrics module
+---------------------------------------------------
+
+.. automodule:: super_gradients.training.metrics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+super\_gradients.training.models module
+---------------------------------------------------
+
+.. automodule:: super_gradients.training.models
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+super\_gradients.training.sg\_model module
+---------------------------------------------------
+
+.. automodule:: super_gradients.training.sg_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+super\_gradients.training.utils module
+---------------------------------------------------
+
+.. automodule:: super_gradients.training.utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -35,7 +92,3 @@ super\_gradients.training.pretrained\_models module
 Module contents
 ---------------
 
-.. automodule:: super_gradients.training
-   :members:
-   :undoc-members:
-   :show-inheritance:

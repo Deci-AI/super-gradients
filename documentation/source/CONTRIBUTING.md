@@ -82,7 +82,7 @@ To generate the docs based on the current work tree, run: <br>
 <code>./scripts/generate_docs.sh</code> <br><br>
 And the documentation will automatically update, based on <code>documentation/</code>. <br>
 The new documentation HTML will be generated to <code>docs/</code>. <br> 
-Once <code>docs/</code> is committed and pushed, GitHub Pages will it.<br>
+Once <code>docs/</code> is committed and pushed, GitHub Pages will use it.<br>
 The step of documentation update is currently manual.
 
 
