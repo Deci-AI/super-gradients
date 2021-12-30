@@ -2,7 +2,7 @@
   <img src="./docs/assets/SG_img/SG - Horizontal.png" width="600"/>
  <br/><br/>
   
-**Easily train or fine-tune any SOTA computer vision model from one training repository.**
+**Easily train or fine-tune SOTA computer vision models from one training repository.**
 ______________________________________________________________________
   
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/badge/release-1.0.1-blue" />
@@ -30,7 +30,7 @@ With SuperGradients you can:
 *  Save time and easily integrate it into your codebase.
 
 <div align="center">
-<img src="./docs/assets/SG_img/Deci-decinets-demo.jpg" width="600px">
+<img src="./docs/assets/SG_img/detection-demo.png" width="600px">
 </div>
 
 ______________________________________________________________________
@@ -67,10 +67,10 @@ Get started with our quick start notebook on Google Colab for a quick and easy s
    <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
  </td>
   <td>
-   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/quickstart.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+   <a href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples/SG_quickstart_.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
-   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
  </br></br>
@@ -86,10 +86,10 @@ Learn more about SuperGradients training components with our walkthrough noteboo
    <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
  </td>
   <td>
-   <a href="https://github.com/Deci-AI/super-gradients/blob/master/examples/SG_Walkthrough.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+   <a href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples/SG_Walkthrough.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
-   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tutorials"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
  </br></br>
@@ -169,7 +169,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
 | DDRNet23   | Cityscapes |1024x2048      |78.65     |**25.48ms** |**37.4fps** |
 | DDRNet23 slim   | Cityscapes |1024x2048 |76.6    |**22.24ms** |**45.7fps** |
-| ShelfNet34 (with background)  | COCO Segmentation (21 classes from PASCAL) |512x512 |65.1  |**-** |**-** |
+| ShelfNet34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency) and batch size 64 (througput)
 
@@ -178,10 +178,10 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 To learn about making a contribution to SuperGradients, please see our [Contribution page](CONTRIBUTING.md).
 
-<a href = "https://github.com/Deci-AI/super-gradients/graphs/contributors">
+<!--<a href = "https://github.com/Deci-AI/super-gradients/graphs/contributors">
   <img src = "https://contrib.rocks/image?repo = oferbaratz/Deci-AI/super-gradients"/>
 </a>
-
+-->
 ## Citation
 
 If you use SuperGradients library or benchmark in your research, please cite SuperGradients deep learning training library.
