@@ -352,7 +352,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         trainer.build_model("shelfnet34_lw",
                             arch_params=self.coco_segmentation_subclass_pretrained_arch_params["shelfnet34_lw"])
-        trainer.train(training_params=self.ddrnet_transfer_segmentation_train_params)
+        trainer.train(training_params=self.shelfnet_transfer_segmentation_train_params)
 
     def test_pretrained_efficientnet_b0_imagenet(self):
         trainer = SgModel('imagenet_pretrained_efficientnet_b0', model_checkpoints_location='local',
