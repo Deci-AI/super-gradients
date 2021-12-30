@@ -15,5 +15,7 @@ make clean html && \
  echo && \
  echo "The docs are ready at $(pwd)/build/html"
 
+cp build/html/index.html . # Copying to docs/ for github pages
+
 # Starting an http server
 cd build/html && python -m http.server 8080
