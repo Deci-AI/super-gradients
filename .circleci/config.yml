@@ -210,12 +210,11 @@ commands:
       #      - run:
       #          name: build documentation
       #          command: |
-      #            sudo apt-get install python3-sphinx
       #            . venv/bin/activate
-      #            pip install sphinx_rtd_theme jsonschema
-      #            sphinx-build -b html documentation/source documentation/html
+      #            pip install -r documentation/requirements.txt
+      #            sh ./scripts/generate_docs.sh
       #      - store_artifacts:
-      #          path: documentation/html
+      #          path: docs/
       - upload_package_and_edit_version:
           version: $NEW_VERSION
       - set_codeartifact_login:
