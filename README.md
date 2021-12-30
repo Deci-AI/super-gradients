@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./docs/assets/SG_img/SG _sticker.png" width="600"/>
+  <img src="./docs/assets/SG_img/SG_sticker.png" width="600"/>
  <br/><br/>
   
 **Easily train or fine-tune SOTA computer vision models from one training repository.**
@@ -178,10 +178,10 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 To learn about making a contribution to SuperGradients, please see our [Contribution page](CONTRIBUTING.md).
 
-<a href = "https://github.com/Deci-AI/super-gradients/graphs/contributors">
+<!--<a href = "https://github.com/Deci-AI/super-gradients/graphs/contributors">
   <img src = "https://contrib.rocks/image?repo = oferbaratz/Deci-AI/super-gradients"/>
 </a>
-
+-->
 ## Citation
 
 If you use SuperGradients library or benchmark in your research, please cite SuperGradients deep learning training library.
