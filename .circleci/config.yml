@@ -355,16 +355,11 @@ commands:
       - run:
           name: Check if we should skip build when triggered by tag
           command: |
-            if [[ $CIRCLE_TAG ]]; then
-              echo "$CIRCLE_TAG"
-              circle_ci_user="CircleCI commit"
-              last_commit_user=`git log -2 --pretty=format:'%an' | head -1`
-              user_before_last_commit_user=`git log -2 --pretty=format:'%an' | tail -1 `    
-              echo "last_commit_user: ${last_commit_user}, user_before_last_commit_user: ${user_before_last_commit_user}"
-              if [[ "${last_commit_user}" == "${circle_ci_user}" ]] && [[ "${user_before_last_commit_user}" == "${circle_ci_user}" ]]; then
-                 echo "\n\n PLEASE NOTICE: Skipping Build to prevent commit loop since the last commit was genereated by automated CI/CD \n\n"
-                 circleci-agent step halt
-              fi
+            version_in_file=`cat project/version.txt`
+            echo "The version written in version.txt is ${version_in_file}"
+            if [[ $CIRCLE_TAG ]] && [[ "$CIRCLE_TAG" == "${version_in_file}" ]]; then
+                echo "\n\n version.txt is configured, avoiding loop and exiting \n\n"
+                circleci-agent step halt
             fi
 
   clone_specific_tag:
