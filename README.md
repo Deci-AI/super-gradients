@@ -86,11 +86,7 @@ Learn more about SuperGradients training components with our walkthrough noteboo
    <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
  </td>
   <td>
-<<<<<<< HEAD
-   <a href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples/SG_Walkthrough.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
-=======
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_Walkthrough%20.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
->>>>>>> 3da786dace3126ae0333e457c8a133f819df3355
  </td>
  <td>
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
