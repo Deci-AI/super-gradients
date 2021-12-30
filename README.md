@@ -1,8 +1,8 @@
 <div align="center">
-  <img src="./docs/assets/SG_img/SG - Horizontal.png" width="600"/>
+  <img src="./docs/assets/SG_img/SG _sticker.png" width="600"/>
  <br/><br/>
   
-**Easily train or fine-tune any SOTA computer vision model from one training repository.**
+**Easily train or fine-tune SOTA computer vision models from one training repository.**
 ______________________________________________________________________
   
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/badge/release-1.0.1-blue" />
@@ -30,7 +30,7 @@ With SuperGradients you can:
 *  Save time and easily integrate it into your codebase.
 
 <div align="center">
-<img src="./docs/assets/SG_img/Deci-decinets-demo.jpg" width="600px">
+<img src="./docs/assets/SG_img/detection-demo.png" width="600px">
 </div>
 
 ______________________________________________________________________
