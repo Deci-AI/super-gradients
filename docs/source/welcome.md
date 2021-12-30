@@ -126,8 +126,6 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 ### Pretrained Classification PyTorch Checkpoints
 
-##### **  TODO - ADD HERE EFFICIENCY FRONTIER CLASSIFICATION MODELS GRAPH FOR LATENCY **
-
 | Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency b1<sub>T4</sub> | Throughout b1<sub>T4</sub> |
 |-------------------- |------ | ---------- |----------- |------ | -------- |  :------: |
 | EfficientNet B0 | ImageNet  |224x224   |  77.62   | 93.49  |**1.16ms** |**862fps** |
@@ -147,8 +145,6 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 ### Pretrained Object Detection PyTorch Checkpoints
 
-##### ** TODO - ADD HERE THE EFFICIENCY FRONTIER OBJECT-DETECTION MODELS GRAPH FOR LATENCY **
-
 
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
 |--------------------- |------ | ---------- |------ | -------- |   :------: |
@@ -161,9 +157,6 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (througput)
 
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
-
-##### ** TODO - ADD HERE THE EFFICIENCY FRONTIER SEMANTIC-SEGMENTATION MODELS GRAPH FOR LATENCY **
-
 
 | Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
