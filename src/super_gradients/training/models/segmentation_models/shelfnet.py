@@ -604,6 +604,18 @@ class ShelfNetLW(ShelfNetBase):
             # THIS DOES NOT CALCULATE THE AUXILARY HEADS THAT ARE CRITICAL FOR THE LOSS (USED MAINLY FOR INFERENCE)
             return feat_out
 
+    def replace_head(self, new_num_classes: int):
+        net_out_planes = self.planes
+        self.classes_num = new_num_classes
+        self.net_output_list = nn.ModuleList()
+        for i in range(self.layers):
+            # IF IT'S THE FIRST LAYER THAN THE MID-CHANNELS NUM IS ACTUALLY self.planes
+            mid_channels_num = self.planes if i == 0 else self.net_output_mid_channels_num
+            self.net_output_list.append(
+                NetOutput(net_out_planes, mid_channels_num, self.classes_num))
+
+            net_out_planes *= 2
+
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
         initialize_optimizer_for_model_param_groups - Initializes the optimizer group params, with 10x learning rate
