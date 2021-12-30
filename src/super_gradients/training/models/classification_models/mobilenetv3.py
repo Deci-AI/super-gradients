@@ -7,7 +7,7 @@ arXiv preprint arXiv:1905.02244.
 
 import torch.nn as nn
 import math
-from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.models.classification_models.mobilenetv2 import MobileNetBase
 
 
 def _make_divisible(v, divisor, min_value=None):
@@ -123,7 +123,7 @@ class InvertedResidual(nn.Module):
             return self.conv(x)
 
 
-class MobileNetV3(SgModule):
+class MobileNetV3(MobileNetBase):
     def __init__(self, cfgs, mode, num_classes=1000, width_mult=1.):
         super(MobileNetV3, self).__init__()
         # setting of inverted residual blocks
@@ -164,13 +164,6 @@ class MobileNetV3(SgModule):
         x = self.classifier(x)
         return x
 
-    def replace_head(self, new_num_classes=None, new_head=None):
-        if new_num_classes is None and new_head is None:
-            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
-        if new_head is not None:
-            self.classifier = new_head
-        else:
-            self.classifier[-1] = nn.Linear(self.classifier[-1].in_features, new_num_classes)
 
     def _initialize_weights(self):
         for m in self.modules():
