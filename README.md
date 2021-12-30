@@ -25,7 +25,7 @@ Whether you are a beginner or an expert it is likely that you already have your 
 With SuperGradients you can:
 
 *   Train models for any Computer Vision task or import production-ready [pre-trained SOTA models](https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints) (detection, segmentation, and classification - YOLOv5, DDRNet, EfficientNet, RegNet, ResNet, MobileNet, etc.)
-*  Shorten the training process using tested and proven [recipes](https://github.com/Deci-AI/super-gradients/tree/master/recipes) & [code examples](https://github.com/Deci-AI/super-gradients/tree/master/examples)
+*  Shorten the training process using tested and proven [recipes](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes) & [code examples](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples)
 *  Easily configure your own or use plug&play training, dataset, and architecture parameters.
 *  Save time and easily integrate it into your codebase.
 
