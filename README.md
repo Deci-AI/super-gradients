@@ -30,7 +30,7 @@ With SuperGradients you can:
 *  Save time and easily integrate it into your codebase.
 
 <div align="center">
-<img src="documentation/assets/SG_img/Deci-decinets-demo.jpg" width="600px">
+<img src="./docs/assets/SG_img/detection-demo.png" width="600px">
 </div>
 
 ______________________________________________________________________
@@ -126,7 +126,6 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 ### Pretrained Classification PyTorch Checkpoints
 
-##### **  TODO - ADD HERE EFFICIENCY FRONTIER CLASSIFICATION MODELS GRAPH FOR LATENCY **
 
 | Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency b1<sub>T4</sub> | Throughout b1<sub>T4</sub> |
 |-------------------- |------ | ---------- |----------- |------ | -------- |  :------: |
@@ -146,8 +145,6 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1
 
 ### Pretrained Object Detection PyTorch Checkpoints
-
-##### ** TODO - ADD HERE THE EFFICIENCY FRONTIER OBJECT-DETECTION MODELS GRAPH FOR LATENCY **
 
 
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
