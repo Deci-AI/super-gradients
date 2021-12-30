@@ -162,14 +162,12 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
-##### ** TODO - ADD HERE THE EFFICIENCY FRONTIER SEMANTIC-SEGMENTATION MODELS GRAPH FOR LATENCY **
-
 
 | Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
 | DDRNet23   | Cityscapes |1024x2048      |78.65     |**25.48ms** |**37.4fps** |
 | DDRNet23 slim   | Cityscapes |1024x2048 |76.6    |**22.24ms** |**45.7fps** |
-| ShelfNet34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |
+| ShelfNet_LW_34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency) and batch size 64 (througput)
 
