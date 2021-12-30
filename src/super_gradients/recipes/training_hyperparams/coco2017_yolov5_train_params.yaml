@@ -8,6 +8,7 @@ lr_warmup_epochs: 3
 warmup_bias_lr: 0.1
 warmup_momentum: 0.8
 initial_lr: 0.01  # will be scaled according to num DDP processes
+warmup_mode: yolov5_warmup
 
 loss: yolo_v5_loss
 criterion_params: ??? # will be overridden in train conf as it includes sg_model
