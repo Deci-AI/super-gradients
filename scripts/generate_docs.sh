@@ -12,9 +12,7 @@ cd documentation && echo "Copying assets..." && cp -r ./assets ./build/html/asse
 # Copying to documentation/ to docs/ for github pages
 cd .. && sphinx-build -b html documentation/source docs && \
  echo "Copying assets..." && \
- cp -r documentation/assets docs/assets  && \
- echo && \
- echo "The docs are ready at $(pwd)/build/html"
+ cp -r documentation/assets docs/assets
 
 # Starting an http server
 cd docs && python -m http.server 8080

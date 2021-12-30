@@ -7,7 +7,7 @@ Here are a few more things to know:
 - [Jupyter Notebooks Contribution](#jupyter-notebooks-contribution)
 - [Code Style Guidelines](#code-style-guidelines)
     
-## How to Contirbute
+## How to Contribute
 
 Here is a simple guideline to get you started with your first contribution
 1. Use [issues](https://github.com/Deci-AI/super-gradients/issues) to discuss the suggested changes. Create an issue describing changes if necessary and add labels to ease orientation.
@@ -73,3 +73,16 @@ We follow the Google docstring guidelines outlined on this [styleguide](https://
           bool: whether or not the calculation was correct
       """
 ```
+
+
+## Documentation
+
+We use  GitHub Pages for technical documentation hosting on https://deci-ai.github.io/super-gradients/welcome.html <br>
+To generate the docs based on the current work tree, run: <br>
+<code>./scripts/generate_docs.sh</code> <br><br>
+And the documentation will automatically update, based on <code>documentation/</code>. <br>
+The new documentation HTML will be generated to <code>docs/</code>. <br> 
+Once <code>docs/</code> is committed and pushed, GitHub Pages will it.<br>
+The step of documentation update is currently manual.
+
+
