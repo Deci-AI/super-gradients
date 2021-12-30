@@ -1682,16 +1682,18 @@
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.utils.recursive_override">recursive_override() (in module super_gradients.training.utils.utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.distributed_training_utils.reduce_results_tuple_for_ddp">reduce_results_tuple_for_ddp() (in module super_gradients.training.utils.distributed_training_utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.ddrnet_loss.DDRNetLoss.reduction">reduction (super_gradients.training.losses.ddrnet_loss.DDRNetLoss attribute)</a>
 
       <ul>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.focal_loss.FocalLoss.reduction">(super_gradients.training.losses.focal_loss.FocalLoss attribute)</a>
 </li>
         <li><a href="super_gradients.training.html#super_gradients.training.losses.FocalLoss.reduction">(super_gradients.training.losses.FocalLoss attribute)</a>, <a href="super_gradients.training.losses.html#super_gradients.training.losses.FocalLoss.reduction">[1]</a>
+</li>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.reduction">(super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss attribute)</a>
 </li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.reduction">(super_gradients.training.losses.LabelSmoothingCrossEntropyLoss attribute)</a>
 </li>
@@ -1702,6 +1704,8 @@
         <li><a href="super_gradients.training.html#super_gradients.training.losses.RSquaredLoss.reduction">(super_gradients.training.losses.RSquaredLoss attribute)</a>, <a href="super_gradients.training.losses.html#super_gradients.training.losses.RSquaredLoss.reduction">[1]</a>
 </li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss.reduction">(super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss attribute)</a>
+</li>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.reduction">(super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss attribute)</a>
 </li>
         <li><a href="super_gradients.training.html#super_gradients.training.losses.ShelfNetOHEMLoss.reduction">(super_gradients.training.losses.ShelfNetOHEMLoss attribute)</a>, <a href="super_gradients.training.losses.html#super_gradients.training.losses.ShelfNetOHEMLoss.reduction">[1]</a>
 </li>
@@ -2700,8 +2704,6 @@
         <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.utils.HpmStruct.to_dict">(super_gradients.training.utils.utils.HpmStruct method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.html#super_gradients.training.DataAugmentation.to_tensor">to_tensor() (super_gradients.training.DataAugmentation static method)</a>
 
       <ul>
@@ -2710,6 +2712,8 @@
         <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.DataAugmentation.to_tensor">(super_gradients.training.datasets.DataAugmentation static method)</a>, <a href="super_gradients.training.html#super_gradients.training.datasets.DataAugmentation.to_tensor">[1]</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.classification_metrics.Top5">Top5 (class in super_gradients.training.metrics.classification_metrics)</a>
 </li>
       <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.classification_metrics.Accuracy.total">total (super_gradients.training.metrics.classification_metrics.Accuracy attribute)</a>
@@ -2737,19 +2741,33 @@
       <ul>
         <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.datasets_utils.RandomResizedCropAndInterpolation.training">(super_gradients.training.datasets.datasets_utils.RandomResizedCropAndInterpolation attribute)</a>
 </li>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.focal_loss.FocalLoss.training">(super_gradients.training.losses.focal_loss.FocalLoss attribute)</a>
+</li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.FocalLoss.training">(super_gradients.training.losses.FocalLoss attribute)</a>
 </li>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.training">(super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss attribute)</a>
+</li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.training">(super_gradients.training.losses.LabelSmoothingCrossEntropyLoss attribute)</a>
+</li>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.r_squared_loss.RSquaredLoss.training">(super_gradients.training.losses.r_squared_loss.RSquaredLoss attribute)</a>
 </li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.RSquaredLoss.training">(super_gradients.training.losses.RSquaredLoss attribute)</a>
 </li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss.training">(super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss attribute)</a>
 </li>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.training">(super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss attribute)</a>
+</li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.ShelfNetOHEMLoss.training">(super_gradients.training.losses.ShelfNetOHEMLoss attribute)</a>
 </li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.ShelfNetSemanticEncodingLoss.training">(super_gradients.training.losses.ShelfNetSemanticEncodingLoss attribute)</a>
 </li>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.ssd_loss.SSDLoss.training">(super_gradients.training.losses.ssd_loss.SSDLoss attribute)</a>
+</li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.SSDLoss.training">(super_gradients.training.losses.SSDLoss attribute)</a>
+</li>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.yolo_v3_loss.YoLoV3DetectionLoss.training">(super_gradients.training.losses.yolo_v3_loss.YoLoV3DetectionLoss attribute)</a>
+</li>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.training">(super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss attribute)</a>
 </li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.YoLoV3DetectionLoss.training">(super_gradients.training.losses.YoLoV3DetectionLoss attribute)</a>
 </li>
@@ -2898,9 +2916,13 @@
 </li>
       <li><a href="super_gradients.common.environment.html#super_gradients.common.environment.env_helpers.TerminalColours.WARNING">WARNING (super_gradients.common.environment.env_helpers.TerminalColours attribute)</a>
 </li>
-      <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.weight">weight (super_gradients.training.losses.LabelSmoothingCrossEntropyLoss attribute)</a>
+      <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.weight">weight (super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss attribute)</a>
 
       <ul>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.weight">(super_gradients.training.losses.LabelSmoothingCrossEntropyLoss attribute)</a>
+</li>
+        <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.weight">(super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss attribute)</a>
+</li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.ShelfNetSemanticEncodingLoss.weight">(super_gradients.training.losses.ShelfNetSemanticEncodingLoss attribute)</a>
 </li>
       </ul></li>

@@ -3,7 +3,10 @@
 # Copy relevant files from root to documentation
 cp ./CONTRIBUTING.md documentation/source
 cp ./LICENSE.md documentation/source
-#cp ./README.md documentation/welcome.md
+cp ./README.md documentation/source/welcome.md
+
+# Editing the links to contain assets/ instead of docs/assets in the urls
+sed -i 's/docs\/assets/assets/g' documentation/source/welcome.md
 
 # Copying the assets to the documentation
 cd documentation && echo "Copying assets..."
