@@ -1,21 +1,20 @@
 #!/usr/bin/env bash
 
-# Copy relevant files from root to docs
-cp ./CONTRIBUTING.md docs/source
-cp ./LICENSE.md docs/source
-#cp ./README.md docs/welcome.md
+# Copy relevant files from root to documentation
+cp ./CONTRIBUTING.md documentation/source
+cp ./LICENSE.md documentation/source
+#cp ./README.md documentation/welcome.md
 
-# Copying the assets to the docs
-cd docs && echo "Copying assets..." && cp -r ./assets ./build/html/assets
+# Copying the assets to the documentation
+cd documentation && echo "Copying assets..." && cp -r ./assets ./build/html/assets
 
 # Compiling
-make clean html && \
+# Copying to documentation/ to docs/ for github pages
+cd .. && sphinx-build -b html documentation/source docs && \
  echo "Copying assets..." && \
- cp -r ./assets ./build/html/assets  && \
+ cp -r documentation/assets docs/assets  && \
  echo && \
  echo "The docs are ready at $(pwd)/build/html"
 
-cp build/html/index.html . # Copying to docs/ for github pages
-
 # Starting an http server
-cd build/html && python -m http.server 8080
+cd docs && python -m http.server 8080
