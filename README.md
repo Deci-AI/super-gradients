@@ -1,5 +1,17 @@
 <div align="center">
   <img src="./docs/assets/SG_img/SG - Horizontal.png" width="600"/>
+ <br/><br/>
+  
+**Easily train or fine-tune any SOTA computer vision model from one training repository.**
+______________________________________________________________________
+  
+  <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/badge/release-1.0.1-blue" />
+  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-19-brightgreen" />
+  <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
+  <br/>
+  <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
+  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
+
 </div>
 
 # SuperGradients
@@ -17,7 +29,12 @@ With SuperGradients you can:
 *  Easily configure your own or use plug&play training, dataset, and architecture parameters.
 *  Save time and easily integrate it into your codebase.
 
+<div align="center">
+<img src="./docs/assets/SG_img/Deci-decinets-demo.jpg" width="600px">
+</div>
 
+______________________________________________________________________
+    
 ### Table of Content:
 <!-- toc -->
 
@@ -25,6 +42,7 @@ With SuperGradients you can:
     - [Quick Start Notebook](#quick-start-notebook)
     - [Walkthrough Notebook](#supergradients-walkthrough-notebook)
 - [Installation Methods](#installation-methods)
+    - [Prerequisites](#prerequisites)
     - [Quick Installation of stable version](#quick-installation-of-stable-version)
     - [Installing from GitHub](#installing-from-github)
 - [Computer Vision Models' Pretrained Checkpoints](#computer-vision-models-pretrained-checkpoints)
@@ -39,7 +57,6 @@ With SuperGradients you can:
 <!-- tocstop -->
 
 ## Getting Started
-
 
 ### Quick Start Notebook
 
@@ -79,6 +96,17 @@ Learn more about SuperGradients training components with our walkthrough noteboo
 
 
 ## Installation Methods
+### Prerequisites
+General requirements:
+- Python 3.7, 3.8 or 3.9 installed.
+- torch>=1.9.0
+  - https://pytorch.org/get-started/locally/
+- The python packages that are specified in requirements.txt;
+
+To train on nvidia GPUs:
+- [Nvidia CUDA Toolkit >= 11.2](https://developer.nvidia.com/cuda-11.2.0-download-archive?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu)
+- CuDNN >= 8.1.x
+- Nvidia Driver with CUDA >= 11.2 support (≥460.x)
 
 ### Quick Installation of stable version
 **Not yet avilable in PyPi**
@@ -124,8 +152,11 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
 |--------------------- |------ | ---------- |------ | -------- |   :------: |
-| YOLOv5 small | CoCo |640x640 |37.3   |**7.13ms** |**159.44fps** |
-| YOLOv5 medium  | CoCo |640x640 |45.2   |**8.95ms** |**121.78fps** |
+| YOLOv5 nano | COCO |640x640 |27.7  |**6.55ms** |**177.62fps** |
+| YOLOv5 small | COCO |640x640 |37.3   |**7.13ms** |**159.44fps** |
+| YOLOv5 medium  | COCO |640x640 |45.2   |**8.95ms** |**121.78fps** |
+| YOLOv5 large | COCO |640x640 |48.0   |**11.49ms** |**95.99fps** |
+  
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (througput)
 
@@ -147,6 +178,10 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 To learn about making a contribution to SuperGradients, please see our [Contribution page](CONTRIBUTING.md).
 
+<a href = "https://github.com/Deci-AI/super-gradients/graphs/contributors">
+  <img src = "https://contrib.rocks/image?repo = oferbaratz/Deci-AI/super-gradients"/>
+</a>
+
 ## Citation
 
 If you use SuperGradients library or benchmark in your research, please cite SuperGradients deep learning training library.
@@ -156,8 +191,8 @@ If you use SuperGradients library or benchmark in your research, please cite Sup
 If you want to be a part of SuperGradients growing community, hear about all the exciting news and updates, need help, request for advanced features,
     or want to file a bug or issue report, we would love to welcome you aboard!
 
-* [Slack](https://) is the place to be and ask questions about SuperGradients and get support. [Click here to join our Slack](
-  https://).
+* Slack is the place to be and ask questions about SuperGradients and get support. [Click here to join our Slack](
+  https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q)
 * To report a bug, [file an issue](https://github.com/Deci-AI/super-gradients/issues) on GitHub.
 * You can also join the [community mailing list](https://)
   to ask questions about the project and receive announcements.

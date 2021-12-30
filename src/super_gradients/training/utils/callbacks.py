@@ -1,20 +1,26 @@
+import copy
+import getpass
+import math
+import os
 from enum import Enum
 import math
-from super_gradients.training.utils.utils import get_filename_suffix_by_framework
+from super_gradients.training.utils.utils import get_filename_suffix_by_framework, get_param
 import torch
 import numpy as np
 import onnxruntime
 import onnx
-import os
+import onnxruntime
+import torch
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
-import getpass
-import copy
+from super_gradients.training.utils.utils import get_filename_suffix_by_framework
 
 logger = get_logger(__name__)
 
 try:
     from deci_lab_client.client import DeciPlatformClient
     from deci_lab_client.models import ModelBenchmarkState
+
     _imported_deci_lab_failiure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warn('Failed to import deci_lab_client')
@@ -140,7 +146,8 @@ class ModelConversionCheckCallback(PhaseCallback):
         onnx_model = onnx.load(tmp_model_path)
         onnx.checker.check_model(onnx_model)
 
-        ort_session = onnxruntime.InferenceSession(tmp_model_path)
+        ort_session = onnxruntime.InferenceSession(tmp_model_path,
+                                                   providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 
         # compute ONNX Runtime output prediction
         ort_inputs = {ort_session.get_inputs()[0].name: x.cpu().numpy()}
@@ -152,7 +159,6 @@ class ModelConversionCheckCallback(PhaseCallback):
         os.remove(tmp_model_path)
 
         logger.info("Exported model has been tested with ONNXRuntime, and the result looks good!")
-
 
 
 class DeciLabUploadCallback(PhaseCallback):
@@ -216,7 +222,6 @@ class DeciLabUploadCallback(PhaseCallback):
             logger.error(ex)
 
 
-
 class LRCallbackBase(PhaseCallback):
     """
     Base class for hard coded learning rate scheduling regimes, implemented as callbacks.
@@ -260,6 +265,28 @@ class WarmupLRCallback(LRCallbackBase):
         if self.training_params.lr_warmup_epochs >= context.epoch:
             self.lr = self.initial_lr * (context.epoch + 1) / (self.training_params.lr_warmup_epochs + 1)
             self.update_lr(context.optimizer, context.epoch, None)
+
+
+class YoloV5WarmupLRCallback(LRCallbackBase):
+    def __init__(self, **kwargs):
+        super(YoloV5WarmupLRCallback, self).__init__(Phase.TRAIN_BATCH_END, **kwargs)
+
+    def __call__(self, context, **kwargs):
+        lr_warmup_epochs = get_param(self.training_params, 'lr_warmup_epochs', 0)
+        if context.epoch < self.training_params.lr_warmup_epochs:
+            # OVERRIDE THE lr FROM DeciModelBase WITH initial_lr, SINCE DeciModelBase MANIPULATE THE ORIGINAL VALUE
+            lr = self.training_params.initial_lr
+            momentum = get_param(self.training_params.optimizer_params, 'momentum')
+            warmup_momentum = get_param(self.training_params, 'warmup_momentum', momentum)
+            warmup_bias_lr = get_param(self.training_params, 'warmup_bias_lr', lr)
+            nw = lr_warmup_epochs * self.train_loader_len
+            ni = context.epoch * self.train_loader_len + context.batch_idx
+            xi = [0, nw]  # x interp
+            for x in context.optimizer.param_groups:
+                # BIAS LR FALLS FROM 0.1 TO LR0, ALL OTHER LRS RISE FROM 0.0 TO LR0
+                x['lr'] = np.interp(ni, xi, [warmup_bias_lr if x['name'] == 'bias' else 0.0, lr])
+                if 'momentum' in x:
+                    x['momentum'] = np.interp(ni, xi, [warmup_momentum, momentum])
 
 
 class StepLRCallback(LRCallbackBase):
@@ -340,7 +367,8 @@ class FunctionLRCallback(LRCallbackBase):
             effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
             effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs
 
-            self.lr = self.lr_schedule_function(initial_lr=self.initial_lr, epoch=effective_epoch, iter=context.batch_idx,
+            self.lr = self.lr_schedule_function(initial_lr=self.initial_lr, epoch=effective_epoch,
+                                                iter=context.batch_idx,
                                                 max_epoch=effective_max_epochs,
                                                 iters_per_epoch=self.train_loader_len)
             self.update_lr(context.optimizer, context.epoch, context.batch_idx)
@@ -403,6 +431,7 @@ class PhaseContextTestCallback(PhaseCallback):
     """
     A callback that saves the phase context the for testing.
     """
+
     def __init__(self, phase: Phase):
         super(PhaseContextTestCallback, self).__init__(phase)
         self.context = None
@@ -434,3 +463,6 @@ LR_SCHEDULERS_CLS_DICT = {"step": StepLRCallback,
                           "cosine": CosineLRCallback,
                           "function": FunctionLRCallback
                           }
+
+LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback,
+                      "yolov5_warmup": YoloV5WarmupLRCallback}
