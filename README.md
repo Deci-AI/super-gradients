@@ -7,7 +7,7 @@ ______________________________________________________________________
  
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
   <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-19-brightgreen" />
-  <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/badge/release-1.0.1-blue" />
+  <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
   <a href="https://deci-ai.github.io/super-gradients/welcome.html"><img src="https://img.shields.io/badge/docs-sphinx-brightgreen" />
@@ -23,8 +23,8 @@ Welcome to SuperGradients, a free open-source training library for PyTorch-based
 Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation, etc., and thus you experienced with how difficult it is to develop a production ready deep learning model, the overhead of integrating with existing training tools with very different and stiff formats and conventions, how much effort it is to find a suitable architecture for your needs when every repo is focusing on just one task.
 
 With SuperGradients you can:
-
-*   Train models for any Computer Vision task or import production-ready [pre-trained SOTA models](https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints) (detection, segmentation, and classification - YOLOv5, DDRNet, EfficientNet, RegNet, ResNet, MobileNet, etc.)
+    
+*  Train models for any Computer Vision task or import production-ready [pre-trained SOTA models](https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints) (detection, segmentation, and classification - YOLOv5, DDRNet, EfficientNet, RegNet, ResNet, MobileNet, etc.)
 *  Shorten the training process using tested and proven [recipes](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes) & [code examples](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples)
 *  Easily configure your own or use plug&play training, dataset, and architecture parameters.
 *  Save time and easily integrate it into your codebase.
@@ -67,7 +67,7 @@ Get started with our quick start notebook on Google Colab for a quick and easy s
    <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
  </td>
   <td>
-   <a href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples/SG_quickstart_.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
@@ -86,7 +86,7 @@ Learn more about SuperGradients training components with our walkthrough noteboo
    <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
  </td>
   <td>
-   <a href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples/SG_Walkthrough.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_Walkthrough%20.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
@@ -173,10 +173,15 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 To learn about making a contribution to SuperGradients, please see our [Contribution page](CONTRIBUTING.md).
 
-<!--<a href = "https://github.com/Deci-AI/super-gradients/graphs/contributors">
-  <img src = "https://contrib.rocks/image?repo = oferbaratz/Deci-AI/super-gradients"/>
+Our awesome contributors:
+    
+<a href="https://github.com/Deci-AI/super-gradients/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Deci-AI/super-gradients" />
 </a>
--->
+
+
+<br/>Made with [contrib.rocks](https://contrib.rocks).
+
 ## Citation
 
 If you use SuperGradients library or benchmark in your research, please cite SuperGradients deep learning training library.
