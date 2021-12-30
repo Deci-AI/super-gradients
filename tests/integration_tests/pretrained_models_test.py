@@ -3,33 +3,43 @@ import super_gradients
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import SgModel
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface, \
-    CoCoDetectionDatasetInterface, DetectionTestDatasetInterface, ClassificationTestDatasetInterface, \
-    CityscapesDatasetInterface, SegmentationTestDatasetInterface, \
-    CoCoSegmentationDatasetInterface
-from super_gradients.training.metrics import Accuracy, DetectionMetrics, IoU
+    ClassificationTestDatasetInterface, CityscapesDatasetInterface, SegmentationTestDatasetInterface, \
+    CoCoSegmentationDatasetInterface, CoCoDetectionDatasetInterface, DetectionTestDatasetInterface
+from super_gradients.training.utils.segmentation_utils import coco_sub_classes_inclusion_tuples_list
+from super_gradients.training.metrics import Accuracy, IoU
 import os
 import shutil
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
 from super_gradients.training.utils.detection_utils import Anchors
 import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
-from super_gradients.training.utils.segmentation_utils import coco_sub_classes_inclusion_tuples_list
+from super_gradients.training.utils.detection_utils import base_detection_collate_fn
+from super_gradients.training.metrics import DetectionMetrics
 
 
 class PretrainedModelsTest(unittest.TestCase):
     def setUp(self) -> None:
         super_gradients.init_trainer()
-        self.imagenet_pretrained_models = ["resnet50", "repvgg_a0", "regnetY800"]
-
-        self.imagenet_pretrained_arch_params = {"resnet50": {"pretrained_weights": "imagenet"},
-                                                "regnetY800": {"pretrained_weights": "imagenet"},
+        self.imagenet_pretrained_arch_params = {"resnet": {"pretrained_weights": "imagenet"},
+                                                "regnet": {"pretrained_weights": "imagenet"},
                                                 "repvgg_a0": {"pretrained_weights": "imagenet",
-                                                              "build_residual_branches": True}}
+                                                              "build_residual_branches": True},
+                                                "efficientnet_b0": {"pretrained_weights": "imagenet"},
+                                                "mobilenet": {"pretrained_weights": "imagenet"}}
 
         self.imagenet_pretrained_accuracies = {"resnet50": 0.763,
+                                               "resnet34": 0.7413,
+                                               "resnet18": 0.706,
                                                "repvgg_a0": 0.7205,
-                                               "regnetY800": 0.7605}
+                                               "regnetY800": 0.7707,
+                                               "regnetY600": 0.7618,
+                                               "regnetY400": 0.7474,
+                                               "regnetY200": 0.7088,
+                                               "efficientnet_b0": 0.7762,
+                                               "mobilenet_v3_large": 0.7452,
+                                               "mobilenet_v3_small": 0.6745,
+                                               "mobilenet_v2": 0.7308
+                                               }
         self.imagenet_dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params={"batch_size": 128})
 
         self.transfer_classification_dataset = ClassificationTestDatasetInterface(image_size=224)
@@ -47,10 +57,9 @@ class PretrainedModelsTest(unittest.TestCase):
                                                      "loss_logging_items_names": ["Loss"],
                                                      "metric_to_watch": "Accuracy",
                                                      "greater_metric_to_watch_is_better": True}
-        self.coco_pretrained_models = ["yolo_v5s", "yolo_v5m"]
         self.coco_pretrained_arch_params = {"yolo_v5": {"pretrained_weights": "coco"}}
-        self.coco_dataset = CoCoDetectionDatasetInterface(dataset_params={"batch_size": 64,
-                                                                          "val_batch_size": 64,
+        self.coco_dataset = CoCoDetectionDatasetInterface(dataset_params={"batch_size": 8,
+                                                                          "val_batch_size": 8,
                                                                           "train_image_size": 640,
                                                                           "val_image_size": 640,
                                                                           "val_collate_fn": base_detection_collate_fn,
@@ -65,7 +74,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                               "scale": 0.5,  # IMAGE SCALE (+/- gain)
                                                                               "shear": 0.0}  # IMAGE SHEAR (+/- deg)
                                                                           })
-        self.coco_pretrained_maps = {"yolo_v5s": 36.73585628224802}
+        self.coco_pretrained_maps = {"yolo_v5s": 0.362, "yolo_v5m": 0.441, "yolo_v5l": 0.471, "yolo_v5n": 0.267}
         self.transfer_detection_dataset = DetectionTestDatasetInterface(image_size=640)
         self.transfer_detection_train_params = {"max_epochs": 3,
                                                 "lr_mode": "cosine",
@@ -79,10 +88,10 @@ class PretrainedModelsTest(unittest.TestCase):
                                                     anchors_list=[[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119],
                                                                   [116, 90, 156, 198, 373, 326]],
                                                     strides=[8, 16, 32]),
-                                                                     "obj_loss_gain": 1.0,
-                                                                     "box_loss_gain": 0.05,
-                                                                     "cls_loss_gain": 0.5,
-                                                                     },
+                                                    "obj_loss_gain": 1.0,
+                                                    "box_loss_gain": 0.05,
+                                                    "cls_loss_gain": 0.5,
+                                                },
                                                 "optimizer": "SGD",
                                                 "warmup_momentum": 0.8,
                                                 "optimizer_params": {"momentum": 0.937,
@@ -98,7 +107,6 @@ class PretrainedModelsTest(unittest.TestCase):
                                                 "metric_to_watch": "mAP@0.50:0.95",
                                                 "greater_metric_to_watch_is_better": True}
 
-        self.coco_segmentation_subclass_pretrained_models = ["shelfnet34_lw"]
         self.coco_segmentation_subclass_pretrained_arch_params = {
             "shelfnet34_lw": {"pretrained_weights": "coco_segmentation_subclass",
                               "num_classes": 21, "image_size": 512}}
@@ -150,32 +158,112 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer = SgModel('imagenet_pretrained_resnet50', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
-        trainer.build_model("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet50"])
+        trainer.build_model("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"])
         res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet50"])
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet50"], delta=0.001)
 
     def test_transfer_learning_resnet50_imagenet(self):
         trainer = SgModel('imagenet_pretrained_resnet50_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
-        trainer.build_model("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet50"])
+        trainer.build_model("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"])
+        trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_resnet34_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_resnet34', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
+        trainer.build_model("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"])
+        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet34"], delta=0.001)
+
+    def test_transfer_learning_resnet34_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_resnet34_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"])
+        trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_resnet18_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_resnet18', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
+        trainer.build_model("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"])
+        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet18"], delta=0.001)
+
+    def test_transfer_learning_resnet18_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_resnet18_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"])
         trainer.train(training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY800_imagenet(self):
         trainer = SgModel('imagenet_pretrained_regnetY800', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
-        trainer.build_model("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnetY800"])
+        trainer.build_model("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnet"])
         res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY800"])
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY800"], delta=0.001)
 
     def test_transfer_learning_regnetY800_imagenet(self):
         trainer = SgModel('imagenet_pretrained_regnetY800_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
-        trainer.build_model("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnetY800"])
+        trainer.build_model("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnet"])
+        trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_regnetY600_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_regnetY600', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
+        trainer.build_model("regnetY600", arch_params=self.imagenet_pretrained_arch_params["regnet"])
+        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY600"], delta=0.001)
+
+    def test_transfer_learning_regnetY600_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_regnetY600_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("regnetY600", arch_params=self.imagenet_pretrained_arch_params["regnet"])
+        trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_regnetY400_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_regnetY400', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
+        trainer.build_model("regnetY400", arch_params=self.imagenet_pretrained_arch_params["regnet"])
+        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY400"], delta=0.001)
+
+    def test_transfer_learning_regnetY400_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_regnetY400_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("regnetY400", arch_params=self.imagenet_pretrained_arch_params["regnet"])
+        trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_regnetY200_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_regnetY200', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
+        trainer.build_model("regnetY200", arch_params=self.imagenet_pretrained_arch_params["regnet"])
+        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY200"], delta=0.001)
+
+    def test_transfer_learning_regnetY200_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_regnetY200_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("regnetY200", arch_params=self.imagenet_pretrained_arch_params["regnet"])
         trainer.train(training_params=self.transfer_classification_train_params)
 
     def test_pretrained_repvgg_a0_imagenet(self):
@@ -185,7 +273,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"])
         res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["repvgg_a0"])
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["repvgg_a0"], delta=0.001)
 
     def test_transfer_learning_repvgg_a0_imagenet(self):
         trainer = SgModel('imagenet_pretrained_repvgg_a0_transfer_learning', model_checkpoints_location='local',
@@ -202,7 +290,7 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(test_loader=self.cityscapes_dataset.val_loader,
                            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23"])
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23"], delta=0.001)
 
     def test_pretrained_ddrnet23_slim_cityscapes(self):
         trainer = SgModel('cityscapes_pretrained_ddrnet23_slim', model_checkpoints_location='local',
@@ -212,7 +300,7 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(test_loader=self.cityscapes_dataset.val_loader,
                            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23_slim"])
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23_slim"], delta=0.001)
 
     def test_transfer_learning_ddrnet23_cityscapes(self):
         trainer = SgModel('cityscapes_pretrained_ddrnet23_transfer_learning', model_checkpoints_location='local',
@@ -236,7 +324,23 @@ class PretrainedModelsTest(unittest.TestCase):
                             arch_params=self.coco_segmentation_subclass_pretrained_arch_params["shelfnet34_lw"])
         res = trainer.test(test_loader=self.coco_segmentation_dataset.val_loader, test_metrics_list=[IoU(21)],
                            metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.coco_segmentation_subclass_pretrained_mious["shelfnet34_lw"], places=2)
+        self.assertAlmostEqual(res, self.coco_segmentation_subclass_pretrained_mious["shelfnet34_lw"], delta=0.001)
+
+    def test_pretrained_efficientnet_b0_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_efficientnet_b0', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
+        trainer.build_model("efficientnet_b0", arch_params=self.imagenet_pretrained_arch_params["efficientnet_b0"])
+        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["efficientnet_b0"], delta=0.001)
+
+    def test_transfer_learning_efficientnet_b0_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_efficientnet_b0_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("efficientnet_b0", arch_params=self.imagenet_pretrained_arch_params["efficientnet_b0"])
+        trainer.train(training_params=self.transfer_classification_train_params)
 
     def test_pretrained_yolov5s_coco(self):
         trainer = SgModel('coco_pretrained_yolov5s', model_checkpoints_location='local',
@@ -247,15 +351,95 @@ class PretrainedModelsTest(unittest.TestCase):
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
                                                                    self.coco_dataset.coco_classes))],
-                           metrics_progress_verbose=True)[3]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5s"])
+                           metrics_progress_verbose=True)[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5s"], delta=0.001)
 
-    def test_transfer_learning_yolov5s_coco(self):
-        trainer = SgModel('coco_pretrained_yolov5s', model_checkpoints_location='local',
+    def test_pretrained_yolov5m_coco(self):
+        trainer = SgModel('coco_pretrained_yolov5m', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
-        trainer.connect_dataset_interface(self.transfer_detection_dataset, data_loader_num_workers=8)
-        trainer.build_model("yolo_v5s", arch_params=self.coco_pretrained_arch_params["yolo_v5"])
-        trainer.train(training_params=self.transfer_detection_train_params)
+        trainer.connect_dataset_interface(self.coco_dataset, data_loader_num_workers=8)
+        trainer.build_model("yolo_v5m", arch_params=self.coco_pretrained_arch_params["yolo_v5"])
+        res = trainer.test(test_loader=self.coco_dataset.val_loader,
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
+                                                               num_cls=len(
+                                                                   self.coco_dataset.coco_classes))],
+                           metrics_progress_verbose=True)[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5m"], delta=0.001)
+
+    def test_pretrained_yolov5l_coco(self):
+        trainer = SgModel('coco_pretrained_yolov5l', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.coco_dataset, data_loader_num_workers=8)
+        trainer.build_model("yolo_v5l", arch_params=self.coco_pretrained_arch_params["yolo_v5"])
+        res = trainer.test(test_loader=self.coco_dataset.val_loader,
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
+                                                               num_cls=len(
+                                                                   self.coco_dataset.coco_classes))],
+                           metrics_progress_verbose=True)[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5l"], delta=0.001)
+
+    def test_pretrained_yolov5n_coco(self):
+        trainer = SgModel('coco_pretrained_yolov5n', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.coco_dataset, data_loader_num_workers=8)
+        trainer.build_model("yolo_v5n", arch_params=self.coco_pretrained_arch_params["yolo_v5"])
+        res = trainer.test(test_loader=self.coco_dataset.val_loader,
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
+                                                               num_cls=len(
+                                                                   self.coco_dataset.coco_classes))],
+                           metrics_progress_verbose=True)[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5n"], delta=0.001)
+
+    def test_transfer_learning_mobilenet_v3_large_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_mobilenet_v3_large_transfer_learning',
+                          model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("mobilenet_v3_large", arch_params=self.imagenet_pretrained_arch_params["mobilenet"])
+        trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_mobilenet_v3_large_imagenet(self):
+        trainer = SgModel('imagenet_mobilenet_v3_large', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
+        trainer.build_model("mobilenet_v3_large", arch_params=self.imagenet_pretrained_arch_params["mobilenet"])
+        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v3_large"], delta=0.001)
+
+    def test_transfer_learning_mobilenet_v3_small_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_mobilenet_v3_small_transfer_learning',
+                          model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("mobilenet_v3_small", arch_params=self.imagenet_pretrained_arch_params["mobilenet"])
+        trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_mobilenet_v3_small_imagenet(self):
+        trainer = SgModel('imagenet_mobilenet_v3_small', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
+        trainer.build_model("mobilenet_v3_small", arch_params=self.imagenet_pretrained_arch_params["mobilenet"])
+        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v3_small"], delta=0.001)
+
+    def test_transfer_learning_mobilenet_v2_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_mobilenet_v2_transfer_learning',
+                          model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("mobilenet_v2", arch_params=self.imagenet_pretrained_arch_params["mobilenet"])
+        trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_mobilenet_v2_imagenet(self):
+        trainer = SgModel('imagenet_mobilenet_v2', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
+        trainer.build_model("mobilenet_v2", arch_params=self.imagenet_pretrained_arch_params["mobilenet"])
+        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v2"], delta=0.001)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):

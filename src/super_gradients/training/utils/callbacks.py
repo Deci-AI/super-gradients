@@ -1,3 +1,7 @@
+import copy
+import getpass
+import math
+import os
 from enum import Enum
 import math
 from super_gradients.training.utils.utils import get_filename_suffix_by_framework, get_param
@@ -5,16 +9,18 @@ import torch
 import numpy as np
 import onnxruntime
 import onnx
-import os
+import onnxruntime
+import torch
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
-import getpass
-import copy
+from super_gradients.training.utils.utils import get_filename_suffix_by_framework
 
 logger = get_logger(__name__)
 
 try:
     from deci_lab_client.client import DeciPlatformClient
     from deci_lab_client.models import ModelBenchmarkState
+
     _imported_deci_lab_failiure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warn('Failed to import deci_lab_client')
@@ -140,7 +146,8 @@ class ModelConversionCheckCallback(PhaseCallback):
         onnx_model = onnx.load(tmp_model_path)
         onnx.checker.check_model(onnx_model)
 
-        ort_session = onnxruntime.InferenceSession(tmp_model_path)
+        ort_session = onnxruntime.InferenceSession(tmp_model_path,
+                                                   providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 
         # compute ONNX Runtime output prediction
         ort_inputs = {ort_session.get_inputs()[0].name: x.cpu().numpy()}
@@ -360,7 +367,8 @@ class FunctionLRCallback(LRCallbackBase):
             effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
             effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs
 
-            self.lr = self.lr_schedule_function(initial_lr=self.initial_lr, epoch=effective_epoch, iter=context.batch_idx,
+            self.lr = self.lr_schedule_function(initial_lr=self.initial_lr, epoch=effective_epoch,
+                                                iter=context.batch_idx,
                                                 max_epoch=effective_max_epochs,
                                                 iters_per_epoch=self.train_loader_len)
             self.update_lr(context.optimizer, context.epoch, context.batch_idx)
@@ -423,6 +431,7 @@ class PhaseContextTestCallback(PhaseCallback):
     """
     A callback that saves the phase context the for testing.
     """
+
     def __init__(self, phase: Phase):
         super(PhaseContextTestCallback, self).__init__(phase)
         self.context = None

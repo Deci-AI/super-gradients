@@ -343,14 +343,23 @@ commands:
     steps:
       - checkout
       - run:
-          name: Check if we should skip build
+          name: Check if we should skip build when not triggered by tag
           command: |
-            if [[ ! $CIRCLE_TAG ]] || [[ ! "${CIRCLE_TAG}" =~ "rc" ]]; then
+            if [[ ! $CIRCLE_TAG ]]; then
               last_commit_user=$(git log -1 --pretty=format:'%an')
               if [ "${last_commit_user}" == "CircleCI commit" ]; then
                  echo "\n\n PLEASE NOTICE: Skipping Build to prevent commit loop since the last commit was genereated by automated CI/CD \n\n"
                  circleci-agent step halt
               fi
+            fi
+      - run:
+          name: Check if we should skip build when triggered by tag
+          command: |
+            version_in_file=`cat version.txt`
+            echo "The version written in version.txt is ${version_in_file}"
+            if [[ $CIRCLE_TAG ]] && [[ "$CIRCLE_TAG" == "${version_in_file}" ]]; then
+                echo "** version.txt is set with the same version , avoiding loop and exiting **"
+                circleci-agent step halt
             fi
 
   clone_specific_tag:
@@ -408,7 +417,7 @@ jobs:
       package_name:
         type: string
     docker:
-      - image: circleci/python:<< parameters.py_version >>
+      - image: cimg/python:<< parameters.py_version >>
     steps:
       - checkout_and_skip_build
       - attach_workspace:
@@ -473,7 +482,7 @@ jobs:
 
   build_and_release:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     steps:
       - get_version_info
       - build:
@@ -490,7 +499,7 @@ jobs:
 
   release_candidate:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     parameters:
       py_version:
         type: string
@@ -504,7 +513,7 @@ jobs:
 
   release_version:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     parameters:
       py_version:
         type: string
@@ -532,7 +541,7 @@ jobs:
 
   release_version_from_rc:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     steps:
       - attach_workspace:
           at: ~/
@@ -567,57 +576,10 @@ jobs:
           notes: "Automated nightly release. Generated from  ${LATEST_RELEASE_AWS}"
 
 
-  lines_of_code_cap:
-    working_directory: ~/repo
-    docker:
-      - image: circleci/python:3.7.5
-    parameters:
-      lines_of_code_cap:
-        type: integer
-        default: 600
-    resource_class: small
-    steps:
-      - checkout
-      - when:
-          condition:
-            not:
-              equal: [ master, << pipeline.git.branch >> ]
-          steps:
-            - run:
-                name: Enforcing << parameters.lines_of_code_cap >> Lines Of Code limit
-                command: |
-                  sudo apt install bc
-                  BASE_BRANCH="master"
-                  DIRS_TO_IGNORE=""
-
-                  git diff --shortstat $CIRCLE_BRANCH $BASE_BRANCH
-                  git diff --stat=300  ${CIRCLE_BRANCH} ${BASE_BRANCH} > changes.txt
-
-                  #for dir_to_ignore in cypress/ scripts/ .circleci/
-                  #do
-                  #  DIRS_TO_IGNORE="${DIRS_TO_IGNORE} | grep -v '${dir_to_ignore}'"
-                  #done
-                  #echo "dirs to ignore: ${DIRS_TO_IGNORE} "
-
-                  # in a perfect world I would use that list instead of hardcoding the "grep". However, there is an annoying issue that
-                  # makes the script look at | as a string and not pipe. this is not important enough to spend time on.
-
-                  LOC=$(cat changes.txt | grep -v 'tests/' | grep -v 'docs/' | grep -v '.circleci/' | awk -F"|" '{ print $2 }' | awk '{ print $1 }' | sed '/^$/d' | paste -sd+ -  | bc)
-                  echo " there are $LOC changes"
-                  if [[ $LOC -gt << parameters.lines_of_code_cap >> ]]; then
-                    echo "#######################################################"
-                    echo "#######################################################"
-                    echo "There are $LOC changed lines of code. We only allow << parameters.lines_of_code_cap >> for each PR."
-                    echo "Please break down your PR into a smaller one"
-                    echo "#######################################################"
-                    echo "#######################################################"
-                    exit 1
-                  fi
-
   get_unreleased_rc:
     working_directory: ~/repo
     docker:
-      - image: circleci/python:3.7.5
+      - image: cimg/python:3.7.5
     resource_class: small
     steps:
       - checkout
@@ -662,7 +624,7 @@ jobs:
   login_to_codeartifact:
     description: Authenticate to aws code artifact. By default authenticates to prod
     docker:
-      - image: circleci/python:3.7.5
+      - image: cimg/python:3.7.5
     parameters:
       dev_account:
         description: authenticate to development codeartifact
@@ -721,7 +683,6 @@ workflows:
 
   build_and_deploy:
     jobs:
-      - lines_of_code_cap
       - get_version_info
       - login_to_codeartifact:
           pip_repo_name: "deci-clients"

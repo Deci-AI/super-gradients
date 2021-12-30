@@ -516,6 +516,14 @@ class EfficientNet(SgModule):
 
         return x
 
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self._fc = new_head
+        else:
+            self._fc = nn.Linear(self._fc.in_features, new_num_classes)
+
     def load_state_dict(self, state_dict, strict=True):
         """
         load_state_dict - Overloads the base method and calls it to load a modified dict for usage as a backbone

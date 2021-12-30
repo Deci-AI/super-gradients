@@ -13,6 +13,21 @@ import torch
 import torch.nn as nn
 import math
 from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.utils import get_param
+
+
+class MobileNetBase(SgModule):
+    def __init__(self):
+        super(MobileNetBase, self).__init__()
+
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self.classifier = new_head
+        else:
+            self.classifier[-1] = nn.Linear(self.classifier[-1].in_features, new_num_classes)
+
 
 
 def conv_bn(inp, oup, stride):
@@ -85,8 +100,8 @@ class InvertedResidual(nn.Module):
             return self.conv(x)
 
 
-class MobileNetV2(SgModule):
-    def __init__(self, num_classes, width_mult=1., structure=None, backbone_mode: bool = False,
+class MobileNetV2(MobileNetBase):
+    def __init__(self, num_classes, dropout: float, width_mult=1., structure=None, backbone_mode: bool = False,
                  grouped_conv_size=1) -> object:
         super(MobileNetV2, self).__init__()
         block = InvertedResidual
@@ -126,7 +141,10 @@ class MobileNetV2(SgModule):
             self.connection_layers_input_channel_size = self._extract_connection_layers_input_channel_size()
         else:
             # building classifier
-            self.classifier = nn.Linear(self.last_channel, num_classes)
+            self.classifier = nn.Sequential(
+                nn.Dropout(dropout),
+                nn.Linear(self.last_channel, num_classes)
+            )
         self._initialize_weights()
 
     def forward(self, x):
@@ -172,7 +190,8 @@ def mobile_net_v2(arch_params):
         must contain: 'num_classes': int
     :return: MobileNetV2: nn.Module
     """
-    return MobileNetV2(num_classes=arch_params.num_classes, width_mult=1., structure=None)
+    return MobileNetV2(num_classes=arch_params.num_classes, width_mult=1., structure=None,
+                       dropout=get_param(arch_params, "dropout", 0.))
 
 
 def mobile_net_v2_135(arch_params):
@@ -183,7 +202,8 @@ def mobile_net_v2_135(arch_params):
     :return: MobileNetV2: nn.Module
     """
 
-    return MobileNetV2(num_classes=arch_params.num_classes, width_mult=1.35, structure=None)
+    return MobileNetV2(num_classes=arch_params.num_classes, width_mult=1.35, structure=None,
+                       dropout=get_param(arch_params, "dropout", 0.))
 
 
 def custom_mobile_net_v2(arch_params):
@@ -197,4 +217,4 @@ def custom_mobile_net_v2(arch_params):
     """
 
     return MobileNetV2(num_classes=arch_params.num_classes, width_mult=arch_params.width_mult,
-                       structure=arch_params.structure)
+                       structure=arch_params.structure, dropout=get_param(arch_params, "dropout", 0.))
