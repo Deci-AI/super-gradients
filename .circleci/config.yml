@@ -196,7 +196,7 @@ commands:
       #      - run:
       #          name: Lint all python files changed since develop branch
       #          command: |
-      #            flake8 --statistics --config  -v --exclude venv/,docs  scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$')
+      #            flake8 --statistics --config  -v --exclude venv/,documentation  scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$')
       - run:
           command: |
             sudo apt-get update
@@ -210,12 +210,11 @@ commands:
       #      - run:
       #          name: build documentation
       #          command: |
-      #            sudo apt-get install python3-sphinx
       #            . venv/bin/activate
-      #            pip install sphinx_rtd_theme jsonschema
-      #            sphinx-build -b html docs/source docs/html
+      #            pip install -r documentation/requirements.txt
+      #            sh ./scripts/generate_docs.sh
       #      - store_artifacts:
-      #          path: docs/html
+      #          path: docs/
       - upload_package_and_edit_version:
           version: $NEW_VERSION
       - set_codeartifact_login:
@@ -355,15 +354,11 @@ commands:
       - run:
           name: Check if we should skip build when triggered by tag
           command: |
-            if [[ $CIRCLE_TAG ]]; then
-              circle_ci_user="CircleCI commit"
-              last_commit_user=$(git log -3 --pretty=format:'%an' | head -1)
-              user_before_last_commit_user=$(git log -3 --pretty=format:'%an' | tail -1)
-              echo "last_commit_user: ${last_commit_user}, user_before_last_commit_user: ${user_before_last_commit_user}"
-              if [[ "${last_commit_user}" == "${circle_ci_user}" ]] && [[ "${user_before_last_commit_user}" == "${circle_ci_user}" ]]; then
-                 echo "\n\n PLEASE NOTICE: Skipping Build to prevent commit loop since the last commit was genereated by automated CI/CD \n\n"
-                 circleci-agent step halt
-              fi
+            version_in_file=`cat version.txt`
+            echo "The version written in version.txt is ${version_in_file}"
+            if [[ $CIRCLE_TAG ]] && [[ "$CIRCLE_TAG" == "${version_in_file}" ]]; then
+                echo "** version.txt is set with the same version , avoiding loop and exiting **"
+                circleci-agent step halt
             fi
 
   clone_specific_tag:
