@@ -1,0 +1,3 @@
+sphinx
+sphinxcontrib-napoleon
+myst-parser

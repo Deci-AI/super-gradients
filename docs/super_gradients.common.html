@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Common package &mdash; SuperGradients 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Training package" href="super_gradients.training.html" />
+    <link rel="prev" title="SuperGradients" href="welcome.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">SuperGradients</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Common package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-contents">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Common package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/super_gradients.common.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="common-package">
+<h1>Common package<a class="headerlink" href="#common-package" title="Permalink to this headline"></a></h1>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+</tbody>
+</table>
+<span class="target" id="module-super_gradients.common"></span><dl class="py function">
+<dt class="sig sig-object py" id="super_gradients.common.explicit_params_validation">
+<span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">explicit_params_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'None'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/decorators/explicit_params_validator.html#explicit_params_validation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.explicit_params_validation" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="super_gradients.common.singleton">
+<span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">singleton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/decorators/singleton.html#singleton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.singleton" title="Permalink to this definition"></a></dt>
+<dd><p>A singleton decorator. Returns a wrapper objects. A call on that object
+returns a single instance object of decorated class. Use the __wrapped__
+attribute to access decorated class directly in unit tests</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.AWSConnector">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">AWSConnector</span></span><a class="reference internal" href="_modules/super_gradients/common/aws_connection/aws_connector.html#AWSConnector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.AWSConnector" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>AWSConnector - Connects to AWS using Credentials File or IAM Role</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.AWSConnector.get_aws_session">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_aws_session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profile_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">boto3.session.Session</span><a class="reference internal" href="_modules/super_gradients/common/aws_connection/aws_connector.html#AWSConnector.get_aws_session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.AWSConnector.get_aws_session" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>get_aws_session - Connects to AWS to retrieve an AWS Session</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param      profile_name</dt>
+<dd class="field-odd"><p>The Config Profile (Environment Name in Credentials file)</p>
+</dd>
+<dt class="field-even">return</dt>
+<dd class="field-even"><p>boto3 Session</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.AWSConnector.get_aws_client_for_service_name">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_aws_client_for_service_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profile_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">boto3.session.Session.client</span><a class="reference internal" href="_modules/super_gradients/common/aws_connection/aws_connector.html#AWSConnector.get_aws_client_for_service_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.AWSConnector.get_aws_client_for_service_name" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>get_aws_client_for_service_name - Connects to AWS to retrieve the relevant Client</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param      profile_name</dt>
+<dd class="field-odd"><p>The Config Profile (Environment Name in Credentials file)</p>
+</dd>
+<dt class="field-even">param      service_name</dt>
+<dd class="field-even"><p>The AWS Service name to get the Client for</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>Service client instance</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.AWSConnector.get_aws_resource_for_service_name">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_aws_resource_for_service_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profile_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">boto3.session.Session.resource</span><a class="reference internal" href="_modules/super_gradients/common/aws_connection/aws_connector.html#AWSConnector.get_aws_resource_for_service_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.AWSConnector.get_aws_resource_for_service_name" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Connects to AWS to retrieve the relevant Resource (More functionality then Client)</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param      profile_name</dt>
+<dd class="field-odd"><p>The Config Profile (Environment Name in Credentials file)</p>
+</dd>
+<dt class="field-even">param      service_name</dt>
+<dd class="field-even"><p>The AWS Service name to get the Client for</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>Service client instance</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.AWSConnector.is_client_error">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">is_client_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/aws_connection/aws_connector.html#AWSConnector.is_client_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.AWSConnector.is_client_error" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.DatasetDataInterface">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">DatasetDataInterface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_connection_source</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'s3'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_interface/dataset_data_interface.html#DatasetDataInterface"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.DatasetDataInterface" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.DatasetDataInterface.load_remote_dataset_file">
+<span class="sig-name descname"><span class="pre">load_remote_dataset_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.DatasetDataInterface.load_remote_dataset_file" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.ADNNModelRepositoryDataInterfaces">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">ADNNModelRepositoryDataInterfaces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_connection_location</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'local'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_connection_credentials</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_interface/adnn_model_repository_data_interface.html#ADNNModelRepositoryDataInterfaces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.ADNNModelRepositoryDataInterfaces" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="super_gradients.common.abstractions.html#super_gradients.common.abstractions.abstract_logger.ILogger" title="super_gradients.common.abstractions.abstract_logger.ILogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">super_gradients.common.abstractions.abstract_logger.ILogger</span></code></a></p>
+<p>ResearchModelRepositoryDataInterface</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.ADNNModelRepositoryDataInterfaces.load_all_remote_log_files">
+<span class="sig-name descname"><span class="pre">load_all_remote_log_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.ADNNModelRepositoryDataInterfaces.load_all_remote_log_files" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.ADNNModelRepositoryDataInterfaces.save_all_remote_checkpoint_files">
+<span class="sig-name descname"><span class="pre">save_all_remote_checkpoint_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.ADNNModelRepositoryDataInterfaces.save_all_remote_checkpoint_files" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.ADNNModelRepositoryDataInterfaces.load_remote_checkpoints_file">
+<span class="sig-name descname"><span class="pre">load_remote_checkpoints_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.ADNNModelRepositoryDataInterfaces.load_remote_checkpoints_file" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.ADNNModelRepositoryDataInterfaces.load_remote_logging_files">
+<span class="sig-name descname"><span class="pre">load_remote_logging_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.ADNNModelRepositoryDataInterfaces.load_remote_logging_files" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.ADNNModelRepositoryDataInterfaces.save_remote_checkpoints_file">
+<span class="sig-name descname"><span class="pre">save_remote_checkpoints_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.ADNNModelRepositoryDataInterfaces.save_remote_checkpoints_file" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.ADNNModelRepositoryDataInterfaces.save_remote_tensorboard_event_files">
+<span class="sig-name descname"><span class="pre">save_remote_tensorboard_event_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.ADNNModelRepositoryDataInterfaces.save_remote_tensorboard_event_files" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">S3Connector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bucket_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_connection/s3_connector.html#S3Connector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.S3Connector" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="super_gradients.common.abstractions.html#super_gradients.common.abstractions.abstract_logger.ILogger" title="super_gradients.common.abstractions.abstract_logger.ILogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">super_gradients.common.abstractions.abstract_logger.ILogger</span></code></a></p>
+<p>S3Connector - S3 Connection Manager</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.check_key_exists">
+<span class="sig-name descname"><span class="pre">check_key_exists</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.check_key_exists" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.get_object_by_etag">
+<span class="sig-name descname"><span class="pre">get_object_by_etag</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.get_object_by_etag" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.create_bucket">
+<span class="sig-name descname"><span class="pre">create_bucket</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.create_bucket" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.delete_bucket">
+<span class="sig-name descname"><span class="pre">delete_bucket</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.delete_bucket" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.get_object_metadata">
+<span class="sig-name descname"><span class="pre">get_object_metadata</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.get_object_metadata" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.delete_key">
+<span class="sig-name descname"><span class="pre">delete_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.delete_key" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.upload_file_from_stream">
+<span class="sig-name descname"><span class="pre">upload_file_from_stream</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.upload_file_from_stream" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.upload_file">
+<span class="sig-name descname"><span class="pre">upload_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.upload_file" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.download_key">
+<span class="sig-name descname"><span class="pre">download_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.download_key" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.download_keys_by_prefix">
+<span class="sig-name descname"><span class="pre">download_keys_by_prefix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.download_keys_by_prefix" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.download_file_by_path">
+<span class="sig-name descname"><span class="pre">download_file_by_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.download_file_by_path" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.empty_folder_content_by_path_prefix">
+<span class="sig-name descname"><span class="pre">empty_folder_content_by_path_prefix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.empty_folder_content_by_path_prefix" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.upload_buffer">
+<span class="sig-name descname"><span class="pre">upload_buffer</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.upload_buffer" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.list_bucket_objects">
+<span class="sig-name descname"><span class="pre">list_bucket_objects</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.list_bucket_objects" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.create_presigned_upload_url">
+<span class="sig-name descname"><span class="pre">create_presigned_upload_url</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.create_presigned_upload_url" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.create_presigned_download_url">
+<span class="sig-name descname"><span class="pre">create_presigned_download_url</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.create_presigned_download_url" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.convert_content_length_to_mb">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">convert_content_length_to_mb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content_length</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_connection/s3_connector.html#S3Connector.convert_content_length_to_mb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.S3Connector.convert_content_length_to_mb" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.S3Connector.copy_key">
+<span class="sig-name descname"><span class="pre">copy_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.S3Connector.copy_key" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="super_gradients.common.init_trainer">
+<span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">init_trainer</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/environment/env_helpers.html#init_trainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.init_trainer" title="Permalink to this definition"></a></dt>
+<dd><p>a function to initialize the super_gradients environment. This function should be the first thing to be called
+by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
+and prepares the super_gradients environment.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="super_gradients.common.is_distributed">
+<span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">is_distributed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="reference internal" href="_modules/super_gradients/common/environment/env_helpers.html#is_distributed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.is_distributed" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<section id="module-contents">
+<h2>Module contents<a class="headerlink" href="#module-contents" title="Permalink to this headline"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="welcome.html" class="btn btn-neutral float-left" title="SuperGradients" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="super_gradients.training.html" class="btn btn-neutral float-right" title="Training package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
