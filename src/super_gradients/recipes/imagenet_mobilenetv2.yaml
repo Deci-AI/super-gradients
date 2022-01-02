@@ -1,0 +1,48 @@
+# MobilNetV2 ImageNet training recipe.
+# Top1-Accuracy:  73.08
+# Learning rate and batch size parameters, using 2 GPUs with DDP:
+#     initial_lr: 0.032    batch-size: 256 * 2gpus = 512
+# Usage:
+#     python -m torch.distributed.launch --nproc_per_node=2 --master_port=1234 examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2
+
+defaults:
+  - training_hyperparams: imagenet_mobilenetv2_train_params
+  - dataset_params: imagenet_dataset_params
+  - arch_params: mobilenet_v2_arch_params
+
+dataset_params:
+  train_loader_drop_last: True
+  batch_size: 256
+  val_batch_size: 256
+  random_erase_prob: 0.2
+  random_erase_value: random
+  train_interpolation: random
+  rand_augment_config_string: rand-m9-mstd0.5
+
+arch_params:
+  num_classes: 1000
+  dropout: 0.2
+
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
+  dataset_params: ${dataset_params}
+  data_dir: /data/Imagenet
+
+data_loader_num_workers: 8
+
+model_checkpoints_location: local
+load_checkpoint: False
+
+experiment_name: mobileNetv2_training
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: 'DDP'
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  multi_gpu: ${multi_gpu}
+  model_checkpoints_location: ${model_checkpoints_location}
+
+architecture: mobilenet_v2
