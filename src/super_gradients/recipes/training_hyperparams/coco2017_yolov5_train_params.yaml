@@ -1,0 +1,35 @@
+defaults:
+  - default_train_params
+
+max_epochs: 300
+lr_mode: cosine
+cosine_final_lr_ratio: 0.1
+lr_warmup_epochs: 3
+warmup_bias_lr: 0.1
+warmup_momentum: 0.8
+initial_lr: 0.01  # will be scaled according to num DDP processes
+warmup_mode: yolov5_warmup
+
+loss: yolo_v5_loss
+criterion_params: ??? # will be overridden in train conf as it includes sg_model
+loss_logging_items_names: [GIoU, obj, cls, Loss]
+
+optimizer: SGD
+optimizer_params:
+  momentum: 0.937
+  weight_decay: 0.0005  # will be scaled according to effective batch size
+  nesterov: True
+
+ema: True
+mixed_precision: False
+
+valid_metrics_list:
+  - _target_: super_gradients.training.metrics.DetectionMetrics
+    post_prediction_callback:
+      _target_: super_gradients.training.models.detection_models.yolov5.YoloV5PostPredictionCallback
+    num_cls: 80
+
+metric_to_watch: 'mAP@0.50:0.95'
+greater_metric_to_watch_is_better: True
+
+_convert_: all

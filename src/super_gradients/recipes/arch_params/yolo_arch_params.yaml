@@ -1,0 +1,23 @@
+defaults:
+  - default_arch_params
+
+anchors:
+  _target_: super_gradients.training.utils.detection_utils.Anchors
+  anchors_list: [[10, 13, 16, 30, 33, 23],[30, 61, 62, 45, 59, 119],[116, 90, 156, 198, 373, 326]]
+  strides: [8, 16, 32]
+num_classes: 80  # Number of classes to predict
+depth_mult_factor: 1.0  # depth multiplier for the entire model, overridden for predefined YoloV5S, YoloV5M, YoloV5L
+width_mult_factor: 1.0  # width multiplier for the entire model, overridden for predefined YoloV5S, YoloV5M, YoloV5L
+channels_in: 3  # # of classes the model predicts
+skip_connections_list: [[12, [6]], [16, [4]], [19, [14]], [22, [10]], [24, [17, 20]]]
+# A list defining skip connections. format is [target: [source1, source2, ...]]. Each item defines a skip
+# connection from all sources to the target according to the layers index (count starts from the backbone)
+connection_layers_input_channel_size: [1024, 1024, 512]
+# default number off channels for the connecting points between the backbone and the head
+fuse_conv_and_bn: False  # Fuse sequential Conv + B.N layers into a single one
+add_nms: False  # Add the NMS module to the computational graph
+nms_conf: 0.25  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
+nms_iou: 0.45  # When add_nms is True IoU threshold for NMS algorithm
+               # (with smaller value more boxed will be considered "the same" and removed)
+yolo_version: 'v6.0'  # Release version of Ultralytics to built a model from: v.6.0 and v3.0 are supported
+_convert_: all
