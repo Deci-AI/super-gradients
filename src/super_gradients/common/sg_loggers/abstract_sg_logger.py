@@ -136,6 +136,13 @@ class AbstractSGLogger(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def add_file(self, file_name: str = None):
+        """
+        Add a file from the checkpoint directory to the logger (usually, upload the file or adds it to an artifact)
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def upload(self):
         """
         Upload any files which should be stored on remote storage

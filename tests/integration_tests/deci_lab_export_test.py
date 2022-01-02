@@ -40,8 +40,7 @@ class DeciLabUploadTest(unittest.TestCase):
         model_conversion_callback = ModelConversionCheckCallback(model_meta_data=model_meta_data)
         deci_lab_callback = DeciLabUploadCallback(email="trainer-tester@testcase.ai",
                                                   model_meta_data=model_meta_data,
-                                                  optimization_request_form=optimization_request_form,
-                                                  password="trainer-tester@testcase.ai")
+                                                  optimization_request_form=optimization_request_form)
 
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": self.optimizer,

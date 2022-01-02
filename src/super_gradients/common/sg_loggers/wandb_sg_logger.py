@@ -174,6 +174,11 @@ class WandBSGLogger(BaseSGLogger):
         wandb.finish()
 
     @multi_process_safe
+    def add_file(self, file_name: str = None):
+        super().add_file(file_name)
+        wandb.save(glob_str=os.path.join(self._local_dir, file_name), base_path=self._local_dir, policy='now')
+
+    @multi_process_safe
     def upload(self):
         super().upload()
 
