@@ -1434,10 +1434,10 @@ class SgModel:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items['installed_packages'] = pkg_list
 
-        self.sg_logger.add_config("hyper_params", {**self.arch_params.__dict__,
-                                                   **self.training_params.__dict__,
-                                                   **self.dataset_params.__dict__,
-                                                   **additional_log_items})
+        self.sg_logger.add_config("hyper_params", {"arch_params": self.arch_params.__dict__,
+                                                   "training_hyperparams": self.training_params.__dict__,
+                                                   "dataset_params": self.dataset_params.__dict__,
+                                                   "additional_log_items": additional_log_items})
 
         self.sg_logger.flush()
 
