@@ -1006,10 +1006,10 @@ class DetectionVisualization:
 
         # Draw predictions
         pred_boxes[:, :4] *= image_scale
-        for box in pred_boxes:
-            image_np = DetectionVisualization._draw_box_title(color_mapping, class_names, box_thickness,
-                                                              image_np, *box[:4].astype(int),
-                                                              class_id=int(box[5]), pred_conf=box[4])
+        # for box in pred_boxes:
+        #     image_np = DetectionVisualization._draw_box_title(color_mapping, class_names, box_thickness,
+        #                                                       image_np, *box[:4].astype(int),
+        #                                                       class_id=int(box[5]), pred_conf=box[4])
 
         # Draw ground truths
         target_boxes_image = np.zeros_like(image_np, np.uint8)

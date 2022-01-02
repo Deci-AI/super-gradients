@@ -42,6 +42,7 @@ dataset_params = {"batch_size": 48,
                   }  # IMAGE SHEAR (+/- deg)
                   }
 
+
 model = SgModel("yolov5m_pascal_finetune_mixup",
                 multi_gpu=MultiGPUMode.OFF,
                 post_prediction_callback=YoloV5PostPredictionCallback())
@@ -51,6 +52,16 @@ model.connect_dataset_interface(dataset_interface, data_loader_num_workers=20)
 model.build_model("yolo_v5m", arch_params={"pretrained_weights": "coco"})
 
 post_prediction_callback = YoloV5PostPredictionCallback()
+
+network = model.net
+network = model.module if hasattr(model, 'module') else model
+num_levels = network._head._modules_list[-1].detection_layers_num
+train_image_size = dataset_params["train_image_size"]
+
+num_branches_norm = 3. / num_levels
+num_classes_norm = len(model.classes) / 80.
+image_size_norm = train_image_size / 640.
+
 training_params = {"max_epochs": 50,
                    "lr_mode": "cosine",
                    "initial_lr": 0.0032,
@@ -62,10 +73,10 @@ training_params = {"max_epochs": 50,
                    "criterion_params": {"anchors": Anchors(
                        anchors_list=[[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119],
                                      [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]),
-                       "box_loss_gain": 0.0296,
-                       "cls_loss_gain": 0.243,
+                       "box_loss_gain": 0.0296 * num_branches_norm,
+                       "cls_loss_gain": 0.243 * num_classes_norm * num_branches_norm,
                        "cls_pos_weight": 0.631,
-                       "obj_loss_gain": 0.301,
+                       "obj_loss_gain": 0.301 * image_size_norm ** 2 * num_branches_norm,
                        "obj_pos_weight": 0.911,
                        "anchor_t": 2.91},
                    "optimizer": "SGD",

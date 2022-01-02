@@ -806,8 +806,8 @@ class PascalVOC2UnifiedDetectionDataSetInterface(DatasetInterface):
         self.trainset = torch.utils.data.ConcatDataset([trainvalset2007, trainvalset2012])
         self.trainset.collate_fn = train_collate_fn
 
-        self.valset = PascalVOCDetectionDataSet(root=root_dir_2007,
-                                                list_file='ImageSets/Main/test.txt',
+        self.valset = PascalVOCDetectionDataSet(root=root_dir_2012,
+                                                list_file='ImageSets/Main/trainval.txt',
                                                 samples_sub_directory='JPEGImages',
                                                 targets_sub_directory='Annotations',
                                                 dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
