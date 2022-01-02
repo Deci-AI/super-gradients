@@ -418,7 +418,7 @@ class SgModel:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
 
-    def save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None):
+    def save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None):
         """
         Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
         params)
@@ -458,6 +458,10 @@ class SgModel:
             # STORE THE CURRENT metric AS BEST
             self.best_metric = metric
             self.sg_logger.add_checkpoint(tag='ckpt_best.pth', state_dict=state, global_step=epoch)
+
+            # RUN PHASE CALLBACKS
+            self.phase_callback_handler(Phase.VALIDATION_END_BEST_EPOCH, context)
+
             if isinstance(metric, torch.Tensor):
                 metric = metric.item()
             logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(metric))
@@ -908,7 +912,7 @@ class SgModel:
 
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch)
+                    self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch, context)
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
@@ -1456,7 +1460,7 @@ class SgModel:
 
         self.sg_logger.flush()
 
-    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int):
+    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int, context: PhaseContext):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         # STORE VALUES IN A TENSORBOARD FILE
         train_results = list(train_metrics) + list(validation_results) + [inf_time]
@@ -1467,7 +1471,7 @@ class SgModel:
 
         # SAVE THE CHECKPOINT
         if self.training_params.save_model:
-            self.save_checkpoint(self.optimizer, epoch + 1, validation_results)
+            self.save_checkpoint(self.optimizer, epoch + 1, validation_results, context)
 
     def _write_lrs(self, epoch):
         lrs = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
