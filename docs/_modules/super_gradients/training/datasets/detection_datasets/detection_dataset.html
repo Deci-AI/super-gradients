@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.training.datasets.detection_datasets.detection_dataset &mdash; SuperGradients 1.0 documentation</title>
+      <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/underscore.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../../index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.common.html">Common</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.training.html">Training</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+      <li>super_gradients.training.datasets.detection_datasets.detection_dataset</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for super_gradients.training.datasets.detection_datasets.detection_dataset</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">cv2</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">ExifTags</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.datasets.sg_dataset</span> <span class="kn">import</span> <span class="n">ListDataset</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.detection_utils</span> <span class="kn">import</span> <span class="n">convert_xyxy_bbox_to_xywh</span>
+
+<span class="c1"># PREVENTS THE cv2 DEADLOCK</span>
+<span class="n">cv2</span><span class="o">.</span><span class="n">setNumThreads</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># GET ORIENTATION EXIF TAG</span>
+<span class="k">for</span> <span class="n">orientation</span> <span class="ow">in</span> <span class="n">ExifTags</span><span class="o">.</span><span class="n">TAGS</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">ExifTags</span><span class="o">.</span><span class="n">TAGS</span><span class="p">[</span><span class="n">orientation</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Orientation&#39;</span><span class="p">:</span>
+        <span class="k">break</span>
+
+
+<div class="viewcode-block" id="DetectionDataSet"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet">[docs]</a><span class="k">class</span> <span class="nc">DetectionDataSet</span><span class="p">(</span><span class="n">ListDataset</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">list_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">img_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">416</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">augment</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">dataset_hyper_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cache_labels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">cache_images</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">sample_loading_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="n">collate_fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">target_extension</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;.txt&#39;</span><span class="p">,</span>
+                 <span class="n">labels_offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">class_inclusion_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">all_classes_list</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DetectionDataSet</span>
+<span class="sd">            :param root:                    Root folder of the Data Set</span>
+<span class="sd">            :param list_file:</span>
+<span class="sd">            :param img_size:                Image size of the Model that uses this Data Set</span>
+<span class="sd">            :param batch_size:              Batch Size</span>
+<span class="sd">            :param augment:                 True / False flag to allow Augmentation</span>
+<span class="sd">            :param dataset_hyper_params:    Any hyper params required for the data set</span>
+<span class="sd">            :param cache_labels:            &quot;Caches&quot; the labels -&gt; Pre-Loads to memory as a list</span>
+<span class="sd">                IMPORTANT NOTE: CURRENTLY OBJECTLESS IMAGES ARE DISCARDED ONLY WHEN THIS IS SET. THEREFORE A GOOD PRACTICE</span>
+<span class="sd">                WHEN USING SUBCLASSING IS TO SET THIS PARAMETER TO TRUE.</span>
+<span class="sd">            :param cache_images:            &quot;Caches&quot; the images -&gt; Pre-Loads to memory as a list</span>
+<span class="sd">            :param sample_loading_method:   default - Normal Training... No Special Augmentation</span>
+<span class="sd">                                            mosaic -  Used *ONLY* for training improvement, creates a new image that is</span>
+<span class="sd">                                                      comprised of 4 randomly selected images that are located in random</span>
+<span class="sd">                                                      sizes in 4 different parts of the image (Extreme Augmentation)</span>
+<span class="sd">                                            rectangular - Used mainly for inference, it letterboxes the image</span>
+<span class="sd">                                                          for the expected image size of the model</span>
+<span class="sd">            :param labels_offset:           offset value to add to the labels (class numbers)</span>
+<span class="sd">            :param all_classes_list: list(str) containing all the class names.</span>
+<span class="sd">            :param class_inclusion_list: list(str) containing the subclass names or None when subclassing is disabled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span> <span class="o">=</span> <span class="n">dataset_hyper_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_labels</span> <span class="o">=</span> <span class="n">cache_labels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_images</span> <span class="o">=</span> <span class="n">cache_images</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">augment</span> <span class="o">=</span> <span class="n">augment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_index</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_batches_num</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_loading_method</span> <span class="o">=</span> <span class="n">sample_loading_method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels_offset</span> <span class="o">=</span> <span class="n">labels_offset</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">class_inclusion_list</span> <span class="o">=</span> <span class="n">class_inclusion_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">all_classes_list</span> <span class="o">=</span> <span class="n">all_classes_list</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">DetectionDataSet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">list_file</span><span class="p">,</span> <span class="n">target_extension</span><span class="o">=</span><span class="n">target_extension</span><span class="p">,</span>
+                                               <span class="n">collate_fn</span><span class="o">=</span><span class="n">collate_fn</span><span class="p">,</span> <span class="n">sample_loader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_loader</span><span class="p">,</span>
+                                               <span class="n">sample_transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_transform</span><span class="p">,</span> <span class="n">target_loader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">,</span>
+                                               <span class="n">target_transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_transform</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="n">label_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_files</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_loading_method</span> <span class="o">==</span> <span class="s1">&#39;mosaic&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment</span><span class="p">:</span>
+            <span class="c1"># LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)</span>
+            <span class="n">img</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_mosaic</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># LOAD A SINGLE IMAGE</span>
+            <span class="n">img_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_loader</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_transform</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+            <span class="c1"># LETTERBOX</span>
+            <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_shapes</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">batch_index</span><span class="p">[</span><span class="n">index</span><span class="p">]]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_loading_method</span> <span class="o">==</span> <span class="s1">&#39;rectangular&#39;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span>
+            <span class="n">img</span><span class="p">,</span> <span class="n">ratio</span><span class="p">,</span> <span class="n">pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">letterbox</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">scaleup</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">augment</span><span class="p">)</span>
+
+            <span class="c1"># LOAD LABELS</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_labels</span><span class="p">:</span>
+                <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">(</span><span class="n">label_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_inclusion_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_classes_list</span><span class="p">)</span>
+
+            <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_transform</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">ratio</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">pad</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment</span><span class="p">:</span>
+            <span class="c1"># AUGMENT IMAGESPACE</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_loading_method</span> <span class="o">==</span> <span class="s1">&#39;mosaic&#39;</span><span class="p">:</span>
+                <span class="n">img</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_perspective</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
+                                                      <span class="n">degrees</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;degrees&#39;</span><span class="p">],</span>
+                                                      <span class="n">translate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;translate&#39;</span><span class="p">],</span>
+                                                      <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;scale&#39;</span><span class="p">],</span>
+                                                      <span class="n">shear</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;shear&#39;</span><span class="p">])</span>
+
+            <span class="c1"># AUGMENT COLORSPACE</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment_hsv</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">hgain</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;hsv_h&#39;</span><span class="p">],</span>
+                                   <span class="n">sgain</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;hsv_s&#39;</span><span class="p">],</span>
+                                   <span class="n">vgain</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;hsv_v&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+            <span class="c1"># CONVERT XYXY TO XYWH - CHANGE THE BBOXES PARAMS</span>
+            <span class="n">labels</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_xyxy_bbox_to_xywh</span><span class="p">(</span><span class="n">labels</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">5</span><span class="p">])</span>
+
+            <span class="c1"># NORMALIZE COORDINATES 0 - 1</span>
+            <span class="n">labels</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">]]</span> <span class="o">/=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># HEIGHT</span>
+            <span class="n">labels</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span> <span class="o">/=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># WIDTH</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment</span><span class="p">:</span>
+            <span class="c1"># AUGMENT RANDOM UP-DOWN FLIP</span>
+            <span class="n">img</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_augment_random_flip</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+
+        <span class="n">labels_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">),</span> <span class="mi">6</span><span class="p">))</span>
+
+        <span class="n">labels</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels_offset</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+            <span class="n">labels_out</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+
+        <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_post_process</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">img</span><span class="p">,</span> <span class="n">labels_out</span>
+
+<div class="viewcode-block" id="DetectionDataSet.sample_post_process"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.sample_post_process">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">sample_post_process</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        sample_post_process - Normalizes and orders the image to be 3 x img_size x img_size</span>
+<span class="sd">            :param image:</span>
+<span class="sd">            :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># CONVERT BGR to RGB, to 3xIMAGE_SIZExIMAGE_SIZE</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+
+        <span class="c1"># 0 - 255 TO 0.0 - 1.0</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">image</span><span class="p">)</span> <span class="o">/</span> <span class="mf">255.0</span></div>
+
+    <span class="k">def</span> <span class="nf">_generate_samples_and_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        _generate_samples_and_targets</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_inclusion_list</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_classes_list</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples_targets_tuples_list</span><span class="p">:</span>
+            <span class="n">list_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_file_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">img_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">list_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+                              <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">extensions</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">label_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;images&#39;</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_extension</span><span class="p">)</span>
+                                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_files</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">samples_targets_tuples_list</span><span class="p">))</span>
+
+        <span class="n">samples_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">samples_len</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_batches_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="c1"># RECTANGULAR TRAINING</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_loading_method</span> <span class="o">==</span> <span class="s1">&#39;rectangular&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rectangular_loading</span><span class="p">(</span><span class="n">samples_len</span><span class="o">=</span><span class="n">samples_len</span><span class="p">)</span>
+
+        <span class="c1"># PRELOAD LABELS (REQUIRED FOR WEIGHTED CE TRAINING)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">samples_len</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">samples_len</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_labels</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">))]</span> <span class="o">*</span> <span class="n">samples_len</span>
+            <span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_files</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;Caching labels&#39;</span><span class="p">)</span>
+            <span class="n">missing_labels</span><span class="p">,</span> <span class="n">found_labels</span><span class="p">,</span> <span class="n">duplicate_labels</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="n">image_indices_to_keep</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbar</span><span class="p">):</span>
+                <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_inclusion_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_classes_list</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">missing_labels</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">continue</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">labels</span>
+                <span class="n">found_labels</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">image_indices_to_keep</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+                <span class="n">pbar</span><span class="o">.</span><span class="n">desc</span> <span class="o">=</span> <span class="s1">&#39;Caching labels (</span><span class="si">%g</span><span class="s1"> found, </span><span class="si">%g</span><span class="s1"> missing, </span><span class="si">%g</span><span class="s1"> duplicate, for </span><span class="si">%g</span><span class="s1"> images)&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">found_labels</span><span class="p">,</span> <span class="n">missing_labels</span><span class="p">,</span> <span class="n">duplicate_labels</span><span class="p">,</span> <span class="n">samples_len</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">found_labels</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;No labels found.&#39;</span>
+
+            <span class="n">image_indices_to_keep</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">image_indices_to_keep</span><span class="p">)</span>
+            <span class="c1">#  REMOVE THE IRRELEVANT ENTRIES FROM THE DATA</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">img_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">image_indices_to_keep</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">label_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_files</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">image_indices_to_keep</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imgs</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">image_indices_to_keep</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">image_indices_to_keep</span><span class="p">]</span>
+
+        <span class="c1"># CACHE IMAGES INTO MEMORY FOR FASTER TRAINING (WARNING: LARGE DATASETS MAY EXCEED SYSTEM RAM)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_images</span><span class="p">:</span>
+            <span class="n">cached_images_mem_in_gb</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">)),</span> <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;Caching images&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pbar</span><span class="p">:</span>
+                <span class="n">img_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_loader</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_transform</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">img</span>
+                <span class="n">cached_images_mem_in_gb</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">nbytes</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">desc</span> <span class="o">=</span> <span class="s1">&#39;Caching images (</span><span class="si">%.1f</span><span class="s1">GB)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cached_images_mem_in_gb</span> <span class="o">/</span> <span class="mf">1E9</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_rectangular_loading</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples_len</span><span class="p">,</span> <span class="n">pad</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        :param samples_len:</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">shapes_file_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_file_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;.shapes&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">shapes_file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">shapes_file</span><span class="p">:</span>
+                <span class="n">image_shapes</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">shapes_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()]</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">image_shapes</span><span class="p">)</span> <span class="o">==</span> <span class="n">samples_len</span><span class="p">,</span> <span class="s1">&#39;Shapefile out of sync&#39;</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
+            <span class="n">image_shapes</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">exif_size</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">f</span><span class="p">))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;Reading image shapes&#39;</span><span class="p">)]</span>
+            <span class="c1"># np.savetxt(shapes_file_path, image_shapes, fmt=&#39;%g&#39;)</span>
+            <span class="c1"># TODO: we are not writing the shapes into a file since this is risky. the files list might change</span>
+            <span class="c1"># TODO: and then the shapes in the .shapes file will be wrong</span>
+
+        <span class="c1"># SORT BY ASPECT RATIO</span>
+        <span class="n">image_shapes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">image_shapes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">aspect_ratio</span> <span class="o">=</span> <span class="n">image_shapes</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">image_shapes</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">sorted_indices</span> <span class="o">=</span> <span class="n">aspect_ratio</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">sorted_indices</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label_files</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">label_files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">sorted_indices</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shapes</span> <span class="o">=</span> <span class="n">image_shapes</span><span class="p">[</span><span class="n">sorted_indices</span><span class="p">]</span>
+        <span class="n">aspect_ratio</span> <span class="o">=</span> <span class="n">aspect_ratio</span><span class="p">[</span><span class="n">sorted_indices</span><span class="p">]</span>
+
+        <span class="c1"># SET IMAGE SHAPES</span>
+        <span class="n">shapes</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_batches_num</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_batches_num</span><span class="p">):</span>
+            <span class="n">ari</span> <span class="o">=</span> <span class="n">aspect_ratio</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_index</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span>
+            <span class="n">mini</span><span class="p">,</span> <span class="n">maxi</span> <span class="o">=</span> <span class="n">ari</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">ari</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">maxi</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">shapes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">maxi</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">mini</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">shapes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">mini</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_shapes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">/</span> <span class="mf">32.</span> <span class="o">+</span> <span class="n">pad</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span> <span class="o">*</span> <span class="mi">32</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_augment_random_flip</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        _augment_random_flip</span>
+<span class="sd">            :param image:</span>
+<span class="sd">            :param labels:</span>
+<span class="sd">            :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># RANDOM LEFT-RIGHT FLIP</span>
+        <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fliplr</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+                <span class="n">labels</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">labels</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">labels</span>
+
+<div class="viewcode-block" id="DetectionDataSet.sample_loader"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.sample_loader">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">sample_loader</span><span class="p">(</span><span class="n">sample_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        sample_loader - Loads a coco dataset image from path</span>
+<span class="sd">            :param sample_path:</span>
+<span class="sd">            :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">sample_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># BGR</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">sample_path</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Image Not Found: &#39;</span> <span class="o">+</span> <span class="n">sample_path</span><span class="p">)</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Caught Exception trying to to open &#39;</span> <span class="o">+</span> <span class="n">sample_path</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">image</span></div>
+
+<div class="viewcode-block" id="DetectionDataSet.sample_transform"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.sample_transform">[docs]</a>    <span class="k">def</span> <span class="nf">sample_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        sample_transform</span>
+<span class="sd">            :param image:</span>
+<span class="sd">            :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># RESIZE IMAGE TO IMG_SIZE</span>
+        <span class="n">resize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="c1"># ALWAYS RESIZE DOWN, ONLY RESIZE UP IF TRAINING WITH AUGMENTATION</span>
+        <span class="k">if</span> <span class="n">resize</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+            <span class="c1"># resize in test with AREA interpolation - according to https://github.com/ultralytics/yolov5</span>
+            <span class="n">interp</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">INTER_AREA</span> <span class="k">if</span> <span class="n">resize</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment</span> <span class="k">else</span> <span class="n">cv2</span><span class="o">.</span><span class="n">INTER_LINEAR</span>
+            <span class="k">return</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">resize</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">resize</span><span class="p">)),</span> <span class="n">interpolation</span><span class="o">=</span><span class="n">interp</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">image</span></div>
+
+<div class="viewcode-block" id="DetectionDataSet.target_loader"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.target_loader">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">target_loader</span><span class="p">(</span><span class="n">target_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">class_inclusion_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">all_classes_list</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        coco_target_loader</span>
+<span class="sd">            @param target_path: str, path to target.</span>
+<span class="sd">            @param all_classes_list: list(str) containing all the class names or None when subclassing is disabled.</span>
+<span class="sd">            @param class_inclusion_list: list(str) containing the subclass names or None when subclassing is disabled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">target_path</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">target_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">targets_file</span><span class="p">:</span>
+                    <span class="n">target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">targets_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;&gt; 5 label columns: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">target_path</span>
+                    <span class="k">assert</span> <span class="p">(</span><span class="n">target</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> <span class="s1">&#39;negative labels: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">target_path</span>
+                    <span class="k">assert</span> <span class="p">(</span><span class="n">target</span><span class="p">[:,</span>
+                            <span class="mi">1</span><span class="p">:]</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> <span class="s1">&#39;non-normalized or out of bounds coordinate labels: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">target_path</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Caught Exception trying to to open &#39;</span> <span class="o">+</span> <span class="n">target_path</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">))</span>
+
+        <span class="c1"># SUBCLASSING</span>
+        <span class="k">if</span> <span class="n">class_inclusion_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># FILTER THE EXCLUDED CLASSES</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">lbl</span><span class="p">:</span> <span class="n">all_classes_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">lbl</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="ow">in</span> <span class="n">class_inclusion_list</span><span class="p">,</span> <span class="n">target</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+                <span class="c1"># MAP THE INCLUDED CLASSES TO THEIR NEW INDICES IN THE CLASSES INCLUSION LIST</span>
+                <span class="n">target</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">lbl</span><span class="p">:</span> <span class="n">class_inclusion_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">all_classes_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">lbl</span><span class="p">[</span><span class="mi">0</span><span class="p">])]),</span> <span class="n">target</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># HANDLING THE CASE WHEN THERE ARE NO OBJECTS LEFT AFTER FILTERING</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">target</span></div>
+
+<div class="viewcode-block" id="DetectionDataSet.target_transform"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.target_transform">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">target_transform</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">ratio</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        target_transform</span>
+<span class="sd">            :param target:</span>
+<span class="sd">            :param ratio:</span>
+<span class="sd">            :param w:</span>
+<span class="sd">            :param h:</span>
+<span class="sd">            :param pad:</span>
+<span class="sd">            :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="c1"># HANDLE EDGE CASE</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">target</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">labels</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># NORMALIZED xywh TO PIXEL xyxy FORMAT</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">labels</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ratio</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="n">target</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">target</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">pad</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">labels</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">ratio</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="p">(</span><span class="n">target</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">target</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">pad</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">labels</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">ratio</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="n">target</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">target</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">pad</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">labels</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">ratio</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="p">(</span><span class="n">target</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">target</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">pad</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">labels</span></div>
+
+<div class="viewcode-block" id="DetectionDataSet.exif_size"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.exif_size">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">exif_size</span><span class="p">(</span><span class="n">img</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        exif_size</span>
+<span class="sd">            :param img:</span>
+<span class="sd">            :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># RETURNS EXIF-CORRECTED PIL SIZE (width, height)</span>
+        <span class="n">image_size</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">exif_data</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">_getexif</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">exif_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">rotation</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">exif_data</span><span class="o">.</span><span class="n">items</span><span class="p">())[</span><span class="n">orientation</span><span class="p">]</span>
+                <span class="c1"># ROTATION 270</span>
+                <span class="k">if</span> <span class="n">rotation</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+                    <span class="n">image_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">image_size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">image_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="c1"># ROTATION 90</span>
+                <span class="k">elif</span> <span class="n">rotation</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+                    <span class="n">image_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">image_size</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">image_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Caught Exception trying to rotate: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">img</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">image_size</span></div>
+
+<div class="viewcode-block" id="DetectionDataSet.augment_hsv"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.augment_hsv">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">augment_hsv</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">hgain</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">sgain</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">vgain</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        augment_hsv</span>
+<span class="sd">            :param img:</span>
+<span class="sd">            :param hgain:</span>
+<span class="sd">            :param sgain:</span>
+<span class="sd">            :param vgain:</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">hgain</span><span class="p">,</span> <span class="n">sgain</span><span class="p">,</span> <span class="n">vgain</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># random gains</span>
+        <span class="n">img_hsv</span> <span class="o">=</span> <span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2HSV</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">255</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+        <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">img_hsv</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_HSV2BGR</span><span class="p">,</span> <span class="n">dst</span><span class="o">=</span><span class="n">img</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">img</span></div>
+
+<div class="viewcode-block" id="DetectionDataSet.letterbox"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.letterbox">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">letterbox</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">new_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">416</span><span class="p">,</span> <span class="mi">416</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">auto</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">scaleFill</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">scaleup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                  <span class="n">interp</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">INTER_AREA</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        letterbox - Resizes image to a 32-pixel-multiple rectangle</span>
+<span class="sd">        :param img:</span>
+<span class="sd">        :param new_shape:</span>
+<span class="sd">        :param color:</span>
+<span class="sd">        :param auto:</span>
+<span class="sd">        :param scaleFill:</span>
+<span class="sd">        :param scaleup:</span>
+<span class="sd">        :param interp:</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># CURRENT IMAGE SHAPE [HEIGHT, WIDTH]</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_shape</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">new_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">new_shape</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">)</span>
+
+        <span class="c1"># ONLY SCALE DOWN, DO NOT SCALE UP (FOR BETTER TEST MAP)</span>
+        <span class="n">scale_ratio</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">new_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">new_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">scaleup</span><span class="p">:</span>
+            <span class="n">scale_ratio</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">scale_ratio</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="n">ratio</span> <span class="o">=</span> <span class="n">scale_ratio</span><span class="p">,</span> <span class="n">scale_ratio</span>
+        <span class="n">unpadded_output_shape</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale_ratio</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">scale_ratio</span><span class="p">))</span>
+        <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span> <span class="o">=</span> <span class="n">new_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">unpadded_output_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">new_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">unpadded_output_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># MINIMUM RECTANGLE - LEAVES BLANK SPACES IN THE IMAGE</span>
+        <span class="k">if</span> <span class="n">auto</span><span class="p">:</span>
+            <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">dw</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">dh</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+
+        <span class="c1"># STRETCH - STRETCHES THE IMAGE FOR THE DESIRED RESOLUTION</span>
+        <span class="k">elif</span> <span class="n">scaleFill</span><span class="p">:</span>
+            <span class="n">dw</span><span class="p">,</span> <span class="n">dh</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+            <span class="n">unpadded_output_shape</span> <span class="o">=</span> <span class="n">new_shape</span>
+            <span class="n">ratio</span> <span class="o">=</span> <span class="n">new_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">new_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">dw</span> <span class="o">/=</span> <span class="mi">2</span>
+        <span class="n">dh</span> <span class="o">/=</span> <span class="mi">2</span>
+
+        <span class="c1"># INTER_AREA IS BETTER, INTER_LINEAR IS FASTER</span>
+        <span class="k">if</span> <span class="n">shape</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">unpadded_output_shape</span><span class="p">:</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">unpadded_output_shape</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="n">interp</span><span class="p">)</span>
+        <span class="n">top</span><span class="p">,</span> <span class="n">bottom</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">dh</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">dh</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">))</span>
+        <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">dw</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">dw</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">))</span>
+
+        <span class="c1"># ADDS BORDER</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">copyMakeBorder</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">BORDER_CONSTANT</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">img</span><span class="p">,</span> <span class="n">ratio</span><span class="p">,</span> <span class="p">(</span><span class="n">dw</span><span class="p">,</span> <span class="n">dh</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DetectionDataSet.random_perspective"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.random_perspective">[docs]</a>    <span class="k">def</span> <span class="nf">random_perspective</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="p">(),</span> <span class="n">degrees</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">translate</span><span class="o">=</span><span class="mf">.1</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">.1</span><span class="p">,</span> <span class="n">shear</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                           <span class="n">perspective</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        random images and labels using a perspective transform</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">border</span> <span class="o">*</span> <span class="mi">2</span>  <span class="c1"># shape(h,w,c)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">border</span> <span class="o">*</span> <span class="mi">2</span>
+
+        <span class="c1"># CENTER</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">C</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span>  <span class="c1"># x translation (pixels)</span>
+        <span class="n">C</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">2</span>  <span class="c1"># y translation (pixels)</span>
+
+        <span class="c1"># PERSPECTIVE</span>
+        <span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">P</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">perspective</span><span class="p">,</span> <span class="n">perspective</span><span class="p">)</span>  <span class="c1"># x perspective (about y)</span>
+        <span class="n">P</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">perspective</span><span class="p">,</span> <span class="n">perspective</span><span class="p">)</span>  <span class="c1"># y perspective (about x)</span>
+
+        <span class="c1"># ROTATION AND SCALE</span>
+        <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">degrees</span><span class="p">,</span> <span class="n">degrees</span><span class="p">)</span>
+        <span class="c1"># A += RANDOM.CHOICE([-180, -90, 0, 90])  # ADD 90DEG ROTATIONS TO SMALL ROTATIONS</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">scale</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="c1"># S = 2 ** RANDOM.UNIFORM(-SCALE, SCALE)</span>
+        <span class="n">R</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getRotationMatrix2D</span><span class="p">(</span><span class="n">angle</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">scale</span><span class="o">=</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="c1"># SHEAR</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">S</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">shear</span><span class="p">,</span> <span class="n">shear</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span>  <span class="c1"># x shear (deg)</span>
+        <span class="n">S</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">shear</span><span class="p">,</span> <span class="n">shear</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">)</span>  <span class="c1"># y shear (deg)</span>
+
+        <span class="c1"># TRANSLATION</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">-</span> <span class="n">translate</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">+</span> <span class="n">translate</span><span class="p">)</span> <span class="o">*</span> <span class="n">width</span>  <span class="c1"># x translation (pixels)</span>
+        <span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">-</span> <span class="n">translate</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">+</span> <span class="n">translate</span><span class="p">)</span> <span class="o">*</span> <span class="n">height</span>  <span class="c1"># y translation (pixels)</span>
+
+        <span class="c1"># COMBINED ROTATION MATRIX</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">T</span> <span class="o">@</span> <span class="n">S</span> <span class="o">@</span> <span class="n">R</span> <span class="o">@</span> <span class="n">P</span> <span class="o">@</span> <span class="n">C</span>  <span class="c1"># order of operations (right to left) is IMPORTANT</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">border</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">border</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">M</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>  <span class="c1"># image changed</span>
+            <span class="k">if</span> <span class="n">perspective</span><span class="p">:</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">warpPerspective</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">dsize</span><span class="o">=</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">),</span> <span class="n">borderValue</span><span class="o">=</span><span class="p">(</span><span class="mi">114</span><span class="p">,</span> <span class="mi">114</span><span class="p">,</span> <span class="mi">114</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># affine</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">warpAffine</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">M</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">dsize</span><span class="o">=</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">),</span> <span class="n">borderValue</span><span class="o">=</span><span class="p">(</span><span class="mi">114</span><span class="p">,</span> <span class="mi">114</span><span class="p">,</span> <span class="mi">114</span><span class="p">))</span>
+
+        <span class="c1"># TRANSFORM LABEL COORDINATES</span>
+        <span class="n">num_targets</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_targets</span><span class="p">:</span>
+            <span class="c1"># WARP POINTS</span>
+            <span class="n">xy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">num_targets</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+            <span class="n">xy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">num_targets</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># x1y1, x2y2, x1y2, x2y1</span>
+            <span class="n">xy</span> <span class="o">=</span> <span class="n">xy</span> <span class="o">@</span> <span class="n">M</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># transform</span>
+            <span class="k">if</span> <span class="n">perspective</span><span class="p">:</span>
+                <span class="n">xy</span> <span class="o">=</span> <span class="p">(</span><span class="n">xy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="n">xy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">num_targets</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>  <span class="c1"># rescale</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># affine</span>
+                <span class="n">xy</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">num_targets</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+
+            <span class="c1"># CREATE NEW BOXES</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">]]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">]]</span>
+            <span class="n">xy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">y</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mi">1</span><span class="p">)))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">num_targets</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+            <span class="c1"># CLIP BOXES</span>
+            <span class="n">xy</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+            <span class="n">xy</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[:,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+
+            <span class="c1"># FILTER CANDIDATES</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_candidates</span><span class="p">(</span><span class="n">box1</span><span class="o">=</span><span class="n">targets</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">s</span><span class="p">,</span> <span class="n">box2</span><span class="o">=</span><span class="n">xy</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">targets</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">xy</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">img</span><span class="p">,</span> <span class="n">targets</span></div>
+
+<div class="viewcode-block" id="DetectionDataSet.box_candidates"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.box_candidates">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">box_candidates</span><span class="p">(</span><span class="n">box1</span><span class="p">,</span> <span class="n">box2</span><span class="p">,</span> <span class="n">wh_thr</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ar_thr</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">area_thr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>  <span class="c1"># box1(4,n), box2(4,n)</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        compute candidate boxes</span>
+<span class="sd">            :param box1:        before augment</span>
+<span class="sd">            :param box2:        after augment</span>
+<span class="sd">            :param wh_thr:      wh_thr (pixels)</span>
+<span class="sd">            :param ar_thr:      aspect_ratio_thr</span>
+<span class="sd">            :param area_thr:    area_ratio</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">w1</span><span class="p">,</span> <span class="n">h1</span> <span class="o">=</span> <span class="n">box1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">box1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">box1</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">box1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">w2</span><span class="p">,</span> <span class="n">h2</span> <span class="o">=</span> <span class="n">box2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">box2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">box2</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">box2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">ar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">w2</span> <span class="o">/</span> <span class="p">(</span><span class="n">h2</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">),</span> <span class="n">h2</span> <span class="o">/</span> <span class="p">(</span><span class="n">w2</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">))</span>  <span class="c1"># aspect ratio</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">w2</span> <span class="o">&gt;</span> <span class="n">wh_thr</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">h2</span> <span class="o">&gt;</span> <span class="n">wh_thr</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">w2</span> <span class="o">*</span> <span class="n">h2</span> <span class="o">/</span> <span class="p">(</span><span class="n">w1</span> <span class="o">*</span> <span class="n">h1</span> <span class="o">+</span> <span class="mf">1e-16</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">area_thr</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">ar</span> <span class="o">&lt;</span> <span class="n">ar_thr</span><span class="p">)</span>  <span class="c1"># candidates</span></div>
+
+<div class="viewcode-block" id="DetectionDataSet.load_mosaic"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.load_mosaic">[docs]</a>    <span class="k">def</span> <span class="nf">load_mosaic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">       load_mosaic - Load images in mosaic format to improve noise handling while training</span>
+<span class="sd">           :param index:</span>
+<span class="sd">           :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mosaic_labels</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">image_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span>
+
+        <span class="c1"># MOSAIC CENTER X, Y</span>
+        <span class="n">mosaic_center_x</span><span class="p">,</span> <span class="n">mosaic_center_y</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">image_size</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">image_size</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+
+        <span class="c1"># BASE IMAGE WITH 4 TILES</span>
+        <span class="n">mosaic_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">image_size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">image_size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span> <span class="o">+</span> <span class="mi">128</span>
+
+        <span class="c1"># 3 ADDITIONAL RANDOM IMAGE INDICES</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_files</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">img_index</span><span class="p">,</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">indices</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_images</span><span class="p">:</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">img_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_loader</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_transform</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+            <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+
+            <span class="n">mosaic_image</span><span class="p">,</span> <span class="n">padw</span><span class="p">,</span> <span class="n">padh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_place_image_in_mosaic</span><span class="p">(</span><span class="n">mosaic_image</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">img_index</span><span class="p">,</span> <span class="n">mosaic_center_x</span><span class="p">,</span>
+                                                                   <span class="n">mosaic_center_y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+
+            <span class="c1"># LOAD LABELS</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_labels</span><span class="p">:</span>
+                <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">label_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_files</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">(</span><span class="n">label_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_inclusion_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_classes_list</span><span class="p">)</span>
+
+            <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_transform</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">ratio</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">w</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">h</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="p">(</span><span class="n">padw</span><span class="p">,</span> <span class="n">padh</span><span class="p">))</span>
+            <span class="n">mosaic_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+
+        <span class="c1"># Concat/clip labels</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mosaic_labels</span><span class="p">):</span>
+            <span class="n">mosaic_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">mosaic_labels</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">mosaic_labels</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">image_size</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">mosaic_labels</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:])</span>  <span class="c1"># use with random_affine</span>
+
+        <span class="c1"># AUGMENT AND REMOVE THE BORDER</span>
+        <span class="n">mosaic_image</span><span class="p">,</span> <span class="n">mosaic_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_perspective</span><span class="p">(</span><span class="n">mosaic_image</span><span class="p">,</span> <span class="n">mosaic_labels</span><span class="p">,</span>
+                                                              <span class="n">degrees</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;degrees&#39;</span><span class="p">],</span>
+                                                              <span class="n">translate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;translate&#39;</span><span class="p">],</span>
+                                                              <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;scale&#39;</span><span class="p">],</span>
+                                                              <span class="n">shear</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">[</span><span class="s1">&#39;shear&#39;</span><span class="p">],</span>
+                                                              <span class="n">border</span><span class="o">=-</span><span class="n">image_size</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mosaic_image</span><span class="p">,</span> <span class="n">mosaic_labels</span></div>
+
+    <span class="k">def</span> <span class="nf">_place_image_in_mosaic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mosaic_image</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">image_index</span><span class="p">,</span> <span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        _place_image_in_mosaic</span>
+<span class="sd">            :param mosaic_image:</span>
+<span class="sd">            :param image:</span>
+<span class="sd">            :param image_index:</span>
+<span class="sd">            :param center_x:</span>
+<span class="sd">            :param center_y:</span>
+<span class="sd">            :param w:</span>
+<span class="sd">            :param h:</span>
+<span class="sd">            :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">image_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span>
+
+        <span class="c1"># PLACE IMG IN IMG4</span>
+        <span class="k">if</span> <span class="n">image_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># TOP LEFT</span>
+            <span class="n">x1a</span><span class="p">,</span> <span class="n">y1a</span><span class="p">,</span> <span class="n">x2a</span><span class="p">,</span> <span class="n">y2a</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">center_x</span> <span class="o">-</span> <span class="n">w</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">center_y</span> <span class="o">-</span> <span class="n">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span>
+            <span class="n">x1b</span><span class="p">,</span> <span class="n">y1b</span><span class="p">,</span> <span class="n">x2b</span><span class="p">,</span> <span class="n">y2b</span> <span class="o">=</span> <span class="n">w</span> <span class="o">-</span> <span class="p">(</span><span class="n">x2a</span> <span class="o">-</span> <span class="n">x1a</span><span class="p">),</span> <span class="n">h</span> <span class="o">-</span> <span class="p">(</span><span class="n">y2a</span> <span class="o">-</span> <span class="n">y1a</span><span class="p">),</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span>
+        <span class="k">elif</span> <span class="n">image_index</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># TOP RIGHT</span>
+            <span class="n">x1a</span><span class="p">,</span> <span class="n">y1a</span><span class="p">,</span> <span class="n">x2a</span><span class="p">,</span> <span class="n">y2a</span> <span class="o">=</span> <span class="n">center_x</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">center_y</span> <span class="o">-</span> <span class="n">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">center_x</span> <span class="o">+</span> <span class="n">w</span><span class="p">,</span> <span class="n">image_size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span> <span class="n">center_y</span>
+            <span class="n">x1b</span><span class="p">,</span> <span class="n">y1b</span><span class="p">,</span> <span class="n">x2b</span><span class="p">,</span> <span class="n">y2b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">h</span> <span class="o">-</span> <span class="p">(</span><span class="n">y2a</span> <span class="o">-</span> <span class="n">y1a</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">x2a</span> <span class="o">-</span> <span class="n">x1a</span><span class="p">),</span> <span class="n">h</span>
+        <span class="k">elif</span> <span class="n">image_index</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># BOTTOM LEFT</span>
+            <span class="n">x1a</span><span class="p">,</span> <span class="n">y1a</span><span class="p">,</span> <span class="n">x2a</span><span class="p">,</span> <span class="n">y2a</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">center_x</span> <span class="o">-</span> <span class="n">w</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">center_y</span><span class="p">,</span> <span class="n">center_x</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">image_size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">center_y</span> <span class="o">+</span> <span class="n">h</span><span class="p">)</span>
+            <span class="n">x1b</span><span class="p">,</span> <span class="n">y1b</span><span class="p">,</span> <span class="n">x2b</span><span class="p">,</span> <span class="n">y2b</span> <span class="o">=</span> <span class="n">w</span> <span class="o">-</span> <span class="p">(</span><span class="n">x2a</span> <span class="o">-</span> <span class="n">x1a</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">center_x</span><span class="p">,</span> <span class="n">w</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">y2a</span> <span class="o">-</span> <span class="n">y1a</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">image_index</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>  <span class="c1"># BOTTOM RIGHT</span>
+            <span class="n">x1a</span><span class="p">,</span> <span class="n">y1a</span><span class="p">,</span> <span class="n">x2a</span><span class="p">,</span> <span class="n">y2a</span> <span class="o">=</span> <span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">center_x</span> <span class="o">+</span> <span class="n">w</span><span class="p">,</span> <span class="n">image_size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">image_size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+                                                                                            <span class="n">center_y</span> <span class="o">+</span> <span class="n">h</span><span class="p">)</span>
+            <span class="n">x1b</span><span class="p">,</span> <span class="n">y1b</span><span class="p">,</span> <span class="n">x2b</span><span class="p">,</span> <span class="n">y2b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">x2a</span> <span class="o">-</span> <span class="n">x1a</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">y2a</span> <span class="o">-</span> <span class="n">y1a</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+
+        <span class="n">mosaic_image</span><span class="p">[</span><span class="n">y1a</span><span class="p">:</span><span class="n">y2a</span><span class="p">,</span> <span class="n">x1a</span><span class="p">:</span><span class="n">x2a</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="n">y1b</span><span class="p">:</span><span class="n">y2b</span><span class="p">,</span> <span class="n">x1b</span><span class="p">:</span><span class="n">x2b</span><span class="p">]</span>
+        <span class="n">padw</span> <span class="o">=</span> <span class="n">x1a</span> <span class="o">-</span> <span class="n">x1b</span>
+        <span class="n">padh</span> <span class="o">=</span> <span class="n">y1a</span> <span class="o">-</span> <span class="n">y1b</span>
+
+        <span class="k">return</span> <span class="n">mosaic_image</span><span class="p">,</span> <span class="n">padw</span><span class="p">,</span> <span class="n">padh</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
