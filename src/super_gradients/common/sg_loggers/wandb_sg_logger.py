@@ -132,17 +132,19 @@ class WandBSGLogger(BaseSGLogger):
         wandb.finish()
 
     @multi_process_safe
-    def upload(self, file_name: str = None):
-        super().upload(file_name)
+    def add_file(self, file_name: str = None):
+        super().add_file(file_name)
+        wandb.save(glob_str=os.path.join(self._local_dir, file_name), base_path=self._local_dir, policy='now')
 
-        if file_name is None:
-            if self.save_tensorboard_wandb:
-                wandb.save(glob_str=self._get_tensorboard_file_name(), base_path=self._local_dir, policy='now')
+    @multi_process_safe
+    def upload(self):
+        super().upload()
 
-            if self.save_logs_wandb:
-                wandb.save(glob_str=self.log_file_path, base_path=self._local_dir, policy='now')
-        else:
-            wandb.save(glob_str=os.path.join(self._local_dir, file_name), base_path=self._local_dir, policy='now')
+        if self.save_tensorboard_wandb:
+            wandb.save(glob_str=self._get_tensorboard_file_name(), base_path=self._local_dir, policy='now')
+
+        if self.save_logs_wandb:
+            wandb.save(glob_str=self.log_file_path, base_path=self._local_dir, policy='now')
 
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = 0):

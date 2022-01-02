@@ -211,16 +211,18 @@ class BaseSGLogger(AbstractSGLogger):
         self.tensorboard_writer.add_figure(tag=tag, figure=figure, global_step=global_step)
 
     @multi_process_safe
-    def upload(self, file_name: str = None):
-        if file_name is None:
-            if self.save_tensorboard_remote:
-                self.model_checkpoints_data_interface.save_remote_tensorboard_event_files(self.experiment_name, self._local_dir)
-
-            if self.save_logs_remote:
-                log_file_name = self.log_file_path.split('/')[-1]
-                self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, log_file_name)
-        elif self.remote_storage_available:
+    def add_file(self, file_name: str = None):
+        if self.remote_storage_available:
             self.model_checkpoints_data_interface.save_remote_tensorboard_event_files(self.experiment_name, self._local_dir, file_name)
+
+    @multi_process_safe
+    def upload(self):
+        if self.save_tensorboard_remote:
+            self.model_checkpoints_data_interface.save_remote_tensorboard_event_files(self.experiment_name, self._local_dir)
+
+        if self.save_logs_remote:
+            log_file_name = self.log_file_path.split('/')[-1]
+            self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, log_file_name)
 
     @multi_process_safe
     def flush(self):
