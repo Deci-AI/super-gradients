@@ -18,7 +18,7 @@ torchmetrics>=0.5.0
 pillow>=6.2.0
 hydra-core
 omegaconf
-onnxruntime==1.8.1
+onnxruntime
 onnx>=1.10.1
 pip-tools>=6.4.0
 tensorflow

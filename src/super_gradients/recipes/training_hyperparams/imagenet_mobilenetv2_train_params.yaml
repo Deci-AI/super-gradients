@@ -1,0 +1,44 @@
+defaults:
+  - default_train_params
+
+max_epochs: 450
+
+lr_mode: step
+initial_lr: 0.032   # for total batch-size of 512
+lr_decay_factor: 0.973
+lr_updates:
+  _target_: numpy.arange
+  start: 2.4
+  stop: 450
+  step: 2.4
+lr_warmup_epochs: 5
+
+optimizer: RMSpropTF
+optimizer_params:
+  weight_decay: 0.00001
+  momentum: 0.9
+  alpha: 0.9
+  eps: 0.001
+
+loss: cross_entropy
+
+zero_weight_decay_on_bias_and_bn: True
+ema: True
+ema_params:
+  decay: 0.9999
+
+mixed_precision: True
+
+loss_logging_items_names: [Loss]
+metric_to_watch: Accuracy
+greater_metric_to_watch_is_better: True
+
+train_metrics_list:                               # metrics for evaluation
+  - _target_: super_gradients.training.metrics.Accuracy
+  - _target_: super_gradients.training.metrics.Top5
+
+valid_metrics_list:                               # metrics for evaluation
+  - _target_: super_gradients.training.metrics.Accuracy
+  - _target_: super_gradients.training.metrics.Top5
+
+_convert_: all
