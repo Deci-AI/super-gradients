@@ -14,6 +14,8 @@ from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
+
+from super_gradients.common.environment import env_helpers
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
@@ -74,6 +76,7 @@ class MultiGPUMode(str, Enum):
     OFF = 'Off'
     DATA_PARALLEL = 'DP'
     DISTRIBUTED_DATA_PARALLEL = 'DDP'
+    AUTO = "AUTO"
 
 
 class EvaluationType(str, Enum):
@@ -107,7 +110,7 @@ class SgModel:
         returns the test loss, accuracy and runtime
     """
 
-    def __init__(self, experiment_name: str, device: str = None, multi_gpu: MultiGPUMode = MultiGPUMode.OFF,
+    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.AUTO,
                  model_checkpoints_location: str = 'local',
                  overwrite_local_checkpoint: bool = True, ckpt_name: str = 'ckpt_latest.pth',
                  post_prediction_callback: DetectionPostPredictionCallback = None):
@@ -1238,12 +1241,16 @@ class SgModel:
     def set_module(self, module):
         self.net = module
 
-    def _initialize_device(self, requested_device: str, requested_multi_gpu: MultiGPUMode):
+    def _initialize_device(self, requested_device: str, requested_multi_gpu: Union[MultiGPUMode, str]):
         """
         _initialize_device - Initializes the device for the model - Default is CUDA
             :param requested_device:        Device to initialize ('cuda' / 'cpu')
             :param requested_multi_gpu:     Get Multiple GPU
         """
+
+        if isinstance(requested_multi_gpu, str):
+            requested_multi_gpu = MultiGPUMode(requested_multi_gpu)
+
         # SELECT CUDA DEVICE
         if requested_device == 'cuda':
             if torch.cuda.is_available():
@@ -1271,8 +1278,16 @@ class SgModel:
                 self.num_devices = len(self.device_ids)
                 if self.num_devices == 1:
                     self.multi_gpu = MultiGPUMode.OFF
-                    logger.warning('\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n')
+                    if requested_multi_gpu != MultiGPUMode.AUTO:
+                        # if AUTO mode was set - do not log a warning
+                        logger.warning('\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n')
                 else:
+                    if requested_multi_gpu == MultiGPUMode.AUTO:
+                        if env_helpers.is_distributed():
+                            requested_multi_gpu = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
+                        else:
+                            requested_multi_gpu = MultiGPUMode.DATA_PARALLEL
+
                     self.multi_gpu = requested_multi_gpu
                     if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                         self._initialize_ddp()
