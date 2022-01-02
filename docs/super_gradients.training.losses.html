@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.training.losses package &mdash; SuperGradients 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">SuperGradients</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>super_gradients.training.losses package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/super_gradients.training.losses.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="super-gradients-training-losses-package">
+<h1>super_gradients.training.losses package<a class="headerlink" href="#super-gradients-training-losses-package" title="Permalink to this headline"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
+</section>
+<section id="module-super_gradients.training.losses.all_losses">
+<span id="super-gradients-training-losses-all-losses-module"></span><h2>super_gradients.training.losses.all_losses module<a class="headerlink" href="#module-super_gradients.training.losses.all_losses" title="Permalink to this headline"></a></h2>
+</section>
+<section id="module-super_gradients.training.losses.ddrnet_loss">
+<span id="super-gradients-training-losses-ddrnet-loss-module"></span><h2>super_gradients.training.losses.ddrnet_loss module<a class="headerlink" href="#module-super_gradients.training.losses.ddrnet_loss" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ddrnet_loss.DDRNetLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.ddrnet_loss.</span></span><span class="sig-name descname"><span class="pre">DDRNetLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ohem_percentage</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">[1.0,</span> <span class="pre">0.4]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">255</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_pixels_exclude_ignored</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/ddrnet_loss.html#DDRNetLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ddrnet_loss.DDRNetLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#super_gradients.training.losses.ohem_ce_loss.OhemCELoss" title="super_gradients.training.losses.ohem_ce_loss.OhemCELoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">super_gradients.training.losses.ohem_ce_loss.OhemCELoss</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ddrnet_loss.DDRNetLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">,</span> </span><span class="pre">tuple</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/ddrnet_loss.html#DDRNetLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ddrnet_loss.DDRNetLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ddrnet_loss.DDRNetLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.ddrnet_loss.DDRNetLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-super_gradients.training.losses.focal_loss">
+<span id="super-gradients-training-losses-focal-loss-module"></span><h2>super_gradients.training.losses.focal_loss module<a class="headerlink" href="#module-super_gradients.training.losses.focal_loss" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.focal_loss.FocalLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.focal_loss.</span></span><span class="sig-name descname"><span class="pre">FocalLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loss_fcn</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.nn.modules.loss.BCEWithLogitsLoss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/focal_loss.html#FocalLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.focal_loss.FocalLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<p>Wraps focal loss around existing loss_fcn(), i.e. criteria = FocalLoss(nn.BCEWithLogitsLoss(), gamma=1.5)</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.focal_loss.FocalLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.focal_loss.FocalLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.focal_loss.FocalLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">true</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/focal_loss.html#FocalLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.focal_loss.FocalLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.focal_loss.FocalLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.focal_loss.FocalLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-super_gradients.training.losses.label_smoothing_cross_entropy_loss">
+<span id="super-gradients-training-losses-label-smoothing-cross-entropy-loss-module"></span><h2>super_gradients.training.losses.label_smoothing_cross_entropy_loss module<a class="headerlink" href="#module-super_gradients.training.losses.label_smoothing_cross_entropy_loss" title="Permalink to this headline"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="super_gradients.training.losses.label_smoothing_cross_entropy_loss.onehot">
+<span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.label_smoothing_cross_entropy_loss.</span></span><span class="sig-name descname"><span class="pre">onehot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indexes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/label_smoothing_cross_entropy_loss.html#onehot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.label_smoothing_cross_entropy_loss.onehot" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a one-hot representation of indexes with N possible entries
+if N is not specified, it will suit the maximum index appearing.
+indexes is a long-tensor of indexes
+ignore_index will be zero in onehot representation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="super_gradients.training.losses.label_smoothing_cross_entropy_loss.cross_entropy">
+<span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.label_smoothing_cross_entropy_loss.</span></span><span class="sig-name descname"><span class="pre">cross_entropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth_eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_logits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/label_smoothing_cross_entropy_loss.html#cross_entropy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.label_smoothing_cross_entropy_loss.cross_entropy" title="Permalink to this definition"></a></dt>
+<dd><p>cross entropy loss, with support for target distributions and label smoothing <a class="reference external" href="https://arxiv.org/abs/1512.00567">https://arxiv.org/abs/1512.00567</a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.label_smoothing_cross_entropy_loss.</span></span><span class="sig-name descname"><span class="pre">LabelSmoothingCrossEntropyLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth_eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_logits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/label_smoothing_cross_entropy_loss.html#LabelSmoothingCrossEntropyLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss.CrossEntropyLoss</span></code></p>
+<p>CrossEntropyLoss - with ability to recieve distrbution as targets, and optional label smoothing</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/label_smoothing_cross_entropy_loss.html#LabelSmoothingCrossEntropyLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.ignore_index">
+<span class="sig-name descname"><span class="pre">ignore_index</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.ignore_index" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.label_smoothing">
+<span class="sig-name descname"><span class="pre">label_smoothing</span></span><em class="property"><span class="pre">:</span> <span class="pre">float</span></em><a class="headerlink" href="#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.label_smoothing" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.weight">
+<span class="sig-name descname"><span class="pre">weight</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.weight" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-super_gradients.training.losses.ohem_ce_loss">
+<span id="super-gradients-training-losses-ohem-ce-loss-module"></span><h2>super_gradients.training.losses.ohem_ce_loss module<a class="headerlink" href="#module-super_gradients.training.losses.ohem_ce_loss" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ohem_ce_loss.OhemCELoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.ohem_ce_loss.</span></span><span class="sig-name descname"><span class="pre">OhemCELoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mining_percent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_lb</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">-</span> <span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_pixels_exclude_ignored</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/ohem_ce_loss.html#OhemCELoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ohem_ce_loss.OhemCELoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<p>OhemCELoss - Online Hard Example Mining Cross Entropy Loss</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ohem_ce_loss.OhemCELoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/ohem_ce_loss.html#OhemCELoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ohem_ce_loss.OhemCELoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ohem_ce_loss.OhemCELoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.ohem_ce_loss.OhemCELoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-super_gradients.training.losses.r_squared_loss">
+<span id="super-gradients-training-losses-r-squared-loss-module"></span><h2>super_gradients.training.losses.r_squared_loss module<a class="headerlink" href="#module-super_gradients.training.losses.r_squared_loss" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.r_squared_loss.RSquaredLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.r_squared_loss.</span></span><span class="sig-name descname"><span class="pre">RSquaredLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size_average</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduce</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduction</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'mean'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/r_squared_loss.html#RSquaredLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.r_squared_loss.RSquaredLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.r_squared_loss.RSquaredLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/r_squared_loss.html#RSquaredLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.r_squared_loss.RSquaredLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the R-squared for the output and target values
+:param output: Tensor / Numpy / List</p>
+<blockquote>
+<div><p>The prediction</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>target</strong> – Tensor / Numpy / List
+The corresponding lables</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.r_squared_loss.RSquaredLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.r_squared_loss.RSquaredLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.r_squared_loss.RSquaredLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.r_squared_loss.RSquaredLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-super_gradients.training.losses.shelfnet_ohem_loss">
+<span id="super-gradients-training-losses-shelfnet-ohem-loss-module"></span><h2>super_gradients.training.losses.shelfnet_ohem_loss module<a class="headerlink" href="#module-super_gradients.training.losses.shelfnet_ohem_loss" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.shelfnet_ohem_loss.</span></span><span class="sig-name descname"><span class="pre">ShelfNetOHEMLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mining_percent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_lb</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">255</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/shelfnet_ohem_loss.html#ShelfNetOHEMLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#super_gradients.training.losses.ohem_ce_loss.OhemCELoss" title="super_gradients.training.losses.ohem_ce_loss.OhemCELoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">super_gradients.training.losses.ohem_ce_loss.OhemCELoss</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/shelfnet_ohem_loss.html#ShelfNetOHEMLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.shelfnet_ohem_loss.ShelfNetOHEMLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-super_gradients.training.losses.shelfnet_semantic_encoding_loss">
+<span id="super-gradients-training-losses-shelfnet-semantic-encoding-loss-module"></span><h2>super_gradients.training.losses.shelfnet_semantic_encoding_loss module<a class="headerlink" href="#module-super_gradients.training.losses.shelfnet_semantic_encoding_loss" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.shelfnet_semantic_encoding_loss.</span></span><span class="sig-name descname"><span class="pre">ShelfNetSemanticEncodingLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nclass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">21</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/shelfnet_semantic_encoding_loss.html#ShelfNetSemanticEncodingLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss.CrossEntropyLoss</span></code></p>
+<p>2D Cross Entropy Loss with Auxilary Loss</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/shelfnet_semantic_encoding_loss.html#ShelfNetSemanticEncodingLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.ignore_index">
+<span class="sig-name descname"><span class="pre">ignore_index</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.ignore_index" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.label_smoothing">
+<span class="sig-name descname"><span class="pre">label_smoothing</span></span><em class="property"><span class="pre">:</span> <span class="pre">float</span></em><a class="headerlink" href="#super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.label_smoothing" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.weight">
+<span class="sig-name descname"><span class="pre">weight</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.weight" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.shelfnet_semantic_encoding_loss.ShelfNetSemanticEncodingLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-super_gradients.training.losses.ssd_loss">
+<span id="super-gradients-training-losses-ssd-loss-module"></span><h2>super_gradients.training.losses.ssd_loss module<a class="headerlink" href="#module-super_gradients.training.losses.ssd_loss" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ssd_loss.SSDLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.ssd_loss.</span></span><span class="sig-name descname"><span class="pre">SSDLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dboxes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="super_gradients.training.utils.html#super_gradients.training.utils.ssd_utils.DefaultBoxes" title="super_gradients.training.utils.ssd_utils.DefaultBoxes"><span class="pre">super_gradients.training.utils.ssd_utils.DefaultBoxes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/ssd_loss.html#SSDLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ssd_loss.SSDLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<p>Implements the loss as the sum of the followings:
+1. Confidence Loss: All labels, with hard negative mining
+2. Localization Loss: Only on positive labels</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ssd_loss.SSDLoss.match_dboxes">
+<span class="sig-name descname"><span class="pre">match_dboxes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/ssd_loss.html#SSDLoss.match_dboxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ssd_loss.SSDLoss.match_dboxes" title="Permalink to this definition"></a></dt>
+<dd><p>convert ground truth boxes into a tensor with the same size as dboxes. each gt bbox is matched to every
+destination box which overlaps it over 0.5 (IoU). so some gt bboxes can be duplicated to a few destination boxes
+:param targets: a tensor containing the boxes for a single image. shape [num_boxes, 5] (x,y,w,h,label)
+:return: two tensors</p>
+<blockquote>
+<div><p>boxes - shape of dboxes [4, num_dboxes] (x,y,w,h)
+labels - sahpe [num_dboxes]</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ssd_loss.SSDLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/ssd_loss.html#SSDLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ssd_loss.SSDLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Compute the loss</dt><dd><p>:param predictions - predictions tensor coming from the network. shape [N, num_classes+4, num_dboxes]
+were the first four items are (x,y,w,h) and the rest are class confidence
+:param targets - targets for the batch. [num targets, 6] (index in batch, label, x,y,w,h)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ssd_loss.SSDLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.ssd_loss.SSDLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ssd_loss.SSDLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.ssd_loss.SSDLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-super_gradients.training.losses.yolo_v3_loss">
+<span id="super-gradients-training-losses-yolo-v3-loss-module"></span><h2>super_gradients.training.losses.yolo_v3_loss module<a class="headerlink" href="#module-super_gradients.training.losses.yolo_v3_loss" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.yolo_v3_loss.YoLoV3DetectionLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.yolo_v3_loss.</span></span><span class="sig-name descname"><span class="pre">YoLoV3DetectionLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.nn.modules.module.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls_pw</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_pw</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">giou</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">3.54</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">64.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">37.4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v3_loss.html#YoLoV3DetectionLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.yolo_v3_loss.YoLoV3DetectionLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<p>YoLoV3DetectionLoss - Loss Class for Object Detection</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.yolo_v3_loss.YoLoV3DetectionLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v3_loss.html#YoLoV3DetectionLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.yolo_v3_loss.YoLoV3DetectionLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.yolo_v3_loss.YoLoV3DetectionLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.yolo_v3_loss.YoLoV3DetectionLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.yolo_v3_loss.YoLoV3DetectionLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.yolo_v3_loss.YoLoV3DetectionLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-super_gradients.training.losses.yolo_v5_loss">
+<span id="super-gradients-training-losses-yolo-v5-loss-module"></span><h2>super_gradients.training.losses.yolo_v5_loss module<a class="headerlink" href="#module-super_gradients.training.losses.yolo_v5_loss" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.yolo_v5_loss.</span></span><span class="sig-name descname"><span class="pre">YoLoV5DetectionLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">anchors</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="super_gradients.training.utils.html#super_gradients.training.utils.detection_utils.Anchors" title="super_gradients.training.utils.detection_utils.Anchors"><span class="pre">super_gradients.training.utils.detection_utils.Anchors</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls_pos_weight</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_pos_weight</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_loss_gain</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box_loss_gain</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls_loss_gain</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focal_loss_gamma</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls_objectness_weights</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v5_loss.html#YoLoV5DetectionLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<p>Calculate YOLO V5 loss:
+L = L_objectivness + L_boxes + L_classification</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v5_loss.html#YoLoV5DetectionLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.build_targets">
+<span class="sig-name descname"><span class="pre">build_targets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.0</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v5_loss.html#YoLoV5DetectionLoss.build_targets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.build_targets" title="Permalink to this definition"></a></dt>
+<dd><dl>
+<dt>Assign targets to anchors to use in L_boxes &amp; L_classification calculation:</dt><dd><ul class="simple">
+<li><p>each target can be assigned to a few anchors,</p></li>
+</ul>
+<p>all anchors that are within [1/anchor_threshold, anchor_threshold] times target size range
+* each anchor can be assigned to a few targets</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictions</strong> – Yolo predictions</p></li>
+<li><p><strong>targets</strong> – ground truth targets</p></li>
+<li><p><strong>anchor_threshold</strong> – ratio defining a size range of an appropriate anchor</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>each of 4 outputs contains one element for each Yolo output,
+correspondences are raveled over the whole batch and all anchors:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>classes of the targets;</p></li>
+<li><p>boxes of the targets;</p></li>
+<li><p>image id in a batch, anchor id, grid y, grid x coordinates;</p></li>
+<li><p>anchor sizes.</p></li>
+</ul>
+</div></blockquote>
+<p>All the above can be indexed in parallel to get the selected correspondences</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.compute_loss">
+<span class="sig-name descname"><span class="pre">compute_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">giou_loss_ratio</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v5_loss.html#YoLoV5DetectionLoss.compute_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.compute_loss" title="Permalink to this definition"></a></dt>
+<dd><p>L = L_objectivness + L_boxes + L_classification
+where:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>L_boxes and L_classification are calculated only between anchors and targets that suit them;</p></li>
+<li><p>L_objectivness is calculated on all anchors.</p></li>
+</ul>
+</div></blockquote>
+<dl>
+<dt>L_classification:</dt><dd><p>for anchors that have suitable ground truths in their grid locations add BCEs
+to force max probability for each GT class in a multi-label way
+Coef: self.cls_loss_gain</p>
+</dd>
+<dt>L_boxes:</dt><dd><p>for anchors that have suitable ground truths in their grid locations
+add (1 - IoU), IoU between a predicted box and each GT box, force maximum IoU
+Coef: self.box_loss_gain</p>
+</dd>
+<dt>L_objectness:</dt><dd><p>for each anchor add BCE to force a prediction of (1 - giou_loss_ratio) + giou_loss_ratio * IoU,
+IoU between a predicted box and random GT in it
+Coef: self.obj_loss_gain, loss from each YOLO grid is additionally multiplied by balance = [4.0, 1.0, 0.4]</p>
+<blockquote>
+<div><p>to balance different contributions coming from different numbers of grid cells</p>
+</div></blockquote>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictions</strong> – output from all Yolo levels, each of shape
+[Batch x Num_Anchors x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]</p></li>
+<li><p><strong>targets</strong> – [Num_targets x (4 + 2)], values on dim 1 are: image id in a batch, class, box x y w h</p></li>
+<li><p><strong>giou_loss_ratio</strong> – a coef in L_objectness defining what should be predicted as objecness
+in a call with a target: can be a value in [IoU, 1] range</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>loss, all losses separately in a detached tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.yolo_v5_loss.YoLoV5DetectionLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-super_gradients.training.losses">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-super_gradients.training.losses" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.FocalLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.</span></span><span class="sig-name descname"><span class="pre">FocalLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loss_fcn</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.nn.modules.loss.BCEWithLogitsLoss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/focal_loss.html#FocalLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.FocalLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<p>Wraps focal loss around existing loss_fcn(), i.e. criteria = FocalLoss(nn.BCEWithLogitsLoss(), gamma=1.5)</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.FocalLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.FocalLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.FocalLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">true</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/focal_loss.html#FocalLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.FocalLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.FocalLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.FocalLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.LabelSmoothingCrossEntropyLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.</span></span><span class="sig-name descname"><span class="pre">LabelSmoothingCrossEntropyLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth_eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">from_logits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/label_smoothing_cross_entropy_loss.html#LabelSmoothingCrossEntropyLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss.CrossEntropyLoss</span></code></p>
+<p>CrossEntropyLoss - with ability to recieve distrbution as targets, and optional label smoothing</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/label_smoothing_cross_entropy_loss.html#LabelSmoothingCrossEntropyLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.ignore_index">
+<span class="sig-name descname"><span class="pre">ignore_index</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.ignore_index" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.label_smoothing">
+<span class="sig-name descname"><span class="pre">label_smoothing</span></span><em class="property"><span class="pre">:</span> <span class="pre">float</span></em><a class="headerlink" href="#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.label_smoothing" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.weight">
+<span class="sig-name descname"><span class="pre">weight</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.weight" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetOHEMLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.</span></span><span class="sig-name descname"><span class="pre">ShelfNetOHEMLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mining_percent</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_lb</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">255</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/shelfnet_ohem_loss.html#ShelfNetOHEMLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ShelfNetOHEMLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#super_gradients.training.losses.ohem_ce_loss.OhemCELoss" title="super_gradients.training.losses.ohem_ce_loss.OhemCELoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">super_gradients.training.losses.ohem_ce_loss.OhemCELoss</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetOHEMLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions_list</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/shelfnet_ohem_loss.html#ShelfNetOHEMLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ShelfNetOHEMLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetOHEMLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.ShelfNetOHEMLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetOHEMLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.ShelfNetOHEMLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetSemanticEncodingLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.</span></span><span class="sig-name descname"><span class="pre">ShelfNetSemanticEncodingLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">se_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nclass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">21</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/shelfnet_semantic_encoding_loss.html#ShelfNetSemanticEncodingLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ShelfNetSemanticEncodingLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss.CrossEntropyLoss</span></code></p>
+<p>2D Cross Entropy Loss with Auxilary Loss</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetSemanticEncodingLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/shelfnet_semantic_encoding_loss.html#ShelfNetSemanticEncodingLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.ShelfNetSemanticEncodingLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetSemanticEncodingLoss.ignore_index">
+<span class="sig-name descname"><span class="pre">ignore_index</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#super_gradients.training.losses.ShelfNetSemanticEncodingLoss.ignore_index" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetSemanticEncodingLoss.label_smoothing">
+<span class="sig-name descname"><span class="pre">label_smoothing</span></span><em class="property"><span class="pre">:</span> <span class="pre">float</span></em><a class="headerlink" href="#super_gradients.training.losses.ShelfNetSemanticEncodingLoss.label_smoothing" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetSemanticEncodingLoss.weight">
+<span class="sig-name descname"><span class="pre">weight</span></span><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#super_gradients.training.losses.ShelfNetSemanticEncodingLoss.weight" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetSemanticEncodingLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.ShelfNetSemanticEncodingLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.ShelfNetSemanticEncodingLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.ShelfNetSemanticEncodingLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.YoLoV3DetectionLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.</span></span><span class="sig-name descname"><span class="pre">YoLoV3DetectionLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.nn.modules.module.Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls_pw</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_pw</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">giou</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">3.54</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">64.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">37.4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v3_loss.html#YoLoV3DetectionLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.YoLoV3DetectionLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<p>YoLoV3DetectionLoss - Loss Class for Object Detection</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.YoLoV3DetectionLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v3_loss.html#YoLoV3DetectionLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.YoLoV3DetectionLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.YoLoV3DetectionLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.YoLoV3DetectionLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.YoLoV3DetectionLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.YoLoV3DetectionLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.YoLoV5DetectionLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.</span></span><span class="sig-name descname"><span class="pre">YoLoV5DetectionLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">anchors</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="super_gradients.training.utils.html#super_gradients.training.utils.detection_utils.Anchors" title="super_gradients.training.utils.detection_utils.Anchors"><span class="pre">super_gradients.training.utils.detection_utils.Anchors</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls_pos_weight</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_pos_weight</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_loss_gain</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box_loss_gain</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls_loss_gain</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focal_loss_gamma</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls_objectness_weights</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v5_loss.html#YoLoV5DetectionLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.YoLoV5DetectionLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<p>Calculate YOLO V5 loss:
+L = L_objectivness + L_boxes + L_classification</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.YoLoV5DetectionLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v5_loss.html#YoLoV5DetectionLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.YoLoV5DetectionLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.YoLoV5DetectionLoss.build_targets">
+<span class="sig-name descname"><span class="pre">build_targets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.0</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v5_loss.html#YoLoV5DetectionLoss.build_targets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.YoLoV5DetectionLoss.build_targets" title="Permalink to this definition"></a></dt>
+<dd><dl>
+<dt>Assign targets to anchors to use in L_boxes &amp; L_classification calculation:</dt><dd><ul class="simple">
+<li><p>each target can be assigned to a few anchors,</p></li>
+</ul>
+<p>all anchors that are within [1/anchor_threshold, anchor_threshold] times target size range
+* each anchor can be assigned to a few targets</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictions</strong> – Yolo predictions</p></li>
+<li><p><strong>targets</strong> – ground truth targets</p></li>
+<li><p><strong>anchor_threshold</strong> – ratio defining a size range of an appropriate anchor</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>each of 4 outputs contains one element for each Yolo output,
+correspondences are raveled over the whole batch and all anchors:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>classes of the targets;</p></li>
+<li><p>boxes of the targets;</p></li>
+<li><p>image id in a batch, anchor id, grid y, grid x coordinates;</p></li>
+<li><p>anchor sizes.</p></li>
+</ul>
+</div></blockquote>
+<p>All the above can be indexed in parallel to get the selected correspondences</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.YoLoV5DetectionLoss.compute_loss">
+<span class="sig-name descname"><span class="pre">compute_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">giou_loss_ratio</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/super_gradients/training/losses/yolo_v5_loss.html#YoLoV5DetectionLoss.compute_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.YoLoV5DetectionLoss.compute_loss" title="Permalink to this definition"></a></dt>
+<dd><p>L = L_objectivness + L_boxes + L_classification
+where:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>L_boxes and L_classification are calculated only between anchors and targets that suit them;</p></li>
+<li><p>L_objectivness is calculated on all anchors.</p></li>
+</ul>
+</div></blockquote>
+<dl>
+<dt>L_classification:</dt><dd><p>for anchors that have suitable ground truths in their grid locations add BCEs
+to force max probability for each GT class in a multi-label way
+Coef: self.cls_loss_gain</p>
+</dd>
+<dt>L_boxes:</dt><dd><p>for anchors that have suitable ground truths in their grid locations
+add (1 - IoU), IoU between a predicted box and each GT box, force maximum IoU
+Coef: self.box_loss_gain</p>
+</dd>
+<dt>L_objectness:</dt><dd><p>for each anchor add BCE to force a prediction of (1 - giou_loss_ratio) + giou_loss_ratio * IoU,
+IoU between a predicted box and random GT in it
+Coef: self.obj_loss_gain, loss from each YOLO grid is additionally multiplied by balance = [4.0, 1.0, 0.4]</p>
+<blockquote>
+<div><p>to balance different contributions coming from different numbers of grid cells</p>
+</div></blockquote>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictions</strong> – output from all Yolo levels, each of shape
+[Batch x Num_Anchors x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]</p></li>
+<li><p><strong>targets</strong> – [Num_targets x (4 + 2)], values on dim 1 are: image id in a batch, class, box x y w h</p></li>
+<li><p><strong>giou_loss_ratio</strong> – a coef in L_objectness defining what should be predicted as objecness
+in a call with a target: can be a value in [IoU, 1] range</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>loss, all losses separately in a detached tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.YoLoV5DetectionLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.YoLoV5DetectionLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.YoLoV5DetectionLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.YoLoV5DetectionLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.RSquaredLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.</span></span><span class="sig-name descname"><span class="pre">RSquaredLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size_average</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduce</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduction</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'mean'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/r_squared_loss.html#RSquaredLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.RSquaredLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.RSquaredLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/r_squared_loss.html#RSquaredLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.RSquaredLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the R-squared for the output and target values
+:param output: Tensor / Numpy / List</p>
+<blockquote>
+<div><p>The prediction</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>target</strong> – Tensor / Numpy / List
+The corresponding lables</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.RSquaredLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.RSquaredLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.RSquaredLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.RSquaredLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.training.losses.SSDLoss">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.losses.</span></span><span class="sig-name descname"><span class="pre">SSDLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dboxes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="super_gradients.training.utils.html#super_gradients.training.utils.ssd_utils.DefaultBoxes" title="super_gradients.training.utils.ssd_utils.DefaultBoxes"><span class="pre">super_gradients.training.utils.ssd_utils.DefaultBoxes</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/ssd_loss.html#SSDLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.SSDLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.loss._Loss</span></code></p>
+<p>Implements the loss as the sum of the followings:
+1. Confidence Loss: All labels, with hard negative mining
+2. Localization Loss: Only on positive labels</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.SSDLoss.match_dboxes">
+<span class="sig-name descname"><span class="pre">match_dboxes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/ssd_loss.html#SSDLoss.match_dboxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.SSDLoss.match_dboxes" title="Permalink to this definition"></a></dt>
+<dd><p>convert ground truth boxes into a tensor with the same size as dboxes. each gt bbox is matched to every
+destination box which overlaps it over 0.5 (IoU). so some gt bboxes can be duplicated to a few destination boxes
+:param targets: a tensor containing the boxes for a single image. shape [num_boxes, 5] (x,y,w,h,label)
+:return: two tensors</p>
+<blockquote>
+<div><p>boxes - shape of dboxes [4, num_dboxes] (x,y,w,h)
+labels - sahpe [num_dboxes]</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.losses.SSDLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/losses/ssd_loss.html#SSDLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.losses.SSDLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Compute the loss</dt><dd><p>:param predictions - predictions tensor coming from the network. shape [N, num_classes+4, num_dboxes]
+were the first four items are (x,y,w,h) and the rest are class confidence
+:param targets - targets for the batch. [num targets, 6] (index in batch, label, x,y,w,h)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.SSDLoss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><em class="property"><span class="pre">:</span> <span class="pre">str</span></em><a class="headerlink" href="#super_gradients.training.losses.SSDLoss.reduction" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.training.losses.SSDLoss.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#super_gradients.training.losses.SSDLoss.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -5,5 +5,5 @@ from super_gradients.training.models import ARCHITECTURES
 from super_gradients.training.sg_model import SgModel, \
     MultiGPUMode, StrictLoad
 
-__all__ = [distributed_training_utils, datasets_utils, DataAugmentation, DetectionDataSet, TestDatasetInterface,
-           ARCHITECTURES, SgModel, MultiGPUMode, TestDatasetInterface, SegmentationTestDatasetInterface, DetectionTestDatasetInterface, ClassificationTestDatasetInterface, StrictLoad]
+__all__ = ['distributed_training_utils', 'datasets_utils', 'DataAugmentation', 'DetectionDataSet', 'TestDatasetInterface',
+           'ARCHITECTURES', 'SgModel', 'MultiGPUMode', 'TestDatasetInterface', 'SegmentationTestDatasetInterface', 'DetectionTestDatasetInterface', 'ClassificationTestDatasetInterface', 'StrictLoad']
