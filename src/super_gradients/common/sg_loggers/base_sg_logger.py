@@ -1,3 +1,4 @@
+import json
 import os
 import time
 import signal
@@ -110,16 +111,11 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
-        config_string_markup = ""
         log_lines = ['--------- config parameters ----------']
-
-        for key, val in config.items():
-            config_string_markup += f'{key}: {val}  \n  '
-            log_lines.append(f'{key}: {val}')
-
+        log_lines.append(json.dumps(config, indent=4, default=str))
         log_lines.append('------- config parameters end --------')
 
-        self.tensorboard_writer.add_text("Hyper_parameters", config_string_markup)
+        self.tensorboard_writer.add_text("Hyper_parameters", json.dumps(config, indent=4, default=str).replace(" ", "&nbsp;").replace("\n", "  \n  "))
         self._write_to_log_file(log_lines)
 
     @multi_process_safe

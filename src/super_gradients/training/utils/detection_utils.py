@@ -1118,6 +1118,9 @@ class Anchors(nn.Module):
         """
         super().__init__()
 
+        self.__anchors_list = anchors_list
+        self.__strides = strides
+
         self._check_all_lists(anchors_list)
         self._check_all_len_equal_and_even(anchors_list)
 
@@ -1158,3 +1161,6 @@ class Anchors(nn.Module):
     @property
     def num_anchors(self) -> int:
         return self._anchors.shape[1]
+
+    def __repr__(self):
+        return f"anchors_list: {self.__anchors_list} strides: {self.__strides}"
