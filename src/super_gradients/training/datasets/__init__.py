@@ -17,12 +17,13 @@ from super_gradients.training.datasets.dataset_interfaces.dataset_interface impo
     TestYoloDetectionDatasetInterface, SegmentationTestDatasetInterface, DetectionTestDatasetInterface, \
     ClassificationTestDatasetInterface, ImageNetDatasetInterface
 
-__all__ = [DataAugmentation, ListDataset, DirectoryDataSet, CLASSIFICATION_DATASETS, OBJECT_DETECTION_DATASETS,
-           SEMANTIC_SEGMENTATION_DATASETS, DetectionDataSet, COCODetectionDataSet, SegmentationDataSet,
-           PascalVOC2012SegmentationDataSet,
-           PascalAUG2012SegmentationDataSet, CoCoSegmentationDataSet, TestDatasetInterface, DatasetInterface,
-           Cifar10DatasetInterface, CoCoSegmentationDatasetInterface, CoCoDetectionDatasetInterface,
-           CoCo2014DetectionDatasetInterface,
-           PascalVOC2012SegmentationDataSetInterface, PascalAUG2012SegmentationDataSetInterface,
-           TestYoloDetectionDatasetInterface, DetectionTestDatasetInterface, ClassificationTestDatasetInterface, SegmentationTestDatasetInterface,
-           ImageNetDatasetInterface]
+__all__ = ['DataAugmentation', 'ListDataset', 'DirectoryDataSet', 'CLASSIFICATION_DATASETS', 'OBJECT_DETECTION_DATASETS',
+           'SEMANTIC_SEGMENTATION_DATASETS', 'DetectionDataSet', 'COCODetectionDataSet', 'SegmentationDataSet',
+           'PascalVOC2012SegmentationDataSet',
+           'PascalAUG2012SegmentationDataSet', 'CoCoSegmentationDataSet', 'TestDatasetInterface', 'DatasetInterface',
+           'Cifar10DatasetInterface', 'CoCoSegmentationDatasetInterface', 'CoCoDetectionDatasetInterface',
+           'CoCo2014DetectionDatasetInterface',
+           'PascalVOC2012SegmentationDataSetInterface', 'PascalAUG2012SegmentationDataSetInterface',
+           'TestYoloDetectionDatasetInterface', 'DetectionTestDatasetInterface', 'ClassificationTestDatasetInterface',
+           'SegmentationTestDatasetInterface',
+           'ImageNetDatasetInterface']
