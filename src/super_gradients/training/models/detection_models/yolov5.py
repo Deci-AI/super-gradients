@@ -25,8 +25,8 @@ DEFAULT_YOLOV5_ARCH_PARAMS = {
     'depth_mult_factor': 1.0,  # depth multiplier for the entire model
     'width_mult_factor': 1.0,  # width multiplier for the entire model
     'channels_in': 3,  # # of classes the model predicts
-    'skip_connections_dict': {12: [6], 16: [4], 19: [14], 22: [10], 24: [17, 20]},
-    # A dictionary defining skip connections. format is 'target: [source1, source2, ...]'. Each item defines a skip
+    'skip_connections_list': [(12, [6]), (16, [4]), (19, [14]), (22, [10]), (24, [17, 20])],
+    # A list defining skip connections. format is '[target: [source1, source2, ...]]'. Each item defines a skip
     # connection from all sources to the target according to the layer's index (count starts from the backbone)
     'connection_layers_input_channel_size': [1024, 1024, 512],
     # default number off channels for the connecting points between the backbone and the head
@@ -224,6 +224,7 @@ class YoLoV5Base(SgModule):
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params
         self.arch_params = HpmStruct(**DEFAULT_YOLOV5_ARCH_PARAMS)
         self.arch_params.override(**arch_params.to_dict())
+        self.arch_params.skip_connections_dict = {k: v for k, v in self.arch_params.skip_connections_list}
 
         self.num_classes = self.arch_params.num_classes
         # THE MODEL'S MODULES
