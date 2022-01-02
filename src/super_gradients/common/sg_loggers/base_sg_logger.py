@@ -57,7 +57,9 @@ class BaseSGLogger(AbstractSGLogger):
             self.save_checkpoints_remote = save_checkpoints_remote
             self.save_tensorboard_remote = save_tensorboard_remote
             self.save_logs_remote = save_logs_remote
+            self.remote_storage_available = True
         else:
+            self.remote_storage_available = False
             if save_checkpoints_remote:
                 logger.error('save_checkpoints_remote == True but storage_location is not s3 path. Files will not be saved remotely')
             if save_tensorboard_remote:
@@ -203,6 +205,11 @@ class BaseSGLogger(AbstractSGLogger):
         :param global_step: Global step value to record
         """
         self.tensorboard_writer.add_figure(tag=tag, figure=figure, global_step=global_step)
+
+    @multi_process_safe
+    def add_file(self, file_name: str = None):
+        if self.remote_storage_available:
+            self.model_checkpoints_data_interface.save_remote_tensorboard_event_files(self.experiment_name, self._local_dir, file_name)
 
     @multi_process_safe
     def upload(self):
