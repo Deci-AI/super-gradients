@@ -196,7 +196,7 @@ commands:
       #      - run:
       #          name: Lint all python files changed since develop branch
       #          command: |
-      #            flake8 --statistics --config  -v --exclude venv/,docs  scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$')
+      #            flake8 --statistics --config  -v --exclude venv/,documentation  scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$')
       - run:
           command: |
             sudo apt-get update
@@ -210,12 +210,11 @@ commands:
       #      - run:
       #          name: build documentation
       #          command: |
-      #            sudo apt-get install python3-sphinx
       #            . venv/bin/activate
-      #            pip install sphinx_rtd_theme jsonschema
-      #            sphinx-build -b html docs/source docs/html
+      #            pip install -r documentation/requirements.txt
+      #            sh ./scripts/generate_docs.sh
       #      - store_artifacts:
-      #          path: docs/html
+      #          path: docs/
       - upload_package_and_edit_version:
           version: $NEW_VERSION
       - set_codeartifact_login:
