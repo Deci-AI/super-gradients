@@ -1,14 +1,3 @@
-# Yolo v5 Detection training on CoCo2017 Dataset:
-# Yolo v5s train on 320x320 mAP@0.5-0.95 (confidence 0.001, test on 320x320 images) ~28.4
-# Yolo v5s train in 640x640 mAP@0.5-0.95 (confidence 0.001, test on 320x320 images) ~29.1
-
-# Yolo v5 Detection training on CoCo2014 Dataset:
-# Yolo v5s train on 320x320 mAP@0.5-0.95 (confidence 0.001, test on 320x320 images) ~28.77
-
-# batch size may need to change depending on model size and GPU (2080Ti, V100)
-# The code is optimized for running with a Mini-Batch of 64 examples... So depending on the amount of GPUs,
-# you should change the "batch_accumulate" param in the training_params dict to be batch_size * gpu_num * batch_accumulate = 64.
-
 import super_gradients
 from super_gradients.training import SgModel, MultiGPUMode
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import \
