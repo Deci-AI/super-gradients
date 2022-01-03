@@ -5,7 +5,12 @@ from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
 from torch.optim import SGD
 from super_gradients.training.utils.callbacks import DeciLabUploadCallback, ModelConversionCheckCallback
-from deci_lab_client.models import Metric, QuantizationLevel, ModelMetadata, OptimizationRequestForm
+
+try:
+    from deci_lab_client.models import Metric, QuantizationLevel, ModelMetadata, OptimizationRequestForm
+    lab_client_imported = True
+except (ImportError, NameError, ModuleNotFoundError):
+    lab_client_imported = False
 
 
 class DeciLabUploadTest(unittest.TestCase):
@@ -17,6 +22,7 @@ class DeciLabUploadTest(unittest.TestCase):
         self.optimizer = SGD(params=net.parameters(), lr=0.1)
         self.model.build_model(net)
 
+    @unittest.skipUnless(lab_client_imported, "This test requires deci-lab-client package to be installed")
     def test_train_with_deci_lab_integration(self):
         model_meta_data = ModelMetadata(name='model_for_deci_lab_upload_test',
                                         primary_batch_size=1,

@@ -1,6 +1,6 @@
 import unittest
 
-from training.utils.utils import recursive_override
+from super_gradients.training.utils.utils import recursive_override
 
 
 class TestTrainingUtils(unittest.TestCase):
