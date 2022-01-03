@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.training.utils.segmentation_utils &mdash; SuperGradients 1.0 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>super_gradients.training.utils.segmentation_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for super_gradients.training.utils.segmentation_utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">ImageOps</span><span class="p">,</span> <span class="n">ImageFilter</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">torchvision.transforms</span> <span class="k">as</span> <span class="nn">transforms</span>
+
+<span class="c1"># FIXME: REFACTOR AUGMENTATIONS, CONSIDER USING A MORE EFFICIENT LIBRARIES SUCH AS, IMGAUG, DALI ETC.</span>
+
+<span class="n">image_resample</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">BILINEAR</span>
+<span class="n">mask_resample</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">NEAREST</span>
+
+
+<div class="viewcode-block" id="RandomFlip"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomFlip">[docs]</a><span class="k">class</span> <span class="nc">RandomFlip</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Randomly flips the image and mask (synchronously) with probability &#39;prob&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="mf">0.</span> <span class="o">&lt;=</span> <span class="n">prob</span> <span class="o">&lt;=</span> <span class="mf">1.</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Probability value must be between 0 and 1, found </span><span class="si">{</span><span class="n">prob</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prob</span> <span class="o">=</span> <span class="n">prob</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">prob</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">FLIP_LEFT_RIGHT</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">FLIP_LEFT_RIGHT</span><span class="p">)</span>
+            <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+            <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+
+        <span class="k">return</span> <span class="n">sample</span></div>
+
+
+<div class="viewcode-block" id="Rescale"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.Rescale">[docs]</a><span class="k">class</span> <span class="nc">Rescale</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Rescales the image and mask (synchronously) while preserving aspect ratio.</span>
+<span class="sd">    The rescaling can be done according to scale_factor, short_size or long_size.</span>
+<span class="sd">    If more than one argument is given, the rescaling mode is determined by this order: scale_factor, then short_size,</span>
+<span class="sd">    then long_size.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        scale_factor: rescaling is done by multiplying input size by scale_factor:</span>
+<span class="sd">            out_size = (scale_factor * w, scale_factor * h)</span>
+<span class="sd">        short_size: rescaling is done by determining the scale factor by the ratio short_size / min(h, w).</span>
+<span class="sd">        long_size: rescaling is done by determining the scale factor by the ratio long_size / max(h, w).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">scale_factor</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">short_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">long_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span> <span class="o">=</span> <span class="n">scale_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">short_size</span> <span class="o">=</span> <span class="n">short_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">long_size</span> <span class="o">=</span> <span class="n">long_size</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_valid_arguments</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+        <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">size</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">short_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">short_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">short_size</span> <span class="o">/</span> <span class="n">short_size</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">long_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">long_size</span> <span class="o">/</span> <span class="n">long_size</span>
+
+        <span class="n">out_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">w</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">h</span><span class="p">)</span>
+
+        <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="n">image_resample</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="n">mask_resample</span><span class="p">)</span>
+
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+
+        <span class="k">return</span> <span class="n">sample</span>
+
+<div class="viewcode-block" id="Rescale.check_valid_arguments"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.Rescale.check_valid_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">check_valid_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">short_size</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">long_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must assign one rescale argument: scale_factor, short_size or long_size&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Scale factor must be a positive number, found: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_factor</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">short_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">short_size</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Short size must be a positive number, found: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">short_size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">long_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">long_size</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Long size must be a positive number, found: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">long_size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="RandomRescale"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomRescale">[docs]</a><span class="k">class</span> <span class="nc">RandomRescale</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Random rescale the image and mask (synchronously) while preserving aspect ratio.</span>
+<span class="sd">    Scale factor is randomly picked between scales [min, max]</span>
+<span class="sd">    Args:</span>
+<span class="sd">        scales: scale range tuple (min, max), if scales is a float range will be defined as (1, scales) if scales &gt; 1,</span>
+<span class="sd">            otherwise (scales, 1). must be a positive number.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scales</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scales</span> <span class="o">=</span> <span class="n">scales</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_valid_arguments</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+        <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">out_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">w</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">scale</span> <span class="o">*</span> <span class="n">h</span><span class="p">)</span>
+
+        <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="n">image_resample</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">out_size</span><span class="p">,</span> <span class="n">mask_resample</span><span class="p">)</span>
+
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+
+        <span class="k">return</span> <span class="n">sample</span>
+
+<div class="viewcode-block" id="RandomRescale.check_valid_arguments"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomRescale.check_valid_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">check_valid_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check the scale values are valid. if order is wrong, flip the order and return the right scale values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scales</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scales</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scales</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RandomRescale scale values must be positive numbers, found: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scales</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">scales</span></div></div>
+
+
+<div class="viewcode-block" id="RandomRotate"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomRotate">[docs]</a><span class="k">class</span> <span class="nc">RandomRotate</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Randomly rotates image and mask (synchronously) between &#39;min_deg&#39; and &#39;max_deg&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_deg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">fill_mask</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">fill_image</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_deg</span> <span class="o">=</span> <span class="n">min_deg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_deg</span> <span class="o">=</span> <span class="n">max_deg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span> <span class="o">=</span> <span class="n">fill_mask</span>
+        <span class="c1"># grey color in RGB mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span> <span class="o">=</span> <span class="p">(</span><span class="n">fill_image</span><span class="p">,</span> <span class="n">fill_image</span><span class="p">,</span> <span class="n">fill_image</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_valid_arguments</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+
+        <span class="n">deg</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_deg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_deg</span><span class="p">)</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">deg</span><span class="p">,</span> <span class="n">resample</span><span class="o">=</span><span class="n">image_resample</span><span class="p">,</span> <span class="n">fillcolor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">deg</span><span class="p">,</span> <span class="n">resample</span><span class="o">=</span><span class="n">mask_resample</span><span class="p">,</span> <span class="n">fillcolor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span><span class="p">)</span>
+
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+
+        <span class="k">return</span> <span class="n">sample</span>
+
+<div class="viewcode-block" id="RandomRotate.check_valid_arguments"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomRotate.check_valid_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">check_valid_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span> <span class="o">=</span> <span class="n">_validate_fill_values_arguments</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="CropImageAndMask"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.CropImageAndMask">[docs]</a><span class="k">class</span> <span class="nc">CropImageAndMask</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Crops image and mask (synchronously).</span>
+<span class="sd">    In &quot;center&quot; mode a center crop is performed while, in &quot;random&quot; mode the drop will be positioned around</span>
+<span class="sd">     random coordinates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">crop_size</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">],</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        :param crop_size: tuple of (width, height) for the final crop size, if is scalar size is a</span>
+<span class="sd">            square (crop_size, crop_size)</span>
+<span class="sd">        :param mode: how to choose the center of the crop, &#39;center&#39; for the center of the input image,</span>
+<span class="sd">            &#39;random&#39; center the point is chosen randomally</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span> <span class="o">=</span> <span class="n">crop_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_valid_arguments</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+
+        <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">size</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;random&quot;</span><span class="p">:</span>
+            <span class="n">x1</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">w</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">y1</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">h</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">((</span><span class="n">w</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span>
+            <span class="n">y1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">((</span><span class="n">h</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span>
+
+        <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">crop</span><span class="p">((</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">crop</span><span class="p">((</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+
+        <span class="k">return</span> <span class="n">sample</span>
+
+<div class="viewcode-block" id="CropImageAndMask.check_valid_arguments"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.CropImageAndMask.check_valid_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">check_valid_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported mode: found: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">}</span><span class="s2">, expected: &#39;center&#39; or &#39;random&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Crop size must be positive numbers, found: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="RandomGaussianBlur"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomGaussianBlur">[docs]</a><span class="k">class</span> <span class="nc">RandomGaussianBlur</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adds random Gaussian Blur to image with probability &#39;prob&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="mf">0.</span> <span class="o">&lt;=</span> <span class="n">prob</span> <span class="o">&lt;=</span> <span class="mf">1.</span><span class="p">,</span> <span class="s2">&quot;Probability value must be between 0 and 1&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prob</span> <span class="o">=</span> <span class="n">prob</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">prob</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ImageFilter</span><span class="o">.</span><span class="n">GaussianBlur</span><span class="p">(</span>
+                <span class="n">radius</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()))</span>
+
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+
+        <span class="k">return</span> <span class="n">sample</span></div>
+
+
+<div class="viewcode-block" id="PadShortToCropSize"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.PadShortToCropSize">[docs]</a><span class="k">class</span> <span class="nc">PadShortToCropSize</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pads image to &#39;crop_size&#39;.</span>
+<span class="sd">    Should be called only after &quot;Rescale&quot; or &quot;RandomRescale&quot; in augmentations pipeline.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">crop_size</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">],</span> <span class="n">fill_mask</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">fill_image</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param crop_size: tuple of (width, height) for the final crop size, if is scalar size is a</span>
+<span class="sd">            square (crop_size, crop_size)</span>
+<span class="sd">        :param fill_mask: value to fill mask labels background.</span>
+<span class="sd">        :param fill_image: grey value to fill image padded background.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># CHECK IF CROP SIZE IS A ITERABLE OR SCALAR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span> <span class="o">=</span> <span class="n">crop_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span> <span class="o">=</span> <span class="n">fill_mask</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span> <span class="o">=</span> <span class="n">fill_image</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_valid_arguments</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+        <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="c1"># pad images from center symmetrically</span>
+        <span class="k">if</span> <span class="n">w</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">h</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">padh</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">h</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="n">pad_top</span><span class="p">,</span> <span class="n">pad_bottom</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">padh</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">padh</span><span class="p">)</span>
+            <span class="n">padw</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">w</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">w</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="n">pad_left</span><span class="p">,</span> <span class="n">pad_right</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">padw</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">padw</span><span class="p">)</span>
+
+            <span class="n">image</span> <span class="o">=</span> <span class="n">ImageOps</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="p">(</span><span class="n">pad_left</span><span class="p">,</span> <span class="n">pad_top</span><span class="p">,</span> <span class="n">pad_right</span><span class="p">,</span> <span class="n">pad_bottom</span><span class="p">),</span> <span class="n">fill</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">ImageOps</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="p">(</span><span class="n">pad_left</span><span class="p">,</span> <span class="n">pad_top</span><span class="p">,</span> <span class="n">pad_right</span><span class="p">,</span> <span class="n">pad_bottom</span><span class="p">),</span> <span class="n">fill</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span><span class="p">)</span>
+
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+
+        <span class="k">return</span> <span class="n">sample</span>
+
+<div class="viewcode-block" id="PadShortToCropSize.check_valid_arguments"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.PadShortToCropSize.check_valid_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">check_valid_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Crop size must be positive numbers, found: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span> <span class="o">=</span> <span class="n">_validate_fill_values_arguments</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ColorJitterSeg"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.ColorJitterSeg">[docs]</a><span class="k">class</span> <span class="nc">ColorJitterSeg</span><span class="p">(</span><span class="n">transforms</span><span class="o">.</span><span class="n">ColorJitter</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ColorJitterSeg</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">sample</span></div>
+
+
+<span class="k">def</span> <span class="nf">_validate_fill_values_arguments</span><span class="p">(</span><span class="n">fill_mask</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">fill_image</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">]):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fill_image</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">):</span>
+        <span class="c1"># If fill_image is single value, turn to grey color in RGB mode.</span>
+        <span class="n">fill_image</span> <span class="o">=</span> <span class="p">(</span><span class="n">fill_image</span><span class="p">,</span> <span class="n">fill_image</span><span class="p">,</span> <span class="n">fill_image</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fill_image</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;fill_image must be an RGB tuple of size equal to 3, found: </span><span class="si">{</span><span class="n">fill_image</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># assert values are integers</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fill_mask</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fill_image</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fill value must be integers,&quot;</span>
+                         <span class="sa">f</span><span class="s2">&quot; found: fill_image = </span><span class="si">{</span><span class="n">fill_image</span><span class="si">}</span><span class="s2">, fill_mask = </span><span class="si">{</span><span class="n">fill_mask</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># assert values in range 0-255</span>
+    <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">fill_image</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">max</span><span class="p">(</span><span class="n">fill_image</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">255</span> <span class="ow">or</span> <span class="n">fill_mask</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">fill_mask</span> <span class="o">&gt;</span> <span class="mi">255</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fill value must be a value from 0 to 255,&quot;</span>
+                         <span class="sa">f</span><span class="s2">&quot; found: fill_image = </span><span class="si">{</span><span class="n">fill_image</span><span class="si">}</span><span class="s2">, fill_mask = </span><span class="si">{</span><span class="n">fill_mask</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fill_mask</span><span class="p">,</span> <span class="n">fill_image</span>
+
+
+<div class="viewcode-block" id="coco_sub_classes_inclusion_tuples_list"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list">[docs]</a><span class="k">def</span> <span class="nf">coco_sub_classes_inclusion_tuples_list</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;background&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;airplane&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;bicycle&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="s1">&#39;bird&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="s1">&#39;boat&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">44</span><span class="p">,</span> <span class="s1">&#39;bottle&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;bus&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;car&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="s1">&#39;cat&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">62</span><span class="p">,</span> <span class="s1">&#39;chair&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">21</span><span class="p">,</span> <span class="s1">&#39;cow&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">67</span><span class="p">,</span> <span class="s1">&#39;dining table&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="s1">&#39;dog&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">19</span><span class="p">,</span> <span class="s1">&#39;horse&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;motorcycle&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;person&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="s1">&#39;potted plant&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;sheep&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;couch&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;tv&#39;</span><span class="p">)]</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

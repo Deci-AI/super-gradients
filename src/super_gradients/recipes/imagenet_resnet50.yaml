@@ -31,14 +31,10 @@ load_checkpoint: False
 
 experiment_name: resnet50_imagenet
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DP'
-
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
-  multi_gpu: ${multi_gpu}
   model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: DP
 
 architecture: resnet50

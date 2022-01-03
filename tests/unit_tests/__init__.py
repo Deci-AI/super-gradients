@@ -20,7 +20,7 @@ from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTes
 from tests.unit_tests.conv_bn_relu_test import TestConvBnRelu
 
 
-__all__ = [TestExternalDatasetInterface, TestDatasetInterface, ZeroWdForBnBiasTest, SaveCkptListUnitTest,
-           TestYoloV5, AllArchitecturesTest, TestAverageMeter, TestModuleUtils, TestRepVgg, TestWithoutTrainTest,
-           LoadCheckpointFromDirectPathTest, StrictLoadEnumTest, TrainWithInitializedObjectsTest, TestAutoAugment,
-           OhemLossTest, EarlyStopTest, SegmentationTransformsTest, PretrainedModelsUnitTest, TestConvBnRelu]
+__all__ = ['TestExternalDatasetInterface', 'TestDatasetInterface', 'ZeroWdForBnBiasTest', 'SaveCkptListUnitTest',
+           'TestYoloV5', 'AllArchitecturesTest', 'TestAverageMeter', 'TestModuleUtils', 'TestRepVgg', 'TestWithoutTrainTest',
+           'LoadCheckpointFromDirectPathTest', 'StrictLoadEnumTest', 'TrainWithInitializedObjectsTest', 'TestAutoAugment',
+           'OhemLossTest', 'EarlyStopTest', 'SegmentationTransformsTest', 'PretrainedModelsUnitTest', 'TestConvBnRelu']
