@@ -20,7 +20,6 @@ from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
 from torch.utils.data import ConcatDataset
-from pathlib import Path
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
 LIBRARY_DATASETS = {
@@ -494,7 +493,6 @@ class ClassificationDatasetInterface(DatasetInterface):
         self.normalization_std = normalization_std
 
 
-
 class PascalVOC2012SegmentationDataSetInterface(DatasetInterface):
     def __init__(self, dataset_params=None, cache_labels=False, cache_images=False):
         if dataset_params is None:
@@ -789,4 +787,3 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
         self.trainset.collate_fn = train_collate_fn
         self.valset = testset2007
         self.trainset.classes = self.classes
-

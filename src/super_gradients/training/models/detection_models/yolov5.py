@@ -195,7 +195,6 @@ class YoLoV5Head(nn.Module):
         self.width_mult = width_mult
         self.anchors = anchors
 
-
     def forward(self, intermediate_output):
         """
         :param intermediate_output: A list of the intermediate prediction of layers specified in the
@@ -355,7 +354,6 @@ class YoLoV5Base(SgModule):
                 weight_decay_param_group.append((name, m.weight))
             elif name == '_head.anchors':
                 deprecated_params_total += m.stride.numel() + m._anchors.numel() + m._anchor_grid.numel()
-
 
         # EXTRACT weight_decay FROM THE optimizer_params IN ORDER TO ASSIGN THEM MANUALLY
         weight_decay = optimizer_params.pop('weight_decay') if 'weight_decay' in optimizer_params.keys() else 0
