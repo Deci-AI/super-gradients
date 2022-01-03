@@ -930,15 +930,15 @@ class SgModel:
                 if torch.distributed.is_initialized():
                     torch.distributed.destroy_process_group()
 
+            # PHASE.TRAIN_END
+            self.phase_callback_handler(Phase.POST_TRAINING, context)
+
             if not self.ddp_silent_mode:
                 if self.model_checkpoints_location != 'local':
                     logger.info('[CLEANUP] - Saving Checkpoint files')
                     self.sg_logger.upload()
 
                 self.sg_logger.close()
-
-            # PHASE.TRAIN_END
-            self.phase_callback_handler(Phase.POST_TRAINING, context)
 
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
         # SCALER IS ALWAYS INITIALIZED BUT IS DISABLED IF MIXED PRECISION WAS NOT SET
