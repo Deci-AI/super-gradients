@@ -1,7 +1,51 @@
+import itertools
+from contextlib import contextmanager
 import torch
 from torch.cuda.amp import autocast
 import torch.nn as nn
-import itertools
+
+
+@contextmanager
+def run_once(timeout=None, group=None):
+    """
+    This context manager should be used to wrap code that should run only on rank-0.
+
+    In addition to checking the rank, this method correctly implements a barrier with an optional timeout to make sure rank-0 finishes it's job
+        before continuing.
+
+    :param timeout: optional timeout in seconds for the secondary processes to wait for rank-0 to finish it's job.
+    :enter should_run: if True, the process entering the context manager is the one that should do the work.
+
+    Note: since python's context-manager protocol doesn't allow for "optionally yielding" (entering the context), we must enter with a boolean value
+        indicating whether the process should do any work, and can't implement this "if" inside run_once.
+
+    Example:
+    ```
+    with run_once() as should_run:
+        if should_run:
+            do_work()
+
+    @run_once()
+    def this_works_as_well(should_run):
+        if not should_run:
+            return
+        do_work()
+    ```
+    """
+    # NOT DDP - WE NEED TO RUN THE JOB, BUT DON'T NEED TO SYNC
+    if not torch.distributed.is_initialized():
+        should_run = True
+        should_sync = False
+
+    # DDP - RUN ONLY ON RANK 0 AND SYNC
+    else:
+        should_run = (torch.distributed.get_rank() == 0)
+        should_sync = True
+
+    yield should_run
+
+    if should_sync:
+        torch.distributed.monitored_barrier(group=group, timeout=timeout)
 
 
 def distributed_all_reduce_tensor_average(tensor, n):
