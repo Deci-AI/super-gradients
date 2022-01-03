@@ -2,11 +2,9 @@ import os
 import unittest
 
 from super_gradients.training import SgModel, utils as core_utils
-from super_gradients.training.datasets import CoCoDetectionDatasetInterface
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn, DetectionVisualization
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOC2UnifiedDetectionDataSetInterface
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDataSetInterface
 
 class TestDetectionUtils(unittest.TestCase):
     def test_visualization(self):
@@ -17,8 +15,8 @@ class TestDetectionUtils(unittest.TestCase):
             'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train',
             'tvmonitor'
         ]
-        dataset_params = {"batch_size": 48,
-                          "val_batch_size": 48,
+        dataset_params = {"batch_size": 5,
+                          "val_batch_size": 5,
                           "train_image_size": 512,
                           "val_image_size": 512,
                           "val_collate_fn": base_detection_collate_fn,
@@ -40,9 +38,9 @@ class TestDetectionUtils(unittest.TestCase):
         model = SgModel("yolov5m_pascal_finetune_viz_2007",
                         post_prediction_callback=YoloV5PostPredictionCallback())
 
-        dataset = PascalVOC2UnifiedDetectionDataSetInterface(dataset_params=dataset_params)
+        dataset = PascalVOCUnifiedDetectionDataSetInterface(dataset_params=dataset_params, cache_labels=True)
         model.connect_dataset_interface(dataset, data_loader_num_workers=20)
-        model.build_model("yolo_v5m", arch_params={"pretrained_weights": "coco"})
+        model.build_model("yolo_v5s", arch_params={"pretrained_weights": "coco"})
 
         post_prediction_callback = YoloV5PostPredictionCallback()
 

@@ -413,9 +413,9 @@ class YoLoV5Base(SgModule):
             new_last_layer = Detect(new_num_classes, self._head.anchors, channels=[self._head.width_mult(v) for v in (256, 512, 1024)])
             new_last_layer = new_last_layer.to(next(self.parameters()).device)
             self._head._modules_list[-1] = new_last_layer
-            # self._check_strides_and_anchors()
-            # self._initialize_biases()
-            # self._initialize_weights()
+            self._check_strides_and_anchors()
+            self._initialize_biases()
+            self._initialize_weights()
 
 
 class Custom_YoLoV5(YoLoV5Base):

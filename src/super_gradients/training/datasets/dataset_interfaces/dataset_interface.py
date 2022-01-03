@@ -19,9 +19,7 @@ from super_gradients.training.utils.detection_utils import base_detection_collat
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
-from torchvision.datasets.voc import VOCDetection
 from torch.utils.data import ConcatDataset
-
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
 LIBRARY_DATASETS = {
@@ -355,7 +353,8 @@ class ClassificationTestDatasetInterface(TestDatasetInterface):
     def __init__(self, dataset_params={}, image_size=32, batch_size=5, classes=None):
         trainset = torch.utils.data.TensorDataset(torch.Tensor(np.zeros((batch_size, 3, image_size, image_size))),
                                                   torch.LongTensor(np.zeros((batch_size))))
-        super(ClassificationTestDatasetInterface, self).__init__(trainset=trainset, dataset_params=dataset_params, classes=classes)
+        super(ClassificationTestDatasetInterface, self).__init__(trainset=trainset, dataset_params=dataset_params,
+                                                                 classes=classes)
 
 
 class SegmentationTestDatasetInterface(TestDatasetInterface):
@@ -493,58 +492,6 @@ class ClassificationDatasetInterface(DatasetInterface):
         self.normalization_mean = normalization_mean
         self.normalization_std = normalization_std
 
-
-class PascalVOC2012DetectionDataSetInterface(DatasetInterface):
-    def __init__(self, dataset_params=None, cache_labels=False, cache_images=False):
-        if dataset_params is None:
-            dataset_params = dict()
-        super().__init__(dataset_params=dataset_params)
-
-        self.root_dir = core_utils.get_param(dataset_params, 'dataset_dir', '/home/shay.aharon/data/pascal_unified/images/VOCdevkit/VOC2007/')
-
-        default_hyper_params = {
-            'hsv_h': 0.0138,  # IMAGE HSV-Hue AUGMENTATION (fraction)
-            'hsv_s': 0.664,  # IMAGE HSV-Saturation AUGMENTATION (fraction)
-            'hsv_v': 0.464,  # IMAGE HSV-Value AUGMENTATION (fraction)
-            'degrees': 0.373,  # IMAGE ROTATION (+/- deg)
-            'translate': 0.245,  # IMAGE TRANSLATION (+/- fraction)
-            'scale': 0.898,  # IMAGE SCALE (+/- gain)
-            'shear': 0.602}  # IMAGE SHEAR (+/- deg)
-
-        self.pascal_voc_dataset_hyper_params = core_utils.get_param(self.dataset_params, 'dataset_hyper_param',
-                                                                    default_val=default_hyper_params)
-        train_sample_method = core_utils.get_param(self.dataset_params, 'train_sample_loading_method',
-                                                   default_val='mosaic')
-        val_sample_method = core_utils.get_param(self.dataset_params, 'val_sample_loading_method',
-                                                 default_val='rectangular')
-        train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn')
-        val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn')
-
-        self.trainset = PascalVOCDetectionDataSet(root=self.root_dir,
-                                                  list_file='ImageSets/Main/train.txt',
-                                                  samples_sub_directory='JPEGImages',
-                                                  targets_sub_directory='Annotations',
-                                                  dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
-                                                  batch_size=self.dataset_params.batch_size,
-                                                  img_size=self.dataset_params.train_image_size,
-                                                  collate_fn=train_collate_fn,
-                                                  augment=True,
-                                                  sample_loading_method=train_sample_method,
-                                                  cache_labels=cache_labels,
-                                                  cache_images=cache_images)
-
-        self.valset = PascalVOCDetectionDataSet(root=self.root_dir,
-                                                list_file='ImageSets/Main/test.txt',
-                                                samples_sub_directory='JPEGImages',
-                                                targets_sub_directory='Annotations',
-                                                dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
-                                                batch_size=self.dataset_params.val_batch_size,
-                                                img_size=self.dataset_params.val_image_size,
-                                                collate_fn=val_collate_fn,
-                                                sample_loading_method=val_sample_method,
-                                                cache_labels=cache_labels,
-                                                cache_images=cache_images)
-        self.classes = self.trainset.classes
 
 
 class PascalVOC2012SegmentationDataSetInterface(DatasetInterface):
@@ -747,16 +694,11 @@ class CityscapesDatasetInterface(DatasetInterface):
         self.classes = self.trainset.classes
 
 
-class PascalVOC2UnifiedDetectionDataSetInterface(DatasetInterface):
+class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
     def __init__(self, dataset_params=None, cache_labels=False, cache_images=False):
         if dataset_params is None:
             dataset_params = dict()
         super().__init__(dataset_params=dataset_params)
-
-        root_dir_2012 = core_utils.get_param(dataset_params, 'dataset_dir',
-                                        '/home/shay.aharon/data/pascal_unified/images/VOCdevkit/VOC2012/')
-        root_dir_2007 = core_utils.get_param(dataset_params, 'dataset_dir',
-                                        '/home/shay.aharon/data/pascal_unified/images/VOCdevkit/VOC2007/')
 
         default_hyper_params = {
             'hsv_h': 0.0138,  # IMAGE HSV-Hue AUGMENTATION (fraction)
@@ -776,47 +718,77 @@ class PascalVOC2UnifiedDetectionDataSetInterface(DatasetInterface):
         train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn')
         val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn')
 
-        trainvalset2012 = PascalVOCDetectionDataSet(root=root_dir_2012,
-                                                    list_file='ImageSets/Main/trainval.txt',
-                                                    samples_sub_directory='JPEGImages',
-                                                    targets_sub_directory='Annotations',
-                                                    dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
-                                                    batch_size=self.dataset_params.batch_size,
-                                                    img_size=self.dataset_params.train_image_size,
-                                                    collate_fn=train_collate_fn,
-                                                    augment=True,
-                                                    sample_loading_method=train_sample_method,
-                                                    cache_labels=cache_labels,
-                                                    cache_images=cache_images)
+        trainset2007 = PascalVOCDetectionDataSet(root="~/data/pascal_unified_coco_format/",
+                                                 list_file='images/VOCdevkit/VOC2007/ImageSets/Main/train.txt',
+                                                 samples_sub_directory='images/train2007/',
+                                                 targets_sub_directory='labels/train2007',
+                                                 dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
+                                                 batch_size=self.dataset_params.batch_size,
+                                                 img_size=self.dataset_params.train_image_size,
+                                                 collate_fn=train_collate_fn,
+                                                 sample_loading_method=train_sample_method,
+                                                 cache_labels=cache_labels,
+                                                 cache_images=cache_images,
+                                                 augment=True)
 
-        trainvalset2007 = PascalVOCDetectionDataSet(root=root_dir_2007,
-                                                    list_file='ImageSets/Main/trainval.txt',
-                                                    samples_sub_directory='JPEGImages',
-                                                    targets_sub_directory='Annotations',
-                                                    dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
-                                                    batch_size=self.dataset_params.batch_size,
-                                                    img_size=self.dataset_params.train_image_size,
-                                                    collate_fn=train_collate_fn,
-                                                    augment=True,
-                                                    sample_loading_method=train_sample_method,
-                                                    cache_labels=cache_labels,
-                                                    cache_images=cache_images)
+        valset2007 = PascalVOCDetectionDataSet(root="~/data/pascal_unified_coco_format/",
+                                               list_file='images/VOCdevkit/VOC2007/ImageSets/Main/val.txt',
+                                               samples_sub_directory='images/val2007/',
+                                               targets_sub_directory='labels/val2007',
+                                               dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
+                                               batch_size=self.dataset_params.batch_size,
+                                               img_size=self.dataset_params.train_image_size,
+                                               collate_fn=train_collate_fn,
+                                               sample_loading_method=train_sample_method,
+                                               cache_labels=cache_labels,
+                                               cache_images=cache_images,
+                                               augment=True)
 
+        trainset2012 = PascalVOCDetectionDataSet(root="~/data/pascal_unified_coco_format/",
+                                                 list_file='images/VOCdevkit/VOC2012/ImageSets/Main/train.txt',
+                                                 samples_sub_directory='images/train2012/',
+                                                 targets_sub_directory='labels/train2012',
+                                                 dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
+                                                 batch_size=self.dataset_params.batch_size,
+                                                 img_size=self.dataset_params.train_image_size,
+                                                 collate_fn=train_collate_fn,
+                                                 sample_loading_method=train_sample_method,
+                                                 cache_labels=cache_labels,
+                                                 cache_images=cache_images,
+                                                 augment=True)
 
-        self.trainset = torch.utils.data.ConcatDataset([trainvalset2007, trainvalset2012])
-        self.trainset.collate_fn = train_collate_fn
+        valset2012 = PascalVOCDetectionDataSet(root="~/data/pascal_unified_coco_format/",
+                                               list_file='images/VOCdevkit/VOC2012/ImageSets/Main/val.txt',
+                                               samples_sub_directory='images/val2012/',
+                                               targets_sub_directory='labels/val2012',
+                                               dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
+                                               batch_size=self.dataset_params.batch_size,
+                                               img_size=self.dataset_params.train_image_size,
+                                               collate_fn=train_collate_fn,
+                                               sample_loading_method=train_sample_method,
+                                               cache_labels=cache_labels,
+                                               cache_images=cache_images,
+                                               augment=True)
 
-        self.valset = PascalVOCDetectionDataSet(root=root_dir_2012,
-                                                list_file='ImageSets/Main/trainval.txt',
-                                                samples_sub_directory='JPEGImages',
-                                                targets_sub_directory='Annotations',
+        testset2007 = PascalVOCDetectionDataSet(root="~/data/pascal_unified_coco_format/",
+                                                list_file='images/VOCdevkit/VOC2007/ImageSets/Main/test.txt',
+                                                samples_sub_directory='images/test2007/',
+                                                targets_sub_directory='labels/test2007',
                                                 dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
                                                 batch_size=self.dataset_params.val_batch_size,
                                                 img_size=self.dataset_params.val_image_size,
                                                 collate_fn=val_collate_fn,
                                                 sample_loading_method=val_sample_method,
                                                 cache_labels=cache_labels,
-                                                cache_images=cache_images)
+                                                cache_images=cache_images,
+                                                augment=False)
 
-        self.classes = self.valset.classes
-        self.trainset.classes = self.valset.classes
+
+
+
+
+        self.classes = trainset2012.classes
+        self.trainset = ConcatDataset([trainset2007, valset2007, trainset2012, valset2012])
+        self.trainset.collate_fn = train_collate_fn
+        self.valset = testset2007
+        self.trainset.classes = self.classes
