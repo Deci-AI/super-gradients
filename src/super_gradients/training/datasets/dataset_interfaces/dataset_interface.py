@@ -16,6 +16,7 @@ from super_gradients.training import utils as core_utils
 from super_gradients.common import DatasetDataInterface
 from super_gradients.common.environment import AWS_ENV_NAME
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
+from super_gradients.training.utils.distributed_training_utils import run_once
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients. training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
@@ -75,13 +76,18 @@ class DatasetInterface:
             self.download_from_cloud()
 
     def download_from_cloud(self):
-        if self.dataset_params.s3_link is not None:
-            env_name = AWS_ENV_NAME
-            downloader = DatasetDataInterface(env=env_name)
-            target_dir = self.dataset_params.dataset_dir
-            if not os.path.exists(target_dir):
-                os.mkdir(target_dir)
-            downloader.load_remote_dataset_file(self.dataset_params.s3_link, target_dir)
+        if self.dataset_params.s3_link is None:
+            return
+
+        # IF WE'RE RUNNING IN DDP, WE SHOULD ONLY DO THIS IN RANK 0
+        with run_once() as should_run:
+            if should_run:
+                env_name = AWS_ENV_NAME
+                downloader = DatasetDataInterface(env=env_name)
+                target_dir = self.dataset_params.dataset_dir
+                if not os.path.exists(target_dir):
+                    os.mkdir(target_dir)
+                downloader.load_remote_dataset_file(self.dataset_params.s3_link, target_dir)
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
