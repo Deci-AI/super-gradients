@@ -4,6 +4,8 @@ import collections
 from typing import Optional, Union, Tuple, List
 import math
 import torchvision.transforms as transforms
+import torch
+import torch.nn.functional as F
 
 # FIXME: REFACTOR AUGMENTATIONS, CONSIDER USING A MORE EFFICIENT LIBRARIES SUCH AS, IMGAUG, DALI ETC.
 
@@ -321,3 +323,22 @@ def coco_sub_classes_inclusion_tuples_list():
             (1, 'person'),
             (64, 'potted plant'), (20, 'sheep'), (63, 'couch'), (7, 'train'),
             (72, 'tv')]
+
+
+def to_one_hot(target: torch.Tensor, num_classes: int, ignore_index: int = None):
+    """
+    Target label to one_hot tensor. labels and ignore_index must be consecutive numbers.
+    :param target: Class labels long tensor, with shape [N, H, W]
+    :param num_classes: num of classes in datasets excluding ignore label, this is the output channels of the one hot
+        result.
+    :return: one hot tensor with shape [N, num_classes, H, W]
+    """
+    num_classes = num_classes if ignore_index is None else num_classes + 1
+
+    one_hot = F.one_hot(target, num_classes).permute((0, 3, 1, 2))
+
+    if ignore_index is not None:
+        # remove ignore_index channel
+        one_hot = torch.cat([one_hot[:, :ignore_index], one_hot[:, ignore_index + 1:]], dim=1)
+
+    return one_hot
