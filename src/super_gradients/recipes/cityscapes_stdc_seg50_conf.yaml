@@ -1,0 +1,36 @@
+defaults:
+  - training_hyperparams: cityscapes_stdc_train_params
+  - dataset_params: cityscapes_dataset_params
+
+arch_params:
+  num_classes: 19
+  use_aux_heads: True
+  sync_bn: True
+
+dataset_params:
+  batch_size: 8
+  val_batch_size: 8
+  color_jitter: 0.5
+  random_scales: [0.125, 1.5]
+  crop_size: [1024, 512]
+  eval_scale: 0.5
+
+data_loader_num_workers: 10
+
+model_checkpoints_location: local
+load_checkpoint: False
+load_backbone: True
+external_checkpoint_path:
+
+experiment_name: stdc1_seg50_cityscapes
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: 'DDP'
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  multi_gpu: ${multi_gpu}
+
+architecture: stdc1_seg

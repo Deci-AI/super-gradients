@@ -1,0 +1,11 @@
+defaults:
+  - cityscapes_stdc_seg50_conf
+
+dataset_params:
+  batch_size: 4
+  val_batch_size: 4
+  crop_size: [1536, 768]
+  eval_scale: 0.75
+
+training_hyperparams:
+  initial_lr: 0.005
