@@ -537,6 +537,48 @@ jobs:
           tag: $CIRCLE_TAG
           notes: "This GitHub Release was done automatically by CircleCI"
 
+  upload_to_pypi:
+    docker:
+      - image: cimg/python:3.7.8
+    parameters:
+      package_name:
+        type: string
+      sleep:
+        type: string
+        default: "0"
+    steps:
+      - checkout_and_skip_build
+      - run:
+          command: |
+            sudo apt-get update
+            pip install --user awscli twine
+            sleep << parameters.sleep >>
+      - run_on_aws_account:
+          aws_role: $AWS_PROD_ROLE
+          command: |
+            export LATEST_VERSION_ON_AWS="$(aws codeartifact list-package-versions  --domain deci-packages --repository \
+                    deci-packages --package << parameters.package_name >> --domain-owner ${AWS_PROD_ACCOUNT_ID} \
+                      --query versions[0].version --sort-by  PUBLISHED_TIME  --format pypi --output text)"
+            echo "Will attempt to upload $LATEST_VERSION_ON_AWS to pypi"
+
+            assets=$(aws codeartifact list-package-version-assets  --domain deci-packages --repository deci-packages \
+                      --package << parameters.package_name >>  --format pypi --package-version $LATEST_VERSION_ON_AWS \
+                  --domain-owner ${AWS_PROD_ACCOUNT_ID} --query assets[*].name --output text)
+            echo "assets: $assets "
+            for ass in $assets;
+            do
+              echo "working on $ass"
+              aws codeartifact get-package-version-asset --repository deci-packages --domain deci-packages --domain-owner  ${AWS_PROD_ACCOUNT_ID} --package << parameters.package_name >> --package-version $LATEST_VERSION_ON_AWS --format pypi --asset "${ass}" "${ass}"
+            done
+
+            for ass in $assets
+            do
+                echo "***  \n regular upload of $ass  \n ***"
+                python -m twine upload --repository-url "https://upload.pypi.org/legacy/" -u __token__ -p ${PYPI_TOKEN} "${ass}"
+            done
+
+            # it's funny because it's gas
+
 
   release_version_from_rc:
     docker:
@@ -678,6 +720,15 @@ workflows:
           py_version: "3.7"
           requires:
             - "build3.7"
+          <<: *release_tag_filter
+      - upload_to_pypi:
+          package_name: "super-gradients"
+          name: upload_<< package_name >>_to_pypi
+          sleep: "60"
+          requires:
+            - "release_version"
+          context:
+            - pypi-public
           <<: *release_tag_filter
 
   build_and_deploy:
