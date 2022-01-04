@@ -253,18 +253,20 @@ class LRCallbackBase(PhaseCallback):
 
 class WarmupLRCallback(LRCallbackBase):
     """
-    LR scheduling callback for lr warmup.
-
-    At each update
+    LR scheduling callback for linear step warmup.
+    LR climbs from warmup_initial_lr with even steps to initial lr. When warmup_initial_lr is None- LR climb starts from
+     1/(1+warmup_epochs).
 
     """
 
     def __init__(self, **kwargs):
         super(WarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
+        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
+        self.warmup_step_size = (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs
 
     def __call__(self, context: PhaseContext):
         if self.training_params.lr_warmup_epochs >= context.epoch:
-            self.lr = self.initial_lr * (context.epoch + 1) / (self.training_params.lr_warmup_epochs + 1)
+            self.lr = self.warmup_initial_lr + context.epoch * self.warmup_steps
             self.update_lr(context.optimizer, context.epoch, None)
 
 
