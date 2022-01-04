@@ -1,6 +1,7 @@
 from super_gradients.training.utils import HpmStruct
 
 DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
+                           "warmup_initial_lr": None,
                            "cosine_final_lr_ratio": 0.01,
                            "optimizer": "SGD",
                            "criterion_params": {},
@@ -42,7 +43,8 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                                 "save_checkpoints_remote": False,  # upload checkpoint files to s3
                                 "save_tensorboard_remote": False,  # upload tensorboard files to s3
                                 "save_logs_remote": False},  # upload log files to s3
-                           "warmup_mode": "linear_step"
+                           "warmup_mode": "linear_step",
+                           "step_lr_update_freq": None
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}
