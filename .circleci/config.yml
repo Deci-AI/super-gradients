@@ -83,7 +83,7 @@ commands:
           command: |
             cd << parameters.directory_to_cd_into >>
             gh release create << parameters.tag >> --notes "<< parameters.notes >>"
-            gh auth logout
+            #gh auth logout
 
   tag_as:
     description: "tag as a certain name"
