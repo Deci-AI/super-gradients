@@ -48,6 +48,7 @@ Comments:
 import super_gradients
 from omegaconf import DictConfig
 import hydra
+import pkg_resources
 from super_gradients.training import StrictLoad
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CityscapesDatasetInterface
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CITYSCAPES_IGNORE_LABEL
@@ -58,7 +59,7 @@ from super_gradients.training.losses.stdc_loss import STDCLoss
 from super_gradients.training.metrics.segmentation_metrics import IoU, PixelAccuracy
 
 
-@hydra.main(config_path="../deci2_recipes", config_name="cityscapes_stdc_seg50_conf")
+@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name= "cityscapes_stdc_seg50")
 def train(cfg: DictConfig) -> None:
     # INSTANTIATE ALL OBJECTS IN CFG
     cfg = hydra.utils.instantiate(cfg)

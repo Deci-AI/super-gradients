@@ -1,5 +1,5 @@
 defaults:
-  - cityscapes_stdc_seg50_conf
+  - cityscapes_stdc_seg50
 
 dataset_params:
   batch_size: 4

@@ -22,15 +22,12 @@ load_checkpoint: False
 load_backbone: True
 external_checkpoint_path:
 
-experiment_name: stdc1_seg50_cityscapes
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
+experiment_name: stdc1_seg50_cityscapes
 
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
-  multi_gpu: ${multi_gpu}
+  multi_gpu: DDP
 
 architecture: stdc1_seg
