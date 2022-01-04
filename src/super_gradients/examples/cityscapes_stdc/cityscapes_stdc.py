@@ -2,8 +2,14 @@
 STDC segmentation training example with Cityscapes dataset.
 Reproduction and refinement of paper: Rethinking BiSeNet For Real-time Semantic Segmentation.
 
-Usage:
-    python -m torch.distributed.launch --nproc_per_node=4 cityscapes_stdc_example.py experiment_name=<experiment-name> external_checkpoint_path=<pretrained-path>
+Usage STDC1-Seg50:
+    python -m torch.distributed.launch --nproc_per_node=4 cityscapes_stdc.py experiment_name=<experiment-name> external_checkpoint_path=<pretrained-path>
+Usage STDC1-Seg75:
+    python -m torch.distributed.launch --nproc_per_node=4 cityscapes_stdc.py --config-name cityscapes_stdc_seg75_conf experiment_name=<experiment-name> external_checkpoint_path=<pretrained-path>
+Usage STDC2-Seg50:
+    python -m torch.distributed.launch --nproc_per_node=4 cityscapes_stdc.py experiment_name=<experiment-name> external_checkpoint_path=<pretrained-path> architecture=stdc2_seg
+Usage STDC2-Seg75:
+    python -m torch.distributed.launch --nproc_per_node=4 cityscapes_stdc.py --config-name cityscapes_stdc_seg75_conf experiment_name=<experiment-name> external_checkpoint_path=<pretrained-path> architecture=stdc2_seg
 
 Training time [4 x 2080Ti]:
     STDC1-Seg50:    20H
@@ -24,13 +30,9 @@ Paper:
 
 Pretrained checkpoints:
     Backbones (trained by the original authors):
-        s3://deci-model-safe-research/STDC/imagenet_pretrained/stdc1_imagenet_pretrained.pth
-        s3://deci-model-safe-research/STDC/imagenet_pretrained/stdc2_imagenet_pretrained.pth
+
     Segmentation (trained using this recipe):
-        s3://deci-model-safe-research/STDC/STDC1-Seg50/ckpt_best.pth
-        s3://deci-model-safe-research/STDC/STDC1-Seg75/ckpt_best.pth
-        s3://deci-model-safe-research/STDC/STDC2-Seg50/ckpt_best.pth
-        s3://deci-model-safe-research/STDC/STDC2-Seg75/ckpt_best.pth
+
 
 Learning rate and batch size parameters, using 4 GeForce RTX 2080 Ti with DDP:
     STDC1-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
@@ -56,7 +58,7 @@ from super_gradients.training.losses.stdc_loss import STDCLoss
 from super_gradients.training.metrics.segmentation_metrics import IoU, PixelAccuracy
 
 
-@hydra.main(config_path="../deci2_recipes", config_name="cityscapes_stdc1_seg50_conf")
+@hydra.main(config_path="../deci2_recipes", config_name="cityscapes_stdc_seg50_conf")
 def train(cfg: DictConfig) -> None:
     # INSTANTIATE ALL OBJECTS IN CFG
     cfg = hydra.utils.instantiate(cfg)
