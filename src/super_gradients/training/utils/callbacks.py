@@ -266,7 +266,7 @@ class WarmupLRCallback(LRCallbackBase):
 
     def __call__(self, context: PhaseContext):
         if self.training_params.lr_warmup_epochs >= context.epoch:
-            self.lr = self.warmup_initial_lr + context.epoch * self.warmup_steps
+            self.lr = self.warmup_initial_lr + context.epoch * self.warmup_step_size
             self.update_lr(context.optimizer, context.epoch, None)
 
 
