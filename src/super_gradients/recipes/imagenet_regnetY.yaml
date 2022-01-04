@@ -16,7 +16,12 @@ defaults:
   - arch_params: regnetY_arch_params
 
 dataset_params:
-  batch_size: 128
+  batch_size: 256
+  color_jitter: 0.4
+  random_erase_prob: 0.2
+  random_erase_value: random
+  train_interpolation: random
+  auto_augment_config_string: rand-m9-mstd0.5
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
