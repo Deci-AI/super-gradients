@@ -723,7 +723,7 @@ workflows:
           <<: *release_tag_filter
       - upload_to_pypi:
           package_name: "super-gradients"
-          name: upload_<< package_name >>_to_pypi
+          name: upload_super_gradients_to_pypi
           sleep: "60"
           requires:
             - "release_version"
