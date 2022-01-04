@@ -31,6 +31,7 @@ class YoLoV5DetectionLoss(_Loss):
         :param cls_objectness_weights:  class-based weight for L_objectivness that will be applied in each cell that
                                         has a GT assigned to it.
                                         Note: default weight for objectness loss in each cell is 1.
+        :param anchor_t:                ratio defining a size range of an appropriate anchor.
         """
         super(YoLoV5DetectionLoss, self).__init__()
 
