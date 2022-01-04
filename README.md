@@ -35,7 +35,10 @@ With SuperGradients you can:
 <img src="./docs/assets/SG_img/detection-demo.png" width="600px">
 </div>
 
-______________________________________________________________________
+### Documentation
+Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.html) for full documentation, user guide, and examples. 
+
+__________________________________________________________________________________________________________
     
 ### Table of Content:
 <!-- toc -->
@@ -195,13 +198,14 @@ If you want to be a part of SuperGradients growing community, hear about all the
 
 * Slack is the place to be and ask questions about SuperGradients and get support. [Click here to join our Slack](
   https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q)
+    
 * To report a bug, [file an issue](https://github.com/Deci-AI/super-gradients/issues) on GitHub.
 
 * You can also join the [community mailing list](https://deci.ai/resources/blog/)
   to ask questions about the project and receive announcements.
+    
+* For a shorth meeting with SuperGradients PM, use this [link](https://calendly.com/ofer-baratz-deci/15min) and choose your prefered time.
 
 ## License
 
 This project is released under the [Apache 2.0 license](LICENSE).
-
-
