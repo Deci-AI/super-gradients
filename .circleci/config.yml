@@ -707,7 +707,7 @@ workflows:
       - login_to_codeartifact:
           name: "login_to_codeartifact_release"
           dev_account: false
-          pip_repo_name: "deci-clients"
+          pip_repo_name: "deci-packages"
           <<: *release_tag_filter
       - build:
           name: "build3.7"
@@ -735,7 +735,7 @@ workflows:
     jobs:
       - get_version_info
       - login_to_codeartifact:
-          pip_repo_name: "deci-clients"
+          pip_repo_name: "deci-packages"
           dev_account: false
       - build:
           name: "build3.7"
