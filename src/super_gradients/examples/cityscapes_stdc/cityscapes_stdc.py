@@ -45,6 +45,8 @@ Comments:
     * Results with Deci code are higher than original implementation, mostly thanks to changes in Detail loss and
         module, different auxiliary feature maps and different loss weights.
 """
+import torchvision.transforms
+
 import super_gradients
 from omegaconf import DictConfig
 import hydra
@@ -71,7 +73,7 @@ def train(cfg: DictConfig) -> None:
             ColorJitterSeg(*color_jitter_args),
             RandomFlip(),
             RandomRescale(scales=cfg.dataset_params.random_scales),
-            PadShortToCropSize(cfg.dataset_params.crop_size, fill_mask=CITYSCAPES_IGNORE_LABEL),
+            PadShortToCropSize(cfg.dataset_params.crop_size, fill_mask=19),
             CropImageAndMask(crop_size=cfg.dataset_params.crop_size, mode="random")
         ]),
         "image_mask_transforms": transforms.Compose([Rescale(scale_factor=cfg.dataset_params.eval_scale)])
