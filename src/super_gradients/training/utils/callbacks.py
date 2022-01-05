@@ -255,7 +255,7 @@ class WarmupLRCallback(LRCallbackBase):
     """
     LR scheduling callback for linear step warmup.
     LR climbs from warmup_initial_lr with even steps to initial lr. When warmup_initial_lr is None- LR climb starts from
-     1/(1+warmup_epochs).
+     initial_lr/(1+warmup_epochs).
 
     """
 
