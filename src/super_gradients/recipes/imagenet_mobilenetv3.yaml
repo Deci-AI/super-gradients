@@ -1,0 +1,26 @@
+# TODO: PRODUCE RESULTS AND ADD TENSORBOARDS, LOGS, TRAINING TIME ETC.
+
+defaults:
+  - training_hyperparams: imagenet_mobilenetv3_train_params
+
+dataset_params:
+  batch_size: 128
+
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
+  dataset_params: ${dataset_params}
+  data_dir: /data/Imagenet
+
+data_loader_num_workers: 16
+
+model_checkpoints_location: local
+load_checkpoint: False
+
+experiment_name: mobileNetv3_large_training
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+
+architecture: mobilenet_v3_large

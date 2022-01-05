@@ -83,7 +83,7 @@ commands:
           command: |
             cd << parameters.directory_to_cd_into >>
             gh release create << parameters.tag >> --notes "<< parameters.notes >>"
-            gh auth logout
+            #gh auth logout
 
   tag_as:
     description: "tag as a certain name"
@@ -196,7 +196,7 @@ commands:
       #      - run:
       #          name: Lint all python files changed since develop branch
       #          command: |
-      #            flake8 --statistics --config  -v --exclude venv/,docs  scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$')
+      #            flake8 --statistics --config  -v --exclude venv/,documentation  scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$')
       - run:
           command: |
             sudo apt-get update
@@ -210,12 +210,11 @@ commands:
       #      - run:
       #          name: build documentation
       #          command: |
-      #            sudo apt-get install python3-sphinx
       #            . venv/bin/activate
-      #            pip install sphinx_rtd_theme jsonschema
-      #            sphinx-build -b html docs/source docs/html
+      #            pip install -r documentation/requirements.txt
+      #            sh ./scripts/generate_docs.sh
       #      - store_artifacts:
-      #          path: docs/html
+      #          path: docs/
       - upload_package_and_edit_version:
           version: $NEW_VERSION
       - set_codeartifact_login:
@@ -343,14 +342,23 @@ commands:
     steps:
       - checkout
       - run:
-          name: Check if we should skip build
+          name: Check if we should skip build when not triggered by tag
           command: |
-            if [[ ! $CIRCLE_TAG ]] || [[ ! "${CIRCLE_TAG}" =~ "rc" ]]; then
+            if [[ ! $CIRCLE_TAG ]]; then
               last_commit_user=$(git log -1 --pretty=format:'%an')
               if [ "${last_commit_user}" == "CircleCI commit" ]; then
                  echo "\n\n PLEASE NOTICE: Skipping Build to prevent commit loop since the last commit was genereated by automated CI/CD \n\n"
                  circleci-agent step halt
               fi
+            fi
+      - run:
+          name: Check if we should skip build when triggered by tag
+          command: |
+            version_in_file=`cat version.txt`
+            echo "The version written in version.txt is ${version_in_file}"
+            if [[ $CIRCLE_TAG ]] && [[ "$CIRCLE_TAG" == "${version_in_file}" ]]; then
+                echo "** version.txt is set with the same version , avoiding loop and exiting **"
+                circleci-agent step halt
             fi
 
   clone_specific_tag:
@@ -408,7 +416,7 @@ jobs:
       package_name:
         type: string
     docker:
-      - image: circleci/python:<< parameters.py_version >>
+      - image: cimg/python:<< parameters.py_version >>
     steps:
       - checkout_and_skip_build
       - attach_workspace:
@@ -473,7 +481,7 @@ jobs:
 
   build_and_release:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     steps:
       - get_version_info
       - build:
@@ -490,7 +498,7 @@ jobs:
 
   release_candidate:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     parameters:
       py_version:
         type: string
@@ -504,7 +512,7 @@ jobs:
 
   release_version:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     parameters:
       py_version:
         type: string
@@ -529,10 +537,52 @@ jobs:
           tag: $CIRCLE_TAG
           notes: "This GitHub Release was done automatically by CircleCI"
 
+  upload_to_pypi:
+    docker:
+      - image: cimg/python:3.7.8
+    parameters:
+      package_name:
+        type: string
+      sleep:
+        type: string
+        default: "0"
+    steps:
+      - checkout_and_skip_build
+      - run:
+          command: |
+            sudo apt-get update
+            pip install --user awscli twine
+            sleep << parameters.sleep >>
+      - run_on_aws_account:
+          aws_role: $AWS_PROD_ROLE
+          command: |
+            export LATEST_VERSION_ON_AWS="$(aws codeartifact list-package-versions  --domain deci-packages --repository \
+                    deci-packages --package << parameters.package_name >> --domain-owner ${AWS_PROD_ACCOUNT_ID} \
+                      --query versions[0].version --sort-by  PUBLISHED_TIME  --format pypi --output text)"
+            echo "Will attempt to upload $LATEST_VERSION_ON_AWS to pypi"
+
+            assets=$(aws codeartifact list-package-version-assets  --domain deci-packages --repository deci-packages \
+                      --package << parameters.package_name >>  --format pypi --package-version $LATEST_VERSION_ON_AWS \
+                  --domain-owner ${AWS_PROD_ACCOUNT_ID} --query assets[*].name --output text)
+            echo "assets: $assets "
+            for ass in $assets;
+            do
+              echo "working on $ass"
+              aws codeartifact get-package-version-asset --repository deci-packages --domain deci-packages --domain-owner  ${AWS_PROD_ACCOUNT_ID} --package << parameters.package_name >> --package-version $LATEST_VERSION_ON_AWS --format pypi --asset "${ass}" "${ass}"
+            done
+
+            for ass in $assets
+            do
+                echo "***  \n regular upload of $ass  \n ***"
+                python -m twine upload --repository-url "https://upload.pypi.org/legacy/" -u __token__ -p ${PYPI_TOKEN} "${ass}"
+            done
+
+            # it's funny because it's gas
+
 
   release_version_from_rc:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
     steps:
       - attach_workspace:
           at: ~/
@@ -567,57 +617,10 @@ jobs:
           notes: "Automated nightly release. Generated from  ${LATEST_RELEASE_AWS}"
 
 
-  lines_of_code_cap:
-    working_directory: ~/repo
-    docker:
-      - image: circleci/python:3.7.5
-    parameters:
-      lines_of_code_cap:
-        type: integer
-        default: 600
-    resource_class: small
-    steps:
-      - checkout
-      - when:
-          condition:
-            not:
-              equal: [ master, << pipeline.git.branch >> ]
-          steps:
-            - run:
-                name: Enforcing << parameters.lines_of_code_cap >> Lines Of Code limit
-                command: |
-                  sudo apt install bc
-                  BASE_BRANCH="master"
-                  DIRS_TO_IGNORE=""
-
-                  git diff --shortstat $CIRCLE_BRANCH $BASE_BRANCH
-                  git diff --stat=300  ${CIRCLE_BRANCH} ${BASE_BRANCH} > changes.txt
-
-                  #for dir_to_ignore in cypress/ scripts/ .circleci/
-                  #do
-                  #  DIRS_TO_IGNORE="${DIRS_TO_IGNORE} | grep -v '${dir_to_ignore}'"
-                  #done
-                  #echo "dirs to ignore: ${DIRS_TO_IGNORE} "
-
-                  # in a perfect world I would use that list instead of hardcoding the "grep". However, there is an annoying issue that
-                  # makes the script look at | as a string and not pipe. this is not important enough to spend time on.
-
-                  LOC=$(cat changes.txt | grep -v 'tests/' | grep -v 'docs/' | grep -v '.circleci/' | awk -F"|" '{ print $2 }' | awk '{ print $1 }' | sed '/^$/d' | paste -sd+ -  | bc)
-                  echo " there are $LOC changes"
-                  if [[ $LOC -gt << parameters.lines_of_code_cap >> ]]; then
-                    echo "#######################################################"
-                    echo "#######################################################"
-                    echo "There are $LOC changed lines of code. We only allow << parameters.lines_of_code_cap >> for each PR."
-                    echo "Please break down your PR into a smaller one"
-                    echo "#######################################################"
-                    echo "#######################################################"
-                    exit 1
-                  fi
-
   get_unreleased_rc:
     working_directory: ~/repo
     docker:
-      - image: circleci/python:3.7.5
+      - image: cimg/python:3.7.5
     resource_class: small
     steps:
       - checkout
@@ -662,7 +665,7 @@ jobs:
   login_to_codeartifact:
     description: Authenticate to aws code artifact. By default authenticates to prod
     docker:
-      - image: circleci/python:3.7.5
+      - image: cimg/python:3.7.5
     parameters:
       dev_account:
         description: authenticate to development codeartifact
@@ -704,7 +707,7 @@ workflows:
       - login_to_codeartifact:
           name: "login_to_codeartifact_release"
           dev_account: false
-          pip_repo_name: "deci-clients"
+          pip_repo_name: "deci-packages"
           <<: *release_tag_filter
       - build:
           name: "build3.7"
@@ -718,13 +721,21 @@ workflows:
           requires:
             - "build3.7"
           <<: *release_tag_filter
+      - upload_to_pypi:
+          package_name: "super-gradients"
+          name: upload_super_gradients_to_pypi
+          sleep: "60"
+          requires:
+            - "release_version"
+          context:
+            - pypi-public
+          <<: *release_tag_filter
 
   build_and_deploy:
     jobs:
-      - lines_of_code_cap
       - get_version_info
       - login_to_codeartifact:
-          pip_repo_name: "deci-clients"
+          pip_repo_name: "deci-packages"
           dev_account: false
       - build:
           name: "build3.7"

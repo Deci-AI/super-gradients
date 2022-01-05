@@ -1,0 +1,40 @@
+#  ResNet50 Imagenet classification training:
+#  This example trains with batch_size = 64 * 4 GPUs, total 256.
+#  Training time on 4 X GeForce RTX 3090 Ti is 25min / epoch, total time ~ 46 hours.
+#  Reach => 76.2 Top1 accuracy.
+#  BE AWARE THAT THIS RECIPE USE DATA_PARALLEL, WHEN USING DDP FOR DISTRIBUTED TRAINING THIS RECIPE REACH ONLY 75.4 TOP1
+#  ACCURACY.
+#
+#  Log and tensorboard at s3://deci-pretrained-models/resnet50_dataparallel/
+
+# Instructions:
+# running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
+#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
+# Then:
+#   python train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
+
+
+defaults:
+  - training_hyperparams: imagenet_resnet50_train_params
+  - dataset_params: imagenet_dataset_params
+  - arch_params: resnet50_arch_params
+
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
+  dataset_params: ${dataset_params}
+  data_dir: /data/Imagenet
+
+data_loader_num_workers: 8
+
+model_checkpoints_location: local
+load_checkpoint: False
+
+experiment_name: resnet50_imagenet
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: DP
+
+architecture: resnet50

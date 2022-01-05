@@ -1,0 +1,48 @@
+# Yolo v5 Detection training on CoCo2017 Dataset:
+# Yolo v5s trained in 640x640 mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images) ~37.3
+# Checkpoint path: s3://deci-model-repository-research/reproduce-yolo/yolos_new_640/ckpt_best.pth
+# Hardware: 1 3090Ti GPU
+#
+# Instructions:
+# Set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
+#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
+# python3 train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolov5.yaml \
+#    dataset_params.train_image_size=640 dataset_params.val_image_size=640 \
+#    dataset_params.batch_size=64 dataset_params.val_batch_size=64 \
+#    architecture=yolo_v5s experiment_name=yolo_v5s_coco2017_640 \
+#    training_hyperparams.mixed_precision=true dataset_params.val_sample_loading_method=rectangular multi_gpu=Off
+
+
+defaults:
+  - training_hyperparams: coco2017_yolov5_train_params
+  - dataset_params: coco_detection_dataset_params
+  - arch_params: yolov5s_arch_params
+
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CoCoDetectionDatasetInterface
+  dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+
+model_checkpoints_location: local
+
+load_checkpoint: False
+
+architecture: yolo_v5s
+
+experiment_name: ${architecture}_coco2017_320
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+
+training_hyperparams:
+  criterion_params:
+    anchors:
+      _target_: super_gradients.training.utils.detection_utils.Anchors
+      anchors_list: [[10, 13, 16, 30, 33, 23],[30, 61, 62, 45, 59, 119],[116, 90, 156, 198, 373, 326]]
+      strides: [8, 16, 32]  # output strides of all yolo outputs
+    obj_loss_gain: 1.0    # will be scaled according to train image size
+    box_loss_gain: 0.05   # will be scaled according to num output levels
+    cls_loss_gain: 0.5    # will be scaled according to num classes and num output levels

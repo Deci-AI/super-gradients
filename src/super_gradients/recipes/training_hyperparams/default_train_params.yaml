@@ -1,0 +1,85 @@
+lr_mode: # Learning rate scheduling policy, one of ['step','poly','cosine','function']
+lr_schedule_function: # Learning rate scheduling function to be used when `lr_mode` is 'function'.
+lr_warmup_epochs: 0 # number of epochs for learning rate warm up - see https://arxiv.org/pdf/1706.02677.pdf (Section 2.2).
+cosine_final_lr_ratio: 0.01 # final learning rate ratio (only relevant when `lr_mode`='cosine')
+warmup_mode: linear_step # learning rate warmup scheme, one of ['linear_step', 'yolov5_warmup']
+
+optimizer: SGD # Optimization algorithm. One of ['Adam','SGD','RMSProp'] corresponding to the torch.optim optimizers
+optimizer_params: {} # when `optimizer` is one of ['Adam','SGD','RMSProp'], it will be initialized with optimizer_params.
+load_opt_params: True # Whether to load the optimizers parameters as well when loading a model's checkpoint
+zero_weight_decay_on_bias_and_bn: False # whether to apply weight decay on batch normalization parameters or not
+
+
+loss: # Loss function for training (str as one of SuperGradient's built in options, or torch.nn.module)
+criterion_params: {} # when `loss` is one of SuperGradient's built in options, it will be initialized with criterion_params.
+
+
+ema: False # whether to use Model Exponential Moving Average
+ema_params: # parameters for the ema model.
+  decay: 0.9999
+  beta: 15
+  exp_activation: True
+
+
+train_metrics_list: [] # Metrics to log during training. For more information on torchmetrics see https://torchmetrics.rtfd.io/en/latest/.
+valid_metrics_list: [] # Metrics to log during validation. For more information on torchmetrics see https://torchmetrics.rtfd.io/en/latest/
+loss_logging_items_names: [Loss] # the list of names/titles for the outputs returned from the loss functions forward pass
+metric_to_watch: Accuracy # will be the metric which the model checkpoint will be saved according to
+greater_metric_to_watch_is_better: True # When choosing a model's checkpoint to be saved, the best achieved model is the one that maximizes the metric_to_watch when this parameter is set to True
+
+
+launch_tensorboard: False # Whether to launch a TensorBoard process.
+tensorboard_port: # port for tensorboard process
+tb_files_user_prompt: False  # Asks User for Tensorboard Deletion Prompt
+save_tensorboard_to_s3: False # whether to save tb to s3
+
+
+precise_bn: False # Whether to use precise_bn calculation during the training.
+precise_bn_batch_size: # the effective batch size we want to calculate the batchnorm on.
+
+
+silent_mode: False  # Silents the Print outs
+
+
+mixed_precision: False # Whether to use mixed precision or not.
+
+
+save_ckpt_epoch_list: []  # indices where the ckpt will save automatically
+
+
+average_best_models: True # If set, a snapshot dictionary file and the average model will be saved
+
+
+dataset_statistics: False  # add a dataset statistical analysis and sample images to tensorboard
+
+
+batch_accumulate: 1  # number of batches to accumulate before every backward pass
+
+
+run_validation_freq: 1 # The frequency in which validation is performed during training
+
+
+save_model: True # Whether to save the model checkpoints
+
+
+seed: 42 # seed for reproducibility
+
+
+phase_callbacks: [] # list of callbacks to be applied at specific phases.
+
+
+log_installed_packages: True # when set, the list of all installed packages (and their versions) will be written to the tensorboard
+
+
+save_full_train_log: False # When set, a full log (of all super_gradients modules, including uncaught exceptions from any other module) of training will be saved
+
+sg_logger: base_sg_logger
+sg_logger_params:
+  tb_files_user_prompt: False # Asks User for Tensorboard Deletion Prompt
+  launch_tensorboard: False
+  tensorboard_port:
+  save_checkpoints_remote: False  # upload checkpoint files to s3
+  save_tensorboard_remote: False  # upload tensorboard files to s3
+  save_logs_remote: False  # upload log files to s3
+
+_convert_: all

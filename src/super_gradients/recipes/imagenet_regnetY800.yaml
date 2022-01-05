@@ -1,0 +1,39 @@
+#  RegnetY800 Imagenet classification training:
+#  This example trains with batch_size = 128
+#  Training time on a single GeForce RTX 2080 Ti is ~ 44min / epoch, total time ~ 2d 22h 50m.
+#  Reach => 76.05 (Final averaged model)
+#  Log and tensorboard at s3://deci-pretrained-models/regnetY800-imagenet-tensorboard/
+
+# Instructions:
+# Set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
+#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
+# Then:
+#   python train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY800
+
+defaults:
+  - training_hyperparams: imagenet_regnetY800_train_params
+  - dataset_params: imagenet_dataset_params
+  - arch_params: regnetY_arch_params
+
+dataset_params:
+  batch_size: 128
+
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
+  dataset_params: ${dataset_params}
+  data_dir: /data/Imagenet
+
+data_loader_num_workers: 8
+
+model_checkpoints_location: local
+load_checkpoint: False
+
+experiment_name: regnetY800_imagenet
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: Off
+
+architecture: regnetY800
