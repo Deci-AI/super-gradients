@@ -44,5 +44,6 @@ setup(
         'super_gradients.common': ['auto_logging/auto_logging_conf.json'],
         'super_gradients.examples': ['*.ipynb', '**/*.ipynb'],
     },
-    long_description=readme()
+    long_description=readme(),
+    long_description_content_type="text/markdown"
 )
