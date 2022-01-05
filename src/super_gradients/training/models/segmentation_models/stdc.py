@@ -517,7 +517,8 @@ class STDCSegmentationBase(SgModule):
             - Different lr for context path and heads, if `multiply_head_lr` key is in `training_params`.
             - Add extra Detail loss params to optimizer.
         """
-        extra_train_params = get_param(training_params, "extra_train_params", None)
+
+        extra_train_params = training_params.loss.get_train_named_params() if hasattr(training_params.loss, "get_train_named_params") else None
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
 
         multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
