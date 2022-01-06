@@ -43,7 +43,7 @@ loss_logging_items_names: [main_loss, aux_loss1, aux_loss2, detail_loss, loss]
 
 zero_weight_decay_on_bias_and_bn: True
 average_best_models: True
-mixed_precision: False
+mixed_precision: True
 
 metric_to_watch: IoU
 greater_metric_to_watch_is_better: True
