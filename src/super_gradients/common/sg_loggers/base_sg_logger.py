@@ -5,7 +5,6 @@ import signal
 
 from typing import Union, Any
 
-import pkg_resources
 import psutil
 import numpy as np
 from PIL import Image
@@ -29,6 +28,7 @@ class BaseSGLogger(AbstractSGLogger):
                  storage_location: str,
                  resumed: bool,
                  training_params: TrainingParams,
+                 checkpoints_dir_path: str,
                  tb_files_user_prompt: bool = False,
                  launch_tensorboard: bool = False,
                  tensorboard_port: int = None,
@@ -40,6 +40,9 @@ class BaseSGLogger(AbstractSGLogger):
         :param experiment_name: Used for logging and loading purposes
         :param storage_location: If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
         :param resumed: if true, then old tensorboard files will *not* be deleted when tb_files_user_prompt=True
+        :param training_params: training_params for the experiment.
+        :param checkpoints_dir_path: Local root directory path where all experiment logging directories will
+                                                 reside.
         :param tb_files_user_prompt: Asks user for Tensorboard deletion prompt.
         :param launch_tensorboard: Whether to launch a TensorBoard process.
         :param tensorboard_port: Specific port number for the tensorboard to use when launched (when set to None, some free port
@@ -73,8 +76,7 @@ class BaseSGLogger(AbstractSGLogger):
 
         self.tensor_board_process = None
         self.max_global_steps = training_params.max_epochs
-                
-        self._local_dir = pkg_resources.resource_filename('checkpoints', self.experiment_name)
+        self._local_dir = checkpoints_dir_path
 
         self._make_dir()
         self._init_tensorboard(resumed, tb_files_user_prompt)
