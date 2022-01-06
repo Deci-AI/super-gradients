@@ -245,7 +245,7 @@ class BaseSGLogger(AbstractSGLogger):
 
         path = os.path.join(self._local_dir, name)
         torch.save(state_dict, path)
-
+        logger.info("Checkpoint saved in " + path)
         if self.save_checkpoints_remote:
             self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
 
