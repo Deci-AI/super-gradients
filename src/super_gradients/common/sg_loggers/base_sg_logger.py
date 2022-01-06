@@ -5,7 +5,6 @@ import signal
 
 from typing import Union, Any
 
-import pkg_resources
 import psutil
 import numpy as np
 from PIL import Image
@@ -77,7 +76,6 @@ class BaseSGLogger(AbstractSGLogger):
 
         self.tensor_board_process = None
         self.max_global_steps = training_params.max_epochs
-                
         self._local_dir = checkpoints_dir_path
 
         self._make_dir()
