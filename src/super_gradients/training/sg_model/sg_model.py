@@ -124,6 +124,9 @@ class SgModel:
         :param overwrite_local_checkpoint:      If set to False keeps the current local checkpoint when importing
                                                 checkpoint from cloud service, otherwise overwrites the local checkpoints file
         :param ckpt_name:                       The Checkpoint to Load
+        :ckpt_root_dir:                         Local root directory path where all experiment logging directories will
+                                                 reside. When none is give, it is assumed that
+                                                 pkg_resources.resource_filename('checkpoints', "") exists and will be used.
 
         """
         # SET THE EMPTY PROPERTIES
@@ -174,7 +177,7 @@ class SgModel:
         elif pkg_resources.resource_exists("checkpoints", ""):
             self.checkpoints_dir_path = pkg_resources.resource_filename('checkpoints', self.experiment_name)
         else:
-            raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' "
+            raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to"
                              "resources.")
 
         # INITIALIZE THE DEVICE FOR THE MODEL
@@ -1426,7 +1429,8 @@ class SgModel:
         general_sg_logger_params = {'experiment_name': self.experiment_name,
                                     'storage_location': self.model_checkpoints_location,
                                     'resumed': self.load_checkpoint,
-                                    'training_params': self.training_params}
+                                    'training_params': self.training_params,
+                                    'checkpoints_dir_path': self.checkpoints_dir_path}
 
         if sg_logger is None:
             raise RuntimeError('sg_logger must be defined in training params (see default_training_params)')
@@ -1448,6 +1452,7 @@ class SgModel:
             logger.warning("WARNING! Using a user-defined sg_logger: files will not be automatically written to disk!\n"
                            "Please make sure the provided sg_logger writes to disk or compose your sg_logger to BaseSGLogger")
 
+        # IN CASE SG_LOGGER UPDATED THE DIR PATH
         self.checkpoints_dir_path = self.sg_logger.local_dir()
         additional_log_items = {'initial_LR': self.training_params.initial_lr,
                                 'num_devices': self.num_devices,
