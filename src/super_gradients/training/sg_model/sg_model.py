@@ -113,7 +113,7 @@ class SgModel:
     def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.AUTO,
                  model_checkpoints_location: str = 'local',
                  overwrite_local_checkpoint: bool = True, ckpt_name: str = 'ckpt_latest.pth',
-                 post_prediction_callback: DetectionPostPredictionCallback = None):
+                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir=None):
         """
 
         :param experiment_name:                      Used for logging and loading purposes
@@ -169,7 +169,13 @@ class SgModel:
         self.model_checkpoints_location = model_checkpoints_location
 
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
-        self.checkpoints_dir_path = pkg_resources.resource_filename('checkpoints', self.experiment_name)
+        if ckpt_root_dir:
+            self.checkpoints_dir_path = os.path.join(ckpt_root_dir, self.experiment_name)
+        elif pkg_resources.resource_exists("checkpoints", ""):
+            self.checkpoints_dir_path = pkg_resources.resource_filename('checkpoints', self.experiment_name)
+        else:
+            raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' "
+                             "resources.")
 
         # INITIALIZE THE DEVICE FOR THE MODEL
         self._initialize_device(requested_device=device, requested_multi_gpu=multi_gpu)
