@@ -9,7 +9,7 @@ from tqdm import tqdm
 from PIL import Image, ExifTags
 from super_gradients.training.datasets.sg_dataset import ListDataset
 from super_gradients.training.utils.detection_utils import convert_xyxy_bbox_to_xywh
-
+from super_gradients.training.utils.utils import get_param
 # PREVENTS THE cv2 DEADLOCK
 cv2.setNumThreads(0)
 
@@ -59,6 +59,7 @@ class DetectionDataSet(ListDataset):
 
         self.class_inclusion_list = class_inclusion_list
         self.all_classes_list = all_classes_list
+        self.mixup_prob = get_param(self.dataset_hyperparams, "mixup", 0)
 
         super(DetectionDataSet, self).__init__(root=root, file=list_file, target_extension=target_extension,
                                                collate_fn=collate_fn, sample_loader=self.sample_loader,
@@ -75,7 +76,7 @@ class DetectionDataSet(ListDataset):
             # LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)
             img, labels = self.load_mosaic(index)
             # MixUp augmentation
-            if random.random() < self.dataset_hyperparams['mixup']:
+            if random.random() < self.mixup_prob:
                 img, labels = self.mixup(img, labels, *self.load_mosaic(random.randint(0, len(self.img_files) - 1)))
 
         else:
