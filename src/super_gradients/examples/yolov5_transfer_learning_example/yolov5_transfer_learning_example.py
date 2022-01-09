@@ -1,3 +1,7 @@
+"""
+Transfer learning example- from our pretrained YoloV5m (on coco) on Pascal VOC.
+"""
+
 import super_gradients
 from super_gradients.training import SgModel, MultiGPUMode
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import \
