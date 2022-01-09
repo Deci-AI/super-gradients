@@ -1,5 +1,5 @@
 """
-Transfer learning example- from our pretrained YoloV5m (on coco) on Pascal VOC.
+Transfer learning example- from our pretrained YoloV5m (on coco) on Pascal VOC. Reaches 68.8 mAP:0.50:0.95.
 """
 
 import super_gradients
