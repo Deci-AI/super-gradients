@@ -11,12 +11,22 @@
 #   python train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY800
 
 defaults:
-  - training_hyperparams: imagenet_regnetY800_train_params
+  - training_hyperparams: imagenet_regnetY_train_params
   - dataset_params: imagenet_dataset_params
   - arch_params: regnetY_arch_params
 
+arch_params:   
+  num_classes: 1000
+  dropout_prob: 0.5
+  droppath_prob: 0.0
+
 dataset_params:
-  batch_size: 128
+  batch_size: 256
+  color_jitter: 0.4
+  random_erase_prob: 0.2
+  random_erase_value: random
+  train_interpolation: random
+  auto_augment_config_string: rand-m9-mstd0.5
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
