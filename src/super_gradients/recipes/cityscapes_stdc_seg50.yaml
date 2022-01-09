@@ -6,6 +6,10 @@ arch_params:
   num_classes: 19
   use_aux_heads: True
   sync_bn: True
+  external_checkpoint_path: "/home/shay.aharon/stdc_backbones/stdc1_imagenet_pretrained.pth"
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
 
 dataset_params:
   _convert_: all
