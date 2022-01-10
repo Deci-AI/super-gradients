@@ -9,7 +9,7 @@ from tqdm import tqdm
 from PIL import Image, ExifTags
 from super_gradients.training.datasets.sg_dataset import ListDataset
 from super_gradients.training.utils.detection_utils import convert_xyxy_bbox_to_xywh
-
+from super_gradients.training.utils.utils import get_param
 # PREVENTS THE cv2 DEADLOCK
 cv2.setNumThreads(0)
 
@@ -59,6 +59,7 @@ class DetectionDataSet(ListDataset):
 
         self.class_inclusion_list = class_inclusion_list
         self.all_classes_list = all_classes_list
+        self.mixup_prob = get_param(self.dataset_hyperparams, "mixup", 0)
 
         super(DetectionDataSet, self).__init__(root=root, file=list_file, target_extension=target_extension,
                                                collate_fn=collate_fn, sample_loader=self.sample_loader,
@@ -74,6 +75,9 @@ class DetectionDataSet(ListDataset):
         if self.sample_loading_method == 'mosaic' and self.augment:
             # LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)
             img, labels = self.load_mosaic(index)
+            # MixUp augmentation
+            if random.random() < self.mixup_prob:
+                img, labels = self.mixup(img, labels, *self.load_mosaic(random.randint(0, len(self.img_files) - 1)))
 
         else:
             # LOAD A SINGLE IMAGE
@@ -130,6 +134,15 @@ class DetectionDataSet(ListDataset):
         img = self.sample_post_process(img)
 
         return img, labels_out
+
+    @staticmethod
+    def mixup(im, labels, im2, labels2):
+        # Applies MixUp augmentation https://arxiv.org/pdf/1710.09412.pdf
+        # https://github.com/ultralytics/yolov5
+        r = np.random.beta(32.0, 32.0)  # mixup ratio, alpha=beta=32.0
+        im = (im * r + im2 * (1 - r)).astype(np.uint8)
+        labels = np.concatenate((labels, labels2), 0)
+        return im, labels
 
     @staticmethod
     def sample_post_process(image):

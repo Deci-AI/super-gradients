@@ -192,6 +192,9 @@ class YoLoV5Head(nn.Module):
         self._modules_list.append(
             Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
 
+        self.width_mult = width_mult
+        self.anchors = anchors
+
     def forward(self, intermediate_output):
         """
         :param intermediate_output: A list of the intermediate prediction of layers specified in the
@@ -296,7 +299,9 @@ class YoLoV5Base(SgModule):
         # Do inference in train mode on a dummy image to get output stride of each head output layer
         s = 128  # twice the minimum acceptable image size
         dummy_input = torch.zeros(1, self.arch_params.channels_in, s, s)
+        dummy_input = dummy_input.to(next(self._backbone.parameters()).device)
         stride = torch.tensor([s / x.shape[-2] for x in self._forward_once(dummy_input)])
+        stride = stride.to(dummy_input.device)
         if not torch.equal(m.stride, stride):
             raise RuntimeError('Provided anchor strides do not match the model strides')
         check_anchor_order(m)
@@ -338,6 +343,7 @@ class YoLoV5Base(SgModule):
         optimizer_params = get_param(training_params, 'optimizer_params')
         # OPTIMIZER PARAMETER GROUPS
         default_param_group, weight_decay_param_group, biases_param_group = [], [], []
+        deprecated_params_total = 0
 
         for name, m in self.named_modules():
             if hasattr(m, 'bias') and isinstance(m.bias, nn.Parameter):  # bias
@@ -346,6 +352,8 @@ class YoLoV5Base(SgModule):
                 default_param_group.append((name, m.weight))
             elif hasattr(m, 'weight') and isinstance(m.weight, nn.Parameter):  # weight (with decay)
                 weight_decay_param_group.append((name, m.weight))
+            elif name == '_head.anchors':
+                deprecated_params_total += m.stride.numel() + m._anchors.numel() + m._anchor_grid.numel()
 
         # EXTRACT weight_decay FROM THE optimizer_params IN ORDER TO ASSIGN THEM MANUALLY
         weight_decay = optimizer_params.pop('weight_decay') if 'weight_decay' in optimizer_params.keys() else 0
@@ -356,7 +364,7 @@ class YoLoV5Base(SgModule):
         # Assert that all parameters were added to optimizer param groups
         params_total = sum(p.numel() for p in self.parameters())
         optimizer_params_total = sum(p.numel() for g in param_groups for _, p in g['named_params'])
-        assert params_total == optimizer_params_total, \
+        assert params_total == optimizer_params_total + deprecated_params_total, \
             f"Parameters {[n for n, _ in self.named_parameters() if 'weight' not in n and 'bias' not in n]} " \
             f"weren't added to optimizer param groups"
 
@@ -393,6 +401,20 @@ class YoLoV5Base(SgModule):
 
     def get_include_attributes(self) -> list:
         return ["grid", "anchors", "anchors_grid"]
+
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self._head = new_head
+        else:
+            self.arch_params.num_classes = new_num_classes
+            new_last_layer = Detect(new_num_classes, self._head.anchors, channels=[self._head.width_mult(v) for v in (256, 512, 1024)])
+            new_last_layer = new_last_layer.to(next(self.parameters()).device)
+            self._head._modules_list[-1] = new_last_layer
+            self._check_strides_and_anchors()
+            self._initialize_biases()
+            self._initialize_weights()
 
 
 class Custom_YoLoV5(YoLoV5Base):
