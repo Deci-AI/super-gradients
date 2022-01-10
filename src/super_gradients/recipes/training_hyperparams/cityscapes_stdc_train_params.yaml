@@ -3,7 +3,7 @@ defaults:
 
 max_epochs: 800
 lr_mode: poly
-initial_lr: 0.01   # for batch_size=32
+initial_lr: 0.01   # for effective batch_size=32
 lr_warmup_epochs: 10
 multiply_head_lr: 10.
 

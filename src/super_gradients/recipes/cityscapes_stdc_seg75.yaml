@@ -9,3 +9,5 @@ dataset_params:
 
 training_hyperparams:
   initial_lr: 0.005
+
+experiment_name: ${architecture}75_cityscapes
