@@ -441,6 +441,7 @@ class PretrainedModelsTest(unittest.TestCase):
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v2"], delta=0.001)
 
+
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
             shutil.rmtree('~/.cache/torch/hub/')

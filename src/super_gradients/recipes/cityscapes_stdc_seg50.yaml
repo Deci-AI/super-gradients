@@ -1,3 +1,6 @@
+# python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py  --config-name=cityscapes_stdc_seg50 architecture=stdc2_seg
+#  arch_params.external_checkpoint_path=<your_path_to_pretrained_stdc2_backbone>
+#
 defaults:
   - training_hyperparams: cityscapes_stdc_train_params
   - dataset_params: cityscapes_dataset_params
