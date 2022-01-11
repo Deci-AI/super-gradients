@@ -51,11 +51,11 @@ dataset_params:
     _target_: torchvision.transforms.Compose
     transforms:
       - _target_: super_gradients.training.utils.segmentation_utils.Rescale
-        scale_factor: 0.5
+        scale_factor: ${dataset_params.eval_scale}
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CityscapesDatasetInterface
-  dataset_params: ${dataset_params.eval_scale}
+  dataset_params: ${dataset_params}
 
 data_loader_num_workers: 10
 
