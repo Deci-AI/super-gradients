@@ -55,7 +55,7 @@ dataset_params:
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CityscapesDatasetInterface
-  dataset_params: ${dataset_params}
+  dataset_params: ${dataset_params.eval_scale}
 
 data_loader_num_workers: 10
 
