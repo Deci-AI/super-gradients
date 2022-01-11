@@ -15,7 +15,7 @@ import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.metrics import DetectionMetrics
-
+from super_gradients.training.utils.segmentation_utils import Rescale
 
 class PretrainedModelsTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -120,11 +120,13 @@ class PretrainedModelsTest(unittest.TestCase):
         }, dataset_classes_inclusion_tuples_list=coco_sub_classes_inclusion_tuples_list()
         )
 
-        self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim"]
+        self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim", "stdc1_seg50"]
         self.cityscapes_pretrained_arch_params = {
-            "ddrnet_23": {"pretrained_weights": "cityscapes", "num_classes": 19, "aux_head": True, "sync_bn": True}}
+            "ddrnet_23": {"pretrained_weights": "cityscapes", "num_classes": 19, "aux_head": True, "sync_bn": True},
+            "stdc": {"num_classes": 19, "use_aux_heads": False, "aux_head": False}}
         self.cityscapes_pretrained_mious = {"ddrnet_23": 0.7865,
-                                            "ddrnet_23_slim": 0.7689}
+                                            "ddrnet_23_slim": 0.7689,
+                                            "stdc1_seg50": 0.7436}
         self.cityscapes_dataset = CityscapesDatasetInterface(dataset_params={
             "batch_size": 3,
             "val_batch_size": 3,
@@ -134,6 +136,21 @@ class PretrainedModelsTest(unittest.TestCase):
             "image_mask_transforms_aug": transforms.Compose([]),
             "image_mask_transforms": transforms.Compose([])  # no transform for evaluation
         }, cache_labels=False)
+
+        self.cityscapes_dataset_rescaled50 = CityscapesDatasetInterface(dataset_params={
+            "batch_size": 3,
+            "val_batch_size": 3,
+            "image_mask_transforms_aug": transforms.Compose([]),
+            "image_mask_transforms": transforms.Compose([Rescale(scale_factor=0.5)])  # no transform for evaluation
+        }, cache_labels=False)
+
+        self.cityscapes_dataset_rescaled75 = CityscapesDatasetInterface(dataset_params={
+            "batch_size": 3,
+            "val_batch_size": 3,
+            "image_mask_transforms_aug": transforms.Compose([]),
+            "image_mask_transforms": transforms.Compose([Rescale(scale_factor=0.5)])  # no transform for evaluation
+        }, cache_labels=False)
+
         self.transfer_segmentation_dataset = SegmentationTestDatasetInterface(image_size=1024)
         self.transfer_segmentation_train_params = {"max_epochs": 3,
                                                    "initial_lr": 1e-2,
@@ -440,6 +457,16 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v2"], delta=0.001)
+
+    def test_pretrained_stdc1_seg50_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_ddrnet23', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset, data_loader_num_workers=8)
+        trainer.build_model("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc1_seg50"])
+        res = trainer.test(test_loader=self.cityscapes_dataset.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc1_seg50"], delta=0.001)
 
 
     def tearDown(self) -> None:
