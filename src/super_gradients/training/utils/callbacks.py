@@ -253,18 +253,20 @@ class LRCallbackBase(PhaseCallback):
 
 class WarmupLRCallback(LRCallbackBase):
     """
-    LR scheduling callback for lr warmup.
-
-    At each update
+    LR scheduling callback for linear step warmup.
+    LR climbs from warmup_initial_lr with even steps to initial lr. When warmup_initial_lr is None- LR climb starts from
+     initial_lr/(1+warmup_epochs).
 
     """
 
     def __init__(self, **kwargs):
         super(WarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
+        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
+        self.warmup_step_size = (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs
 
     def __call__(self, context: PhaseContext):
         if self.training_params.lr_warmup_epochs >= context.epoch:
-            self.lr = self.initial_lr * (context.epoch + 1) / (self.training_params.lr_warmup_epochs + 1)
+            self.lr = self.warmup_initial_lr + context.epoch * self.warmup_step_size
             self.update_lr(context.optimizer, context.epoch, None)
 
 
@@ -295,8 +297,15 @@ class StepLRCallback(LRCallbackBase):
     Hard coded step learning rate scheduling (i.e at specific milestones).
     """
 
-    def __init__(self, lr_updates, lr_decay_factor, **kwargs):
+    def __init__(self, lr_updates, lr_decay_factor, step_lr_update_freq=None, **kwargs):
         super(StepLRCallback, self).__init__(Phase.TRAIN_EPOCH_END, **kwargs)
+        if step_lr_update_freq and len(lr_updates):
+            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor")
+
+        if step_lr_update_freq:
+            max_epochs = self.training_params.max_epochs
+            warmup_epochs = self.training_params.lr_warmup_epochs
+            lr_updates = [int(np.ceil(step_lr_update_freq * x)) for x in range(1, max_epochs) if warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs]
         self.lr_updates = lr_updates
         self.lr_decay_factor = lr_decay_factor
 

@@ -113,7 +113,7 @@ class SgModel:
     def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.AUTO,
                  model_checkpoints_location: str = 'local',
                  overwrite_local_checkpoint: bool = True, ckpt_name: str = 'ckpt_latest.pth',
-                 post_prediction_callback: DetectionPostPredictionCallback = None):
+                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir=None):
         """
 
         :param experiment_name:                      Used for logging and loading purposes
@@ -124,6 +124,9 @@ class SgModel:
         :param overwrite_local_checkpoint:      If set to False keeps the current local checkpoint when importing
                                                 checkpoint from cloud service, otherwise overwrites the local checkpoints file
         :param ckpt_name:                       The Checkpoint to Load
+        :ckpt_root_dir:                         Local root directory path where all experiment logging directories will
+                                                 reside. When none is give, it is assumed that
+                                                 pkg_resources.resource_filename('checkpoints', "") exists and will be used.
 
         """
         # SET THE EMPTY PROPERTIES
@@ -169,7 +172,13 @@ class SgModel:
         self.model_checkpoints_location = model_checkpoints_location
 
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
-        self.checkpoints_dir_path = pkg_resources.resource_filename('checkpoints', self.experiment_name)
+        if ckpt_root_dir:
+            self.checkpoints_dir_path = os.path.join(ckpt_root_dir, self.experiment_name)
+        elif pkg_resources.resource_exists("checkpoints", ""):
+            self.checkpoints_dir_path = pkg_resources.resource_filename('checkpoints', self.experiment_name)
+        else:
+            raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to"
+                             "resources.")
 
         # INITIALIZE THE DEVICE FOR THE MODEL
         self._initialize_device(requested_device=device, requested_multi_gpu=multi_gpu)
@@ -930,15 +939,15 @@ class SgModel:
                 if torch.distributed.is_initialized():
                     torch.distributed.destroy_process_group()
 
+            # PHASE.TRAIN_END
+            self.phase_callback_handler(Phase.POST_TRAINING, context)
+
             if not self.ddp_silent_mode:
                 if self.model_checkpoints_location != 'local':
                     logger.info('[CLEANUP] - Saving Checkpoint files')
                     self.sg_logger.upload()
 
                 self.sg_logger.close()
-
-            # PHASE.TRAIN_END
-            self.phase_callback_handler(Phase.POST_TRAINING, context)
 
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
         # SCALER IS ALWAYS INITIALIZED BUT IS DISABLED IF MIXED PRECISION WAS NOT SET
@@ -1420,7 +1429,8 @@ class SgModel:
         general_sg_logger_params = {'experiment_name': self.experiment_name,
                                     'storage_location': self.model_checkpoints_location,
                                     'resumed': self.load_checkpoint,
-                                    'training_params': self.training_params}
+                                    'training_params': self.training_params,
+                                    'checkpoints_dir_path': self.checkpoints_dir_path}
 
         if sg_logger is None:
             raise RuntimeError('sg_logger must be defined in training params (see default_training_params)')
@@ -1442,6 +1452,7 @@ class SgModel:
             logger.warning("WARNING! Using a user-defined sg_logger: files will not be automatically written to disk!\n"
                            "Please make sure the provided sg_logger writes to disk or compose your sg_logger to BaseSGLogger")
 
+        # IN CASE SG_LOGGER UPDATED THE DIR PATH
         self.checkpoints_dir_path = self.sg_logger.local_dir()
         additional_log_items = {'initial_LR': self.training_params.initial_lr,
                                 'num_devices': self.num_devices,
