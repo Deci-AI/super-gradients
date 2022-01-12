@@ -34,8 +34,8 @@ setup(
     description="SuperGradients",
     author="Deci AI",
     author_email="rnd@deci.ai",
-    url="https://deci.ai",
-    keywords=["Deci", "AI", "Training"],
+    url="https://deci-ai.github.io/super-gradients/welcome.html",
+    keywords=["Deci", "AI", "Training", "Deep Learning", "Computer Vision", "PyTorch", "SOTA", "Recipes", "Pre Trained", "Models"],
     install_requires=get_requirements(),
     packages=find_packages(where='./src'),
     package_dir={'': 'src'},
@@ -44,5 +44,6 @@ setup(
         'super_gradients.common': ['auto_logging/auto_logging_conf.json'],
         'super_gradients.examples': ['*.ipynb', '**/*.ipynb'],
     },
-    long_description=readme()
+    long_description=readme(),
+    long_description_content_type="text/markdown"
 )

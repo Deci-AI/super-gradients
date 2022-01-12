@@ -1,10 +1,10 @@
+import json
 import os
 import time
 import signal
 
 from typing import Union, Any
 
-import pkg_resources
 import psutil
 import numpy as np
 from PIL import Image
@@ -28,6 +28,7 @@ class BaseSGLogger(AbstractSGLogger):
                  storage_location: str,
                  resumed: bool,
                  training_params: TrainingParams,
+                 checkpoints_dir_path: str,
                  tb_files_user_prompt: bool = False,
                  launch_tensorboard: bool = False,
                  tensorboard_port: int = None,
@@ -39,6 +40,9 @@ class BaseSGLogger(AbstractSGLogger):
         :param experiment_name: Used for logging and loading purposes
         :param storage_location: If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
         :param resumed: if true, then old tensorboard files will *not* be deleted when tb_files_user_prompt=True
+        :param training_params: training_params for the experiment.
+        :param checkpoints_dir_path: Local root directory path where all experiment logging directories will
+                                                 reside.
         :param tb_files_user_prompt: Asks user for Tensorboard deletion prompt.
         :param launch_tensorboard: Whether to launch a TensorBoard process.
         :param tensorboard_port: Specific port number for the tensorboard to use when launched (when set to None, some free port
@@ -56,7 +60,9 @@ class BaseSGLogger(AbstractSGLogger):
             self.save_checkpoints_remote = save_checkpoints_remote
             self.save_tensorboard_remote = save_tensorboard_remote
             self.save_logs_remote = save_logs_remote
+            self.remote_storage_available = True
         else:
+            self.remote_storage_available = False
             if save_checkpoints_remote:
                 logger.error('save_checkpoints_remote == True but storage_location is not s3 path. Files will not be saved remotely')
             if save_tensorboard_remote:
@@ -70,8 +76,7 @@ class BaseSGLogger(AbstractSGLogger):
 
         self.tensor_board_process = None
         self.max_global_steps = training_params.max_epochs
-                
-        self._local_dir = pkg_resources.resource_filename('checkpoints', self.experiment_name)
+        self._local_dir = checkpoints_dir_path
 
         self._make_dir()
         self._init_tensorboard(resumed, tb_files_user_prompt)
@@ -108,16 +113,11 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
-        config_string_markup = ""
         log_lines = ['--------- config parameters ----------']
-
-        for key, val in config.items():
-            config_string_markup += f'{key}: {val}  \n  '
-            log_lines.append(f'{key}: {val}')
-
+        log_lines.append(json.dumps(config, indent=4, default=str))
         log_lines.append('------- config parameters end --------')
 
-        self.tensorboard_writer.add_text("Hyper_parameters", config_string_markup)
+        self.tensorboard_writer.add_text("Hyper_parameters", json.dumps(config, indent=4, default=str).replace(" ", "&nbsp;").replace("\n", "  \n  "))
         self._write_to_log_file(log_lines)
 
     @multi_process_safe
@@ -207,6 +207,11 @@ class BaseSGLogger(AbstractSGLogger):
         :param global_step: Global step value to record
         """
         self.tensorboard_writer.add_figure(tag=tag, figure=figure, global_step=global_step)
+
+    @multi_process_safe
+    def add_file(self, file_name: str = None):
+        if self.remote_storage_available:
+            self.model_checkpoints_data_interface.save_remote_tensorboard_event_files(self.experiment_name, self._local_dir, file_name)
 
     @multi_process_safe
     def upload(self):

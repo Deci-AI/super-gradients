@@ -245,4 +245,4 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     if 'ema_net' in pretrained_state_dict.keys():
         pretrained_state_dict['net'] = pretrained_state_dict['ema_net']
     adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(model_state_dict=model.state_dict(), source_ckpt=pretrained_state_dict)
-    model.load_state_dict(adapted_pretrained_state_dict['net'])
+    model.load_state_dict(adapted_pretrained_state_dict['net'], strict=False)

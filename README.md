@@ -3,9 +3,12 @@
  <br/><br/>
   
 **Easily train or fine-tune SOTA computer vision models from one training repository.**
+[![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Easily%20train%20or%20fine-tune%20SOTA%20computer%20vision%20models%20from%20one%20training%20repository&url=https://github.com/Deci-AI/super-gradients&via=deci_ai&hashtags=AI,deeplearning,computervision,training,opensource)
 ______________________________________________________________________
  
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
+  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
+  <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
   <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-19-brightgreen" />
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
@@ -20,7 +23,7 @@ ______________________________________________________________________
 
 Welcome to SuperGradients, a free open-source training library for PyTorch-based deep learning models. SuperGradients allows you to train models of any computer vision tasks or import pre-trained SOTA models, such as object detection, classification of images, and semantic segmentation for videos and images.
 
-Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation, etc., and thus you experienced with how difficult it is to develop a production ready deep learning model, the overhead of integrating with existing training tools with very different and stiff formats and conventions, how much effort it is to find a suitable architecture for your needs when every repo is focusing on just one task.
+Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation, etc., and thus you have experienced how difficult it is to develop a production-ready deep learning model, the overhead of integrating with existing training tools with very different and stiff formats and conventions, how much effort it takes to find a suitable architecture for your needs when every repo is focusing on just one task.
 
 With SuperGradients you can:
     
@@ -33,7 +36,10 @@ With SuperGradients you can:
 <img src="./docs/assets/SG_img/detection-demo.png" width="600px">
 </div>
 
-______________________________________________________________________
+### Documentation
+Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.html) for full documentation, user guide, and examples. 
+
+__________________________________________________________________________________________________________
     
 ### Table of Content:
 <!-- toc -->
@@ -109,9 +115,9 @@ To train on nvidia GPUs:
 - Nvidia Driver with CUDA >= 11.2 support (≥460.x)
 
 ### Quick Installation of stable version
-**Not yet avilable in PyPi**
+See in [PyPi](https://pypi.org/project/super-gradients/)
 ```bash
-  pip install super-gradients
+pip install super-gradients
 ```
 
 That's it !
@@ -127,7 +133,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ### Pretrained Classification PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency b1<sub>T4</sub> | Throughout b1<sub>T4</sub> |
+| Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency b1<sub>T4</sub> | Throughput b1<sub>T4</sub> |
 |-------------------- |------ | ---------- |----------- |------ | -------- |  :------: |
 | EfficientNet B0 | ImageNet  |224x224   |  77.62   | 93.49  |**1.16ms** |**862fps** |
 | RegNetY200 | ImageNet  |224x224   |  70.88    |   89.35  |**1.07ms**|**928.3fps** |
@@ -147,7 +153,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ### Pretrained Object Detection PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
+| Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency b1<sub>T4</sub> | Throughput b64<sub>T4</sub>  |
 |--------------------- |------ | ---------- |------ | -------- |   :------: |
 | YOLOv5 nano | COCO |640x640 |27.7  |**6.55ms** |**177.62fps** |
 | YOLOv5 small | COCO |640x640 |37.3   |**7.13ms** |**159.44fps** |
@@ -160,7 +166,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughout b64<sub>T4</sub>  |
+| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughput b64<sub>T4</sub>  |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
 | DDRNet23   | Cityscapes |1024x2048      |78.65     |**25.48ms** |**37.4fps** |
 | DDRNet23 slim   | Cityscapes |1024x2048 |76.6    |**22.24ms** |**45.7fps** |
@@ -184,7 +190,7 @@ Our awesome contributors:
 
 ## Citation
 
-If you use SuperGradients library or benchmark in your research, please cite SuperGradients deep learning training library.
+If you are using SuperGradients library or benchmarks in your research, please cite SuperGradients deep learning training library.
 
 ## Community
 
@@ -193,11 +199,14 @@ If you want to be a part of SuperGradients growing community, hear about all the
 
 * Slack is the place to be and ask questions about SuperGradients and get support. [Click here to join our Slack](
   https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q)
+    
 * To report a bug, [file an issue](https://github.com/Deci-AI/super-gradients/issues) on GitHub.
+
 * You can also join the [community mailing list](https://deci.ai/resources/blog/)
   to ask questions about the project and receive announcements.
+    
+* For a shorth meeting with SuperGradients PM, use this [link](https://calendly.com/ofer-baratz-deci/15min) and choose your prefered time.
 
 ## License
 
 This project is released under the [Apache 2.0 license](LICENSE).
-

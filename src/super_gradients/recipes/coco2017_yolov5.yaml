@@ -32,14 +32,9 @@ architecture: yolo_v5s
 
 experiment_name: ${architecture}_coco2017_320
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
-
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
-  multi_gpu: ${multi_gpu}
   model_checkpoints_location: ${model_checkpoints_location}
 
 training_hyperparams:
