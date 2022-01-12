@@ -36,11 +36,15 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
         kwargs['crop_size'] = dataset_hyper_params['crop_size'] if 'crop_size' in dataset_hyper_params.keys() else 512
         # FIXME - Rescale before RandomRescale is kept for legacy support, consider removing it like most implementation
         #  papers regimes.
-        kwargs["image_mask_transforms_aug"] = transform.Compose([RandomFlip(),
-                                                                 Rescale(long_size=kwargs["img_size"]),
-                                                                 RandomRescale(scales=(0.5, 2.0)),
-                                                                 PadShortToCropSize(crop_size=kwargs['crop_size']),
-                                                                 CropImageAndMask(crop_size=kwargs['crop_size'], mode="random")])
+        default_image_mask_transforms_aug = transform.Compose([RandomFlip(),
+                                                               Rescale(long_size=kwargs["img_size"]),
+                                                               RandomRescale(scales=(0.5, 2.0)),
+                                                               PadShortToCropSize(crop_size=kwargs['crop_size']),
+                                                               CropImageAndMask(crop_size=kwargs['crop_size'], mode="random")])
+        kwargs["image_mask_transforms_aug"] = dataset_hyper_params.get("image_mask_transforms_aug",
+                                                                       default_image_mask_transforms_aug)
+        if 'image_mask_transforms' in dataset_hyper_params:
+            kwargs["image_mask_transforms"] = dataset_hyper_params['image_mask_transforms']
         super().__init__(*args, **kwargs)
 
         _, class_names = zip(*self.dataset_classes_inclusion_tuples_list)
