@@ -1,6 +1,38 @@
-# python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py  --config-name=cityscapes_stdc_seg50 architecture=stdc2_seg
-#  arch_params.external_checkpoint_path=<your_path_to_pretrained_stdc2_backbone>
+#  STDC segmentation training example with Cityscapes dataset.
+#  Reproduction and refinement of paper: Rethinking BiSeNet For Real-time Semantic Segmentation.
 #
+#  Usage STDC1-Seg50:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg50 external_checkpoint_path=<stdc1-backbone-pretrained-path>
+#  Usage STDC2-Seg50:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg50 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
+#
+#
+#  Validation mIoU - Cityscapes, training time:
+#      STDC1-Seg50:    input-size: [512, 1024]     mIoU: 74.36     4 X RTX A5000, 12 H
+#      STDC2-Seg50:    input-size: [512, 1024]     mIoU: 75.27     4 X RTX A5000, 13 H
+#
+#  Official git repo:
+#      https://github.com/MichaelFan01/STDC-Seg
+#  Paper:
+#      https://arxiv.org/abs/2104.13188
+#
+#  Pretrained checkpoints:
+#      Backbones- downloaded from the author's official repo.
+#
+#      Logs, tensorboards and network checkpoints:
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc1_seg50/
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc2_seg50_cityscapes/
+#
+#
+#  Learning rate and batch size parameters, using 4 GeForce RTX 2080 Ti with DDP:
+#      STDC1-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
+#      STDC2-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
+#
+#  Comments:
+#      * Pretrained backbones were used.
+#      * Results with Deci code are higher than original implementation, mostly thanks to changes in Detail loss and
+#          module, different auxiliary feature maps and different loss weights.
+
 defaults:
   - training_hyperparams: cityscapes_stdc_train_params
   - dataset_params: cityscapes_dataset_params
