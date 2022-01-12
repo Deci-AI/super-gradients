@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 from copy import deepcopy
 from enum import Enum
 from typing import Union, Tuple
@@ -9,41 +10,42 @@ import pkg_resources
 import torch
 import torchvision.transforms as transforms
 from deprecated import deprecated
+from piptools.scripts.sync import _get_installed_distributions
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
-from piptools.scripts.sync import _get_installed_distributions
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.environment import environment_config
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import ARCHITECTURES, utils as core_utils
-from super_gradients.training.utils import sg_model_utils
 from super_gradients.training import metrics
-from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.datasets import DatasetInterface
+from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
+from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.losses import LOSSES
+from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
     get_logging_values, \
     get_metrics_dict, get_train_loop_description_dict
 from super_gradients.training.models import SgModule
 from super_gradients.training.params import TrainingParams
+from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
+from super_gradients.training.utils import random_seed
+from super_gradients.training.utils import sg_model_utils
+from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
+    MetricsUpdateCallback, LR_WARMUP_CLS_DICT
+from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path, read_ckpt_state_dict, \
+    load_checkpoint_to_model, load_pretrained_weights
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.distributed_training_utils import MultiGPUModeAutocastWrapper, \
     reduce_results_tuple_for_ddp, compute_precise_bn_stats
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
-from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.training.utils import random_seed
-from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path, read_ckpt_state_dict, \
-    load_checkpoint_to_model, load_pretrained_weights
-from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
-from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
-    MetricsUpdateCallback, LR_WARMUP_CLS_DICT
-from super_gradients.common.environment import environment_config
-from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 
 logger = get_logger(__name__)
 
@@ -188,13 +190,67 @@ class SgModel:
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
         self.loss_logging_items_names = default_loss_logging_items_names
 
-    def connect_dataset_interface(self, dataset_interface: DatasetInterface, data_loader_num_workers: int = 8):
+    def connect_dataset_interface(self, dataset_interface: DatasetInterface, data_loader_num_workers: int = 8,
+                                  fine_tune=False):
         """
         :param dataset_interface: DatasetInterface object
         :param data_loader_num_workers: The number of threads to initialize the Data Loaders with
             The dataset to be connected
+
+        :param fine_tune: This flag will ignore data_loader_num_workers.
+            When set to True, the program will search for a 'sweet spot' in terms of number of data loading processes.
+            The constellation that yields the highest data loading speed will be chosen.
+            This flag is useful when training multiple models over the same CPUs (same machine).
         """
         self.dataset_interface = dataset_interface
+        if fine_tune:
+
+            # Finding the sweep spot for the iterator configuration in terms of CPUs that are used.
+            # A sweet spot exists. it depends on other processes in the OS, other experiments, etc.
+            # Therefore, we calculate it on startup and choose the best constellation.
+            data_loading_workers_results = {}
+            MIN_WORKERS = 1
+            MAX_WORKERS = int(os.cpu_count())
+            WARMUP_CALLS = 32
+            DATA_LOADER_ITERATIONS = 128
+            print('Trying different data loader configuration (hardware-aware)...')
+            for potential_num_workers in range(MIN_WORKERS, MAX_WORKERS + 1):
+                print(f'Trying {potential_num_workers} data loaders...')
+                self.num_workers = potential_num_workers
+                _train_loader, _valid_loader, _test_loader, _classes = \
+                    self.dataset_interface.get_data_loaders(batch_size_factor=self.num_devices,
+                                                            num_workers=potential_num_workers,
+                                                            distributed_sampler=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
+
+                # Warmup
+                [iter(_train_loader) for _ in range(WARMUP_CALLS)]
+
+                samples_loaded = 0
+                start_load_sample = time.perf_counter()
+                for _ in range(DATA_LOADER_ITERATIONS):
+                    iter(_train_loader)
+                    samples_loaded += 1
+
+                end_load_sample = time.perf_counter()
+                e2e_sample_load_time_ms = (end_load_sample - start_load_sample) * 1000
+                print(
+                    f'{potential_num_workers} data loaders yielded {samples_loaded} samples in {e2e_sample_load_time_ms:.2f}ms...')
+
+                # Calculating FPS
+                total_fps = e2e_sample_load_time_ms / samples_loaded
+                fps_per_worker = e2e_sample_load_time_ms / samples_loaded / potential_num_workers
+                print('FPS/Worker ratio:', fps_per_worker, 'Total FPS:', total_fps)
+                data_loading_workers_results[potential_num_workers] = total_fps
+
+            print('Data loading matrix:', data_loading_workers_results)
+            # We want to keep the minimal ratio of processes, that allow the highest FPS;
+            best_data_loader = max(data_loading_workers_results, key=data_loading_workers_results.get)
+            best_fps = data_loading_workers_results[best_data_loader]
+            print(
+                f'Choosing num_processes={best_data_loader} for data loading because it yields the best results at the moment.')
+            data_loader_num_workers = best_fps
+
+        # After we found the sweet spot, setting the instance data loaders with the best configuration.
         self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             self.dataset_interface.get_data_loaders(batch_size_factor=self.num_devices,
                                                     num_workers=data_loader_num_workers,
@@ -998,8 +1054,8 @@ class SgModel:
                 self.model_weight_averaging.cleanup()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    @deprecated(version='0.1', reason="directly predict using the nn_module")  # noqa: C901
-    def predict(self, inputs, targets=None, half=False, normalize=False, verbose=False,
+    @deprecated(version='0.1', reason="directly predict using the nn_module")
+    def predict(self, inputs, targets=None, half=False, normalize=False, verbose=False,  # noqa: C901
                 move_outputs_to_cpu=True):
         """
         A fast predictor for a batch of inputs
