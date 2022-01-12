@@ -497,7 +497,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         trainer.build_model("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
         trainer.train(training_params=self.stdc_transfer_segmentation_train_params)
-        
+
     def test_pretrained_stdc1_seg75_cityscapes(self):
         trainer = SgModel('cityscapes_pretrained_stdc1_seg75', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)

@@ -7,7 +7,7 @@ from typing import Callable
 import torchvision.transforms as transform
 from PIL import Image
 from super_gradients.training.datasets.sg_dataset import DirectoryDataSet, ListDataset
-from super_gradients.training.utils.segmentation_utils import RandomFlip, Rescale, RandomRotate, PadShortToCropSize,\
+from super_gradients.training.utils.segmentation_utils import RandomFlip, Rescale, RandomRotate, PadShortToCropSize, \
     CropImageAndMask, RandomGaussianBlur, RandomRescale
 
 
@@ -87,8 +87,8 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         # FIXME: CROP SIZE CANNOT BE PASSED WHEN LIST
         if image_mask_transforms is None:
             image_mask_transforms = transform.Compose([Rescale(short_size=self.crop_size),
-                                                               CropImageAndMask(crop_size=self.crop_size, mode="center")
-                                                               ])
+                                                       CropImageAndMask(crop_size=self.crop_size, mode="center")
+                                                       ])
 
         self.image_mask_transforms = image_mask_transforms
 

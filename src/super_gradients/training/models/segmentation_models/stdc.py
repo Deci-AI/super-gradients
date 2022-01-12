@@ -539,7 +539,6 @@ class STDCSegmentationBase(SgModule):
                 nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True)
             )
 
-
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
         Custom param groups for STDC training:
