@@ -128,7 +128,11 @@ class PretrainedModelsTest(unittest.TestCase):
             "stdc": {"pretrained_weights": "cityscapes", "use_aux_heads": True, "aux_head": True}}
         self.cityscapes_pretrained_mious = {"ddrnet_23": 0.7865,
                                             "ddrnet_23_slim": 0.7689,
-                                            "stdc1_seg50": 0.7436}
+                                            "stdc1_seg50": 0.7436,
+                                            "stdc1_seg75": 0.7687,
+                                            "stdc2_seg50": 0.7527,
+                                            "stdc2_seg75": 0.7893}
+
         self.cityscapes_dataset = CityscapesDatasetInterface(dataset_params={
             "batch_size": 3,
             "val_batch_size": 3,
@@ -150,7 +154,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "batch_size": 3,
             "val_batch_size": 3,
             "image_mask_transforms_aug": transforms.Compose([]),
-            "image_mask_transforms": transforms.Compose([Rescale(scale_factor=0.5)])  # no transform for evaluation
+            "image_mask_transforms": transforms.Compose([Rescale(scale_factor=0.75)])  # no transform for evaluation
         }, cache_labels=False)
 
         self.transfer_segmentation_dataset = SegmentationTestDatasetInterface(image_size=1024)
@@ -493,7 +497,57 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         trainer.build_model("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
         trainer.train(training_params=self.stdc_transfer_segmentation_train_params)
+        
+    def test_pretrained_stdc1_seg75_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc1_seg75', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
+        trainer.build_model("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled75.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc1_seg75"], delta=0.001)
 
+    def test_transfer_learning_stdc1_seg75_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc1_seg75_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
+        trainer.build_model("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        trainer.train(training_params=self.stdc_transfer_segmentation_train_params)
+
+    def test_pretrained_stdc2_seg50_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc2_seg50', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
+        trainer.build_model("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled50.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc2_seg50"], delta=0.001)
+
+    def test_transfer_learning_stdc2_seg50_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc2_seg50_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
+        trainer.build_model("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        trainer.train(training_params=self.stdc_transfer_segmentation_train_params)
+
+    def test_pretrained_stdc2_seg75_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc2_seg75', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
+        trainer.build_model("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled75.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc2_seg75"], delta=0.001)
+
+    def test_transfer_learning_stdc2_seg75_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc2_seg75_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
+        trainer.build_model("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        trainer.train(training_params=self.stdc_transfer_segmentation_train_params)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
