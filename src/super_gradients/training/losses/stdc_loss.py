@@ -123,7 +123,7 @@ class STDCLoss(_Loss):
                  mining_percent: float = 0.1,
                  detail_threshold: float = 1.,
                  learnable_fusing_kernel: bool = True,
-                 ignore_index: int = -100):
+                 ignore_index: int = None):
         """
         :param threshold: Online hard-mining probability threshold.
         :param num_aux_heads: num of auxiliary heads.

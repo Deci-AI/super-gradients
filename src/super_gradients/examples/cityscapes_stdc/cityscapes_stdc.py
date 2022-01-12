@@ -11,17 +11,12 @@ Usage STDC2-Seg50:
 Usage STDC2-Seg75:
     python -m torch.distributed.launch --nproc_per_node=4 cityscapes_stdc.py --config-name cityscapes_stdc_seg75_conf experiment_name=<experiment-name> external_checkpoint_path=<pretrained-path> architecture=stdc2_seg
 
-Training time [4 x 2080Ti]:
-    STDC1-Seg50:    20H
-    STDC1-Seg75:    27H
-    STDC2-Seg50:    16H
-    STDC2-Seg75:    43H
 
-Validation mIoU - Cityscapes:
-    STDC1-Seg50:    input-size: [512, 1024]     mIoU: 74.41
-    STDC1-Seg75:    input-size: [768, 1536]     mIoU: 76.1      * stopped after 606 epochs
-    STDC2-Seg50:    input-size: [512, 1024]     mIoU: 75.07
-    STDC2-Seg75:    input-size: [768, 1536]     mIoU: 77.95     * stopped after 634 epochs
+Validation mIoU - Cityscapes, training time:
+    STDC1-Seg50:    input-size: [512, 1024]     mIoU: 74.36     4 X RTX A5000, 12 H
+    STDC1-Seg75:    input-size: [768, 1536]     mIoU: 76.87     4 X RTX A5000, 29 H, early stopped after 711 epochs
+    STDC2-Seg50:    input-size: [512, 1024]     mIoU: 75.27     4 X RTX A5000, 13 H
+    STDC2-Seg75:    input-size: [768, 1536]     mIoU: 78.93     2 X RTX A5000, 29 H, early stopped after 530 epochs
 
 Official git repo:
     https://github.com/MichaelFan01/STDC-Seg
@@ -33,12 +28,17 @@ Pretrained checkpoints:
 
     Segmentation (trained using this recipe):
 
+Training time [4 x 2080Ti]:
+    STDC1-Seg50:    20H
+    STDC1-Seg75:    27H
+    STDC2-Seg50:    16H
+    STDC2-Seg75:    43H
 
 Learning rate and batch size parameters, using 4 GeForce RTX 2080 Ti with DDP:
     STDC1-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
     STDC1-Seg75:    input-size: [768, 1536]     initial_lr: 0.005   batch-size: 4 * 4gpus = 16
     STDC2-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
-    STDC2-Seg75:    input-size: [768, 1536]     initial_lr: 0.005   batch-size: 4 * 4gpus = 16
+    STDC2-Seg75:    input-size: [768, 1536]     initial_lr: 0.005   batch-size: 8 * 2gpus = 16
 
 Comments:
     * Pretrained backbones were used.
