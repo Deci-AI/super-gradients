@@ -9,6 +9,15 @@ def _assign_tuple(t: tuple, index: int, value):
 
 
 def resolve_param(param_name: str, factory: AbstractFactory):
+    """
+    A decorator function which resolves a specific named parameter using a defined Factory
+    usage:
+        @resolve_param(my_param_name, MyFactory())
+        def foo(self, a, my_param_name, b, c)
+            ...
+
+        this will use MyFactory to generate an object from the provided value of my_param_name
+    """
 
     def inner(func):
         @wraps(func)

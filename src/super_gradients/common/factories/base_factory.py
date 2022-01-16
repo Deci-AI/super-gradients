@@ -2,8 +2,15 @@ from typing import Union, Mapping
 
 
 class AbstractFactory:
+    """
+    An abstract factory to generate an object from a string or a dictionary
+    """
 
     def get(self, conf: Union[str, dict]):
+        """
+        Get an instantiated object.
+            :param conf: a configuration. either a type name (str) or a dictionary {type_name(str): {parameters...}}
+        """
         raise NotImplementedError
 
 
