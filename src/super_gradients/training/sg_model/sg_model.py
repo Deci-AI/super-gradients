@@ -960,7 +960,7 @@ class SgModel:
 
     @resolve_param('valid_metrics_list', ListFactory(MetricsFactory()))
     def _set_valid_metrics(self, valid_metrics_list):
-        self.train_metrics = MetricCollection(valid_metrics_list)
+        self.valid_metrics = MetricCollection(valid_metrics_list)
 
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
         # SCALER IS ALWAYS INITIALIZED BUT IS DISABLED IF MIXED PRECISION WAS NOT SET
