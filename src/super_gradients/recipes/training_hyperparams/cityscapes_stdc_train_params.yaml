@@ -20,7 +20,7 @@ ema_params:
 
 loss:
   _target_: super_gradients.training.losses.stdc_loss.STDCLoss
-  num_classes: 20
+  num_classes: 19
   ignore_index: 19
   mining_percent: 0.0625 # mining percentage is 1/16 of pixels following original implementation.
   weights: [1., 0.6, 0.4, 1.]

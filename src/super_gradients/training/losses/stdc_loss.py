@@ -186,4 +186,4 @@ class STDCLoss(_Loss):
         Expose DetailAggregateModule learnable parameters to be passed to the optimizer.
         """
         if self.use_detail:
-            return self.detail_module.named_parameters()
+            return list(self.detail_module.named_parameters())
