@@ -56,7 +56,6 @@ results_titles = ['sl1', 'c-loss', 'Train loss',
                   'val loss']
 model = SgModel(f'ssd_mobilenet_alpha{args.alpha:.1f}_decay{args.ema_decay:.4E}_beta{args.ema_beta:.2E}',
                 model_checkpoints_location="local",
-                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
                 post_prediction_callback=SSDPostPredictCallback(dboxes=dboxes),
                 epoch_metric_headers=epoch_metrics_headers,
                 results_titles=results_titles

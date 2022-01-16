@@ -7,3 +7,4 @@ train_loader_drop_last: True      # drop the last incomplete batch, if the datas
 color_jitter: 0.                  # Training color jitter param
 random_scales: [0.5, 2.]          # RandomScale scales param for trainset
 eval_scale: 1.                    # Resacle scale-factor of the validation set
+cityscapes_ignored_label: 19      # ignored label idx

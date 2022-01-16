@@ -13,7 +13,15 @@ image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
 
 
-class RandomFlip:
+class SegmentationTransform:
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __repr__(self, message):
+        return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')
+
+
+class RandomFlip(SegmentationTransform):
     """
     Randomly flips the image and mask (synchronously) with probability 'prob'.
     """
@@ -34,7 +42,7 @@ class RandomFlip:
         return sample
 
 
-class Rescale:
+class Rescale(SegmentationTransform):
     """
     Rescales the image and mask (synchronously) while preserving aspect ratio.
     The rescaling can be done according to scale_factor, short_size or long_size.
@@ -139,7 +147,7 @@ class RandomRescale:
         return self.scales
 
 
-class RandomRotate:
+class RandomRotate(SegmentationTransform):
     """
     Randomly rotates image and mask (synchronously) between 'min_deg' and 'max_deg'.
     """
@@ -170,7 +178,7 @@ class RandomRotate:
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
 
-class CropImageAndMask:
+class CropImageAndMask(SegmentationTransform):
     """
     Crops image and mask (synchronously).
     In "center" mode a center crop is performed while, in "random" mode the drop will be positioned around
@@ -221,7 +229,7 @@ class CropImageAndMask:
             raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
 
 
-class RandomGaussianBlur:
+class RandomGaussianBlur(SegmentationTransform):
     """
     Adds random Gaussian Blur to image with probability 'prob'.
     """
@@ -243,7 +251,7 @@ class RandomGaussianBlur:
         return sample
 
 
-class PadShortToCropSize:
+class PadShortToCropSize(SegmentationTransform):
     """
     Pads image to 'crop_size'.
     Should be called only after "Rescale" or "RandomRescale" in augmentations pipeline.

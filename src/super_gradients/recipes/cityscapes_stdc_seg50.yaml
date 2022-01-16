@@ -52,8 +52,8 @@ dataset_params:
   val_batch_size: 8
   color_jitter: 0.5
   random_scales:
-  - 0.125
-  - 1.5
+    - 0.125
+    - 1.5
   crop_size:
     - 1024
     - 512
@@ -73,7 +73,7 @@ dataset_params:
 
       - _target_: super_gradients.training.utils.segmentation_utils.PadShortToCropSize
         crop_size: ${dataset_params.crop_size}
-        fill_mask: 19
+        fill_mask: ${dataset_params.cityscapes_ignored_label}
 
       - _target_: super_gradients.training.utils.segmentation_utils.CropImageAndMask
         crop_size: ${dataset_params.crop_size}
