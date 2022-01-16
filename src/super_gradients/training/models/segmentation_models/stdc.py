@@ -521,23 +521,15 @@ class STDCSegmentationBase(SgModule):
         )
         if self.use_aux_heads:
             stage3_s8_channels, stage4_s16_channels, stage5_s32_channels = self.backbone.get_backbone_output_number_of_channels()
+            # Auxiliary head replacement- first modules in the sequences are the segmentation heads.
             aux_head_channels = self.aux_head_s16[0].seg_head[-1].in_channels
             detail_head_channels = self.detail_head8[0].seg_head[-1].in_channels
 
-            # Auxiliary heads
-            self.aux_head_s16 = nn.Sequential(
-                SegmentationHead(stage4_s16_channels, aux_head_channels, new_num_classes, dropout=dropout),
-                nn.Upsample(scale_factor=16, mode="bilinear", align_corners=True)
-            )
-            self.aux_head_s32 = nn.Sequential(
-                SegmentationHead(stage5_s32_channels, aux_head_channels, new_num_classes, dropout=dropout),
-                nn.Upsample(scale_factor=32, mode="bilinear", align_corners=True)
-            )
+            self.aux_head_s16[0] = SegmentationHead(stage4_s16_channels, aux_head_channels, new_num_classes, dropout=dropout)
+
+            self.aux_head_s32[0] = SegmentationHead(stage5_s32_channels, aux_head_channels, new_num_classes, dropout=dropout)
             # Detail head
-            self.detail_head8 = nn.Sequential(
-                SegmentationHead(stage3_s8_channels, detail_head_channels, 1, dropout=dropout),
-                nn.Upsample(scale_factor=8, mode="bilinear", align_corners=True)
-            )
+            self.detail_head8[0] = SegmentationHead(stage3_s8_channels, detail_head_channels, 1, dropout=dropout)
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
