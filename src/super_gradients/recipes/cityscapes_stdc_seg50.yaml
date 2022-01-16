@@ -1,0 +1,109 @@
+#  STDC segmentation training example with Cityscapes dataset.
+#  Reproduction and refinement of paper: Rethinking BiSeNet For Real-time Semantic Segmentation.
+#
+#  Usage STDC1-Seg50:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg50 external_checkpoint_path=<stdc1-backbone-pretrained-path>
+#  Usage STDC2-Seg50:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg50 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
+#
+#
+#  Validation mIoU - Cityscapes, training time:
+#      STDC1-Seg50:    input-size: [512, 1024]     mIoU: 74.36     4 X RTX A5000, 12 H
+#      STDC2-Seg50:    input-size: [512, 1024]     mIoU: 75.27     4 X RTX A5000, 13 H
+#
+#  Official git repo:
+#      https://github.com/MichaelFan01/STDC-Seg
+#  Paper:
+#      https://arxiv.org/abs/2104.13188
+#
+#  Pretrained checkpoints:
+#      Backbones- downloaded from the author's official repo.
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc1_imagenet_pretrained.pth
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc2_imagenet_pretrained.pth
+#
+#      Logs, tensorboards and network checkpoints:
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc1_seg50/
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc2_seg50_cityscapes/
+#
+#
+#  Learning rate and batch size parameters, using 4 GeForce RTX 2080 Ti with DDP:
+#      STDC1-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
+#      STDC2-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
+#
+#  Comments:
+#      * Pretrained backbones were used.
+#      * Results with Deci code are higher than original implementation, mostly thanks to changes in Detail loss and
+#          module, different auxiliary feature maps and different loss weights.
+
+defaults:
+  - training_hyperparams: cityscapes_stdc_train_params
+  - dataset_params: cityscapes_dataset_params
+
+arch_params:
+  num_classes: 19
+  use_aux_heads: True
+  sync_bn: True
+  external_checkpoint_path: "/home/shay.aharon/stdc_backbones/stdc1_imagenet_pretrained.pth"
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
+
+dataset_params:
+  _convert_: all
+  batch_size: 8
+  val_batch_size: 8
+  color_jitter: 0.5
+  random_scales:
+    - 0.125
+    - 1.5
+  crop_size:
+    - 1024
+    - 512
+  eval_scale: 0.5
+  image_mask_transforms_aug:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: super_gradients.training.utils.segmentation_utils.ColorJitterSeg
+        brightness: ${dataset_params.color_jitter}
+        contrast: ${dataset_params.color_jitter}
+        saturation: ${dataset_params.color_jitter}
+
+      - _target_: super_gradients.training.utils.segmentation_utils.RandomFlip
+
+      - _target_: super_gradients.training.utils.segmentation_utils.RandomRescale
+        scales: ${dataset_params.random_scales}
+
+      - _target_: super_gradients.training.utils.segmentation_utils.PadShortToCropSize
+        crop_size: ${dataset_params.crop_size}
+        fill_mask: ${dataset_params.cityscapes_ignored_label}
+
+      - _target_: super_gradients.training.utils.segmentation_utils.CropImageAndMask
+        crop_size: ${dataset_params.crop_size}
+        mode: random
+
+  image_mask_transforms:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: super_gradients.training.utils.segmentation_utils.Rescale
+        scale_factor: ${dataset_params.eval_scale}
+
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CityscapesDatasetInterface
+  dataset_params: ${dataset_params}
+
+data_loader_num_workers: 10
+
+model_checkpoints_location: local
+load_checkpoint: False
+load_backbone: True
+external_checkpoint_path:
+
+architecture: stdc1_seg
+experiment_name: ${architecture}50_cityscapes
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+
+
+

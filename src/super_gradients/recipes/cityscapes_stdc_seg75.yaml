@@ -1,0 +1,49 @@
+#  STDC segmentation training example with Cityscapes dataset.
+#  Reproduction and refinement of paper: Rethinking BiSeNet For Real-time Semantic Segmentation.
+#
+#  Usage STDC1-Seg75:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc1-backbone-pretrained-path>
+#  Usage STDC2-Seg75:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
+#
+#
+#  Validation mIoU - Cityscapes, training time:
+#      STDC1-Seg75:    input-size: [768, 1536]     mIoU: 76.87     4 X RTX A5000, 29 H, early stopped after 711 epochs
+#      STDC2-Seg75:    input-size: [768, 1536]     mIoU: 78.93     2 X RTX A5000, 29 H, early stopped after 530 epochs
+#
+#  Official git repo:
+#      https://github.com/MichaelFan01/STDC-Seg
+#  Paper:
+#      https://arxiv.org/abs/2104.13188
+#
+#  Pretrained checkpoints:
+#      Backbones- downloaded from the author's official repo.
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc1_imagenet_pretrained.pth
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc2_imagenet_pretrained.pth
+#
+#      Logs, tensorboards and network checkpoints:
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc1_seg75_cityscapes/
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc2_seg75_cityscapes/
+#
+#
+#  Learning rate and batch size parameters, using 4 GeForce RTX 2080 Ti with DDP:
+#      STDC1-Seg75:    input-size: [768, 1536]     initial_lr: 0.005   batch-size: 4 * 4gpus = 16
+#      STDC2-Seg75:    input-size: [768, 1536]     initial_lr: 0.005   batch-size: 8 * 2gpus = 16
+#
+#  Comments:
+#      * Pretrained backbones were used.
+#      * Results with Deci code are higher than original implementation, mostly thanks to changes in Detail loss and
+#          module, different auxiliary feature maps and different loss weights.
+defaults:
+  - cityscapes_stdc_seg50
+
+dataset_params:
+  batch_size: 4
+  val_batch_size: 4
+  crop_size: [1536, 768]
+  eval_scale: 0.75
+
+training_hyperparams:
+  initial_lr: 0.005
+
+experiment_name: ${architecture}75_cityscapes
