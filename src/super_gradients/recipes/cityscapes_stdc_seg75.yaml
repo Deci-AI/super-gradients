@@ -18,6 +18,8 @@
 #
 #  Pretrained checkpoints:
 #      Backbones- downloaded from the author's official repo.
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc1_imagenet_pretrained.pth
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc2_imagenet_pretrained.pth
 #
 #      Logs, tensorboards and network checkpoints:
 #       https://deci-pretrained-models.s3.amazonaws.com/stdc1_seg75_cityscapes/
