@@ -166,11 +166,16 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughput b64<sub>T4</sub>  |
+| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughput b1<sub>T4</sub>  |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
-| DDRNet23   | Cityscapes |1024x2048      |78.65     |**25.48ms** |**37.4fps** |
-| DDRNet23 slim   | Cityscapes |1024x2048 |76.6    |**22.24ms** |**45.7fps** |
+| DDRNet23   | Cityscapes |1024x2048   |78.65  |**25.48ms** |**39.2fps** |
+| DDRNet23 slim   | Cityscapes |1024x2048 |76.6  |**22.24ms** |**45.1fps** |
+| STDC1-Seg50   | Cityscapes | 512x1024 |73.7  |**12.91ms** |**77.5fps** |
+| STDC1-Seg75   | Cityscapes | 768x1536 |76.1  |**26.93ms** |**37.1fps** |
+| STDC2-Seg50   | Cityscapes | 512x1024 |75.07 |**13.58ms** |**73.6fps** |
+| STDC2-Seg75   | Cityscapes | 768x1536 |77.95 |**28.35ms** |**35.3fps** |
 | ShelfNet_LW_34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |
+
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency) and batch size 64 (througput)
 
