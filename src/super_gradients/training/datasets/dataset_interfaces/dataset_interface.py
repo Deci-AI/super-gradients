@@ -723,13 +723,16 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
         train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn')
         val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn')
 
+        class_inclusion_list = core_utils.get_param(self.dataset_params, "class_inclusion_list")
         self.data_root = core_utils.get_param(self.dataset_params, 'data_root', "~/data/pascal_unified_coco_format/")
+
         download = core_utils.get_param(self.dataset_params, 'download', False)
 
         if download:
             self.download_pascal()
 
         train_sets = []
+        img_files = []
         for trainset_prefix in ["train", "val"]:
             for trainset_year in ["2007", "2012"]:
                 sub_trainset = PascalVOCDetectionDataSet(root=self.data_root,
@@ -743,8 +746,10 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                                                          sample_loading_method=train_sample_method,
                                                          cache_labels=cache_labels,
                                                          cache_images=cache_images,
-                                                         augment=True)
+                                                         augment=True,
+                                                         class_inclusion_list=class_inclusion_list)
                 train_sets.append(sub_trainset)
+                img_files += sub_trainset.img_files
 
         testset2007 = PascalVOCDetectionDataSet(root=self.data_root,
                                                 list_file='images/VOCdevkit/VOC2007/ImageSets/Main/test.txt',
@@ -757,13 +762,16 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                                                 sample_loading_method=val_sample_method,
                                                 cache_labels=cache_labels,
                                                 cache_images=cache_images,
-                                                augment=False)
+                                                augment=False,
+                                                class_inclusion_list=class_inclusion_list)
 
         self.classes = train_sets[1].classes
         self.trainset = ConcatDataset(train_sets)
         self.trainset.collate_fn = train_collate_fn
         self.valset = testset2007
         self.trainset.classes = self.classes
+        self.trainset.img_size = self.dataset_params.train_image_size
+        self.trainset.img_files = img_files
 
     def download_pascal(self, delete=True):
 

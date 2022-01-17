@@ -10,6 +10,7 @@ from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPr
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.utils.detection_utils import Anchors
+from super_gradients.training.utils.detection_utils import AnchorGenerator
 
 super_gradients.init_trainer()
 
@@ -33,14 +34,31 @@ dataset_params = {"batch_size": 48,
                       "scale": 0.898,  # IMAGE SCALE (+/- gain)
                       "shear": 0.602,
                       "mixup": 0.243  # MIXUP PROBABILITY
-                  }
-                  }
+                  },
+                  "class_inclusion_list": ['person']
 
+                  }
+#
+# dataset_params_rect = {"batch_size": 1,
+#                        "val_batch_size": 1,
+#                        "train_image_size": 512,
+#                        "val_image_size": 512,
+#                        "train_sample_loading_method": "rectangular",
+#                        "class_inclusion_list": ['person']
+#                        }
+# dataset_interface = PascalVOCUnifiedDetectionDataSetInterface(dataset_params=dataset_params_rect, cache_labels=True,
+#                                                               cache_images=True)
+#
+# anch_gen = AnchorGenerator()
+# anchors = anch_gen(dataset=dataset_interface.trainset.datasets[1], thresh=1 / 2.91)
+# anchors = Anchors(anchors_list=anchors,
+#                   strides=[8, 16, 32])
 # INITIALIZE SG MODEL INSTANCE, AND A PASCAL VOC DATASET INTERFACE
-model = SgModel("yolov5m_pascal_finetune_augment_fix")
+model = SgModel("yolov5m_default_anch_pascal_person_finetune")
 dataset_interface = PascalVOCUnifiedDetectionDataSetInterface(dataset_params=dataset_params, cache_labels=True,
                                                               cache_images=True)
 
+print("num_cls" + str(len(dataset_interface.classes)))
 # CONNECTING THE DATASET INTERFACE WILL SET SGMODEL'S CLASSES ATTRIBUTE ACCORDING TO PASCAL VOC
 model.connect_dataset_interface(dataset_interface, data_loader_num_workers=8)
 
@@ -68,16 +86,20 @@ training_params = {"max_epochs": 50,
                    "warmup_bias_lr": 0.05,  # LR TO START FROM DURING WARMUP (DROPS DOWN DURING WARMUP EPOCHS) FOR BIAS.
                    "loss": "yolo_v5_loss",
                    "criterion_params": {"anchors": Anchors(
-                       anchors_list=[[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119],
-                                     [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]),  # MODEL'S ANCHORS
-                       "box_loss_gain": 0.0296 * num_branches_norm,  # COEF FOR BOX LOSS COMPONENT, NORMALIZED
-                       "cls_loss_gain": 0.243 * num_classes_norm * num_branches_norm,  # COEF FOR CLASSIFICATION
-                                                                                       # LOSS COMPONENT, NORMALIZED
-                       "cls_pos_weight": 0.631,  # CLASSIFICATION BCE POSITIVE CLASS WEIGHT
-                       "obj_loss_gain": 0.301 * image_size_norm ** 2 * num_branches_norm,  # OBJECT BCE COEF, NORMALIZED
-                       "obj_pos_weight": 0.911,  # OBJECT BCE POSITIVE CLASS WEIGHT
-                       "anchor_threshold": 2.91  # RATIO DEFINING THE SIZE RANGE OF AN ANCHOR.
-                   },
+                                                           anchors_list=[[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119],
+                                                                         [116, 90, 156, 198, 373, 326]],
+                                                           strides=[8, 16, 32]),  # MODEL'S ANCHORS
+                                        "box_loss_gain": 0.0296 * num_branches_norm,
+                                        # COEF FOR BOX LOSS COMPONENT, NORMALIZED
+                                        "cls_loss_gain": 0.243 * num_classes_norm * num_branches_norm,
+                                        # COEF FOR CLASSIFICATION
+                                        # LOSS COMPONENT, NORMALIZED
+                                        "cls_pos_weight": 0.631,  # CLASSIFICATION BCE POSITIVE CLASS WEIGHT
+                                        "obj_loss_gain": 0.301 * image_size_norm ** 2 * num_branches_norm,
+                                        # OBJECT BCE COEF, NORMALIZED
+                                        "obj_pos_weight": 0.911,  # OBJECT BCE POSITIVE CLASS WEIGHT
+                                        "anchor_threshold": 2.91  # RATIO DEFINING THE SIZE RANGE OF AN ANCHOR.
+                                        },
                    "optimizer": "SGD",
                    "warmup_momentum": 0.5,
                    "optimizer_params": {"momentum": 0.843,

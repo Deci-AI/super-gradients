@@ -31,7 +31,7 @@ dataset_params = {"batch_size": 48,
                       "shear": 0.602,
                       "mixup": 0.243  # MIXUP PROBABILITY
                   },
-                  "download": True,
+                  "download": False,
                   "data_root": "/home/shay.aharon/data/pascal_unified_coco_format/"
                   }
 

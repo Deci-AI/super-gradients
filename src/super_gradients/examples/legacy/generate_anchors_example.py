@@ -9,4 +9,6 @@ dataset_params = {"batch_size": 1,
                   }
 
 coco_dataset_interface = CoCoDetectionDatasetInterface(dataset_params=dataset_params, cache_labels=True)
-anchors = AnchorGenerator(coco_dataset_interface.trainset, 9)
+ag = AnchorGenerator()
+anchors = ag(dataset = coco_dataset_interface.trainset)
+print(anchors)

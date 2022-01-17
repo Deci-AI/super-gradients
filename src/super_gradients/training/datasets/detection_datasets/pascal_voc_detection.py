@@ -18,9 +18,8 @@ class PascalVOCDetectionDataSet(DetectionDataSet):
     def __init__(self, samples_sub_directory, targets_sub_directory, *args, **kwargs):
         self.samples_sub_directory = samples_sub_directory
         self.targets_sub_directory = targets_sub_directory
-
+        kwargs['all_classes_list'] = PASCAL_VOC_2012_CLASSES
         super().__init__(*args, **kwargs)
-        self.classes = PASCAL_VOC_2012_CLASSES
 
     def _generate_samples_and_targets(self):
         """
