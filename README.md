@@ -9,7 +9,7 @@ ______________________________________________________________________
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
   <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
-  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-19-brightgreen" />
+  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-23-brightgreen" />
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
@@ -166,11 +166,16 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughput b64<sub>T4</sub>  |
+| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughput b1<sub>T4</sub>  |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
-| DDRNet23   | Cityscapes |1024x2048      |78.65     |**25.48ms** |**37.4fps** |
-| DDRNet23 slim   | Cityscapes |1024x2048 |76.6    |**22.24ms** |**45.7fps** |
+| DDRNet23   | Cityscapes |1024x2048   |78.65  |**25.48ms** |**39.2fps** |
+| DDRNet23 slim   | Cityscapes |1024x2048 |76.6  |**22.24ms** |**45.1fps** |
+| STDC1-Seg50   | Cityscapes | 512x1024 |73.7  |**12.91ms** |**77.5fps** |
+| STDC1-Seg75   | Cityscapes | 768x1536 |76.1  |**26.93ms** |**37.1fps** |
+| STDC2-Seg50   | Cityscapes | 512x1024 |75.07 |**13.58ms** |**73.6fps** |
+| STDC2-Seg75   | Cityscapes | 768x1536 |77.95 |**28.35ms** |**35.3fps** |
 | ShelfNet_LW_34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |
+
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency) and batch size 64 (througput)
 
