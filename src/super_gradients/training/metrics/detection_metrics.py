@@ -134,7 +134,6 @@ class DetectionMetrics(Metric):
             if self.iou_thres.is_range():
                 precision, recall, average_precision, f1 = precision[:, 0], recall[:, 0], average_precision.mean(
                     1), average_precision[:, 0]
-            print(average_precision)
 
             mean_precision, mean_recall, mean_ap, mf1 = precision.mean(), recall.mean(), average_precision.mean(), f1.mean()
 

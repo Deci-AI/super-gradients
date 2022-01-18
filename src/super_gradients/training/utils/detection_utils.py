@@ -862,7 +862,7 @@ class AnchorGenerator:
         """
         _prefix = 'Anchors Generator: '
         img_size = dataset.img_size
-        # assert dataset.cache_labels, "dataset labels have to be cached before generating anchors"
+        assert dataset.cache_labels, "dataset labels have to be cached before generating anchors"
 
         image_shapes = np.array(
             [dataset.exif_size(Image.open(f)) for f in tqdm(dataset.img_files, desc='Reading image shapes')])

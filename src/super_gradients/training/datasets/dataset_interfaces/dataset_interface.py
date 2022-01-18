@@ -769,9 +769,13 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
         self.trainset = ConcatDataset(train_sets)
         self.trainset.collate_fn = train_collate_fn
         self.valset = testset2007
+
+        # ADDING USED ATTRIBUTES FROM PASCAL TO THE CONCATENATED DATASET
         self.trainset.classes = self.classes
         self.trainset.img_size = self.dataset_params.train_image_size
         self.trainset.img_files = img_files
+        self.trainset.cache_labels = cache_labels
+        self.trainset.exif_size = train_sets[1].exif_size
 
     def download_pascal(self, delete=True):
 
