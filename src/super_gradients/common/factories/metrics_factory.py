@@ -1,5 +1,5 @@
 from super_gradients.common.factories.base_factory import BaseFactory
-from super_gradients.training.metrics import Accuracy, Top5, DetectionMetrics
+from super_gradients.training.metrics import Accuracy, Top5, DetectionMetrics, IoU, PixelAccuracy
 
 
 class MetricsFactory(BaseFactory):
@@ -9,5 +9,7 @@ class MetricsFactory(BaseFactory):
             'Accuracy': Accuracy,
             'Top5': Top5,
             'DetectionMetrics': DetectionMetrics,
+            'IoU': IoU,
+            'PixelAccuracy': PixelAccuracy,
         }
         super().__init__(type_dict)
