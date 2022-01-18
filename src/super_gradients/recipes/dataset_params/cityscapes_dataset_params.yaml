@@ -1,0 +1,10 @@
+batch_size: 8                     # batch size for trainset in DatasetInterface
+val_batch_size: 8                 # batch size for valset in DatasetInterface
+dataset_dir: /data/cityscapes     # path to imagenet directory (local)
+crop_size: [2048, 1024]           # crop size (size of net's input)
+img_size: 1024
+train_loader_drop_last: True      # drop the last incomplete batch, if the dataset size is not divisible by the batch size
+color_jitter: 0.                  # Training color jitter param
+random_scales: [0.5, 2.]          # RandomScale scales param for trainset
+eval_scale: 1.                    # Resacle scale-factor of the validation set
+cityscapes_ignored_label: 19      # ignored label idx
