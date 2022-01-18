@@ -5,14 +5,14 @@ from super_gradients.training.datasets.dataset_interfaces import TestDatasetInte
     ImageNetDatasetInterface, TinyImageNetDatasetInterface, \
     CoCoDetectionDatasetInterface, CoCoSegmentationDatasetInterface, CoCo2014DetectionDatasetInterface, \
     PascalAUG2012SegmentationDataSetInterface, PascalVOC2012SegmentationDataSetInterface
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDataSetInterface
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDataSetInterface, ClassificationTestDatasetInterface
 
 
 class DatasetsFactory(BaseFactory):
 
     def __init__(self):
         type_dict = {
-            "test_dataset": TestDatasetInterface,
+            "classification_test_dataset": ClassificationTestDatasetInterface,
             "library_dataset": LibraryDatasetInterface,
             "classification_dataset": ClassificationDatasetInterface,
             "cifar_10": Cifar10DatasetInterface,
