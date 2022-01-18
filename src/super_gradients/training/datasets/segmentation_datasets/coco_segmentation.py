@@ -32,8 +32,8 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
 
         # OVERRIDE DEFAULT AUGMENTATIONS, IMG_SIZE, CROP SIZE
         dataset_hyper_params = kwargs['dataset_hyper_params']
-        kwargs['img_size'] = dataset_hyper_params['img_size'] if 'img_size' in dataset_hyper_params.keys() else 608
-        kwargs['crop_size'] = dataset_hyper_params['crop_size'] if 'crop_size' in dataset_hyper_params.keys() else 512
+        kwargs['img_size'] = get_param(dataset_hyper_params, 'img_size', 608)
+        kwargs['crop_size'] = get_param(dataset_hyper_params, 'crop_size', 512)
         # FIXME - Rescale before RandomRescale is kept for legacy support, consider removing it like most implementation
         #  papers regimes.
         default_image_mask_transforms_aug = transform.Compose([RandomFlip(),
@@ -41,10 +41,11 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
                                                                RandomRescale(scales=(0.5, 2.0)),
                                                                PadShortToCropSize(crop_size=kwargs['crop_size']),
                                                                CropImageAndMask(crop_size=kwargs['crop_size'], mode="random")])
-        kwargs["image_mask_transforms_aug"] = dataset_hyper_params.get("image_mask_transforms_aug",
-                                                                       default_image_mask_transforms_aug)
-        if 'image_mask_transforms' in dataset_hyper_params:
-            kwargs["image_mask_transforms"] = dataset_hyper_params['image_mask_transforms']
+        kwargs["image_mask_transforms_aug"] = get_param(dataset_hyper_params, "image_mask_transforms_aug",
+                                                        default_image_mask_transforms_aug)
+        image_mask_transforms = get_param(dataset_hyper_params, 'image_mask_transforms', False)
+        if image_mask_transforms:
+            kwargs["image_mask_transforms"] = image_mask_transforms
         super().__init__(*args, **kwargs)
 
         _, class_names = zip(*self.dataset_classes_inclusion_tuples_list)
