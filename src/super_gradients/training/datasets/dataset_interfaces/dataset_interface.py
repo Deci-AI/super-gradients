@@ -781,6 +781,13 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
         self.trainset.labels = labels
 
     def download_pascal(self, delete=True):
+        """
+        Downloads Pascal dataset in YOLO format.
+
+        :param: delete: whether to delete the downloaded zip file after extracting the data (default=True).
+
+        Source: https://github.com/ultralytics/yolov5/blob/master/data/VOC.yaml
+        """
 
         def convert_label(path, lb_path, year, image_id):
             def convert_box(size, box):
