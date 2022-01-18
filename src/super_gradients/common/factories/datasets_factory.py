@@ -5,7 +5,8 @@ from super_gradients.training.datasets.dataset_interfaces import TestDatasetInte
     ImageNetDatasetInterface, TinyImageNetDatasetInterface, \
     CoCoDetectionDatasetInterface, CoCoSegmentationDatasetInterface, CoCo2014DetectionDatasetInterface, \
     PascalAUG2012SegmentationDataSetInterface, PascalVOC2012SegmentationDataSetInterface
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDataSetInterface, ClassificationTestDatasetInterface
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDataSetInterface, \
+    ClassificationTestDatasetInterface, CityscapesDatasetInterface
 
 
 class DatasetsFactory(BaseFactory):
@@ -25,5 +26,6 @@ class DatasetsFactory(BaseFactory):
             "pascal_voc_segmentation": PascalVOC2012SegmentationDataSetInterface,
             "pascal_aug_segmentation": PascalAUG2012SegmentationDataSetInterface,
             "pascal_voc_unified_detection": PascalVOCUnifiedDetectionDataSetInterface,
+            "cityscapes": CityscapesDatasetInterface,
         }
         super().__init__(type_dict)
