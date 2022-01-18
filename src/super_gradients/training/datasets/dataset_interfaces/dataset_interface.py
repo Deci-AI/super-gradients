@@ -733,6 +733,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
 
         train_sets = []
         img_files = []
+        labels = []
         for trainset_prefix in ["train", "val"]:
             for trainset_year in ["2007", "2012"]:
                 sub_trainset = PascalVOCDetectionDataSet(root=self.data_root,
@@ -750,6 +751,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                                                          class_inclusion_list=class_inclusion_list)
                 train_sets.append(sub_trainset)
                 img_files += sub_trainset.img_files
+                labels += sub_trainset.labels
 
         testset2007 = PascalVOCDetectionDataSet(root=self.data_root,
                                                 list_file='images/VOCdevkit/VOC2007/ImageSets/Main/test.txt',
@@ -776,6 +778,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
         self.trainset.img_files = img_files
         self.trainset.cache_labels = cache_labels
         self.trainset.exif_size = train_sets[1].exif_size
+        self.trainset.labels = labels
 
     def download_pascal(self, delete=True):
 
