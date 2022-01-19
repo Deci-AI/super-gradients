@@ -17,7 +17,7 @@ class SegmentationTransform:
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
 
-    def __repr__(self, message):
+    def __repr__(self):
         return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')
 
 
