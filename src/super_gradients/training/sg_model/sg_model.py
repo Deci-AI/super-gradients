@@ -15,8 +15,12 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.factories.datasets_factory import DatasetsFactory
+from super_gradients.common.factories.list_factory import ListFactory
+from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
@@ -200,6 +204,7 @@ class SgModel:
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
         self.loss_logging_items_names = default_loss_logging_items_names
 
+    @resolve_param('dataset_interface', DatasetsFactory())
     def connect_dataset_interface(self, dataset_interface: DatasetInterface, data_loader_num_workers: int = 8):
         """
         :param dataset_interface: DatasetInterface object
@@ -728,8 +733,8 @@ class SgModel:
 
         silent_mode = self.training_params.silent_mode or self.ddp_silent_mode
         # METRICS
-        self.train_metrics = MetricCollection(self.training_params.train_metrics_list)
-        self.valid_metrics = MetricCollection(self.training_params.valid_metrics_list)
+        self._set_train_metrics(train_metrics_list=self.training_params.train_metrics_list)
+        self._set_valid_metrics(valid_metrics_list=self.training_params.valid_metrics_list)
         self.loss_logging_items_names = self.training_params.loss_logging_items_names
 
         self.results_titles = ["Train_" + t for t in
@@ -835,9 +840,7 @@ class SgModel:
             self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
             load_opt_params = False
 
-        if isinstance(self.training_params.optimizer, str) and self.training_params.optimizer in ['Adam', 'SGD',
-                                                                                                  'RMSProp',
-                                                                                                  'RMSpropTF']:
+        if isinstance(self.training_params.optimizer, str):
             self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr,
                                              training_params=self.training_params)
         elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
@@ -948,6 +951,14 @@ class SgModel:
                     self.sg_logger.upload()
 
                 self.sg_logger.close()
+
+    @resolve_param('train_metrics_list', ListFactory(MetricsFactory()))
+    def _set_train_metrics(self, train_metrics_list):
+        self.train_metrics = MetricCollection(train_metrics_list)
+
+    @resolve_param('valid_metrics_list', ListFactory(MetricsFactory()))
+    def _set_valid_metrics(self, valid_metrics_list):
+        self.valid_metrics = MetricCollection(valid_metrics_list)
 
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
         # SCALER IS ALWAYS INITIALIZED BUT IS DISABLED IF MIXED PRECISION WAS NOT SET
