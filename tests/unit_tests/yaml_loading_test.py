@@ -17,7 +17,7 @@ class YamlLoadingTest(unittest.TestCase):
         self.train_model()
 
     @staticmethod
-    @hydra.main(config_path='super_gradients/recipes', config_name='test_resnet.yaml')
+    @hydra.main(config_path='../../src/super_gradients/recipes', config_name='test_resnet.yaml')
     def train_model(cfg):
 
         # INSTANTIATE ALL OBJECTS IN CFG
