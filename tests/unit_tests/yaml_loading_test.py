@@ -1,3 +1,4 @@
+import sys
 import unittest
 
 import hydra
@@ -12,6 +13,8 @@ class YamlLoadingTest(unittest.TestCase):
 
     def setUp(self):
         super_gradients.init_trainer()
+        # HYDRA NEEDS THIS ARGUMENT IN ORDER TO RUN PROPERLY
+        sys.argv.append("--config-name=test_resnet.yaml")
 
     def test_training_from_yaml(self):
         self.train_model()
