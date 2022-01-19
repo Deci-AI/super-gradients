@@ -791,6 +791,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
 
         def convert_label(path, lb_path, year, image_id):
             def convert_box(size, box):
+                box = [float(box.find(box_coord).text) for box_coord in ('xmin', 'xmax', 'ymin', 'ymax')]
                 dw, dh = 1. / size[0], 1. / size[1]
                 x, y, w, h = (box[0] + box[1]) / 2.0 - 1, (box[2] + box[3]) / 2.0 - 1, box[1] - box[0], box[3] - box[2]
                 return x * dw, y * dh, w * dw, h * dh
@@ -806,7 +807,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                     cls = obj.find('name').text
                     if cls in PASCAL_VOC_2012_CLASSES and not int(obj.find('difficult').text) == 1:
                         xmlbox = obj.find('bndbox')
-                        bb = convert_box((w, h), [float(xmlbox.find(x).text) for x in ('xmin', 'xmax', 'ymin', 'ymax')])
+                        bb = convert_box((w, h), xmlbox)
                         cls_id = PASCAL_VOC_2012_CLASSES.index(cls)  # class id
                         out_file.write(" ".join([str(a) for a in (cls_id, *bb)]) + '\n')
 
