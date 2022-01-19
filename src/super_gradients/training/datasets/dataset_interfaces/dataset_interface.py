@@ -795,20 +795,20 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                 x, y, w, h = (box[0] + box[1]) / 2.0 - 1, (box[2] + box[3]) / 2.0 - 1, box[1] - box[0], box[3] - box[2]
                 return x * dw, y * dh, w * dw, h * dh
 
-            in_file = open(path / f'VOC{year}/Annotations/{image_id}.xml')
-            out_file = open(lb_path, 'w')
-            tree = ET.parse(in_file)
-            root = tree.getroot()
-            size = root.find('size')
-            w = int(size.find('width').text)
-            h = int(size.find('height').text)
-            for obj in root.iter('object'):
-                cls = obj.find('name').text
-                if cls in PASCAL_VOC_2012_CLASSES and not int(obj.find('difficult').text) == 1:
-                    xmlbox = obj.find('bndbox')
-                    bb = convert_box((w, h), [float(xmlbox.find(x).text) for x in ('xmin', 'xmax', 'ymin', 'ymax')])
-                    cls_id = PASCAL_VOC_2012_CLASSES.index(cls)  # class id
-                    out_file.write(" ".join([str(a) for a in (cls_id, *bb)]) + '\n')
+            in_file = open(f'{path}/VOC{year}/Annotations/{image_id}.xml')
+            with open(lb_path, 'w') as out_file:
+                tree = ET.parse(in_file)
+                root = tree.getroot()
+                size = root.find('size')
+                w = int(size.find('width').text)
+                h = int(size.find('height').text)
+                for obj in root.iter('object'):
+                    cls = obj.find('name').text
+                    if cls in PASCAL_VOC_2012_CLASSES and not int(obj.find('difficult').text) == 1:
+                        xmlbox = obj.find('bndbox')
+                        bb = convert_box((w, h), [float(xmlbox.find(x).text) for x in ('xmin', 'xmax', 'ymin', 'ymax')])
+                        cls_id = PASCAL_VOC_2012_CLASSES.index(cls)  # class id
+                        out_file.write(" ".join([str(a) for a in (cls_id, *bb)]) + '\n')
 
         # Download
         dir = Path(self.data_root)  # dataset root dir
