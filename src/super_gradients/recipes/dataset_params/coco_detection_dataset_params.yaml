@@ -20,5 +20,6 @@ dataset_hyper_param:
   translate: 0.1  # IMAGE TRANSLATION (+/- fraction)
   scale: 0.5  # IMAGE SCALE (+/- gain)
   shear: 0.0  # IMAGE SHEAR (+/- deg)
+  mixup: 0.0  # IMAGE MIXUP AUGMENTATION (fraction)
 
 _convert_: all

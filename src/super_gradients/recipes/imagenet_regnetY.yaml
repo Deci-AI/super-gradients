@@ -1,0 +1,61 @@
+#  RegnetY Imagenet classification training:
+#  This example trains with batch_size = 256
+#  Training time on a single GeForce RTX 2080 Ti, and top1 accuracies:
+#  11 days for RegnetY200, 70.88
+#  12 days for RegnetY400, 74.74
+#  19 days for RegnetY600, 76.18
+#  20 days for RegnetY800, 77.07
+#  NOTE: Training should probably be lower as resources were shared among the above runs.
+
+#  Logs and tensorboards at:
+# https://deci-pretrained-models.s3.amazonaws.com/RegnetY800/
+# https://deci-pretrained-models.s3.amazonaws.com/RegnetY600/
+# https://deci-pretrained-models.s3.amazonaws.com/RegnetY400/
+# https://deci-pretrained-models.s3.amazonaws.com/RegnetY200/
+
+# Instructions:
+# Set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
+#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/:"YOUR_LOCAL_PATH"/super_gradients/src/
+# Then:
+#   python train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture: regnetY200 experiment_name: regnetY200_imagenet
+#   python train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture: regnetY400 experiment_name: regnetY400_imagenet
+#   python train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture: regnetY600 experiment_name: regnetY600_imagenet
+#   python train_from_recipe_example/train_from_recipe.py --config-name=imagenet_regnetY architecture: regnetY800 experiment_name: regnetY800_imagenet
+
+defaults:
+  - training_hyperparams: imagenet_regnetY_train_params
+  - dataset_params: imagenet_dataset_params
+  - arch_params: regnetY_arch_params
+
+arch_params:   
+  num_classes: 1000
+  dropout_prob: 0.5
+  droppath_prob: 0.0
+
+dataset_params:
+  batch_size: 256
+  color_jitter: 0.4
+  random_erase_prob: 0.2
+  random_erase_value: random
+  train_interpolation: random
+  auto_augment_config_string: rand-m9-mstd0.5
+
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
+  dataset_params: ${dataset_params}
+  data_dir: /data/Imagenet
+
+data_loader_num_workers: 8
+
+model_checkpoints_location: local
+load_checkpoint: False
+
+experiment_name: regnetY800_imagenet
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: Off
+
+architecture: regnetY800

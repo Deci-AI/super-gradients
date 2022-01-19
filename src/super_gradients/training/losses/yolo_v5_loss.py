@@ -18,7 +18,7 @@ class YoLoV5DetectionLoss(_Loss):
                  cls_pos_weight: Union[float, List[float]] = 1.0, obj_pos_weight: float = 1.0,
                  obj_loss_gain: float = 1.0, box_loss_gain: float = 0.05, cls_loss_gain: float = 0.5,
                  focal_loss_gamma: float = 0.0,
-                 cls_objectness_weights: Union[List[float], torch.Tensor] = None):
+                 cls_objectness_weights: Union[List[float], torch.Tensor] = None, anchor_threshold=4.0):
         """
         :param anchors:                 the anchors of the model (same anchors used for training)
         :param cls_pos_weight:          pos_weight for BCE in L_classification,
@@ -31,6 +31,7 @@ class YoLoV5DetectionLoss(_Loss):
         :param cls_objectness_weights:  class-based weight for L_objectivness that will be applied in each cell that
                                         has a GT assigned to it.
                                         Note: default weight for objectness loss in each cell is 1.
+        :param anchor_threshold:                ratio defining a size range of an appropriate anchor.
         """
         super(YoLoV5DetectionLoss, self).__init__()
 
@@ -40,6 +41,8 @@ class YoLoV5DetectionLoss(_Loss):
         self.box_loss_gain = box_loss_gain
         self.cls_loss_gain = cls_loss_gain
         self.focal_loss_gamma = focal_loss_gamma
+
+        self.anchor_threshold = anchor_threshold
 
         self.anchors = anchors
 
@@ -56,17 +59,16 @@ class YoLoV5DetectionLoss(_Loss):
 
         return self.compute_loss(predictions, targets)
 
-    def build_targets(self, predictions: List[torch.Tensor], targets: torch.Tensor, anchor_threshold=4.0) \
+    def build_targets(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
             -> Tuple[List[torch.Tensor], List[torch.Tensor], List[Tuple[torch.Tensor]], List[torch.Tensor]]:
         """
         Assign targets to anchors to use in L_boxes & L_classification calculation:
             * each target can be assigned to a few anchors,
-            all anchors that are within [1/anchor_threshold, anchor_threshold] times target size range
+            all anchors that are within [1/self.anchor_threshold, self.anchor_threshold] times target size range
             * each anchor can be assigned to a few targets
 
         :param predictions:         Yolo predictions
         :param targets:             ground truth targets
-        :param anchor_threshold:    ratio defining a size range of an appropriate anchor
         :return:                    each of 4 outputs contains one element for each Yolo output,
                                     correspondences are raveled over the whole batch and all anchors:
                                         * classes of the targets;
@@ -98,7 +100,7 @@ class YoLoV5DetectionLoss(_Loss):
             if num_targets:
                 # Match: filter targets by anchor size ratio
                 r = t[:, :, 4:6] / anch[:, None]  # wh ratio
-                filtered_targets_ids = torch.max(r, 1. / r).max(2)[0] < anchor_threshold  # compare
+                filtered_targets_ids = torch.max(r, 1. / r).max(2)[0] < self.anchor_threshold  # compare
                 t = t[filtered_targets_ids]
 
                 # Find coordinates of targets on a grid

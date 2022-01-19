@@ -15,6 +15,8 @@ from super_gradients.training.models.detection_models.yolov5 import YoLoV5N, YoL
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, \
     ShelfNet503343, ShelfNet101
+from super_gradients.training.models.segmentation_models.stdc import STDC1Classification, STDC2Classification,\
+    STDC1Seg, STDC2Seg
 
 # IF YOU UPDATE THE ARCHITECTURE DICT PLEASE ALSO UPDATE THE ENUM CLASS DOWN BELOW.
 
@@ -95,4 +97,12 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "ddrnet_23": DDRNet23,
                  "ddrnet_23_slim": DDRNet23Slim,
                  "custom_ddrnet_23": AnyBackBoneDDRNet23,
+                 "stdc1_classification": STDC1Classification,
+                 "stdc2_classification": STDC2Classification,
+                 "stdc1_seg": STDC1Seg,
+                 "stdc1_seg50": STDC1Seg,
+                 "stdc1_seg75": STDC1Seg,
+                 "stdc2_seg": STDC2Seg,
+                 "stdc2_seg50": STDC2Seg,
+                 "stdc2_seg75": STDC2Seg,
                  }
