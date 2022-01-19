@@ -729,7 +729,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
         download = core_utils.get_param(self.dataset_params, 'download', False)
 
         if download:
-            self.download_pascal()
+            self._download_pascal()
 
         train_sets = []
         img_files = []
@@ -780,7 +780,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
         self.trainset.exif_size = train_sets[1].exif_size
         self.trainset.labels = labels
 
-    def download_pascal(self, delete=True):
+    def _download_pascal(self, delete=True):
         """
         Downloads Pascal dataset in YOLO format.
 
