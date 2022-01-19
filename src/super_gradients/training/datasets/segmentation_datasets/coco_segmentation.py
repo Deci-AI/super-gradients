@@ -43,8 +43,8 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
                                                                CropImageAndMask(crop_size=kwargs['crop_size'], mode="random")])
         kwargs["image_mask_transforms_aug"] = get_param(dataset_hyper_params, "image_mask_transforms_aug",
                                                         default_image_mask_transforms_aug)
-        image_mask_transforms = get_param(dataset_hyper_params, 'image_mask_transforms', False)
-        if image_mask_transforms:
+        image_mask_transforms = get_param(dataset_hyper_params, 'image_mask_transforms')
+        if image_mask_transforms is not None:
             kwargs["image_mask_transforms"] = image_mask_transforms
         super().__init__(*args, **kwargs)
 
