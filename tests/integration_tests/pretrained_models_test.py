@@ -15,6 +15,8 @@ import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.metrics import DetectionMetrics
+from super_gradients.training.utils.segmentation_utils import Rescale
+from super_gradients.training.losses.stdc_loss import STDCLoss
 
 
 class PretrainedModelsTest(unittest.TestCase):
@@ -120,39 +122,77 @@ class PretrainedModelsTest(unittest.TestCase):
         }, dataset_classes_inclusion_tuples_list=coco_sub_classes_inclusion_tuples_list()
         )
 
-        self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim"]
+        self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim", "stdc1_seg50"]
         self.cityscapes_pretrained_arch_params = {
-            "ddrnet_23": {"pretrained_weights": "cityscapes", "num_classes": 19, "aux_head": True, "sync_bn": True}}
+            "ddrnet_23": {"pretrained_weights": "cityscapes", "aux_head": True, "sync_bn": True},
+            "stdc": {"pretrained_weights": "cityscapes", "use_aux_heads": True, "aux_head": True}}
         self.cityscapes_pretrained_mious = {"ddrnet_23": 0.7865,
-                                            "ddrnet_23_slim": 0.7689}
+                                            "ddrnet_23_slim": 0.7689,
+                                            "stdc1_seg50": 0.7436,
+                                            "stdc1_seg75": 0.7687,
+                                            "stdc2_seg50": 0.7527,
+                                            "stdc2_seg75": 0.7893}
+
         self.cityscapes_dataset = CityscapesDatasetInterface(dataset_params={
             "batch_size": 3,
             "val_batch_size": 3,
-            "dataset_dir": "/home/ofri/cityscapes/",
+            "dataset_dir": "/data/cityscapes/",
             "crop_size": 1024,
             "img_size": 1024,
             "image_mask_transforms_aug": transforms.Compose([]),
             "image_mask_transforms": transforms.Compose([])  # no transform for evaluation
         }, cache_labels=False)
+
+        self.cityscapes_dataset_rescaled50 = CityscapesDatasetInterface(dataset_params={
+            "batch_size": 3,
+            "val_batch_size": 3,
+            "image_mask_transforms_aug": transforms.Compose([]),
+            "image_mask_transforms": transforms.Compose([Rescale(scale_factor=0.5)])  # no transform for evaluation
+        }, cache_labels=False)
+
+        self.cityscapes_dataset_rescaled75 = CityscapesDatasetInterface(dataset_params={
+            "batch_size": 3,
+            "val_batch_size": 3,
+            "image_mask_transforms_aug": transforms.Compose([]),
+            "image_mask_transforms": transforms.Compose([Rescale(scale_factor=0.75)])  # no transform for evaluation
+        }, cache_labels=False)
+
         self.transfer_segmentation_dataset = SegmentationTestDatasetInterface(image_size=1024)
-        self.transfer_segmentation_train_params = {"max_epochs": 3,
-                                                   "initial_lr": 1e-2,
-                                                   "loss": DDRNetLoss(),
-                                                   "lr_mode": "poly",
-                                                   "ema": True,  # unlike the paper (not specified in paper)
-                                                   "average_best_models": True,
-                                                   "optimizer": "SGD",
-                                                   "mixed_precision": False,
-                                                   "optimizer_params":
-                                                       {"weight_decay": 5e-4,
-                                                        "momentum": 0.9},
-                                                   "load_opt_params": False,
-                                                   "train_metrics_list": [IoU(5)],
-                                                   "valid_metrics_list": [IoU(5)],
-                                                   "loss_logging_items_names": ["main_loss", "aux_loss", "Loss"],
-                                                   "metric_to_watch": "IoU",
-                                                   "greater_metric_to_watch_is_better": True
-                                                   }
+        self.ddrnet_transfer_segmentation_train_params = {"max_epochs": 3,
+                                                          "initial_lr": 1e-2,
+                                                          "loss": DDRNetLoss(),
+                                                          "lr_mode": "poly",
+                                                          "ema": True,  # unlike the paper (not specified in paper)
+                                                          "average_best_models": True,
+                                                          "optimizer": "SGD",
+                                                          "mixed_precision": False,
+                                                          "optimizer_params":
+                                                              {"weight_decay": 5e-4,
+                                                               "momentum": 0.9},
+                                                          "load_opt_params": False,
+                                                          "train_metrics_list": [IoU(5)],
+                                                          "valid_metrics_list": [IoU(5)],
+                                                          "loss_logging_items_names": ["main_loss", "aux_loss", "Loss"],
+                                                          "metric_to_watch": "IoU",
+                                                          "greater_metric_to_watch_is_better": True
+                                                          }
+
+        self.stdc_transfer_segmentation_train_params = {"max_epochs": 3,
+                                                        "initial_lr": 1e-2,
+                                                        "loss": STDCLoss(num_classes=5),
+                                                        "lr_mode": "poly",
+                                                        "ema": True,  # unlike the paper (not specified in paper)
+                                                        "optimizer": "SGD",
+                                                        "optimizer_params":
+                                                            {"weight_decay": 5e-4,
+                                                             "momentum": 0.9},
+                                                        "load_opt_params": False,
+                                                        "train_metrics_list": [IoU(5)],
+                                                        "valid_metrics_list": [IoU(5)],
+                                                        "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
+                                                        "metric_to_watch": "IoU",
+                                                        "greater_metric_to_watch_is_better": True
+                                                        }
 
     def test_pretrained_resnet50_imagenet(self):
         trainer = SgModel('imagenet_pretrained_resnet50', model_checkpoints_location='local',
@@ -307,14 +347,14 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         trainer.build_model("ddrnet_23", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"])
-        trainer.train(training_params=self.transfer_segmentation_train_params)
+        trainer.train(training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_transfer_learning_ddrnet23_slim_cityscapes(self):
         trainer = SgModel('cityscapes_pretrained_ddrnet23_slim_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         trainer.build_model("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"])
-        trainer.train(training_params=self.transfer_segmentation_train_params)
+        trainer.train(training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_pretrained_coco_segmentation_subclass_pretrained_shelfnet34_lw(self):
         trainer = SgModel('coco_segmentation_subclass_pretrained_shelfnet34_lw', model_checkpoints_location='local',
@@ -440,6 +480,74 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v2"], delta=0.001)
+
+    def test_pretrained_stdc1_seg50_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc1_seg50', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
+        trainer.build_model("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled50.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc1_seg50"], delta=0.001)
+
+    def test_transfer_learning_stdc1_seg50_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc1_seg50_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
+        trainer.build_model("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        trainer.train(training_params=self.stdc_transfer_segmentation_train_params)
+
+    def test_pretrained_stdc1_seg75_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc1_seg75', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
+        trainer.build_model("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled75.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc1_seg75"], delta=0.001)
+
+    def test_transfer_learning_stdc1_seg75_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc1_seg75_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
+        trainer.build_model("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        trainer.train(training_params=self.stdc_transfer_segmentation_train_params)
+
+    def test_pretrained_stdc2_seg50_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc2_seg50', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
+        trainer.build_model("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled50.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc2_seg50"], delta=0.001)
+
+    def test_transfer_learning_stdc2_seg50_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc2_seg50_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
+        trainer.build_model("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        trainer.train(training_params=self.stdc_transfer_segmentation_train_params)
+
+    def test_pretrained_stdc2_seg75_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc2_seg75', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
+        trainer.build_model("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled75.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc2_seg75"], delta=0.001)
+
+    def test_transfer_learning_stdc2_seg75_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_stdc2_seg75_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
+        trainer.build_model("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
+        trainer.train(training_params=self.stdc_transfer_segmentation_train_params)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
