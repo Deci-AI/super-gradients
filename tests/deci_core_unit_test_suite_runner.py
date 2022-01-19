@@ -30,6 +30,7 @@ class CoreUnitTestSuiteRunner:
         _add_modules_to_unit_tests_suite - Adds unit tests to the Unit Tests Test Suite
             :return:
         """
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(YamlLoadingTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(SaveCkptListUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestExternalDatasetInterface))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ZeroWdForBnBiasTest))
@@ -47,7 +48,6 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PretrainedModelsUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRWarmupTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestConvBnRelu))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(YamlLoadingTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

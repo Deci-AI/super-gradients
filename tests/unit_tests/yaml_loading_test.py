@@ -13,8 +13,14 @@ class YamlLoadingTest(unittest.TestCase):
 
     def setUp(self):
         super_gradients.init_trainer()
-        # HYDRA NEEDS THIS ARGUMENT IN ORDER TO RUN PROPERLY
-        sys.argv.append("--config-name=test_resnet.yaml")
+
+        # HYDRA NEEDS THIS CLEANUP IN ORDER TO RUN PROPERLY
+        try:
+            sys.argv.remove('--source=super_gradients')
+            sys.argv.remove('-m')
+            sys.argv.remove('unittest')
+        except RuntimeError:
+            pass
 
     def test_training_from_yaml(self):
         self.train_model()
