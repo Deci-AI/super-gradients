@@ -15,6 +15,7 @@ class YamlLoadingTest(unittest.TestCase):
         super_gradients.init_trainer()
 
         # HYDRA NEEDS THIS CLEANUP IN ORDER TO RUN PROPERLY
+        print(sys.argv)
         try:
             sys.argv.remove('--source=super_gradients')
             sys.argv.remove('-m')
