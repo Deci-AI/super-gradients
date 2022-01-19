@@ -1,6 +1,7 @@
 # PACKAGE IMPORTS FOR EXTERNAL USAGE
 from tests.unit_tests.externel_dataset_interface_test import TestExternalDatasetInterface
 from tests.unit_tests.dataset_interface_test import TestDatasetInterface
+from tests.unit_tests.factories_test import FactoriesTest
 from tests.unit_tests.load_checkpoint_from_direct_path_test import LoadCheckpointFromDirectPathTest
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.zero_weight_decay_on_bias_bn_test import ZeroWdForBnBiasTest
@@ -23,4 +24,4 @@ from tests.unit_tests.conv_bn_relu_test import TestConvBnRelu
 __all__ = ['TestExternalDatasetInterface', 'TestDatasetInterface', 'ZeroWdForBnBiasTest', 'SaveCkptListUnitTest',
            'TestYoloV5', 'AllArchitecturesTest', 'TestAverageMeter', 'TestModuleUtils', 'TestRepVgg', 'TestWithoutTrainTest',
            'LoadCheckpointFromDirectPathTest', 'StrictLoadEnumTest', 'TrainWithInitializedObjectsTest', 'TestAutoAugment',
-           'OhemLossTest', 'EarlyStopTest', 'SegmentationTransformsTest', 'PretrainedModelsUnitTest', 'TestConvBnRelu']
+           'OhemLossTest', 'EarlyStopTest', 'SegmentationTransformsTest', 'PretrainedModelsUnitTest', 'TestConvBnRelu', 'FactoriesTest']
