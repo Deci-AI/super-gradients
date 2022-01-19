@@ -1,17 +1,17 @@
 import sys
 import unittest
 
-from tests.integration_tests.ema_train_integration_test import EMAIntegrationTest
-from tests.unit_tests import ZeroWdForBnBiasTest, TestExternalDatasetInterface, SaveCkptListUnitTest, TestAverageMeter,\
-    TestModuleUtils, TestRepVgg, TestWithoutTrainTest, OhemLossTest, EarlyStopTest, SegmentationTransformsTest,\
-    TestConvBnRelu
-from tests.end_to_end_tests import TestTrainer
-from tests.unit_tests.load_checkpoint_from_direct_path_test import LoadCheckpointFromDirectPathTest
-from tests.unit_tests.random_erase_test import RandomEraseTest
-from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
-from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
-from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
-from tests.unit_tests.lr_warmup_test import LRWarmupTest
+# from tests.integration_tests.ema_train_integration_test import EMAIntegrationTest
+# from tests.unit_tests import ZeroWdForBnBiasTest, TestExternalDatasetInterface, SaveCkptListUnitTest, TestAverageMeter,\
+#     TestModuleUtils, TestRepVgg, TestWithoutTrainTest, OhemLossTest, EarlyStopTest, SegmentationTransformsTest,\
+#     TestConvBnRelu
+# from tests.end_to_end_tests import TestTrainer
+# from tests.unit_tests.load_checkpoint_from_direct_path_test import LoadCheckpointFromDirectPathTest
+# from tests.unit_tests.random_erase_test import RandomEraseTest
+# from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
+# from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
+# from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
+# from tests.unit_tests.lr_warmup_test import LRWarmupTest
 from tests.unit_tests.yaml_loading_test import YamlLoadingTest
 
 
@@ -54,8 +54,8 @@ class CoreUnitTestSuiteRunner:
         _add_modules_to_end_to_end_tests_suite - Adds end to end tests to the Unit Tests Test Suite
             :return:
         """
-        self.end_to_end_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestTrainer))
-        self.end_to_end_tests_suite.addTest(self.test_loader.loadTestsFromModule(EMAIntegrationTest))
+        # self.end_to_end_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestTrainer))
+        # self.end_to_end_tests_suite.addTest(self.test_loader.loadTestsFromModule(EMAIntegrationTest))
 
 
 if __name__ == '__main__':
