@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.modules.conv import _ConvNd
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.factories.optimizers_type_factory import OptimizersTypeFactory
 from super_gradients.training.params import DEFAULT_OPTIMIZER_PARAMS_SGD, DEFAULT_OPTIMIZER_PARAMS_ADAM, \
     DEFAULT_OPTIMIZER_PARAMS_RMSPROP, DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF
 from super_gradients.training.utils import get_param
@@ -10,10 +11,10 @@ from super_gradients.training.utils.optimizers.rmsprop_tf import RMSpropTF
 
 logger = get_logger(__name__)
 
-OPTIMIZERS_DICT = {"SGD": {"class": optim.SGD, "params": DEFAULT_OPTIMIZER_PARAMS_SGD},
-                   "Adam": {"class": optim.Adam, "params": DEFAULT_OPTIMIZER_PARAMS_ADAM},
-                   "RMSprop": {"class": optim.RMSprop, "params": DEFAULT_OPTIMIZER_PARAMS_RMSPROP},
-                   "RMSpropTF": {"class": RMSpropTF, "params": DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF}}
+OPTIMIZERS_DEFAULT_PARAMS = {optim.SGD: DEFAULT_OPTIMIZER_PARAMS_SGD,
+                             optim.Adam: DEFAULT_OPTIMIZER_PARAMS_ADAM,
+                             optim.RMSprop: DEFAULT_OPTIMIZER_PARAMS_RMSPROP,
+                             RMSpropTF: DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF}
 
 
 def separate_zero_wd_params_groups_for_optimizer(module: nn.Module, net_named_params, weight_decay: float):
@@ -78,8 +79,8 @@ def build_optimizer(net, lr, training_params):
         :param lr: initial learning rate
         :param training_params: training_parameters
     """
-
-    default_optimizer_params = OPTIMIZERS_DICT[training_params.optimizer]["params"]
+    optimizer_cls = OptimizersTypeFactory().get(training_params.optimizer)
+    default_optimizer_params = OPTIMIZERS_DEFAULT_PARAMS[optimizer_cls] if optimizer_cls in OPTIMIZERS_DEFAULT_PARAMS else {}
     training_params.optimizer_params = get_param(training_params, 'optimizer_params', default_optimizer_params)
 
     # OPTIMIZER PARAM GROUPS ARE SET USING DEFAULT OR MODEL SPECIFIC INIT
@@ -103,7 +104,6 @@ def build_optimizer(net, lr, training_params):
         optimizer_training_params = net_named_params
 
     # CREATE AN OPTIMIZER OBJECT AND INITIALIZE IT
-    optimizer_cls = OPTIMIZERS_DICT[training_params.optimizer]["class"]
     optimizer = optimizer_cls(optimizer_training_params, lr=lr, **training_params.optimizer_params)
 
     return optimizer

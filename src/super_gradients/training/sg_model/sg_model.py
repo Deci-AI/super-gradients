@@ -840,9 +840,7 @@ class SgModel:
             self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
             load_opt_params = False
 
-        if isinstance(self.training_params.optimizer, str) and self.training_params.optimizer in ['Adam', 'SGD',
-                                                                                                  'RMSProp',
-                                                                                                  'RMSpropTF']:
+        if isinstance(self.training_params.optimizer, str):
             self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr,
                                              training_params=self.training_params)
         elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
