@@ -24,7 +24,7 @@ WANDB_INCLUDE_FILE_NAME = '.wandbinclude'
 
 class WandBSGLogger(BaseSGLogger):
 
-    def __init__(self, project_name: str, experiment_name: str, storage_location: str, resumed: bool, training_params: dict, tb_files_user_prompt: bool = False,
+    def __init__(self, project_name: str, experiment_name: str, storage_location: str, resumed: bool, training_params: dict, checkpoints_dir_path: str, tb_files_user_prompt: bool = False,
                  launch_tensorboard: bool = False, tensorboard_port: int = None, save_checkpoints_remote: bool = True, save_tensorboard_remote: bool = True,
                  save_logs_remote: bool = True, entity: Optional[str] = None, api_server: Optional[str] = None, save_code: bool = False, **kwargs):
         """
@@ -43,7 +43,8 @@ class WandBSGLogger(BaseSGLogger):
         :param save_code: save current code to wandb
         """
         self.s3_location_available = storage_location.startswith('s3')
-        super().__init__(project_name, experiment_name, storage_location, resumed, training_params, tb_files_user_prompt, launch_tensorboard, tensorboard_port,
+        super().__init__(project_name, experiment_name, storage_location, resumed, training_params,
+                         checkpoints_dir_path, tb_files_user_prompt, launch_tensorboard, tensorboard_port,
                          self.s3_location_available, self.s3_location_available, self.s3_location_available)
 
         if api_server is not None:
