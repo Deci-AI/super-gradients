@@ -53,6 +53,7 @@ ________________________________________________________________________________
 - [Getting Started](#getting-started)
     - [Quick Start Notebook](#quick-start-notebook)
     - [Walkthrough Notebook](#supergradients-walkthrough-notebook)
+    - [Transfer Learning with SG Notebook](#transfer-learning-with-sg-notebook)
 - [Installation Methods](#installation-methods)
     - [Prerequisites](#prerequisites)
     - [Quick Installation of stable version](#quick-installation-of-stable-version)
@@ -106,6 +107,22 @@ Learn more about SuperGradients training components with our walkthrough noteboo
 </table>
  </br></br>
 
+ ### Transfer Learning with SG Notebook
+
+Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
+
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://colab.research.google.com/drive/1ZR_cvy8tQB_fTZwB2SQxg3RfIVKxNxRO?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Transfer Learning in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/TransferLearningDetection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
 
 ## Installation Methods
 ### Prerequisites
