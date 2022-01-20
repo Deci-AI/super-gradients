@@ -20,6 +20,11 @@ from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
 from torch.utils.data import ConcatDataset
+import xml.etree.ElementTree as ET
+from tqdm import tqdm
+from pathlib import Path
+from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
+from super_gradients.training.utils.utils import download_and_unzip_from_url
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -718,10 +723,20 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
         train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn')
         val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn')
 
+        class_inclusion_list = core_utils.get_param(self.dataset_params, "class_inclusion_list")
+        self.data_root = core_utils.get_param(self.dataset_params, 'data_root', "~/data/pascal_unified_coco_format/")
+
+        download = core_utils.get_param(self.dataset_params, 'download', False)
+
+        if download:
+            self._download_pascal()
+
         train_sets = []
+        img_files = []
+        labels = []
         for trainset_prefix in ["train", "val"]:
             for trainset_year in ["2007", "2012"]:
-                sub_trainset = PascalVOCDetectionDataSet(root="~/data/pascal_unified_coco_format/",
+                sub_trainset = PascalVOCDetectionDataSet(root=self.data_root,
                                                          list_file='images/VOCdevkit/VOC'+trainset_year+'/ImageSets/Main/train.txt',
                                                          samples_sub_directory='images/'+trainset_prefix+trainset_year+'/',
                                                          targets_sub_directory='labels/'+trainset_prefix+trainset_year,
@@ -732,10 +747,13 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                                                          sample_loading_method=train_sample_method,
                                                          cache_labels=cache_labels,
                                                          cache_images=cache_images,
-                                                         augment=True)
+                                                         augment=True,
+                                                         class_inclusion_list=class_inclusion_list)
                 train_sets.append(sub_trainset)
+                img_files += sub_trainset.img_files
+                labels += sub_trainset.labels
 
-        testset2007 = PascalVOCDetectionDataSet(root="~/data/pascal_unified_coco_format/",
+        testset2007 = PascalVOCDetectionDataSet(root=self.data_root,
                                                 list_file='images/VOCdevkit/VOC2007/ImageSets/Main/test.txt',
                                                 samples_sub_directory='images/test2007/',
                                                 targets_sub_directory='labels/test2007',
@@ -746,10 +764,70 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                                                 sample_loading_method=val_sample_method,
                                                 cache_labels=cache_labels,
                                                 cache_images=cache_images,
-                                                augment=False)
+                                                augment=False,
+                                                class_inclusion_list=class_inclusion_list)
 
         self.classes = train_sets[1].classes
         self.trainset = ConcatDataset(train_sets)
         self.trainset.collate_fn = train_collate_fn
         self.valset = testset2007
+
+        # ADDING USED ATTRIBUTES FROM PASCAL TO THE CONCATENATED DATASET
         self.trainset.classes = self.classes
+        self.trainset.img_size = self.dataset_params.train_image_size
+        self.trainset.img_files = img_files
+        self.trainset.cache_labels = cache_labels
+        self.trainset.exif_size = train_sets[1].exif_size
+        self.trainset.labels = labels
+
+    def _download_pascal(self, delete=True):
+        """
+        Downloads Pascal dataset in YOLO format.
+
+        :param: delete: whether to delete the downloaded zip file after extracting the data (default=True).
+
+        Source: https://github.com/ultralytics/yolov5/blob/master/data/VOC.yaml
+        """
+
+        def convert_label(path, lb_path, year, image_id):
+            def convert_box(size, box):
+                box = [float(box.find(box_coord).text) for box_coord in ('xmin', 'xmax', 'ymin', 'ymax')]
+                dw, dh = 1. / size[0], 1. / size[1]
+                x, y, w, h = (box[0] + box[1]) / 2.0 - 1, (box[2] + box[3]) / 2.0 - 1, box[1] - box[0], box[3] - box[2]
+                return x * dw, y * dh, w * dw, h * dh
+
+            in_file = open(f'{path}/VOC{year}/Annotations/{image_id}.xml')
+            with open(lb_path, 'w') as out_file:
+                tree = ET.parse(in_file)
+                root = tree.getroot()
+                size = root.find('size')
+                w = int(size.find('width').text)
+                h = int(size.find('height').text)
+                for obj in root.iter('object'):
+                    cls = obj.find('name').text
+                    if cls in PASCAL_VOC_2012_CLASSES and not int(obj.find('difficult').text) == 1:
+                        xmlbox = obj.find('bndbox')
+                        bb = convert_box((w, h), xmlbox)
+                        cls_id = PASCAL_VOC_2012_CLASSES.index(cls)  # class id
+                        out_file.write(" ".join([str(a) for a in (cls_id, *bb)]) + '\n')
+
+        # Download
+        dir = Path(self.data_root)  # dataset root dir
+        url = 'https://github.com/ultralytics/yolov5/releases/download/v1.0/'
+        urls = [url + 'VOCtrainval_06-Nov-2007.zip',  # 446MB, 5012 images
+                url + 'VOCtest_06-Nov-2007.zip',  # 438MB, 4953 images
+                url + 'VOCtrainval_11-May-2012.zip']  # 1.95GB, 17126 images
+        download_and_unzip_from_url(urls, dir=dir / 'images', delete=delete)
+        # Convert
+        path = dir / f'images/VOCdevkit'
+        for year, image_set in ('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test'):
+            imgs_path = dir / 'images' / f'{image_set}{year}'
+            lbs_path = dir / 'labels' / f'{image_set}{year}'
+            imgs_path.mkdir(exist_ok=True, parents=True)
+            lbs_path.mkdir(exist_ok=True, parents=True)
+            image_ids = open(path / f'VOC{year}/ImageSets/Main/{image_set}.txt').read().strip().split()
+            for id in tqdm(image_ids, desc=f'{image_set}{year}'):
+                f = path / f'VOC{year}/JPEGImages/{id}.jpg'  # old img path
+                lb_path = (lbs_path / f.name).with_suffix('.txt')  # new label path
+                f.rename(imgs_path / f.name)  # move image
+                convert_label(path, lb_path, year, id)  # convert labels to YOLO format
