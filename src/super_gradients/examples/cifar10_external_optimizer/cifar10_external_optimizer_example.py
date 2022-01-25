@@ -26,7 +26,7 @@ step_lr_scheduler = MultiStepLR(optimizer, milestones=[0, 150, 200], gamma=0.1)
 
 # Learning rate will be decreased after validation accuracy did not increase for 10 epochs, or at the specified
 # milestones. Notice how the callback for reduce on plateau scheduler is been called on Phase.VALIDATION_EPOCH_END
-# which causes it to take the accuracy value from the validation metrics.
+# which causes it to last_img_idx_in_batch the accuracy value from the validation metrics.
 
 phase_callbacks = [LRSchedulerCallback(scheduler=rop_lr_scheduler, phase=Phase.VALIDATION_EPOCH_END, metric_name="Accuracy"),
                    LRSchedulerCallback(scheduler=step_lr_scheduler, phase=Phase.TRAIN_EPOCH_END)]

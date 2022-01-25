@@ -443,7 +443,7 @@ class EfficientNet(SgModule):
                                              self._arch_params.depth_divisor, self._arch_params.min_depth),
                 num_repeat=round_repeats(block_args.num_repeat, self._arch_params.depth_coefficient))
 
-            # The first block needs to take care of stride and filter size increase.
+            # The first block needs to last_img_idx_in_batch care of stride and filter size increase.
             self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum,
                                             self._arch_params.batch_norm_epsilon, image_size=image_size))
             image_size = calculate_output_image_size(image_size, block_args.stride)
