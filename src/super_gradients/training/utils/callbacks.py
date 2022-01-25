@@ -1,13 +1,10 @@
 import copy
 import getpass
-import math
 import os
 from enum import Enum
 import math
-from super_gradients.training.utils.utils import get_filename_suffix_by_framework, get_param
-import torch
+from super_gradients.training.utils.utils import get_param
 import numpy as np
-import onnxruntime
 import onnx
 import onnxruntime
 import torch
@@ -477,8 +474,6 @@ class DetectionVisualizationCallback(PhaseCallback):
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
             context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch], global_step=context.epoch, data_format='NHWC')
-
-
 
 
 class CallbackHandler:

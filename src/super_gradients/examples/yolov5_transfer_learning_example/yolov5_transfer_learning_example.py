@@ -3,7 +3,7 @@ Transfer learning example- from our pretrained YoloV5m (on coco) on Pascal VOC. 
 """
 
 import super_gradients
-from super_gradients.training import SgModel, MultiGPUMode
+from super_gradients.training import SgModel
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import \
     PascalVOCUnifiedDetectionDataSetInterface
 from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
@@ -33,13 +33,11 @@ dataset_params = {"batch_size": 48,
                       "scale": 0.898,  # IMAGE SCALE (+/- gain)
                       "shear": 0.602,
                       "mixup": 0.243  # MIXUP PROBABILITY
-                  },
-                  "data_root": "/home/shay.aharon/data/pascal_unified_coco_format/",
-"class_inclusion_list": ['person'],
+                  }
                   }
 
 # INITIALIZE SG MODEL INSTANCE, AND A PASCAL VOC DATASET INTERFACE
-model = SgModel("yolov5n_pascal_detectionviz")
+model = SgModel("yolov5m_pascal_finetune_augment_fix")
 dataset_interface = PascalVOCUnifiedDetectionDataSetInterface(dataset_params=dataset_params, cache_labels=True,
                                                               cache_images=True)
 
@@ -49,7 +47,7 @@ model.connect_dataset_interface(dataset_interface, data_loader_num_workers=8)
 # THIS IS WHERE THE MAGIC HAPPENS- SINCE SGMODEL'S CLASSES ATTRIBUTE WAS SET TO BE DIFFERENT FROM COCO'S, AFTER
 # LOADING THE PRETRAINED YOLO_V5M, IT WILL CALL IT'S REPLACE_HEAD METHOD AND CHANGE IT'S DETECT LAYER ACCORDING
 # TO PASCAL VOC CLASSES
-model.build_model("yolo_v5n", arch_params={"pretrained_weights": "coco"})
+model.build_model("yolo_v5m", arch_params={"pretrained_weights": "coco"})
 
 # WE NOW TUNE THE 3 NORMALIZERS ACCORDING TO THE NEW DATASET ATTRIBUTES,
 network = model.net
@@ -92,8 +90,10 @@ training_params = {"max_epochs": 50,
                                                                dataset_interface.classes))],
                    "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],
                    "phase_callbacks": [DetectionVisualizationCallback(phase=Phase.VALIDATION_BATCH_END,
-                                                                      freq=1,
-                                                                      post_prediction_callback=YoloV5PostPredictionCallback(iou=0.45, conf=0.25),classes=dataset_interface.classes)],
+                                                                      freq=10,
+                                                                      post_prediction_callback=YoloV5PostPredictionCallback(iou=0.45, conf=0.25),
+                                                                      classes=dataset_interface.classes,
+                                                                      last_img_idx_in_batch=4)],
                    "metric_to_watch": "mAP@0.50:0.95",
                    "greater_metric_to_watch_is_better": True,
                    "warmup_mode": "yolov5_warmup"}

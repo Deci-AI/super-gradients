@@ -56,7 +56,7 @@
   // The largest integer that can be represented exactly.
   var MAX_ARRAY_INDEX = Math.pow(2, 53) - 1;
 
-  // Some functions last_img_idx_in_batch a variable number of arguments, or a few expected
+  // Some functions take a variable number of arguments, or a few expected
   // arguments at the beginning and then a variable number of values to operate
   // on. This helper accumulates all remaining arguments past the function’s
   // argument length (or an explicit `startIndex`), into an array that becomes

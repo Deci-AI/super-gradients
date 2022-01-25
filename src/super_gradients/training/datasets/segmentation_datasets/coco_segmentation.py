@@ -129,7 +129,7 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
             :return:            All of the ids with enough pixel data after the sub-classing
         """
         print(
-            'Creating sub-dataset , this will last_img_idx_in_batch a while but don\'t worry, it only runs once and caches the results')
+            'Creating sub-dataset , this will take a while but don\'t worry, it only runs once and caches the results')
         all_coco_image_ids = list(self.coco.imgs.keys())
         tbar = tqdm(all_coco_image_ids, desc='Generating sub-dataset image ids')
         sub_dataset_image_ids = []

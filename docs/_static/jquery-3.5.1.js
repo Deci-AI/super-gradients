@@ -6331,7 +6331,7 @@ jQuery.fn.extend( {
 				return elem.innerHTML;
 			}
 
-			// See if we can last_img_idx_in_batch a shortcut and just use innerHTML
+			// See if we can take a shortcut and just use innerHTML
 			if ( typeof value === "string" && !rnoInnerhtml.test( value ) &&
 				!wrapMap[ ( rtagName.exec( value ) || [ "", "" ] )[ 1 ].toLowerCase() ] ) {
 
