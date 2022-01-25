@@ -344,7 +344,8 @@ class SgModel:
                                loss_avg_meter=loss_avg_meter,
                                criterion=self.criterion,
                                device=self.device,
-                               lr_warmup_epochs=self.training_params.lr_warmup_epochs)
+                               lr_warmup_epochs=self.training_params.lr_warmup_epochs,
+                               sg_logger=self.sg_logger)
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
             batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
@@ -1597,7 +1598,8 @@ class SgModel:
                                loss_avg_meter=loss_avg_meter,
                                criterion=self.criterion,
                                device=self.device,
-                               lr_warmup_epochs=lr_warmup_epochs)
+                               lr_warmup_epochs=lr_warmup_epochs,
+                               sg_logger=self.sg_logger)
 
         if not silent_mode:
             # PRINT TITLES

@@ -3,14 +3,14 @@ Transfer learning example- from our pretrained YoloV5m (on coco) on Pascal VOC. 
 """
 
 import super_gradients
-from super_gradients.training import SgModel, MultiGPUMode
+from super_gradients.training import SgModel
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import \
     PascalVOCUnifiedDetectionDataSetInterface
 from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.utils.detection_utils import Anchors
-
+from super_gradients.training.utils.callbacks import DetectionVisualizationCallback, Phase
 super_gradients.init_trainer()
 
 distributed = super_gradients.is_distributed()
@@ -89,6 +89,11 @@ training_params = {"max_epochs": 50,
                                                            num_cls=len(
                                                                dataset_interface.classes))],
                    "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],
+                   "phase_callbacks": [DetectionVisualizationCallback(phase=Phase.VALIDATION_BATCH_END,
+                                                                      freq=10,
+                                                                      post_prediction_callback=YoloV5PostPredictionCallback(iou=0.45, conf=0.25),
+                                                                      classes=dataset_interface.classes,
+                                                                      last_img_idx_in_batch=4)],
                    "metric_to_watch": "mAP@0.50:0.95",
                    "greater_metric_to_watch_is_better": True,
                    "warmup_mode": "yolov5_warmup"}
