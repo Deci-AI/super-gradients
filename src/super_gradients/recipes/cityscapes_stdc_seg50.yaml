@@ -52,44 +52,42 @@ dataset_params:
   _convert_: all
   batch_size: 8
   val_batch_size: 8
-  color_jitter: 0.5
-  random_scales:
-    - 0.125
-    - 1.5
   crop_size:
     - 1024
     - 512
   eval_scale: 0.5
   image_mask_transforms_aug:
-    _target_: torchvision.transforms.Compose
-    transforms:
-      - _target_: super_gradients.training.utils.segmentation_utils.ColorJitterSeg
-        brightness: ${dataset_params.color_jitter}
-        contrast: ${dataset_params.color_jitter}
-        saturation: ${dataset_params.color_jitter}
+    Compose:
+      transforms:
+        - ColorJitterSeg:
+            brightness: 0.5
+            contrast: 0.5
+            saturation: 0.5
 
-      - _target_: super_gradients.training.utils.segmentation_utils.RandomFlip
+        - RandomFlipSeg
 
-      - _target_: super_gradients.training.utils.segmentation_utils.RandomRescale
-        scales: ${dataset_params.random_scales}
+        - RandomRescaleSeg:
+            scales:
+              - 0.125
+              - 1.5
 
-      - _target_: super_gradients.training.utils.segmentation_utils.PadShortToCropSize
-        crop_size: ${dataset_params.crop_size}
-        fill_mask: ${dataset_params.cityscapes_ignored_label}
+        - PadShortToCropSizeSeg:
+            crop_size: ${dataset_params.crop_size}
+            fill_mask: ${dataset_params.cityscapes_ignored_label}
 
-      - _target_: super_gradients.training.utils.segmentation_utils.CropImageAndMask
-        crop_size: ${dataset_params.crop_size}
-        mode: random
+        - CropImageAndMaskSeg:
+            crop_size: ${dataset_params.crop_size}
+            mode: random
 
   image_mask_transforms:
-    _target_: torchvision.transforms.Compose
-    transforms:
-      - _target_: super_gradients.training.utils.segmentation_utils.Rescale
-        scale_factor: ${dataset_params.eval_scale}
+    Compose:
+      transforms:
+        - RescaleSeg:
+            scale_factor: ${dataset_params.eval_scale}
 
 dataset_interface:
-  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CityscapesDatasetInterface
-  dataset_params: ${dataset_params}
+  cityscapes:
+    dataset_params: ${dataset_params}
 
 data_loader_num_workers: 10
 

@@ -264,7 +264,7 @@ class PadShortToCropSize(SegmentationTransform):
         :param fill_image: grey value to fill image padded background.
         """
         # CHECK IF CROP SIZE IS A ITERABLE OR SCALAR
-        self.crop_size = crop_size
+        self.crop_size = tuple(crop_size)
         self.fill_mask = fill_mask
         self.fill_image = fill_image
 
