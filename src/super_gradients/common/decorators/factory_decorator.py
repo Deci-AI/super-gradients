@@ -30,8 +30,9 @@ def resolve_param(param_name: str, factory: AbstractFactory):
                 func_args = inspect.getfullargspec(func).args
                 if param_name in func_args:
                     index = func_args.index(param_name)
-                    new_value = factory.get(args[index])
-                    args = _assign_tuple(args, index, new_value)
+                    if index < len(args):
+                        new_value = factory.get(args[index])
+                        args = _assign_tuple(args, index, new_value)
             return func(*args, **kwargs)
         return wrapper
     return inner

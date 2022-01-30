@@ -2,7 +2,7 @@ import os
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Union, Tuple
+from typing import Union, Tuple, Mapping
 
 import numpy as np
 import pkg_resources
@@ -20,6 +20,7 @@ from super_gradients.common.environment import env_helpers
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.factories.datasets_factory import DatasetsFactory
 from super_gradients.common.factories.list_factory import ListFactory
+from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
@@ -752,6 +753,9 @@ class SgModel:
         if isinstance(self.training_params.loss, str):
             criterion_cls = LOSSES[self.training_params.loss]
             self.criterion = criterion_cls(**self.training_params.criterion_params)
+
+        elif isinstance(self.training_params.loss, Mapping):
+            self.criterion = LossesFactory().get(self.training_params.loss)
 
         elif isinstance(self.training_params.loss, nn.Module):
             self.criterion = self.training_params.loss
