@@ -118,7 +118,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
 
     def __init__(self, conf: float = 0.1, iou: float = 0.45, classes: list = None, max_predictions: int = 300,
                  nms_type: NMS_Type = NMS_Type.ITERATIVE,
-                 dboxes: DefaultBoxes = DefaultBoxes.dboxes300_coco(), device='cuda'):
+                 dboxes: DefaultBoxes = DefaultBoxes.dboxes300_coco()):
         """
         :param conf: confidence threshold
         :param iou: IoU threshold
@@ -132,7 +132,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         self.classes = classes
         self.max_predictions = max_predictions
 
-        self.dboxes_xywh = dboxes('xywh').to(device)
+        self.dboxes_xywh = dboxes('xywh')
         self.scale_xy = dboxes.scale_xy
         self.scale_wh = dboxes.scale_wh
         self.img_size = dboxes.fig_size
@@ -148,8 +148,9 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         bboxes_in[:, :, 2:] *= self.scale_wh
 
         # CONVERT RELATIVE LOCATIONS INTO ABSOLUTE LOCATION (OUTPUT LOCATIONS ARE RELATIVE TO THE DBOXES)
-        bboxes_in[:, :, :2] = bboxes_in[:, :, :2] * self.dboxes_xywh[:, 2:] + self.dboxes_xywh[:, :2]
-        bboxes_in[:, :, 2:] = bboxes_in[:, :, 2:].exp() * self.dboxes_xywh[:, 2:]
+        bboxes_in[:, :, :2] = bboxes_in[:, :, :2] * self.dboxes_xywh[:, 2:].to(device) \
+                              + self.dboxes_xywh[:, :2].to(device)
+        bboxes_in[:, :, 2:] = bboxes_in[:, :, 2:].exp() * self.dboxes_xywh[:, 2:].to(device)
 
         scores_in = F.softmax(scores_in, dim=-1)  # TODO softmax without first item?
 
