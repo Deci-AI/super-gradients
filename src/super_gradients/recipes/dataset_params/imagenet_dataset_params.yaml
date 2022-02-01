@@ -1,4 +1,4 @@
-batch_size: 64 # batch size for trainset in DatasetInterface
+batch_size: 128 # batch size for trainset in DatasetInterface
 val_batch_size: 200 # batch size for valset in DatasetInterface
 dataset_dir: /data/Imagenet # path to imagenet directory (local)
 traindir: train # dirname inside dataset_dir holding trainset files

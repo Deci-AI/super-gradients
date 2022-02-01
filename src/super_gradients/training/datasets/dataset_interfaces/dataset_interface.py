@@ -25,6 +25,8 @@ from tqdm import tqdm
 from pathlib import Path
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
 from super_gradients.training.utils.utils import download_and_unzip_from_url
+from super_gradients.training.datasets.dali_datasets.dali_pipelines import imagenet_dali_pipeline
+from super_gradients.training.datasets.dali_datasets.dali_dataloaders import DaliClassificationDataLoader
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -412,32 +414,37 @@ class ImageNetDatasetInterface(DatasetInterface):
         train_interpolation = core_utils.get_param(self.dataset_params, 'train_interpolation', default_val='default')
         rand_augment_config_string = core_utils.get_param(self.dataset_params, 'rand_augment_config_string',
                                                           default_val=None)
+        use_dali = core_utils.get_param(self.dataset_params, 'use_dali', default_val=False)
 
-        color_jitter = (float(color_jitter),) * 3 if isinstance(color_jitter, float) else color_jitter
-        assert len(color_jitter) in (3, 4), "color_jitter must be a scalar or tuple of len 3 or 4"
+        if use_dali:
+            if color_jitter or imagenet_pca_aug or rand_augment_config_string:
+                raise
+        else:
+            color_jitter = (float(color_jitter),) * 3 if isinstance(color_jitter, float) else color_jitter
+            assert len(color_jitter) in (3, 4), "color_jitter must be a scalar or tuple of len 3 or 4"
 
-        color_augmentation = datasets_utils.get_color_augmentation(rand_augment_config_string, color_jitter,
-                                                                   crop_size=crop_size, img_mean=img_mean)
+            color_augmentation = datasets_utils.get_color_augmentation(rand_augment_config_string, color_jitter,
+                                                                       crop_size=crop_size, img_mean=img_mean)
 
-        train_transformation_list = [
-            RandomResizedCropAndInterpolation(crop_size, interpolation=train_interpolation),
-            transforms.RandomHorizontalFlip(),
-            color_augmentation,
-            transforms.ToTensor(),
-            Lighting(imagenet_pca_aug),
-            normalize]
+            train_transformation_list = [
+                RandomResizedCropAndInterpolation(crop_size, interpolation=train_interpolation),
+                transforms.RandomHorizontalFlip(),
+                color_augmentation,
+                transforms.ToTensor(),
+                Lighting(imagenet_pca_aug),
+                normalize]
 
-        rndm_erase_prob = core_utils.get_param(self.dataset_params, 'random_erase_prob', default_val=0.)
-        if rndm_erase_prob:
-            train_transformation_list.append(RandomErase(rndm_erase_prob, self.dataset_params.random_erase_value))
+            rndm_erase_prob = core_utils.get_param(self.dataset_params, 'random_erase_prob', default_val=0.)
+            if rndm_erase_prob:
+                train_transformation_list.append(RandomErase(rndm_erase_prob, self.dataset_params.random_erase_value))
 
-        self.trainset = datasets.ImageFolder(traindir, transforms.Compose(train_transformation_list))
-        self.valset = datasets.ImageFolder(valdir, transforms.Compose([
-            transforms.Resize(resize_size),
-            transforms.CenterCrop(crop_size),
-            transforms.ToTensor(),
-            normalize,
-        ]))
+            self.trainset = datasets.ImageFolder(traindir, transforms.Compose(train_transformation_list))
+            self.valset = datasets.ImageFolder(valdir, transforms.Compose([
+                transforms.Resize(resize_size),
+                transforms.CenterCrop(crop_size),
+                transforms.ToTensor(),
+                normalize,
+            ]))
 
 
 class TinyImageNetDatasetInterface(DatasetInterface):
