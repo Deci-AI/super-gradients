@@ -1,0 +1,67 @@
+defaults:
+  - training_hyperparams: default_train_params
+  - dataset_params: coco_detection_dataset_params
+  - arch_params: default_arch_params
+
+architecture: ssd_lite_mobilenet_v2
+project_name: SSD_MobileNet_Coco
+
+data_loader_num_workers: 8
+model_checkpoints_location: local
+load_checkpoint: False
+experiment_suffix: batch${dataset_params.batch_size}_lr${training_hyperparams.initial_lr}_res${dataset_params.val_image_size}
+experiment_name: ${architecture}_coco_${experiment_suffix}
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: AUTO
+
+dboxes:
+  _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes.dboxes${dataset_params.val_image_size}_coco_from19
+
+arch_params:
+  num_classes: 81  # 80 +1 for None
+
+dataset_interface:
+  coco2017_detection:
+    dataset_params: ${dataset_params}
+
+dataset_params:
+  batch_size: 60
+  val_batch_size: 60
+  val_image_size: 256
+  train_image_size: 256
+
+training_hyperparams:
+  max_epochs: 300
+  lr_mode: cosine
+  cosine_final_lr_ratio: 0.1
+  batch_accumulate: 1
+  initial_lr: 0.01
+  loss: ssd_loss
+  loss_logging_items_names: [ smooth_l1, closs, Loss ]
+  criterion_params:
+    alpha: 1.0
+    dboxes: ${dboxes}
+
+  optimizer: SGD
+  optimizer_params:
+    momentum: 0.9
+    weight_decay: 0.0005
+    nesterov: True
+  lr_warmup_epochs: 3
+  warmup_momentum: 0.8
+  warmup_initial_lr: 1e-06
+  warmup_bias_lr: 0.1
+
+  valid_metrics_list:
+    - _target_: super_gradients.training.metrics.DetectionMetrics
+      post_prediction_callback:
+        _target_: super_gradients.training.utils.ssd_utils.SSDPostPredictCallback
+        dboxes: ${dboxes}
+      num_cls: 80
+
+  metric_to_watch: 'mAP@0.50:0.95'
+  greater_metric_to_watch_is_better: True

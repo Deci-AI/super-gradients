@@ -13,7 +13,8 @@ DEFAULT_SSD_ARCH_PARAMS = {
 
 DEFAULT_SSD_MOBILENET_V1_ARCH_PARAMS = {
     "out_channels": [512, 1024, 512, 256, 256, 256],
-    "kernel_sizes": [3, 3, 3, 3, 2]
+    "kernel_sizes": [3, 3, 3, 3, 2]  # TODO: it returns 8744 for 300x300
+    # "kernel_sizes": [3, 3, 3, 3, 1]  # TODO: this return 8732 (as dboxes), toggle both lines.
 }
 
 DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
@@ -140,7 +141,7 @@ class SSD(SgModule):
         # FEATURE MAPS: i.e. FOR 300X300 INPUT - 38X38X4, 19X19X6, 10X10X6, 5X5X6, 3X3X4, 1X1X4
         locs, confs = self.bbox_view(detection_feed, self.loc, self.conf)
 
-        # FOR 300X300 INPUT - RETURN N_BATCH X 8732 X {N_LABELS, N_LOCS} RESULTS
+        # FOR 300X300 INPUT - RETURN N_BATCH X 8732 X {N_LABELS, N_LOCS} RESULTS # TODO: it returns 8744 for 300x300
         return locs, confs
 
 
@@ -161,7 +162,8 @@ class SSDLiteMobileNetV2(SSD):
         self.arch_params = HpmStruct(**DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS)
         self.arch_params.override(**arch_params.to_dict())
         self.arch_params.out_channels[0] = int(round(self.arch_params.out_channels[0] * self.arch_params.width_mult))
-        mobilenetv2 = MobileNetV2(num_classes=None, backbone_mode=True, width_mult=self.arch_params.width_mult)
+        mobilenetv2 = MobileNetV2(num_classes=None, dropout=0,
+                                  backbone_mode=True, width_mult=self.arch_params.width_mult)
         super().__init__(backbone=mobilenetv2.features, arch_params=self.arch_params)
 
     # OVERRIDE THE DEFAULT FUNCTION FROM SSD. ADD THE SDD BLOCKS AFTER THE BACKBONE.

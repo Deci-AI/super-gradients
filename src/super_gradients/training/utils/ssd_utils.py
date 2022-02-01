@@ -74,12 +74,26 @@ class DefaultBoxes(object):
     @staticmethod
     def dboxes300_coco():
         figsize = 300
-        feat_size = [38, 19, 10, 5, 3, 1]
+        feat_size = [38, 19, 10, 5, 3, 2]  # TODO: was [38, 19, 10, 5, 3, 1]
         steps = [8, 16, 32, 64, 100, 300]
         # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
         scales = [21, 45, 99, 153, 207, 261, 315]
         aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
         return DefaultBoxes(figsize, feat_size, steps, scales, aspect_ratios)
+
+    @staticmethod
+    def dboxes320_coco():
+        figsize = 320
+        feat_size = [38, 19, 10, 5, 3, 2]  # TODO: was [38, 19, 10, 5, 3, 1]
+        steps = [8, 16, 32, 64, 100, 300]
+        # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
+        scales = [21, 45, 99, 153, 207, 261, 315]
+        aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
+        return DefaultBoxes(figsize, feat_size, steps, scales, aspect_ratios)
+
+    @staticmethod
+    def dboxes320_coco_from19():
+        return DefaultBoxes.dboxes300_coco()
 
     @staticmethod
     def dboxes300_coco_from19():
@@ -105,7 +119,7 @@ class DefaultBoxes(object):
         feat_size = [32, 16, 8, 4, 2, 1]
         steps = [8, 16, 32, 64, 128, 256]
         # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
-        scales = [18, 38, 84, 131, 1177, 223, 269]
+        scales = [18, 38, 84, 131, 1177, 223, 269]  # TODO: 1177 is a typo? 177 maybe?
         aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
         return DefaultBoxes(figsize, feat_size, steps, scales, aspect_ratios)
 

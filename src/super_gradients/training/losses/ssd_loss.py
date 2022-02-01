@@ -36,7 +36,7 @@ class SSDLoss(_Loss):
         """
         convert ground truth boxes into a tensor with the same size as dboxes. each gt bbox is matched to every
         destination box which overlaps it over 0.5 (IoU). so some gt bboxes can be duplicated to a few destination boxes
-        :param targets: a tensor containing the boxes for a single image. shape [num_boxes, 5] (x,y,w,h,label)
+        :param targets: a tensor containing the boxes for a single image. shape [num_boxes, 6] (batch, label, x, y, w, h)
         :return: two tensors
             boxes - shape of dboxes [4, num_dboxes] (x,y,w,h)
             labels - sahpe [num_dboxes]

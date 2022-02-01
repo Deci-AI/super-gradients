@@ -3,13 +3,13 @@ defaults:
   - dataset_params: coco_detection_dataset_params
   - arch_params: default_arch_params
 
-architecture: ssd_mobilenet_v1  # [ssd_mobilenet_v1, ssd_lite_mobilenet_v2]
+architecture: ssd_mobilenet_v1
 project_name: SSD_MobileNet_Coco
 
 data_loader_num_workers: 8
 model_checkpoints_location: local
 load_checkpoint: False
-experiment_suffix: batch${dataset_params.batch_size}_lr${training_hyperparams.initial_lr}
+experiment_suffix: batch${dataset_params.batch_size}_lr${training_hyperparams.initial_lr}_res${dataset_params.val_image_size}
 experiment_name: ${architecture}_coco_${experiment_suffix}
 
 sg_model:
