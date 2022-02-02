@@ -25,15 +25,14 @@ from tqdm import tqdm
 from pathlib import Path
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
 from super_gradients.training.utils.utils import download_and_unzip_from_url
-from super_gradients.training.datasets.dali_datasets.dali_pipelines import imagenet_dali_pipeline
-from super_gradients.training.datasets.dali_datasets.dali_dataloaders import DaliClassificationDataLoader
 from super_gradients.common.environment import environment_config
 
 logger = get_logger(__name__)
 
 try:
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPolicy
-
+    from super_gradients.training.datasets.dali_datasets.dali_pipelines import imagenet_dali_pipeline
+    from super_gradients.training.datasets.dali_datasets.dali_dataloaders import DaliClassificationDataLoader
     _imported_dali_failiure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warn('Failed to import Nvidia DALI')
