@@ -24,9 +24,9 @@ class OhemCELoss(_Loss):
         assert 0 <= mining_percent <= 1, "mining percent should be a value from 0 to 1"
         self.thresh = -torch.log(torch.tensor(threshold, dtype=torch.float))
         self.mining_percent = mining_percent
-        self.ignore_lb = ignore_lb
+        self.ignore_lb = -100 if ignore_lb is None or ignore_lb < 0 else ignore_lb
         self.num_pixels_exclude_ignored = num_pixels_exclude_ignored
-        self.criteria = nn.CrossEntropyLoss(ignore_index=ignore_lb, reduction='none')
+        self.criteria = nn.CrossEntropyLoss(ignore_index=self.ignore_lb, reduction='none')
 
     def forward(self, logits, labels):
         loss = self.criteria(logits, labels).view(-1)

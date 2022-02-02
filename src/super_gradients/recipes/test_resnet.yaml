@@ -1,0 +1,27 @@
+# This recipe is for testing purpose only
+
+defaults:
+  - training_hyperparams: cifar10_resnet_train_params
+  - arch_params: resnet18_cifar_arch_params
+
+dataset_interface:
+  classification_test_dataset:
+    dataset_params:
+      batch_size: 10
+
+data_loader_num_workers: 1
+
+load_checkpoint: False
+
+experiment_name: test
+
+model_checkpoints_location: local
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: Off
+
+architecture: resnet18
+

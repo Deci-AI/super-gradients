@@ -1,9 +1,11 @@
 import random
 from PIL import Image, ImageOps, ImageFilter
 import collections
-from typing import Optional, Union, Tuple, List
+from typing import Optional, Union, Tuple, List, Sequence
 import math
 import torchvision.transforms as transforms
+import torch
+import torch.nn.functional as F
 
 # FIXME: REFACTOR AUGMENTATIONS, CONSIDER USING A MORE EFFICIENT LIBRARIES SUCH AS, IMGAUG, DALI ETC.
 
@@ -11,7 +13,15 @@ image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
 
 
-class RandomFlip:
+class SegmentationTransform:
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __repr__(self):
+        return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')
+
+
+class RandomFlip(SegmentationTransform):
     """
     Randomly flips the image and mask (synchronously) with probability 'prob'.
     """
@@ -32,7 +42,7 @@ class RandomFlip:
         return sample
 
 
-class Rescale:
+class Rescale(SegmentationTransform):
     """
     Rescales the image and mask (synchronously) while preserving aspect ratio.
     The rescaling can be done according to scale_factor, short_size or long_size.
@@ -137,7 +147,7 @@ class RandomRescale:
         return self.scales
 
 
-class RandomRotate:
+class RandomRotate(SegmentationTransform):
     """
     Randomly rotates image and mask (synchronously) between 'min_deg' and 'max_deg'.
     """
@@ -168,7 +178,7 @@ class RandomRotate:
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
 
-class CropImageAndMask:
+class CropImageAndMask(SegmentationTransform):
     """
     Crops image and mask (synchronously).
     In "center" mode a center crop is performed while, in "random" mode the drop will be positioned around
@@ -219,7 +229,7 @@ class CropImageAndMask:
             raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
 
 
-class RandomGaussianBlur:
+class RandomGaussianBlur(SegmentationTransform):
     """
     Adds random Gaussian Blur to image with probability 'prob'.
     """
@@ -241,7 +251,7 @@ class RandomGaussianBlur:
         return sample
 
 
-class PadShortToCropSize:
+class PadShortToCropSize(SegmentationTransform):
     """
     Pads image to 'crop_size'.
     Should be called only after "Rescale" or "RandomRescale" in augmentations pipeline.
@@ -256,7 +266,7 @@ class PadShortToCropSize:
         # CHECK IF CROP SIZE IS A ITERABLE OR SCALAR
         self.crop_size = crop_size
         self.fill_mask = fill_mask
-        self.fill_image = fill_image
+        self.fill_image = tuple(fill_image) if isinstance(fill_image, Sequence) else fill_image
 
         self.check_valid_arguments()
 
@@ -321,3 +331,22 @@ def coco_sub_classes_inclusion_tuples_list():
             (1, 'person'),
             (64, 'potted plant'), (20, 'sheep'), (63, 'couch'), (7, 'train'),
             (72, 'tv')]
+
+
+def to_one_hot(target: torch.Tensor, num_classes: int, ignore_index: int = None):
+    """
+    Target label to one_hot tensor. labels and ignore_index must be consecutive numbers.
+    :param target: Class labels long tensor, with shape [N, H, W]
+    :param num_classes: num of classes in datasets excluding ignore label, this is the output channels of the one hot
+        result.
+    :return: one hot tensor with shape [N, num_classes, H, W]
+    """
+    num_classes = num_classes if ignore_index is None else num_classes + 1
+
+    one_hot = F.one_hot(target, num_classes).permute((0, 3, 1, 2))
+
+    if ignore_index is not None:
+        # remove ignore_index channel
+        one_hot = torch.cat([one_hot[:, :ignore_index], one_hot[:, ignore_index + 1:]], dim=1)
+
+    return one_hot

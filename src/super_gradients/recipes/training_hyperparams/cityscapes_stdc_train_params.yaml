@@ -1,0 +1,51 @@
+defaults:
+  - default_train_params
+
+max_epochs: 800
+lr_mode: poly
+initial_lr: 0.01   # for effective batch_size=32
+lr_warmup_epochs: 10
+multiply_head_lr: 10.
+
+optimizer: SGD
+optimizer_params:
+  momentum: 0.9
+  weight_decay: 5e-4
+
+ema: True
+ema_params:
+  decay: 0.9999
+  beta: 15
+  exp_activation: True
+
+loss:
+  stdc_loss:
+    num_classes: 19
+    ignore_index: 19
+    mining_percent: 0.0625 # mining percentage is 1/16 of pixels following original implementation.
+    weights: [1., 0.6, 0.4, 1.]
+
+train_metrics_list:
+  - PixelAccuracy:
+      ignore_label: 19
+  - IoU:
+      num_classes: 20
+      ignore_index: 19
+
+valid_metrics_list:
+  - PixelAccuracy:
+      ignore_label: 19
+  - IoU:
+      num_classes: 20
+      ignore_index: 19
+
+loss_logging_items_names: [main_loss, aux_loss1, aux_loss2, detail_loss, loss]
+
+zero_weight_decay_on_bias_and_bn: True
+average_best_models: True
+mixed_precision: False
+
+metric_to_watch: IoU
+greater_metric_to_watch_is_better: True
+
+_convert_: all
