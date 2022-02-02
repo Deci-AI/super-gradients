@@ -120,7 +120,7 @@ class YOLOLayer(nn.Module):
 
     def create_grids(self, img_size=(416, 416), grid_size=(13, 13), device='cpu', data_type=torch.float32):
         """
-        create_grids - Creates the grids for image sizes that are different than the model's defualt image resize_size
+        create_grids - Creates the grids for image sizes that are different than the model's defualt image size
             :param img_size:
             :param grid_size:
             :param device:

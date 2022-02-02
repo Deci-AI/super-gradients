@@ -33,7 +33,7 @@ def get_mean_and_std_torch(data_dir=None, dataloader=None, num_workers=4, Random
 
     :param data_dir: String, path to none-library dataset folder. For example "/data/Imagenette" or "/data/TinyImagenet"
     :param dataloader: a torch DataLoader, as it would feed the data into the trainer (including transforms etc).
-    :param RandomResizeSize: Int, the resize_size of the RandomResizeCrop as it appears in the DataInterface (for example, for Imagenet,
+    :param RandomResizeSize: Int, the size of the RandomResizeCrop as it appears in the DataInterface (for example, for Imagenet,
     this value should be 224).
     :return: 2 lists,mean and std, each one of len 3 (1 for each channel)
     """
@@ -143,12 +143,12 @@ class MultiScaleCollateFunction(AbstractCollateFunction):
         """
         set parameters for the multi-scale collate function
         the possible image sizes are in range [min_image_size, max_image_size] in steps of image_size_steps
-        a new resize_size will be randomly selected every change_frequency calls to the collate_fn()
+        a new size will be randomly selected every change_frequency calls to the collate_fn()
             :param target_size: scales will be [0.66 * target_size, 1.5 * target_size]
-            :param min_image_size: the minimum resize_size to scale down to (in pixels)
-            :param max_image_size: the maximum resize_size to scale up to (in pixels)
+            :param min_image_size: the minimum size to scale down to (in pixels)
+            :param max_image_size: the maximum size to scale up to (in pixels)
             :param image_size_steps: typically, the stride of the net, which defines the possible image
-                    resize_size multiplications
+                    size multiplications
             :param change_frequency:
         """
         assert target_size is not None or (max_image_size is not None and min_image_size is not None), \
@@ -222,16 +222,16 @@ _RANDOM_INTERPOLATION = (InterpolationMode.BILINEAR, InterpolationMode.BICUBIC)
 
 class RandomResizedCropAndInterpolation(RandomResizedCrop):
     """
-    Crop the given PIL Image to random resize_size and aspect ratio with explicitly chosen or random interpolation.
+    Crop the given PIL Image to random size and aspect ratio with explicitly chosen or random interpolation.
 
-    A crop of random resize_size (default: of 0.08 to 1.0) of the original resize_size and a random
+    A crop of random size (default: of 0.08 to 1.0) of the original size and a random
     aspect ratio (default: of 3/4 to 4/3) of the original aspect ratio is made. This crop
-    is finally resized to given resize_size.
+    is finally resized to given size.
     This is popularly used to train the Inception networks.
 
     Args:
-        size: expected output resize_size of each edge
-        scale: range of resize_size of the origin resize_size cropped
+        size: expected output size of each edge
+        scale: range of size of the origin size cropped
         ratio: range of aspect ratio of the origin aspect ratio cropped
         interpolation: Default: PIL.Image.BILINEAR
     """
@@ -266,7 +266,7 @@ class RandomResizedCropAndInterpolation(RandomResizedCrop):
             interpolate_str = ' '.join([_pil_interpolation_to_str[x] for x in self.interpolation])
         else:
             interpolate_str = _pil_interpolation_to_str[self.interpolation]
-        format_string = self.__class__.__name__ + '(resize_size={0}'.format(self.size)
+        format_string = self.__class__.__name__ + '(size={0}'.format(self.size)
         format_string += ', scale={0}'.format(tuple(round(s, 4) for s in self.scale))
         format_string += ', ratio={0}'.format(tuple(round(r, 4) for r in self.ratio))
         format_string += ', interpolation={0})'.format(interpolate_str)
@@ -352,7 +352,7 @@ class DatasetStatisticsTensorboardLogger:
                 self._analyze_object_size_distribution(labels=all_labels, title=title)
 
             summary = ''
-            summary += f'dataset resize_size: {len(data_loader)}  \n'
+            summary += f'dataset size: {len(data_loader)}  \n'
             summary += f'color mean: {color_mean.average}  \n'
             summary += f'color std: {color_std.average}  \n'
 
@@ -393,7 +393,7 @@ class DatasetStatisticsTensorboardLogger:
         """
         This function will add two plots to the tensorboard.
         one is a 2D histogram and the other is a scatter plot. in both cases the X axis is the object width and Y axis
-        is the object width (both normalized by image resize_size)
+        is the object width (both normalized by image size)
         :param labels: all the labels of the dataset of the shape [class_label, x_center, y_center, w, h]
         :param title: the dataset title
         """
@@ -437,9 +437,9 @@ class DatasetStatisticsTensorboardLogger:
 
         :param anchors: array of anchors of the shape [2,N]
         :param points: array of points of the shape [2,M]
-        :param image_size the resize_size of the input image
+        :param image_size the size of the input image
 
-        :returns: an array of resize_size [image_size - 1, image_size - 1] where each cell i,j represent the minimum ratio
+        :returns: an array of size [image_size - 1, image_size - 1] where each cell i,j represent the minimum ratio
         for that cell (point) from all anchors
         """
 
@@ -455,7 +455,7 @@ class DatasetStatisticsTensorboardLogger:
         """
         This function will add anchors coverage plots to the tensorboard.
         :param anchors: a list of anchors
-        :param image_size: the input image resize_size for this training
+        :param image_size: the input image size for this training
         :param labels: all the labels of the dataset of the shape [class_label, x_center, y_center, w, h]
         :param title: the dataset title
         """

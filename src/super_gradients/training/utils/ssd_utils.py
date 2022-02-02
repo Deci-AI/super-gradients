@@ -30,7 +30,7 @@ class DefaultBoxes(object):
         self.aspect_ratios = aspect_ratios
 
         self.default_boxes = []
-        # resize_size of feature and number of feature
+        # size of feature and number of feature
         for idx, sfeat in enumerate(self.feat_size):
 
             sk1 = scales[idx] / fig_size
@@ -88,7 +88,7 @@ class DefaultBoxes(object):
         It is suitable for a network taking the first skip connection from a 19x19 layer (instead of 38x38 in the
         original paper).
         This offers less coverage for small objects but more aspect ratios options to larger objects (the original
-        paper supports object starting from resize_size 21 pixels, while this config support objects starting from 60 pixels)
+        paper supports object starting from size 21 pixels, while this config support objects starting from 60 pixels)
         """
 
         # https://github.com/qfgaohao/pytorch-ssd/blob/f61ab424d09bf3d4bb3925693579ac0a92541b0d/vision/ssd/config/mobilenetv1_ssd_config.py

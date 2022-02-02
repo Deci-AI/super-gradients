@@ -297,7 +297,7 @@ class YoLoV5Base(SgModule):
     def _check_strides_and_anchors(self):
         m = self._head._modules_list[-1]  # Detect()
         # Do inference in train mode on a dummy image to get output stride of each head output layer
-        s = 128  # twice the minimum acceptable image resize_size
+        s = 128  # twice the minimum acceptable image size
         dummy_input = torch.zeros(1, self.arch_params.channels_in, s, s)
         dummy_input = dummy_input.to(next(self._backbone.parameters()).device)
         stride = torch.tensor([s / x.shape[-2] for x in self._forward_once(dummy_input)])
@@ -373,20 +373,20 @@ class YoLoV5Base(SgModule):
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
         A method for preparing the YoloV5 model for conversion to other frameworks (ONNX, CoreML etc)
-        :param input_size: expected input resize_size
+        :param input_size: expected input size
         :return:
         """
         assert not self.training, 'model has to be in eval mode to be converted'
 
-        # Verify dummy_input from converter is of multiple of the grid resize_size
+        # Verify dummy_input from converter is of multiple of the grid size
         max_stride = int(max(self.stride))
 
-        # Validate the image resize_size
+        # Validate the image size
         image_dims = input_size[-2:]  # assume torch uses channels first layout
         for dim in image_dims:
             res_flag, suggestion = check_img_size_divisibilty(dim, max_stride)
             if not res_flag:
-                raise ValueError(f'Invalid input resize_size: {input_size}. The input resize_size must be multiple of max stride: '
+                raise ValueError(f'Invalid input size: {input_size}. The input size must be multiple of max stride: '
                                  f'{max_stride}. The closest suggestions are: {suggestion[0]}x{suggestion[0]} or '
                                  f'{suggestion[1]}x{suggestion[1]}')
 

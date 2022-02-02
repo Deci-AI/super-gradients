@@ -31,7 +31,7 @@ class YoLoV5DetectionLoss(_Loss):
         :param cls_objectness_weights:  class-based weight for L_objectivness that will be applied in each cell that
                                         has a GT assigned to it.
                                         Note: default weight for objectness loss in each cell is 1.
-        :param anchor_threshold:                ratio defining a resize_size range of an appropriate anchor.
+        :param anchor_threshold:                ratio defining a size range of an appropriate anchor.
         """
         super(YoLoV5DetectionLoss, self).__init__()
 
@@ -64,7 +64,7 @@ class YoLoV5DetectionLoss(_Loss):
         """
         Assign targets to anchors to use in L_boxes & L_classification calculation:
             * each target can be assigned to a few anchors,
-            all anchors that are within [1/self.anchor_threshold, self.anchor_threshold] times target resize_size range
+            all anchors that are within [1/self.anchor_threshold, self.anchor_threshold] times target size range
             * each anchor can be assigned to a few targets
 
         :param predictions:         Yolo predictions
@@ -98,7 +98,7 @@ class YoLoV5DetectionLoss(_Loss):
             # Convert target coordinates from [0, 1] range to coordinates in [0, GridY], [0, GridX] ranges
             t = targets * gain
             if num_targets:
-                # Match: filter targets by anchor resize_size ratio
+                # Match: filter targets by anchor size ratio
                 r = t[:, :, 4:6] / anch[:, None]  # wh ratio
                 filtered_targets_ids = torch.max(r, 1. / r).max(2)[0] < self.anchor_threshold  # compare
                 t = t[filtered_targets_ids]
@@ -216,7 +216,7 @@ class YoLoV5DetectionLoss(_Loss):
             loss_obj_cur_head = torch.sum(loss_obj_cur_head * weight_obj / torch.sum(weight_obj))
             loss_objectivness += loss_obj_cur_head * balance[i]  # obj loss
 
-        batch_size = prediction.shape[0]  # batch resize_size
+        batch_size = prediction.shape[0]  # batch size
 
         loss = loss_boxes * self.box_loss_gain + loss_objectivness * self.obj_loss_gain + loss_classification * self.cls_loss_gain
         # IMPORTANT: box, obj and cls loss are logged scaled by gain in ultralytics

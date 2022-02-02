@@ -52,7 +52,7 @@ class SegmentationTransformsTest(unittest.TestCase):
         kwargs = {"short_size": -200}
         self.failUnlessRaises(ValueError, Rescale, **kwargs)
 
-        # test scale by short resize_size
+        # test scale by short size
         sample = self.create_sample((1024, 512))
         rescale_short256 = Rescale(short_size=256)
         out = rescale_short256(sample)
@@ -71,7 +71,7 @@ class SegmentationTransformsTest(unittest.TestCase):
         kwargs = {"long_size": -200}
         self.failUnlessRaises(ValueError, Rescale, **kwargs)
 
-        # test scale by long resize_size
+        # test scale by long size
         sample = self.create_sample((1024, 512))
         rescale_long256 = Rescale(long_size=256)
         out = rescale_long256(sample)
@@ -126,7 +126,7 @@ class SegmentationTransformsTest(unittest.TestCase):
         out = padding(sample)
         self.assertEqual(out_size, out["image"].size)
 
-        # pad to odd resize_size
+        # pad to odd size
         out_size = (512, 501)
         sample = self.create_sample(in_size)
         padding = PadShortToCropSize(crop_size=out_size)

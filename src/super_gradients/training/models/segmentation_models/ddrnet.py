@@ -38,7 +38,7 @@ class DAPPMBranch(nn.Module):
     def __init__(self, kernel_size: int, stride: int, in_planes: int, branch_planes: int, inter_mode: str = 'bilinear'):
         """
         A DAPPM branch
-        :param kernel_size: the kernel resize_size for the average pooling
+        :param kernel_size: the kernel size for the average pooling
                 when stride=0 this parameter is omitted and AdaptiveAvgPool2d over all the input is performed
         :param stride: stride for the average pooling
                 when stride=0: an AdaptiveAvgPool2d over all the input is performed (output is 1x1)
@@ -137,7 +137,7 @@ class SegmentHead(nn.Module):
                  inter_mode: str = 'bilinear'):
         """
         Last stage of the segmentation network.
-        Reduces the number of output planes (usually to num_classes) while increasing the resize_size by scale_factor
+        Reduces the number of output planes (usually to num_classes) while increasing the size by scale_factor
         :param in_planes: width of input
         :param inter_planes: width of internal conv. must be a multiple of scale_factor^2 when inter_mode=pixel_shuffle
         :param out_planes: output width
@@ -174,7 +174,7 @@ class SegmentHead(nn.Module):
 
 class UpscaleOnline(nn.Module):
     """
-    In some cases the required scale/resize_size for the scaling is known only when the input is received.
+    In some cases the required scale/size for the scaling is known only when the input is received.
     This class support such cases. only the interpolation mode is set in advance.
     """
     def __init__(self, mode='bilinear'):

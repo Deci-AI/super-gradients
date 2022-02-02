@@ -38,7 +38,7 @@ save_tensorboard_to_s3: False # whether to save tb to s3
 
 
 precise_bn: False # Whether to use precise_bn calculation during the training.
-precise_bn_batch_size: # the effective batch resize_size we want to calculate the batchnorm on.
+precise_bn_batch_size: # the effective batch size we want to calculate the batchnorm on.
 
 
 silent_mode: False  # Silents the Print outs

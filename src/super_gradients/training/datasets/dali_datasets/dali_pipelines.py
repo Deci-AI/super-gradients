@@ -1,5 +1,4 @@
 try:
-    from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPolicy
     from nvidia.dali.pipeline import pipeline_def
     import nvidia.dali.types as types
     import nvidia.dali.fn as fn
@@ -10,21 +9,20 @@ except ImportError:
 @pipeline_def
 def imagenet_dali_pipeline(data_dir: str, crop: int, resize_size: int, shard_id: int, num_shards: int, dali_cpu=False, is_training=True):
     """
-    Imagenet Dali pipeline
 
-    :param data_dir: Imagenet root directory (str).
-    :param crop: crop Size (int).
-    :param resize_size: Pipeline output image size (int).
+    :param data_dir: Imagenet root directory (str)
+    :param crop: crop Size (int)
+    :param resize_size: Pipeline output image size (int)
 
-    :param shard_id: Shard id (int).
-    :param num_shards: Number of shards (int).
+    :param shard_id: Shard id (int)
+    :param num_shards: Number of shards (int)
         (When not familiar with sharding see:
-            https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/general/multigpu.html#Sharding,
-             in general, it should just be equal to local_rank)
+            https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/general/multigpu.html#Sharding, in general,
+            it should just be equal to local_rank)
 
-    :param dali_cpu: Whether the pipeline should be cpu based (bool).
-    :param is_training: Whether to apply augmentations (bool).
-
+    :param dali_cpu: whether
+    :param is_training:
+    :return:
     """
     images, labels = fn.readers.file(file_root=data_dir,
                                      shard_id=shard_id,

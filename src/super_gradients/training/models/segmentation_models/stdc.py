@@ -23,7 +23,7 @@ STDC_SEG_DEFAULT_ARGS = {"context_fuse_channels": 128,
 class STDCBlock(nn.Module):
     """
     STDC building block, known as Short Term Dense Concatenate module.
-    In STDC module, the kernel resize_size of first block is 1, and the rest of them are simply set as 3.
+    In STDC module, the kernel size of first block is 1, and the rest of them are simply set as 3.
     Args:
         steps (int): The total number of convs in this module, 1 conv 1x1 and (steps - 1) conv3x3.
     """
@@ -276,7 +276,7 @@ class FeatureFusionModule(nn.Module):
 class ContextEmbeddingOnline(nn.Module):
     """
     ContextEmbedding module that use global average pooling to 1x1 to extract context information, and then upsample
-    to original input resize_size.
+    to original input size.
     """
     def __init__(self, in_channels: int, out_channels: int):
         super(ContextEmbeddingOnline, self).__init__()
@@ -295,7 +295,7 @@ class ContextEmbeddingOnline(nn.Module):
 
 class ContextEmbeddingFixedSize(ContextEmbeddingOnline):
     """
-    ContextEmbedding module that use a fixed resize_size interpolation, supported with onnx conversion.
+    ContextEmbedding module that use a fixed size interpolation, supported with onnx conversion.
     Prevent slice/cast/shape operations in onnx conversion for applying interpolation.
     """
     def __init__(self, in_channels: int, out_channels: int, upsample_size: Union[list, tuple]):

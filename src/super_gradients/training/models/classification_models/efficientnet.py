@@ -4,7 +4,7 @@ Code source: https://github.com/lukemelas/EfficientNet-PyTorch
 Pre-trained checkpoints converted to Deci's code base with the reported accuracy can be found in S3 repo
 """
 #######################################################################################################################
-#   1. Since each net expects a specific image resize_size, make sure to build the dataset with the correct image resize_size:
+#   1. Since each net expects a specific image size, make sure to build the dataset with the correct image size:
 #         b0 - (224, 256), b1 - (240, 274), b2 - (260, 298), b3 - (300, 342), b4 - (380, 434),
 #         b5 - (456, 520), b6 - (528, 602), b7 - (600, 684), b8 - (672, 768), l2 - (800, 914)
 #         You should build the DataSetInterface with the following dictionary:
@@ -101,7 +101,7 @@ def drop_connect(inputs, p, training):
 
 
 def calculate_output_image_size(input_image_size, stride):
-    """Calculates the output image resize_size when using Conv2dSamePadding with a stride.
+    """Calculates the output image size when using Conv2dSamePadding with a stride.
        Necessary for static padding. Thanks to mannatsingh for pointing this out.
     Args:
         input_image_size (int, tuple or list): Size of input image.
@@ -122,12 +122,12 @@ def calculate_output_image_size(input_image_size, stride):
 
 
 # Note:
-# The following 'SamePadding' functions make output resize_size equal ceil(input resize_size/stride).
-# Only when stride equals 1, can the output resize_size be the same as input resize_size.
+# The following 'SamePadding' functions make output size equal ceil(input size/stride).
+# Only when stride equals 1, can the output size be the same as input size.
 # Don't be confused by their function names ! ! !
 
 def get_same_padding_conv2d(image_size=None):
-    """Chooses static padding if you have specified an image resize_size, and dynamic padding otherwise.
+    """Chooses static padding if you have specified an image size, and dynamic padding otherwise.
        Static padding is necessary for ONNX exporting of models.
     Args:
         image_size (int or tuple): Size of the image.
@@ -141,7 +141,7 @@ def get_same_padding_conv2d(image_size=None):
 
 
 class Conv2dDynamicSamePadding(nn.Conv2d):
-    """2D Convolutions like TensorFlow, for a dynamic image resize_size.
+    """2D Convolutions like TensorFlow, for a dynamic image size.
        The padding is operated in forward function by calculating dynamically.
     """
 
@@ -149,7 +149,7 @@ class Conv2dDynamicSamePadding(nn.Conv2d):
     #     Given the following:
     #         i: width or height
     #         s: stride
-    #         k: kernel resize_size
+    #         k: kernel size
     #         d: dilation
     #         p: padding
     #     Output after Conv2d:
@@ -165,7 +165,7 @@ class Conv2dDynamicSamePadding(nn.Conv2d):
         ih, iw = x.size()[-2:]
         kh, kw = self.weight.size()[-2:]
         sh, sw = self.stride
-        oh, ow = math.ceil(ih / sh), math.ceil(iw / sw)  # change the output resize_size according to stride ! ! !
+        oh, ow = math.ceil(ih / sh), math.ceil(iw / sw)  # change the output size according to stride ! ! !
         pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
         pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
         if pad_h > 0 or pad_w > 0:
@@ -174,7 +174,7 @@ class Conv2dDynamicSamePadding(nn.Conv2d):
 
 
 class Conv2dStaticSamePadding(nn.Conv2d):
-    """2D Convolutions like TensorFlow's 'SAME' mode, with the given input image resize_size.
+    """2D Convolutions like TensorFlow's 'SAME' mode, with the given input image size.
        The padding mudule is calculated in construction function, then used in forward.
     """
 
@@ -184,7 +184,7 @@ class Conv2dStaticSamePadding(nn.Conv2d):
         super().__init__(in_channels, out_channels, kernel_size, stride, **kwargs)
         self.stride = self.stride if len(self.stride) == 2 else [self.stride[0]] * 2
 
-        # Calculate padding based on image resize_size and save it
+        # Calculate padding based on image size and save it
         assert image_size is not None
         ih, iw = (image_size, image_size) if isinstance(image_size, int) else image_size
         kh, kw = self.weight.size()[-2:]
@@ -419,7 +419,7 @@ class EfficientNet(SgModule):
         bn_mom = 1 - self._arch_params.batch_norm_momentum
         bn_eps = self._arch_params.batch_norm_epsilon
 
-        # Get stem static or dynamic convolution depending on image resize_size
+        # Get stem static or dynamic convolution depending on image size
         image_size = arch_params.image_size
         Conv2d = get_same_padding_conv2d(image_size=image_size)
 
@@ -443,11 +443,11 @@ class EfficientNet(SgModule):
                                              self._arch_params.depth_divisor, self._arch_params.min_depth),
                 num_repeat=round_repeats(block_args.num_repeat, self._arch_params.depth_coefficient))
 
-            # The first block needs to take care of stride and filter resize_size increase.
+            # The first block needs to take care of stride and filter size increase.
             self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum,
                                             self._arch_params.batch_norm_epsilon, image_size=image_size))
             image_size = calculate_output_image_size(image_size, block_args.stride)
-            if block_args.num_repeat > 1:  # modify block_args to keep same output resize_size
+            if block_args.num_repeat > 1:  # modify block_args to keep same output size
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)
             for _ in range(block_args.num_repeat - 1):
                 self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum,
@@ -560,7 +560,7 @@ def build_efficientnet(width, depth, res, dropout, arch_params):
     :return:
     """
     print(f"\nNOTICE: \nachieving EfficientNet\'s reported accuracy requires specific image resolution."
-          f"\nPlease verify image resize_size is {res}x{res} for this specific EfficientNet configuration\n")
+          f"\nPlease verify image size is {res}x{res} for this specific EfficientNet configuration\n")
     # Blocks args for the whole model(efficientnet-b0 by default)
     # It will be modified in the construction of EfficientNet Class according to model
     blocks_args = BlockDecoder.decode(['r1_k3_s11_e1_i32_o16_se0.25', 'r2_k3_s22_e6_i16_o24_se0.25',

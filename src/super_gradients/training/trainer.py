@@ -22,9 +22,9 @@ class Trainer:
             * cls_loss_gain,
             * obj_loss_gain
         according to:
-            * effective batch resize_size
-            * DDP world resize_size
-            * image resize_size
+            * effective batch size
+            * DDP world size
+            * image size
             * num YOLO output layers
             * num classes
         """
@@ -40,7 +40,7 @@ class Trainer:
         cfg.training_hyperparams.warmup_bias_lr *= world_size
         cfg.training_hyperparams.optimizer_params.weight_decay /= world_size
 
-        # Scale WD with a factor of [effective batch resize_size]/64.
+        # Scale WD with a factor of [effective batch size]/64.
         batch_size, batch_accumulate = cfg.dataset_params.batch_size, cfg.training_hyperparams.batch_accumulate
         batch_size_factor = cfg.sg_model.num_devices if is_ddp else cfg.sg_model.dataset_interface.batch_size_factor
         effective_batch_size = batch_size * batch_size_factor * batch_accumulate
@@ -52,7 +52,7 @@ class Trainer:
         log_msg = \
             f"""
             IMPORTANT:\n
-            Training with world resize_size of {world_size}, {'DDP' if is_ddp else 'no DDP'}, effective batch resize_size of {effective_batch_size},
+            Training with world size of {world_size}, {'DDP' if is_ddp else 'no DDP'}, effective batch size of {effective_batch_size},
             scaled:
                 * initial_lr to {cfg.training_hyperparams.initial_lr};
                 * warmup_bias_lr to {cfg.training_hyperparams.warmup_bias_lr};

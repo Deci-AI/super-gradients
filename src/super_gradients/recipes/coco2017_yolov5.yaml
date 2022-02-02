@@ -43,6 +43,6 @@ training_hyperparams:
       _target_: super_gradients.training.utils.detection_utils.Anchors
       anchors_list: [[10, 13, 16, 30, 33, 23],[30, 61, 62, 45, 59, 119],[116, 90, 156, 198, 373, 326]]
       strides: [8, 16, 32]  # output strides of all yolo outputs
-    obj_loss_gain: 1.0    # will be scaled according to train image resize_size
+    obj_loss_gain: 1.0    # will be scaled according to train image size
     box_loss_gain: 0.05   # will be scaled according to num output levels
     cls_loss_gain: 0.5    # will be scaled according to num classes and num output levels

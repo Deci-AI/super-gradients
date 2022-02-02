@@ -137,7 +137,7 @@ class STDCLoss(_Loss):
         super().__init__()
 
         assert len(weights) == num_aux_heads + num_detail_heads + 1,\
-            "Lambda loss weights must be in same resize_size as loss items."
+            "Lambda loss weights must be in same size as loss items."
 
         self.weights = weights
         self.use_detail = num_detail_heads > 0

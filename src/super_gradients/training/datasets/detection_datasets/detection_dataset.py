@@ -28,7 +28,7 @@ class DetectionDataSet(ListDataset):
         DetectionDataSet
             :param root:                    Root folder of the Data Set
             :param list_file:
-            :param img_size:                Image resize_size of the Model that uses this Data Set
+            :param img_size:                Image size of the Model that uses this Data Set
             :param batch_size:              Batch Size
             :param augment:                 True / False flag to allow Augmentation
             :param dataset_hyper_params:    Any hyper params required for the data set
@@ -41,7 +41,7 @@ class DetectionDataSet(ListDataset):
                                                       comprised of 4 randomly selected images that are located in random
                                                       sizes in 4 different parts of the image (Extreme Augmentation)
                                             rectangular - Used mainly for inference, it letterboxes the image
-                                                          for the expected image resize_size of the model
+                                                          for the expected image size of the model
             :param labels_offset:           offset value to add to the labels (class numbers)
             :param all_classes_list: list(str) containing all the class names.
             :param class_inclusion_list: list(str) containing the subclass names or None when subclassing is disabled.

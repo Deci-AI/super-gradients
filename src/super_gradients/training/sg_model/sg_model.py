@@ -612,7 +612,7 @@ class SgModel:
                         a metric name (str) of one of the metric objects from the valid_metrics_list
 
                         a "metric_name" if some metric in valid_metrics_list has an attribute component_names which
-                        is a list referring to the names of each entry in the output metric (torch tensor of resize_size n)
+                        is a list referring to the names of each entry in the output metric (torch tensor of size n)
 
                         one of "loss_logging_items_names" i.e which will correspond to an item returned during the
                         loss function's forward pass.
@@ -681,7 +681,7 @@ class SgModel:
 
                 - `precise_bn_batch_size` : int (default=None)
 
-                    The effective batch resize_size we want to calculate the batchnorm on. For example, if we are training a model
+                    The effective batch size we want to calculate the batchnorm on. For example, if we are training a model
                     on 8 gpus, with a batch of 128 on each gpu, a good rule of thumb would be to give it 8192
                     (ie: effective_batch_size * num_gpus = batch_per_gpu * num_gpus * num_gpus).
                     If precise_bn_batch_size is not provided in the training_params, the latter heuristic will be taken.
@@ -1140,7 +1140,7 @@ class SgModel:
         :param verbose: bool
             Prints results to screen
         :return: log: dict
-            Latency and throughput for each tested batch resize_size
+            Latency and throughput for each tested batch size
         """
         assert input_dims or self.test_loader is not None, 'Must get \'input_dims\' or connect a dataset interface'
         assert self.multi_gpu not in (MultiGPUMode.DATA_PARALLEL, MultiGPUMode.DISTRIBUTED_DATA_PARALLEL), \
@@ -1155,7 +1155,7 @@ class SgModel:
         logs = {}
         log_print = f"{'-' * 35}\n" \
                     f"Batch   Time per Batch  Throughput\n" \
-                    f"resize_size         (ms)        (im/s)\n" \
+                    f"size         (ms)        (im/s)\n" \
                     f"{'-' * 35}\n"
 
         # GET THE INPUT SHAPE FROM THE DATA LOADER IF NOT PROVIDED EXPLICITLY
@@ -1336,7 +1336,7 @@ class SgModel:
 
             Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.
             Whatever learning rate and schedule you specify will be applied to the each GPU individually.
-            Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch resize_size is the
+            Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch size is the
             batch you specify times the number of GPUs. In the literature there are several "best practices" to set
             learning rates and schedules for large batch sizes.
 

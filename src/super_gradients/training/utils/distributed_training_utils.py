@@ -44,7 +44,7 @@ def scaled_all_reduce(tensors: torch.Tensor, num_gpus: int):
     The input tensors are modified in-place.
     Currently supports only the sum
     reduction operator.
-    The reduced values are scaled by the inverse resize_size of the
+    The reduced values are scaled by the inverse size of the
     process group (equivalent to num_gpus).
     """
     # There is no need for reduction in the single-proc case
@@ -72,7 +72,7 @@ def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoad
     '''
     :param model:                   The model being trained (ie: SgModel.net)
     :param loader:                  Training dataloader (ie: SgModel.train_loader)
-    :param precise_bn_batch_size:   The effective batch resize_size we want to calculate the batchnorm on. For example, if we are training a model
+    :param precise_bn_batch_size:   The effective batch size we want to calculate the batchnorm on. For example, if we are training a model
                                     on 8 gpus, with a batch of 128 on each gpu, a good rule of thumb would be to give it 8192
                                     (ie: effective_batch_size * num_gpus = batch_per_gpu * num_gpus * num_gpus).
                                     If precise_bn_batch_size is not provided in the training_params, the latter heuristic

@@ -5,7 +5,7 @@
 # Yolo v5 Detection training on CoCo2014 Dataset:
 # Yolo v5s train on 320x320 mAP@0.5-0.95 (confidence 0.001, test on 320x320 images) ~28.77
 
-# batch resize_size may need to change depending on model resize_size and GPU (2080Ti, V100)
+# batch size may need to change depending on model size and GPU (2080Ti, V100)
 # The code is optimized for running with a Mini-Batch of 64 examples... So depending on the amount of GPUs,
 # you should change the "batch_accumulate" param in the training_params dict to be batch_size * gpu_num * batch_accumulate = 64.
 
@@ -29,9 +29,9 @@ def scale_params(cfg):
         * cls_loss_gain,
         * obj_loss_gain
     according to:
-        * effective batch resize_size
-        * DDP world resize_size
-        * image resize_size
+        * effective batch size
+        * DDP world size
+        * image size
         * num YOLO output layers
         * num classes
     """
@@ -47,7 +47,7 @@ def scale_params(cfg):
     cfg.training_params.warmup_bias_lr *= world_size
     cfg.training_params.optimizer_params.weight_decay /= world_size
 
-    # Scale WD with a factor of [effective batch resize_size]/64.
+    # Scale WD with a factor of [effective batch size]/64.
     batch_size, batch_accumulate = cfg.dataset_params.batch_size, cfg.training_params.batch_accumulate
     batch_size_factor = cfg.sg_model.num_devices if is_ddp else cfg.sg_model.dataset_interface.batch_size_factor
     effective_batch_size = batch_size * batch_size_factor * batch_accumulate
@@ -60,7 +60,7 @@ def scale_params(cfg):
         f"""
 
         IMPORTANT:\n
-        Training with world resize_size of {world_size}, {'DDP' if is_ddp else 'no DDP'}, effective batch resize_size of {effective_batch_size},
+        Training with world size of {world_size}, {'DDP' if is_ddp else 'no DDP'}, effective batch size of {effective_batch_size},
         scaled:
             * initial_lr to {cfg.training_params.initial_lr};
             * warmup_bias_lr to {cfg.training_params.warmup_bias_lr};

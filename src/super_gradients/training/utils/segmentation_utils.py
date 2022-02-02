@@ -50,7 +50,7 @@ class Rescale(SegmentationTransform):
     then long_size.
 
     Args:
-        scale_factor: rescaling is done by multiplying input resize_size by scale_factor:
+        scale_factor: rescaling is done by multiplying input size by scale_factor:
             out_size = (scale_factor * w, scale_factor * h)
         short_size: rescaling is done by determining the scale factor by the ratio short_size / min(h, w).
         long_size: rescaling is done by determining the scale factor by the ratio long_size / max(h, w).
@@ -96,9 +96,9 @@ class Rescale(SegmentationTransform):
         if self.scale_factor is not None and self.scale_factor <= 0:
             raise ValueError(f"Scale factor must be a positive number, found: {self.scale_factor}")
         if self.short_size is not None and self.short_size <= 0:
-            raise ValueError(f"Short resize_size must be a positive number, found: {self.short_size}")
+            raise ValueError(f"Short size must be a positive number, found: {self.short_size}")
         if self.long_size is not None and self.long_size <= 0:
-            raise ValueError(f"Long resize_size must be a positive number, found: {self.long_size}")
+            raise ValueError(f"Long size must be a positive number, found: {self.long_size}")
 
 
 class RandomRescale:
@@ -188,7 +188,7 @@ class CropImageAndMask(SegmentationTransform):
     def __init__(self, crop_size: Union[float, Tuple, List], mode: str):
         """
 
-        :param crop_size: tuple of (width, height) for the final crop resize_size, if is scalar resize_size is a
+        :param crop_size: tuple of (width, height) for the final crop size, if is scalar size is a
             square (crop_size, crop_size)
         :param mode: how to choose the center of the crop, 'center' for the center of the input image,
             'random' center the point is chosen randomally
@@ -226,7 +226,7 @@ class CropImageAndMask(SegmentationTransform):
         if not isinstance(self.crop_size, collections.abc.Iterable):
             self.crop_size = (self.crop_size, self.crop_size)
         if self.crop_size[0] <= 0 or self.crop_size[1] <= 0:
-            raise ValueError(f"Crop resize_size must be positive numbers, found: {self.crop_size}")
+            raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
 
 
 class RandomGaussianBlur(SegmentationTransform):
@@ -258,7 +258,7 @@ class PadShortToCropSize(SegmentationTransform):
     """
     def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
         """
-        :param crop_size: tuple of (width, height) for the final crop resize_size, if is scalar resize_size is a
+        :param crop_size: tuple of (width, height) for the final crop size, if is scalar size is a
             square (crop_size, crop_size)
         :param fill_mask: value to fill mask labels background.
         :param fill_image: grey value to fill image padded background.
@@ -294,7 +294,7 @@ class PadShortToCropSize(SegmentationTransform):
         if not isinstance(self.crop_size, collections.abc.Iterable):
             self.crop_size = (self.crop_size, self.crop_size)
         if self.crop_size[0] <= 0 or self.crop_size[1] <= 0:
-            raise ValueError(f"Crop resize_size must be positive numbers, found: {self.crop_size}")
+            raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
 
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
@@ -310,7 +310,7 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
         # If fill_image is single value, turn to grey color in RGB mode.
         fill_image = (fill_image, fill_image, fill_image)
     elif len(fill_image) != 3:
-        raise ValueError(f"fill_image must be an RGB tuple of resize_size equal to 3, found: {fill_image}")
+        raise ValueError(f"fill_image must be an RGB tuple of size equal to 3, found: {fill_image}")
     # assert values are integers
     if not isinstance(fill_mask, int) or not all(isinstance(x, int) for x in fill_image):
         raise ValueError(f"Fill value must be integers,"

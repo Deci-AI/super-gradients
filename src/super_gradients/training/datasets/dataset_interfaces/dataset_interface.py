@@ -29,13 +29,16 @@ from super_gradients.training.datasets.dali_datasets.dali_pipelines import image
 from super_gradients.training.datasets.dali_datasets.dali_dataloaders import DaliClassificationDataLoader
 from super_gradients.common.environment import environment_config
 
+logger = get_logger(__name__)
+
 try:
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPolicy
-    from nvidia.dali.pipeline import pipeline_def
-    import nvidia.dali.types as types
-    import nvidia.dali.fn as fn
-except ImportError:
-    raise ImportError("Please install DALI from https://www.github.com/NVIDIA/DALI to run this example.")
+
+    _imported_dali_failiure = None
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    logger.warn('Failed to import Nvidia DALI')
+    _imported_dali_failiure = import_err
+
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
 LIBRARY_DATASETS = {
@@ -43,8 +46,6 @@ LIBRARY_DATASETS = {
     "cifar100": {'class': datasets.CIFAR100, 'mean': (0.5071, 0.4865, 0.4409), 'std': (0.2673, 0.2564, 0.2762)},
     "SVHN": {'class': datasets.SVHN, 'mean': None, 'std': None}
 }
-
-logger = get_logger(__name__)
 
 
 class DatasetInterface:
@@ -106,10 +107,10 @@ class DatasetInterface:
         define train, val (and optionally test) loaders. The method deals separately with distributed training and standard
         (non distributed, or parallel training). In the case of distributed training we need to rely on distributed
         samplers.
-        :param batch_size_factor: int - factor to multiply the batch resize_size (usually for multi gpu)
+        :param batch_size_factor: int - factor to multiply the batch size (usually for multi gpu)
         :param num_workers: int - number of workers (parallel processes) for dataloaders
-        :param train_batch_size: int - batch resize_size for train loader, if None will be taken from dataset_params
-        :param val_batch_size: int - batch resize_size for val loader, if None will be taken from dataset_params
+        :param train_batch_size: int - batch size for train loader, if None will be taken from dataset_params
+        :param val_batch_size: int - batch size for val loader, if None will be taken from dataset_params
         :param distributed_sampler: boolean flag for distributed training mode
         :return: train_loader, val_loader, classes: list of classes
         """
@@ -207,7 +208,7 @@ class DatasetInterface:
 
     def get_val_sample(self, num_samples=1):
         if num_samples > len(self.valset):
-            raise Exception("Tried to load more samples than val-set resize_size")
+            raise Exception("Tried to load more samples than val-set size")
         if num_samples == 1:
             return self.valset[0]
         else:
@@ -391,8 +392,8 @@ class DetectionTestDatasetInterface(TestDatasetInterface):
 
 class TestYoloDetectionDatasetInterface(DatasetInterface):
     """
-    note: the output resize_size is (batch_size, 6) in the test while in real training
-    the resize_size of axis 0 can vary (the number of bounding boxes)
+    note: the output size is (batch_size, 6) in the test while in real training
+    the size of axis 0 can vary (the number of bounding boxes)
     """
 
     def __init__(self, dataset_params={}, input_dims=(3, 32, 32), batch_size=5):
@@ -425,11 +426,10 @@ class ImageNetDatasetInterface(DatasetInterface):
         self.use_dali = core_utils.get_param(self.dataset_params, 'use_dali', default_val=False)
 
         if self.use_dali:
+            if _imported_dali_failiure is not None:
+                raise _imported_dali_failiure
             if color_jitter or imagenet_pca_aug or rand_augment_config_string:
-                raise IllegalDatasetParameterException("Dali not supported with color_jitter: "
-                                                       + str(color_jitter) + ", imagenet_pca_aug: "
-                                                       + str(imagenet_pca_aug) + ", rand_augment_config_string: "
-                                                       + str(rand_augment_config_string))
+                raise IllegalDatasetParameterException("Dali not supported with color_jitter: " + str(color_jitter) + ", imagenet_pca_aug: " + str(imagenet_pca_aug) + ", rand_augment_config_string: " + str(rand_augment_config_string))
         else:
             color_jitter = (float(color_jitter),) * 3 if isinstance(color_jitter, float) else color_jitter
             assert len(color_jitter) in (3, 4), "color_jitter must be a scalar or tuple of len 3 or 4"
@@ -819,9 +819,9 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
         for trainset_prefix in ["train", "val"]:
             for trainset_year in ["2007", "2012"]:
                 sub_trainset = PascalVOCDetectionDataSet(root=self.data_root,
-                                                         list_file='images/VOCdevkit/VOC'+trainset_year+'/ImageSets/Main/train.txt',
-                                                         samples_sub_directory='images/'+trainset_prefix+trainset_year+'/',
-                                                         targets_sub_directory='labels/'+trainset_prefix+trainset_year,
+                                                         list_file='images/VOCdevkit/VOC' + trainset_year + '/ImageSets/Main/train.txt',
+                                                         samples_sub_directory='images/' + trainset_prefix + trainset_year + '/',
+                                                         targets_sub_directory='labels/' + trainset_prefix + trainset_year,
                                                          dataset_hyper_params=self.pascal_voc_dataset_hyper_params,
                                                          batch_size=self.dataset_params.batch_size,
                                                          img_size=self.dataset_params.train_image_size,
@@ -882,7 +882,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
             with open(lb_path, 'w') as out_file:
                 tree = ET.parse(in_file)
                 root = tree.getroot()
-                size = root.find('resize_size')
+                size = root.find('size')
                 w = int(size.find('width').text)
                 h = int(size.find('height').text)
                 for obj in root.iter('object'):

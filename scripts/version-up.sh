@@ -41,7 +41,7 @@ function parse_last() {
 
   # two parts found only
   local SUBS=(${PARTS[$position]//-/ })
-  #echo ${SUBS[@]}, resize_size: ${#SUBS}
+  #echo ${SUBS[@]}, size: ${#SUBS}
 
   # found NUMBER
   PARTS[$position]=${SUBS[0]}
@@ -91,7 +91,7 @@ for i in "$@"; do
   -v | --version) # tag prefix #fixme: will work only if placed as first argument
     VERSION=$2
     PARTS=(${VERSION//./ })
-    parse_last ${#PARTS[@]} # array resize_size as argument
+    parse_last ${#PARTS[@]} # array size as argument
     shift 2
     ;;
   -p | --patch) # increment of PATCH

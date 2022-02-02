@@ -4,7 +4,7 @@ defaults:
 max_epochs: 450
 
 lr_mode: step
-initial_lr: 0.032   # for total batch-resize_size of 512
+initial_lr: 0.032   # for total batch-size of 512
 lr_decay_factor: 0.973
 lr_updates:
   _target_: numpy.arange
