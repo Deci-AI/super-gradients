@@ -15,6 +15,8 @@ import torch.nn.functional as F
 from collections import OrderedDict
 
 from super_gradients.training.models import SgModule
+from super_gradients.training.utils import get_param
+from super_gradients.training.utils.regularization_utils import DropPath
 
 
 def width_multiplier(original, factor):
@@ -23,7 +25,7 @@ def width_multiplier(original, factor):
 
 class BasicBlock(nn.Module):
 
-    def __init__(self, in_planes, planes, stride=1, expansion=1, final_relu=True):
+    def __init__(self, in_planes, planes, stride=1, expansion=1, final_relu=True, droppath_prob=0.):
         super(BasicBlock, self).__init__()
         self.expansion = expansion
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -32,6 +34,7 @@ class BasicBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes)
         self.final_relu = final_relu
 
+        self.drop_path = DropPath(drop_prob=droppath_prob)
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
@@ -42,6 +45,7 @@ class BasicBlock(nn.Module):
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.bn2(self.conv2(out))
+        out = self.drop_path(out)
         out += self.shortcut(x)
         if self.final_relu:
             out = F.relu(out)
@@ -50,7 +54,7 @@ class BasicBlock(nn.Module):
 
 class Bottleneck(nn.Module):
 
-    def __init__(self, in_planes, planes, stride=1, expansion=4, final_relu=True):
+    def __init__(self, in_planes, planes, stride=1, expansion=4, final_relu=True, droppath_prob=0.):
         super(Bottleneck, self).__init__()
         self.expansion = expansion
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
@@ -61,6 +65,7 @@ class Bottleneck(nn.Module):
         self.bn3 = nn.BatchNorm2d(self.expansion * planes)
         self.final_relu = final_relu
 
+        self.drop_path = DropPath(drop_prob=droppath_prob)
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
@@ -72,6 +77,9 @@ class Bottleneck(nn.Module):
         out = F.relu(self.bn1(self.conv1(x)))
         out = F.relu(self.bn2(self.conv2(out)))
         out = self.bn3(self.conv3(out))
+
+        out = self.drop_path(out)
+
         out += self.shortcut(x)
 
         if self.final_relu:
@@ -128,7 +136,7 @@ class CifarResNet(SgModule):
 
 class ResNet(SgModule):
     def __init__(self, block, num_blocks: list, num_classes: int = 10, width_mult: float = 1, expansion: int = 1,
-                 input_batchnorm: bool = False, backbone_mode: bool = False):
+                 droppath_prob=0., input_batchnorm: bool = False, backbone_mode: bool = False):
         super(ResNet, self).__init__()
         self.expansion = expansion
         self.backbone_mode = backbone_mode
@@ -142,10 +150,14 @@ class ResNet(SgModule):
         self.bn1 = nn.BatchNorm2d(width_multiplier(64, width_mult))
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.layer1 = self._make_layer(block, width_multiplier(64, width_mult), num_blocks[0], stride=1)
-        self.layer2 = self._make_layer(block, width_multiplier(128, width_mult), num_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, width_multiplier(256, width_mult), num_blocks[2], stride=2)
-        self.layer4 = self._make_layer(block, width_multiplier(512, width_mult), num_blocks[3], stride=2)
+        self.layer1 = self._make_layer(block, width_multiplier(64, width_mult), num_blocks[0], stride=1,
+                                       droppath_prob=droppath_prob)
+        self.layer2 = self._make_layer(block, width_multiplier(128, width_mult), num_blocks[1], stride=2,
+                                       droppath_prob=droppath_prob)
+        self.layer3 = self._make_layer(block, width_multiplier(256, width_mult), num_blocks[2], stride=2,
+                                       droppath_prob=droppath_prob)
+        self.layer4 = self._make_layer(block, width_multiplier(512, width_mult), num_blocks[3], stride=2,
+                                       droppath_prob=droppath_prob)
 
         if not self.backbone_mode:
             # IF RESNET IS IN BACK_BONE MODE WE DON'T NEED THE FINAL CLASSIFIER LAYERS, BUT ONLY THE NET BLOCK STRUCTURE
@@ -154,7 +166,7 @@ class ResNet(SgModule):
 
         self.width_mult = width_mult
 
-    def _make_layer(self, block, planes, num_blocks, stride):
+    def _make_layer(self, block, planes, num_blocks, stride, droppath_prob):
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
         if num_blocks == 0:
@@ -169,7 +181,7 @@ class ResNet(SgModule):
 
         else:
             for stride in strides:
-                layers.append(block(self.in_planes, planes, stride))
+                layers.append(block(self.in_planes, planes, stride, droppath_prob=droppath_prob))
                 self.in_planes = planes * self.expansion
         return nn.Sequential(*layers)
 
@@ -242,6 +254,7 @@ def ResNet34(arch_params, num_classes=None, backbone_mode=None):
 
 def ResNet50(arch_params, num_classes=None, backbone_mode=None):
     return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=num_classes or arch_params.num_classes,
+                  droppath_prob=get_param(arch_params, "droppath_prob", 0),
                   backbone_mode=backbone_mode, expansion=4)
 
 
