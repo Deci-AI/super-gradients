@@ -1,7 +1,7 @@
 import random
 from PIL import Image, ImageOps, ImageFilter
 import collections
-from typing import Optional, Union, Tuple, List
+from typing import Optional, Union, Tuple, List, Sequence
 import math
 import torchvision.transforms as transforms
 import torch
@@ -266,7 +266,7 @@ class PadShortToCropSize(SegmentationTransform):
         # CHECK IF CROP SIZE IS A ITERABLE OR SCALAR
         self.crop_size = crop_size
         self.fill_mask = fill_mask
-        self.fill_image = fill_image
+        self.fill_image = tuple(fill_image) if isinstance(fill_image, Sequence) else fill_image
 
         self.check_valid_arguments()
 
