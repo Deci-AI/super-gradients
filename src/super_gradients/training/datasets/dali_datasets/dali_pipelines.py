@@ -20,9 +20,8 @@ def imagenet_dali_pipeline(data_dir: str, crop: int, resize_size: int, shard_id:
             https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/general/multigpu.html#Sharding, in general,
             it should just be equal to local_rank)
 
-    :param dali_cpu: whether
-    :param is_training:
-    :return:
+    :param dali_cpu: Whether the pipeline will be cpu based (bool).
+    :param is_training: Whether to perform augmentations (bool).
     """
     images, labels = fn.readers.file(file_root=data_dir,
                                      shard_id=shard_id,
