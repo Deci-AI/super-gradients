@@ -1,9 +1,12 @@
+from super_gradients.common.abstractions.abstract_logger import get_logger
+logger = get_logger(__name__)
+
 try:
     from nvidia.dali.pipeline import pipeline_def
     import nvidia.dali.types as types
     import nvidia.dali.fn as fn
 except ImportError:
-    raise ImportError("Please install DALI from https://www.github.com/NVIDIA/DALI.")
+    logger.warn("Install DALI from https://www.github.com/NVIDIA/DALI to import DALI pipelines.")
 
 
 @pipeline_def
