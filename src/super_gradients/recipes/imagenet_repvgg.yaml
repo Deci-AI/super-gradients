@@ -8,7 +8,7 @@
 # Instructions:
 # Set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
 #   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
-# Then for 320x320 image size for training:
+# Then for 320x320 image resize_size for training:
 #   python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
 
 defaults:

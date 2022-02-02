@@ -81,7 +81,7 @@ class TestExternalDatasetInterface(unittest.TestCase):
         dataset = create_imagenet_dataset()
         data_samples_train = dataset.trainset.samples
         data_samples_val = dataset.valset.samples
-        # batch size: 1 is only for the creation of the external keras loader
+        # batch resize_size: 1 is only for the creation of the external keras loader
         self.keras_params = {'dims': (256, 256),
                              'batch_size': 1,
                              'n_classes': 1000,

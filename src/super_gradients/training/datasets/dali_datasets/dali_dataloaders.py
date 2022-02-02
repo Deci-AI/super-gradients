@@ -2,6 +2,9 @@ import collections
 
 
 class DaliClassificationDataLoader(collections.Iterator):
+    """
+    DataLoader wrapper for dali.
+    """
     def __init__(self, dali_loader):
         self.dali_loader = dali_loader
 

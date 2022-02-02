@@ -20,7 +20,7 @@ class AutoLoggerConfig:
         generate_config_for_module_name - Returns a Config Dict For Logging
             :param module_name:     The Python Module name to create auto_logging for
             :param log_level:       Minimal log level to set for the new auto_logging
-            :param max_bytes:       Max size for the log file before rotation starts
+            :param max_bytes:       Max resize_size for the log file before rotation starts
             :param handlers_list:    A list specifying the handlers (Console, etc..) - Better Leave Empty or None
             :param training_log_path: Path to training log file which all modules of super_gradients will write to. Ignored
              when set to None.

@@ -33,8 +33,8 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             :param list_file:                   Path to the file with the samples list
             :param samples_sub_directory:       name of the samples sub-directory
             :param targets_sub_directory:       name of the targets sub-directory
-            :param img_size:                    Image size of the Model that uses this Data Set
-            :param crop_size:                   The size of the cropped image
+            :param img_size:                    Image resize_size of the Model that uses this Data Set
+            :param crop_size:                   The resize_size of the cropped image
             :param batch_size:                  Batch Size of the Model that uses this Data Set
             :param augment:                     True / False flag to allow Augmentation
             :param dataset_hyper_params:        Any hyper params required for the data set

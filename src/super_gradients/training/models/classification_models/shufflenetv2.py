@@ -84,7 +84,7 @@ class ChannelShuffleInvertedResidual(nn.Module):
             A “channel shuffle” operation is then introduced to enable
             information communication between different groups of channels and improve accuracy.
 
-        The operation preserves x.size(), but shuffles its channels in the manner explained further in the example.
+        The operation preserves x.resize_size(), but shuffles its channels in the manner explained further in the example.
 
         Example:
             If group = 2 (2 branches with the same # of activation maps were concatenated before channel_shuffle),

@@ -45,10 +45,10 @@ def get_model_stats(model: nn.Module, input_dims: Union[list, tuple], high_verbo
                 batch_size=batch_size, input_dims=input, output_dims=output)
 
             params = 0
-            if hasattr(module, "weight") and hasattr(module.weight, "size"):
+            if hasattr(module, "weight") and hasattr(module.weight, "resize_size"):
                 params += torch.prod(torch.LongTensor(list(module.weight.size())))
                 summary[m_key]["trainable"] = module.weight.requires_grad
-            if hasattr(module, "bias") and hasattr(module.bias, "size"):
+            if hasattr(module, "bias") and hasattr(module.bias, "resize_size"):
                 params += torch.prod(torch.LongTensor(list(module.bias.size())))
             summary[m_key]["nb_params"] = params
 
@@ -173,9 +173,9 @@ def _convert_summary_dict_to_string(summary: dict, high_verbosity: bool, input_d
                    f"Trainable params: {trainable_params:,}\n" \
                    f"Non-trainable params: {total_params - trainable_params:,}\n" \
                    f"{'-' * 200}\n" \
-                   f"Input size (MB): {total_input_size:.2f}\n" \
-                   f"Forward/backward pass size (MB): {total_output_size:.2f}\n" \
-                   f"Params size (MB): {total_params_size}\n" \
+                   f"Input resize_size (MB): {total_input_size:.2f}\n" \
+                   f"Forward/backward pass resize_size (MB): {total_output_size:.2f}\n" \
+                   f"Params resize_size (MB): {total_params_size}\n" \
                    f"Estimated Total Size (MB): {total_size}\n"
 
     summary_str += str(["Memory Footprint (percentage): %0.2f" % gpu_memory_utilization[i] for i in range(4)]) + "\n" \

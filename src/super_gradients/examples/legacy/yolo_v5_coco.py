@@ -5,7 +5,7 @@
 # Yolo v5 Detection training on CoCo2014 Dataset:
 # Yolo v5s train on 320x320 mAP@0.5-0.95 (confidence 0.001, test on 320x320 images) ~28.77
 
-# batch size may need to change depending on model size and GPU (2080Ti, V100)
+# batch resize_size may need to change depending on model resize_size and GPU (2080Ti, V100)
 # The code is optimized for running with a Mini-Batch of 64 examples... So depending on the amount of GPUs,
 # you should change the "batch_accumulate" param in the training_params dict to be batch_size * gpu_num * batch_accumulate = 64.
 
@@ -35,8 +35,8 @@ parser.add_argument("--width", type=float, help='not applicable for default mode
 parser.add_argument("--reload", action="store_true")
 parser.add_argument("--max_epochs", type=int, default=300)
 parser.add_argument("--batch", type=int, default=64)
-parser.add_argument("--test-img-size", type=int, default=320)
-parser.add_argument("--train-img-size", type=int, default=640)
+parser.add_argument("--test-img-resize_size", type=int, default=320)
+parser.add_argument("--train-img-resize_size", type=int, default=640)
 parser.add_argument("--multi-scale", action="store_true")
 parser.add_argument("--coco2014", action="store_true")
 
@@ -122,5 +122,5 @@ training_params = {"max_epochs": args.max_epochs,
                    "greater_metric_to_watch_is_better": True}
 
 print(f"Training Yolo v5 {args.model} on {dataset_string.upper()}:\n width-mult={args.width}, depth-mult={args.depth}, "
-      f"train-img-size={args.train_img_size}, test-img-size={args.test_img_size} ")
+      f"train-img-resize_size={args.train_img_size}, test-img-resize_size={args.test_img_size} ")
 model.train(training_params=training_params)

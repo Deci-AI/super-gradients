@@ -17,7 +17,7 @@ loss_logging_items_names: [GIoU, obj, cls, Loss]
 optimizer: SGD
 optimizer_params:
   momentum: 0.937
-  weight_decay: 0.0005  # will be scaled according to effective batch size
+  weight_decay: 0.0005  # will be scaled according to effective batch resize_size
   nesterov: True
 
 ema: True

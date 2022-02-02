@@ -8,8 +8,22 @@ except ImportError:
 
 
 @pipeline_def
-def imagenet_dali_pipeline(data_dir, crop, size, shard_id, num_shards, dali_cpu=False, is_training=True):
+def imagenet_dali_pipeline(data_dir: str, crop: int, resize_size: int, shard_id: int, num_shards: int, dali_cpu=False, is_training=True):
     """
+    Imagenet Dali pipeline
+
+    :param data_dir: Imagenet root directory (str).
+    :param crop: crop Size (int).
+    :param resize_size: Pipeline output image size (int).
+
+    :param shard_id: Shard id (int).
+    :param num_shards: Number of shards (int).
+        (When not familiar with sharding see:
+            https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/general/multigpu.html#Sharding,
+             in general, it should just be equal to local_rank)
+
+    :param dali_cpu: Whether the pipeline should be cpu based (bool).
+    :param is_training: Whether to apply augmentations (bool).
 
     """
     images, labels = fn.readers.file(file_root=data_dir,
@@ -50,7 +64,7 @@ def imagenet_dali_pipeline(data_dir, crop, size, shard_id, num_shards, dali_cpu=
                                    output_type=types.RGB)
         images = fn.resize(images,
                            device=dali_device,
-                           size=size,
+                           size=resize_size,
                            mode="not_smaller",
                            interp_type=types.INTERP_TRIANGULAR)
         mirror = False

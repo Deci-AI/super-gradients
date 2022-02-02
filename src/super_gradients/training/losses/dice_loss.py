@@ -31,7 +31,7 @@ class DiceLoss(_Loss):
         :param sum_over_batches: Whether to average dice over the batch axis if set True,
          default is `False` to average over the classes axis.
         :param generalized_dice: Whether to apply normalization by the volume of each class.
-        :param weight: a manual rescaling weight given to each class. If given, it has to be a Tensor of size `C`.
+        :param weight: a manual rescaling weight given to each class. If given, it has to be a Tensor of resize_size `C`.
         :param reduction: Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
             `none`: no reduction will be applied.
             `mean`: the sum of the output will be divided by the number of elements in the output.

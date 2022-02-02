@@ -1,7 +1,7 @@
 # MobilNetV2 ImageNet training recipe.
 # Top1-Accuracy:  73.08
-# Learning rate and batch size parameters, using 2 GPUs with DDP:
-#     initial_lr: 0.032    batch-size: 256 * 2gpus = 512
+# Learning rate and batch resize_size parameters, using 2 GPUs with DDP:
+#     initial_lr: 0.032    batch-resize_size: 256 * 2gpus = 512
 # Usage:
 #     python -m torch.distributed.launch --nproc_per_node=2 --master_port=1234 examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2
 

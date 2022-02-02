@@ -9,7 +9,7 @@
 
     Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.
     Whatever learning rate and schedule you specify will be applied to the each GPU individually.
-    Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch size is the
+    Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch resize_size is the
     batch you specify times the number of GPUs. In the literature there are several "best practices" to set
     learning rates and schedules for large batch sizes.
     Should be checked with. (2) The training protocol specified in this file for 8 GPUs are far from optimal.

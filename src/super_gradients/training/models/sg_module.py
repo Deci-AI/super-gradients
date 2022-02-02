@@ -53,7 +53,7 @@ class SgModule(nn.Module):
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
         Prepare the model to be converted to ONNX or other frameworks.
-        Typically, this function will freeze the size of layers which is otherwise flexible, replace some modules
+        Typically, this function will freeze the resize_size of layers which is otherwise flexible, replace some modules
         with convertible substitutes and remove all auxiliary or training related parts.
         :param input_size: [H,W]
         """

@@ -27,7 +27,15 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
 from super_gradients.training.utils.utils import download_and_unzip_from_url
 from super_gradients.training.datasets.dali_datasets.dali_pipelines import imagenet_dali_pipeline
 from super_gradients.training.datasets.dali_datasets.dali_dataloaders import DaliClassificationDataLoader
+from super_gradients.common.environment import environment_config
 
+try:
+    from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPolicy
+    from nvidia.dali.pipeline import pipeline_def
+    import nvidia.dali.types as types
+    import nvidia.dali.fn as fn
+except ImportError:
+    raise ImportError("Please install DALI from https://www.github.com/NVIDIA/DALI to run this example.")
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
 LIBRARY_DATASETS = {
@@ -98,10 +106,10 @@ class DatasetInterface:
         define train, val (and optionally test) loaders. The method deals separately with distributed training and standard
         (non distributed, or parallel training). In the case of distributed training we need to rely on distributed
         samplers.
-        :param batch_size_factor: int - factor to multiply the batch size (usually for multi gpu)
+        :param batch_size_factor: int - factor to multiply the batch resize_size (usually for multi gpu)
         :param num_workers: int - number of workers (parallel processes) for dataloaders
-        :param train_batch_size: int - batch size for train loader, if None will be taken from dataset_params
-        :param val_batch_size: int - batch size for val loader, if None will be taken from dataset_params
+        :param train_batch_size: int - batch resize_size for train loader, if None will be taken from dataset_params
+        :param val_batch_size: int - batch resize_size for val loader, if None will be taken from dataset_params
         :param distributed_sampler: boolean flag for distributed training mode
         :return: train_loader, val_loader, classes: list of classes
         """
@@ -199,7 +207,7 @@ class DatasetInterface:
 
     def get_val_sample(self, num_samples=1):
         if num_samples > len(self.valset):
-            raise Exception("Tried to load more samples than val-set size")
+            raise Exception("Tried to load more samples than val-set resize_size")
         if num_samples == 1:
             return self.valset[0]
         else:
@@ -383,8 +391,8 @@ class DetectionTestDatasetInterface(TestDatasetInterface):
 
 class TestYoloDetectionDatasetInterface(DatasetInterface):
     """
-    note: the output size is (batch_size, 6) in the test while in real training
-    the size of axis 0 can vary (the number of bounding boxes)
+    note: the output resize_size is (batch_size, 6) in the test while in real training
+    the resize_size of axis 0 can vary (the number of bounding boxes)
     """
 
     def __init__(self, dataset_params={}, input_dims=(3, 32, 32), batch_size=5):
@@ -400,34 +408,37 @@ class ImageNetDatasetInterface(DatasetInterface):
         super(ImageNetDatasetInterface, self).__init__(dataset_params)
 
         data_dir = dataset_params['dataset_dir'] if 'dataset_dir' in dataset_params.keys() else data_dir
-        traindir = os.path.join(os.path.abspath(data_dir), 'train')
-        valdir = os.path.join(data_dir, 'val')
+        self.traindir = os.path.join(os.path.abspath(data_dir), 'train')
+        self.valdir = os.path.join(data_dir, 'val')
         img_mean = [0.485, 0.456, 0.406]
         img_std = [0.229, 0.224, 0.225]
         normalize = transforms.Normalize(mean=img_mean,
                                          std=img_std)
 
-        crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=224)
-        resize_size = core_utils.get_param(self.dataset_params, 'resize_size', default_val=256)
+        self.crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=224)
+        self.resize_size = core_utils.get_param(self.dataset_params, 'resize_size', default_val=256)
         color_jitter = core_utils.get_param(self.dataset_params, 'color_jitter', default_val=0.0)
         imagenet_pca_aug = core_utils.get_param(self.dataset_params, 'imagenet_pca_aug', default_val=0.0)
         train_interpolation = core_utils.get_param(self.dataset_params, 'train_interpolation', default_val='default')
         rand_augment_config_string = core_utils.get_param(self.dataset_params, 'rand_augment_config_string',
                                                           default_val=None)
-        use_dali = core_utils.get_param(self.dataset_params, 'use_dali', default_val=False)
+        self.use_dali = core_utils.get_param(self.dataset_params, 'use_dali', default_val=False)
 
-        if use_dali:
+        if self.use_dali:
             if color_jitter or imagenet_pca_aug or rand_augment_config_string:
-                raise
+                raise IllegalDatasetParameterException("Dali not supported with color_jitter: "
+                                                       + str(color_jitter) + ", imagenet_pca_aug: "
+                                                       + str(imagenet_pca_aug) + ", rand_augment_config_string: "
+                                                       + str(rand_augment_config_string))
         else:
             color_jitter = (float(color_jitter),) * 3 if isinstance(color_jitter, float) else color_jitter
             assert len(color_jitter) in (3, 4), "color_jitter must be a scalar or tuple of len 3 or 4"
 
             color_augmentation = datasets_utils.get_color_augmentation(rand_augment_config_string, color_jitter,
-                                                                       crop_size=crop_size, img_mean=img_mean)
+                                                                       crop_size=self.crop_size, img_mean=img_mean)
 
             train_transformation_list = [
-                RandomResizedCropAndInterpolation(crop_size, interpolation=train_interpolation),
+                RandomResizedCropAndInterpolation(self.crop_size, interpolation=train_interpolation),
                 transforms.RandomHorizontalFlip(),
                 color_augmentation,
                 transforms.ToTensor(),
@@ -438,13 +449,77 @@ class ImageNetDatasetInterface(DatasetInterface):
             if rndm_erase_prob:
                 train_transformation_list.append(RandomErase(rndm_erase_prob, self.dataset_params.random_erase_value))
 
-            self.trainset = datasets.ImageFolder(traindir, transforms.Compose(train_transformation_list))
-            self.valset = datasets.ImageFolder(valdir, transforms.Compose([
-                transforms.Resize(resize_size),
-                transforms.CenterCrop(crop_size),
+            self.trainset = datasets.ImageFolder(self.traindir, transforms.Compose(train_transformation_list))
+            self.valset = datasets.ImageFolder(self.valdir, transforms.Compose([
+                transforms.Resize(self.resize_size),
+                transforms.CenterCrop(self.crop_size),
                 transforms.ToTensor(),
                 normalize,
             ]))
+
+    def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
+                           test_batch_size=None, distributed_sampler: bool = False):
+        """
+        Overrides parent method to support dali.
+        """
+
+        if self.use_dali:
+            if distributed_sampler:
+                world_size = torch.distributed.get_world_size()
+                local_rank = environment_config.DDP_LOCAL_RANK
+                self.batch_size_factor = 1
+            else:
+                world_size = 1
+                local_rank = 0
+                self.batch_size_factor = batch_size_factor
+
+            if train_batch_size is None:
+                train_batch_size = self.dataset_params.batch_size * self.batch_size_factor
+            if val_batch_size is None:
+                val_batch_size = self.dataset_params.val_batch_size * self.batch_size_factor
+
+            dali_cpu = core_utils.get_param(self.dataset_params, "dalli_cpu", False)
+
+            pipe = imagenet_dali_pipeline(batch_size=train_batch_size,
+                                          num_threads=num_workers,
+                                          device_id=local_rank,
+                                          seed=12 + local_rank,
+                                          data_dir=self.traindir,
+                                          crop=self.crop_size,
+                                          resize_size=self.resize_size,
+                                          shard_id=local_rank,
+                                          num_shards=world_size,
+                                          is_training=True,
+                                          dali_cpu=dali_cpu)
+            pipe.build()
+            train_loader = DALIClassificationIterator(pipe, reader_name="Reader",
+                                                      last_batch_policy=LastBatchPolicy.PARTIAL,
+                                                      auto_reset=True)
+            self.train_loader = DaliClassificationDataLoader(train_loader)
+
+            pipe = imagenet_dali_pipeline(batch_size=val_batch_size,
+                                          num_threads=num_workers,
+                                          device_id=local_rank,
+                                          seed=12 + local_rank,
+                                          data_dir=self.valdir,
+                                          crop=self.crop_size,
+                                          resize_size=self.resize_size,
+                                          shard_id=local_rank,
+                                          num_shards=world_size,
+                                          is_training=False,
+                                          dali_cpu=dali_cpu)
+
+            pipe.build()
+            val_loader = DALIClassificationIterator(pipe, reader_name="Reader",
+                                                    last_batch_policy=LastBatchPolicy.PARTIAL,
+                                                    auto_reset=True)
+            self.val_loader = DaliClassificationDataLoader(val_loader)
+        else:
+            super(ImageNetDatasetInterface, self).build_data_loaders(batch_size_factor=batch_size_factor,
+                                                                     num_workers=num_workers,
+                                                                     train_batch_size=train_batch_size,
+                                                                     val_batch_size=val_batch_size,
+                                                                     distributed_sampler=distributed_sampler)
 
 
 class TinyImageNetDatasetInterface(DatasetInterface):
@@ -807,7 +882,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
             with open(lb_path, 'w') as out_file:
                 tree = ET.parse(in_file)
                 root = tree.getroot()
-                size = root.find('size')
+                size = root.find('resize_size')
                 w = int(size.find('width').text)
                 h = int(size.find('height').text)
                 for obj in root.iter('object'):

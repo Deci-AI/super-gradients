@@ -138,7 +138,7 @@ class LadderResNet(nn.Module):
             layers.append(block(self.inplanes, planes, stride, dilation=2,
                                 downsample=downsample, previous_dilation=dilation, norm_layer=norm_layer))
         else:
-            raise RuntimeError("=> unknown dilation size: {}".format(dilation))
+            raise RuntimeError("=> unknown dilation resize_size: {}".format(dilation))
 
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):

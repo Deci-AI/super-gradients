@@ -27,7 +27,7 @@ def mixup_target(target: torch.Tensor, num_classes: int, lam: float = 1., smooth
     """
     generate a smooth target (label) two-hot tensor to support the mixed images with different labels
     :param target: the targets tensor
-    :param num_classes: number of classes (to set the final tensor size)
+    :param num_classes: number of classes (to set the final tensor resize_size)
     :param lam: percentage of label a range [0, 1] in the mixing
     :param smoothing: the smoothing multiplier
     :param device: usable device ['cuda', 'cpu']
@@ -71,7 +71,7 @@ def rand_bbox_minmax(img_shape: tuple, minmax: Union[tuple, list], count: int = 
     Typical defaults for minmax are usually in the  .2-.3 for min and .8-.9 range for max.
 
     :param img_shape: Image shape as tuple
-    :param minmax: Min and max bbox ratios (as percent of image size)
+    :param minmax: Min and max bbox ratios (as percent of image resize_size)
     :param count: Number of bbox to generate
     """
     assert len(minmax) == 2
@@ -286,7 +286,7 @@ class CollateMixup:
     def __call__(self, batch, _=None):
         batch_size = len(batch)
         if batch_size % 2 != 0:
-            raise IllegalDatasetParameterException('Batch size should be even when using this')
+            raise IllegalDatasetParameterException('Batch resize_size should be even when using this')
         half = 'half' in self.mode
         if half:
             batch_size //= 2

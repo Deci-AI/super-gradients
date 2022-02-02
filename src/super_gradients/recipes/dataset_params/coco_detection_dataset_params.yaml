@@ -1,7 +1,7 @@
-batch_size: 64 # batch size for trainset in CoCoDetectionDatasetInterface
-val_batch_size: 64 # batch size for valset in CoCoDetectionDatasetInterface
-val_image_size: 320 # image size for valset in CoCoDetectionDatasetInterface
-train_image_size: 320 # image size for trainset in CoCoDetectionDatasetInterface
+batch_size: 64 # batch resize_size for trainset in CoCoDetectionDatasetInterface
+val_batch_size: 64 # batch resize_size for valset in CoCoDetectionDatasetInterface
+val_image_size: 320 # image resize_size for valset in CoCoDetectionDatasetInterface
+train_image_size: 320 # image resize_size for trainset in CoCoDetectionDatasetInterface
 
 val_collate_fn: # collate function for valset in CoCoDetectionDatasetInterface
   _target_: super_gradients.training.utils.utils.load_func

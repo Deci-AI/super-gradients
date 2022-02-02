@@ -635,7 +635,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
 
 def check_img_size_divisibilty(img_size: int, stride: int = 32):
     """
-    :param img_size: Int, the size of the image (H or W).
+    :param img_size: Int, the resize_size of the image (H or W).
     :param stride: Int, the number to check if img_size is divisible by.
     :return: (True, None) if img_size is divisble by stride, (False, Suggestions) if it's not.
         Note: Suggestions are the two closest numbers to img_size that *are* divisible by stride.
@@ -728,7 +728,7 @@ def calc_batch_prediction_accuracy(output: torch.Tensor, targets: torch.Tensor, 
     """
 
     :param output:       list (of length batch_size) of Tensors of shape (num_detections, 6)
-                         format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
+                         format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image resize_size
     :param targets:      targets for all images of shape (total_num_targets, 6)
                          format:     (image_index, x, y, w, h, label) where x,y,w,h are in range [0,1]
     :param height,width: dimensions of the image
@@ -858,7 +858,7 @@ class AnchorGenerator:
             :param gen: generations to evolve anchors using genetic algorithm. after kmeans, this algorithm iteratively
                     make minor random changes in the anchors and if a change imporve the anchors-data fit it evolves the
                     anchors.
-            :returns anchors array num_anchors by 2 (x,y) normalized to image size
+            :returns anchors array num_anchors by 2 (x,y) normalized to image resize_size
         """
         _prefix = 'Anchors Generator: '
         img_size = dataset.img_size
@@ -875,7 +875,7 @@ class AnchorGenerator:
         i = (objects_wh < 3.0).any(1).sum()
         if i:
             AnchorGenerator.logger.warning(
-                f'Extremely small objects found. {i} of {len(objects_wh)} labels are < 3 pixels in size.')
+                f'Extremely small objects found. {i} of {len(objects_wh)} labels are < 3 pixels in resize_size.')
         object_wh_filtered = objects_wh[(objects_wh >= 2.0).any(1)]
 
         # Kmeans calculation
@@ -1065,7 +1065,7 @@ class DetectionVisualization:
         Adjustable:
             * Ground truth box transparency;
             * Box width;
-            * Image size (larger or smaller than what's provided)
+            * Image resize_size (larger or smaller than what's provided)
 
         :param image_tensor:            rgb images, (B, H, W, 3)
         :param pred_boxes:              boxes after NMS for each image in a batch, each (Num_boxes, 6),
@@ -1080,7 +1080,7 @@ class DetectionVisualization:
 
         :param undo_preprocessing_func: a function to convert preprocessed images tensor into a batch of cv2-like images
         :param box_thickness:           box line thickness in px
-        :param image_scale:             scale of an image w.r.t. given image size,
+        :param image_scale:             scale of an image w.r.t. given image resize_size,
                                         e.g. incoming images are (320x320), use scale = 2. to preview in (640x640)
         :param gt_alpha:                a value in [0., 1.] transparency on ground truth boxes,
                                         0 for invisible, 1 for fully opaque
@@ -1112,7 +1112,7 @@ class Anchors(nn.Module):
         :param anchors_list: of the shape [[w1,h1,w2,h2,w3,h3], [w4,h4,w5,h5,w6,h6] .... where each sublist holds
             the width and height of the anchors of a specific detection layer.
             i.e. for a model with 3 detection layers, each containing 5 anchors the format will be a of 3 sublists of 10 numbers each
-            The width and height are in pixels (not relative to image size)
+            The width and height are in pixels (not relative to image resize_size)
         :param strides: a list containing the stride of the layers from which the detection heads are fed.
             i.e. if the firs detection head is connected to the backbone after the input dimensions were reduces by 8, the first number will be 8
         """

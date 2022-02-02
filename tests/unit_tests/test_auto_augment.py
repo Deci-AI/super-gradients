@@ -15,7 +15,7 @@ class TestAutoAugment(unittest.TestCase):
 
     def test_autoaugment_call(self):
         """
-        tests a simple call to auto augment and other augmentations and verifies image size
+        tests a simple call to auto augment and other augmentations and verifies image resize_size
         """
         image_size = 224
         color_augmentation = get_color_augmentation("m9-mstd0.5", color_jitter=None, crop_size=image_size)

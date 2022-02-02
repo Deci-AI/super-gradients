@@ -16,7 +16,7 @@ def accuracy(output, target, topk=(1,)):
     output = convert_to_tensor(output)
     target = convert_to_tensor(target)
 
-    # Get the maximal value of the accuracy measurment and the batch size
+    # Get the maximal value of the accuracy measurment and the batch resize_size
     maxk = max(topk)
     batch_size = target.size(0)
 
@@ -55,7 +55,7 @@ class Top5(Metric):
         if target.shape == preds.shape:
             target = target.argmax(1)  # supports smooth labels
 
-        # Get the maximal value of the accuracy measurment and the batch size
+        # Get the maximal value of the accuracy measurment and the batch resize_size
         batch_size = target.size(0)
 
         # Get the top k predictions

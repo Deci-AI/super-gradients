@@ -8,8 +8,8 @@
 #
 #
 #  Validation mIoU - Cityscapes, training time:
-#      STDC1-Seg75:    input-size: [768, 1536]     mIoU: 76.87     4 X RTX A5000, 29 H, early stopped after 711 epochs
-#      STDC2-Seg75:    input-size: [768, 1536]     mIoU: 78.93     2 X RTX A5000, 29 H, early stopped after 530 epochs
+#      STDC1-Seg75:    input-resize_size: [768, 1536]     mIoU: 76.87     4 X RTX A5000, 29 H, early stopped after 711 epochs
+#      STDC2-Seg75:    input-resize_size: [768, 1536]     mIoU: 78.93     2 X RTX A5000, 29 H, early stopped after 530 epochs
 #
 #  Official git repo:
 #      https://github.com/MichaelFan01/STDC-Seg
@@ -26,9 +26,9 @@
 #       https://deci-pretrained-models.s3.amazonaws.com/stdc2_seg75_cityscapes/
 #
 #
-#  Learning rate and batch size parameters, using 4 GeForce RTX 2080 Ti with DDP:
-#      STDC1-Seg75:    input-size: [768, 1536]     initial_lr: 0.005   batch-size: 4 * 4gpus = 16
-#      STDC2-Seg75:    input-size: [768, 1536]     initial_lr: 0.005   batch-size: 8 * 2gpus = 16
+#  Learning rate and batch resize_size parameters, using 4 GeForce RTX 2080 Ti with DDP:
+#      STDC1-Seg75:    input-resize_size: [768, 1536]     initial_lr: 0.005   batch-resize_size: 4 * 4gpus = 16
+#      STDC2-Seg75:    input-resize_size: [768, 1536]     initial_lr: 0.005   batch-resize_size: 8 * 2gpus = 16
 #
 #  Comments:
 #      * Pretrained backbones were used.
