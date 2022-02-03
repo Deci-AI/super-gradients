@@ -1,3 +1,4 @@
+import collections
 import os
 import numpy as np
 import torch
@@ -32,7 +33,7 @@ logger = get_logger(__name__)
 try:
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPolicy
     from super_gradients.training.datasets.dali_datasets.dali_pipelines import imagenet_dali_pipeline
-    from super_gradients.training.datasets.dali_datasets.dali_dataloaders import DaliClassificationDataLoader
+
     _imported_dali_failiure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warn('Failed to import Nvidia DALI')
@@ -912,3 +913,20 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                 lb_path = (lbs_path / f.name).with_suffix('.txt')  # new label path
                 f.rename(imgs_path / f.name)  # move image
                 convert_label(path, lb_path, year, id)  # convert labels to YOLO format
+
+
+class DaliClassificationDataLoader(collections.Iterator):
+    """
+    DataLoader wrapper for dali.
+    """
+    def __init__(self, dali_loader):
+        self.dali_loader = dali_loader
+
+    def __next__(self):
+        batch = self.dali_loader.__next__()
+        images = batch[0]['data']
+        labels = batch[0]['label'][:, 0]
+        return images, labels.long()
+
+    def __len__(self):
+        return len(self.dali_loader)
