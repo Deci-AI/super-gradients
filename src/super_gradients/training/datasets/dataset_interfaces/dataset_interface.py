@@ -422,9 +422,9 @@ class ImageNetDatasetInterface(DatasetInterface):
         train_interpolation = core_utils.get_param(self.dataset_params, 'train_interpolation', default_val='default')
         rand_augment_config_string = core_utils.get_param(self.dataset_params, 'rand_augment_config_string',
                                                           default_val=None)
-        self.use_dali = core_utils.get_param(self.dataset_params, 'use_dali', default_val=False)
+        self.nvidia_dali_data_loading = core_utils.get_param(self.dataset_params, 'nvidia_dali_data_loading', default_val=False)
 
-        if self.use_dali:
+        if self.nvidia_dali_data_loading:
             if _imported_dali_failiure is not None:
                 raise _imported_dali_failiure
             if color_jitter or imagenet_pca_aug or rand_augment_config_string:
@@ -462,7 +462,7 @@ class ImageNetDatasetInterface(DatasetInterface):
         Overrides parent method to support dali.
         """
 
-        if self.use_dali:
+        if self.nvidia_dali_data_loading:
             if distributed_sampler:
                 world_size = torch.distributed.get_world_size()
                 local_rank = environment_config.DDP_LOCAL_RANK
