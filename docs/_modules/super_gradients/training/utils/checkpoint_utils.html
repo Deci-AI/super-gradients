@@ -35,11 +35,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -79,7 +96,7 @@
     <span class="kn">from</span> <span class="nn">torch.hub</span> <span class="kn">import</span> <span class="n">_download_url_to_file</span> <span class="k">as</span> <span class="n">download_url_to_file</span>
 
 
-<div class="viewcode-block" id="get_ckpt_local_path"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.checkpoint_utils.get_ckpt_local_path">[docs]</a><span class="k">def</span> <span class="nf">get_ckpt_local_path</span><span class="p">(</span><span class="n">source_ckpt_folder_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">experiment_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ckpt_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model_checkpoints_location</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">external_checkpoint_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">overwrite_local_checkpoint</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">load_weights_only</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<div class="viewcode-block" id="get_ckpt_local_path"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.get_ckpt_local_path">[docs]</a><span class="k">def</span> <span class="nf">get_ckpt_local_path</span><span class="p">(</span><span class="n">source_ckpt_folder_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">experiment_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ckpt_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model_checkpoints_location</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">external_checkpoint_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">overwrite_local_checkpoint</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">load_weights_only</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Gets the local path to the checkpoint file, which will be:</span>
 <span class="sd">        - By default: YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name.</span>
@@ -122,7 +139,7 @@
     <span class="k">return</span> <span class="n">ckpt_local_path</span></div>
 
 
-<div class="viewcode-block" id="adaptive_load_state_dict"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.checkpoint_utils.adaptive_load_state_dict">[docs]</a><span class="k">def</span> <span class="nf">adaptive_load_state_dict</span><span class="p">(</span><span class="n">net</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="adaptive_load_state_dict"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.adaptive_load_state_dict">[docs]</a><span class="k">def</span> <span class="nf">adaptive_load_state_dict</span><span class="p">(</span><span class="n">net</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Adaptively loads state_dict to net, by adapting the state_dict to net&#39;s layer names first.</span>
 
@@ -191,7 +208,7 @@
     <span class="k">return</span> <span class="n">ckpt_file_full_local_path</span>
 
 
-<div class="viewcode-block" id="read_ckpt_state_dict"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.checkpoint_utils.read_ckpt_state_dict">[docs]</a><span class="k">def</span> <span class="nf">read_ckpt_state_dict</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+<div class="viewcode-block" id="read_ckpt_state_dict"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.read_ckpt_state_dict">[docs]</a><span class="k">def</span> <span class="nf">read_ckpt_state_dict</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incorrect Checkpoint path&#39;</span><span class="p">)</span>
 
@@ -203,7 +220,7 @@
     <span class="k">return</span> <span class="n">state_dict</span></div>
 
 
-<div class="viewcode-block" id="adapt_state_dict_to_fit_model_layer_names"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.checkpoint_utils.adapt_state_dict_to_fit_model_layer_names">[docs]</a><span class="k">def</span> <span class="nf">adapt_state_dict_to_fit_model_layer_names</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">source_ckpt</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]):</span>
+<div class="viewcode-block" id="adapt_state_dict_to_fit_model_layer_names"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.adapt_state_dict_to_fit_model_layer_names">[docs]</a><span class="k">def</span> <span class="nf">adapt_state_dict_to_fit_model_layer_names</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">source_ckpt</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">exclude</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Given a model state dict and source checkpoints, the method tries to correct the keys in the model_state_dict to fit</span>
 <span class="sd">    the ckpt in order to properly load the weights into the model. If unsuccessful - returns None</span>
@@ -224,7 +241,7 @@
     <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;net&#39;</span><span class="p">:</span> <span class="n">new_ckpt_dict</span><span class="p">}</span></div>
 
 
-<div class="viewcode-block" id="raise_informative_runtime_error"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.checkpoint_utils.raise_informative_runtime_error">[docs]</a><span class="k">def</span> <span class="nf">raise_informative_runtime_error</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">,</span> <span class="n">exception_msg</span><span class="p">):</span>
+<div class="viewcode-block" id="raise_informative_runtime_error"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.raise_informative_runtime_error">[docs]</a><span class="k">def</span> <span class="nf">raise_informative_runtime_error</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">,</span> <span class="n">exception_msg</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Given a model state dict and source checkpoints, the method calls &quot;adapt_state_dict_to_fit_model_layer_names&quot;</span>
 <span class="sd">    and enhances the exception_msg if loading the checkpoint_dict via the conversion method is possible</span>
@@ -241,7 +258,7 @@
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">exception_msg</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="load_checkpoint_to_model"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.checkpoint_utils.load_checkpoint_to_model">[docs]</a><span class="k">def</span> <span class="nf">load_checkpoint_to_model</span><span class="p">(</span><span class="n">ckpt_local_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">load_backbone</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">net</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">load_weights_only</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">load_ema_as_net</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="load_checkpoint_to_model"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.load_checkpoint_to_model">[docs]</a><span class="k">def</span> <span class="nf">load_checkpoint_to_model</span><span class="p">(</span><span class="n">ckpt_local_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">load_backbone</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">net</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">load_weights_only</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">load_ema_as_net</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads the state dict in ckpt_local_path to net and returns the checkpoint&#39;s state dict.</span>
 
@@ -282,7 +299,7 @@
     <span class="k">return</span> <span class="n">checkpoint</span></div>
 
 
-<div class="viewcode-block" id="MissingPretrainedWeightsException"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.checkpoint_utils.MissingPretrainedWeightsException">[docs]</a><span class="k">class</span> <span class="nc">MissingPretrainedWeightsException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="MissingPretrainedWeightsException"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.MissingPretrainedWeightsException">[docs]</a><span class="k">class</span> <span class="nc">MissingPretrainedWeightsException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exception raised by unsupported pretrianed model.</span>
 
 <span class="sd">    Attributes:</span>
@@ -294,7 +311,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="load_pretrained_weights"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.checkpoint_utils.load_pretrained_weights">[docs]</a><span class="k">def</span> <span class="nf">load_pretrained_weights</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">architecture</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pretrained_weights</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="load_pretrained_weights"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.load_pretrained_weights">[docs]</a><span class="k">def</span> <span class="nf">load_pretrained_weights</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">architecture</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pretrained_weights</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads pretrained weights from the MODEL_URLS dictionary to model</span>
@@ -314,7 +331,7 @@
     <span class="k">if</span> <span class="s1">&#39;ema_net&#39;</span> <span class="ow">in</span> <span class="n">pretrained_state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
         <span class="n">pretrained_state_dict</span><span class="p">[</span><span class="s1">&#39;net&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pretrained_state_dict</span><span class="p">[</span><span class="s1">&#39;ema_net&#39;</span><span class="p">]</span>
     <span class="n">adapted_pretrained_state_dict</span> <span class="o">=</span> <span class="n">adapt_state_dict_to_fit_model_layer_names</span><span class="p">(</span><span class="n">model_state_dict</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">source_ckpt</span><span class="o">=</span><span class="n">pretrained_state_dict</span><span class="p">)</span>
-    <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">adapted_pretrained_state_dict</span><span class="p">[</span><span class="s1">&#39;net&#39;</span><span class="p">])</span></div>
+    <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">adapted_pretrained_state_dict</span><span class="p">[</span><span class="s1">&#39;net&#39;</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

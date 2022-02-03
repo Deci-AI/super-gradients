@@ -35,11 +35,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.training.html">Training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -75,12 +92,18 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
 <span class="kn">import</span> <span class="nn">torchvision.transforms</span> <span class="k">as</span> <span class="nn">transform</span>
 <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+
+<span class="kn">from</span> <span class="nn">super_gradients.common.decorators.factory_decorator</span> <span class="kn">import</span> <span class="n">resolve_param</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.factories.transforms_factory</span> <span class="kn">import</span> <span class="n">TransformsFactory</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.datasets.sg_dataset</span> <span class="kn">import</span> <span class="n">DirectoryDataSet</span><span class="p">,</span> <span class="n">ListDataset</span>
-<span class="kn">from</span> <span class="nn">super_gradients.training.utils.segmentation_utils</span> <span class="kn">import</span> <span class="n">RandomFlip</span><span class="p">,</span> <span class="n">Rescale</span><span class="p">,</span> <span class="n">RandomRotate</span><span class="p">,</span> <span class="n">PadShortToCropSize</span><span class="p">,</span>\
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.segmentation_utils</span> <span class="kn">import</span> <span class="n">RandomFlip</span><span class="p">,</span> <span class="n">Rescale</span><span class="p">,</span> <span class="n">RandomRotate</span><span class="p">,</span> <span class="n">PadShortToCropSize</span><span class="p">,</span> \
     <span class="n">CropImageAndMask</span><span class="p">,</span> <span class="n">RandomGaussianBlur</span><span class="p">,</span> <span class="n">RandomRescale</span>
 
 
 <div class="viewcode-block" id="SegmentationDataSet"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.segmentation_datasets.html#super_gradients.training.datasets.SegmentationDataSet">[docs]</a><span class="k">class</span> <span class="nc">SegmentationDataSet</span><span class="p">(</span><span class="n">DirectoryDataSet</span><span class="p">,</span> <span class="n">ListDataset</span><span class="p">):</span>
+
+    <span class="nd">@resolve_param</span><span class="p">(</span><span class="s1">&#39;image_mask_transforms&#39;</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">TransformsFactory</span><span class="p">())</span>
+    <span class="nd">@resolve_param</span><span class="p">(</span><span class="s1">&#39;image_mask_transforms_aug&#39;</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">TransformsFactory</span><span class="p">())</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">list_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">samples_sub_directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">targets_sub_directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">img_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">608</span><span class="p">,</span> <span class="n">crop_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">augment</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -153,12 +176,13 @@
                                                                <span class="n">RandomGaussianBlur</span><span class="p">()])</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">image_mask_transforms_aug</span> <span class="o">=</span> <span class="n">image_mask_transforms_aug</span> <span class="ow">or</span> <span class="n">default_image_mask_transforms_aug</span>
+        <span class="c1"># FIXME: CROP SIZE CANNOT BE PASSED WHEN LIST</span>
+        <span class="k">if</span> <span class="n">image_mask_transforms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">image_mask_transforms</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span><span class="n">Rescale</span><span class="p">(</span><span class="n">short_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">),</span>
+                                                       <span class="n">CropImageAndMask</span><span class="p">(</span><span class="n">crop_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+                                                       <span class="p">])</span>
 
-        <span class="n">default_image_mask_transforms</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span><span class="n">Rescale</span><span class="p">(</span><span class="n">short_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">),</span>
-                                                           <span class="n">CropImageAndMask</span><span class="p">(</span><span class="n">crop_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
-                                                           <span class="p">])</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">image_mask_transforms</span> <span class="o">=</span> <span class="n">image_mask_transforms</span> <span class="ow">or</span> <span class="n">default_image_mask_transforms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_mask_transforms</span> <span class="o">=</span> <span class="n">image_mask_transforms</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
         <span class="n">sample_path</span><span class="p">,</span> <span class="n">target_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples_targets_tuples_list</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
