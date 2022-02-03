@@ -122,16 +122,18 @@ class PretrainedModelsTest(unittest.TestCase):
         }, dataset_classes_inclusion_tuples_list=coco_sub_classes_inclusion_tuples_list()
         )
 
-        self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim", "stdc1_seg50"]
+        self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim", "stdc1_seg50", "regseg48"]
         self.cityscapes_pretrained_arch_params = {
             "ddrnet_23": {"pretrained_weights": "cityscapes", "aux_head": True, "sync_bn": True},
+            "regseg48": {"pretrained_weights": "cityscapes"},
             "stdc": {"pretrained_weights": "cityscapes", "use_aux_heads": True, "aux_head": True}}
         self.cityscapes_pretrained_mious = {"ddrnet_23": 0.7865,
                                             "ddrnet_23_slim": 0.7689,
                                             "stdc1_seg50": 0.7436,
                                             "stdc1_seg75": 0.7687,
                                             "stdc2_seg50": 0.7527,
-                                            "stdc2_seg75": 0.7893}
+                                            "stdc2_seg75": 0.7893,
+                                            "regseg48": 0.7815}
 
         self.cityscapes_dataset = CityscapesDatasetInterface(dataset_params={
             "batch_size": 3,
@@ -193,6 +195,26 @@ class PretrainedModelsTest(unittest.TestCase):
                                                         "metric_to_watch": "IoU",
                                                         "greater_metric_to_watch_is_better": True
                                                         }
+
+        self.regseg_transfer_segmentation_train_params = {
+            "max_epochs": 3,
+            "initial_lr": 1e-2,
+            "loss": "cross_entropy",
+            "lr_mode": "poly",
+            "ema": True,  # unlike the paper (not specified in paper)
+            "optimizer": "SGD",
+            "optimizer_params":
+                {
+                    "weight_decay": 5e-4,
+                    "momentum": 0.9
+                },
+            "load_opt_params": False,
+            "train_metrics_list": [IoU(5)],
+            "valid_metrics_list": [IoU(5)],
+            "loss_logging_items_names": ["loss"],
+            "metric_to_watch": "IoU",
+            "greater_metric_to_watch_is_better": True
+        }
 
     def test_pretrained_resnet50_imagenet(self):
         trainer = SgModel('imagenet_pretrained_resnet50', model_checkpoints_location='local',
@@ -321,6 +343,24 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         trainer.build_model("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"])
         trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_regseg48_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_regseg48', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset, data_loader_num_workers=8)
+        trainer.build_model("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"])
+        res = trainer.test(test_loader=self.cityscapes_dataset.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["regseg48"], delta=0.001)
+
+    def test_transfer_learning_regseg48_cityscapes(self):
+        trainer = SgModel('regseg48_cityscapes_transfer_learning', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
+        trainer.build_model("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"])
+        trainer.train(training_params=self.regseg_transfer_segmentation_train_params)
+
 
     def test_pretrained_ddrnet23_cityscapes(self):
         trainer = SgModel('cityscapes_pretrained_ddrnet23', model_checkpoints_location='local',

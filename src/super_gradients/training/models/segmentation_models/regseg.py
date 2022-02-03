@@ -306,8 +306,6 @@ class RegSeg(SgModule):
         return x
 
     def replace_head(self, new_num_classes: int, head_config: dict):
-        assert self.decoder.out_channels == head_config['mid_channels'], \
-            f"This head is incompatible with decoder's {self.decoder.out_channels} output channels"
         self.head = RegSegHead(self.decoder.out_channels, new_num_classes, head_config)
 
 
