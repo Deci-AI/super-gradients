@@ -4,7 +4,7 @@ defaults:
   - arch_params: default_arch_params
 
 architecture: ssd_lite_mobilenet_v2
-project_name: SSD_MobileNet_Coco
+project_name: SSD_Mobile
 
 data_loader_num_workers: 8
 model_checkpoints_location: local
@@ -31,8 +31,8 @@ dataset_interface:
 dataset_params:
   batch_size: 60
   val_batch_size: 60
-  val_image_size: 256
-  train_image_size: 256
+  val_image_size: 300
+  train_image_size: 300
 
 training_hyperparams:
   max_epochs: 300

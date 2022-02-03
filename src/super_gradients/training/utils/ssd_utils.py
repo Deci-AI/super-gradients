@@ -119,7 +119,8 @@ class DefaultBoxes(object):
         figsize = 300
         feat_size = [19, 10, 5, 3, 2, 1]
         steps = [16, 32, 64, 100, 150, 300]
-        scales = [60, 105, 150, 195, 240, 285, 330]
+        # scales = [60, 105, 150, 195, 240, 285, 330]  # TODO: uncomment if these are correct
+        scales = [21, 45, 99, 153, 207, 261, 315]
         aspect_ratios = [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
         return DefaultBoxes(figsize, feat_size, steps, scales, aspect_ratios)
 
