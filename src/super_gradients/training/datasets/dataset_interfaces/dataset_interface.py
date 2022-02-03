@@ -32,7 +32,7 @@ logger = get_logger(__name__)
 
 try:
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPolicy
-    from super_gradients.training.datasets.dali_datasets.dali_pipelines import imagenet_dali_pipeline
+    from super_gradients.training.datasets.dali_pipelines.dali_pipelines import imagenet_dali_pipeline
 
     _imported_dali_failiure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
