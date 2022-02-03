@@ -35,11 +35,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.training.html">Training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -78,7 +95,7 @@
 <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">ExifTags</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.datasets.sg_dataset</span> <span class="kn">import</span> <span class="n">ListDataset</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.utils.detection_utils</span> <span class="kn">import</span> <span class="n">convert_xyxy_bbox_to_xywh</span>
-
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.utils</span> <span class="kn">import</span> <span class="n">get_param</span>
 <span class="c1"># PREVENTS THE cv2 DEADLOCK</span>
 <span class="n">cv2</span><span class="o">.</span><span class="n">setNumThreads</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
@@ -128,6 +145,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">class_inclusion_list</span> <span class="o">=</span> <span class="n">class_inclusion_list</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">all_classes_list</span> <span class="o">=</span> <span class="n">all_classes_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixup_prob</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span><span class="p">,</span> <span class="s2">&quot;mixup&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
         <span class="nb">super</span><span class="p">(</span><span class="n">DetectionDataSet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">list_file</span><span class="p">,</span> <span class="n">target_extension</span><span class="o">=</span><span class="n">target_extension</span><span class="p">,</span>
                                                <span class="n">collate_fn</span><span class="o">=</span><span class="n">collate_fn</span><span class="p">,</span> <span class="n">sample_loader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_loader</span><span class="p">,</span>
@@ -143,6 +161,9 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_loading_method</span> <span class="o">==</span> <span class="s1">&#39;mosaic&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment</span><span class="p">:</span>
             <span class="c1"># LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)</span>
             <span class="n">img</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_mosaic</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+            <span class="c1"># MixUp augmentation</span>
+            <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixup_prob</span><span class="p">:</span>
+                <span class="n">img</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixup</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">load_mosaic</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_files</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># LOAD A SINGLE IMAGE</span>
@@ -199,6 +220,15 @@
         <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_post_process</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">img</span><span class="p">,</span> <span class="n">labels_out</span>
+
+<div class="viewcode-block" id="DetectionDataSet.mixup"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.mixup">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">mixup</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">im2</span><span class="p">,</span> <span class="n">labels2</span><span class="p">):</span>
+        <span class="c1"># Applies MixUp augmentation https://arxiv.org/pdf/1710.09412.pdf</span>
+        <span class="c1"># https://github.com/ultralytics/yolov5</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">beta</span><span class="p">(</span><span class="mf">32.0</span><span class="p">,</span> <span class="mf">32.0</span><span class="p">)</span>  <span class="c1"># mixup ratio, alpha=beta=32.0</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="p">(</span><span class="n">im</span> <span class="o">*</span> <span class="n">r</span> <span class="o">+</span> <span class="n">im2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">r</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">labels</span><span class="p">,</span> <span class="n">labels2</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">im</span><span class="p">,</span> <span class="n">labels</span></div>
 
 <div class="viewcode-block" id="DetectionDataSet.sample_post_process"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.DetectionDataSet.sample_post_process">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">sample_post_process</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
