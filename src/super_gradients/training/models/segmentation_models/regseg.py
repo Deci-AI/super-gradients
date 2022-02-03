@@ -324,6 +324,10 @@ class RegSeg48(RegSeg):
         head = RegSegHead(decoder.out_channels, num_classes, DEFAULT_REGSEG48_HEAD_PARAMS)
         super().__init__(stem, backbone, decoder, head)
 
+    def replace_head(self, new_num_classes: int, head_config: dict = None):
+        head_config = head_config or DEFAULT_REGSEG48_HEAD_PARAMS
+        super().replace_head(new_num_classes, head_config)
+
 
 class RegSeg53(RegSeg):
 
@@ -337,3 +341,7 @@ class RegSeg53(RegSeg):
         )
         head = RegSegHead(decoder.out_channels, num_classes, DEFAULT_REGSEG53_HEAD_PARAMS)
         super().__init__(stem, backbone, decoder, head)
+
+    def replace_head(self, new_num_classes: int, head_config: dict = None):
+        head_config = head_config or DEFAULT_REGSEG53_HEAD_PARAMS
+        super().replace_head(new_num_classes, head_config)
