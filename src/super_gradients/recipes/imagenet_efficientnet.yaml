@@ -1,4 +1,12 @@
-# TODO: PRODUCE RESULTS AND ADD TENSORBOARDS, LOGS, TRAINING TIME ETC.
+# Efficientnet-B0 Imagenet training
+# This example trains with effective batch size = 128 * 2 gpus = 256.
+# Training time on 2 X 3090Ti distributed training is ~ 9.5 days.
+# Logs and tensorboards: s3://deci-pretrained-models/efficientnet_b0/
+# Instructions:
+# Set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
+#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/:"YOUR_LOCAL_PATH"/super_gradients/src/
+# Then:
+# #   python -m torch.distributed.launch --nproc_per_node=2 train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet
 defaults:
   - training_hyperparams: imagenet_efficientnet_train_params
   - dataset_params: imagenet_dataset_params
@@ -13,7 +21,7 @@ dataset_interface:
   dataset_params: ${dataset_params}
   data_dir: /data/Imagenet
 
-data_loader_num_workers: 32
+data_loader_num_workers: 8
 
 model_checkpoints_location: local
 load_checkpoint: False
