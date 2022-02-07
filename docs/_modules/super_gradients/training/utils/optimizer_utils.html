@@ -35,11 +35,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -72,6 +89,7 @@
 <span class="kn">from</span> <span class="nn">torch.nn.modules.batchnorm</span> <span class="kn">import</span> <span class="n">_BatchNorm</span>
 <span class="kn">from</span> <span class="nn">torch.nn.modules.conv</span> <span class="kn">import</span> <span class="n">_ConvNd</span>
 <span class="kn">from</span> <span class="nn">super_gradients.common.abstractions.abstract_logger</span> <span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.factories.optimizers_type_factory</span> <span class="kn">import</span> <span class="n">OptimizersTypeFactory</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.params</span> <span class="kn">import</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_SGD</span><span class="p">,</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_ADAM</span><span class="p">,</span> \
     <span class="n">DEFAULT_OPTIMIZER_PARAMS_RMSPROP</span><span class="p">,</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.utils</span> <span class="kn">import</span> <span class="n">get_param</span>
@@ -79,10 +97,10 @@
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
-<span class="n">OPTIMIZERS_DICT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;SGD&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_SGD</span><span class="p">},</span>
-                   <span class="s2">&quot;Adam&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_ADAM</span><span class="p">},</span>
-                   <span class="s2">&quot;RMSprop&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="n">optim</span><span class="o">.</span><span class="n">RMSprop</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_RMSPROP</span><span class="p">},</span>
-                   <span class="s2">&quot;RMSpropTF&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="n">RMSpropTF</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF</span><span class="p">}}</span>
+<span class="n">OPTIMIZERS_DEFAULT_PARAMS</span> <span class="o">=</span> <span class="p">{</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">:</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_SGD</span><span class="p">,</span>
+                             <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">:</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_ADAM</span><span class="p">,</span>
+                             <span class="n">optim</span><span class="o">.</span><span class="n">RMSprop</span><span class="p">:</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_RMSPROP</span><span class="p">,</span>
+                             <span class="n">RMSpropTF</span><span class="p">:</span> <span class="n">DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF</span><span class="p">}</span>
 
 
 <div class="viewcode-block" id="separate_zero_wd_params_groups_for_optimizer"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.optimizer_utils.separate_zero_wd_params_groups_for_optimizer">[docs]</a><span class="k">def</span> <span class="nf">separate_zero_wd_params_groups_for_optimizer</span><span class="p">(</span><span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">net_named_params</span><span class="p">,</span> <span class="n">weight_decay</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
@@ -147,8 +165,8 @@
 <span class="sd">        :param lr: initial learning rate</span>
 <span class="sd">        :param training_params: training_parameters</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">default_optimizer_params</span> <span class="o">=</span> <span class="n">OPTIMIZERS_DICT</span><span class="p">[</span><span class="n">training_params</span><span class="o">.</span><span class="n">optimizer</span><span class="p">][</span><span class="s2">&quot;params&quot;</span><span class="p">]</span>
+    <span class="n">optimizer_cls</span> <span class="o">=</span> <span class="n">OptimizersTypeFactory</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">training_params</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
+    <span class="n">default_optimizer_params</span> <span class="o">=</span> <span class="n">OPTIMIZERS_DEFAULT_PARAMS</span><span class="p">[</span><span class="n">optimizer_cls</span><span class="p">]</span> <span class="k">if</span> <span class="n">optimizer_cls</span> <span class="ow">in</span> <span class="n">OPTIMIZERS_DEFAULT_PARAMS</span> <span class="k">else</span> <span class="p">{}</span>
     <span class="n">training_params</span><span class="o">.</span><span class="n">optimizer_params</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">training_params</span><span class="p">,</span> <span class="s1">&#39;optimizer_params&#39;</span><span class="p">,</span> <span class="n">default_optimizer_params</span><span class="p">)</span>
 
     <span class="c1"># OPTIMIZER PARAM GROUPS ARE SET USING DEFAULT OR MODEL SPECIFIC INIT</span>
@@ -172,7 +190,6 @@
         <span class="n">optimizer_training_params</span> <span class="o">=</span> <span class="n">net_named_params</span>
 
     <span class="c1"># CREATE AN OPTIMIZER OBJECT AND INITIALIZE IT</span>
-    <span class="n">optimizer_cls</span> <span class="o">=</span> <span class="n">OPTIMIZERS_DICT</span><span class="p">[</span><span class="n">training_params</span><span class="o">.</span><span class="n">optimizer</span><span class="p">][</span><span class="s2">&quot;class&quot;</span><span class="p">]</span>
     <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_cls</span><span class="p">(</span><span class="n">optimizer_training_params</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="o">**</span><span class="n">training_params</span><span class="o">.</span><span class="n">optimizer_params</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">optimizer</span></div>

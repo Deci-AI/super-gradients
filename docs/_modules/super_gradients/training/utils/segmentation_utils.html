@@ -35,11 +35,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -70,9 +87,11 @@
 <span></span><span class="kn">import</span> <span class="nn">random</span>
 <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">ImageOps</span><span class="p">,</span> <span class="n">ImageFilter</span>
 <span class="kn">import</span> <span class="nn">collections</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">torchvision.transforms</span> <span class="k">as</span> <span class="nn">transforms</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
 <span class="c1"># FIXME: REFACTOR AUGMENTATIONS, CONSIDER USING A MORE EFFICIENT LIBRARIES SUCH AS, IMGAUG, DALI ETC.</span>
 
@@ -80,7 +99,15 @@
 <span class="n">mask_resample</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">NEAREST</span>
 
 
-<div class="viewcode-block" id="RandomFlip"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomFlip">[docs]</a><span class="k">class</span> <span class="nc">RandomFlip</span><span class="p">:</span>
+<div class="viewcode-block" id="SegmentationTransform"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.SegmentationTransform">[docs]</a><span class="k">class</span> <span class="nc">SegmentationTransform</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;{&#39;</span><span class="p">,</span> <span class="s1">&#39;(&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;}&#39;</span><span class="p">,</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RandomFlip"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomFlip">[docs]</a><span class="k">class</span> <span class="nc">RandomFlip</span><span class="p">(</span><span class="n">SegmentationTransform</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Randomly flips the image and mask (synchronously) with probability &#39;prob&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -101,7 +128,7 @@
         <span class="k">return</span> <span class="n">sample</span></div>
 
 
-<div class="viewcode-block" id="Rescale"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.Rescale">[docs]</a><span class="k">class</span> <span class="nc">Rescale</span><span class="p">:</span>
+<div class="viewcode-block" id="Rescale"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.Rescale">[docs]</a><span class="k">class</span> <span class="nc">Rescale</span><span class="p">(</span><span class="n">SegmentationTransform</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Rescales the image and mask (synchronously) while preserving aspect ratio.</span>
 <span class="sd">    The rescaling can be done according to scale_factor, short_size or long_size.</span>
@@ -206,7 +233,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">scales</span></div></div>
 
 
-<div class="viewcode-block" id="RandomRotate"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomRotate">[docs]</a><span class="k">class</span> <span class="nc">RandomRotate</span><span class="p">:</span>
+<div class="viewcode-block" id="RandomRotate"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomRotate">[docs]</a><span class="k">class</span> <span class="nc">RandomRotate</span><span class="p">(</span><span class="n">SegmentationTransform</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Randomly rotates image and mask (synchronously) between &#39;min_deg&#39; and &#39;max_deg&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -237,7 +264,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span> <span class="o">=</span> <span class="n">_validate_fill_values_arguments</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="CropImageAndMask"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.CropImageAndMask">[docs]</a><span class="k">class</span> <span class="nc">CropImageAndMask</span><span class="p">:</span>
+<div class="viewcode-block" id="CropImageAndMask"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.CropImageAndMask">[docs]</a><span class="k">class</span> <span class="nc">CropImageAndMask</span><span class="p">(</span><span class="n">SegmentationTransform</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Crops image and mask (synchronously).</span>
 <span class="sd">    In &quot;center&quot; mode a center crop is performed while, in &quot;random&quot; mode the drop will be positioned around</span>
@@ -288,7 +315,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Crop size must be positive numbers, found: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="RandomGaussianBlur"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomGaussianBlur">[docs]</a><span class="k">class</span> <span class="nc">RandomGaussianBlur</span><span class="p">:</span>
+<div class="viewcode-block" id="RandomGaussianBlur"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomGaussianBlur">[docs]</a><span class="k">class</span> <span class="nc">RandomGaussianBlur</span><span class="p">(</span><span class="n">SegmentationTransform</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Adds random Gaussian Blur to image with probability &#39;prob&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -310,7 +337,7 @@
         <span class="k">return</span> <span class="n">sample</span></div>
 
 
-<div class="viewcode-block" id="PadShortToCropSize"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.PadShortToCropSize">[docs]</a><span class="k">class</span> <span class="nc">PadShortToCropSize</span><span class="p">:</span>
+<div class="viewcode-block" id="PadShortToCropSize"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.PadShortToCropSize">[docs]</a><span class="k">class</span> <span class="nc">PadShortToCropSize</span><span class="p">(</span><span class="n">SegmentationTransform</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pads image to &#39;crop_size&#39;.</span>
 <span class="sd">    Should be called only after &quot;Rescale&quot; or &quot;RandomRescale&quot; in augmentations pipeline.</span>
@@ -325,7 +352,7 @@
         <span class="c1"># CHECK IF CROP SIZE IS A ITERABLE OR SCALAR</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span> <span class="o">=</span> <span class="n">crop_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fill_mask</span> <span class="o">=</span> <span class="n">fill_mask</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span> <span class="o">=</span> <span class="n">fill_image</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fill_image</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">fill_image</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fill_image</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="k">else</span> <span class="n">fill_image</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">check_valid_arguments</span><span class="p">()</span>
 
@@ -390,6 +417,25 @@
             <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;person&#39;</span><span class="p">),</span>
             <span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="s1">&#39;potted plant&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;sheep&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;couch&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">),</span>
             <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;tv&#39;</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="to_one_hot"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.to_one_hot">[docs]</a><span class="k">def</span> <span class="nf">to_one_hot</span><span class="p">(</span><span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">ignore_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Target label to one_hot tensor. labels and ignore_index must be consecutive numbers.</span>
+<span class="sd">    :param target: Class labels long tensor, with shape [N, H, W]</span>
+<span class="sd">    :param num_classes: num of classes in datasets excluding ignore label, this is the output channels of the one hot</span>
+<span class="sd">        result.</span>
+<span class="sd">    :return: one hot tensor with shape [N, num_classes, H, W]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_classes</span> <span class="o">=</span> <span class="n">num_classes</span> <span class="k">if</span> <span class="n">ignore_index</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">num_classes</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="n">one_hot</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span><span class="o">.</span><span class="n">permute</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">ignore_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># remove ignore_index channel</span>
+        <span class="n">one_hot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">one_hot</span><span class="p">[:,</span> <span class="p">:</span><span class="n">ignore_index</span><span class="p">],</span> <span class="n">one_hot</span><span class="p">[:,</span> <span class="n">ignore_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">one_hot</span></div>
 </pre></div>
 
            </div>
