@@ -240,6 +240,7 @@ class ResNet(SgModule):
 
 def ResNet18(arch_params, num_classes=None, backbone_mode=None):
     return ResNet(BasicBlock, [2, 2, 2, 2], num_classes=num_classes or arch_params.num_classes,
+                  droppath_prob=get_param(arch_params, "droppath_prob", 0),
                   backbone_mode=backbone_mode)
 
 
@@ -249,6 +250,7 @@ def ResNet18Cifar(arch_params, num_classes=None):
 
 def ResNet34(arch_params, num_classes=None, backbone_mode=None):
     return ResNet(BasicBlock, [3, 4, 6, 3], num_classes=num_classes or arch_params.num_classes,
+                  droppath_prob=get_param(arch_params, "droppath_prob", 0),
                   backbone_mode=backbone_mode)
 
 
@@ -260,16 +262,19 @@ def ResNet50(arch_params, num_classes=None, backbone_mode=None):
 
 def ResNet50_3343(arch_params, num_classes=None, backbone_mode=None):
     return ResNet(Bottleneck, [3, 3, 4, 3], num_classes=num_classes or arch_params.num_classes,
+                  droppath_prob=get_param(arch_params, "droppath_prob", 0),
                   backbone_mode=backbone_mode, expansion=4)
 
 
 def ResNet101(arch_params, num_classes=None, backbone_mode=None):
     return ResNet(Bottleneck, [3, 4, 23, 3], num_classes=num_classes or arch_params.num_classes,
+                  droppath_prob=get_param(arch_params, "droppath_prob", 0),
                   backbone_mode=backbone_mode, expansion=4)
 
 
 def ResNet152(arch_params, num_classes=None, backbone_mode=None):
     return ResNet(Bottleneck, [3, 8, 36, 3], num_classes=num_classes or arch_params.num_classes,
+                  droppath_prob=get_param(arch_params, "droppath_prob", 0),
                   backbone_mode=backbone_mode, expansion=4)
 
 
@@ -285,9 +290,13 @@ def CustomizedResnet50Cifar(arch_params, num_classes=None):
 
 def CustomizedResnet(arch_params, num_classes=None, backbone_mode=None):
     return ResNet(BasicBlock, arch_params.structure, width_mult=arch_params.width_mult,
-                  num_classes=num_classes or arch_params.num_classes, backbone_mode=backbone_mode)
+                  num_classes=num_classes or arch_params.num_classes,
+                  droppath_prob=get_param(arch_params, "droppath_prob", 0),
+                  backbone_mode=backbone_mode)
 
 
 def CustomizedResnet50(arch_params, num_classes=None, backbone_mode=None):
     return ResNet(Bottleneck, arch_params.structure, width_mult=arch_params.width_mult,
-                  num_classes=num_classes or arch_params.num_classes, backbone_mode=backbone_mode, expansion=4)
+                  num_classes=num_classes or arch_params.num_classes,
+                  droppath_prob=get_param(arch_params, "droppath_prob", 0),
+                  backbone_mode=backbone_mode, expansion=4)
