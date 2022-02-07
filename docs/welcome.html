@@ -42,12 +42,15 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">SuperGradients</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#why-use-supergradients">Why use SuperGradients?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#documentation">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#table-of-content">Table of Content:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting Started</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#quick-start-notebook">Quick Start Notebook</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#supergradients-walkthrough-notebook">SuperGradients Walkthrough Notebook</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#transfer-learning-with-sg-notebook">Transfer Learning with SG Notebook</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#installation-methods">Installation Methods</a><ul>
@@ -116,10 +119,13 @@
   <div align="center">
   <img src="assets/SG_img/SG - Horizontal.png" width="600"/>
  <br/><br/>
-<p><strong>Easily train or fine-tune SOTA computer vision models from one training repository.</strong></p>
+<p><strong>Easily train or fine-tune SOTA computer vision models with one open source training library</strong>
+<a class="reference external" href="https://twitter.com/intent/tweet?text=Easily%20train%20or%20fine-tune%20SOTA%20computer%20vision%20models%20from%20one%20training%20repository&amp;url=https://github.com/Deci-AI/super-gradients&amp;via=deci_ai&amp;hashtags=AI,deeplearning,computervision,training,opensource"><img alt="Tweet" src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social" /></a></p>
 <hr class="docutils" />
 <p><a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
-<a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-19-brightgreen" />
+<a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
+<a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
+<a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-23-brightgreen" />
 <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
 <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
 <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
@@ -129,18 +135,25 @@
 <h1>SuperGradients<a class="headerlink" href="#supergradients" title="Permalink to this headline"></a></h1>
 <section id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline"></a></h2>
-<p>Welcome to SuperGradients, a free open-source training library for PyTorch-based deep learning models. SuperGradients allows you to train models of any computer vision tasks or import pre-trained SOTA models, such as object detection, classification of images, and semantic segmentation for videos and images.</p>
-<p>Whether you are a beginner or an expert it is likely that you already have your own training script, model, loss function implementation, etc., and thus you experienced with how difficult it is to develop a production ready deep learning model, the overhead of integrating with existing training tools with very different and stiff formats and conventions, how much effort it is to find a suitable architecture for your needs when every repo is focusing on just one task.</p>
-<p>With SuperGradients you can:</p>
-<ul class="simple">
-<li><p>Train models for any Computer Vision task or import production-ready <a class="reference external" href="https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints">pre-trained SOTA models</a> (detection, segmentation, and classification - YOLOv5, DDRNet, EfficientNet, RegNet, ResNet, MobileNet, etc.)</p></li>
-<li><p>Shorten the training process using tested and proven <a class="reference external" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes">recipes</a> &amp; <a class="reference external" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples">code examples</a></p></li>
-<li><p>Easily configure your own or use plug&amp;play training, dataset, and architecture parameters.</p></li>
-<li><p>Save time and easily integrate it into your codebase.</p></li>
-</ul>
+<p>Welcome to SuperGradients, a free, open-source training library for PyTorch-based deep learning models.
+SuperGradients allows you to train or fine-tune SOTA pre-trained models for all the most commonly applied computer vision tasks with just one training library. We currently support object detection, image classification and semantic segmentation for videos and images.</p>
+<p>Docs and full user guide<span class="xref myst"></span></p>
+<section id="why-use-supergradients">
+<h3>Why use SuperGradients?<a class="headerlink" href="#why-use-supergradients" title="Permalink to this headline"></a></h3>
+<p><strong>Built-in SOTA Models</strong></p>
+<p>Easily load and fine-tune production-ready, <a class="reference external" href="https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints">pre-trained SOTA models</a> that incorporate best practices and validated hyper-parameters for achieving best-in-class accuracy.</p>
+<p><strong>Easily Reproduce our Results</strong></p>
+<p>Why do all the grind work, if we already did it for you? leverage tested and proven <a class="reference external" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes">recipes</a> &amp; <a class="reference external" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples">code examples</a> for a wide range of computer vision models generated by our team of deep learning experts. Easily configure your own or use plug &amp; play hyperparameters for training, dataset, and architecture.</p>
+<p><strong>Production Readiness and Ease of Integration</strong></p>
+<p>All SuperGradients models’ are production ready in the sense that they are compatible with deployment tools such as TensorRT (Nvidia) and OpenVino (Intel) and can be easily taken into production. With a few lines of code you can easily integrate the models into your codebase.</p>
 <div align="center">
 <img src="./assets/SG_img/detection-demo.png" width="600px">
 </div>
+</section>
+<section id="documentation">
+<h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline"></a></h3>
+<p>Check SuperGradients <a class="reference external" href="https://deci-ai.github.io/super-gradients/welcome.html">Docs</a> for full documentation, user guide, and examples.</p>
+</section>
 <hr class="docutils" />
 <section id="table-of-content">
 <h3>Table of Content:<a class="headerlink" href="#table-of-content" title="Permalink to this headline"></a></h3>
@@ -150,6 +163,7 @@
 <ul>
 <li><p><a class="reference external" href="#quick-start-notebook">Quick Start Notebook</a></p></li>
 <li><p><a class="reference external" href="#supergradients-walkthrough-notebook">Walkthrough Notebook</a></p></li>
+<li><p><a class="reference external" href="#transfer-learning-with-sg-notebook">Transfer Learning with SG Notebook</a></p></li>
 </ul>
 </li>
 <li><p><a class="reference external" href="#installation-methods">Installation Methods</a></p>
@@ -208,6 +222,22 @@
 </table>
  </br></br>
 </section>
+<section id="transfer-learning-with-sg-notebook">
+<h3>Transfer Learning with SG Notebook<a class="headerlink" href="#transfer-learning-with-sg-notebook" title="Permalink to this headline"></a></h3>
+<p>Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware</p>
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://colab.research.google.com/drive/1ZR_cvy8tQB_fTZwB2SQxg3RfIVKxNxRO?usp=sharing"><img src="./assets/SG_img/colab_logo.png" />SuperGradients Transfer Learning in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/TransferLearningDetection.ipynb"><img src="./assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+</section>
 </section>
 <section id="installation-methods">
 <h2>Installation Methods<a class="headerlink" href="#installation-methods" title="Permalink to this headline"></a></h2>
@@ -232,8 +262,8 @@
 </section>
 <section id="quick-installation-of-stable-version">
 <h3>Quick Installation of stable version<a class="headerlink" href="#quick-installation-of-stable-version" title="Permalink to this headline"></a></h3>
-<p><strong>Not yet avilable in PyPi</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>  pip install super-gradients
+<p>See in <a class="reference external" href="https://pypi.org/project/super-gradients/">PyPi</a></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install super-gradients
 </pre></div>
 </div>
 <p>That’s it !</p>
@@ -257,7 +287,7 @@
 <th class="head"><p>Top-1</p></th>
 <th class="head"><p>Top-5</p></th>
 <th class="head"><p>Latency b1<sub>T4</sub></p></th>
-<th class="text-center head"><p>Throughout b1<sub>T4</sub></p></th>
+<th class="text-center head"><p>Throughput b1<sub>T4</sub></p></th>
 </tr>
 </thead>
 <tbody>
@@ -372,7 +402,7 @@
 <th class="head"><p>Resolution</p></th>
 <th class="head"><p>mAP<sup>val<br>0.5:0.95</p></th>
 <th class="head"><p>Latency b1<sub>T4</sub></p></th>
-<th class="text-center head"><p>Throughout b64<sub>T4</sub></p></th>
+<th class="text-center head"><p>Throughput b64<sub>T4</sub></p></th>
 </tr>
 </thead>
 <tbody>
@@ -419,7 +449,8 @@
 <th class="head"><p>Resolution</p></th>
 <th class="head"><p>mIoU</p></th>
 <th class="head"><p>Latency b1<sub>T4</sub></p></th>
-<th class="text-center head"><p>Throughout b64<sub>T4</sub></p></th>
+<th class="head"><p>Throughput b1<sub>T4</sub></p></th>
+<th class="text-center head"><p>Latency b1<sub>T4</sub> including IO</p></th>
 </tr>
 </thead>
 <tbody>
@@ -427,27 +458,62 @@
 <td><p>Cityscapes</p></td>
 <td><p>1024x2048</p></td>
 <td><p>78.65</p></td>
-<td><p><strong>25.48ms</strong></p></td>
-<td class="text-center"><p><strong>37.4fps</strong></p></td>
+<td><p><strong>7.62ms</strong></p></td>
+<td><p><strong>131.3fps</strong></p></td>
+<td class="text-center"><p><strong>25.94ms</strong></p></td>
 </tr>
 <tr class="row-odd"><td><p>DDRNet23 slim</p></td>
 <td><p>Cityscapes</p></td>
 <td><p>1024x2048</p></td>
 <td><p>76.6</p></td>
-<td><p><strong>22.24ms</strong></p></td>
-<td class="text-center"><p><strong>45.7fps</strong></p></td>
+<td><p><strong>3.56ms</strong></p></td>
+<td><p><strong>280.5fps</strong></p></td>
+<td class="text-center"><p><strong>22.80ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>STDC1-Seg50</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>512x1024</p></td>
+<td><p>74.36</p></td>
+<td><p><strong>2.83ms</strong></p></td>
+<td><p><strong>353.3fps</strong></p></td>
+<td class="text-center"><p><strong>12.57ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>STDC1-Seg75</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>768x1536</p></td>
+<td><p>76.87</p></td>
+<td><p><strong>5.71ms</strong></p></td>
+<td><p><strong>175.1fps</strong></p></td>
+<td class="text-center"><p><strong>26.70ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>STDC2-Seg50</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>512x1024</p></td>
+<td><p>75.27</p></td>
+<td><p><strong>3.74ms</strong></p></td>
+<td><p><strong>267.2fps</strong></p></td>
+<td class="text-center"><p><strong>13.89ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>STDC2-Seg75</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>768x1536</p></td>
+<td><p>78.93</p></td>
+<td><p><strong>7.35ms</strong></p></td>
+<td><p><strong>135.9fps</strong></p></td>
+<td class="text-center"><p><strong>28.18ms</strong></p></td>
 </tr>
 <tr class="row-even"><td><p>ShelfNet_LW_34</p></td>
 <td><p>COCO Segmentation (21 classes from PASCAL including background)</p></td>
 <td><p>512x512</p></td>
 <td><p>65.1</p></td>
 <td><p><strong>-</strong></p></td>
+<td><p><strong>-</strong></p></td>
 <td class="text-center"><p><strong>-</strong></p></td>
 </tr>
 </tbody>
 </table>
 <blockquote>
-<div><p><strong>NOTE:</strong> Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency) and batch size 64 (througput)</p>
+<div><p><strong>NOTE:</strong> Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency), and not including IO</p>
 </div></blockquote>
 </section>
 </section>
@@ -462,7 +528,7 @@
 </section>
 <section id="citation">
 <h2>Citation<a class="headerlink" href="#citation" title="Permalink to this headline"></a></h2>
-<p>If you use SuperGradients library or benchmark in your research, please cite SuperGradients deep learning training library.</p>
+<p>If you are using SuperGradients library or benchmarks in your research, please cite SuperGradients deep learning training library.</p>
 </section>
 <section id="community">
 <h2>Community<a class="headerlink" href="#community" title="Permalink to this headline"></a></h2>
@@ -473,6 +539,7 @@ or want to file a bug or issue report, we would love to welcome you aboard!</p>
 <li><p>To report a bug, <a class="reference external" href="https://github.com/Deci-AI/super-gradients/issues">file an issue</a> on GitHub.</p></li>
 <li><p>You can also join the <a class="reference external" href="https://deci.ai/resources/blog/">community mailing list</a>
 to ask questions about the project and receive announcements.</p></li>
+<li><p>For a shorth meeting with SuperGradients PM, use this <a class="reference external" href="https://calendly.com/ofer-baratz-deci/15min">link</a> and choose your prefered time.</p></li>
 </ul>
 </section>
 <section id="license">
