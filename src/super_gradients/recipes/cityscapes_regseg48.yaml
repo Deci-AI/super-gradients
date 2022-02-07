@@ -6,7 +6,7 @@
 #
 #
 #  Validation mIoU - Cityscapes, training time:
-#      RegSeg48:    input-size: [1024, 2048]     mIoU: 78.15  using 4 GeForce RTX 2080 Ti with DDP
+#      RegSeg48:    input-size: [1024, 2048]     mIoU: 78.15  using 4 GeForce RTX 2080 Ti with DDP, ~2 minutes / epoch
 #
 #  Official git repo:
 #      https://github.com/RolandGao/RegSeg
