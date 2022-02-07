@@ -1,20 +1,27 @@
 # Efficientnet-B0 Imagenet training
-# This example trains with effective batch size = 128 * 2 gpus = 256.
-# Training time on 2 X 3090Ti distributed training is ~ 9.5 days.
+# This example trains with effective batch size = 64 * 4 gpus = 256.
+# Epoch time on 4 X 3090Ti distributed training is ~ 16:25 minutes
 # Logs and tensorboards: s3://deci-pretrained-models/efficientnet_b0/
 # Instructions:
 # Set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
 #   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/:"YOUR_LOCAL_PATH"/super_gradients/src/
 # Then:
-# #   python -m torch.distributed.launch --nproc_per_node=2 train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet
+# #   python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=imagenet_efficientnet
 defaults:
   - training_hyperparams: imagenet_efficientnet_train_params
   - dataset_params: imagenet_dataset_params
   - arch_params: efficientnet_b0_arch_params
 
+arch_params:
+  num_classes: 1000
+
 dataset_params:
-  batch_size: 128
-  color_jitter: 0.06
+  batch_size: 64
+  color_jitter: 0.4
+  random_erase_prob: 0.2
+  random_erase_value: random
+  train_interpolation: random
+  auto_augment_config_string: rand-m9-mstd0.5
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
@@ -26,7 +33,7 @@ data_loader_num_workers: 8
 model_checkpoints_location: local
 load_checkpoint: False
 
-experiment_name: mobileNetv3_large_training
+experiment_name: efficientnet_b0_imagenet
 
 sg_model:
   _target_: super_gradients.SgModel
