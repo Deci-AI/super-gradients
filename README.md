@@ -9,7 +9,7 @@ ______________________________________________________________________
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
   <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
-  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-23-brightgreen" />
+  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-25-brightgreen" />
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
@@ -45,9 +45,25 @@ All SuperGradients models’ are production ready in the sense that they are com
 ### Documentation
 Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.html) for full documentation, user guide, and examples. 
 
+## What's New
+* 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
+* 【01/02/2022】 We added issue templates for feature requests and bug reporting.
+* 【20/01/2022】 STDC family - new recipes added with even higher mIoU💪
+* 【17/01/2022】 We have released transfer learning example [notebook](https://colab.research.google.com/drive/1ZR_cvy8tQB_fTZwB2SQxg3RfIVKxNxRO?usp=sharing) for object detection (YOLOv5).
+
+Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
+
+## Comming soon
+- [ ] YOLOX models (recipes, pre-trained checkpoints).
+- [ ] SSD MobileNet models (recipes, pre-trained checkpoints) for edge devices deployment.
+- [ ] Transfer learning example notebook for semantic segmentation (STDC).
+- [ ] Dali implementation.
+- [ ] Integration with professional tools.
+
 __________________________________________________________________________________________________________
-    
-### Table of Content:
+### Table of Content
+<details> 
+<summary>See Table </summary>
 <!-- toc -->
 
 - [Getting Started](#getting-started)
@@ -56,8 +72,7 @@ ________________________________________________________________________________
     - [Transfer Learning with SG Notebook](#transfer-learning-with-sg-notebook)
 - [Installation Methods](#installation-methods)
     - [Prerequisites](#prerequisites)
-    - [Quick Installation of stable version](#quick-installation-of-stable-version)
-    - [Installing from GitHub](#installing-from-github)
+    - [Quick Installation](#quick-installation)
 - [Computer Vision Models' Pretrained Checkpoints](#computer-vision-models-pretrained-checkpoints)
   - [Pretrained Classification PyTorch Checkpoints](#pretrained-classification-pytorch-checkpoints)
   - [Pretrained Object Detection PyTorch Checkpoints](#pretrained-object-detection-pytorch-checkpoints)
@@ -68,6 +83,8 @@ ________________________________________________________________________________
 - [License](#license)
 
 <!-- tocstop -->
+  
+</details>
 
 ## Getting Started
 
@@ -126,18 +143,33 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
 
 ## Installation Methods
 ### Prerequisites
-General requirements:
+<details>
+  
+<summary>General requirements</summary>
+  
 - Python 3.7, 3.8 or 3.9 installed.
 - torch>=1.9.0
   - https://pytorch.org/get-started/locally/
 - The python packages that are specified in requirements.txt;
 
-To train on nvidia GPUs:
+</details>
+    
+<details>
+  
+<summary>To train on nvidia GPUs</summary>
+  
 - [Nvidia CUDA Toolkit >= 11.2](https://developer.nvidia.com/cuda-11.2.0-download-archive?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu)
 - CuDNN >= 8.1.x
 - Nvidia Driver with CUDA >= 11.2 support (≥460.x)
+  
+</details>
+    
+### Quick Installation
 
-### Quick Installation of stable version
+<details>
+  
+<summary>Install stable version using PyPi</summary>
+
 See in [PyPi](https://pypi.org/project/super-gradients/)
 ```bash
 pip install super-gradients
@@ -145,12 +177,19 @@ pip install super-gradients
 
 That's it !
 
-### Installing from GitHub
+</details>
+    
+<details>
+  
+<summary>Install using GitHub</summary>
+
+
 ```bash
 pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ```
 
-
+</details>
+    
 ## Computer Vision Models' Pretrained Checkpoints
 
 ### Pretrained Classification PyTorch Checkpoints
@@ -197,8 +236,8 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 | STDC1-Seg75   | Cityscapes | 768x1536 |76.87  |**5.71ms** |**175.1fps** |**26.70ms**|
 | STDC2-Seg50   | Cityscapes | 512x1024 |75.27 |**3.74ms** |**267.2fps** |**13.89ms**
 | STDC2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**135.9fps** |**28.18ms**|
-| RegSeg48   | Cityscapes | 768x1536 |78.15 |**7.35ms** |**135.9fps** |**28.18ms**|
-| RegSeg53   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**135.9fps** |**28.18ms**|
+| RegSeg (exp48)   | Cityscapes | 1024x2048 |78.15 |**13.09ms** |**76.4fps** |**41.88ms**|
+| Larger RegSeg (exp53)   | Cityscapes | 1024x2048 |79.2|**24.82ms** |**40.3fps** |**51.87ms**|
 | ShelfNet_LW_34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |**-** |
 
 
