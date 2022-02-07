@@ -2,6 +2,7 @@ defaults:
   - default_train_params
 
 max_epochs: 400
+initial_lr: 0.1
 lr_mode: cosine
 lr_warmup_epochs: 5
 ema: False
