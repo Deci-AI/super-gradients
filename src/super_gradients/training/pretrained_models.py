@@ -3,7 +3,7 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "regnetY400_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/RegnetY400/average_model_regnety400.pth",
               "regnetY200_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/RegnetY200/average_model_regnety200.pth",
 
-              "resnet50_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/resnet50_imagenet.pth",
+              "resnet50_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/ResNet50_ImageNet/average_model.pth",
               "resnet34_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/resent_34/average_model.pth",
               "resnet18_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/resnet18/average_model.pth",
 
