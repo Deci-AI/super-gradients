@@ -119,13 +119,4 @@ training_hyperparams:
   metric_to_watch: IoU
   greater_metric_to_watch_is_better: True
 
-  sg_logger: "wandb_sg_logger"
-  sg_logger_params:
-    project_name: ${project_name}
-    entity: algo
-    api_server: "https://wandb.research.deci.ai"
-    save_checkpoints_remote: True
-    save_tensorboard_remote: True
-    save_logs_remote: True
-
   _convert_: all
