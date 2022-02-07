@@ -165,7 +165,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 | RegNetY800   | ImageNet  |224x224   |  77.07    |  93.26   |**1.18ms** |**841.4fps** |
 | ResNet18   | ImageNet  |224x224   |  70.6    |   89.64 |**0.599ms** |**1669fps** |
 | ResNet34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.89ms** |**1123fps** |
-| ResNet50  | ImageNet  |224x224   |  76.3    |   93.0  |**0.94ms** |**1063fps** |
+| ResNet50  | ImageNet  |224x224   |  79.47  |   93.0  |**0.94ms** |**1063fps** |
 | MobileNetV3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.87ms** |**1149fps** |
 | MobileNetV3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.87ms** |**1149fps** |
 | MobileNetV3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.75ms** |**1333fps** |
@@ -184,7 +184,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 | YOLOv5 large | COCO |640x640 |48.0   |**11.49ms** |**95.99fps** |
   
 
-> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (througput)
+> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (throughput)
 
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
@@ -197,6 +197,8 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 | STDC1-Seg75   | Cityscapes | 768x1536 |76.87  |**5.71ms** |**175.1fps** |**26.70ms**|
 | STDC2-Seg50   | Cityscapes | 512x1024 |75.27 |**3.74ms** |**267.2fps** |**13.89ms**
 | STDC2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**135.9fps** |**28.18ms**|
+| RegSeg48   | Cityscapes | 768x1536 |78.15 |**7.35ms** |**135.9fps** |**28.18ms**|
+| RegSeg53   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**135.9fps** |**28.18ms**|
 | ShelfNet_LW_34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |**-** |
 
 
@@ -233,7 +235,7 @@ If you want to be a part of SuperGradients growing community, hear about all the
 * You can also join the [community mailing list](https://deci.ai/resources/blog/)
   to ask questions about the project and receive announcements.
     
-* For a shorth meeting with SuperGradients PM, use this [link](https://calendly.com/ofer-baratz-deci/15min) and choose your prefered time.
+* For a short meeting with SuperGradients PM, use this [link](https://calendly.com/ofer-baratz-deci/15min) and choose your preferred time.
 
 ## License
 
