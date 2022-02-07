@@ -1,11 +1,14 @@
 defaults:
   - default_train_params
 
-max_epochs: 110
-lr_mode: step
-lr_updates: [30, 60, 90, 100]
-lr_decay_factor: 0.1
+max_epochs: 400
 initial_lr: 0.1
+lr_mode: cosine
+lr_warmup_epochs: 5
+ema: False
+save_ckpt_epoch_list: [ 50, 100, 150, 200, 300 ]
+mixed_precision: True
+zero_weight_decay_on_bias_and_bn: True
 loss: cross_entropy
 train_metrics_list:                               # metrics for evaluation
   - _target_: super_gradients.training.metrics.Accuracy
