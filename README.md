@@ -81,6 +81,7 @@ ________________________________________________________________________________
 - [Citation](#citation)
 - [Community](#community)
 - [License](#license)
+- [Deci Lab](#deci-lab)
 
 <!-- tocstop -->
   
@@ -279,3 +280,17 @@ If you want to be a part of SuperGradients growing community, hear about all the
 ## License
 
 This project is released under the [Apache 2.0 license](LICENSE).
+    
+
+    
+__________________________________________________________________________________________________________
+
+
+## Deci Lab
+Deci Lab supports all common frameworks and Hardware, from Intel CPUs to Nvidia's GPUs and Jetsons
+    
+You can enjoy immediate improvement in throughput, latency, and memory with the Deci Lab. It optimizes deep learning models using best-of-breed technologies, such as quantization and graph compilers.
+    
+Get a complete benchmark of your models’ performance on different hardware and batch sizes in a single interface. Invite co-workers to collaborate on models and communicate your progress.
+
+Sign up for Deci Lab for free [here](https://console.deci.ai/) 
