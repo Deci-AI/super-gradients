@@ -1,30 +1,37 @@
 defaults:
   - default_train_params
 
-max_epochs: 550
-lr_updates:
-  _target_: numpy.arange
-  start: 0
-  stop: 500
-  step: 3
-
+max_epochs: 450
 lr_mode: step
-lr_decay_factor: 0.963
-initial_lr: 0.032
+step_lr_update_freq: 2.4
+initial_lr: 0.016
+lr_warmup_epochs: 3
+warmup_initial_lr: 1e-6
+lr_decay_factor: 0.97
+
 optimizer: RMSpropTF
-
 optimizer_params:
-  eps: 0.001
+  momentum: 0.9
   weight_decay: 1e-5
+  eps: 0.001
 
-lr_warmup_epochs: 5
-loss: cross_entropy
-zero_weight_decay_on_bias_and_bn: True
 ema: True
+ema_params:
+  exp_activation: False
+  decay: 0.9999
+
+loss: cross_entropy
+criterion_params:
+  smooth_eps: 0.1
 
 loss_logging_items_names: [Loss]
 metric_to_watch: Accuracy
 greater_metric_to_watch_is_better: True
+
+save_ckpt_epoch_list: [50, 100, 150, 200]
+average_best_models: True
+mixed_precision: True
+zero_weight_decay_on_bias_and_bn: True
 
 train_metrics_list:                               # metrics for evaluation
   - _target_: super_gradients.training.metrics.Accuracy
@@ -35,3 +42,4 @@ valid_metrics_list:                               # metrics for evaluation
   - _target_: super_gradients.training.metrics.Top5
 
 _convert_: all
+

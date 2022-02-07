@@ -35,11 +35,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -71,7 +88,7 @@
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Mapping</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pkg_resources</span>
@@ -83,7 +100,14 @@
 <span class="kn">from</span> <span class="nn">torchmetrics</span> <span class="kn">import</span> <span class="n">MetricCollection</span>
 <span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
 <span class="kn">from</span> <span class="nn">piptools.scripts.sync</span> <span class="kn">import</span> <span class="n">_get_installed_distributions</span>
+
+<span class="kn">from</span> <span class="nn">super_gradients.common.decorators.factory_decorator</span> <span class="kn">import</span> <span class="n">resolve_param</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.environment</span> <span class="kn">import</span> <span class="n">env_helpers</span>
 <span class="kn">from</span> <span class="nn">super_gradients.common.abstractions.abstract_logger</span> <span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.factories.datasets_factory</span> <span class="kn">import</span> <span class="n">DatasetsFactory</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.factories.list_factory</span> <span class="kn">import</span> <span class="n">ListFactory</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.factories.losses_factory</span> <span class="kn">import</span> <span class="n">LossesFactory</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.factories.metrics_factory</span> <span class="kn">import</span> <span class="n">MetricsFactory</span>
 <span class="kn">from</span> <span class="nn">super_gradients.common.sg_loggers</span> <span class="kn">import</span> <span class="n">SG_LOGGERS</span>
 <span class="kn">from</span> <span class="nn">super_gradients.common.sg_loggers.abstract_sg_logger</span> <span class="kn">import</span> <span class="n">AbstractSGLogger</span>
 <span class="kn">from</span> <span class="nn">super_gradients.common.sg_loggers.base_sg_logger</span> <span class="kn">import</span> <span class="n">BaseSGLogger</span>
@@ -117,7 +141,7 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="StrictLoad"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.StrictLoad">[docs]</a><span class="k">class</span> <span class="nc">StrictLoad</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<div class="viewcode-block" id="StrictLoad"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.StrictLoad">[docs]</a><span class="k">class</span> <span class="nc">StrictLoad</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Wrapper for adding more functionality to torch&#39;s strict_load parameter in load_state_dict().</span>
 <span class="sd">        Attributes:</span>
@@ -131,7 +155,7 @@
     <span class="n">NO_KEY_MATCHING</span> <span class="o">=</span> <span class="s1">&#39;no_key_matching&#39;</span></div>
 
 
-<div class="viewcode-block" id="MultiGPUMode"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.MultiGPUMode">[docs]</a><span class="k">class</span> <span class="nc">MultiGPUMode</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiGPUMode"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.MultiGPUMode">[docs]</a><span class="k">class</span> <span class="nc">MultiGPUMode</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    MultiGPUMode</span>
 
@@ -142,10 +166,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">OFF</span> <span class="o">=</span> <span class="s1">&#39;Off&#39;</span>
     <span class="n">DATA_PARALLEL</span> <span class="o">=</span> <span class="s1">&#39;DP&#39;</span>
-    <span class="n">DISTRIBUTED_DATA_PARALLEL</span> <span class="o">=</span> <span class="s1">&#39;DDP&#39;</span></div>
+    <span class="n">DISTRIBUTED_DATA_PARALLEL</span> <span class="o">=</span> <span class="s1">&#39;DDP&#39;</span>
+    <span class="n">AUTO</span> <span class="o">=</span> <span class="s2">&quot;AUTO&quot;</span></div>
 
 
-<div class="viewcode-block" id="EvaluationType"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.EvaluationType">[docs]</a><span class="k">class</span> <span class="nc">EvaluationType</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<div class="viewcode-block" id="EvaluationType"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.EvaluationType">[docs]</a><span class="k">class</span> <span class="nc">EvaluationType</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    EvaluationType</span>
 
@@ -160,7 +185,7 @@
     <span class="n">VALIDATION</span> <span class="o">=</span> <span class="s1">&#39;VALIDATION&#39;</span></div>
 
 
-<div class="viewcode-block" id="SgModel"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel">[docs]</a><span class="k">class</span> <span class="nc">SgModel</span><span class="p">:</span>
+<div class="viewcode-block" id="SgModel"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel">[docs]</a><span class="k">class</span> <span class="nc">SgModel</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    SuperGradient Model - Base Class for Sg Models</span>
 
@@ -176,10 +201,10 @@
 <span class="sd">        returns the test loss, accuracy and runtime</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiment_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">multi_gpu</span><span class="p">:</span> <span class="n">MultiGPUMode</span> <span class="o">=</span> <span class="n">MultiGPUMode</span><span class="o">.</span><span class="n">OFF</span><span class="p">,</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiment_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">multi_gpu</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">MultiGPUMode</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">MultiGPUMode</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
                  <span class="n">model_checkpoints_location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;local&#39;</span><span class="p">,</span>
                  <span class="n">overwrite_local_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">ckpt_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;ckpt_latest.pth&#39;</span><span class="p">,</span>
-                 <span class="n">post_prediction_callback</span><span class="p">:</span> <span class="n">DetectionPostPredictionCallback</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+                 <span class="n">post_prediction_callback</span><span class="p">:</span> <span class="n">DetectionPostPredictionCallback</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ckpt_root_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        :param experiment_name:                      Used for logging and loading purposes</span>
@@ -190,6 +215,9 @@
 <span class="sd">        :param overwrite_local_checkpoint:      If set to False keeps the current local checkpoint when importing</span>
 <span class="sd">                                                checkpoint from cloud service, otherwise overwrites the local checkpoints file</span>
 <span class="sd">        :param ckpt_name:                       The Checkpoint to Load</span>
+<span class="sd">        :ckpt_root_dir:                         Local root directory path where all experiment logging directories will</span>
+<span class="sd">                                                 reside. When none is give, it is assumed that</span>
+<span class="sd">                                                 pkg_resources.resource_filename(&#39;checkpoints&#39;, &quot;&quot;) exists and will be used.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># SET THE EMPTY PROPERTIES</span>
@@ -235,7 +263,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">model_checkpoints_location</span> <span class="o">=</span> <span class="n">model_checkpoints_location</span>
 
         <span class="c1"># CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">checkpoints_dir_path</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s1">&#39;checkpoints&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ckpt_root_dir</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">checkpoints_dir_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ckpt_root_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment_name</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_exists</span><span class="p">(</span><span class="s2">&quot;checkpoints&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">checkpoints_dir_path</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s1">&#39;checkpoints&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Illegal checkpoints directory: pass ckpt_root_dir that exists, or add &#39;checkpoints&#39; to&quot;</span>
+                             <span class="s2">&quot;resources.&quot;</span><span class="p">)</span>
 
         <span class="c1"># INITIALIZE THE DEVICE FOR THE MODEL</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_device</span><span class="p">(</span><span class="n">requested_device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">requested_multi_gpu</span><span class="o">=</span><span class="n">multi_gpu</span><span class="p">)</span>
@@ -257,7 +291,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_metrics</span> <span class="o">=</span> <span class="n">default_train_metrics</span><span class="p">,</span> <span class="n">default_valid_metrics</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss_logging_items_names</span> <span class="o">=</span> <span class="n">default_loss_logging_items_names</span>
 
-<div class="viewcode-block" id="SgModel.connect_dataset_interface"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.connect_dataset_interface">[docs]</a>    <span class="k">def</span> <span class="nf">connect_dataset_interface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset_interface</span><span class="p">:</span> <span class="n">DatasetInterface</span><span class="p">,</span> <span class="n">data_loader_num_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">):</span>
+<div class="viewcode-block" id="SgModel.connect_dataset_interface"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.connect_dataset_interface">[docs]</a>    <span class="nd">@resolve_param</span><span class="p">(</span><span class="s1">&#39;dataset_interface&#39;</span><span class="p">,</span> <span class="n">DatasetsFactory</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">connect_dataset_interface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset_interface</span><span class="p">:</span> <span class="n">DatasetInterface</span><span class="p">,</span> <span class="n">data_loader_num_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param dataset_interface: DatasetInterface object</span>
 <span class="sd">        :param data_loader_num_workers: The number of threads to initialize the Data Loaders with</span>
@@ -272,7 +307,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dataset_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_interface</span><span class="o">.</span><span class="n">get_dataset_params</span><span class="p">()</span></div>
 
     <span class="c1"># FIXME - we need to resolve flake8&#39;s &#39;function is too complex&#39; for this function</span>
-<div class="viewcode-block" id="SgModel.build_model"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.build_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c1"># noqa: C901 - too complex</span>
+<div class="viewcode-block" id="SgModel.build_model"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.build_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c1"># noqa: C901 - too complex</span>
                     <span class="n">architecture</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
                     <span class="n">arch_params</span><span class="o">=</span><span class="p">{},</span>
                     <span class="n">load_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -396,7 +431,8 @@
                                <span class="n">loss_avg_meter</span><span class="o">=</span><span class="n">loss_avg_meter</span><span class="p">,</span>
                                <span class="n">criterion</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">,</span>
                                <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-                               <span class="n">lr_warmup_epochs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">lr_warmup_epochs</span><span class="p">)</span>
+                               <span class="n">lr_warmup_epochs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">lr_warmup_epochs</span><span class="p">,</span>
+                               <span class="n">sg_logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="n">batch_items</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">progress_bar_train_loader</span><span class="p">):</span>
             <span class="n">batch_items</span> <span class="o">=</span> <span class="n">core_utils</span><span class="o">.</span><span class="n">tensor_container_to_device</span><span class="p">(</span><span class="n">batch_items</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -456,7 +492,7 @@
         <span class="c1"># RETURN AND THE LOSS LOGGING ITEMS COMPUTED DURING LOSS FORWARD PASS</span>
         <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">loss_logging_items</span>
 
-<div class="viewcode-block" id="SgModel.backward_step"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.backward_step">[docs]</a>    <span class="k">def</span> <span class="nf">backward_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">PhaseContext</span><span class="p">):</span>
+<div class="viewcode-block" id="SgModel.backward_step"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.backward_step">[docs]</a>    <span class="k">def</span> <span class="nf">backward_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">PhaseContext</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Run backprop on the loss and perform a step</span>
 <span class="sd">        :param loss: The value computed by the loss function</span>
@@ -484,7 +520,7 @@
             <span class="c1"># RUN PHASE CALLBACKS</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">phase_callback_handler</span><span class="p">(</span><span class="n">Phase</span><span class="o">.</span><span class="n">TRAIN_BATCH_STEP</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SgModel.save_checkpoint"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.save_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">validation_results_tuple</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SgModel.save_checkpoint"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.save_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">validation_results_tuple</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">PhaseContext</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training</span>
 <span class="sd">        params)</span>
@@ -524,6 +560,10 @@
             <span class="c1"># STORE THE CURRENT metric AS BEST</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">best_metric</span> <span class="o">=</span> <span class="n">metric</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">add_checkpoint</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="s1">&#39;ckpt_best.pth&#39;</span><span class="p">,</span> <span class="n">state_dict</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">epoch</span><span class="p">)</span>
+
+            <span class="c1"># RUN PHASE CALLBACKS</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">phase_callback_handler</span><span class="p">(</span><span class="n">Phase</span><span class="o">.</span><span class="n">VALIDATION_END_BEST_EPOCH</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
                 <span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Best checkpoint overriden: validation &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric_to_watch</span> <span class="o">+</span> <span class="s2">&quot;: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">metric</span><span class="p">))</span>
@@ -536,7 +576,7 @@
                                           <span class="n">state_dict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;net&#39;</span><span class="p">:</span> <span class="n">averaged_model_sd</span><span class="p">},</span> <span class="n">global_step</span><span class="o">=</span><span class="n">epoch</span><span class="p">)</span></div>
 
     <span class="c1"># FIXME - we need to resolve flake8&#39;s &#39;function is too complex&#39; for this function</span>
-<div class="viewcode-block" id="SgModel.train"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">training_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()):</span>  <span class="c1"># noqa: C901</span>
+<div class="viewcode-block" id="SgModel.train"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">training_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()):</span>  <span class="c1"># noqa: C901</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        train - Trains the Model</span>
@@ -781,8 +821,8 @@
 
         <span class="n">silent_mode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">silent_mode</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddp_silent_mode</span>
         <span class="c1"># METRICS</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span> <span class="o">=</span> <span class="n">MetricCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">train_metrics_list</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">valid_metrics</span> <span class="o">=</span> <span class="n">MetricCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">valid_metrics_list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_train_metrics</span><span class="p">(</span><span class="n">train_metrics_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">train_metrics_list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_valid_metrics</span><span class="p">(</span><span class="n">valid_metrics_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">valid_metrics_list</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss_logging_items_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">loss_logging_items_names</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">results_titles</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Train_&quot;</span> <span class="o">+</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span>
@@ -799,6 +839,9 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">criterion_cls</span> <span class="o">=</span> <span class="n">LOSSES</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">loss</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">criterion_cls</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">criterion_params</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">LossesFactory</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">loss</span><span class="p">)</span>
 
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">loss</span>
@@ -888,9 +931,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">best_metric</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">greater_metric_to_watch_is_better</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
             <span class="n">load_opt_params</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">optimizer</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Adam&#39;</span><span class="p">,</span> <span class="s1">&#39;SGD&#39;</span><span class="p">,</span>
-                                                                                                  <span class="s1">&#39;RMSProp&#39;</span><span class="p">,</span>
-                                                                                                  <span class="s1">&#39;RMSpropTF&#39;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">build_optimizer</span><span class="p">(</span><span class="n">net</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">initial_lr</span><span class="p">,</span>
                                              <span class="n">training_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">):</span>
@@ -974,7 +1015,7 @@
 
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddp_silent_mode</span><span class="p">:</span>
                     <span class="c1"># SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_write_to_disk_operations</span><span class="p">(</span><span class="n">train_metrics_tuple</span><span class="p">,</span> <span class="n">validation_results_tuple</span><span class="p">,</span> <span class="n">inf_time</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_write_to_disk_operations</span><span class="p">(</span><span class="n">train_metrics_tuple</span><span class="p">,</span> <span class="n">validation_results_tuple</span><span class="p">,</span> <span class="n">inf_time</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
 
             <span class="c1"># Evaluating the average model and removing snapshot averaging file if training is completed</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">average_best_models</span><span class="p">:</span>
@@ -992,15 +1033,23 @@
                 <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">():</span>
                     <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">destroy_process_group</span><span class="p">()</span>
 
+            <span class="c1"># PHASE.TRAIN_END</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">phase_callback_handler</span><span class="p">(</span><span class="n">Phase</span><span class="o">.</span><span class="n">POST_TRAINING</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddp_silent_mode</span><span class="p">:</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_checkpoints_location</span> <span class="o">!=</span> <span class="s1">&#39;local&#39;</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;[CLEANUP] - Saving Checkpoint files&#39;</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">upload</span><span class="p">()</span>
 
-                <span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
-            <span class="c1"># PHASE.TRAIN_END</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">phase_callback_handler</span><span class="p">(</span><span class="n">Phase</span><span class="o">.</span><span class="n">POST_TRAINING</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span></div>
+    <span class="nd">@resolve_param</span><span class="p">(</span><span class="s1">&#39;train_metrics_list&#39;</span><span class="p">,</span> <span class="n">ListFactory</span><span class="p">(</span><span class="n">MetricsFactory</span><span class="p">()))</span>
+    <span class="k">def</span> <span class="nf">_set_train_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_metrics_list</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span> <span class="o">=</span> <span class="n">MetricCollection</span><span class="p">(</span><span class="n">train_metrics_list</span><span class="p">)</span>
+
+    <span class="nd">@resolve_param</span><span class="p">(</span><span class="s1">&#39;valid_metrics_list&#39;</span><span class="p">,</span> <span class="n">ListFactory</span><span class="p">(</span><span class="n">MetricsFactory</span><span class="p">()))</span>
+    <span class="k">def</span> <span class="nf">_set_valid_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">valid_metrics_list</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">valid_metrics</span> <span class="o">=</span> <span class="n">MetricCollection</span><span class="p">(</span><span class="n">valid_metrics_list</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_initialize_mixed_precision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mixed_precision_enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
         <span class="c1"># SCALER IS ALWAYS INITIALIZED BUT IS DISABLED IF MIXED PRECISION WAS NOT SET</span>
@@ -1067,7 +1116,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">model_weight_averaging</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
 
     <span class="c1"># FIXME - we need to resolve flake8&#39;s &#39;function is too complex&#39; for this function</span>
-<div class="viewcode-block" id="SgModel.predict"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.predict">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s1">&#39;0.1&#39;</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;directly predict using the nn_module&quot;</span><span class="p">)</span>  <span class="c1"># noqa: C901</span>
+<div class="viewcode-block" id="SgModel.predict"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.predict">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s1">&#39;0.1&#39;</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">&quot;directly predict using the nn_module&quot;</span><span class="p">)</span>  <span class="c1"># noqa: C901</span>
     <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">half</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">move_outputs_to_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1162,7 +1211,7 @@
 
         <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">net_time</span><span class="p">,</span> <span class="n">gross_time</span></div>
 
-<div class="viewcode-block" id="SgModel.compute_model_runtime"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.compute_model_runtime">[docs]</a>    <span class="k">def</span> <span class="nf">compute_model_runtime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dims</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="SgModel.compute_model_runtime"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.compute_model_runtime">[docs]</a>    <span class="k">def</span> <span class="nf">compute_model_runtime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dims</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                               <span class="n">batch_sizes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
                               <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1244,19 +1293,19 @@
 
         <span class="k">return</span> <span class="n">logs</span></div>
 
-<div class="viewcode-block" id="SgModel.get_arch_params"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.get_arch_params">[docs]</a>    <span class="k">def</span> <span class="nf">get_arch_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SgModel.get_arch_params"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.get_arch_params">[docs]</a>    <span class="k">def</span> <span class="nf">get_arch_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">arch_params</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="SgModel.get_structure"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.get_structure">[docs]</a>    <span class="k">def</span> <span class="nf">get_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SgModel.get_structure"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.get_structure">[docs]</a>    <span class="k">def</span> <span class="nf">get_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">structure</span></div>
 
-<div class="viewcode-block" id="SgModel.get_architecture"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.get_architecture">[docs]</a>    <span class="k">def</span> <span class="nf">get_architecture</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SgModel.get_architecture"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.get_architecture">[docs]</a>    <span class="k">def</span> <span class="nf">get_architecture</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">architecture</span></div>
 
-<div class="viewcode-block" id="SgModel.set_experiment_name"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.set_experiment_name">[docs]</a>    <span class="k">def</span> <span class="nf">set_experiment_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiment_name</span><span class="p">):</span>
+<div class="viewcode-block" id="SgModel.set_experiment_name"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.set_experiment_name">[docs]</a>    <span class="k">def</span> <span class="nf">set_experiment_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiment_name</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">experiment_name</span> <span class="o">=</span> <span class="n">experiment_name</span></div>
 
-<div class="viewcode-block" id="SgModel.re_build_model"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.re_build_model">[docs]</a>    <span class="k">def</span> <span class="nf">re_build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arch_params</span><span class="o">=</span><span class="p">{}):</span>
+<div class="viewcode-block" id="SgModel.re_build_model"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.re_build_model">[docs]</a>    <span class="k">def</span> <span class="nf">re_build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arch_params</span><span class="o">=</span><span class="p">{}):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        arch_params : dict</span>
 <span class="sd">            Architecture H.P. e.g.: block, num_blocks, num_classes, etc.</span>
@@ -1283,7 +1332,7 @@
                                          <span class="n">device_ids</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device_ids</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_gpu</span> <span class="k">else</span> <span class="n">core_utils</span><span class="o">.</span><span class="n">WrappedModel</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SgModel.update_architecture"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.update_architecture">[docs]</a>    <span class="k">def</span> <span class="nf">update_architecture</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">structure</span><span class="p">):</span>
+<div class="viewcode-block" id="SgModel.update_architecture"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.update_architecture">[docs]</a>    <span class="k">def</span> <span class="nf">update_architecture</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">structure</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        architecture : str</span>
 <span class="sd">            Defines the network&#39;s architecture according to the options in models/all_architectures</span>
@@ -1301,18 +1350,22 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;architecture is not valid for NAS&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SgModel.get_module"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.get_module">[docs]</a>    <span class="k">def</span> <span class="nf">get_module</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SgModel.get_module"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.get_module">[docs]</a>    <span class="k">def</span> <span class="nf">get_module</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span></div>
 
-<div class="viewcode-block" id="SgModel.set_module"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.set_module">[docs]</a>    <span class="k">def</span> <span class="nf">set_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">):</span>
+<div class="viewcode-block" id="SgModel.set_module"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.set_module">[docs]</a>    <span class="k">def</span> <span class="nf">set_module</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">module</span></div>
 
-    <span class="k">def</span> <span class="nf">_initialize_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">requested_device</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">requested_multi_gpu</span><span class="p">:</span> <span class="n">MultiGPUMode</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_initialize_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">requested_device</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">requested_multi_gpu</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">MultiGPUMode</span><span class="p">,</span> <span class="nb">str</span><span class="p">]):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        _initialize_device - Initializes the device for the model - Default is CUDA</span>
 <span class="sd">            :param requested_device:        Device to initialize (&#39;cuda&#39; / &#39;cpu&#39;)</span>
 <span class="sd">            :param requested_multi_gpu:     Get Multiple GPU</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">requested_multi_gpu</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">requested_multi_gpu</span> <span class="o">=</span> <span class="n">MultiGPUMode</span><span class="p">(</span><span class="n">requested_multi_gpu</span><span class="p">)</span>
+
         <span class="c1"># SELECT CUDA DEVICE</span>
         <span class="k">if</span> <span class="n">requested_device</span> <span class="o">==</span> <span class="s1">&#39;cuda&#39;</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
@@ -1340,8 +1393,16 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">num_devices</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device_ids</span><span class="p">)</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_devices</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">multi_gpu</span> <span class="o">=</span> <span class="n">MultiGPUMode</span><span class="o">.</span><span class="n">OFF</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">[WARNING] - Tried running on multiple GPU but only a single GPU is available</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">requested_multi_gpu</span> <span class="o">!=</span> <span class="n">MultiGPUMode</span><span class="o">.</span><span class="n">AUTO</span><span class="p">:</span>
+                        <span class="c1"># if AUTO mode was set - do not log a warning</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">[WARNING] - Tried running on multiple GPU but only a single GPU is available</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">requested_multi_gpu</span> <span class="o">==</span> <span class="n">MultiGPUMode</span><span class="o">.</span><span class="n">AUTO</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">env_helpers</span><span class="o">.</span><span class="n">is_distributed</span><span class="p">():</span>
+                            <span class="n">requested_multi_gpu</span> <span class="o">=</span> <span class="n">MultiGPUMode</span><span class="o">.</span><span class="n">DISTRIBUTED_DATA_PARALLEL</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">requested_multi_gpu</span> <span class="o">=</span> <span class="n">MultiGPUMode</span><span class="o">.</span><span class="n">DATA_PARALLEL</span>
+
                     <span class="bp">self</span><span class="o">.</span><span class="n">multi_gpu</span> <span class="o">=</span> <span class="n">requested_multi_gpu</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_gpu</span> <span class="o">==</span> <span class="n">MultiGPUMode</span><span class="o">.</span><span class="n">DISTRIBUTED_DATA_PARALLEL</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_ddp</span><span class="p">()</span>
@@ -1470,7 +1531,8 @@
         <span class="n">general_sg_logger_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;experiment_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiment_name</span><span class="p">,</span>
                                     <span class="s1">&#39;storage_location&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_checkpoints_location</span><span class="p">,</span>
                                     <span class="s1">&#39;resumed&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">,</span>
-                                    <span class="s1">&#39;training_params&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="p">}</span>
+                                    <span class="s1">&#39;training_params&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="p">,</span>
+                                    <span class="s1">&#39;checkpoints_dir_path&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpoints_dir_path</span><span class="p">}</span>
 
         <span class="k">if</span> <span class="n">sg_logger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;sg_logger must be defined in training params (see default_training_params)&#39;</span><span class="p">)</span>
@@ -1492,6 +1554,7 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;WARNING! Using a user-defined sg_logger: files will not be automatically written to disk!</span><span class="se">\n</span><span class="s2">&quot;</span>
                            <span class="s2">&quot;Please make sure the provided sg_logger writes to disk or compose your sg_logger to BaseSGLogger&quot;</span><span class="p">)</span>
 
+        <span class="c1"># IN CASE SG_LOGGER UPDATED THE DIR PATH</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">checkpoints_dir_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">local_dir</span><span class="p">()</span>
         <span class="n">additional_log_items</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;initial_LR&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">initial_lr</span><span class="p">,</span>
                                 <span class="s1">&#39;num_devices&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
@@ -1503,14 +1566,14 @@
             <span class="n">pkg_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">pkg</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">pkg</span><span class="p">),</span> <span class="n">_get_installed_distributions</span><span class="p">()))</span>
             <span class="n">additional_log_items</span><span class="p">[</span><span class="s1">&#39;installed_packages&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pkg_list</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">add_config</span><span class="p">(</span><span class="s2">&quot;hyper_params&quot;</span><span class="p">,</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">arch_params</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span>
-                                                   <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span>
-                                                   <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_params</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span>
-                                                   <span class="o">**</span><span class="n">additional_log_items</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">add_config</span><span class="p">(</span><span class="s2">&quot;hyper_params&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;arch_params&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">arch_params</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span>
+                                                   <span class="s2">&quot;training_hyperparams&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span>
+                                                   <span class="s2">&quot;dataset_params&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_params</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span>
+                                                   <span class="s2">&quot;additional_log_items&quot;</span><span class="p">:</span> <span class="n">additional_log_items</span><span class="p">})</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_write_to_disk_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_metrics</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">validation_results</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">inf_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_write_to_disk_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_metrics</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">validation_results</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">inf_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">PhaseContext</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc.&quot;&quot;&quot;</span>
         <span class="c1"># STORE VALUES IN A TENSORBOARD FILE</span>
         <span class="n">train_results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">train_metrics</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">validation_results</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">inf_time</span><span class="p">]</span>
@@ -1521,7 +1584,7 @@
 
         <span class="c1"># SAVE THE CHECKPOINT</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">save_model</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">validation_results</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">validation_results</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_write_lrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
         <span class="n">lrs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">))]</span>
@@ -1530,7 +1593,7 @@
         <span class="n">lr_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">lr_titles</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span> <span class="n">lrs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lrs</span><span class="p">))}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">add_scalars</span><span class="p">(</span><span class="n">tag_scalar_dict</span><span class="o">=</span><span class="n">lr_dict</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">epoch</span><span class="p">)</span>
 
-<div class="viewcode-block" id="SgModel.test"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.test">[docs]</a>    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c1"># noqa: C901</span>
+<div class="viewcode-block" id="SgModel.test"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.test">[docs]</a>    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c1"># noqa: C901</span>
              <span class="n">test_loader</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
              <span class="n">loss</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">modules</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">_Loss</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
              <span class="n">silent_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1595,7 +1658,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">data_loader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">valid_loader</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">valid_metrics</span><span class="p">,</span>
                              <span class="n">evaluation_type</span><span class="o">=</span><span class="n">EvaluationType</span><span class="o">.</span><span class="n">VALIDATION</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span> <span class="n">silent_mode</span><span class="o">=</span><span class="n">silent_mode</span><span class="p">)</span>
 
-<div class="viewcode-block" id="SgModel.evaluate"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.SgModel.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">,</span> <span class="n">metrics</span><span class="p">:</span> <span class="n">MetricCollection</span><span class="p">,</span>
+<div class="viewcode-block" id="SgModel.evaluate"><a class="viewcode-back" href="../../../../super_gradients.training.sg_model.html#super_gradients.training.SgModel.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">,</span> <span class="n">metrics</span><span class="p">:</span> <span class="n">MetricCollection</span><span class="p">,</span>
                  <span class="n">evaluation_type</span><span class="p">:</span> <span class="n">EvaluationType</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">silent_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                  <span class="n">metrics_progress_verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1625,7 +1688,8 @@
                                <span class="n">loss_avg_meter</span><span class="o">=</span><span class="n">loss_avg_meter</span><span class="p">,</span>
                                <span class="n">criterion</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">,</span>
                                <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-                               <span class="n">lr_warmup_epochs</span><span class="o">=</span><span class="n">lr_warmup_epochs</span><span class="p">)</span>
+                               <span class="n">lr_warmup_epochs</span><span class="o">=</span><span class="n">lr_warmup_epochs</span><span class="p">,</span>
+                               <span class="n">sg_logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">silent_mode</span><span class="p">:</span>
             <span class="c1"># PRINT TITLES</span>
