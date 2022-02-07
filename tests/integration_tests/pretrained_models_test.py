@@ -29,7 +29,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                 "efficientnet_b0": {"pretrained_weights": "imagenet"},
                                                 "mobilenet": {"pretrained_weights": "imagenet"}}
 
-        self.imagenet_pretrained_accuracies = {"resnet50": 0.763,
+        self.imagenet_pretrained_accuracies = {"resnet50": 0.7947,
                                                "resnet34": 0.7413,
                                                "resnet18": 0.706,
                                                "repvgg_a0": 0.7205,
