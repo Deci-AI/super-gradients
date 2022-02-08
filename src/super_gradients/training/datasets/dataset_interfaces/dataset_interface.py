@@ -31,8 +31,13 @@ from super_gradients.common.environment import environment_config
 logger = get_logger(__name__)
 
 try:
+    from nvidia.dali.pipeline import pipeline_def
+    import nvidia.dali.types as types
+    import nvidia.dali.fn as fn
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPolicy
     from super_gradients.training.datasets.dali_pipelines.dali_pipelines import imagenet_dali_pipeline
+    from super_gradients.training.datasets.dali_pipelines.dali_transforms import DaliDecodeRandomCrop, DaliResize, \
+        DaliCropMirrorNormalize, DaliCompose, DaliDecode
 
     _imported_dali_failiure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
@@ -404,7 +409,118 @@ class TestYoloDetectionDatasetInterface(DatasetInterface):
         self.valset = self.trainset
 
 
-class ImageNetDatasetInterface(DatasetInterface):
+class DaliDatasetInterface(DatasetInterface):
+    def __init__(self, dataset_params={}):
+        super(DaliDatasetInterface, self).__init__(dataset_params)
+        self.nvidia_dali_data_loading = core_utils.get_param(self.dataset_params, 'nvidia_dali_data_loading',
+                                                             default_val=False)
+
+    @pipeline_def
+    def create_pipeline(self, data_dir: str, shard_id: int, num_shards: int, random_shuffle: bool, transforms):
+        images, labels = fn.readers.file(file_root=data_dir,
+                                         shard_id=shard_id,
+                                         num_shards=num_shards,
+                                         random_shuffle=random_shuffle,
+                                         pad_last_batch=True,
+                                         name="Reader")
+        images = transforms(images)
+        labels = labels.gpu()
+        return images, labels
+
+    def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
+                           test_batch_size=None, distributed_sampler: bool = False):
+        if self.nvidia_dali_data_loading:
+            if distributed_sampler:
+                world_size = torch.distributed.get_world_size()
+                local_rank = environment_config.DDP_LOCAL_RANK
+                self.batch_size_factor = 1
+            else:
+                world_size = 1
+                local_rank = 0
+                self.batch_size_factor = batch_size_factor
+
+            if train_batch_size is None:
+                train_batch_size = self.dataset_params.batch_size * self.batch_size_factor
+            if val_batch_size is None:
+                val_batch_size = self.dataset_params.val_batch_size * self.batch_size_factor
+
+            self.train_loader = self.create_dali_data_loader(batch_size=train_batch_size,
+                                                             num_threads=num_workers,
+                                                             device_id=local_rank,
+                                                             seed=12,
+                                                             data_dir=self.traindir,
+                                                             shard_id=local_rank,
+                                                             num_shards=world_size,
+                                                             transforms=self.train_transforms,
+                                                             random_shuffle=True)
+
+            self.val_loader = self.create_dali_data_loader(batch_size=val_batch_size,
+                                                           num_threads=num_workers,
+                                                           device_id=local_rank,
+                                                           seed=12,
+                                                           data_dir=self.valdir,
+                                                           shard_id=local_rank,
+                                                           num_shards=world_size,
+                                                           transforms=self.val_transforms,
+                                                           random_shuffle=False)
+        else:
+            super(DaliDatasetInterface, self).build_data_loaders(batch_size_factor=batch_size_factor,
+                                                                 num_workers=num_workers,
+                                                                 train_batch_size=train_batch_size,
+                                                                 val_batch_size=val_batch_size,
+                                                                 test_batch_size=test_batch_size,
+                                                                 distributed_sampler=distributed_sampler)
+
+
+class DaliClassificationDataLoader(collections.Iterator):
+    """
+    DataLoader wrapper for dali.
+    """
+
+    def __init__(self, dali_loader):
+        self.dali_loader = dali_loader
+
+    def __next__(self):
+        batch = self.dali_loader.__next__()
+        images = batch[0]['data']
+        labels = batch[0]['label'][:, 0]
+        return images, labels.long()
+
+    def __len__(self):
+        return len(self.dali_loader)
+
+
+class DaliClassificationDatasetInterface(DaliDatasetInterface):
+    def __init__(self, dataset_params={}):
+        super(DaliClassificationDatasetInterface, self).__init__(dataset_params)
+
+    def create_dali_data_loader(self, batch_size,
+                                num_threads,
+                                device_id,
+                                seed,
+                                data_dir,
+                                shard_id,
+                                num_shards,
+                                transforms,
+                                random_shuffle):
+
+        pipe = self.create_pipeline(batch_size=batch_size,
+                                    num_threads=num_threads,
+                                    device_id=device_id,
+                                    seed=seed + device_id,
+                                    data_dir=data_dir,
+                                    shard_id=shard_id,
+                                    num_shards=num_shards,
+                                    transforms=transforms,
+                                    random_shuffle=random_shuffle)
+
+        pipe.build()
+        return DaliClassificationDataLoader(dali_loader=DALIClassificationIterator(pipe, reader_name="Reader",
+                                                                                   last_batch_policy=LastBatchPolicy.PARTIAL,
+                                                                                   auto_reset=True))
+
+
+class ImageNetDatasetInterface(DaliClassificationDatasetInterface):
     def __init__(self, dataset_params={}, data_dir="/data/Imagenet"):
         super(ImageNetDatasetInterface, self).__init__(dataset_params)
 
@@ -423,13 +539,64 @@ class ImageNetDatasetInterface(DatasetInterface):
         train_interpolation = core_utils.get_param(self.dataset_params, 'train_interpolation', default_val='default')
         rand_augment_config_string = core_utils.get_param(self.dataset_params, 'rand_augment_config_string',
                                                           default_val=None)
-        self.nvidia_dali_data_loading = core_utils.get_param(self.dataset_params, 'nvidia_dali_data_loading', default_val=False)
-
         if self.nvidia_dali_data_loading:
             if _imported_dali_failiure is not None:
                 raise _imported_dali_failiure
             if color_jitter or imagenet_pca_aug or rand_augment_config_string:
-                raise IllegalDatasetParameterException("Dali not supported with color_jitter: " + str(color_jitter) + ", imagenet_pca_aug: " + str(imagenet_pca_aug) + ", rand_augment_config_string: " + str(rand_augment_config_string))
+                raise IllegalDatasetParameterException(
+                    "Dali not supported with color_jitter: " + str(color_jitter) + ", imagenet_pca_aug: " + str(
+                        imagenet_pca_aug) + ", rand_augment_config_string: " + str(rand_augment_config_string))
+            else:
+                dali_cpu = core_utils.get_param(self.dataset_params, "dalli_cpu", False)
+                dali_device = 'cpu' if dali_cpu else 'gpu'
+                decoder_device = 'cpu' if dali_cpu else 'mixed'
+
+                # ask nvJPEG to preallocate memory for the biggest sample in
+                # ImageNet for CPU and GPU to avoid reallocations in runtime
+                device_memory_padding = 211025920 if decoder_device == 'mixed' else 0
+                host_memory_padding = 140544512 if decoder_device == 'mixed' else 0
+
+                # ask HW NVJPEG to allocate memory ahead for the biggest image in the data set to avoid reallocations in runtime
+                preallocate_width_hint = 5980 if decoder_device == 'mixed' else 0
+                preallocate_height_hint = 6430 if decoder_device == 'mixed' else 0
+
+                img_mean = [0.485 * 255, 0.456 * 255,0.406 * 255]
+                img_std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
+
+                self.train_transforms = DaliCompose([DaliDecodeRandomCrop(device=decoder_device, output_type=types.RGB,
+                                                                          device_memory_padding=device_memory_padding,
+                                                                          host_memory_padding=host_memory_padding,
+                                                                          preallocate_width_hint=preallocate_width_hint,
+                                                                          preallocate_height_hint=preallocate_height_hint,
+                                                                          random_aspect_ratio=[0.8, 1.25],
+                                                                          random_area=[0.1, 1.0],
+                                                                          num_attempts=100),
+                                                     DaliResize(device=dali_device,
+                                                                size=self.resize_size,
+                                                                mode="not_smaller",
+                                                                interp_type=types.INTERP_TRIANGULAR),
+                                                     DaliCropMirrorNormalize(dtype=types.FLOAT,
+                                                                             output_layout="CHW",
+                                                                             crop=(self.crop_size, self.crop_size),
+                                                                             mean=img_mean,
+                                                                             std=img_std,
+                                                                             mirror=fn.random.coin_flip(
+                                                                                 probability=0.5))])
+
+                self.val_transforms = DaliCompose([DaliDecode(device=decoder_device,
+                                                              output_type=types.RGB),
+                                                   DaliResize(device=dali_device,
+                                                              size=self.resize_size,
+                                                              mode="not_smaller",
+                                                              interp_type=types.INTERP_TRIANGULAR),
+                                                   DaliCropMirrorNormalize(dtype=types.FLOAT,
+                                                                           output_layout="CHW",
+                                                                           crop=(self.crop_size, self.crop_size),
+                                                                           mean=img_mean,
+                                                                           std=img_std,
+                                                                           mirror=False)
+                                                   ])
+
         else:
             color_jitter = (float(color_jitter),) * 3 if isinstance(color_jitter, float) else color_jitter
             assert len(color_jitter) in (3, 4), "color_jitter must be a scalar or tuple of len 3 or 4"
@@ -456,70 +623,6 @@ class ImageNetDatasetInterface(DatasetInterface):
                 transforms.ToTensor(),
                 normalize,
             ]))
-
-    def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
-                           test_batch_size=None, distributed_sampler: bool = False):
-        """
-        Overrides parent method to support dali.
-        """
-
-        if self.nvidia_dali_data_loading:
-            if distributed_sampler:
-                world_size = torch.distributed.get_world_size()
-                local_rank = environment_config.DDP_LOCAL_RANK
-                self.batch_size_factor = 1
-            else:
-                world_size = 1
-                local_rank = 0
-                self.batch_size_factor = batch_size_factor
-
-            if train_batch_size is None:
-                train_batch_size = self.dataset_params.batch_size * self.batch_size_factor
-            if val_batch_size is None:
-                val_batch_size = self.dataset_params.val_batch_size * self.batch_size_factor
-
-            dali_cpu = core_utils.get_param(self.dataset_params, "dalli_cpu", False)
-
-            pipe = imagenet_dali_pipeline(batch_size=train_batch_size,
-                                          num_threads=num_workers,
-                                          device_id=local_rank,
-                                          seed=12 + local_rank,
-                                          data_dir=self.traindir,
-                                          crop=self.crop_size,
-                                          resize_size=self.resize_size,
-                                          shard_id=local_rank,
-                                          num_shards=world_size,
-                                          is_training=True,
-                                          dali_cpu=dali_cpu)
-            pipe.build()
-            train_loader = DALIClassificationIterator(pipe, reader_name="Reader",
-                                                      last_batch_policy=LastBatchPolicy.PARTIAL,
-                                                      auto_reset=True)
-            self.train_loader = DaliClassificationDataLoader(train_loader)
-
-            pipe = imagenet_dali_pipeline(batch_size=val_batch_size,
-                                          num_threads=num_workers,
-                                          device_id=local_rank,
-                                          seed=12 + local_rank,
-                                          data_dir=self.valdir,
-                                          crop=self.crop_size,
-                                          resize_size=self.resize_size,
-                                          shard_id=local_rank,
-                                          num_shards=world_size,
-                                          is_training=False,
-                                          dali_cpu=dali_cpu)
-
-            pipe.build()
-            val_loader = DALIClassificationIterator(pipe, reader_name="Reader",
-                                                    last_batch_policy=LastBatchPolicy.PARTIAL,
-                                                    auto_reset=True)
-            self.val_loader = DaliClassificationDataLoader(val_loader)
-        else:
-            super(ImageNetDatasetInterface, self).build_data_loaders(batch_size_factor=batch_size_factor,
-                                                                     num_workers=num_workers,
-                                                                     train_batch_size=train_batch_size,
-                                                                     val_batch_size=val_batch_size,
-                                                                     distributed_sampler=distributed_sampler)
 
 
 class TinyImageNetDatasetInterface(DatasetInterface):
@@ -913,20 +1016,3 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                 lb_path = (lbs_path / f.name).with_suffix('.txt')  # new label path
                 f.rename(imgs_path / f.name)  # move image
                 convert_label(path, lb_path, year, id)  # convert labels to YOLO format
-
-
-class DaliClassificationDataLoader(collections.Iterator):
-    """
-    DataLoader wrapper for dali.
-    """
-    def __init__(self, dali_loader):
-        self.dali_loader = dali_loader
-
-    def __next__(self):
-        batch = self.dali_loader.__next__()
-        images = batch[0]['data']
-        labels = batch[0]['label'][:, 0]
-        return images, labels.long()
-
-    def __len__(self):
-        return len(self.dali_loader)
