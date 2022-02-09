@@ -421,16 +421,22 @@ def _safe_pipeline_def(func):
     return wrapper
 
 
-class DaliDatasetInterface(DatasetInterface):
+class DaliDatasetInterfaceBase(DatasetInterface):
     """
-    DaliDatasetInterface
+    DaliDatasetInterfaceBase
 
 
     """
     def __init__(self, dataset_params={}):
-        super(DaliDatasetInterface, self).__init__(dataset_params)
+        super(DaliDatasetInterfaceBase, self).__init__(dataset_params)
         self.nvidia_dali_data_loading = core_utils.get_param(self.dataset_params, 'nvidia_dali_data_loading',
                                                              default_val=False)
+
+    def create_dali_data_loader(self, **kwargs):
+        """
+        This method should be overridden in inheriting class according to it's specifc details.
+        """
+        raise NotImplementedError
 
     @_safe_pipeline_def
     def create_pipeline(self, data_dir: str, shard_id: int, num_shards: int, random_shuffle: bool, transforms: list):
@@ -502,12 +508,12 @@ class DaliDatasetInterface(DatasetInterface):
                                                            transforms=self.val_transforms,
                                                            random_shuffle=False)
         else:
-            super(DaliDatasetInterface, self).build_data_loaders(batch_size_factor=batch_size_factor,
-                                                                 num_workers=num_workers,
-                                                                 train_batch_size=train_batch_size,
-                                                                 val_batch_size=val_batch_size,
-                                                                 test_batch_size=test_batch_size,
-                                                                 distributed_sampler=distributed_sampler)
+            super(DaliDatasetInterfaceBase, self).build_data_loaders(batch_size_factor=batch_size_factor,
+                                                                     num_workers=num_workers,
+                                                                     train_batch_size=train_batch_size,
+                                                                     val_batch_size=val_batch_size,
+                                                                     test_batch_size=test_batch_size,
+                                                                     distributed_sampler=distributed_sampler)
 
 
 class DaliClassificationDataLoader(collections.Iterator):
@@ -528,7 +534,7 @@ class DaliClassificationDataLoader(collections.Iterator):
         return len(self.dali_loader)
 
 
-class DaliClassificationDatasetInterface(DaliDatasetInterface):
+class DaliClassificationDatasetInterface(DaliDatasetInterfaceBase):
     """
     Dali classification dataset interface.
 
