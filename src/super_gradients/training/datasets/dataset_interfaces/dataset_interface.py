@@ -27,7 +27,7 @@ from pathlib import Path
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
 from super_gradients.training.utils.utils import download_and_unzip_from_url
 from super_gradients.common.environment import environment_config
-
+from functools import wraps
 logger = get_logger(__name__)
 
 try:
@@ -35,7 +35,6 @@ try:
     import nvidia.dali.types as types
     import nvidia.dali.fn as fn
     from nvidia.dali.plugin.pytorch import DALIClassificationIterator, LastBatchPolicy
-    from super_gradients.training.datasets.dali_pipelines.dali_pipelines import imagenet_dali_pipeline
     from super_gradients.training.datasets.dali_pipelines.dali_transforms import DaliDecodeRandomCrop, DaliResize, \
         DaliCropMirrorNormalize, DaliCompose, DaliDecode
 
@@ -409,13 +408,26 @@ class TestYoloDetectionDatasetInterface(DatasetInterface):
         self.valset = self.trainset
 
 
+def _safe_pipeline_def(func):
+    if _imported_dali_failiure is None:
+        @pipeline_def
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            func(*args, **kwargs)
+    else:
+
+        def wrapper(*args, **kwargs):
+            func(*args, **kwargs)
+    return wrapper
+
+
 class DaliDatasetInterface(DatasetInterface):
     def __init__(self, dataset_params={}):
         super(DaliDatasetInterface, self).__init__(dataset_params)
         self.nvidia_dali_data_loading = core_utils.get_param(self.dataset_params, 'nvidia_dali_data_loading',
                                                              default_val=False)
 
-    @pipeline_def
+    @_safe_pipeline_def(_imported_dali_failiure)
     def create_pipeline(self, data_dir: str, shard_id: int, num_shards: int, random_shuffle: bool, transforms):
         images, labels = fn.readers.file(file_root=data_dir,
                                          shard_id=shard_id,
