@@ -432,7 +432,7 @@ class DaliDatasetInterface(DatasetInterface):
         self.nvidia_dali_data_loading = core_utils.get_param(self.dataset_params, 'nvidia_dali_data_loading',
                                                              default_val=False)
 
-    @_safe_pipeline_def(_imported_dali_failiure)
+    @_safe_pipeline_def
     def create_pipeline(self, data_dir: str, shard_id: int, num_shards: int, random_shuffle: bool, transforms: list):
         """
         Creates DALI pipeline
