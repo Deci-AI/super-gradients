@@ -1,6 +1,4 @@
 try:
-    from nvidia.dali.pipeline import pipeline_def
-    import nvidia.dali.types as types
     import nvidia.dali.fn as fn
 except ImportError:
     raise ImportError("Please install DALI from https://www.github.com/NVIDIA/DALI.")

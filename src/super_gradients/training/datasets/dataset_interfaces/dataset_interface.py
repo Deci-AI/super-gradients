@@ -435,13 +435,13 @@ class DaliDatasetInterface(DatasetInterface):
     @_safe_pipeline_def(_imported_dali_failiure)
     def create_pipeline(self, data_dir: str, shard_id: int, num_shards: int, random_shuffle: bool, transforms: list):
         """
-        
+        Creates DALI pipeline
+
         :param data_dir: Path to data (called with self.traindir for example)
         :param shard_id: Shard id (should be set to local_rank)
         :param num_shards: Number of shards (should be set to world_size)
         :param random_shuffle: Whether to shuffle the dataset.
         :param transforms: List of DaliTransforms to be applied, first should be an image decoder.
-        :return: 
         """
         images, labels = fn.readers.file(file_root=data_dir,
                                          shard_id=shard_id,
@@ -548,7 +548,6 @@ class DaliClassificationDatasetInterface(DaliDatasetInterface):
                                 transforms: list,
                                 random_shuffle: bool):
         """
-        
         :param batch_size: Batch size for the data loader.
         :param num_threads: Number of threads used for data loading,
         :param device_id: Device id (should be set to local_rank usually)
@@ -558,7 +557,7 @@ class DaliClassificationDatasetInterface(DaliDatasetInterface):
         :param num_shards: Number of shards (should be set to world_size)
         :param transforms: List of DaliTransforms (first one should be image decoder)
         :param random_shuffle: Whether to shuffle the dataset
-        @return: 
+        :return:
         """
 
         pipe = self.create_pipeline(batch_size=batch_size,
@@ -617,7 +616,7 @@ class ImageNetDatasetInterface(DaliClassificationDatasetInterface):
                 preallocate_width_hint = 5980 if decoder_device == 'mixed' else 0
                 preallocate_height_hint = 6430 if decoder_device == 'mixed' else 0
 
-                img_mean = [0.485 * 255, 0.456 * 255,0.406 * 255]
+                img_mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
                 img_std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
 
                 self.train_transforms = DaliCompose([DaliDecodeRandomCrop(device=decoder_device, output_type=types.RGB,
