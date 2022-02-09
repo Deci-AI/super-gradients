@@ -422,13 +422,27 @@ def _safe_pipeline_def(func):
 
 
 class DaliDatasetInterface(DatasetInterface):
+    """
+    DaliDatasetInterface
+
+
+    """
     def __init__(self, dataset_params={}):
         super(DaliDatasetInterface, self).__init__(dataset_params)
         self.nvidia_dali_data_loading = core_utils.get_param(self.dataset_params, 'nvidia_dali_data_loading',
                                                              default_val=False)
 
     @_safe_pipeline_def(_imported_dali_failiure)
-    def create_pipeline(self, data_dir: str, shard_id: int, num_shards: int, random_shuffle: bool, transforms):
+    def create_pipeline(self, data_dir: str, shard_id: int, num_shards: int, random_shuffle: bool, transforms: list):
+        """
+        
+        :param data_dir: Path to data (called with self.traindir for example)
+        :param shard_id: Shard id (should be set to local_rank)
+        :param num_shards: Number of shards (should be set to world_size)
+        :param random_shuffle: Whether to shuffle the dataset.
+        :param transforms: List of DaliTransforms to be applied, first should be an image decoder.
+        :return: 
+        """
         images, labels = fn.readers.file(file_root=data_dir,
                                          shard_id=shard_id,
                                          num_shards=num_shards,
@@ -441,6 +455,18 @@ class DaliDatasetInterface(DatasetInterface):
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
+        """
+        Ovverriding parent's method to support DALI.
+        Instantiates Dali data loader wrappers instead of torch data loaders.
+
+        :param batch_size_factor: Multipliation factor for batch size (only relevant in DP, and will be num_devices in that case)
+        :param num_workers: Number of threads for data loading.
+        :param train_batch_size: Batch size for training
+        :param val_batch_size: Batch size for validation
+        :param test_batch_size: Batch size for testing (optional)
+        :param distributed_sampler: True iff DDP.
+        :return:
+        """
         if self.nvidia_dali_data_loading:
             if distributed_sampler:
                 world_size = torch.distributed.get_world_size()
@@ -503,18 +529,37 @@ class DaliClassificationDataLoader(collections.Iterator):
 
 
 class DaliClassificationDatasetInterface(DaliDatasetInterface):
+    """
+    Dali classification dataset interface.
+
+    Only difference is create_dali_data_loader which creates the pipelines, then wrapps them in
+    DaliClassificationDataLoader wrapper.
+    """
     def __init__(self, dataset_params={}):
         super(DaliClassificationDatasetInterface, self).__init__(dataset_params)
 
-    def create_dali_data_loader(self, batch_size,
-                                num_threads,
-                                device_id,
-                                seed,
-                                data_dir,
-                                shard_id,
-                                num_shards,
-                                transforms,
-                                random_shuffle):
+    def create_dali_data_loader(self, batch_size: int,
+                                num_threads: int,
+                                device_id: int,
+                                seed: int,
+                                data_dir: str,
+                                shard_id: int,
+                                num_shards: int,
+                                transforms: list,
+                                random_shuffle: bool):
+        """
+        
+        :param batch_size: Batch size for the data loader.
+        :param num_threads: Number of threads used for data loading,
+        :param device_id: Device id (should be set to local_rank usually)
+        :param seed: Seed for reproducibility
+        :param data_dir: Root directory of the data (for example self.traindir)
+        :param shard_id: Shard id (should be set to local_rank)
+        :param num_shards: Number of shards (should be set to world_size)
+        :param transforms: List of DaliTransforms (first one should be image decoder)
+        :param random_shuffle: Whether to shuffle the dataset
+        @return: 
+        """
 
         pipe = self.create_pipeline(batch_size=batch_size,
                                     num_threads=num_threads,
