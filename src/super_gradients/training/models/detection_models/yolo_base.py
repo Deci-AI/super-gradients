@@ -19,8 +19,10 @@ COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [116, 90, 156, 198, 373, 326]],
                                                  strides=[8, 16, 32])  # output strides of all yolo outputs
 
-DEFAULT_YOLOV5_ARCH_PARAMS = {
-    'anchors': COCO_DETECTION_80_CLASSES_BBOX_ANCHORS,  # The sizes of the anchors predicted by the model
+ANCHORSLESS_DUMMY_ANCHORS = Anchors([[], [], []], strides=[8, 16, 32])
+
+
+DEFAULT_YOLO_ARCH_PARAMS = {
     'num_classes': 80,  # Number of classes to predict
     'depth_mult_factor': 1.0,  # depth multiplier for the entire model
     'width_mult_factor': 1.0,  # width multiplier for the entire model
@@ -35,7 +37,9 @@ DEFAULT_YOLOV5_ARCH_PARAMS = {
     'nms_conf': 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
     'nms_iou': 0.45,  # When add_nms is True IoU threshold for NMS algorithm
     # (with smaller value more boxed will be considered "the same" and removed)
-    'yolo_version': 'v6.0'  # Release version of Ultralytics to built a model from: v.6.0 and v3.0 are supported
+    'yolo_type': 'yoloV5',   # Type of yolo to build: yoloV5 and yoloX are supported
+    'yolo_version': 'v6.0'  # Release version of Ultralytics yoloV5 to build a model from: v6.0 and v3.0 are supported
+                            # (has an impact only if yolo_type is yoloV5)
 }
 
 
@@ -118,6 +122,78 @@ class Detect(nn.Module):
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
+class DetectX(nn.Module):
+
+    def __init__(self, num_classes: int, stride: List[int], activation_func_type: type, channels: list):
+        super().__init__()
+
+        self.num_classes = num_classes
+        self.detection_layers_num = len(channels)
+        self.n_anchors = 1
+        self.grid = [torch.zeros(1)] * self.detection_layers_num  # init grid
+
+        self.register_buffer('stride', stride)
+        # self.register_buffer('anchors', anchors.anchors)
+        # self.register_buffer('anchor_grid', anchors.anchor_grid)
+
+        self.cls_convs = nn.ModuleList()
+        self.reg_convs = nn.ModuleList()
+        self.cls_preds = nn.ModuleList()
+        self.reg_preds = nn.ModuleList()
+        self.obj_preds = nn.ModuleList()
+        self.stems = nn.ModuleList()
+
+        inter_channels = channels[0]
+        for i in range(self.detection_layers_num):
+            self.stems.append(Conv(channels[i], inter_channels, 1, 1, activation_func_type))
+
+            self.cls_convs.append(
+                nn.Sequential(*[Conv(inter_channels, inter_channels, 3, 1, activation_func_type),
+                                Conv(inter_channels, inter_channels, 3, 1, activation_func_type)]))
+            self.reg_convs.append(
+                nn.Sequential(*[Conv(inter_channels, inter_channels, 3, 1, activation_func_type),
+                                Conv(inter_channels, inter_channels, 3, 1, activation_func_type)]))
+
+            self.cls_preds.append(nn.Conv2d(inter_channels, self.n_anchors * self.num_classes, 1, 1, 0))
+            self.reg_preds.append(nn.Conv2d(inter_channels, 4, 1, 1, 0))
+            self.obj_preds.append(nn.Conv2d(inter_channels, self.n_anchors * 1, 1, 1, 0))
+
+    def forward(self, inputs):
+        outputs = []
+        outputs_logits = []
+        for i in range(self.detection_layers_num):
+            x = self.stems[i](inputs[i])
+
+            cls_feat = self.cls_convs[i](x)
+            cls_output = self.cls_preds[i](cls_feat)
+
+            reg_feat = self.reg_convs[i](x)
+            reg_output = self.reg_preds[i](reg_feat)
+            obj_output = self.obj_preds[i](reg_feat)
+
+            bs, _, ny, nx = reg_feat.shape
+            output = torch.cat([reg_output, obj_output, cls_output], 1)
+            output = output.view(bs, self.n_anchors, -1, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+            if not self.training:
+                outputs_logits.append(output.clone())
+                if self.grid[i].shape[2:4] != x[i].shape[2:4]:
+                    self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
+
+                xy = (output[..., :2] + self.grid[i].to(x[i].device)) * self.stride[i]
+                wh = torch.exp(output[..., 2:4]) * self.stride[i]
+                output = torch.cat([xy, wh, output[..., 4:].sigmoid()], dim=4)
+                output = output.view(bs, -1, output.shape[-1])
+
+            outputs.append(output)
+
+        return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
+
+    @staticmethod
+    def _make_grid(nx=20, ny=20):
+        yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
+        return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
+
+
 class AbstractYoLoV5Backbone:
     def __init__(self, arch_params):
         # CREATE A LIST CONTAINING THE LAYERS TO EXTRACT FROM THE BACKBONE AND ADD THE FINAL LAYER
@@ -164,6 +240,7 @@ class YoLoV5Head(nn.Module):
         connector = arch_params.connection_layers_input_channel_size
 
         _, block, activation_type, width_mult, depth_mult = get_yolo_version_params(arch_params.yolo_version,
+                                                                                    arch_params.yolo_type,
                                                                                     arch_params.width_mult_factor,
                                                                                     arch_params.depth_mult_factor)
 
@@ -189,11 +266,16 @@ class YoLoV5Head(nn.Module):
         self._modules_list.append(
             block(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False))  # 23
 
-        self._modules_list.append(
-            Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
+        if arch_params.yolo_type != 'yoloX':
+            self._modules_list.append(
+                Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
+        else:
+            strides = anchors.stride
+            self._modules_list.append(
+                DetectX(num_classes, strides, activation_type, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
 
-        self.width_mult = width_mult
         self.anchors = anchors
+        self.width_mult = width_mult
 
     def forward(self, intermediate_output):
         """
@@ -225,7 +307,11 @@ class YoLoV5Base(SgModule):
     def __init__(self, backbone: Type[nn.Module], arch_params: HpmStruct, initialize_module: bool = True):
         super().__init__()
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params
-        self.arch_params = HpmStruct(**DEFAULT_YOLOV5_ARCH_PARAMS)
+        self.arch_params = HpmStruct(**DEFAULT_YOLO_ARCH_PARAMS)
+        if self.arch_params.yolo_type != 'yoloX':
+            self.arch_params.anchors = COCO_DETECTION_80_CLASSES_BBOX_ANCHORS
+        else:
+            self.arch_params.anchors = ANCHORSLESS_DUMMY_ANCHORS
         self.arch_params.override(**arch_params.to_dict())
         self.arch_params.skip_connections_dict = {k: v for k, v in self.arch_params.skip_connections_list}
 
@@ -304,15 +390,16 @@ class YoLoV5Base(SgModule):
         stride = stride.to(dummy_input.device)
         if not torch.equal(m.stride, stride):
             raise RuntimeError('Provided anchor strides do not match the model strides')
-        check_anchor_order(m)
+        if isinstance(m, Detect):
+            check_anchor_order(m)
 
         self.register_buffer('stride', m.stride)  # USED ONLY FOR CONVERSION
 
     def _initialize_biases(self, cf=None):
         """initialize biases into Detect(), cf is class frequency"""
-        # TODO: UNDERSTAND WHAT IS THIS cf AND IF WE NEED IT
-        # cf = torch.bincount(torch.tensor(np.concatenate(dataset.labels, 0)[:, 0]).long(), minlength=nc) + 1.
         m = self._head._modules_list[-1]  # Detect() module
+        if not isinstance(m, Detect):
+            return
         for mi, s in zip(m.m, m.stride):  # from
             b = mi.bias.view(m.num_anchors, -1)  # conv.bias(255) to (3,85)
             with torch.no_grad():
