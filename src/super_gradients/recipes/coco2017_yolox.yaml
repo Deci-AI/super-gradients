@@ -1,0 +1,37 @@
+defaults:
+  - training_hyperparams: coco2017_yolox_train_params
+  - dataset_params: coco_detection_dataset_params
+  - arch_params: yolov5s_arch_params
+
+dataset_params:
+  val_image_size: 640
+  train_image_size: 640
+  dataset_hyper_param:
+    mixup: 1.0
+    degrees: 10.
+    shear: 2.0
+
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CoCoDetectionDatasetInterface
+  dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+
+model_checkpoints_location: local
+
+load_checkpoint: False
+
+architecture: yolox_s
+
+experiment_name: ${architecture}_coco2017_640
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+
+training_hyperparams:
+  criterion_params:
+    strides: [8, 16, 32]  # output strides of all yolo outputs
+    im_size: 640
+    num_classes: 80
