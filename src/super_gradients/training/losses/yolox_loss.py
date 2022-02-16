@@ -1,3 +1,7 @@
+"""
+Based on https://github.com/Megvii-BaseDetection/YOLOX
+"""
+
 import logging
 from typing import List, Tuple
 
