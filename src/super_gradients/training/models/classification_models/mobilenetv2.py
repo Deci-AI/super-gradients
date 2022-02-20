@@ -102,10 +102,9 @@ class InvertedResidual(nn.Module):
 
 class MobileNetV2(MobileNetBase):
     def __init__(self, num_classes, dropout: float, width_mult=1., structure=None, backbone_mode: bool = False,
-                 grouped_conv_size=1) -> object:
+                 grouped_conv_size=1, in_channels=3) -> object:
         super(MobileNetV2, self).__init__()
         block = InvertedResidual
-        input_channel = 32
         last_channel = 1280
         # IF STRUCTURE IS NONE - USE THE DEFAULT STRUCTURE NOTED
         #                                                  t, c,  n, s    stage-0 is the first conv_bn layer
@@ -117,22 +116,23 @@ class MobileNetV2(MobileNetBase):
                                                           [6, 160, 3, 2],  # stage-6
                                                           [6, 320, 1, 1]]  # stage-7
         #                                                                   stage-8  is the last_layer
-
         self.last_channel = make_divisible(last_channel * width_mult) if width_mult > 1.0 else last_channel
-        self.features = [conv_bn(3, input_channel, 2)]
+
+        curr_channels = 32
+        self.features = [conv_bn(in_channels, curr_channels, 2)]
         # building inverted residual blocks
         for t, c, n, s in self.interverted_residual_setting:
             output_channel = make_divisible(c * width_mult) if t > 1 else c
             for i in range(n):
                 if i == 0:
                     self.features.append(
-                        block(input_channel, output_channel, s, expand_ratio=t, grouped_conv_size=grouped_conv_size))
+                        block(curr_channels, output_channel, s, expand_ratio=t, grouped_conv_size=grouped_conv_size))
                 else:
                     self.features.append(
-                        block(input_channel, output_channel, 1, expand_ratio=t, grouped_conv_size=grouped_conv_size))
-                input_channel = output_channel
+                        block(curr_channels, output_channel, 1, expand_ratio=t, grouped_conv_size=grouped_conv_size))
+                curr_channels = output_channel
         # building last several layers
-        self.features.append(conv_1x1_bn(input_channel, self.last_channel))
+        self.features.append(conv_1x1_bn(curr_channels, self.last_channel))
         # make it nn.Sequential
         self.features = nn.Sequential(*self.features)
 
@@ -217,4 +217,5 @@ def custom_mobile_net_v2(arch_params):
     """
 
     return MobileNetV2(num_classes=arch_params.num_classes, width_mult=arch_params.width_mult,
-                       structure=arch_params.structure, dropout=get_param(arch_params, "dropout", 0.))
+                       structure=arch_params.structure, dropout=get_param(arch_params, "dropout", 0.),
+                       in_channels=get_param(arch_params, "in_channels", 0.))
