@@ -205,7 +205,7 @@ def mobilenetv3_large(arch_params):
         [5, 6, 160, 1, 1, 1]
     ]
     return MobileNetV3(cfgs, mode='large', num_classes=arch_params.num_classes, width_mult=width_mult,
-                       in_channels=get_param(arch_params, "in_channels", 3.))
+                       in_channels=get_param(arch_params, "in_channels", 3))
 
 
 def mobilenetv3_small(arch_params):
@@ -229,7 +229,7 @@ def mobilenetv3_small(arch_params):
     ]
 
     return MobileNetV3(cfgs, mode='small', num_classes=arch_params.num_classes, width_mult=width_mult,
-                       in_channels=get_param(arch_params, "in_channels", 3.))
+                       in_channels=get_param(arch_params, "in_channels", 3))
 
 
 def mobilenetv3_custom(arch_params):
@@ -238,4 +238,4 @@ def mobilenetv3_custom(arch_params):
     """
     return MobileNetV3(cfgs=arch_params.structure, mode=arch_params.mode, num_classes=arch_params.num_classes,
                        width_mult=arch_params.width_mult,
-                       in_channels=get_param(arch_params, "in_channels", 3.))
+                       in_channels=get_param(arch_params, "in_channels", 3))
