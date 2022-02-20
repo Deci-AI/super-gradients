@@ -8,6 +8,7 @@ arXiv preprint arXiv:1905.02244.
 import torch.nn as nn
 import math
 from super_gradients.training.models.classification_models.mobilenetv2 import MobileNetBase
+from super_gradients.training.utils import get_param
 
 
 def _make_divisible(v, divisor, min_value=None):
@@ -203,7 +204,8 @@ def mobilenetv3_large(arch_params):
         [5, 6, 160, 1, 1, 1],
         [5, 6, 160, 1, 1, 1]
     ]
-    return MobileNetV3(cfgs, mode='large', num_classes=arch_params.num_classes, width_mult=width_mult)
+    return MobileNetV3(cfgs, mode='large', num_classes=arch_params.num_classes, width_mult=width_mult,
+                       in_channels=get_param(arch_params, "in_channels", 3.))
 
 
 def mobilenetv3_small(arch_params):
@@ -226,7 +228,8 @@ def mobilenetv3_small(arch_params):
         [5, 6, 96, 1, 1, 1],
     ]
 
-    return MobileNetV3(cfgs, mode='small', num_classes=arch_params.num_classes, width_mult=width_mult)
+    return MobileNetV3(cfgs, mode='small', num_classes=arch_params.num_classes, width_mult=width_mult,
+                       in_channels=get_param(arch_params, "in_channels", 3.))
 
 
 def mobilenetv3_custom(arch_params):
@@ -234,4 +237,5 @@ def mobilenetv3_custom(arch_params):
     Constructs a MobileNetV3-Customized model
     """
     return MobileNetV3(cfgs=arch_params.structure, mode=arch_params.mode, num_classes=arch_params.num_classes,
-                       width_mult=arch_params.width_mult)
+                       width_mult=arch_params.width_mult,
+                       in_channels=get_param(arch_params, "in_channels", 3.))

@@ -191,7 +191,8 @@ def mobile_net_v2(arch_params):
     :return: MobileNetV2: nn.Module
     """
     return MobileNetV2(num_classes=arch_params.num_classes, width_mult=1., structure=None,
-                       dropout=get_param(arch_params, "dropout", 0.))
+                       dropout=get_param(arch_params, "dropout", 0.),
+                       in_channels=get_param(arch_params, "in_channels", 3.))
 
 
 def mobile_net_v2_135(arch_params):
@@ -203,7 +204,8 @@ def mobile_net_v2_135(arch_params):
     """
 
     return MobileNetV2(num_classes=arch_params.num_classes, width_mult=1.35, structure=None,
-                       dropout=get_param(arch_params, "dropout", 0.))
+                       dropout=get_param(arch_params, "dropout", 0.),
+                       in_channels=get_param(arch_params, "in_channels", 3.))
 
 
 def custom_mobile_net_v2(arch_params):
