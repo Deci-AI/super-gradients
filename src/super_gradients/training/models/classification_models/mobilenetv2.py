@@ -218,4 +218,4 @@ def custom_mobile_net_v2(arch_params):
 
     return MobileNetV2(num_classes=arch_params.num_classes, width_mult=arch_params.width_mult,
                        structure=arch_params.structure, dropout=get_param(arch_params, "dropout", 0.),
-                       in_channels=get_param(arch_params, "in_channels", 0.))
+                       in_channels=get_param(arch_params, "in_channels", 3.))
