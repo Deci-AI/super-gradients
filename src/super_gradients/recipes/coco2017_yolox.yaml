@@ -1,7 +1,7 @@
 defaults:
   - training_hyperparams: coco2017_yolox_train_params
   - dataset_params: coco_detection_dataset_params
-  - arch_params: yolov5s_arch_params
+  - arch_params: yolov5x_arch_params
 
 dataset_params:
   val_image_size: 640
