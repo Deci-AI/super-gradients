@@ -116,6 +116,20 @@ class Detect(nn.Module):
 
         return x if self.training else (torch.cat(z, 1), x)
 
+    def initialize_biases(self, cf=None):
+        """
+        initialize biases , cf is class frequency
+
+        :param cf:
+        :return:
+        """
+        for mi, s in zip(self.m, self.stride):  # from
+            b = mi.bias.view(self.num_anchors, -1)  # conv.bias(255) to (3,85)
+            with torch.no_grad():
+                b[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
+                b[:, 5:] += math.log(0.6 / (self.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
+            mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+
     @staticmethod
     def _make_grid(nx=20, ny=20):
         yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
@@ -187,6 +201,18 @@ class DetectX(nn.Module):
             outputs.append(output)
 
         return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
+
+    def initialize_biases(self, prior_prob=1e-2):
+        """
+
+        :param prior_prob:
+        :return:
+        """
+        for preds in [self.cls_preds, self.obj_preds]:
+            for conv in preds:
+                b = conv.bias.view(self.n_anchors, -1)
+                b.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+                conv.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
 
     @staticmethod
     def _make_grid(nx=20, ny=20):
@@ -364,7 +390,7 @@ class YoLoV5Base(SgModule):
 
     def _initialize_module(self):
         self._check_strides_and_anchors()
-        self._initialize_biases()
+        self._head.initialize_biases()
         self._initialize_weights()
         if self.arch_params.add_nms:
             nms_conf = self.arch_params.nms_conf
@@ -394,18 +420,6 @@ class YoLoV5Base(SgModule):
             check_anchor_order(m)
 
         self.register_buffer('stride', m.stride)  # USED ONLY FOR CONVERSION
-
-    def _initialize_biases(self, cf=None):
-        """initialize biases into Detect(), cf is class frequency"""
-        m = self._head._modules_list[-1]  # Detect() module
-        if not isinstance(m, Detect):
-            return
-        for mi, s in zip(m.m, m.stride):  # from
-            b = mi.bias.view(m.num_anchors, -1)  # conv.bias(255) to (3,85)
-            with torch.no_grad():
-                b[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
-                b[:, 5:] += math.log(0.6 / (m.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
-            mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
 
     def _initialize_weights(self):
         for m in self.modules():
