@@ -390,7 +390,7 @@ class YoLoV5Base(SgModule):
 
     def _initialize_module(self):
         self._check_strides_and_anchors()
-        self._head.initialize_biases()
+        self._initialize_biases()
         self._initialize_weights()
         if self.arch_params.add_nms:
             nms_conf = self.arch_params.nms_conf
@@ -420,6 +420,11 @@ class YoLoV5Base(SgModule):
             check_anchor_order(m)
 
         self.register_buffer('stride', m.stride)  # USED ONLY FOR CONVERSION
+
+    def _initialize_biases(self):
+        """initialize biases into Detect(), cf is class frequency"""
+        detect_module = self._head._modules_list[-1]  # Detect() module
+        detect_module.initialize_biases()
 
     def _initialize_weights(self):
         for m in self.modules():

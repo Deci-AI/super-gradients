@@ -1,5 +1,6 @@
 defaults:
   - yolo_arch_params
 
+nms_iou: 0.6             # IOU threshold for NMS
 depth_mult_factor: 1.33  # depth multiplier for the entire model, overridden for predefined YoloV5N, YoloV5S, YoloV5M, YoloV5L
 width_mult_factor: 1.25  # width multiplier for the entire model, overridden for predefined YoloV5N, YoloV5S, YoloV5M, YoloV5L
