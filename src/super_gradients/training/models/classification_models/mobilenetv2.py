@@ -29,7 +29,6 @@ class MobileNetBase(SgModule):
             self.classifier[-1] = nn.Linear(self.classifier[-1].in_features, new_num_classes)
 
 
-
 def conv_bn(inp, oup, stride):
     return nn.Sequential(
         nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
@@ -104,6 +103,7 @@ class MobileNetV2(MobileNetBase):
     def __init__(self, num_classes, dropout: float, width_mult=1., structure=None, backbone_mode: bool = False,
                  grouped_conv_size=1, in_channels=3) -> object:
         super(MobileNetV2, self).__init__()
+        self.in_channels = in_channels
         block = InvertedResidual
         last_channel = 1280
         # IF STRUCTURE IS NONE - USE THE DEFAULT STRUCTURE NOTED
@@ -157,7 +157,8 @@ class MobileNetV2(MobileNetBase):
         """
         Extracts the number of channels out when using mobilenetV2 as yolo backbone
         """
-        curr_layer_input = torch.rand(1, 3, 320, 320)  # input dims are used to extract number of channels
+        curr_layer_input = torch.rand(1, self.in_channels, 320,
+                                      320)  # input dims are used to extract number of channels
         layers_num_to_extract = [np.array(self.interverted_residual_setting)[:stage, 2].sum() for stage in [3, 5]]
         connection_layers_input_channel_size = []
         for layer_idx, feature in enumerate(self.features):
