@@ -883,6 +883,10 @@ class SgModel:
                 if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
                     self.train_loader.sampler.set_epoch(epoch)
 
+                # CHANGES THE TRAINING REGIME BASED ON A PRE-DEFINED IMPLEMENTATION STARTING FROM A SPECIFIC EPOCHs
+                if self.training_params.recipe_change_epoch and epoch + 1 in range(self.training_params.recipe_change_epoch, self.max_epochs):
+                    self.change_train_recipe()
+
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
 
                 # Phase.TRAIN_EPOCH_END
@@ -1206,6 +1210,13 @@ class SgModel:
         self.net.train(was_in_training_mode)
 
         return logs
+
+    def change_train_recipe(self):
+        """
+        Used for inheritance to allow changing the train recipe on a specific epoch for inheritance
+        :return:
+        """
+        raise NotImplementedError
 
     def get_arch_params(self):
         return self.arch_params.to_dict()

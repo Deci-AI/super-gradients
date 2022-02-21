@@ -1,6 +1,7 @@
 from super_gradients.training.utils import HpmStruct
 
 DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
+                           "recipe_change_epoch": None,
                            "warmup_initial_lr": None,
                            "cosine_final_lr_ratio": 0.01,
                            "optimizer": "SGD",

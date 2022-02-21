@@ -23,12 +23,13 @@ load_checkpoint: False
 
 architecture: yolox_s
 
-experiment_name: ${architecture}_coco2017_640
+experiment_name: ${architecture}_coco2017_640_turn_off_mosaic_last_15_epochs
 
 sg_model:
-  _target_: super_gradients.SgModel
+  _target_: super_gradients.training.TurnOffMosaicRecipeChangeSGModel
   experiment_name: ${experiment_name}
   model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: AUTO
 
 training_hyperparams:
   criterion_params:
