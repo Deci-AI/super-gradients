@@ -306,7 +306,7 @@ class YoLoV5Base(SgModule):
         super().__init__()
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params
         self.arch_params = HpmStruct(**DEFAULT_YOLO_ARCH_PARAMS)
-        if arch_params.yolo_type != 'yoloX':
+        if get_param(arch_params, 'yolo_type', 'yoloV5') != 'yoloX':
             self.arch_params.anchors = COCO_DETECTION_80_CLASSES_BBOX_ANCHORS
         else:
             self.arch_params.anchors = ANCHORSLESS_DUMMY_ANCHORS
