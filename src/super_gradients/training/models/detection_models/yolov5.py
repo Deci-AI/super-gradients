@@ -124,7 +124,7 @@ class Detect(nn.Module):
 
 class DetectX(nn.Module):
 
-    def __init__(self, num_classes: int, stride: List[int], activation_func_type: type, channels: list):
+    def __init__(self, num_classes: int, stride: torch.Tensor, activation_func_type: type, channels: list):
         super().__init__()
 
         self.num_classes = num_classes
@@ -133,8 +133,6 @@ class DetectX(nn.Module):
         self.grid = [torch.zeros(1)] * self.detection_layers_num  # init grid
 
         self.register_buffer('stride', stride)
-        # self.register_buffer('anchors', anchors.anchors)
-        # self.register_buffer('anchor_grid', anchors.anchor_grid)
 
         self.cls_convs = nn.ModuleList()
         self.reg_convs = nn.ModuleList()
@@ -176,10 +174,10 @@ class DetectX(nn.Module):
             output = output.view(bs, self.n_anchors, -1, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
             if not self.training:
                 outputs_logits.append(output.clone())
-                if self.grid[i].shape[2:4] != x[i].shape[2:4]:
-                    self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
+                if self.grid[i].shape[2:4] != output.shape[2:4]:
+                    self.grid[i] = self._make_grid(nx, ny).to(output.device)
 
-                xy = (output[..., :2] + self.grid[i].to(x[i].device)) * self.stride[i]
+                xy = (output[..., :2] + self.grid[i].to(output.device)) * self.stride[i]
                 wh = torch.exp(output[..., 2:4]) * self.stride[i]
                 output = torch.cat([xy, wh, output[..., 4:].sigmoid()], dim=4)
                 output = output.view(bs, -1, output.shape[-1])
