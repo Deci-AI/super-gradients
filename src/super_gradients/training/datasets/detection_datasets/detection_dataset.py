@@ -72,6 +72,8 @@ class DetectionDataSet(ListDataset):
     def __getitem__(self, index):
         label_path = self.label_files[index]
 
+        # TODO - HERE IS SOME DATA LOADING CODE
+
         if self.sample_loading_method == 'mosaic' and self.augment:
             # LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)
             img, labels = self.load_mosaic(index)
@@ -98,6 +100,8 @@ class DetectionDataSet(ListDataset):
                 labels = self.target_loader(label_path, self.class_inclusion_list, self.all_classes_list)
 
             labels = self.target_transform(labels, ratio, w, h, pad)
+            
+        # TODO - HERE IS SOME DATA LOADING CODE
 
         if self.augment:
             # AUGMENT IMAGESPACE
