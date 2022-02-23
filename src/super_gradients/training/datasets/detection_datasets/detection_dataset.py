@@ -60,6 +60,7 @@ class DetectionDataSet(ListDataset):
         self.class_inclusion_list = class_inclusion_list
         self.all_classes_list = all_classes_list
         self.mixup_prob = get_param(self.dataset_hyperparams, "mixup", 0)
+        self.mosaic_scale_factor = get_param(self.dataset_hyperparams, "mosaic_scale_factor", (0.5, 1.5))
 
         super(DetectionDataSet, self).__init__(root=root, file=list_file, target_extension=target_extension,
                                                collate_fn=collate_fn, sample_loader=self.sample_loader,
@@ -70,40 +71,14 @@ class DetectionDataSet(ListDataset):
         return len(self.img_files)
 
     def __getitem__(self, index):
-        label_path = self.label_files[index]
-
-        # TODO - HERE IS SOME DATA LOADING CODE
-
-        if self.sample_loading_method == 'mosaic' and self.augment:
-            # LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)
-            img, labels = self.load_mosaic(index)
-            # MixUp augmentation
-            if random.random() < self.mixup_prob:
-                img, labels = self.mixup(img, labels, *self.load_mosaic(random.randint(0, len(self.img_files) - 1)))
-
-        else:
-            # LOAD A SINGLE IMAGE
-            img_path = self.img_files[index]
-            img = self.sample_loader(img_path)
-            img = self.sample_transform(img)
-
-            # LETTERBOX
-            h, w = img.shape[:2]
-            shape = self.batch_shapes[
-                self.batch_index[index]] if self.sample_loading_method == 'rectangular' else self.img_size
-            img, ratio, pad = self.letterbox(img, shape, auto=False, scaleup=self.augment)
-
-            # LOAD LABELS
-            if self.cache_labels:
-                labels = self.labels[index]
-            else:
-                labels = self.target_loader(label_path, self.class_inclusion_list, self.all_classes_list)
-
-            labels = self.target_transform(labels, ratio, w, h, pad)
-            
-        # TODO - HERE IS SOME DATA LOADING CODE
+        # LOAD THE INPUT IMAGE AND IT'S LABELS
+        img, labels = self.load_image_and_label(index)
 
         if self.augment:
+            # MixUp augmentation
+            if random.random() < self.mixup_prob:
+                image, labels = self.mixup(img, labels, *self.load_image_and_label(random.randint(0, len(self.img_files) - 1)))
+
             # AUGMENT IMAGESPACE
             if not self.sample_loading_method == 'mosaic':
                 img, labels = self.random_perspective(img, labels,
@@ -565,17 +540,60 @@ class DetectionDataSet(ListDataset):
         ar = np.maximum(w2 / (h2 + 1e-16), h2 / (w2 + 1e-16))  # aspect ratio
         return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + 1e-16) > area_thr) & (ar < ar_thr)  # candidates
 
+    def load_image_and_label(self, index):
+        """
+        load_image_and_label - Loads an imput image and the corresponding label based on the index in the dataset
+            :param index:
+            :return:    tuple of (image, labels)
+        """
+        if self.sample_loading_method == 'mosaic' and self.augment:
+        # LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)
+            image, labels = self.load_mosaic(index)
+        else:
+            image, labels = self.load_single_image(index)
+
+        return image, labels
+
+    def load_single_image(self, index):
+        """
+        load_single_image - Load a single image and a single label from the dataset
+            :param index:
+            :return: tuple of (single_image, labels)
+        """
+        label_path = self.label_files[index]
+
+        # LOAD A SINGLE IMAGE
+        img_path = self.img_files[index]
+        img = self.sample_loader(img_path)
+        img = self.sample_transform(img)
+
+        # LETTERBOX
+        h, w = img.shape[:2]
+        shape = self.batch_shapes[
+            self.batch_index[index]] if self.sample_loading_method == 'rectangular' else self.img_size
+        img, ratio, pad = self.letterbox(img, shape, auto=False, scaleup=self.augment)
+
+        # LOAD LABELS
+        if self.cache_labels:
+            labels = self.labels[index]
+        else:
+            labels = self.target_loader(label_path, self.class_inclusion_list, self.all_classes_list)
+
+        labels = self.target_transform(labels, ratio, w, h, pad)
+
+        return img, labels
+
     def load_mosaic(self, index):
         """
        load_mosaic - Load images in mosaic format to improve noise handling while training
-           :param index:
-           :return:
+            :param index:
+            :return: tuple of (mosaic_image, mosaic_labels)
         """
         mosaic_labels = []
         image_size = self.img_size
 
         # MOSAIC CENTER X, Y
-        mosaic_center_x, mosaic_center_y = [int(random.uniform(image_size * 0.5, image_size * 1.5)) for _ in range(2)]
+        mosaic_center_x, mosaic_center_y = [int(random.uniform(image_size * self.mosaic_scale_factor[0], image_size * self.mosaic_scale_factor[1])) for _ in range(2)]
 
         # BASE IMAGE WITH 4 TILES
         mosaic_image = np.zeros((image_size * 2, image_size * 2, 3), dtype=np.uint8) + 128

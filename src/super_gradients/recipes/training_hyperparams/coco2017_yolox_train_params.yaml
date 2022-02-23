@@ -2,13 +2,13 @@ defaults:
   - default_train_params
 
 max_epochs: 300
-recipe_change_epoch: 275
+recipe_change_epoch: 285
 lr_mode: cosine
 cosine_final_lr_ratio: 0.05
 lr_warmup_epochs: 5
 warmup_bias_lr: 0.0
 warmup_momentum: 0.9
-initial_lr: 0.01
+initial_lr: 0.02
 warmup_mode: yolov5_warmup
 
 loss: yolox_loss

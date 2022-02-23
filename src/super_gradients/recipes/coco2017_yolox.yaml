@@ -1,21 +1,23 @@
 defaults:
   - training_hyperparams: coco2017_yolox_train_params
   - dataset_params: coco_detection_dataset_params
-  - arch_params: yolov5x_arch_params
+  - arch_params: yolov5s_arch_params
 
 dataset_params:
+  batch_size: 54
   val_image_size: 640
   train_image_size: 640
   dataset_hyper_param:
     mixup: 1.0
     degrees: 10.
     shear: 2.0
+    mosaic_scale_factor: [0.1, 2.0]
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CoCoDetectionDatasetInterface
   dataset_params: ${dataset_params}
 
-data_loader_num_workers: 8
+data_loader_num_workers: 14
 
 model_checkpoints_location: local
 
@@ -23,7 +25,7 @@ load_checkpoint: False
 
 architecture: yolox_s
 
-experiment_name: ${architecture}_coco2017_640_turn_off_mosaic_last_15_epochs
+experiment_name: ${architecture}_coco2017_640_og_lr
 
 sg_model:
   _target_: super_gradients.training.TurnOffMosaicRecipeChangeSGModel
