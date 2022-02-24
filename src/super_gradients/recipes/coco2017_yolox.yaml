@@ -11,7 +11,7 @@ dataset_params:
     mixup: 1.0
     degrees: 10.
     shear: 2.0
-    mosaic_scale_factor: [0.1, 2.0]
+    mosaic_scale_factor: [0.5, 1.5]
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CoCoDetectionDatasetInterface
