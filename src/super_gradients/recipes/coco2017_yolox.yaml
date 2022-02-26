@@ -11,7 +11,10 @@ dataset_params:
     mixup: 1.0
     degrees: 10.
     shear: 2.0
-    mosaic_scale_factor: [0.5, 1.5]
+    mosaic_scale_factor: [0.1, 2.0]
+
+arch_params:
+  nms_iou: 0.65  # When add_nms is True IoU threshold for NMS algorithm
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CoCoDetectionDatasetInterface
@@ -21,11 +24,13 @@ data_loader_num_workers: 14
 
 model_checkpoints_location: local
 
+save_ckpt_epoch_list: [ 50, 100, 150, 200, 285, 300 ]
+
 load_checkpoint: False
 
 architecture: yolox_s
 
-experiment_name: ${architecture}_coco2017_640_og_lr
+experiment_name: ${architecture}_coco2017_640_og_lr_mosaic_02_19
 
 sg_model:
   _target_: super_gradients.training.TurnOffMosaicRecipeChangeSGModel
