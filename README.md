@@ -228,17 +228,17 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 | Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency b1<sub>T4</sub> | Throughput b1<sub>T4</sub> |
 |-------------------- |------ | ---------- |----------- |------ | -------- |  :------: |
 | EfficientNet B0 | ImageNet  |224x224   |  77.62   | 93.49  |**1.16ms** |**862fps** |
-| RegNetY200 | ImageNet  |224x224   |  70.88    |   89.35  |**1.07ms**|**928.3fps** |
-| RegNetY400  | ImageNet  |224x224   |  74.74    |   91.46  |**1.22ms** |**816.5fps** |
-| RegNetY600  | ImageNet  |224x224   |  76.18    |  92.34   |**1.19ms** |**838.5fps** |
-| RegNetY800   | ImageNet  |224x224   |  77.07    |  93.26   |**1.18ms** |**841.4fps** |
-| ResNet18   | ImageNet  |224x224   |  70.6    |   89.64 |**0.599ms** |**1669fps** |
-| ResNet34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.89ms** |**1123fps** |
-| ResNet50  | ImageNet  |224x224   |  79.47  |   93.0  |**0.94ms** |**1063fps** |
-| MobileNetV3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.87ms** |**1149fps** |
-| MobileNetV3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.87ms** |**1149fps** |
-| MobileNetV3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.75ms** |**1333fps** |
-| MobileNetV2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.58ms** |**1724fps** |
+| RegNet Y200 | ImageNet  |224x224   |  70.88    |   89.35  |**1.07ms**|**928.3fps** |
+| RegNet Y400  | ImageNet  |224x224   |  74.74    |   91.46  |**1.22ms** |**816.5fps** |
+| RegNet Y600  | ImageNet  |224x224   |  76.18    |  92.34   |**1.19ms** |**838.5fps** |
+| RegNet Y800   | ImageNet  |224x224   |  77.07    |  93.26   |**1.18ms** |**841.4fps** |
+| ResNet 18   | ImageNet  |224x224   |  70.6    |   89.64 |**0.599ms** |**1669fps** |
+| ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.89ms** |**1123fps** |
+| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**0.94ms** |**1063fps** |
+| MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.87ms** |**1149fps** |
+| MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.87ms** |**1149fps** |
+| MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.75ms** |**1333fps** |
+| MobileNet V2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.58ms** |**1724fps** |
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1
 
@@ -260,15 +260,15 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 
 | Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughput b1<sub>T4</sub>  | Latency b1<sub>T4</sub> including IO |
 |--------------------- |------ | ---------- | ------ | -------- | -------- | :------: |
-| DDRNet23   | Cityscapes |1024x2048   |78.65  |**7.62ms** |**131.3fps** |**25.94ms**|
-| DDRNet23 slim   | Cityscapes |1024x2048 |76.6  |**3.56ms** |**280.5fps** |**22.80ms**|
-| STDC1-Seg50   | Cityscapes | 512x1024 |74.36 |**2.83ms** |**353.3fps** |**12.57ms**|
-| STDC1-Seg75   | Cityscapes | 768x1536 |76.87  |**5.71ms** |**175.1fps** |**26.70ms**|
-| STDC2-Seg50   | Cityscapes | 512x1024 |75.27 |**3.74ms** |**267.2fps** |**13.89ms**
-| STDC2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**135.9fps** |**28.18ms**|
+| DDRNet 23   | Cityscapes |1024x2048   |78.65  |**7.62ms** |**131.3fps** |**25.94ms**|
+| DDRNet 23 slim   | Cityscapes |1024x2048 |76.6  |**3.56ms** |**280.5fps** |**22.80ms**|
+| STDC 1-Seg50   | Cityscapes | 512x1024 |74.36 |**2.83ms** |**353.3fps** |**12.57ms**|
+| STDC 1-Seg75   | Cityscapes | 768x1536 |76.87  |**5.71ms** |**175.1fps** |**26.70ms**|
+| STDC 2-Seg50   | Cityscapes | 512x1024 |75.27 |**3.74ms** |**267.2fps** |**13.89ms**
+| STDC 2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**135.9fps** |**28.18ms**|
 | RegSeg (exp48)   | Cityscapes | 1024x2048 |78.15 |**13.09ms** |**76.4fps** |**41.88ms**|
 | Larger RegSeg (exp53)   | Cityscapes | 1024x2048 |79.2|**24.82ms** |**40.3fps** |**51.87ms**|
-| ShelfNet_LW_34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |**-** |
+| ShelfNet LW 34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |**-** |
 
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency), and not including IO
