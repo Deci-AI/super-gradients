@@ -147,7 +147,7 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], data_format='CHW', global_step: int = None):
-        self.tensorboard_writer.add_image(tag=tag, image=image, dataformats=data_format, global_step=global_step)
+        self.tensorboard_writer.add_image(tag=tag, img_tensor=image, dataformats=data_format, global_step=global_step)
 
     @multi_process_safe
     def add_images(self, tag: str, images: Union[torch.Tensor, np.array], data_format='NCHW', global_step: int = None):
