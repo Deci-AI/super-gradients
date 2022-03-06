@@ -23,7 +23,6 @@ class SuperviselyPersonsDataset(SegmentationDataSet):
         """
 
         super().__init__(root=root_dir, list_file=list_file, **kwargs)
-        # self.classes = list(SuperviselyPersonsDataset.CLASS_LABELS.values())
         self.classes = ['person']
 
     def _generate_samples_and_targets(self):

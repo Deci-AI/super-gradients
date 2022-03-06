@@ -113,29 +113,7 @@ class IoU(torchmetrics.IoU):
         super().update(preds=preds, target=target)
 
 
-class mIOU(torchmetrics.IoU):
-    def __init__(self, num_classes, dist_sync_on_step=True, ignore_index=None, bg_index=None):
-        super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction="none")
-        self.bg_index = bg_index
-
-    def update(self, preds, target: torch.Tensor):
-        # WHEN DEALING WITH MULTIPLE OUTPUTS- OUTPUTS[0] IS THE MAIN SEGMENTATION MAP
-        if isinstance(preds, tuple):
-            preds = preds[0]
-        _, preds = torch.max(preds, 1)
-        super().update(preds=preds, target=target)
-
-    def compute(self):
-        ious = super(mIOU, self).compute()
-        if self.bg_index is not None:
-            class_inds = torch.arange(ious.shape[0])
-            class_inds = class_inds[class_inds != self.bg_index]
-            class_inds = class_inds.to(ious.device)
-            ious = torch.index_select(ious, 0, class_inds)
-        return ious.mean()
-
-
-class binary_IOU(torchmetrics.IoU):
+class BinaryIOU(torchmetrics.IoU):
     def __init__(self, dist_sync_on_step=True, ignore_index=None):
         super().__init__(num_classes=2, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction="none", threshold=0.5)
 
@@ -143,4 +121,4 @@ class binary_IOU(torchmetrics.IoU):
         super().update(preds=torch.sigmoid(preds), target=target.long())
 
     def compute(self):
-        return super(binary_IOU, self).compute()[1]
+        return super(BinaryIOU, self).compute()[1]
