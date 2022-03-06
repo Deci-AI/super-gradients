@@ -20,6 +20,18 @@ class SegmentationTransform:
     def __repr__(self):
         return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')
 
+class ResizeSeg(SegmentationTransform):
+    def __init__(self, h, w):
+        self.h = h
+        self.w = w
+
+    def __call__(self, sample):
+        image = sample["image"]
+        mask = sample["mask"]
+        sample["image"] = image.resize((self.w, self.h), image_resample)
+        sample["mask"] = mask.resize((self.w, self.h), mask_resample)
+        return sample
+
 
 class RandomFlip(SegmentationTransform):
     """
