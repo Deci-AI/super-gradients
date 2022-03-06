@@ -116,9 +116,11 @@ class IoU(torchmetrics.IoU):
 class BinaryIOU(torchmetrics.IoU):
     def __init__(self, dist_sync_on_step=True, ignore_index=None):
         super().__init__(num_classes=2, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction="none", threshold=0.5)
+        self.component_names = ["target_IOU", "background_IOU", "mean_IOU"]
 
     def update(self, preds, target: torch.Tensor):
         super().update(preds=torch.sigmoid(preds), target=target.long())
 
     def compute(self):
-        return super(BinaryIOU, self).compute()[1]
+        ious = super(BinaryIOU, self).compute()
+        return {"target_IOU": ious[1], "background_IOU": ious[0], "mean_IOU": ious.mean()}

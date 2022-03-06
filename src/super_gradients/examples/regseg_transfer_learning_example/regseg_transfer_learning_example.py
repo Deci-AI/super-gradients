@@ -1,6 +1,6 @@
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import SuperviselyPersonsDatasetInterface
 from super_gradients.training.sg_model import SgModel
-from super_gradients.training.metrics import BinaryIOU
+from super_gradients.training.metrics import BinaryIOU, IoU
 from super_gradients.training.utils.segmentation_utils import ColorJitterSeg, RandomFlip, RandomRescale, \
     PadShortToCropSize, CropImageAndMask, ResizeSeg
 from super_gradients.training.utils.callbacks import BinarySegmentationVisualizationCallback, Phase
@@ -45,7 +45,7 @@ train_params = {"max_epochs": 50,
                 "zero_weight_decay_on_bias_and_bn": True,
                 "average_best_models": True,
                 "mixed_precision": False,
-                "metric_to_watch": "BinaryIOU",
+                "metric_to_watch": "mean_IOU",
                 "greater_metric_to_watch_is_better": True,
                 "train_metrics_list": [BinaryIOU()],
                 "valid_metrics_list": [BinaryIOU()],
