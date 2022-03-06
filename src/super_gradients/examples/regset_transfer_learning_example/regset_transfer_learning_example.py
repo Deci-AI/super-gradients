@@ -6,6 +6,7 @@ from super_gradients.training.utils.segmentation_utils import ColorJitterSeg, Ra
 from super_gradients.training.utils.callbacks import BinarySegmentationVisualizationCallback, Phase
 from torchvision import transforms
 
+# DEFINE DATA TRANSFORMATIONS
 dataset_params = {
     "image_mask_transforms_aug": transforms.Compose([ColorJitterSeg(brightness=0.5, contrast=0.5, saturation=0.5),
                                                      RandomFlip(),
@@ -23,8 +24,12 @@ model = SgModel("regseg48_transfer_learning_old_dice_diff_lrs_head_fixed_50_epoc
 # CONNECTING THE DATASET INTERFACE WILL SET SGMODEL'S CLASSES ATTRIBUTE ACCORDING TO SUPERVISELY
 model.connect_dataset_interface(dataset_interface)
 
+# THIS IS WHERE THE MAGIC HAPPENS- SINCE SGMODEL'S CLASSES ATTRIBUTE WAS SET TO BE DIFFERENT FROM CITYSCAPES'S, AFTER
+# LOADING THE PRETRAINED REGSET, IT WILL CALL IT'S REPLACE_HEAD METHOD AND CHANGE IT'S SEGMENTATION HEAD LAYER ACCORDING
+# TO OUR BINARY SEGMENTATION DATASET
 model.build_model("regseg48", arch_params={"pretrained_weights": "cityscapes"})
 
+# DEFINE TRAINING PARAMS. SEE DOCS FOR THE FULL LIST.
 train_params = {"max_epochs": 50,
                 "lr_mode": "cosine",
                 "initial_lr": 0.0064,  # for batch_size=16
