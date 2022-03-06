@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import torchvision
 import torchvision.datasets as datasets
-import torchvision.transforms as transforms
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from torch.utils.data.distributed import DistributedSampler
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
