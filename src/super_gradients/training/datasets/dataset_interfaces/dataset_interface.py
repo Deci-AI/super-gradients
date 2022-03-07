@@ -400,8 +400,14 @@ class ImageNetDatasetInterface(DatasetInterface):
         data_dir = dataset_params['dataset_dir'] if 'dataset_dir' in dataset_params.keys() else data_dir
         traindir = os.path.join(os.path.abspath(data_dir), 'train')
         valdir = os.path.join(data_dir, 'val')
-        img_mean = [0.485, 0.456, 0.406]
-        img_std = [0.229, 0.224, 0.225]
+        # img_mean = [0.485, 0.456, 0.406]
+        # img_std = [0.229, 0.224, 0.225]
+
+        # TODO: VIT pretrained 21K used the below values
+        img_mean = [0.5, 0.5, 0.5]
+        img_std = [0.5, 0.5, 0.5]
+        print(f"Imagenet Mean: {img_mean}")
+        ##
         normalize = transforms.Normalize(mean=img_mean,
                                          std=img_std)
 

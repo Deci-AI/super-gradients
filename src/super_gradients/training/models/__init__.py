@@ -14,6 +14,7 @@ from super_gradients.training.models.classification_models.senet import *
 from super_gradients.training.models.classification_models.shufflenet import *
 from super_gradients.training.models.classification_models.shufflenetv2 import *
 from super_gradients.training.models.classification_models.vgg import *
+from super_gradients.training.models.classification_models.vit import *
 from super_gradients.training.models.segmentation_models.shelfnet import *
 from super_gradients.training.models.classification_models.efficientnet import *
 
