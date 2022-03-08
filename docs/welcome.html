@@ -44,7 +44,11 @@
 <li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#why-use-supergradients">Why use SuperGradients?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#documentation">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#table-of-content">Table of Content:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#what-s-new">What’s New</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#comming-soon">Comming soon</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#table-of-content">Table of Content</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting Started</a><ul>
@@ -55,8 +59,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#installation-methods">Installation Methods</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#quick-installation-of-stable-version">Quick Installation of stable version</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#installing-from-github">Installing from GitHub</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quick-installation">Quick Installation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#computer-vision-models-pretrained-checkpoints">Computer Vision Models’ Pretrained Checkpoints</a><ul>
@@ -69,6 +72,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#citation">Citation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#community">Community</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#license">License</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#deci-lab">Deci Lab</a></li>
 </ul>
 </li>
 </ul>
@@ -125,7 +129,7 @@
 <p><a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
 <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
 <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
-<a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-23-brightgreen" />
+<a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-25-brightgreen" />
 <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
 <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
 <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
@@ -154,9 +158,31 @@ SuperGradients allows you to train or fine-tune SOTA pre-trained models for all 
 <h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline"></a></h3>
 <p>Check SuperGradients <a class="reference external" href="https://deci-ai.github.io/super-gradients/welcome.html">Docs</a> for full documentation, user guide, and examples.</p>
 </section>
+</section>
+<section id="what-s-new">
+<h2>What’s New<a class="headerlink" href="#what-s-new" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>【07/02/2022】 We added RegSeg recipes and pre-trained models to our <a class="reference external" href="#pretrained-semantic-segmentation-pytorch-checkpoints">Semantic Segmentation models</a>.</p></li>
+<li><p>【01/02/2022】 We added issue templates for feature requests and bug reporting.</p></li>
+<li><p>【20/01/2022】 STDC family - new recipes added with even higher mIoU💪</p></li>
+<li><p>【17/01/2022】 We have released transfer learning example <a class="reference external" href="https://colab.research.google.com/drive/1ZR_cvy8tQB_fTZwB2SQxg3RfIVKxNxRO?usp=sharing">notebook</a> for object detection (YOLOv5).</p></li>
+</ul>
+<p>Check out SG full <a class="reference external" href="https://github.com/Deci-AI/super-gradients/releases">release notes</a>.</p>
+</section>
+<section id="comming-soon">
+<h2>Comming soon<a class="headerlink" href="#comming-soon" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>[ ] YOLOX models (recipes, pre-trained checkpoints).</p></li>
+<li><p>[ ] SSD MobileNet models (recipes, pre-trained checkpoints) for edge devices deployment.</p></li>
+<li><p>[ ] Transfer learning example notebook for semantic segmentation (STDC).</p></li>
+<li><p>[ ] Dali implementation.</p></li>
+<li><p>[ ] Integration with professional tools.</p></li>
+</ul>
 <hr class="docutils" />
 <section id="table-of-content">
-<h3>Table of Content:<a class="headerlink" href="#table-of-content" title="Permalink to this headline"></a></h3>
+<h3>Table of Content<a class="headerlink" href="#table-of-content" title="Permalink to this headline"></a></h3>
+<details> 
+<summary>See Table </summary>
 <!-- toc -->
 <ul class="simple">
 <li><p><a class="reference external" href="#getting-started">Getting Started</a></p>
@@ -169,8 +195,7 @@ SuperGradients allows you to train or fine-tune SOTA pre-trained models for all 
 <li><p><a class="reference external" href="#installation-methods">Installation Methods</a></p>
 <ul>
 <li><p><a class="reference external" href="#prerequisites">Prerequisites</a></p></li>
-<li><p><a class="reference external" href="#quick-installation-of-stable-version">Quick Installation of stable version</a></p></li>
-<li><p><a class="reference external" href="#installing-from-github">Installing from GitHub</a></p></li>
+<li><p><a class="reference external" href="#quick-installation">Quick Installation</a></p></li>
 </ul>
 </li>
 <li><p><a class="reference external" href="#computer-vision-models-pretrained-checkpoints">Computer Vision Models’ Pretrained Checkpoints</a></p>
@@ -184,8 +209,10 @@ SuperGradients allows you to train or fine-tune SOTA pre-trained models for all 
 <li><p><a class="reference external" href="#citation">Citation</a></p></li>
 <li><p><a class="reference external" href="#community">Community</a></p></li>
 <li><p><a class="reference external" href="#license">License</a></p></li>
+<li><p><a class="reference external" href="#deci-lab">Deci Lab</a></p></li>
 </ul>
 <!-- tocstop -->
+</details>
 </section>
 </section>
 <section id="getting-started">
@@ -243,7 +270,8 @@ SuperGradients allows you to train or fine-tune SOTA pre-trained models for all 
 <h2>Installation Methods<a class="headerlink" href="#installation-methods" title="Permalink to this headline"></a></h2>
 <section id="prerequisites">
 <h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline"></a></h3>
-<p>General requirements:</p>
+<details>
+<summary>General requirements</summary>
 <ul class="simple">
 <li><p>Python 3.7, 3.8 or 3.9 installed.</p></li>
 <li><p>torch&gt;=1.9.0</p>
@@ -253,26 +281,32 @@ SuperGradients allows you to train or fine-tune SOTA pre-trained models for all 
 </li>
 <li><p>The python packages that are specified in requirements.txt;</p></li>
 </ul>
-<p>To train on nvidia GPUs:</p>
+</details>
+<details>
+<summary>To train on nvidia GPUs</summary>
 <ul class="simple">
 <li><p><a class="reference external" href="https://developer.nvidia.com/cuda-11.2.0-download-archive?target_os=Linux&amp;target_arch=x86_64&amp;target_distro=Ubuntu">Nvidia CUDA Toolkit &gt;= 11.2</a></p></li>
 <li><p>CuDNN &gt;= 8.1.x</p></li>
 <li><p>Nvidia Driver with CUDA &gt;= 11.2 support (≥460.x)</p></li>
 </ul>
+</details>
 </section>
-<section id="quick-installation-of-stable-version">
-<h3>Quick Installation of stable version<a class="headerlink" href="#quick-installation-of-stable-version" title="Permalink to this headline"></a></h3>
+<section id="quick-installation">
+<h3>Quick Installation<a class="headerlink" href="#quick-installation" title="Permalink to this headline"></a></h3>
+<details>
+<summary>Install stable version using PyPi</summary>
 <p>See in <a class="reference external" href="https://pypi.org/project/super-gradients/">PyPi</a></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install super-gradients
 </pre></div>
 </div>
 <p>That’s it !</p>
-</section>
-<section id="installing-from-github">
-<h3>Installing from GitHub<a class="headerlink" href="#installing-from-github" title="Permalink to this headline"></a></h3>
+</details>
+<details>
+<summary>Install using GitHub</summary>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 </pre></div>
 </div>
+</details>
 </section>
 </section>
 <section id="computer-vision-models-pretrained-checkpoints">
@@ -350,7 +384,7 @@ SuperGradients allows you to train or fine-tune SOTA pre-trained models for all 
 <tr class="row-odd"><td><p>ResNet50</p></td>
 <td><p>ImageNet</p></td>
 <td><p>224x224</p></td>
-<td><p>76.3</p></td>
+<td><p>79.47</p></td>
 <td><p>93.0</p></td>
 <td><p><strong>0.94ms</strong></p></td>
 <td class="text-center"><p><strong>1063fps</strong></p></td>
@@ -437,7 +471,7 @@ SuperGradients allows you to train or fine-tune SOTA pre-trained models for all 
 </tbody>
 </table>
 <blockquote>
-<div><p><strong>NOTE:</strong> Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (througput)</p>
+<div><p><strong>NOTE:</strong> Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (throughput)</p>
 </div></blockquote>
 </section>
 <section id="pretrained-semantic-segmentation-pytorch-checkpoints">
@@ -502,6 +536,22 @@ SuperGradients allows you to train or fine-tune SOTA pre-trained models for all 
 <td><p><strong>135.9fps</strong></p></td>
 <td class="text-center"><p><strong>28.18ms</strong></p></td>
 </tr>
+<tr class="row-even"><td><p>RegSeg (exp48)</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>1024x2048</p></td>
+<td><p>78.15</p></td>
+<td><p><strong>13.09ms</strong></p></td>
+<td><p><strong>76.4fps</strong></p></td>
+<td class="text-center"><p><strong>41.88ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>Larger RegSeg (exp53)</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>1024x2048</p></td>
+<td><p>79.2</p></td>
+<td><p><strong>24.82ms</strong></p></td>
+<td><p><strong>40.3fps</strong></p></td>
+<td class="text-center"><p><strong>51.87ms</strong></p></td>
+</tr>
 <tr class="row-even"><td><p>ShelfNet_LW_34</p></td>
 <td><p>COCO Segmentation (21 classes from PASCAL including background)</p></td>
 <td><p>512x512</p></td>
@@ -539,12 +589,20 @@ or want to file a bug or issue report, we would love to welcome you aboard!</p>
 <li><p>To report a bug, <a class="reference external" href="https://github.com/Deci-AI/super-gradients/issues">file an issue</a> on GitHub.</p></li>
 <li><p>You can also join the <a class="reference external" href="https://deci.ai/resources/blog/">community mailing list</a>
 to ask questions about the project and receive announcements.</p></li>
-<li><p>For a shorth meeting with SuperGradients PM, use this <a class="reference external" href="https://calendly.com/ofer-baratz-deci/15min">link</a> and choose your prefered time.</p></li>
+<li><p>For a short meeting with SuperGradients PM, use this <a class="reference external" href="https://calendly.com/ofer-baratz-deci/15min">link</a> and choose your preferred time.</p></li>
 </ul>
 </section>
 <section id="license">
 <h2>License<a class="headerlink" href="#license" title="Permalink to this headline"></a></h2>
 <p>This project is released under the <a class="reference internal" href="LICENSE.html"><span class="doc std std-doc">Apache 2.0 license</span></a>.</p>
+</section>
+<hr class="docutils" />
+<section id="deci-lab">
+<h2>Deci Lab<a class="headerlink" href="#deci-lab" title="Permalink to this headline"></a></h2>
+<p>Deci Lab supports all common frameworks and Hardware, from Intel CPUs to Nvidia’s GPUs and Jetsons</p>
+<p>You can enjoy immediate improvement in throughput, latency, and memory with the Deci Lab. It optimizes deep learning models using best-of-breed technologies, such as quantization and graph compilers.</p>
+<p>Get a complete benchmark of your models’ performance on different hardware and batch sizes in a single interface. Invite co-workers to collaborate on models and communicate your progress.</p>
+<p>Sign up for Deci Lab for free <a class="reference external" href="https://console.deci.ai/">here</a></p>
 </section>
 </section>
 
