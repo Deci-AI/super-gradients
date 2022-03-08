@@ -15,7 +15,7 @@ import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.metrics import DetectionMetrics
-from super_gradients.training.utils.segmentation_utils import Rescale
+from super_gradients.training.transforms.transforms import Rescale
 from super_gradients.training.losses.stdc_loss import STDCLoss
 
 

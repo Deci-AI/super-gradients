@@ -43,7 +43,8 @@ from super_gradients.training import SgModel, MultiGPUMode
 import argparse
 import torchvision.transforms as transforms
 
-from super_gradients.training.utils.segmentation_utils import RandomFlip, PadShortToCropSize, CropImageAndMask, RandomRescale
+from super_gradients.training.transforms.transforms import RandomFlip, RandomRescale, CropImageAndMask, \
+    PadShortToCropSize
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CITYSCAPES_IGNORE_LABEL
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CityscapesDatasetInterface
