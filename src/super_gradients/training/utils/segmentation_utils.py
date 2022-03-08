@@ -375,7 +375,7 @@ def to_one_hot(target: torch.Tensor, num_classes: int, ignore_index: int = None)
     return one_hot
 
 
-def undo_image_preprocessing(im_tensor: torch.Tensor) -> np.ndarray:
+def reverse_imagenet_preprocessing(im_tensor: torch.Tensor) -> np.ndarray:
     """
     :param im_tensor: images in a batch after preprocessing for inference, RGB, (B, C, H, W)
     :return:          images in a batch in cv2 format, BGR, (B, H, W, C)
@@ -418,7 +418,7 @@ class BinarySegmentationVisualization:
     @staticmethod
     def visualize_batch(image_tensor: torch.Tensor, pred_mask: torch.Tensor, target_mask: torch.Tensor,
                         batch_name: Union[int, str], checkpoint_dir: str = None,
-                        undo_preprocessing_func: Callable[[torch.Tensor], np.ndarray] = undo_image_preprocessing,
+                        undo_preprocessing_func: Callable[[torch.Tensor], np.ndarray] = reverse_imagenet_preprocessing,
                         image_scale: float = 1.):
         """
         A helper function to visualize detections predicted by a network:
