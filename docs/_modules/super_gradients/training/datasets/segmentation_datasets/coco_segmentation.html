@@ -92,6 +92,7 @@
 <span class="kn">import</span> <span class="nn">torchvision.transforms</span> <span class="k">as</span> <span class="nn">transform</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.utils.segmentation_utils</span> <span class="kn">import</span> <span class="n">RandomFlip</span><span class="p">,</span> <span class="n">CropImageAndMask</span><span class="p">,</span> <span class="n">PadShortToCropSize</span><span class="p">,</span>\
     <span class="n">RandomRescale</span><span class="p">,</span> <span class="n">Rescale</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.utils</span> <span class="kn">import</span> <span class="n">get_param</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">pycocotools.coco</span> <span class="kn">import</span> <span class="n">COCO</span>
