@@ -367,7 +367,11 @@ class SgModel:
                                    **additional_batch_items)
 
             self.phase_callback_handler(Phase.TRAIN_BATCH_END, context)
+            # logging lr
+            if not self.ddp_silent_mode:
 
+                self.sg_logger.add_scalars(tag_scalar_dict={"step_lr": self.optimizer.param_groups[0]['lr']},
+                                       global_step=batch_idx + len(self.train_loader) * epoch)
             # LOG LR THAT WILL BE USED IN CURRENT EPOCH AND AFTER FIRST WARMUP/LR_SCHEDULER UPDATE BEFORE WEIGHT UPDATE
             if not self.ddp_silent_mode and batch_idx == 0:
                 self._write_lrs(epoch)
@@ -424,8 +428,14 @@ class SgModel:
 
         if integrated_batches_num % self.batch_accumulate == 0:
             # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
+
+            # TODO: remove
+            torch.nn.utils.clip_grad_norm_(self.net.parameters(), 1)
+
             self.scaler.step(self.optimizer)
             self.scaler.update()
+
+
 
             self.optimizer.zero_grad()
             if self.ema:
@@ -833,7 +843,9 @@ class SgModel:
                                                                    metric_to_watch=self.metric_to_watch,
                                                                    metric_idx=self.metric_idx_in_results_tuple,
                                                                    load_checkpoint=self.load_checkpoint,
-                                                                   model_checkpoints_location=self.model_checkpoints_location)
+                                                                   model_checkpoints_location=self.model_checkpoints_location,
+                                                                   number_of_models_to_average=3)   #TODO: remove =3
+
         if self.training_params.save_full_train_log and not self.ddp_silent_mode:
             logger = get_logger(__name__,
                                 training_log_path=self.sg_logger.log_file_path.replace('.txt', 'full_train_log.log'))

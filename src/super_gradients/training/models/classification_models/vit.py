@@ -11,7 +11,6 @@ from torch import nn
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param
 from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
 
 
 class PatchEmbed(nn.Module):
@@ -75,6 +74,7 @@ class Attention(nn.Module):
     def forward(self, x):
 
         B, N, C = x.shape
+        # computing query, key and value matrices at once
         qkv = self.to_qkv(x).reshape(B, N, 3, self.heads, C // self.heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
