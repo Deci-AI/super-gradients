@@ -1,14 +1,37 @@
 from super_gradients.training.models.sg_module import SgModule
 import torch
 from super_gradients.training.utils.utils import HpmStruct
-
+from typing import Union
+from super_gradients.training.models.all_architectures import ARCHITECTURES
+from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model, load_pretrained_weights
+from super_gradients.training.utils import get_param
 
 class KDModule(SgModule):
-    def __init__(self, student: torch.nn.Module, teacher: torch.nn.Module, freeze_teacher_eval_mode: bool = False):
+    def __init__(self, student: Union[torch.nn.Module, str], teacher: Union[torch.nn.Module, str], freeze_teacher_eval_mode: bool = False, student_arch_params: dict = {}, teacher_arch_params: dict = {}, teacher_ckpt_path: str = None):
         self.student = student
+        self.student_arch_params = student_arch_params
+        self.teacher_arch_params = teacher_arch_params
         self.teacher = teacher
         self.freeze_teacher_eval_mode = freeze_teacher_eval_mode
         self._freeze_teacher()
+
+    def _initialize_net(self, net, arch_params, ckpt_path=None):
+        if isinstance(net, str):
+            architecture = net
+            architecture_cls = ARCHITECTURES[architecture]
+            net_module = architecture_cls(arch_params=self.arch_params)
+            pretrained_weights = get_param(arch_params, "pretrained_weights")
+            if pretrained_weights and ckpt_path:
+                raise ValueError("Expected atmost one of: pretrained_weights, and ckpt_path for teacher module.")
+            elif pretrained_weights:
+                load_pretrained_weights(net_module, architecture, pretrained_weights)
+
+        elif not isinstance(net, torch.nn.Module):
+            raise TypeError("Student and teacher networks expected to be str, or torch.nn.Module.")
+
+
+            load_pretrained_weights(net)
+
 
     def _freeze_teacher(self):
         for p in self.teacher.parameters():
@@ -40,9 +63,5 @@ class KDModule(SgModule):
 
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
                             total_batch: int) -> list:
-        if hasattr(self.student, "update_param_groups"):
-            return self.student.update_param_groups(param_groups, lr, epoch, iter, training_params, total_batch)
-
-    def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
-        return self.student.prep_model_for_conversion(input_size, **kwargs)
+        return self.student.update_param_groups(param_groups, lr, epoch, iter, training_params, total_batch)
 
