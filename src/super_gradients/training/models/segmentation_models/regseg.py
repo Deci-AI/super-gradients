@@ -305,6 +305,30 @@ class RegSeg(SgModule):
         x = self.head(x)
         return x
 
+    def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
+        multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
+        multiply_lr_params, no_multiply_params = {}, {}
+        for name, param in self.named_parameters():
+            if "head." in name:
+                multiply_lr_params[name] = param
+            else:
+                no_multiply_params[name] = param
+
+        multiply_lr_params, no_multiply_params = multiply_lr_params.items(), no_multiply_params.items()
+
+        param_groups = [{"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
+                        {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"}]
+        return param_groups
+
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
+                            total_batch: int) -> list:
+        multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
+        for param_group in param_groups:
+            param_group['lr'] = lr
+            if param_group["name"] == "multiply_lr_params":
+                param_group['lr'] *= multiply_head_lr
+        return param_groups
+
     def replace_head(self, new_num_classes: int, head_config: dict):
         self.head = RegSegHead(self.decoder.out_channels, new_num_classes, head_config)
 
