@@ -843,8 +843,7 @@ class SgModel:
                                                                    metric_to_watch=self.metric_to_watch,
                                                                    metric_idx=self.metric_idx_in_results_tuple,
                                                                    load_checkpoint=self.load_checkpoint,
-                                                                   model_checkpoints_location=self.model_checkpoints_location,
-                                                                   number_of_models_to_average=3)
+                                                                   model_checkpoints_location=self.model_checkpoints_location)
 
         if self.training_params.save_full_train_log and not self.ddp_silent_mode:
             logger = get_logger(__name__,
