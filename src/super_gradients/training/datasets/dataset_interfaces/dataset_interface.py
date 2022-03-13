@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import torchvision
 import torchvision.datasets as datasets
-import torchvision.transforms as transforms
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from torch.utils.data.distributed import DistributedSampler
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
@@ -25,7 +24,9 @@ from tqdm import tqdm
 from pathlib import Path
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
 from super_gradients.training.utils.utils import download_and_unzip_from_url
-
+from super_gradients.training.utils import get_param
+import torchvision.transforms as transforms
+from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
 LIBRARY_DATASETS = {
@@ -831,3 +832,31 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                 lb_path = (lbs_path / f.name).with_suffix('.txt')  # new label path
                 f.rename(imgs_path / f.name)  # move image
                 convert_label(path, lb_path, year, id)  # convert labels to YOLO format
+
+
+class SuperviselyPersonsDatasetInterface(DatasetInterface):
+    def __init__(self, dataset_params=None, cache_labels: bool = False, cache_images: bool = False):
+        super().__init__(dataset_params=dataset_params)
+        root_dir = get_param(dataset_params, "dataset_dir", "/data/supervisely-persons")
+
+        self.trainset = SuperviselyPersonsDataset(
+            root_dir=root_dir,
+            list_file='train.csv',
+            dataset_hyper_params=dataset_params,
+            cache_labels=cache_labels,
+            cache_images=cache_images,
+            image_mask_transforms_aug=get_param(dataset_params, "image_mask_transforms_aug", transforms.Compose([])),
+            augment=True
+        )
+
+        self.valset = SuperviselyPersonsDataset(
+            root_dir=root_dir,
+            list_file='val.csv',
+            dataset_hyper_params=dataset_params,
+            cache_labels=cache_labels,
+            cache_images=cache_images,
+            image_mask_transforms=get_param(dataset_params, "image_mask_transforms", transforms.Compose([])),
+            augment=False
+        )
+
+        self.classes = self.trainset.classes
