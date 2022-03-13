@@ -25,7 +25,7 @@ from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
-from super_gradients.training import ARCHITECTURES, utils as core_utils
+from super_gradients.training import utils as core_utils
 from super_gradients.training.utils import sg_model_utils
 from super_gradients.training import metrics
 from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat
@@ -34,7 +34,6 @@ from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
     get_logging_values, \
     get_metrics_dict, get_train_loop_description_dict
-from super_gradients.training.models import SgModule
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.distributed_training_utils import MultiGPUModeAutocastWrapper, \
@@ -323,7 +322,7 @@ class SgModel:
                        load_kd_model_checkpoint: bool = False,
                        kd_model_source_ckpt_folder_name: str = None,
                        kd_model_external_checkpoint_path: str = None,
-                       freeze_teacher_eval_mode = False,
+                       freeze_teacher_eval_mode: bool = False,
                        ):
         """
         :param student_architecture:       Defines the student's architecture from models/ALL_ARCHITECTURES
