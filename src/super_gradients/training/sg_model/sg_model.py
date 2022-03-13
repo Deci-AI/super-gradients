@@ -304,6 +304,7 @@ class SgModel:
 
         # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
         self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
+
         # LOAD AN EXISTING CHECKPOINT IF INDICATED
         self.checkpoint = {}
 
