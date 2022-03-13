@@ -54,8 +54,11 @@ class KDModule(SgModule):
         self.teacher.eval()
 
     def forward(self, x):
-        return KDOutput(student_output=self.student(x),
-                        teacher_output=self.teacher(x))
+        student_out = self.student(x)
+        with torch.no_grad():
+            teacher_out = self.teacher(x)
+        return KDOutput(student_output=student_out,
+                        teacher_output=teacher_out)
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         if hasattr(self.student, 'initialize_param_groups'):
