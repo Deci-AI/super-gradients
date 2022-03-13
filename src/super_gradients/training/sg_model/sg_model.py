@@ -419,6 +419,10 @@ class SgModel:
         # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
         self.scaler.scale(loss).backward()
 
+        # APPLY GRADIENT CLIPPING IF REQUIRED
+        if self.training_params.clip_grad_norm:
+            torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
+
         # ACCUMULATE GRADIENT FOR X BATCHES BEFORE OPTIMIZING
         integrated_batches_num = batch_idx + len(self.train_loader) * epoch + 1
 
@@ -717,6 +721,10 @@ class SgModel:
                 -   `sg_logger_params` : dict
 
                     SGLogger parameters
+
+                -   `clip_grad_norm` : float
+
+                    Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped
         :return:
         """
         global logger
