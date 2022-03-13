@@ -13,7 +13,6 @@ class KDModuleTest(unittest.TestCase):
         sg_model = SgModel("build_kd_module_test", device='cpu')
         sg_model.build_kd_model(student_architecture='resnet18',
                                 teacher_architecture='resnet50',
-                                load_teachers_ema=False,
                                 student_arch_params={'num_classes': 10},
                                 teacher_arch_params={'num_classes': 10},
                                 )
@@ -24,7 +23,6 @@ class KDModuleTest(unittest.TestCase):
         sg_model = SgModel("build_kd_module_with_pretrained_teacher", device='cpu')
         sg_model.build_kd_model(student_architecture='resnet18',
                                 teacher_architecture='resnet50',
-                                load_teachers_ema=False,
                                 student_arch_params={'num_classes': 1000},
                                 teacher_arch_params={'pretrained_weights': "imagenet"},
                                 )

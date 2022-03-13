@@ -181,13 +181,14 @@ def log_uncaught_exceptions(logger):
     sys.excepthook = handle_exception
 
 
-def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict)->torch.nn.Module:
+def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict) -> tuple:
     """
 
     :param architecture: String, torch.nn.Module or uninstantiated SgModule class describing the netowrks architecture.
     :param arch_params: Architecture's parameters passed to networks c'tor.
-    :return: instantiated netowrk i.e torch.nn.Module
+    :return: instantiated netowrk i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
     """
+    architecture_cls = None
     if isinstance(architecture, str):
         architecture_cls = ARCHITECTURES[architecture]
         net = architecture_cls(arch_params=arch_params)
@@ -196,4 +197,4 @@ def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str
     else:
         net = architecture
 
-    return net
+    return net, architecture_cls

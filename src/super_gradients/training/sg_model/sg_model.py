@@ -270,13 +270,7 @@ class SgModel:
         self.external_checkpoint_path = core_utils.get_param(self.arch_params, 'external_checkpoint_path',
                                                              default_val=external_checkpoint_path)
 
-        if isinstance(architecture, str):
-            self.architecture_cls = ARCHITECTURES[architecture]
-            self.net = self.architecture_cls(arch_params=self.arch_params)
-        elif isinstance(architecture, SgModule.__class__):
-            self.net = architecture(self.arch_params)
-        else:
-            self.net = architecture
+        self.net, self.architecture_cls = sg_model_utils.instantiate_net(architecture, self.arch_params)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
         if hasattr(self.net, 'structure'):
@@ -346,21 +340,8 @@ class SgModel:
         student_arch_params = core_utils.HpmStruct(**student_arch_params)
         teacher_arch_params = core_utils.HpmStruct(**teacher_arch_params)
 
-        if isinstance(student_architecture, str):
-            student_architecture_cls = ARCHITECTURES[student_architecture]
-            student_net = student_architecture_cls(arch_params=student_arch_params)
-        elif isinstance(student_architecture, SgModule.__class__):
-            student_net = student_architecture(student_arch_params)
-        else:
-            student_net = student_architecture
-        
-        if isinstance(teacher_architecture, str):
-            teacher_architecture_cls = ARCHITECTURES[teacher_architecture]
-            teacher_net = teacher_architecture_cls(arch_params=teacher_arch_params)
-        elif isinstance(teacher_architecture, SgModule.__class__):
-            teacher_net = teacher_architecture(teacher_arch_params)
-        else:
-            teacher_net = teacher_architecture
+        student_net, _ = sg_model_utils.instantiate_net(student_architecture, student_arch_params)
+        teacher_net, _ = sg_model_utils.instantiate_net(teacher_architecture, teacher_arch_params)
 
         if teacher_checkpoint_path is not None:
             load_teachers_ema = 'ema_net' in read_ckpt_state_dict(teacher_checkpoint_path).keys()
