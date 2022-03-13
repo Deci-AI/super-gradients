@@ -12,6 +12,7 @@ class KDOutput:
 class KDModule(SgModule):
     def __init__(self, student: torch.nn.Module, teacher: torch.nn.Module,
                  freeze_teacher_eval_mode: bool = False):
+        super(KDModule, self).__init__()
         self.student = student
         self.teacher = teacher
         self.freeze_teacher_eval_mode = freeze_teacher_eval_mode

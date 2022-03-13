@@ -51,7 +51,7 @@ from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment import environment_config
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-
+from super_gradients.training.models.kd_models.kd_module import KDModule
 logger = get_logger(__name__)
 
 
@@ -319,6 +319,83 @@ class SgModel:
                 self.net.module.replace_head(new_num_classes=num_classes_new_head)
                 self.arch_params.num_classes = num_classes_new_head
                 self.net.to(self.device)
+
+    def build_kd_model(self,
+                       student_architecture: Union[str, nn.Module],
+                       teacher_architecture: Union[str, nn.Module],
+                       student_arch_params={},
+                       teacher_arch_params={},
+                       teacher_checkpoint_path: str = None,
+                       load_kd_model_checkpoint: bool = False,
+                       kd_model_source_ckpt_folder_name: str = None,
+                       kd_model_external_checkpoint_path: str = None,
+                       freeze_teacher_eval_mode = False,
+                       ):
+
+        kd_model_arch_params = {}
+
+        if 'num_classes' not in student_arch_params.keys():
+            if self.dataset_interface is None:
+                raise Exception('Error', 'Number of classes not defined in arch params and dataset is not defined')
+            else:
+                student_arch_params['num_classes'] = len(self.classes)
+
+        kd_model_arch_params['num_classes'] = student_arch_params['num_classes']
+        teacher_arch_params['num_classes'] = student_arch_params['num_classes']
+
+        student_arch_params = core_utils.HpmStruct(**student_arch_params)
+        teacher_arch_params = core_utils.HpmStruct(**teacher_arch_params)
+
+        if isinstance(student_architecture, str):
+            student_architecture_cls = ARCHITECTURES[student_architecture]
+            student_net = student_architecture_cls(arch_params=student_arch_params)
+        elif isinstance(student_architecture, SgModule.__class__):
+            student_net = student_architecture(student_arch_params)
+        else:
+            student_net = student_architecture
+        
+        if isinstance(teacher_architecture, str):
+            teacher_architecture_cls = ARCHITECTURES[teacher_architecture]
+            teacher_net = teacher_architecture_cls(arch_params=teacher_arch_params)
+        elif isinstance(teacher_architecture, SgModule.__class__):
+            teacher_net = teacher_architecture(teacher_arch_params)
+        else:
+            teacher_net = teacher_architecture
+
+        if teacher_checkpoint_path is not None:
+            load_teachers_ema = 'ema_net' in read_ckpt_state_dict(teacher_checkpoint_path).keys()
+            load_checkpoint_to_model(ckpt_local_path=teacher_checkpoint_path,
+                                     load_backbone=False,
+                                     net=teacher_net,
+                                     strict='no_key_matching',
+                                     load_weights_only=True,
+                                     load_ema_as_net=load_teachers_ema)
+
+        teacher_pretrained_weights = core_utils.get_param(teacher_arch_params, 'pretrained_weights', default_val=None)
+
+        if teacher_pretrained_weights is not None:
+            pretrained_num_classes = PRETRAINED_NUM_CLASSES[teacher_pretrained_weights]
+            if pretrained_num_classes != kd_model_arch_params['num_classes']:
+                raise ValueError("Pretrained dataset number of classes must be equal to the teacher and student's "
+                                 "number of classes.")
+            if teacher_checkpoint_path is not None:
+                if teacher_pretrained_weights:
+                    logger.warning(
+                        teacher_checkpoint_path + " checkpoint is "
+                                                  "overriding " + teacher_pretrained_weights + "for teacher model")
+
+            load_pretrained_weights(teacher_net, teacher_architecture, teacher_pretrained_weights)
+
+        architecture = KDModule(student=student_net,
+                                teacher=teacher_net,
+                                freeze_teacher_eval_mode=freeze_teacher_eval_mode)
+
+        self.build_model(architecture=architecture,
+                         arch_params=kd_model_arch_params,
+                         load_checkpoint=load_kd_model_checkpoint,
+                         source_ckpt_folder_name=kd_model_source_ckpt_folder_name,
+                         external_checkpoint_path=kd_model_external_checkpoint_path
+                         )
 
     def _train_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
         """
