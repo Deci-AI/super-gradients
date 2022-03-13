@@ -10,6 +10,16 @@ class KDOutput:
 
 
 class KDModule(SgModule):
+    """
+    KDModule
+
+    class implementing Knowledge Distillation logic as an SgModule
+
+    attributes:
+        student: torch.nn.Module - the student model
+        teacher: torch.nn.Module- the teacher model
+        freeze_teacher_eval_mode: bool- whether to freeze self.teacher at eval mode regardless of self.train(mode)
+    """
     def __init__(self, student: torch.nn.Module, teacher: torch.nn.Module,
                  freeze_teacher_eval_mode: bool = False):
         super(KDModule, self).__init__()

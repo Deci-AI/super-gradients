@@ -325,6 +325,23 @@ class SgModel:
                        kd_model_external_checkpoint_path: str = None,
                        freeze_teacher_eval_mode = False,
                        ):
+        """
+        :param student_architecture:       Defines the student's architecture from models/ALL_ARCHITECTURES
+        :param teacher_architecture:       Defines the teacher's architecture from models/ALL_ARCHITECTURES
+        :param student_arch_params:        Architecture H.P. e.g.: block, num_blocks, num_classes, etc for student net.
+        :param teacher_arch_params:        Architecture H.P. e.g.: block, num_blocks, num_classes, etc for teacher net.
+        :param teacher_checkpoint_path:    Local path to the teacher's checkpoint. Note that when passing pretrained_weights
+                                           through teacher_arch_params these weights will be overridden by the
+                                           pretrained checkpoint.
+        :param load_kd_model_checkpoint:   Whether to load an entire KDModule checkpoint (used to continue KD training)
+        :param kd_model_source_ckpt_folder_name: Folder name to load an entire KDModule checkpoint from
+            (self.experiment_name if none is given) to resume KD training
+        :param kd_model_external_checkpoint_path: The path to the external checkpoint to be loaded. Can be absolute or relative
+                                           (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
+                                           load the checkpoint even if the load_checkpoint flag is not provided
+        :param freeze_teacher_eval_mode:   Whether to freeze self.teacher at eval mode regardless of self.train(mode)
+        :return:
+        """
 
         kd_model_arch_params = {}
 
