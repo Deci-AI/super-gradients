@@ -825,15 +825,17 @@ class SgModel:
                                                   title="Train-set", anchors=self.net.module.arch_params.anchors)
                 dataset_statistics_logger.analyze(self.valid_loader, dataset_params=self.dataset_params,
                                                   title="val-set")
+
+            # FIXME - UNCOMMENT
             # AVERAGE BEST 10 MODELS PARAMS
-            if self.training_params.average_best_models:
-                self.model_weight_averaging = ModelWeightAveraging(self.checkpoints_dir_path,
-                                                                   greater_is_better=self.greater_metric_to_watch_is_better,
-                                                                   source_ckpt_folder_name=self.source_ckpt_folder_name,
-                                                                   metric_to_watch=self.metric_to_watch,
-                                                                   metric_idx=self.metric_idx_in_results_tuple,
-                                                                   load_checkpoint=self.load_checkpoint,
-                                                                   model_checkpoints_location=self.model_checkpoints_location)
+            # if self.training_params.average_best_models:
+            #     self.model_weight_averaging = ModelWeightAveraging(self.checkpoints_dir_path,
+            #                                                        greater_is_better=self.greater_metric_to_watch_is_better,
+            #                                                        source_ckpt_folder_name=self.source_ckpt_folder_name,
+            #                                                        metric_to_watch=self.metric_to_watch,
+            #                                                        metric_idx=self.metric_idx_in_results_tuple,
+            #                                                        load_checkpoint=self.load_checkpoint,
+            #                                                        model_checkpoints_location=self.model_checkpoints_location)
         if self.training_params.save_full_train_log and not self.ddp_silent_mode:
             logger = get_logger(__name__,
                                 training_log_path=self.sg_logger.log_file_path.replace('.txt', 'full_train_log.log'))

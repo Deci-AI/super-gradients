@@ -76,16 +76,17 @@ class DetectionDataSet(ListDataset):
 
         if self.augment:
             # MixUp augmentation
-            if random.random() < self.mixup_prob:
-                image, labels = self.mixup(img, labels, *self.load_image_and_label(random.randint(0, len(self.img_files) - 1)))
+            # if random.random() < self.mixup_prob:
+            #     image, labels = self.mixup(img, labels, *self.load_image_and_label(random.randint(0, len(self.img_files) - 1)))
 
+            # FIXME - UNCOMMENT EVENTUALLY WHEN MERGING
             # AUGMENT IMAGESPACE
-            if not self.sample_loading_method == 'mosaic':
-                img, labels = self.random_perspective(img, labels,
-                                                      degrees=self.dataset_hyperparams['degrees'],
-                                                      translate=self.dataset_hyperparams['translate'],
-                                                      scale=self.dataset_hyperparams['scale'],
-                                                      shear=self.dataset_hyperparams['shear'])
+            # if not self.sample_loading_method == 'mosaic':
+            #     img, labels = self.random_perspective(img, labels,
+            #                                           degrees=self.dataset_hyperparams['degrees'],
+            #                                           translate=self.dataset_hyperparams['translate'],
+            #                                           scale=self.dataset_hyperparams['scale'],
+            #                                           shear=self.dataset_hyperparams['shear'])
 
             # AUGMENT COLORSPACE
             img = self.augment_hsv(img, hgain=self.dataset_hyperparams['hsv_h'],

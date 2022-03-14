@@ -15,6 +15,7 @@ dataset_params:
 
 arch_params:
   nms_iou: 0.65  # When add_nms is True IoU threshold for NMS algorithm
+  source_ckpt_folder_name: yolox_s_coco2017_640_og_lr_mosaic_02_19
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CoCoDetectionDatasetInterface
@@ -26,11 +27,11 @@ model_checkpoints_location: local
 
 save_ckpt_epoch_list: [ 50, 100, 150, 200, 285, 300 ]
 
-load_checkpoint: False
+load_checkpoint: True
 
 architecture: yolox_s
 
-experiment_name: ${architecture}_coco2017_640_og_lr_mosaic_02_19
+experiment_name: ${architecture}_coco2017_640_og_lr_mosaic_02_19_final_15_epochs_no_mosaic_no_mixup
 
 sg_model:
   _target_: super_gradients.training.TurnOffMosaicRecipeChangeSGModel

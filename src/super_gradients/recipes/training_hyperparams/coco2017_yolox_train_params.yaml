@@ -1,14 +1,19 @@
 defaults:
   - default_train_params
 
-max_epochs: 300
-recipe_change_epoch: 285
-lr_mode: cosine
-cosine_final_lr_ratio: 0.05
-lr_warmup_epochs: 5
+max_epochs: 450
+recipe_change_epoch: 300
+lr_mode: step
+lr_updates: [350, 400]
+lr_decay_factor: 0.75
+#cosine_final_lr_ratio: 0.033
+#lr_warmup_epochs: 5
 warmup_bias_lr: 0.0
 warmup_momentum: 0.9
-initial_lr: 0.02
+
+# FIXME - CHANGED FOR THE FINAL 100 EPCOHS TEST
+#initial_lr: 0.2
+initial_lr: 0.001
 warmup_mode: yolov5_warmup
 
 loss: yolox_loss
@@ -23,6 +28,8 @@ optimizer_params:
 
 ema: True
 mixed_precision: False
+average_best_models: False # If set, a snapshot dictionary file and the average model will be saved
+
 
 valid_metrics_list:
   - _target_: super_gradients.training.metrics.DetectionMetrics
