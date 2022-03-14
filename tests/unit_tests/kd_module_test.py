@@ -51,7 +51,7 @@ class KDModuleTest(unittest.TestCase):
 
         self.assertTrue(check_models_have_same_weights(sg_model.net.module, sg_kd_model.net.module.teacher))
 
-    def test_build_kd_module_with_pretrained_teacher(self):
+    def test_teacher_sg_module_methods(self):
         sg_model = SgModel("test_teacher_sg_module_methods", device='cpu')
         sg_model.build_kd_model(student_architecture='resnet18',
                                 teacher_architecture='resnet50',
