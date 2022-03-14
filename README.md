@@ -14,6 +14,7 @@ ______________________________________________________________________
   <a href="#transfer-learning">Transfer Learning</a> •  
   <a href="#computer-vision-models---pretrained-checkpoints">Pretrained Models</a> •
   <a href="#community">Community</a> •
+  <a href="#license">License</a> •
   <a href="#deci-lab">Deci Lab</a>
 </p>
   
@@ -109,7 +110,7 @@ Get started with our quick start notebook for image classification tasks on Goog
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing&utm_campaign=SG%20github%20repo&utm_source=Google%20Colab&utm_medium=GitHub%20Repo&utm_content=Quickstart%20classification%20notebook%20-%20README.md"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing&utm_campaign=SG%20github%20repo&utm_source=Google%20Colab&utm_medium=GitHub%20Repo&utm_content=Quickstart%20classification%20notebook%20-%20README.md"><img src="./docs/assets/SG_img/colab_logo.png" />Classification Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_classification.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -126,7 +127,7 @@ Get started with our quick start notebook for object detection tasks on Google C
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1s5frO-0dt5IYaaX49SgfLKCTJR6wLt4y?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1s5frO-0dt5IYaaX49SgfLKCTJR6wLt4y?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -143,7 +144,7 @@ Get started with our quick start notebook for semantic segmentation tasks on Goo
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1taz1lXDnfiLWoH88ZN60nxmQDTW5VU2H?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1taz1lXDnfiLWoH88ZN60nxmQDTW5VU2H?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -179,7 +180,7 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1JCrPKX3BV9wjig5d7qyH-sjwSbiOvFs8?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Transfer Learning in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1JCrPKX3BV9wjig5d7qyH-sjwSbiOvFs8?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Transfer Learning in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_object_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -195,7 +196,7 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1x8MpySPMqgYna1oei5URT0uBqIY3dnpM?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Transfer Learning in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1x8MpySPMqgYna1oei5URT0uBqIY3dnpM?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Transfer Learning in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_semantic_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
