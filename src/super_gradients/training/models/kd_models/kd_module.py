@@ -18,7 +18,7 @@ class KDModule(SgModule):
     attributes:
         student: torch.nn.Module - the student model
         teacher: torch.nn.Module- the teacher model
-        freeze_teacher_eval_mode: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
+        run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
     """
     def __init__(self, student: torch.nn.Module, teacher: torch.nn.Module,
                  run_teacher_on_eval: bool = False):
