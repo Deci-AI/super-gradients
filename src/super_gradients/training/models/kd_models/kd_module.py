@@ -28,6 +28,10 @@ class KDModule(SgModule):
         self.run_teacher_on_eval = run_teacher_on_eval
         self._freeze_teacher()
 
+        # WHEN CREATING A MODULE SELF.TRAIN() ISN'T CALLED AND SO THE TEACHER MUST BE MOVED TO EVAL MODE EXPLICITLY
+        if self.run_teacher_on_eval:
+            self.teacher.eval()
+
     def _freeze_teacher(self):
         for p in self.teacher.parameters():
             p.requires_grad = False
