@@ -20,7 +20,7 @@ class KDModule(SgModule):
         teacher: torch.nn.Module- the teacher model
         run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
     """
-    def __init__(self, student: torch.nn.Module, teacher: torch.nn.Module,
+    def __init__(self, student: SgModule, teacher: torch.nn.Module,
                  run_teacher_on_eval: bool = False):
         super(KDModule, self).__init__()
         self.student = student
@@ -50,13 +50,7 @@ class KDModule(SgModule):
                         teacher_output=self.teacher(x))
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
-        if hasattr(self.student, 'initialize_param_groups'):
-            # INITIALIZE_PARAM_GROUPS MUST RETURN A LIST OF DICTS WITH 'named_params' AND OPTIMIZER's ATTRIBUTES PER
-            # GROUP
-            param_groups = self.student.initialize_param_groups(lr, training_params)
-        else:
-            param_groups = [{'named_params': self.student.named_parameters()}]
-        return param_groups
+        return self.student.initialize_param_groups(lr, training_params)
 
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
                             total_batch: int) -> list:

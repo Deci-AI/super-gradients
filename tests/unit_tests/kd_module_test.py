@@ -51,6 +51,21 @@ class KDModuleTest(unittest.TestCase):
 
         self.assertTrue(check_models_have_same_weights(sg_model.net.module, sg_kd_model.net.module.teacher))
 
+    def test_build_kd_module_with_pretrained_teacher(self):
+        sg_model = SgModel("test_teacher_sg_module_methods", device='cpu')
+        sg_model.build_kd_model(student_architecture='resnet18',
+                                teacher_architecture='resnet50',
+                                student_arch_params={'num_classes': 1000},
+                                teacher_arch_params={'pretrained_weights': "imagenet"},
+                                )
+
+        initial_param_groups = sg_model.net.module.initialize_param_groups(lr=0.1, training_params={})
+        updated_param_groups = sg_model.net.module.update_param_groups(param_groups=initial_param_groups, lr=0.2,
+                                                                       epoch=0, iter=0, training_params={},
+                                                                       total_batch=None)
+
+        self.assertTrue(initial_param_groups[0]['lr'] == 0.2 == updated_param_groups[0]['lr'])
+
 
 if __name__ == '__main__':
     unittest.main()
