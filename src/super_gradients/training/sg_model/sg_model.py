@@ -383,6 +383,10 @@ class SgModel:
 
             load_pretrained_weights(teacher_net, teacher_architecture, teacher_pretrained_weights)
 
+        if not (teacher_pretrained_weights or teacher_checkpoint_path or load_kd_model_checkpoint):
+            raise ValueError("Expected: at least one of: teacher_pretrained_weights, teacher_checkpoint_path or "
+                             "load_kd_model_checkpoint=True")
+
         architecture = KDModule(student=student_net,
                                 teacher=teacher_net,
                                 freeze_teacher_eval_mode=freeze_teacher_eval_mode)
