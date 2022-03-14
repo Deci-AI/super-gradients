@@ -861,6 +861,10 @@ class SgModel:
         else:
             raise UnsupportedOptimizerFormat()
 
+        # VERIFY GRADIENT CLIPPING VALUE
+        if self.training_params.clip_grad_norm is not None and self.training_params.clip_grad_norm <= 0:
+            raise Exception('Params', 'Invalid clip_grad_norm')
+
         if self.load_checkpoint and load_opt_params:
             self.optimizer.load_state_dict(self.checkpoint['optimizer_state_dict'])
 
