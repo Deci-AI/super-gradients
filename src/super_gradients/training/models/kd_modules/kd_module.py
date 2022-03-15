@@ -55,3 +55,6 @@ class KDModule(SgModule):
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
                             total_batch: int) -> list:
         return self.student.update_param_groups(param_groups, lr, epoch, iter, training_params, total_batch)
+
+    def replace_head(self, **kwargs):
+        self.student.replace_head(**kwargs)
