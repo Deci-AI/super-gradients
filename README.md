@@ -48,7 +48,7 @@ Why do all the grind work, if we already did it for you? leverage tested and pro
     
 **Production Readiness and Ease of Integration**
     
-All SuperGradients models’ are production ready in the sense that they are compatible with deployment tools such as TensorRT (Nvidia) and OpenVino (Intel) and can be easily taken into production. With a few lines of code you can easily integrate the models into your codebase.
+All SuperGradients models’ are production ready in the sense that they are compatible with deployment tools such as TensorRT (Nvidia) and OpenVINO (Intel) and can be easily taken into production. With a few lines of code you can easily integrate the models into your codebase.
 
 <div align="center">
 <img src="./docs/assets/SG_img/detection-demo.png" width="600px">
@@ -104,6 +104,26 @@ ________________________________________________________________________________
 
 ## Getting Started
 
+### Start Training with Just 1 Command Line
+The most simple and straightforward way to start training SOTA performance models with SuperGradients reproducible recipes. Just define your dataset path and where you want your checkpoints to be saved and you are good to go from your terminal!
+    
+```bash
+python -m super_gradients.train_from_recipe  --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+```
+### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
+Want to try our pre-trained models on your machine? Import SuperGradients, initialize your SgModel, and load your desired architecture and pre-trained weights from our [SOTA model zoo](#computer-vision-models---pretrained-checkpoints)
+    
+```python
+# The pretrained_weights argument will load a pre-trained architecture on the provided dataset
+# This is an example of loading COCO-2017 pre-trained weights for a YOLOv5 Nano object detection model
+    
+import super_gradients
+from super_gradients.training import SgModel
+
+trainer = SgModel(experiment_name="yolov5n_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
+trainer.build_model(architecture="yolo_v5n", arch_params={"pretrained_weights": "coco", num_classes": 80})
+```   
+    
 ### Quick Start Notebook - Classification
 
 Get started with our quick start notebook for image classification tasks on Google Colab for a quick and easy start using free GPU hardware.
@@ -363,7 +383,7 @@ Deci Lab is our end to end platform for building, optimizing and deploying deep 
 Sign up for our [FREE Community Tier](https://console.deci.ai/) to enjoy immediate improvement in throughput, latency, memory footprint and model size.
 
 Features:
-- Automatically compile and quantize your models with just a few clicks (TrT, OpenVino).
+- Automatically compile and quantize your models with just a few clicks (TensorRT, OpenVINO).
 - Gain up to 10X improvement in throughput, latency, memory and model size. 
 - Easily benchmark your models’ performance on different hardware and batch sizes.
 - Invite co-workers to collaborate on models and communicate your progress.
