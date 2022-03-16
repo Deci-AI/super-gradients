@@ -108,7 +108,7 @@ ________________________________________________________________________________
 The most simple and straightforward way to start training SOTA performance models with SuperGradients reproducible recipes. Just define your dataset path and where you want your checkpoints to be saved and you are good to go from your terminal!
     
 ```bash
-python -m super_gradients.train_from_recipe  --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
 Want to try our pre-trained models on your machine? Import SuperGradients, initialize your SgModel, and load your desired architecture and pre-trained weights from our [SOTA model zoo](#computer-vision-models---pretrained-checkpoints)
@@ -286,22 +286,84 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 ### Pretrained Classification PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency b1<sub>T4</sub> | Throughput b1<sub>T4</sub> |
-|-------------------- |------ | ---------- |----------- |------ | -------- |  :------: |
-| EfficientNet B0 | ImageNet  |224x224   |  77.62   | 93.49  |**1.16ms** |**862fps** |
-| RegNet Y200 | ImageNet  |224x224   |  70.88    |   89.35  |**1.07ms**|**928.3fps** |
-| RegNet Y400  | ImageNet  |224x224   |  74.74    |   91.46  |**1.22ms** |**816.5fps** |
-| RegNet Y600  | ImageNet  |224x224   |  76.18    |  92.34   |**1.19ms** |**838.5fps** |
-| RegNet Y800   | ImageNet  |224x224   |  77.07    |  93.26   |**1.18ms** |**841.4fps** |
-| ResNet 18   | ImageNet  |224x224   |  70.6    |   89.64 |**0.599ms** |**1669fps** |
-| ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.89ms** |**1123fps** |
-| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**0.94ms** |**1063fps** |
-| MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.87ms** |**1149fps** |
-| MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.87ms** |**1149fps** |
-| MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.75ms** |**1333fps** |
-| MobileNet V2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.58ms** |**1724fps** |
+| Model | Dataset |  Resolution |    Top-1    |    Top-5   | 
+|-------------------- |------ | ---------- |----------- | :------: |
+| EfficientNet B0 | ImageNet  |224x224   |  77.62   | 93.49  |
+| RegNet Y200 | ImageNet  |224x224   |  70.88    |   89.35  |
+| RegNet Y400  | ImageNet  |224x224   |  74.74    |   91.46  |
+| RegNet Y600  | ImageNet  |224x224   |  76.18    |  92.34   |
+| RegNet Y800   | ImageNet  |224x224   |  77.07    |  93.26   |
+| ResNet 18   | ImageNet  |224x224   |  70.6    |   89.64 |
+| ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |
+| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |
+| MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |
+| MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |
+| MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |
+| MobileNet V2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |
 
+<details>
+  
+<summary> Nvidia T4 GPU - Optimized Performance </summary>
+
+| Model | Latency - HW Performance (not including IO) |Latency - Production Performance (including IO)| Throughput - Production Performance |
+|--------------- | ---------- |  ---------- | :------: |
+| EfficientNet B0 |**1.16ms**  * |**1.16ms** * |**862fps** |
+| RegNet Y200 |**0.63ms** | **1.08ms** |**925fps**|
+| RegNet Y400 |**1.16ms** * | **1.45ms** |**689fps** |
+| RegNet Y600 |**1.16ms** * |**1.47ms** |**680fps** |
+| RegNet Y800 |**1.16ms** * | **1.43ms** |**696fps** |
+| ResNet 18  |**0.52ms** | **0.95ms** |**1052fps** |
+| ResNet 34 |**0.92ms**  |**1.34ms** |**746fps** |
+| ResNet 50 |**1.03ms** | **1.44ms** |**694fps** |
+| MobileNet V3_large-150 epochs |**1.16ms** * | **0.87ms** |**1149fps** |
+| MobileNet V3_large-300 epochs |**1.16ms** * | **0.87ms** |**1149fps** |
+| MobileNet V3_small |**1.16ms** * | **0.75ms** |**1333fps** |
+| MobileNet V2_w1 |**0.43 ms** * | **0.87ms** |**1149fps** |
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1
+</details>
+
+<details>
+  
+<summary> Nvidia Jetson Xavier - Optimized Performance </summary>
+
+| Model | Latency - HW Performance (not including IO) |Latency - Production Performance (including IO)| Throughput - Production Performance |
+|--------------- | ---------- |  ---------- | :------: |
+| EfficientNet B0  |**1.16ms** * |**1.16ms** |**862fps** |
+| RegNet Y200 | **1.16ms** * |**1.07ms**|**928.3fps** |
+| RegNet Y400  | **1.16ms** *|**1.22ms** |**816.5fps** |
+| RegNet Y600  |**1.16ms** * |**1.19ms** |**838.5fps** |
+| RegNet Y800  |**1.16ms** * |**1.18ms** |**841.4fps** |
+| ResNet 18  |**1.16ms** *|**0.599ms** |**1669fps** |
+| ResNet 34  | **1.16ms** *|**0.89ms** |**1123fps** |
+| ResNet 50  | **1.16ms** *|**1.44ms** |**695fps** |
+| MobileNet V3_large-150 epochs |**1.16ms** *|**0.87ms** |**1149fps** |
+| MobileNet V3_large-300 epochs | **1.16ms** *|**0.87ms** |**1149fps** |
+| MobileNet V3_small | ImageNet  |**1.16ms** *|**0.75ms** |**1333fps** |
+| MobileNet V2_w1 |**1.16ms** *|**3.65ms** |**274fps** |
+> **NOTE:** Performance measured on Jetson Xavier with TensorRT, using FP16 precision and batch size 1
+</details>
+
+<details>
+  
+<summary> Intel Cascade Lake CPU - Optimized Performance </summary>
+
+| Model | Latency - HW Performance (not including IO) |Latency - Production Performance (including IO)| Throughput - Production Performance |
+|--------------- | ---------- |  ---------- | :------: |
+| EfficientNet B0  |  77.62  |**1.16ms** |**862fps** |
+| RegNet Y200 | 70.88  |**1.07ms**|**928.3fps** |
+| RegNet Y400  |  74.74  |**1.22ms** |**816.5fps** |
+| RegNet Y600  |  76.18  |**1.19ms** |**838.5fps** |
+| RegNet Y800  |  77.07   |**1.18ms** |**841.4fps** |
+| ResNet 18  |  70.6  |**0.599ms** |**1669fps** |
+| ResNet 34  |  74.13  |**0.89ms** |**1123fps** |
+| ResNet 50  |  79.47|**1.44ms** |**695fps** |
+| MobileNet V3_large-150 epochs |  73.79  |**0.87ms** |**1149fps** |
+| MobileNet V3_large-300 epochs |  74.52   |**0.87ms** |**1149fps** |
+| MobileNet V3_small | ImageNet  |67.45 |**0.75ms** |**1333fps** |
+| MobileNet V2_w1 |  73.08  |**0.58ms** |**1724fps** |
+> **NOTE:** Performance measured on Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
+</details>
+
 
 ### Pretrained Object Detection PyTorch Checkpoints
 
