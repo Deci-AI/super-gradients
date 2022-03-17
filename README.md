@@ -345,19 +345,19 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
   
 <summary> Intel Cascade Lake CPU - Optimized Performance </summary>
 
-| Model | Latency - HW Performance (not including IO) |Latency - Production Performance (including IO)| Throughput - Production Performance |
-|--------------- | ---------- |  ---------- | :------: |
-| EfficientNet B0  |  77.62  |**1.16ms** |**862fps** |
-| RegNet Y200 | 70.88  |**1.07ms**|**928.3fps** |
-| RegNet Y400  |  74.74  |**1.22ms** |**816.5fps** |
-| RegNet Y600  |  76.18  |**1.19ms** |**838.5fps** |
-| RegNet Y800  |  77.07   |**1.18ms** |**841.4fps** |
-| ResNet 18  |  70.6  |**0.599ms** |**1669fps** |
-| ResNet 34  |  74.13  |**0.89ms** |**1123fps** |
-| ResNet 50  |  79.47|**1.44ms** |**695fps** |
-| MobileNet V3_large |  73.79  |**0.87ms** |**1149fps** |
-| MobileNet V3_small | ImageNet  |67.45 |**0.75ms** |**1333fps** |
-| MobileNet V2_w1 |  73.08  |**0.58ms** |**1724fps** |
+| Model |Latency - Production Performance (including IO)| Throughput - Production Performance |
+|--------------- | ---------- | :------: |
+| EfficientNet B0  |**3.44ms** |**862fps** |
+| RegNet Y200 |**2.06ms**|**485.4fps** |
+| RegNet Y400  |**2.87ms** |**348.4fps** |
+| RegNet Y600  |**2.39ms** |**418.4fps** |
+| RegNet Y800  | **2.81ms** |**355.9fps** |
+| ResNet 18  |**4.56ms** |**219fps** |
+| ResNet 34  | **7.64ms** |**131fps** |
+| ResNet 50  |**9.25ms** |**108fps** |
+| MobileNet V3_large | **1.76ms** |**566fps** |
+| MobileNet V3_small |**1.06ms** |**944fps** |
+| MobileNet V2_w1 | **1.56ms** |**638fps** |
 > **NOTE:** Performance measured on Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
 </details>
 
