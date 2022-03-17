@@ -327,17 +327,16 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 
 | Model | Latency - HW Performance (not including IO) |Latency - Production Performance (including IO)| Throughput - Production Performance |
 |--------------- | ---------- |  ---------- | :------: |
-| EfficientNet B0  |**1.16ms** * |**1.16ms** |**862fps** |
-| RegNet Y200 | **1.16ms** * |**1.07ms**|**928.3fps** |
-| RegNet Y400  | **1.16ms** *|**1.22ms** |**816.5fps** |
-| RegNet Y600  |**1.16ms** * |**1.19ms** |**838.5fps** |
-| RegNet Y800  |**1.16ms** * |**1.18ms** |**841.4fps** |
-| ResNet 18  |**1.16ms** *|**0.599ms** |**1669fps** |
-| ResNet 34  | **1.16ms** *|**0.89ms** |**1123fps** |
-| ResNet 50  | **1.16ms** *|**1.44ms** |**695fps** |
-| MobileNet V3_large |**1.16ms** *|**0.87ms** |**1149fps** |
-| MobileNet V3_small | ImageNet  |**1.16ms** *|**0.75ms** |**1333fps** |
-| MobileNet V2_w1 |**1.16ms** *|**3.65ms** |**274fps** |
+| RegNet Y200 | **-** * |**4.12ms**|**243fps** |
+| RegNet Y400  | **-** *|**4.36ms** |**229fps** |
+| RegNet Y600  |**-** * |**4.29ms** |**233fps** |
+| RegNet Y800  |**-** * |**4.41ms** |**225fps** |
+| ResNet 18  |**-** *|**4.07ms** |**246fps** |
+| ResNet 34  | **-** *|**5.19ms** |**192fps** |
+| ResNet 50  | **-** *|**6.39ms** |**156fps** |
+| MobileNet V3_large |**-** *|**4.22ms** |**237fps** |
+| MobileNet V3_small |**-** *|**4.01ms** |**249fps** |
+| MobileNet V2_w1 |**-** *|**3.65ms** |**274fps** |
 > **NOTE:** Performance measured on Jetson Xavier with TensorRT, using FP16 precision and batch size 1
 </details>
 
