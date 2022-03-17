@@ -307,18 +307,17 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 
 | Model | Latency - HW Performance (not including IO) |Latency - Production Performance (including IO)| Throughput - Production Performance |
 |--------------- | ---------- |  ---------- | :------: |
-| EfficientNet B0 |**1.16ms**  * |**1.16ms** * |**862fps** |
+| EfficientNet B0 |**0.93ms**  |**1.38ms** |**724fps** |
 | RegNet Y200 |**0.63ms** | **1.08ms** |**925fps**|
-| RegNet Y400 |**1.16ms** * | **1.45ms** |**689fps** |
-| RegNet Y600 |**1.16ms** * |**1.47ms** |**680fps** |
-| RegNet Y800 |**1.16ms** * | **1.43ms** |**696fps** |
+| RegNet Y400 |**0.80ms** | **1.25ms** |**802fps** |
+| RegNet Y600 |**0.77ms** |**1.22ms** |**821fps** |
+| RegNet Y800 |**0.74ms** * | **1.19ms** |**840fps** |
 | ResNet 18  |**0.52ms** | **0.95ms** |**1052fps** |
 | ResNet 34 |**0.92ms**  |**1.34ms** |**746fps** |
 | ResNet 50 |**1.03ms** | **1.44ms** |**694fps** |
-| MobileNet V3_large-150 epochs |**1.16ms** * | **0.87ms** |**1149fps** |
-| MobileNet V3_large-300 epochs |**1.16ms** * | **0.87ms** |**1149fps** |
-| MobileNet V3_small |**1.16ms** * | **0.75ms** |**1333fps** |
-| MobileNet V2_w1 |**0.43 ms** * | **0.87ms** |**1149fps** |
+| MobileNet V3_large |**0.67ms** | **1.11ms** |**902fps** |
+| MobileNet V3_small |**0.55ms** | **0.96ms** |**1038fps** |
+| MobileNet V2_w1 |**0.46 ms**| **0.89ms** |**1121fps** |
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1
 </details>
 
@@ -336,8 +335,7 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 | ResNet 18  |**1.16ms** *|**0.599ms** |**1669fps** |
 | ResNet 34  | **1.16ms** *|**0.89ms** |**1123fps** |
 | ResNet 50  | **1.16ms** *|**1.44ms** |**695fps** |
-| MobileNet V3_large-150 epochs |**1.16ms** *|**0.87ms** |**1149fps** |
-| MobileNet V3_large-300 epochs | **1.16ms** *|**0.87ms** |**1149fps** |
+| MobileNet V3_large |**1.16ms** *|**0.87ms** |**1149fps** |
 | MobileNet V3_small | ImageNet  |**1.16ms** *|**0.75ms** |**1333fps** |
 | MobileNet V2_w1 |**1.16ms** *|**3.65ms** |**274fps** |
 > **NOTE:** Performance measured on Jetson Xavier with TensorRT, using FP16 precision and batch size 1
@@ -357,8 +355,7 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 | ResNet 18  |  70.6  |**0.599ms** |**1669fps** |
 | ResNet 34  |  74.13  |**0.89ms** |**1123fps** |
 | ResNet 50  |  79.47|**1.44ms** |**695fps** |
-| MobileNet V3_large-150 epochs |  73.79  |**0.87ms** |**1149fps** |
-| MobileNet V3_large-300 epochs |  74.52   |**0.87ms** |**1149fps** |
+| MobileNet V3_large |  73.79  |**0.87ms** |**1149fps** |
 | MobileNet V3_small | ImageNet  |67.45 |**0.75ms** |**1333fps** |
 | MobileNet V2_w1 |  73.08  |**0.58ms** |**1724fps** |
 > **NOTE:** Performance measured on Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
