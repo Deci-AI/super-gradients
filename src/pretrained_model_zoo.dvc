@@ -1,0 +1,5 @@
+outs:
+- md5: 7dc32b1629e2ff4d109c55ed0652b3f2.dir
+  size: 76198
+  nfiles: 2
+  path: pretrained_model_zoo
