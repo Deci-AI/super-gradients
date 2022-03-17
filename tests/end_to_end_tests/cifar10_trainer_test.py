@@ -12,7 +12,7 @@ class TestCifar10Trainer(unittest.TestCase):
         model = SgModel("test", model_checkpoints_location='local')
         cifar_10_dataset_interface = LibraryDatasetInterface(name="cifar10")
         model.connect_dataset_interface(cifar_10_dataset_interface)
-        model.build_model("resnet18_cifar", arch_params={'num_classes': 10}, load_checkpoint=False)
+        model.build_model("resnet18_cifar", arch_params={'num_classes': 10})
         model.train(training_params={"max_epochs": 1})
 
 

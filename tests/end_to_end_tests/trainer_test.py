@@ -39,7 +39,7 @@ class TestTrainer(unittest.TestCase):
         dataset_params = {"batch_size": 4}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
-        model.build_model("resnet18_cifar", load_checkpoint=False)
+        model.build_model("resnet18_cifar")
         return model
 
     def test_train(self):
@@ -49,7 +49,7 @@ class TestTrainer(unittest.TestCase):
     def test_save_load(self):
         model = self.get_classification_trainer(self.folder_names[1])
         model.train(training_params=self.training_params)
-        model.build_model("resnet18_cifar", load_checkpoint=True)
+        model.build_model("resnet18_cifar", arch_params={'load_checkpoint': True})
 
     def test_load_only_weights_from_ckpt(self):
         # Create a checkpoint with 100% accuracy

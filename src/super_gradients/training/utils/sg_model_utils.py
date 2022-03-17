@@ -185,6 +185,8 @@ def log_uncaught_exceptions(logger):
 
 def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict) -> tuple:
     """
+    Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
+        module manipulation (i.e head replacement).
 
     :param architecture: String, torch.nn.Module or uninstantiated SgModule class describing the netowrks architecture.
     :param arch_params: Architecture's parameters passed to networks c'tor.
