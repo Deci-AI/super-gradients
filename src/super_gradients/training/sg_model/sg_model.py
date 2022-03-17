@@ -49,7 +49,6 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment import environment_config
-from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 logger = get_logger(__name__)
 
 
@@ -244,18 +243,16 @@ class SgModel:
 
         self.arch_params = core_utils.HpmStruct(**arch_params)
 
-        pretrained_weights = core_utils.get_param(self.arch_params, 'pretrained_weights', default_val=None)
-        if pretrained_weights is not None:
-            num_classes_new_head = self.arch_params.num_classes
-            self.arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
+        # pretrained_weights = core_utils.get_param(self.arch_params, 'pretrained_weights', default_val=None)
+        # if pretrained_weights is not None:
+        #     num_classes_new_head = self.arch_params.num_classes
+        #     self.arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
 
         self.net, self.architecture_cls = sg_model_utils.instantiate_net(architecture, self.arch_params)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
         if hasattr(self.net, 'structure'):
             self.architecture = self.net.structure
-
-        self.net.to(self.device)
 
         self._prep_net_for_num_devices()
         self._set_ckpt_loading_attributes()
@@ -265,12 +262,12 @@ class SgModel:
                                            load_backbone=self.load_backbone,
                                            source_ckpt_folder_name=self.source_ckpt_folder_name,
                                            load_ema_as_net=self.load_ema_as_net)
-        if pretrained_weights:
-            load_pretrained_weights(self.net, architecture, pretrained_weights)
-            if num_classes_new_head != self.arch_params.num_classes:
-                self.net.module.replace_head(new_num_classes=num_classes_new_head)
-                self.arch_params.num_classes = num_classes_new_head
-                self.net.to(self.device)
+        # if pretrained_weights:
+        #     load_pretrained_weights(self.net, architecture, pretrained_weights)
+        #     if num_classes_new_head != self.arch_params.num_classes:
+        #         self.net.module.replace_head(new_num_classes=num_classes_new_head)
+        #         self.arch_params.num_classes = num_classes_new_head
+        #         self.net.to(self.device)
 
     def _set_ckpt_loading_attributes(self):
         self.checkpoint = {}
@@ -286,6 +283,8 @@ class SgModel:
             self.load_weights_only = core_utils.get_param(self.arch_params, 'load_weights_only', default_val=False)
 
     def _prep_net_for_num_devices(self):
+        self.net.to(self.device)
+
         # FOR MULTI-GPU TRAINING (not distributed)
         self.arch_params.sync_bn = core_utils.get_param(self.arch_params, 'sync_bn', default_val=False)
         if self.multi_gpu == MultiGPUMode.DATA_PARALLEL:

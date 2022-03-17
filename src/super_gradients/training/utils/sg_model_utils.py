@@ -12,7 +12,9 @@ from torch.utils.tensorboard import SummaryWriter
 from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.models import ARCHITECTURES
-
+from super_gradients.training.utils import get_param
+from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
+from super_gradients.training.utils.checkpoint_utils import load_pretrained_weights
 
 # TODO: These utils should move to sg_model package as internal (private) helper functions
 
@@ -188,6 +190,11 @@ def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str
     :param arch_params: Architecture's parameters passed to networks c'tor.
     :return: instantiated netowrk i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
     """
+    pretrained_weights = get_param(arch_params, 'pretrained_weights', default_val=None)
+    if pretrained_weights is not None:
+        num_classes_new_head = arch_params.num_classes
+        arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
+
     architecture_cls = None
     if isinstance(architecture, str):
         architecture_cls = ARCHITECTURES[architecture]
@@ -196,5 +203,11 @@ def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str
         net = architecture(arch_params)
     else:
         net = architecture
+
+    if pretrained_weights:
+        load_pretrained_weights(net, architecture, pretrained_weights)
+        if num_classes_new_head != arch_params.num_classes:
+            net.module.replace_head(new_num_classes=num_classes_new_head)
+            arch_params.num_classes = num_classes_new_head
 
     return net, architecture_cls
