@@ -108,8 +108,6 @@ ________________________________________________________________________________
 - [Deci Platform](#deci-platform)
 
 <!-- tocstop -->
-  
-</details>
 
 ## Getting Started
 
