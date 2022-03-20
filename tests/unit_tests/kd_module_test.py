@@ -28,11 +28,12 @@ class KDModuleTest(unittest.TestCase):
 
     def test_build_kd_module_with_pretrained_teacher(self):
         sg_model = KDModel("build_kd_module_with_pretrained_teacher", device='cpu')
-        sg_model.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'pretrained_weights': "imagenet"},
-                             )
+        sg_model.build_model(arch_params={
+            "student_architecture": 'resnet18',
+            "teacher_architecture": 'resnet50',
+            "student_arch_params": {'num_classes': 1000},
+            "teacher_arch_params": {'pretrained_weights': "imagenet"}}
+        )
         imagenet_resnet50_sg_model = SgModel("pretrained_resnet50")
         imagenet_resnet50_sg_model.build_model('resnet50', arch_params={'pretrained_weights': "imagenet",
                                                                         'num_classes': 1000})
@@ -42,12 +43,14 @@ class KDModuleTest(unittest.TestCase):
 
     def test_build_kd_module_with_pretrained_student(self):
         kd_model = KDModel("build_kd_module_with_pretrained_student", device='cpu')
-        kd_model.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'pretrained_weights': "imagenet",
-                                                  'num_classes': 1000},
-                             teacher_arch_params={'pretrained_weights': "imagenet",
-                                                  'num_classes': 1000},
+
+        kd_model.build_model(arch_params={"student_architecture": 'resnet18',
+                                          "teacher_architecture": 'resnet50',
+                                          "student_arch_params": {'pretrained_weights': "imagenet",
+                                                                  'num_classes': 1000},
+                                          "teacher_arch_params": {'pretrained_weights': "imagenet",
+                                                                  'num_classes': 1000}}
+
                              )
         imagenet_resnet18_sg_model = SgModel("pretrained_resnet18", device='cpu')
         imagenet_resnet18_sg_model.build_model('resnet18', arch_params={'pretrained_weights': "imagenet",
@@ -61,13 +64,14 @@ class KDModuleTest(unittest.TestCase):
         teacher_path = os.path.join(self.sg_trained_teacher.checkpoints_dir_path, 'ckpt_latest.pth')
 
         sg_kd_model = KDModel('test_build_kd_module_with_sg_trained_teacher', device='cpu')
-        sg_kd_model.build_model(student_architecture='resnet18',
-                                teacher_architecture='resnet50',
-                                student_arch_params={'pretrained_weights': "imagenet",
-                                                     'num_classes': 5},
-                                teacher_arch_params={'num_classes': 5},
-                                teacher_checkpoint_path=teacher_path
+        sg_kd_model.build_model(arch_params={"student_architecture": 'resnet18',
+                                             "teacher_architecture": 'resnet50',
+                                             "student_arch_params": {'pretrained_weights': "imagenet",
+                                                                     'num_classes': 5},
+                                             "teacher_arch_params": {'num_classes': 5},
+                                             "teacher_checkpoint_path": teacher_path}
                                 )
+
         self.assertTrue(sg_kd_model.net.module.student.linear.out_features == 5)
 
     def test_build_kd_module_with_sg_trained_teacher(self):
@@ -75,21 +79,23 @@ class KDModuleTest(unittest.TestCase):
         teacher_path = os.path.join(self.sg_trained_teacher.checkpoints_dir_path, 'ckpt_latest.pth')
 
         sg_kd_model = KDModel('test_build_kd_module_with_sg_trained_teacher', device='cpu')
-        sg_kd_model.build_model(student_architecture='resnet18',
-                                teacher_architecture='resnet50',
-                                student_arch_params={'num_classes': 5},
-                                teacher_arch_params={'num_classes': 5},
-                                teacher_checkpoint_path=teacher_path
+
+        sg_kd_model.build_model(arch_params={"student_architecture": 'resnet18',
+                                             "teacher_architecture": 'resnet50',
+                                             "student_arch_params": {'num_classes': 5},
+                                             "teacher_arch_params": {'num_classes': 5},
+                                             "teacher_checkpoint_path": teacher_path}
                                 )
 
-        self.assertTrue(check_models_have_same_weights(self.sg_trained_teacher.net.module, sg_kd_model.net.module.teacher))
+        self.assertTrue(
+            check_models_have_same_weights(self.sg_trained_teacher.net.module, sg_kd_model.net.module.teacher))
 
     def test_teacher_sg_module_methods(self):
         sg_model = KDModel("test_teacher_sg_module_methods", device='cpu')
-        sg_model.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'pretrained_weights': "imagenet"},
+        sg_model.build_model(arch_params={"student_architecture": 'resnet18',
+                                          "teacher_architecture": 'resnet50',
+                                          "student_arch_params": {'num_classes': 1000},
+                                          "teacher_arch_params": {'pretrained_weights': "imagenet"}}
                              )
 
         initial_param_groups = sg_model.net.module.initialize_param_groups(lr=0.1, training_params={})

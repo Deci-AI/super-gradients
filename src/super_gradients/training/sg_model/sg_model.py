@@ -222,7 +222,7 @@ class SgModel:
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def build_model(self,  # noqa: C901 - too complex
                     architecture: Union[str, nn.Module],
-                    arch_params={}):
+                    arch_params={}, *args, **kwargs):
         """
         :param architecture:               Defines the network's architecture from models/ALL_ARCHITECTURES
         :param arch_params:                Architecture H.P. e.g.: block, num_blocks, num_classes, etc.
@@ -249,7 +249,7 @@ class SgModel:
         if hasattr(self.net, 'structure'):
             self.architecture = self.net.structure
 
-        self._prep_net_for_num_devices()
+        self._net_to_device()
         self._set_ckpt_loading_attributes()
 
         if self.load_checkpoint or self.external_checkpoint_path:
@@ -274,7 +274,7 @@ class SgModel:
         if self.load_checkpoint or self.external_checkpoint_path:
             self.load_weights_only = core_utils.get_param(self.arch_params, 'load_weights_only', default_val=False)
 
-    def _prep_net_for_num_devices(self):
+    def _net_to_device(self):
         """
         Manipulates self.net according to self.multi_gpu
         """

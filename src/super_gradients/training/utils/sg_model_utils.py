@@ -209,7 +209,7 @@ def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str
     if pretrained_weights:
         load_pretrained_weights(net, architecture, pretrained_weights)
         if num_classes_new_head != arch_params.num_classes:
-            net.module.replace_head(new_num_classes=num_classes_new_head)
+            net.replace_head(new_num_classes=num_classes_new_head)
             arch_params.num_classes = num_classes_new_head
 
     return net, architecture_cls
