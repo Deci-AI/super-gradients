@@ -286,79 +286,26 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 ### Pretrained Classification PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution |    Top-1    |    Top-5   | 
-|-------------------- |------ | ---------- |----------- | :------: |
-| EfficientNet B0 | ImageNet  |224x224   |  77.62   | 93.49  |
-| RegNet Y200 | ImageNet  |224x224   |  70.88    |   89.35  |
-| RegNet Y400  | ImageNet  |224x224   |  74.74    |   91.46  |
-| RegNet Y600  | ImageNet  |224x224   |  76.18    |  92.34   |
-| RegNet Y800   | ImageNet  |224x224   |  77.07    |  93.26   |
-| ResNet 18   | ImageNet  |224x224   |  70.6    |   89.64 |
-| ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |
-| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |
-| MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |
-| MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |
-| MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |
-| MobileNet V2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |
+| Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier</sub>  | Latency (Production)**<sub>Jetson Xavier</sub> | Latency <sub>Cascade Lake</sub>  |
+|------------ | ------ | ---------- |----------- | ----------- | ----------- |---------- |----------- | ----------- | :------: |
+| EfficientNet B0 | ImageNet | 224x224 |  77.62  | 93.49 |**0.93ms** |**1.38ms** | **-** * |**-**|**3.44ms** |
+| RegNet Y200 | ImageNet  |224x224 |  70.88   | 89.35 |**0.63ms** | **1.08ms** | **-** * |**4.12ms**|**2.06ms** |
+| RegNet Y400  | ImageNet |224x224 |  74.74   | 91.46 |**0.80ms** | **1.25ms** |**-** * |**4.36ms** |**2.87ms** |
+| RegNet Y600  | ImageNet |224x224 |  76.18   | 92.34 |**0.77ms** | **1.22ms** |**-** * |**4.29ms** |**2.39ms** |
+| RegNet Y800  | ImageNet |224x224 |  77.07  |  93.26 |**0.74ms** | **1.19ms** |**-** * |**4.41ms** |**2.81ms** |
+| ResNet 18   | ImageNet  |224x224   |  70.6   |   89.64 |**0.52ms** | **0.95ms** |**-** *|**4.07ms** |**4.56ms** |
+| ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.92ms**  |**1.34ms** |**-** *|**5.19ms** | **7.64ms** |
+| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**1.03ms** | **1.44ms** | **-** *|**6.39ms** |**9.25ms** |
+| MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.67ms** | **1.11ms** |**-** *|**4.22ms** |**1.76ms** |
+| MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.67ms** | **1.11ms** |**-** *|**4.22ms** |**1.76ms** |
+| MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.55ms** | **0.96ms** |**-** *|**4.01ms** |**1.06ms** |
+| MobileNet V2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.46 ms**| **0.89ms** |**-** *|**3.65ms** | **1.56ms** |
+> **NOTE:** <br/>
+> - Latency (HW)* - Hardware performance (not including IO)<br/>
+> - Latency (Production)** - Production Performance (including IO)
+> - Performance measured for T4 and Jetson Xavier with TensorRT, using FP16 precision and batch size 1
+> - Performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
 
-<details>
-  
-<summary> Nvidia T4 GPU - Optimized Performance </summary>
-
-| Model | Latency - HW Performance (not including IO) |Latency - Production Performance (including IO)| Throughput - Production Performance |
-|--------------- | ---------- |  ---------- | :------: |
-| EfficientNet B0 |**0.93ms**  |**1.38ms** |**724fps** |
-| RegNet Y200 |**0.63ms** | **1.08ms** |**925fps**|
-| RegNet Y400 |**0.80ms** | **1.25ms** |**802fps** |
-| RegNet Y600 |**0.77ms** |**1.22ms** |**821fps** |
-| RegNet Y800 |**0.74ms** * | **1.19ms** |**840fps** |
-| ResNet 18  |**0.52ms** | **0.95ms** |**1052fps** |
-| ResNet 34 |**0.92ms**  |**1.34ms** |**746fps** |
-| ResNet 50 |**1.03ms** | **1.44ms** |**694fps** |
-| MobileNet V3_large |**0.67ms** | **1.11ms** |**902fps** |
-| MobileNet V3_small |**0.55ms** | **0.96ms** |**1038fps** |
-| MobileNet V2_w1 |**0.46 ms**| **0.89ms** |**1121fps** |
-> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1
-</details>
-
-<details>
-  
-<summary> Nvidia Jetson Xavier - Optimized Performance </summary>
-
-| Model | Latency - HW Performance (not including IO) |Latency - Production Performance (including IO)| Throughput - Production Performance |
-|--------------- | ---------- |  ---------- | :------: |
-| RegNet Y200 | **-** * |**4.12ms**|**243fps** |
-| RegNet Y400  | **-** *|**4.36ms** |**229fps** |
-| RegNet Y600  |**-** * |**4.29ms** |**233fps** |
-| RegNet Y800  |**-** * |**4.41ms** |**225fps** |
-| ResNet 18  |**-** *|**4.07ms** |**246fps** |
-| ResNet 34  | **-** *|**5.19ms** |**192fps** |
-| ResNet 50  | **-** *|**6.39ms** |**156fps** |
-| MobileNet V3_large |**-** *|**4.22ms** |**237fps** |
-| MobileNet V3_small |**-** *|**4.01ms** |**249fps** |
-| MobileNet V2_w1 |**-** *|**3.65ms** |**274fps** |
-> **NOTE:** Performance measured on Jetson Xavier with TensorRT, using FP16 precision and batch size 1
-</details>
-
-<details>
-  
-<summary> Intel Cascade Lake CPU - Optimized Performance </summary>
-
-| Model |Latency - Production Performance (including IO)| Throughput - Production Performance |
-|--------------- | ---------- | :------: |
-| EfficientNet B0  |**3.44ms** |**862fps** |
-| RegNet Y200 |**2.06ms**|**485.4fps** |
-| RegNet Y400  |**2.87ms** |**348.4fps** |
-| RegNet Y600  |**2.39ms** |**418.4fps** |
-| RegNet Y800  | **2.81ms** |**355.9fps** |
-| ResNet 18  |**4.56ms** |**219fps** |
-| ResNet 34  | **7.64ms** |**131fps** |
-| ResNet 50  |**9.25ms** |**108fps** |
-| MobileNet V3_large | **1.76ms** |**566fps** |
-| MobileNet V3_small |**1.06ms** |**944fps** |
-| MobileNet V2_w1 | **1.56ms** |**638fps** |
-> **NOTE:** Performance measured on Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
-</details>
 
 
 ### Pretrained Object Detection PyTorch Checkpoints
