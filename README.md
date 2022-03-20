@@ -296,10 +296,10 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 | ResNet 18   | ImageNet  |224x224   |  70.6   |   89.64 |**0.52ms** | **0.95ms** |**2.01ms**|**2.30ms** |**4.56ms** |
 | ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.92ms**  |**1.34ms** |**3.57ms**|**3.87ms** | **7.64ms** |
 | ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**1.03ms** | **1.44ms** | **4.78ms**|**5.10ms** |**9.25ms** |
-| MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.67ms** | **1.11ms** |**-** *|**4.22ms** |**1.76ms** |
-| MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.67ms** | **1.11ms** |**-** *|**4.22ms** |**1.76ms** |
-| MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.55ms** | **0.96ms** |**-** *|**4.01ms** |**1.06ms** |
-| MobileNet V2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.46 ms**| **0.89ms** |**-** *|**3.65ms** | **1.56ms** |
+| MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.67ms** | **1.11ms** |**2.42ms** |**2.71ms** |**1.76ms** |
+| MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.67ms** | **1.11ms** |**2.42ms** |**2.71ms** |**1.76ms** |
+| MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.55ms** | **0.96ms** |**2.01ms** *|**2.35ms** |**1.06ms** |
+| MobileNet V2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.46 ms**| **0.89ms** |**1.65ms** *|**1.90ms** | **1.56ms** |
 > **NOTE:** <br/>
 > - Latency (HW)* - Hardware performance (not including IO)<br/>
 > - Latency (Production)** - Production Performance (including IO)
