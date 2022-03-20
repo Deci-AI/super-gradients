@@ -289,13 +289,13 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 | Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier</sub>  | Latency (Production)**<sub>Jetson Xavier</sub> | Latency <sub>Cascade Lake</sub>  |
 |------------ | ------ | ---------- |----------- | ----------- | ----------- |---------- |----------- | ----------- | :------: |
 | EfficientNet B0 | ImageNet | 224x224 |  77.62  | 93.49 |**0.93ms** |**1.38ms** | **-** * |**-**|**3.44ms** |
-| RegNet Y200 | ImageNet  |224x224 |  70.88   | 89.35 |**0.63ms** | **1.08ms** | **-** * |**4.12ms**|**2.06ms** |
-| RegNet Y400  | ImageNet |224x224 |  74.74   | 91.46 |**0.80ms** | **1.25ms** |**-** * |**4.36ms** |**2.87ms** |
-| RegNet Y600  | ImageNet |224x224 |  76.18   | 92.34 |**0.77ms** | **1.22ms** |**-** * |**4.29ms** |**2.39ms** |
-| RegNet Y800  | ImageNet |224x224 |  77.07  |  93.26 |**0.74ms** | **1.19ms** |**-** * |**4.41ms** |**2.81ms** |
-| ResNet 18   | ImageNet  |224x224   |  70.6   |   89.64 |**0.52ms** | **0.95ms** |**-** *|**4.07ms** |**4.56ms** |
-| ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.92ms**  |**1.34ms** |**-** *|**5.19ms** | **7.64ms** |
-| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**1.03ms** | **1.44ms** | **-** *|**6.39ms** |**9.25ms** |
+| RegNet Y200 | ImageNet  |224x224 |  70.88   | 89.35 |**0.63ms** | **1.08ms** | **2.16ms** |**2.47ms**|**2.06ms** |
+| RegNet Y400  | ImageNet |224x224 |  74.74   | 91.46 |**0.80ms** | **1.25ms** |**2.62ms** |**2.91ms** |**2.87ms** |
+| RegNet Y600  | ImageNet |224x224 |  76.18   | 92.34 |**0.77ms** | **1.22ms** |**2.64ms** |**2.93ms** |**2.39ms** |
+| RegNet Y800  | ImageNet |224x224 |  77.07  |  93.26 |**0.74ms** | **1.19ms** |**2.77ms** |**3.04ms** |**2.81ms** |
+| ResNet 18   | ImageNet  |224x224   |  70.6   |   89.64 |**0.52ms** | **0.95ms** |**2.01ms**|**2.30ms** |**4.56ms** |
+| ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.92ms**  |**1.34ms** |**3.57ms**|**3.87ms** | **7.64ms** |
+| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**1.03ms** | **1.44ms** | **4.78ms**|**5.10ms** |**9.25ms** |
 | MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.67ms** | **1.11ms** |**-** *|**4.22ms** |**1.76ms** |
 | MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.67ms** | **1.11ms** |**-** *|**4.22ms** |**1.76ms** |
 | MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.55ms** | **0.96ms** |**-** *|**4.01ms** |**1.06ms** |
