@@ -15,7 +15,7 @@ ______________________________________________________________________
   <a href="#computer-vision-models---pretrained-checkpoints">Pretrained Models</a> •
   <a href="#community">Community</a> •
   <a href="#license">License</a> •
-  <a href="#deci-lab">Deci Lab</a>
+  <a href="#deci-platform">Deci Platform</a>
 </p>
   
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
@@ -385,9 +385,9 @@ This project is released under the [Apache 2.0 license](LICENSE).
 __________________________________________________________________________________________________________
 
 
-## Deci Lab
+## Deci Platform
 
-Deci Lab is our end to end platform for building, optimizing and deploying deep learning models to production.
+Deci Platform is our end to end platform for building, optimizing and deploying deep learning models to production.
 
 Sign up for our [FREE Community Tier](https://console.deci.ai/) to enjoy immediate improvement in throughput, latency, memory footprint and model size.
 
@@ -398,5 +398,5 @@ Features:
 - Invite co-workers to collaborate on models and communicate your progress.
 - Deci supports all common frameworks and Hardware, from Intel CPUs to Nvidia's GPUs and Jetsons.
 
-Sign up for Deci Lab for free [here](https://console.deci.ai/) 
+Sign up for Deci Platform for free [here](https://console.deci.ai/) 
 
