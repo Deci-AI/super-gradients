@@ -286,7 +286,7 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 ### Pretrained Classification PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier</sub>  | Latency (Production)**<sub>Jetson Xavier</sub> | Latency <sub>Cascade Lake</sub>  |
+| Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
 |------------ | ------ | ---------- |----------- | ----------- | ----------- |---------- |----------- | ----------- | :------: |
 | EfficientNet B0 | ImageNet | 224x224 |  77.62  | 93.49 |**0.93ms** |**1.38ms** | **-** * |**-**|**3.44ms** |
 | RegNet Y200 | ImageNet  |224x224 |  70.88   | 89.35 |**0.63ms** | **1.08ms** | **2.16ms** |**2.47ms**|**2.06ms** |
@@ -303,7 +303,7 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 > **NOTE:** <br/>
 > - Latency (HW)* - Hardware performance (not including IO)<br/>
 > - Latency (Production)** - Production Performance (including IO)
-> - Performance measured for T4 and Jetson Xavier with TensorRT, using FP16 precision and batch size 1
+> - Performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1
 > - Performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
 
 
@@ -311,7 +311,7 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 ### Pretrained Object Detection PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier</sub>  | Latency (Production)**<sub>Jetson Xavier</sub> | Latency <sub>Cascade Lake</sub>  |
+| Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
 |------------- |------ | ---------- |------ | -------- |------ | ---------- |------ | :------: |
 | YOLOv5 nano | COCO |640x640 |27.7  |**1.48ms** |**5.43ms**|**9.28ms** |**17.44ms** |**21.71ms**|
 | YOLOv5 small | COCO |640x640 |37.3 |**2.29ms** |**6.14ms**|**14.31ms** |**22.50ms** |**34.10ms**|
@@ -319,7 +319,11 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 | YOLOv5 large | COCO |640x640 |48.0 |**7.20ms** |**10.28ms**|**43.89ms** |**51.92ms** |**122.97ms**|
   
 
-> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (throughput)
+> **NOTE:** <br/>
+> - Latency (HW)* - Hardware performance (not including IO)<br/>
+> - Latency (Production)** - Production Performance (including IO)
+> - Latency performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1
+> - Latency performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
 
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
