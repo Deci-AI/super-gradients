@@ -10,7 +10,9 @@ ______________________________________________________________________
   <a href="#why-use-supergradients">Why Use SG?</a> •
   <a href="https://deci-ai.github.io/super-gradients/user_guide.html#introducing-the-supergradients-library">User Guide</a> •
   <a href="https://deci-ai.github.io/super-gradients/super_gradients.common.html">Docs</a> •
-  <a href="#computer-vision-models---pretrained-checkpoints">SOTA Pretrained Models</a> •
+  <a href="#getting-started">Getting Started Notebooks</a> •
+  <a href="#transfer-learning">Transfer Learning</a> •  
+  <a href="#computer-vision-models---pretrained-checkpoints">Pretrained Models</a> •
   <a href="#community">Community</a> •
   <a href="#license">License</a> •
   <a href="#deci-lab">Deci Lab</a>
@@ -54,31 +56,35 @@ All SuperGradients models’ are production ready in the sense that they are com
 
 
 ## What's New
+* 【09/03/2022】 New [quick start](#quick-start-notebook---semantic-segmentation) and [transfer learning](#transfer-learning-with-sg-notebook---semantic-segmentation) example notebooks for Semantic Segmentation.
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
 * 【01/02/2022】 We added issue templates for feature requests and bug reporting.
 * 【20/01/2022】 STDC family - new recipes added with even higher mIoU💪
-* 【17/01/2022】 We have released transfer learning example [notebook](https://colab.research.google.com/drive/1ZR_cvy8tQB_fTZwB2SQxg3RfIVKxNxRO?usp=sharing) for object detection (YOLOv5).
+* 【17/01/2022】 We have released transfer learning example [notebook](#transfer-learning-with-sg-notebook---object-detection) for object detection (YOLOv5).
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Comming soon
+- [ ] ViT models (Vision Transformer).
+- [ ] Knowledge Distillation support.
 - [ ] YOLOX models (recipes, pre-trained checkpoints).
 - [ ] SSD MobileNet models (recipes, pre-trained checkpoints) for edge devices deployment.
-- [ ] Transfer learning example notebook for semantic segmentation (STDC).
 - [ ] Dali implementation.
 - [ ] Integration with professional tools.
 
 __________________________________________________________________________________________________________
 ### Table of Content
-<details> 
-<summary>See Table </summary>
+
 <!-- toc -->
 
 - [Getting Started](#getting-started)
     - [Quick Start Notebook - classification example](#quick-start-notebook---classification)
     - [Quick Start Notebook - object detection example](#quick-start-notebook---object-detection)
+    - [Quick Start Notebook - semantic segmentation example](#quick-start-notebook---semantic-segmentation)
     - [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
+- [Transfer Learning](#transfer-learning)  
     - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
+    - [Transfer Learning with SG Notebook - Semantic segmentation example](#transfer-learning-with-sg-notebook---semantic-segmentation)
 - [Installation Methods](#installation-methods)
     - [Prerequisites](#prerequisites)
     - [Quick Installation](#quick-installation)
@@ -104,7 +110,7 @@ Get started with our quick start notebook for image classification tasks on Goog
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing&utm_campaign=SG%20github%20repo&utm_source=Google%20Colab&utm_medium=GitHub%20Repo&utm_content=Quickstart%20classification%20notebook%20-%20README.md"><img src="./docs/assets/SG_img/colab_logo.png" />Classification Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_classification.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -121,7 +127,7 @@ Get started with our quick start notebook for object detection tasks on Google C
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1s5frO-0dt5IYaaX49SgfLKCTJR6wLt4y?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Quick Start in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1s5frO-0dt5IYaaX49SgfLKCTJR6wLt4y?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -132,6 +138,23 @@ Get started with our quick start notebook for object detection tasks on Google C
 </table>
  </br></br>
 
+### Quick Start Notebook - Semantic Segmentation
+
+Get started with our quick start notebook for semantic segmentation tasks on Google Colab for a quick and easy start using free GPU hardware.
+
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://colab.research.google.com/drive/1taz1lXDnfiLWoH88ZN60nxmQDTW5VU2H?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Quick Start in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+ 
 ### SuperGradients Complete Walkthrough Notebook
 
 Learn more about SuperGradients training components with our walkthrough notebook on Google Colab for an easy to use tutorial using free GPU hardware
@@ -148,17 +171,35 @@ Learn more about SuperGradients training components with our walkthrough noteboo
  </td>
 </table>
  </br></br>
-
+ 
+ 
+ ## Transfer Learning
  ### Transfer Learning with SG Notebook - Object Detection
 
 Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1JCrPKX3BV9wjig5d7qyH-sjwSbiOvFs8?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Transfer Learning in Google Colab</a>
+   <a target="_blank" href="https://colab.research.google.com/drive/1JCrPKX3BV9wjig5d7qyH-sjwSbiOvFs8?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Transfer Learning in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_object_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+ 
+### Transfer Learning with SG Notebook - Semantic Segmentation
+Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
+
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://colab.research.google.com/drive/1x8MpySPMqgYna1oei5URT0uBqIY3dnpM?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Transfer Learning in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_semantic_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>

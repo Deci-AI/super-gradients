@@ -39,7 +39,7 @@ dataset = Cifar10DatasetInterface(dataset_params={"batch_size": 64})
 model.connect_dataset_interface(dataset, data_loader_num_workers=8)
 
 # Build Model
-model.build_model(net, load_checkpoint=False)
+model.build_model(net)
 
 train_params = {"max_epochs": 300,
                 "phase_callbacks": phase_callbacks,

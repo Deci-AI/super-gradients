@@ -32,7 +32,7 @@ class TestWithoutTrainTest(unittest.TestCase):
         dataset_params = {"batch_size": 4}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
-        model.build_model("resnet18_cifar", load_checkpoint=False)
+        model.build_model("resnet18_cifar")
         return model
 
     @staticmethod
@@ -55,7 +55,7 @@ class TestWithoutTrainTest(unittest.TestCase):
                         post_prediction_callback=post_prediction_callback)
         dataset_interface = DetectionTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset_interface, data_loader_num_workers=4)
-        model.build_model('yolo_v3', arch_params=yolo_v3_arch_params, load_checkpoint=False)
+        model.build_model('yolo_v3', arch_params=yolo_v3_arch_params)
         return model
 
     @staticmethod
