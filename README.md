@@ -313,10 +313,10 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier</sub>  | Latency (Production)**<sub>Jetson Xavier</sub> | Latency <sub>Cascade Lake</sub>  |
 |------------- |------ | ---------- |------ | -------- |------ | ---------- |------ | :------: |
-| YOLOv5 nano | COCO |640x640 |27.7  |**6.55ms** |**9.28ms** |**17.44ms** |
-| YOLOv5 small | COCO |640x640 |37.3 |**7.13ms** |**14.31ms** |**22.50ms** |
-| YOLOv5 medium| COCO |640x640 |45.2 |**8.95ms** |**26.76ms** |**34.95ms** |
-| YOLOv5 large | COCO |640x640 |48.0 |**11.49ms** |**43.89ms** |**51.92ms** |
+| YOLOv5 nano | COCO |640x640 |27.7  |**1.48ms** |**5.43ms**|**9.28ms** |**17.44ms** |**21.71ms**|
+| YOLOv5 small | COCO |640x640 |37.3 |**2.29ms** |**6.14ms**|**14.31ms** |**22.50ms** |**34.10ms**|
+| YOLOv5 medium| COCO |640x640 |45.2 |**4.60ms** |**8.10ms**|**26.76ms** |**34.95ms** |**65.86ms**|
+| YOLOv5 large | COCO |640x640 |48.0 |**7.20ms** |**10.28ms**|**43.89ms** |**51.92ms** |**122.97ms**|
   
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (throughput)
