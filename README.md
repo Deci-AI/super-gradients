@@ -216,7 +216,7 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1x8MpySPMqgYna1oei5URT0uBqIY3dnpM?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Transfer Learning in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/37P04PN"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Transfer Learning in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_semantic_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
