@@ -147,7 +147,7 @@ Get started with our quick start notebook for object detection tasks on Google C
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1s5frO-0dt5IYaaX49SgfLKCTJR6wLt4y?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/3wqMsEM"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
