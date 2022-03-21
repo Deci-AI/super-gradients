@@ -200,7 +200,7 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1JCrPKX3BV9wjig5d7qyH-sjwSbiOvFs8?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Transfer Learning in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/3iGvnP7"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Transfer Learning in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_object_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
