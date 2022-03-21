@@ -54,7 +54,13 @@ All SuperGradients models’ are production ready in the sense that they are com
 <img src="./docs/assets/SG_img/detection-demo.png" width="600px">
 </div>
 
-
+    
+ <div align="center">   
+<a button data-tf-popup="OpKda0Qe" data-tf-iframe-props="title=SG survey" data-tf-medium="snippet" style="all:unset;font-family:Helvetica,Arial,sans-serif;display:inline-block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background-color:#0445AF;color:#FFFFFF;font-size:20px;border-radius:25px;padding:0 33px;font-weight:bold;height:50px;cursor:pointer;line-height:50px;text-align:center;margin:0;text-decoration:none;" href="//embed.typeform.com/next/embed.js">Launch me</button>
+</div>  
+    
+  
+    
 ## What's New
 * 【09/03/2022】 New [quick start](#quick-start-notebook---semantic-segmentation) and [transfer learning](#transfer-learning-with-sg-notebook---semantic-segmentation) example notebooks for Semantic Segmentation.
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
