@@ -1,9 +1,9 @@
+import collections
 import os
 import numpy as np
 import torch
 import torchvision
 import torchvision.datasets as datasets
-import torchvision.transforms as transforms
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from torch.utils.data.distributed import DistributedSampler
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
@@ -27,7 +27,10 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
 from super_gradients.training.utils.utils import download_and_unzip_from_url
 from super_gradients.training.utils import get_param
 import torchvision.transforms as transforms
-from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
+from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import \
+    SuperviselyPersonsDataset
+from super_gradients.common.environment import environment_config
+from functools import wraps
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -226,6 +229,31 @@ class DatasetInterface:
         logger.info("{} training samples, {} val samples, {} classes".format(len(self.trainset), len(self.valset),
                                                                              len(self.trainset.classes)))
 
+    def create_data_loader(self, dataset, shuffle, batch_size, batch_size_factor=1, num_workers=8,
+                           train_batch_size=None,
+                           distributed_sampler: bool = False, drop_last=False, collate_fn=None):
+
+        data_loader = None
+        sampler = None
+
+        if distributed_sampler and dataset:
+            sampler = DistributedSampler(dataset)
+            shuffle = False
+        else:
+            train_sampler = None
+
+
+        if dataset is not None:
+            data_loader = torch.utils.data.DataLoader(dataset,
+                                                      batch_size=train_batch_size,
+                                                      shuffle=shuffle,
+                                                      num_workers=num_workers,
+                                                      pin_memory=True,
+                                                      sampler=train_sampler,
+                                                      collate_fn=collate_fn,
+                                                      drop_last=drop_last)
+
+        return data_loader
 
 class ExternalDatasetInterface(DatasetInterface):
     def __init__(self, train_loader, val_loader, num_classes, dataset_params={}):
@@ -313,8 +341,10 @@ class LibraryDatasetInterface(DatasetInterface):
             self.lib_dataset_params['mean'], self.lib_dataset_params['std'] = datasets_utils.get_mean_and_std(trainset)
 
         # OVERWRITE MEAN AND STD IF DEFINED IN DATASET PARAMS
-        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean', default_val=self.lib_dataset_params['mean'])
-        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std', default_val=self.lib_dataset_params['std'])
+        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean',
+                                                               default_val=self.lib_dataset_params['mean'])
+        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std',
+                                                              default_val=self.lib_dataset_params['std'])
 
         crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=32)
 
@@ -432,6 +462,7 @@ class DaliDatasetInterfaceBase(DatasetInterface):
 
 
     """
+
     def __init__(self, dataset_params={}):
         super(DaliDatasetInterfaceBase, self).__init__(dataset_params)
         self.nvidia_dali_data_loading = core_utils.get_param(self.dataset_params, 'nvidia_dali_data_loading',
@@ -467,7 +498,7 @@ class DaliDatasetInterfaceBase(DatasetInterface):
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
         """
-        Ovverriding parent's method to support DALI.
+        Overriding parent's method to support DALI.
         Instantiates Dali data loader wrappers instead of torch data loaders.
 
         :param batch_size_factor: Multipliation factor for batch size (only relevant in DP, and will be num_devices in that case)
@@ -546,6 +577,7 @@ class DaliClassificationDatasetInterface(DaliDatasetInterfaceBase):
     Only difference is create_dali_data_loader which creates the pipelines, then wrapps them in
     DaliClassificationDataLoader wrapper.
     """
+
     def __init__(self, dataset_params={}):
         super(DaliClassificationDatasetInterface, self).__init__(dataset_params)
 
