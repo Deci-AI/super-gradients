@@ -35,9 +35,16 @@ load_checkpoint: False
 
 experiment_name: efficientnet_b0_imagenet
 
+ckpt_root_dir:
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: 'DDP'
+
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
   model_checkpoints_location: ${model_checkpoints_location}
+  ckpt_root_dir: ${ckpt_root_dir}
 
 architecture: efficientnet_b0
