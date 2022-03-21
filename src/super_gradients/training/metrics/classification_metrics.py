@@ -2,7 +2,7 @@ from super_gradients.training.utils import convert_to_tensor
 import torch
 import torchmetrics
 from torchmetrics import Metric
-
+from super_gradients.training.models.kd_modules.kd_module import KDOutput
 
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k
@@ -32,6 +32,16 @@ def accuracy(output, target, topk=(1,)):
         correct_k = correct[:k].reshape(-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size).item())
     return res
+
+
+class KDAccuracy(torchmetrics.Accuracy):
+    def __init__(self, dist_sync_on_step=False):
+        super().__init__(dist_sync_on_step=dist_sync_on_step)
+
+    def update(self, preds: KDOutput, target: torch.Tensor):
+        if target.shape == preds.student_output.shape:
+            target = target.argmax(1)  # supports smooth labels
+        super().update(preds=preds.student_output.argmax(1), target=target)
 
 
 class Accuracy(torchmetrics.Accuracy):
