@@ -130,7 +130,7 @@ Get started with our quick start notebook for image classification tasks on Goog
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing&utm_campaign=SG%20github%20repo&utm_source=Google%20Colab&utm_medium=GitHub%20Repo&utm_content=Quickstart%20classification%20notebook%20-%20README.md"><img src="./docs/assets/SG_img/colab_logo.png" />Classification Quick Start in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/3ufnsgT"><img src="./docs/assets/SG_img/colab_logo.png" />Classification Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_classification.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
