@@ -164,7 +164,7 @@ Get started with our quick start notebook for semantic segmentation tasks on Goo
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1taz1lXDnfiLWoH88ZN60nxmQDTW5VU2H?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Quick Start in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/3Jp7w1U"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
