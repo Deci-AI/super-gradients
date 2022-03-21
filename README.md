@@ -54,8 +54,11 @@ All SuperGradients models’ are production ready in the sense that they are com
 <img src="./docs/assets/SG_img/detection-demo.png" width="600px">
 </div>
 
-### Missing a model or a feature? 
-#### Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate. [Fill Survey](https://hz8qtlvwkaw.typeform.com/to/OpKda0Qe)
+<div align="center">
+<h3>Missing a Model or a Feature?</h3>
+</div>
+    
+#### Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -> [Fill Survey](https://hz8qtlvwkaw.typeform.com/to/OpKda0Qe)
 
     
 ## What's New
