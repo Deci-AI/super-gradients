@@ -1,4 +1,3 @@
-import collections
 import os
 import numpy as np
 import torch
@@ -26,8 +25,18 @@ from tqdm import tqdm
 from pathlib import Path
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
 from super_gradients.training.utils.utils import download_and_unzip_from_url
-from super_gradients.common.environment import environment_config
-from functools import wraps
+from super_gradients.training.utils import get_param
+import torchvision.transforms as transforms
+from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
+
+default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
+                          "s3_link": None}
+LIBRARY_DATASETS = {
+    "cifar10": {'class': datasets.CIFAR10, 'mean': (0.4914, 0.4822, 0.4465), 'std': (0.2023, 0.1994, 0.2010)},
+    "cifar100": {'class': datasets.CIFAR100, 'mean': (0.5071, 0.4865, 0.4409), 'std': (0.2673, 0.2564, 0.2762)},
+    "SVHN": {'class': datasets.SVHN, 'mean': None, 'std': None}
+}
+
 logger = get_logger(__name__)
 
 try:
@@ -42,14 +51,6 @@ try:
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warn('Failed to import Nvidia DALI')
     _imported_dali_failiure = import_err
-
-default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
-                          "s3_link": None}
-LIBRARY_DATASETS = {
-    "cifar10": {'class': datasets.CIFAR10, 'mean': (0.4914, 0.4822, 0.4465), 'std': (0.2023, 0.1994, 0.2010)},
-    "cifar100": {'class': datasets.CIFAR100, 'mean': (0.5071, 0.4865, 0.4409), 'std': (0.2673, 0.2564, 0.2762)},
-    "SVHN": {'class': datasets.SVHN, 'mean': None, 'std': None}
-}
 
 
 class DatasetInterface:
@@ -310,6 +311,10 @@ class LibraryDatasetInterface(DatasetInterface):
             trainset = torchvision.datasets.SVHN(root=self.dataset_params.dataset_dir, split='train', download=True,
                                                  transform=transforms.ToTensor())
             self.lib_dataset_params['mean'], self.lib_dataset_params['std'] = datasets_utils.get_mean_and_std(trainset)
+
+        # OVERWRITE MEAN AND STD IF DEFINED IN DATASET PARAMS
+        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean', default_val=self.lib_dataset_params['mean'])
+        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std', default_val=self.lib_dataset_params['std'])
 
         crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=32)
 
@@ -589,8 +594,8 @@ class ImageNetDatasetInterface(DaliClassificationDatasetInterface):
         data_dir = dataset_params['dataset_dir'] if 'dataset_dir' in dataset_params.keys() else data_dir
         self.traindir = os.path.join(os.path.abspath(data_dir), 'train')
         self.valdir = os.path.join(data_dir, 'val')
-        img_mean = [0.485, 0.456, 0.406]
-        img_std = [0.229, 0.224, 0.225]
+        img_mean = core_utils.get_param(self.dataset_params, 'img_mean', default_val=[0.485, 0.456, 0.406])
+        img_std = core_utils.get_param(self.dataset_params, 'img_std', default_val=[0.229, 0.224, 0.225])
         normalize = transforms.Normalize(mean=img_mean,
                                          std=img_std)
 
@@ -694,8 +699,11 @@ class TinyImageNetDatasetInterface(DatasetInterface):
         data_dir = dataset_params['dataset_dir'] if 'dataset_dir' in dataset_params.keys() else data_dir
         traindir = os.path.join(os.path.abspath(data_dir), 'train')
         valdir = os.path.join(data_dir, 'val')
-        normalize = transforms.Normalize(mean=[0.4802, 0.4481, 0.3975],
-                                         std=[0.2770, 0.2691, 0.2821])
+
+        img_mean = core_utils.get_param(self.dataset_params, 'img_mean', default_val=[0.4802, 0.4481, 0.3975])
+        img_std = core_utils.get_param(self.dataset_params, 'img_std', default_val=[0.2770, 0.2691, 0.2821])
+        normalize = transforms.Normalize(mean=img_mean,
+                                         std=img_std)
 
         crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=56)
         resize_size = core_utils.get_param(self.dataset_params, 'resize_size', default_val=64)
@@ -1066,7 +1074,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                 url + 'VOCtrainval_11-May-2012.zip']  # 1.95GB, 17126 images
         download_and_unzip_from_url(urls, dir=dir / 'images', delete=delete)
         # Convert
-        path = dir / f'images/VOCdevkit'
+        path = dir / 'images/VOCdevkit'
         for year, image_set in ('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test'):
             imgs_path = dir / 'images' / f'{image_set}{year}'
             lbs_path = dir / 'labels' / f'{image_set}{year}'
@@ -1078,3 +1086,31 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
                 lb_path = (lbs_path / f.name).with_suffix('.txt')  # new label path
                 f.rename(imgs_path / f.name)  # move image
                 convert_label(path, lb_path, year, id)  # convert labels to YOLO format
+
+
+class SuperviselyPersonsDatasetInterface(DatasetInterface):
+    def __init__(self, dataset_params=None, cache_labels: bool = False, cache_images: bool = False):
+        super().__init__(dataset_params=dataset_params)
+        root_dir = get_param(dataset_params, "dataset_dir", "/data/supervisely-persons")
+
+        self.trainset = SuperviselyPersonsDataset(
+            root_dir=root_dir,
+            list_file='train.csv',
+            dataset_hyper_params=dataset_params,
+            cache_labels=cache_labels,
+            cache_images=cache_images,
+            image_mask_transforms_aug=get_param(dataset_params, "image_mask_transforms_aug", transforms.Compose([])),
+            augment=True
+        )
+
+        self.valset = SuperviselyPersonsDataset(
+            root_dir=root_dir,
+            list_file='val.csv',
+            dataset_hyper_params=dataset_params,
+            cache_labels=cache_labels,
+            cache_images=cache_images,
+            image_mask_transforms=get_param(dataset_params, "image_mask_transforms", transforms.Compose([])),
+            augment=False
+        )
+
+        self.classes = self.trainset.classes
