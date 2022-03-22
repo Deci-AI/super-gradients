@@ -44,7 +44,7 @@ from super_gradients.training.utils.weight_averaging_utils import ModelWeightAve
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
 from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path, read_ckpt_state_dict, \
-    load_checkpoint_to_model, load_pretrained_weights
+    load_checkpoint_to_model
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT
@@ -338,12 +338,14 @@ class SgModel:
                 # COMPUTE THE LOSS FOR BACK PROP + EXTRA METRICS COMPUTED DURING THE LOSS FORWARD PASS
                 loss, loss_log_items = self._get_losses(outputs, targets)
 
-            context.update_context(batch_idx=batch_idx,
-                                   inputs=inputs,
-                                   preds=outputs,
-                                   target=targets,
-                                   loss_log_items=loss_log_items,
-                                   **additional_batch_items)
+            self.update_context(context,
+                                batch_idx=batch_idx,
+                                inputs=inputs,
+                                preds=outputs,
+                                target=targets,
+                                loss_log_items=loss_log_items,
+                                **additional_batch_items
+                                )
 
             self.phase_callback_handler(Phase.TRAIN_BATCH_END, context)
 
@@ -866,7 +868,7 @@ class SgModel:
 
                 # Phase.TRAIN_EPOCH_START
                 # RUN PHASE CALLBACKS
-                context.update_context(epoch=epoch)
+                self.update_context(context, epoch=epoch)
                 self.phase_callback_handler(Phase.TRAIN_EPOCH_START, context)
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
@@ -881,7 +883,7 @@ class SgModel:
                 train_metrics_dict = get_metrics_dict(train_metrics_tuple, self.train_metrics,
                                                       self.loss_logging_items_names)
 
-                context.update_context(metrics_dict=train_metrics_dict)
+                self.update_context(context, metrics_dict=train_metrics_dict)
                 self.phase_callback_handler(Phase.TRAIN_EPOCH_END, context)
 
                 # CALCULATE PRECISE BATCHNORM STATS
@@ -912,7 +914,7 @@ class SgModel:
                     valid_metrics_dict = get_metrics_dict(validation_results_tuple, self.valid_metrics,
                                                           self.loss_logging_items_names)
 
-                    context.update_context(metrics_dict=valid_metrics_dict)
+                    self.update_context(context, metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler(Phase.VALIDATION_EPOCH_END, context)
 
                 if self.ema:
@@ -1612,12 +1614,13 @@ class SgModel:
                     # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
                     loss_tuple = self._get_losses(output, targets)[1].cpu()
 
-                context.update_context(batch_idx=batch_idx,
-                                       inputs=inputs,
-                                       preds=output,
-                                       target=targets,
-                                       loss_log_items=loss_tuple,
-                                       **additional_batch_items)
+                self.update_context(context,
+                                    batch_idx=batch_idx,
+                                    inputs=inputs,
+                                    preds=output,
+                                    target=targets,
+                                    loss_log_items=loss_tuple,
+                                    **additional_batch_items)
 
                 # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
                 if evaluation_type == EvaluationType.VALIDATION:
@@ -1653,3 +1656,14 @@ class SgModel:
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
         return logging_values
+
+    @staticmethod
+    def update_context(context: PhaseContext, **kwargs):
+        """
+        Updates phase context with **kwargs
+
+        :param context: phase context to be updated
+        :param kwargs: kwargs to be set as the context's attributes.
+        """
+        context.update_context(**kwargs)
+

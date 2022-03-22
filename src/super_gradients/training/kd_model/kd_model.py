@@ -7,6 +7,7 @@ from super_gradients.training.utils import sg_model_utils
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, load_checkpoint_to_model
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import get_param
+from super_gradients.training.utils.callbacks import PhaseContext
 
 logger = get_logger(__name__)
 
@@ -140,3 +141,15 @@ class KDModel(SgModel):
 
         super(KDModel, self).build_model(architecture=architecture,
                                          arch_params=arch_params)
+
+    @staticmethod
+    def update_context(context: PhaseContext, **kwargs):
+
+        # OVERRIDE PREDS WITH STUDENT OUTPUT TO FIT METRIC CALLBACKS
+        if 'preds' in kwargs.keys():
+            kwargs['teacher_output'] = kwargs['preds'].teacher_output
+            kwargs['preds'] = kwargs['preds'].student_output
+
+        SgModel.update_context(context, **kwargs)
+
+
