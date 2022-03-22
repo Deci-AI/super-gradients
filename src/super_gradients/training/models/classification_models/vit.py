@@ -10,7 +10,8 @@ import torch
 from torch import nn
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param
-from einops import rearrange, repeat
+from einops import repeat
+from super_gradients.training.utils import HpmStruct
 
 
 class PatchEmbed(nn.Module):
@@ -171,6 +172,22 @@ class ViT(SgModule):
             return x
         else:
             return self.head(x)
+
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
+                            total_batch: int) -> list:
+
+        for param_group in param_groups:
+            param_group['lr'] = lr
+        return param_groups
+
+
+    def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
+        """
+
+        :return: list of dictionaries containing the key 'named_params' with a list of named params
+        """
+        print("Here")
+        return [{'named_params': self.named_parameters()}]
 
 
 def vit_base(arch_params, num_classes=None, backbone_mode=None):
