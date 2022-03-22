@@ -1,17 +1,10 @@
 from super_gradients.training.models.sg_module import SgModule
-import torch
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils import get_param
 from collections import namedtuple
 
 
 KDOutput = namedtuple('KDOutput', 'student_output teacher_output')
-
-
-# class KDOutput():
-#     def __init__(self, student_output: torch.Tensor, teacher_output: torch.Tensor):
-#         self.student_output = student_output
-#         self.teacher_output = teacher_output
 
 
 class KDModule(SgModule):

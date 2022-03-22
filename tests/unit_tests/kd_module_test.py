@@ -6,15 +6,18 @@ import torch
 from super_gradients.training.utils.utils import check_models_have_same_weights
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy
+from super_gradients.training.models.classification_models.resnet import ResNet50, ResNet18
+from super_gradients.training.losses.kd_losses import KDLogitsLoss
+from copy import deepcopy
 
 
 class KDModuleTest(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls.sg_trained_teacher = SgModel("sg_trained_teacher", device='cpu')
-        dataset_params = {"batch_size": 10}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        cls.sg_trained_teacher.connect_dataset_interface(dataset)
+        cls.dataset_params = {"batch_size": 10}
+        cls.dataset = ClassificationTestDatasetInterface(dataset_params=cls.dataset_params)
+        cls.sg_trained_teacher.connect_dataset_interface(cls.dataset)
 
         cls.sg_trained_teacher.build_model('resnet50', arch_params={'num_classes': 5})
 
@@ -104,6 +107,58 @@ class KDModuleTest(unittest.TestCase):
                                                                        total_batch=None)
 
         self.assertTrue(initial_param_groups[0]['lr'] == 0.2 == updated_param_groups[0]['lr'])
+
+    def test_build_external_models(self):
+        sg_model = KDModel("test_training_with_external_teacher", device='cpu')
+        teacher_model = ResNet50(arch_params={}, num_classes=10)
+        student_model = ResNet18(arch_params={}, num_classes=10)
+        sg_model.build_model(arch_params={"student": student_model,
+                                          "teacher": teacher_model,
+                                          'num_classes': 10})
+
+        self.assertTrue(
+            check_models_have_same_weights(teacher_model, sg_model.net.module.teacher))
+        self.assertTrue(
+            check_models_have_same_weights(student_model, sg_model.net.module.student))
+
+    def test_train_kd_module_external_models(self):
+        sg_model = KDModel("test_training_with_external_teacher", device='cpu')
+        teacher_model = ResNet50(arch_params={}, num_classes=5)
+        student_model = ResNet18(arch_params={}, num_classes=5)
+        sg_model.connect_dataset_interface(self.dataset)
+        sg_model.build_model(arch_params={"student": deepcopy(student_model),
+                                          "teacher": deepcopy(teacher_model),
+                                          'num_classes': 5,
+                                          'run_teacher_on_eval': True}
+                             )
+        self.train_params['loss'] = KDLogitsLoss(torch.nn.CrossEntropyLoss())
+        self.train_params['loss_logging_items_names'] = ["Loss", "Task Loss", "Distillation Loss"]
+        sg_model.train(self.train_params)
+
+        # TEACHER WEIGHT'S SHOULD REMAIN THE SAME
+        self.assertTrue(
+            check_models_have_same_weights(teacher_model, sg_model.net.module.teacher))
+
+        # STUDENT WEIGHT'S SHOULD NOT REMAIN THE SAME
+        self.assertFalse(
+            check_models_have_same_weights(student_model, sg_model.net.module.student))
+
+    def test_train_kd_module_pretrained_ckpt(self):
+        sg_model = KDModel("test_training_with_external_teacher", device='cpu')
+        teacher_model = ResNet50(arch_params={}, num_classes=5)
+        teacher_path = '/tmp/teacher.pth'
+        torch.save(teacher_model.state_dict(), teacher_path)
+        sg_model.connect_dataset_interface(self.dataset)
+
+        self.train_params['loss'] = KDLogitsLoss(torch.nn.CrossEntropyLoss())
+        self.train_params['loss_logging_items_names'] = ["Loss", "Task Loss", "Distillation Loss"]
+        sg_model.build_model(arch_params={"student_architecture": 'resnet18',
+                                          "student_arch_params": {'num_classes': 5},
+                                          "teacher_architecture": "resnet50",
+                                          "teacher_arch_params": {'num_classes': 5},
+                                          "teacher_checkpoint_path": teacher_path}
+                             )
+        sg_model.train(self.train_params)
 
 
 if __name__ == '__main__':

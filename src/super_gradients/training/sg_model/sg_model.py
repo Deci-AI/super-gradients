@@ -1666,4 +1666,3 @@ class SgModel:
         :param kwargs: kwargs to be set as the context's attributes.
         """
         context.update_context(**kwargs)
-

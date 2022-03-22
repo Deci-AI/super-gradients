@@ -34,5 +34,3 @@ class KDLogitsLoss(_Loss):
         loss = task_loss * (1 - self.distillation_loss_coeff) + distillation_loss * self.distillation_loss_coeff
 
         return loss, torch.cat((loss.unsqueeze(0), task_loss.unsqueeze(0), distillation_loss.unsqueeze(0))).detach()
-
-
