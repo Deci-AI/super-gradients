@@ -121,6 +121,7 @@ class DatasetInterface:
         :param val_batch_size: int - batch size for val loader, if None will be taken from dataset_params
         :param distributed_sampler: boolean flag for distributed training mode
         :return: train_loader, val_loader, classes: list of classes
+        :param test_batch_size:
         """
         # CHANGE THE BATCH SIZE ACCORDING TO THE NUMBER OF DEVICES - ONLY IN NON-DISTRIBUED TRAINING MODE
         # IN DISTRIBUTED MODE WE NEED DISTRIBUTED SAMPLERS
@@ -316,8 +317,10 @@ class LibraryDatasetInterface(DatasetInterface):
             self.lib_dataset_params['mean'], self.lib_dataset_params['std'] = datasets_utils.get_mean_and_std(trainset)
 
         # OVERWRITE MEAN AND STD IF DEFINED IN DATASET PARAMS
-        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean', default_val=self.lib_dataset_params['mean'])
-        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std', default_val=self.lib_dataset_params['std'])
+        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean',
+                                                               default_val=self.lib_dataset_params['mean'])
+        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std',
+                                                              default_val=self.lib_dataset_params['std'])
 
         crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=32)
 
@@ -438,8 +441,6 @@ class DaliDatasetInterfaceBase(DatasetInterface):
 
     def __init__(self, dataset_params={}):
         super(DaliDatasetInterfaceBase, self).__init__(dataset_params)
-        self.nvidia_dali_data_loading = core_utils.get_param(self.dataset_params, 'nvidia_dali_data_loading',
-                                                             default_val=False)
 
     def create_dali_data_loader(self, **kwargs):
         """
@@ -482,47 +483,39 @@ class DaliDatasetInterfaceBase(DatasetInterface):
         :param distributed_sampler: True iff DDP.
         :return:
         """
-        if self.nvidia_dali_data_loading:
-            if distributed_sampler:
-                world_size = torch.distributed.get_world_size()
-                local_rank = environment_config.DDP_LOCAL_RANK
-                self.batch_size_factor = 1
-            else:
-                world_size = 1
-                local_rank = 0
-                self.batch_size_factor = batch_size_factor
-
-            if train_batch_size is None:
-                train_batch_size = self.dataset_params.batch_size * self.batch_size_factor
-            if val_batch_size is None:
-                val_batch_size = self.dataset_params.val_batch_size * self.batch_size_factor
-
-            self.train_loader = self.create_dali_data_loader(batch_size=train_batch_size,
-                                                             num_threads=num_workers,
-                                                             device_id=local_rank,
-                                                             seed=12,
-                                                             data_dir=self.traindir,
-                                                             shard_id=local_rank,
-                                                             num_shards=world_size,
-                                                             transforms=self.train_transforms,
-                                                             random_shuffle=True)
-
-            self.val_loader = self.create_dali_data_loader(batch_size=val_batch_size,
-                                                           num_threads=num_workers,
-                                                           device_id=local_rank,
-                                                           seed=12,
-                                                           data_dir=self.valdir,
-                                                           shard_id=local_rank,
-                                                           num_shards=world_size,
-                                                           transforms=self.val_transforms,
-                                                           random_shuffle=False)
+        if distributed_sampler:
+            world_size = torch.distributed.get_world_size()
+            local_rank = environment_config.DDP_LOCAL_RANK
+            self.batch_size_factor = 1
         else:
-            super(DaliDatasetInterfaceBase, self).build_data_loaders(batch_size_factor=batch_size_factor,
-                                                                     num_workers=num_workers,
-                                                                     train_batch_size=train_batch_size,
-                                                                     val_batch_size=val_batch_size,
-                                                                     test_batch_size=test_batch_size,
-                                                                     distributed_sampler=distributed_sampler)
+            world_size = 1
+            local_rank = 0
+            self.batch_size_factor = batch_size_factor
+
+        if train_batch_size is None:
+            train_batch_size = self.dataset_params.batch_size * self.batch_size_factor
+        if val_batch_size is None:
+            val_batch_size = self.dataset_params.val_batch_size * self.batch_size_factor
+
+        self.train_loader = self.create_dali_data_loader(batch_size=train_batch_size,
+                                                         num_threads=num_workers,
+                                                         device_id=local_rank,
+                                                         seed=12,
+                                                         data_dir=self.traindir,
+                                                         shard_id=local_rank,
+                                                         num_shards=world_size,
+                                                         transforms=self.train_transforms,
+                                                         random_shuffle=True)
+
+        self.val_loader = self.create_dali_data_loader(batch_size=val_batch_size,
+                                                       num_threads=num_workers,
+                                                       device_id=local_rank,
+                                                       seed=12,
+                                                       data_dir=self.valdir,
+                                                       shard_id=local_rank,
+                                                       num_shards=world_size,
+                                                       transforms=self.val_transforms,
+                                                       random_shuffle=False)
 
 
 class DaliClassificationDataLoader(collections.Iterator):
@@ -646,16 +639,15 @@ class DaliImageNetDatasetInterface(DaliClassificationDatasetInterface):
         data_dir = dataset_params['dataset_dir'] if 'dataset_dir' in dataset_params.keys() else data_dir
         self.traindir = os.path.join(os.path.abspath(data_dir), 'train')
         self.valdir = os.path.join(data_dir, 'val')
-        img_mean = core_utils.get_param(self.dataset_params, 'img_mean', default_val=[0.485 * 255, 0.456 * 255, 0.406 * 255])
-        img_std = core_utils.get_param(self.dataset_params, 'img_std', default_val=[0.229 * 255, 0.224 * 255, 0.225 * 255])
-        normalize = transforms.Normalize(mean=img_mean,
-                                         std=img_std)
+        img_mean = core_utils.get_param(self.dataset_params, 'img_mean',
+                                        default_val=[0.485 * 255, 0.456 * 255, 0.406 * 255])
+        img_std = core_utils.get_param(self.dataset_params, 'img_std',
+                                       default_val=[0.229 * 255, 0.224 * 255, 0.225 * 255])
 
         self.crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=224)
         self.resize_size = core_utils.get_param(self.dataset_params, 'resize_size', default_val=256)
         color_jitter = core_utils.get_param(self.dataset_params, 'color_jitter', default_val=0.0)
         imagenet_pca_aug = core_utils.get_param(self.dataset_params, 'imagenet_pca_aug', default_val=0.0)
-        train_interpolation = core_utils.get_param(self.dataset_params, 'train_interpolation', default_val='default')
         rand_augment_config_string = core_utils.get_param(self.dataset_params, 'rand_augment_config_string',
                                                           default_val=None)
 
@@ -663,54 +655,53 @@ class DaliImageNetDatasetInterface(DaliClassificationDatasetInterface):
             raise IllegalDatasetParameterException(
                 "Dali not supported with color_jitter: " + str(color_jitter) + ", imagenet_pca_aug: " + str(
                     imagenet_pca_aug) + ", rand_augment_config_string: " + str(rand_augment_config_string))
-        else:
-            dali_cpu = core_utils.get_param(self.dataset_params, "dalli_cpu", False)
-            dali_device = 'cpu' if dali_cpu else 'gpu'
-            decoder_device = 'cpu' if dali_cpu else 'mixed'
 
-            # ask nvJPEG to preallocate memory for the biggest sample in
-            # ImageNet for CPU and GPU to avoid reallocations in runtime
-            device_memory_padding = 211025920 if decoder_device == 'mixed' else 0
-            host_memory_padding = 140544512 if decoder_device == 'mixed' else 0
+        dali_cpu = core_utils.get_param(self.dataset_params, "dalli_cpu", False)
+        dali_device = 'cpu' if dali_cpu else 'gpu'
+        decoder_device = 'cpu' if dali_cpu else 'mixed'
 
-            # ask HW NVJPEG to allocate memory ahead for the biggest image in the data set to avoid reallocations in runtime
-            preallocate_width_hint = 5980 if decoder_device == 'mixed' else 0
-            preallocate_height_hint = 6430 if decoder_device == 'mixed' else 0
+        # ask nvJPEG to preallocate memory for the biggest sample in
+        # ImageNet for CPU and GPU to avoid reallocations in runtime
+        device_memory_padding = 211025920 if decoder_device == 'mixed' else 0
+        host_memory_padding = 140544512 if decoder_device == 'mixed' else 0
 
+        # ask HW NVJPEG to allocate memory ahead for the biggest image in the data set to avoid reallocations in runtime
+        preallocate_width_hint = 5980 if decoder_device == 'mixed' else 0
+        preallocate_height_hint = 6430 if decoder_device == 'mixed' else 0
 
-            self.train_transforms = DaliCompose([DaliDecodeRandomCrop(device=decoder_device, output_type=types.RGB,
-                                                                      device_memory_padding=device_memory_padding,
-                                                                      host_memory_padding=host_memory_padding,
-                                                                      preallocate_width_hint=preallocate_width_hint,
-                                                                      preallocate_height_hint=preallocate_height_hint,
-                                                                      random_aspect_ratio=[0.8, 1.25],
-                                                                      random_area=[0.1, 1.0],
-                                                                      num_attempts=100),
-                                                 DaliResize(device=dali_device,
-                                                            size=self.resize_size,
-                                                            mode="not_smaller",
-                                                            interp_type=types.INTERP_TRIANGULAR),
-                                                 DaliCropMirrorNormalize(dtype=types.FLOAT,
-                                                                         output_layout="CHW",
-                                                                         crop=(self.crop_size, self.crop_size),
-                                                                         mean=img_mean,
-                                                                         std=img_std,
-                                                                         mirror=fn.random.coin_flip(
-                                                                             probability=0.5))])
+        self.train_transforms = DaliCompose([DaliDecodeRandomCrop(device=decoder_device, output_type=types.RGB,
+                                                                  device_memory_padding=device_memory_padding,
+                                                                  host_memory_padding=host_memory_padding,
+                                                                  preallocate_width_hint=preallocate_width_hint,
+                                                                  preallocate_height_hint=preallocate_height_hint,
+                                                                  random_aspect_ratio=[0.8, 1.25],
+                                                                  random_area=[0.1, 1.0],
+                                                                  num_attempts=100),
+                                             DaliResize(device=dali_device,
+                                                        size=self.resize_size,
+                                                        mode="not_smaller",
+                                                        interp_type=types.INTERP_TRIANGULAR),
+                                             DaliCropMirrorNormalize(dtype=types.FLOAT,
+                                                                     output_layout="CHW",
+                                                                     crop=(self.crop_size, self.crop_size),
+                                                                     mean=img_mean,
+                                                                     std=img_std,
+                                                                     mirror=fn.random.coin_flip(
+                                                                         probability=0.5))])
 
-            self.val_transforms = DaliCompose([DaliDecode(device=decoder_device,
-                                                          output_type=types.RGB),
-                                               DaliResize(device=dali_device,
-                                                          size=self.resize_size,
-                                                          mode="not_smaller",
-                                                          interp_type=types.INTERP_TRIANGULAR),
-                                               DaliCropMirrorNormalize(dtype=types.FLOAT,
-                                                                       output_layout="CHW",
-                                                                       crop=(self.crop_size, self.crop_size),
-                                                                       mean=img_mean,
-                                                                       std=img_std,
-                                                                       mirror=False)
-                                               ])
+        self.val_transforms = DaliCompose([DaliDecode(device=decoder_device,
+                                                      output_type=types.RGB),
+                                           DaliResize(device=dali_device,
+                                                      size=self.resize_size,
+                                                      mode="not_smaller",
+                                                      interp_type=types.INTERP_TRIANGULAR),
+                                           DaliCropMirrorNormalize(dtype=types.FLOAT,
+                                                                   output_layout="CHW",
+                                                                   crop=(self.crop_size, self.crop_size),
+                                                                   mean=img_mean,
+                                                                   std=img_std,
+                                                                   mirror=False)
+                                           ])
 
 
 class TinyImageNetDatasetInterface(DatasetInterface):
