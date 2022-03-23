@@ -12,5 +12,4 @@ imagenet_pca_aug: 0.0 # imagenet pca augmentation (applied only to trainset)
 train_interpolation: default # interpolation mode
 rand_augment_config_string: # randaugment config string (see super_gradients/training/datasets/auto_augment.py)
 random_erase_prob: 0.0 # random erase probability (applied only to trainset)
-nvidia_dali_data_loading: False # whether to use dali pipeline
 dali_cpu: False # device for decoding data when using dali
