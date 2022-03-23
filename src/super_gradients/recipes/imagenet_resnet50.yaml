@@ -4,7 +4,7 @@
 #  Reach => 79.47 Top1 accuracy.
 #
 #  Log and tensorboard at s3://deci-pretrained-models/ResNet50_ImageNet/average_model.pth
-
+#
 # Instructions:
 # running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
 #   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
