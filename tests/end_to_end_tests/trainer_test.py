@@ -39,7 +39,7 @@ class TestTrainer(unittest.TestCase):
         dataset_params = {"batch_size": 4}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
-        model.build_model("resnet18_cifar")
+        model.build_model("resnet18_cifar", load_checkpoint=False)
         return model
 
     def test_train(self):
@@ -49,7 +49,7 @@ class TestTrainer(unittest.TestCase):
     def test_save_load(self):
         model = self.get_classification_trainer(self.folder_names[1])
         model.train(training_params=self.training_params)
-        model.build_model("resnet18_cifar", arch_params={'load_checkpoint': True})
+        model.build_model("resnet18_cifar", load_checkpoint=True)
 
     def test_load_only_weights_from_ckpt(self):
         # Create a checkpoint with 100% accuracy
@@ -60,9 +60,8 @@ class TestTrainer(unittest.TestCase):
         model.train(training_params=params)
         # Build a model that continues the training
         model = self.get_classification_trainer(self.folder_names[3])
-        model.build_model('resnet18_cifar', arch_params={"load_checkpoint": True, "load_weights_only": False,
-                                                         "source_ckpt_folder_name": self.folder_names[2]}
-                          )
+        model.build_model('resnet18_cifar', load_checkpoint=True, source_ckpt_folder_name=self.folder_names[2],
+                          load_weights_only=False)
         self.assertTrue(model.best_metric > -1)
         self.assertTrue(model.start_epoch != 0)
         # start_epoch is not initialized, adding to max_epochs
@@ -70,9 +69,8 @@ class TestTrainer(unittest.TestCase):
         model.train(training_params=self.training_params)
         # Build a model that loads the weights and starts from scratch
         model = self.get_classification_trainer(self.folder_names[4])
-        model.build_model('resnet18_cifar', arch_params={"load_checkpoint": True, "load_weights_only": True,
-                                                         "source_ckpt_folder_name": self.folder_names[2]}
-                          )
+        model.build_model('resnet18_cifar', load_checkpoint=True, source_ckpt_folder_name=self.folder_names[2],
+                          load_weights_only=True)
         self.assertTrue(model.best_metric == -1)
         self.assertTrue(model.start_epoch == 0)
         self.training_params['max_epochs'] += 3

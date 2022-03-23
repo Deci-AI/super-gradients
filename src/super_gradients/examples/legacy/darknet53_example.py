@@ -25,7 +25,7 @@ dataset = ClassificationDatasetInterface(normalization_mean=(0.7483, 0.5154, 0.5
 model.connect_dataset_interface(dataset, data_loader_num_workers=8)
 
 # Build Model
-model.build_model("darknet53", arch_params=arch_params)
+model.build_model("darknet53", arch_params=arch_params, load_checkpoint=False)
 
 # Start Training
 model.train(training_params=train_params)

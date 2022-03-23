@@ -62,7 +62,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         model = SgModel("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
-        model.build_model(self.net)
+        model.build_model(self.net, load_checkpoint=False)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -86,7 +86,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         model = SgModel("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
-        model.build_model(self.net)
+        model.build_model(self.net, load_checkpoint=False)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=3,
                                    verbose=True)
@@ -110,7 +110,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         model = SgModel("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
-        model.build_model(self.net)
+        model.build_model(self.net, load_checkpoint=False)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", threshold=0.1, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -132,7 +132,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         model = SgModel("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
-        model.build_model(self.net)
+        model.build_model(self.net, load_checkpoint=False)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", threshold=0.94,
                                    verbose=True)
@@ -157,7 +157,7 @@ class EarlyStopTest(unittest.TestCase):
         # test Nan value
         model = SgModel("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
-        model.build_model(self.net)
+        model.build_model(self.net, load_checkpoint=False)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", check_finite=True,
                                     verbose=True)
@@ -177,7 +177,7 @@ class EarlyStopTest(unittest.TestCase):
         # test Inf value
         model = SgModel("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
-        model.build_model(self.net)
+        model.build_model(self.net, load_checkpoint=False)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -200,7 +200,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         model = SgModel("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
-        model.build_model(self.net)
+        model.build_model(self.net, load_checkpoint=False)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=2,
                                    min_delta=0.1, verbose=True)

@@ -17,7 +17,7 @@ class PhaseContextTest(unittest.TestCase):
         model.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
-        model.build_model(net)
+        model.build_model(net, load_checkpoint=False)
 
         phase_callbacks = [PhaseContextTestCallback(Phase.TRAIN_BATCH_END),
                            PhaseContextTestCallback(Phase.TRAIN_BATCH_STEP),

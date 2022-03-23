@@ -71,5 +71,6 @@ model.connect_dataset_interface(dataset, data_loader_num_workers=8 * devices)
 arch_params = HpmStruct(**{"num_classes": 1000, "aux_head": False, "classification_mode": True, 'dropout_prob': 0.3})
 
 model.build_model(architecture="ddrnet_23_slim" if args.slim else "ddrnet_23",
-                  arch_params=arch_params)
+                  arch_params=arch_params,
+                  load_checkpoint=args.reload)
 model.train(training_params=train_params_ddr)

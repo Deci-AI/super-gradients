@@ -64,5 +64,5 @@ model = SgModel("test_checkpoints_resnet_8_gpus",
 # FOR AWS
 dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params=dataset_params)
 model.connect_dataset_interface(dataset, data_loader_num_workers=8)
-model.build_model("resnet50")
+model.build_model("resnet50", load_checkpoint=False)
 model.train(training_params=train_params)

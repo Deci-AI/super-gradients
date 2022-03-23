@@ -127,7 +127,7 @@ class TestExternalDatasetInterface(unittest.TestCase):
                         multi_gpu=MultiGPUMode.OFF)
         model.connect_dataset_interface(dataset_interface=self.test_external_dataset_interface,
                                         data_loader_num_workers=8)
-        model.build_model("resnet50", arch_params)
+        model.build_model("resnet50", arch_params, load_checkpoint=False)
         model.train(training_params=train_params)
 
 

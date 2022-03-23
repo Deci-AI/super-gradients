@@ -16,7 +16,7 @@ def main():
                                         multi_gpu=MultiGPUMode.OFF)
 
     # if a torch.nn.Module is provided when building the model, the model will be integrated into deci model class
-    deci_classification_model.build_model(model, arch_params=arch_params)
+    deci_classification_model.build_model(model, arch_params=arch_params, load_checkpoint=False)
 
     # ------------------ Loading The Dataset From Dataset.py----------------
     dataset_params = {"batch_size": 256}

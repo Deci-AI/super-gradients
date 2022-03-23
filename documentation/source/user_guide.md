@@ -593,7 +593,7 @@ The model’s weights, logs and tensorboards are saved in _"YOUR_PYTHONPATH"/ ch
 
 *
 **To resume training –**
-When building the network- call SgModel.build_model(...arch_params={'load_checkpoint'True...}). Doing so, will load the network’s weights, as well as any relevant information for resuming training (monitored metric values, optimizer states, etc) with the latest checkpoint. For more advanced usage see SgModel.build_model docs in code.
+When building the network- call SgModel.build_model(...load_checkpoint=True). Doing so, will load the network’s weights, as well as any relevant information for resuming training (monitored metric values, optimizer states, etc) with the latest checkpoint. For more advanced usage see SgModel.build_model docs in code.
 
 
 

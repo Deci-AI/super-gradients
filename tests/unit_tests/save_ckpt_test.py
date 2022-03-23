@@ -25,7 +25,7 @@ class SaveCkptListUnitTest(unittest.TestCase):
         model.connect_dataset_interface(dataset, data_loader_num_workers=8)
 
         # Build Model
-        model.build_model("resnet18_cifar")
+        model.build_model("resnet18_cifar", load_checkpoint=False)
 
         # Train Model (and save ckpt_epoch_list)
         model.train(training_params=train_params)

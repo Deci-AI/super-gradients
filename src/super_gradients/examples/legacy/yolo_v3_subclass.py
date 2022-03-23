@@ -24,7 +24,7 @@ model = SgModel('yolo_v3_spp_example', model_checkpoints_location='local', multi
 
 coco_datasaet_interface = CoCoDetectionDatasetInterface(dataset_params=yolo_v3_dataset_params, cache_labels=True)
 model.connect_dataset_interface(coco_datasaet_interface, data_loader_num_workers=8)
-model.build_model('yolo_v3', arch_params=yolo_v3_arch_params)
+model.build_model('yolo_v3', arch_params=yolo_v3_arch_params, load_checkpoint=False)
 
 yolo_v3_training_params = {"max_epochs": 273, 'lr_mode': "step", "lr_updates": [219, 246], "lr_decay_factor": 0.1,
                            "initial_lr": 0.00579, "batch_accumulate": 4,

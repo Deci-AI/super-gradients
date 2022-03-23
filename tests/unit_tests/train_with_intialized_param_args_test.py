@@ -23,7 +23,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         model.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
-        model.build_model(net)
+        model.build_model(net, load_checkpoint=False)
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": torch.nn.CrossEntropyLoss(), "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
@@ -40,7 +40,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
 
         net = ResNet18(num_classes=5, arch_params={})
         optimizer = SGD(params=net.parameters(), lr=0.1)
-        model.build_model(net)
+        model.build_model(net, load_checkpoint=False)
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": optimizer,
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
@@ -60,7 +60,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         optimizer = SGD(params=net.parameters(), lr=lr)
         lr_scheduler = MultiStepLR(optimizer=optimizer, milestones=[1, 2], gamma=0.1)
         phase_callbacks = [LRSchedulerCallback(lr_scheduler, Phase.TRAIN_EPOCH_END)]
-        model.build_model(net)
+        model.build_model(net, load_checkpoint=False)
 
         train_params = {"max_epochs": 2, "phase_callbacks": phase_callbacks,
                         "lr_warmup_epochs": 0, "initial_lr": lr, "loss": "cross_entropy", "optimizer": optimizer,
@@ -82,7 +82,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         optimizer = SGD(params=net.parameters(), lr=lr)
         lr_scheduler = ReduceLROnPlateau(optimizer=optimizer, patience=0)
         phase_callbacks = [LRSchedulerCallback(lr_scheduler, Phase.VALIDATION_EPOCH_END, "ToyTestClassificationMetric")]
-        model.build_model(net)
+        model.build_model(net, load_checkpoint=False)
 
         train_params = {"max_epochs": 2, "phase_callbacks": phase_callbacks,
                         "lr_warmup_epochs": 0, "initial_lr": lr, "loss": "cross_entropy", "optimizer": optimizer,
@@ -101,7 +101,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         model.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
-        model.build_model(net)
+        model.build_model(net, load_checkpoint=False)
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
@@ -126,7 +126,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         model.connect_dataset_interface(dataset_interface)
 
         net = ResNet18(num_classes=5, arch_params={})
-        model.build_model(net)
+        model.build_model(net, load_checkpoint=False)
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},

@@ -12,7 +12,6 @@ from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
 from tests.unit_tests.lr_warmup_test import LRWarmupTest
-from tests.unit_tests.kd_module_test import KDModuleTest
 from tests.unit_tests.dice_loss_test import DiceLossTest
 
 
@@ -50,7 +49,6 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestConvBnRelu))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(FactoriesTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DiceLossTest))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(KDModuleTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
