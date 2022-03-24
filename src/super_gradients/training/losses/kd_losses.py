@@ -5,7 +5,7 @@ import torch
 class KDklDivLoss(KLDivLoss):
     """ KL divergence wrapper for knowledge distillation"""
     def __init__(self):
-        super(KDklDivLoss, self).__init__()
+        super(KDklDivLoss, self).__init__(reduction='batchmean')
 
     def forward(self, student_output, teacher_output):
         return super(KDklDivLoss, self).forward(torch.log_softmax(student_output, dim=1),
