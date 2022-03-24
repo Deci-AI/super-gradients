@@ -45,7 +45,7 @@ from super_gradients.training.utils.weight_averaging_utils import ModelWeightAve
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
 from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path, read_ckpt_state_dict, \
-    load_checkpoint_to_model, load_pretrained_weights
+    load_checkpoint_to_model
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT
@@ -873,7 +873,7 @@ class SgModel:
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
         context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name,
-                               ckpt_dir=self.checkpoints_dir_path,
+                               ckpt_dir=self.checkpoints_dir_path, criterion=self.criterion,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
