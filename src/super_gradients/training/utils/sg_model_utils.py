@@ -38,8 +38,8 @@ def try_port(port):
     return is_port_available
 
 
-def launch_tensorboard_process(checkpoints_dir_path: str, sleep_postpone: bool = True, port: int = None) -> Tuple[
-    Process, int]:
+def launch_tensorboard_process(checkpoints_dir_path: str, sleep_postpone: bool = True, port: int = None) -> \
+        Tuple[Process, int]:
     """
     launch_tensorboard_process - Default behavior is to scan all free ports from 6006-6016 and try using them
                                  unless port is defined by the user
