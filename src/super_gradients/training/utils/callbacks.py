@@ -279,7 +279,8 @@ class WarmupLRCallbackStep(LRCallbackBase):
 
     def __init__(self, **kwargs):
         super(WarmupLRCallbackStep, self).__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
-        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
+        self.warmup_initial_lr = self.training_params.warmup_initial_lr if self.training_params.warmup_initial_lr is not None \
+            else self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
         self.num_steps = self.train_loader_len * self.training_params.lr_warmup_epochs
         self.warmup_step_size = (self.initial_lr - self.warmup_initial_lr) / self.num_steps
         self.valid = True
