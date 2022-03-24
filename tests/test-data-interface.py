@@ -28,7 +28,7 @@ model = resnet18()
 sg_classification_model = SgModel('Client_model_training',
                                   model_checkpoints_location='local', device='cpu')
 # if a torch.nn.Module is provided when building the model, the model will be integrated into deci model class
-sg_classification_model.build_model(model, arch_params=arch_params, load_checkpoint=False)
+sg_classification_model.build_model(model, arch_params=arch_params)
 # ------------------ Loading The Dataset From Dataset.py----------------
 dataset = TestDatasetInterface()
 sg_classification_model.connect_dataset_interface(dataset)

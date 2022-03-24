@@ -11,12 +11,13 @@ from super_gradients.training.models.detection_models.csp_darknet53 import CSPDa
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolov3 import YoloV3, TinyYoloV3
-from super_gradients.training.models.detection_models.yolov5 import YoLoV5N, YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, Custom_YoLoV5
+from super_gradients.training.models.detection_models.yolov5 import YoLoV5N, YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, \
+    Custom_YoLoV5
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, \
     ShelfNet503343, ShelfNet101
-from super_gradients.training.models.segmentation_models.stdc import STDC1Classification, STDC2Classification,\
+from super_gradients.training.models.segmentation_models.stdc import STDC1Classification, STDC2Classification, \
     STDC1Seg, STDC2Seg
 
 from super_gradients.training.models.kd_modules.kd_module import KDModule

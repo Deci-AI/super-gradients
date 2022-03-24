@@ -16,7 +16,6 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
                              "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
                              "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                              "greater_metric_to_watch_is_better": True, "ema": True}
-        self.arch_params = {'num_classes': 10}
 
     def test_ema_ckpt_reload(self):
         # Define Model
@@ -24,7 +23,7 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
         model = SgModel("ema_ckpt_test", model_checkpoints_location='local')
 
         model.connect_dataset_interface(self.dataset)
-        model.build_model(net, arch_params=self.arch_params)
+        model.build_model(net, arch_params={'num_classes': 10})
 
         model.train(self.train_params)
 
@@ -32,7 +31,7 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
 
         net = LeNet()
         model = SgModel("ema_ckpt_test", model_checkpoints_location='local')
-        model.build_model(net, arch_params=self.arch_params, load_checkpoint=True)
+        model.build_model(net, arch_params={'num_classes': 10, 'load_checkpoint': True})
         model.connect_dataset_interface(self.dataset)
 
         # TRAIN FOR 0 EPOCHS JUST TO SEE THAT WHEN CONTINUING TRAINING EMA MODEL HAS BEEN SAVED CORRECTLY
