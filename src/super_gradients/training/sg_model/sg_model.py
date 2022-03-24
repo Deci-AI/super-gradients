@@ -850,7 +850,7 @@ class SgModel:
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
         context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name,
-                               ckpt_dir=self.checkpoints_dir_path,
+                               ckpt_dir=self.checkpoints_dir_path, criterion=self.criterion,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
