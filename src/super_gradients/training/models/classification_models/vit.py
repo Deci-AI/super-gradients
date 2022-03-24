@@ -173,24 +173,24 @@ class ViT(SgModule):
         else:
             return self.head(x)
 
-    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
-                            total_batch: int) -> list:
-
-        param_groups[0]['lr'] = 0
-        param_groups[1]['lr'] = lr
-        # for param_group in param_groups:
-        #     param_group['lr'] = lr
-        return param_groups
-
-
-    def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
-        """
-
-        :return: list of dictionaries containing the key 'named_params' with a list of named params
-        """
-        return [{'named_params': list(self.named_parameters())[:-2]},
-                {'named_params': list(self.named_parameters())[-2:]}
-                ]
+    # def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
+    #                         total_batch: int) -> list:
+    #
+    #     param_groups[0]['lr'] = lr
+    #     param_groups[1]['lr'] = lr
+    #     # for param_group in param_groups:
+    #     #     param_group['lr'] = lr
+    #     return param_groups
+    #
+    #
+    # def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
+    #     """
+    #
+    #     :return: list of dictionaries containing the key 'named_params' with a list of named params
+    #     """
+    #     return [{'named_params': list(self.named_parameters())[:-2]},
+    #             {'named_params': list(self.named_parameters())[-2:]}
+    #             ]
 
 
 def vit_base(arch_params, num_classes=None, backbone_mode=None):
