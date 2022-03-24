@@ -120,3 +120,11 @@ training_hyperparams:
   greater_metric_to_watch_is_better: True
 
   _convert_: all
+
+ckpt_root_dir:
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: DDP

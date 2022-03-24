@@ -144,6 +144,7 @@ class SgModel:
         self.training_params = None
         self.scaler = None
         self.phase_callbacks = None
+        self.checkpoint_params = None
 
         # SET THE DEFAULT PROPERTIES
         self.half_precision = False
@@ -222,18 +223,21 @@ class SgModel:
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def build_model(self,  # noqa: C901 - too complex
                     architecture: Union[str, nn.Module],
-                    arch_params={}, *args, **kwargs):
+                    arch_params={}, checkpoint_params={}, *args, **kwargs):
         """
         :param architecture:               Defines the network's architecture from models/ALL_ARCHITECTURES
         :param arch_params:                Architecture H.P. e.g.: block, num_blocks, num_classes, etc.
-        load_checkpoint:            Load a pre-trained checkpoint
-        strict_load:                See StrictLoad class documentation for details.
-        source_ckpt_folder_name:    folder name to load the checkpoint from (self.experiment_name if none is given)
-        load_weights_only:          loads only the weight from the checkpoint and zeroize the training params
-        load_backbone:              loads the provided checkpoint to self.net.backbone instead of self.net
-        external_checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
-                                           (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
-                                           load the checkpoint even if the load_checkpoint flag is not provided.
+        :param checkpoint_params:          Dictionary like object with the following key:values:
+
+            load_checkpoint:            Load a pre-trained checkpoint
+            strict_load:                See StrictLoad class documentation for details.
+            source_ckpt_folder_name:    folder name to load the checkpoint from (self.experiment_name if none is given)
+            load_weights_only:          loads only the weight from the checkpoint and zeroize the training params
+            load_backbone:              loads the provided checkpoint to self.net.backbone instead of self.net
+            external_checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
+                                               (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
+                                               load the checkpoint even if the load_checkpoint flag is not provided.
+
         """
         if 'num_classes' not in arch_params.keys():
             if self.dataset_interface is None:
@@ -242,8 +246,10 @@ class SgModel:
                 arch_params['num_classes'] = len(self.classes)
 
         self.arch_params = core_utils.HpmStruct(**arch_params)
+        self.checkpoint_params = core_utils.HpmStruct(**arch_params)
 
-        self.net, self.architecture_cls = sg_model_utils.instantiate_net(architecture, self.arch_params)
+        pretrained_weights = core_utils.get_param(checkpoint_params, 'pretrained_weights', default_val=None)
+        self.net, self.architecture_cls = sg_model_utils.instantiate_net(architecture, self.arch_params, pretrained_weights)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
         if hasattr(self.net, 'structure'):
@@ -260,19 +266,19 @@ class SgModel:
 
     def _set_ckpt_loading_attributes(self):
         """
-        Sets checkpoint loading related attributes according to self.arch_params
+        Sets checkpoint loading related attributes according to self.checkpoint_params
         """
         self.checkpoint = {}
-        self.strict_load = core_utils.get_param(self.arch_params, 'strict_load', default_val=StrictLoad.ON)
-        self.load_ema_as_net = core_utils.get_param(self.arch_params, 'load_ema_as_net', default_val=False)
-        self.source_ckpt_folder_name = core_utils.get_param(self.arch_params, 'source_ckpt_folder_name',
+        self.strict_load = core_utils.get_param(self.checkpoint_params, 'strict_load', default_val=StrictLoad.ON)
+        self.load_ema_as_net = core_utils.get_param(self.checkpoint_params, 'load_ema_as_net', default_val=False)
+        self.source_ckpt_folder_name = core_utils.get_param(self.checkpoint_params, 'source_ckpt_folder_name',
                                                             default_val=None)
-        self.load_checkpoint = core_utils.get_param(self.arch_params, 'load_checkpoint', default_val=False)
-        self.load_backbone = core_utils.get_param(self.arch_params, 'load_backbone', default_val=False)
-        self.external_checkpoint_path = core_utils.get_param(self.arch_params, 'external_checkpoint_path',
+        self.load_checkpoint = core_utils.get_param(self.checkpoint_params, 'load_checkpoint', default_val=False)
+        self.load_backbone = core_utils.get_param(self.checkpoint_params, 'load_backbone', default_val=False)
+        self.external_checkpoint_path = core_utils.get_param(self.checkpoint_params, 'external_checkpoint_path',
                                                              default_val=None)
         if self.load_checkpoint or self.external_checkpoint_path:
-            self.load_weights_only = core_utils.get_param(self.arch_params, 'load_weights_only', default_val=False)
+            self.load_weights_only = core_utils.get_param(self.checkpoint_params, 'load_weights_only', default_val=False)
 
     def _net_to_device(self):
         """

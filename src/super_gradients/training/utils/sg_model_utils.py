@@ -183,16 +183,18 @@ def log_uncaught_exceptions(logger):
     sys.excepthook = handle_exception
 
 
-def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict) -> tuple:
+def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict, pretrained_weights: str = None) -> tuple:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
         module manipulation (i.e head replacement).
 
     :param architecture: String, torch.nn.Module or uninstantiated SgModule class describing the netowrks architecture.
     :param arch_params: Architecture's parameters passed to networks c'tor.
+    :param pretrained_weights: String describing the dataset of the pretrained weights (for example "imagenent").
+
     :return: instantiated netowrk i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
+
     """
-    pretrained_weights = get_param(arch_params, 'pretrained_weights', default_val=None)
     if pretrained_weights is not None:
         num_classes_new_head = arch_params.num_classes
         arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
