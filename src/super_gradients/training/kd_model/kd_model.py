@@ -20,7 +20,7 @@ class KDModel(SgModel):
 
     def build_model(self,  # noqa: C901 - too complex
                     architecture: Union[str, nn.Module] = 'kd_module',
-                    arch_params={},
+                    arch_params={}, checkpoint_params={},
                     *args, **kwargs):
 
         """
@@ -49,9 +49,18 @@ class KDModel(SgModel):
           teacher_arch_params:        Architecture H.P. e.g.: block, num_blocks, num_classes, etc for teacher net.
            (default={})
 
+
+        :param checkpoint_params:                A dictionary like object with the following keys/values:
+
+          student_pretrained_weights:   String describing the dataset of the pretrained weights (for example
+          "imagenent") for the student network.
+
+          teacher_pretrained_weights:   String describing the dataset of the pretrained weights (for example
+          "imagenent") for the teacher network.
+
           teacher_checkpoint_path:    Local path to the teacher's checkpoint. Note that when passing pretrained_weights
-                                           through teacher_arch_params these weights will be overridden by the
-                                           pretrained checkpoint. (default=None)
+                               through teacher_arch_params these weights will be overridden by the
+                               pretrained checkpoint. (default=None)
 
           load_kd_model_checkpoint:   Whether to load an entire KDModule checkpoint (used to continue KD training)
            (default=False)
@@ -72,7 +81,7 @@ class KDModel(SgModel):
         teacher_architecture = get_param(arch_params, "teacher_architecture")
         student_arch_params = get_param(arch_params, "student_arch_params")
         teacher_arch_params = get_param(arch_params, "teacher_arch_params")
-        teacher_checkpoint_path = get_param(arch_params, "teacher_checkpoint_path")
+        teacher_checkpoint_path = get_param(checkpoint_params, "teacher_checkpoint_path")
 
         if (student_net and student_architecture) or (not student_net and not student_architecture):
             raise ValueError("Exactly one of: student, student_architecture should be passed through arch_params")
@@ -95,11 +104,15 @@ class KDModel(SgModel):
         teacher_arch_params = core_utils.HpmStruct(**teacher_arch_params)
 
         if not student_net:
-            student_net, _ = sg_model_utils.instantiate_net(student_architecture, student_arch_params)
+            student_pretrained_weights = core_utils.get_param(checkpoint_params, 'student_pretrained_weights',
+                                                              default_val=None)
+            student_net, _ = sg_model_utils.instantiate_net(student_architecture, student_arch_params,
+                                                            student_pretrained_weights)
 
         # MAKE SURE TEACHER'S PRETRAINED NUM CLASSES EQUALS TO THE ONES BELONGING TO STUDENT AS WE CAN'T REPLACE
         # THE TEACHER'S HEAD
-        teacher_pretrained_weights = core_utils.get_param(teacher_arch_params, 'pretrained_weights', default_val=None)
+        teacher_pretrained_weights = core_utils.get_param(checkpoint_params, 'teacher_pretrained_weights',
+                                                          default_val=None)
         if teacher_pretrained_weights is not None:
             teacher_pretrained_num_classes = PRETRAINED_NUM_CLASSES[teacher_pretrained_weights]
             if teacher_pretrained_num_classes != arch_params['num_classes']:
@@ -108,7 +121,8 @@ class KDModel(SgModel):
                     "number of classes.")
 
         if not teacher_net:
-            teacher_net, _ = sg_model_utils.instantiate_net(teacher_architecture, teacher_arch_params)
+            teacher_net, _ = sg_model_utils.instantiate_net(teacher_architecture, teacher_arch_params,
+                                                            teacher_pretrained_weights)
 
         if teacher_checkpoint_path is not None:
 
@@ -134,9 +148,11 @@ class KDModel(SgModel):
 
         arch_params['student'] = student_net
         arch_params['teacher'] = teacher_net
-        arch_params["load_checkpoint"] = get_param(arch_params, "load_kd_model_checkpoint", False)
-        arch_params["source_ckpt_folder_name"] = get_param(arch_params, "kd_model_source_ckpt_folder_name")
-        arch_params["external_checkpoint_path"] = get_param(arch_params, "kd_model_external_checkpoint_path")
+
+        checkpoint_params["load_checkpoint"] = get_param(checkpoint_params, "load_kd_model_checkpoint", False)
+        checkpoint_params["source_ckpt_folder_name"] = get_param(checkpoint_params, "kd_model_source_ckpt_folder_name")
+        checkpoint_params["external_checkpoint_path"] = get_param(checkpoint_params,
+                                                                  "kd_model_external_checkpoint_path")
 
         super(KDModel, self).build_model(architecture=architecture,
                                          arch_params=arch_params)

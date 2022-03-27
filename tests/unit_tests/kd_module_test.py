@@ -32,7 +32,8 @@ class KDModuleTest(unittest.TestCase):
             "student_architecture": 'resnet18',
             "teacher_architecture": 'resnet50',
             "student_arch_params": {'num_classes': 1000},
-            "teacher_arch_params": {'pretrained_weights': "imagenet"}}
+            "teacher_arch_params": {'num_classes': 1000}},
+            checkpoint_params={'teacher_pretrained_weights': "imagenet"}
         )
         imagenet_resnet50_sg_model = SgModel("pretrained_resnet50")
         imagenet_resnet50_sg_model.build_model('resnet50', arch_params={'pretrained_weights': "imagenet",
@@ -46,10 +47,11 @@ class KDModuleTest(unittest.TestCase):
 
         kd_model.build_model(arch_params={"student_architecture": 'resnet18',
                                           "teacher_architecture": 'resnet50',
-                                          "student_arch_params": {'pretrained_weights': "imagenet",
-                                                                  'num_classes': 1000},
-                                          "teacher_arch_params": {'pretrained_weights': "imagenet",
-                                                                  'num_classes': 1000}}
+                                          "student_arch_params": {'num_classes': 1000},
+                                          "teacher_arch_params": {'num_classes': 1000},
+                                          },
+                             checkpoint_params={'student_pretrained_weights': "imagenet",
+                                                'teacher_pretrained_weights': "imagenet"}
 
                              )
         imagenet_resnet18_sg_model = SgModel("pretrained_resnet18", device='cpu')
@@ -68,8 +70,10 @@ class KDModuleTest(unittest.TestCase):
                                              "teacher_architecture": 'resnet50',
                                              "student_arch_params": {'pretrained_weights': "imagenet",
                                                                      'num_classes': 5},
-                                             "teacher_arch_params": {'num_classes': 5},
-                                             "teacher_checkpoint_path": teacher_path}
+                                             "teacher_arch_params": {'num_classes': 5}
+                                             },
+                                checkpoint_params={'student_pretrained_weights': "imagenet",
+                                                   "teacher_checkpoint_path": teacher_path}
                                 )
 
         self.assertTrue(sg_kd_model.net.module.student.linear.out_features == 5)
