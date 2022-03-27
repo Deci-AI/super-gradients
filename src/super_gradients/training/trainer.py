@@ -99,7 +99,7 @@ class Trainer:
         cfg.sg_model.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
         # BUILD NETWORK
-        cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params)
+        cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
 
         # FIXME: REMOVE PARAMETER MANIPULATION SPECIFIC FOR YOLO
         if str(cfg.architecture).startswith("yolo_v5"):

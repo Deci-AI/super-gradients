@@ -246,7 +246,7 @@ class SgModel:
                 arch_params['num_classes'] = len(self.classes)
 
         self.arch_params = core_utils.HpmStruct(**arch_params)
-        self.checkpoint_params = core_utils.HpmStruct(**arch_params)
+        self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
 
         pretrained_weights = core_utils.get_param(checkpoint_params, 'pretrained_weights', default_val=None)
         self.net, self.architecture_cls = sg_model_utils.instantiate_net(architecture, self.arch_params, pretrained_weights)
