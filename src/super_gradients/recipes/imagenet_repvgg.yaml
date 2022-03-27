@@ -15,6 +15,7 @@ defaults:
   - training_hyperparams: imagenet_repvgg_train_params
   - dataset_params: imagenet_dataset_params
   - arch_params: default_arch_params
+  - checkpoint_params: default_checkpoint_params
 
 arch_params:
   build_residual_branches: True
@@ -29,6 +30,8 @@ data_loader_num_workers: 8
 
 model_checkpoints_location: local
 load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
 
 experiment_name: repvgg_a0_imagenet_reproduce_fix
 

@@ -24,6 +24,7 @@
 defaults:
   - training_hyperparams: default_train_params
   - dataset_params: cityscapes_dataset_params
+  - checkpoint_params: default_checkpoint_params
 
 hydra:
   searchpath:
@@ -83,8 +84,7 @@ dataset_interface:
 
 data_loader_num_workers: 8
 
-model_checkpoints_location: local
-load_checkpoint: False
+
 
 training_hyperparams:
   max_epochs: 800
@@ -120,7 +120,11 @@ training_hyperparams:
   greater_metric_to_watch_is_better: True
 
   _convert_: all
+load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
 
+model_checkpoints_location: local
 ckpt_root_dir:
 
 sg_model:
