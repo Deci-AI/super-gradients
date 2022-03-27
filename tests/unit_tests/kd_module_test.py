@@ -36,8 +36,9 @@ class KDModuleTest(unittest.TestCase):
             checkpoint_params={'teacher_pretrained_weights': "imagenet"}
         )
         imagenet_resnet50_sg_model = SgModel("pretrained_resnet50")
-        imagenet_resnet50_sg_model.build_model('resnet50', arch_params={'pretrained_weights': "imagenet",
-                                                                        'num_classes': 1000})
+        imagenet_resnet50_sg_model.build_model('resnet50', arch_params={
+                                                                        'num_classes': 1000},
+                                               checkpoint_params={'pretrained_weights': "imagenet"})
 
         self.assertTrue(check_models_have_same_weights(sg_model.net.module.teacher,
                                                        imagenet_resnet50_sg_model.net.module))
@@ -55,8 +56,9 @@ class KDModuleTest(unittest.TestCase):
 
                              )
         imagenet_resnet18_sg_model = SgModel("pretrained_resnet18", device='cpu')
-        imagenet_resnet18_sg_model.build_model('resnet18', arch_params={'pretrained_weights': "imagenet",
-                                                                        'num_classes': 1000})
+        imagenet_resnet18_sg_model.build_model('resnet18', arch_params={
+                                                                        'num_classes': 1000},
+                                               checkpoint_params={'pretrained_weights': "imagenet"})
 
         self.assertTrue(check_models_have_same_weights(kd_model.net.module.student,
                                                        imagenet_resnet18_sg_model.net.module))
@@ -88,7 +90,9 @@ class KDModuleTest(unittest.TestCase):
                                              "teacher_architecture": 'resnet50',
                                              "student_arch_params": {'num_classes': 5},
                                              "teacher_arch_params": {'num_classes': 5},
-                                             "teacher_checkpoint_path": teacher_path}
+                                             "teacher_checkpoint_path": teacher_path},
+                                checkpoint_params={
+                                                   "teacher_checkpoint_path": teacher_path}
                                 )
 
         self.assertTrue(
@@ -99,7 +103,8 @@ class KDModuleTest(unittest.TestCase):
         sg_model.build_model(arch_params={"student_architecture": 'resnet18',
                                           "teacher_architecture": 'resnet50',
                                           "student_arch_params": {'num_classes': 1000},
-                                          "teacher_arch_params": {'pretrained_weights': "imagenet"}}
+                                          "teacher_arch_params": {'num_classes': 1000}},
+                             checkpoint_params={'teacher_pretrained_weights': "imagenet"}
                              )
 
         initial_param_groups = sg_model.net.module.initialize_param_groups(lr=0.1, training_params={})

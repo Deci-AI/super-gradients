@@ -83,6 +83,11 @@ class KDModel(SgModel):
         teacher_arch_params = get_param(arch_params, "teacher_arch_params")
         teacher_checkpoint_path = get_param(checkpoint_params, "teacher_checkpoint_path")
 
+        checkpoint_params["load_checkpoint"] = get_param(checkpoint_params, "load_kd_model_checkpoint", False)
+        checkpoint_params["source_ckpt_folder_name"] = get_param(checkpoint_params, "kd_model_source_ckpt_folder_name")
+        checkpoint_params["external_checkpoint_path"] = get_param(checkpoint_params,
+                                                                  "kd_model_external_checkpoint_path")
+
         if (student_net and student_architecture) or (not student_net and not student_architecture):
             raise ValueError("Exactly one of: student, student_architecture should be passed through arch_params")
         if (teacher_net and teacher_architecture) or (not teacher_net and not teacher_architecture):
@@ -142,17 +147,12 @@ class KDModel(SgModel):
                                      load_ema_as_net=load_teachers_ema)
 
         # CHECK THAT TEACHER NETWORK HOLDS KNOWLEDGE FOR THE STUDENT TO LEARN FROM
-        if not (teacher_pretrained_weights or teacher_checkpoint_path or arch_params["load_checkpoint"]):
+        if not (teacher_pretrained_weights or teacher_checkpoint_path or checkpoint_params["load_checkpoint"]):
             raise ValueError("Expected: at least one of: teacher_pretrained_weights, teacher_checkpoint_path or "
                              "load_kd_model_checkpoint=True")
 
         arch_params['student'] = student_net
         arch_params['teacher'] = teacher_net
 
-        checkpoint_params["load_checkpoint"] = get_param(checkpoint_params, "load_kd_model_checkpoint", False)
-        checkpoint_params["source_ckpt_folder_name"] = get_param(checkpoint_params, "kd_model_source_ckpt_folder_name")
-        checkpoint_params["external_checkpoint_path"] = get_param(checkpoint_params,
-                                                                  "kd_model_external_checkpoint_path")
-
         super(KDModel, self).build_model(architecture=architecture,
-                                         arch_params=arch_params)
+                                         arch_params=arch_params, checkpoint_params=checkpoint_params)
