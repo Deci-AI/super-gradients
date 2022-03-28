@@ -306,6 +306,8 @@ class ContextEmbeddingFixedSize(ContextEmbeddingOnline):
     def from_context_embedding_online(cls, ce_online: ContextEmbeddingOnline, upsample_size: Union[list, tuple]):
         context = ContextEmbeddingFixedSize(in_channels=ce_online.in_channels, out_channels=ce_online.out_channels,
                                             upsample_size=upsample_size)
+        # keep training mode state as original module
+        context.train(ce_online.training)
         context.load_state_dict(ce_online.state_dict())
         return context
 
