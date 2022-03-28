@@ -135,8 +135,16 @@ class ViT(SgModule):
         '''
 
         super().__init__()
+        # TODO: Fix yaml parsing tuple as string
+        if isinstance(image_size, str):
+            image_size = (int(image_size), int(image_size))
+            patch_size = (int(patch_size), int(patch_size))
+        elif isinstance(image_size, int):
+            image_size = (image_size, image_size)
+            patch_size = (patch_size, patch_size)
         image_height, image_width = image_size
         patch_height, patch_width = patch_size
+
 
         assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
         assert hidden_dim % heads == 0, 'Hidden dimension must be divisible by the number of heads.'
