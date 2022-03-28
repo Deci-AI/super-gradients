@@ -2,6 +2,7 @@ from super_gradients.training.models.sg_module import SgModule
 import torch
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils import get_param
+from typing import Union
 
 
 class KDOutput:
@@ -21,11 +22,13 @@ class KDModule(SgModule):
         teacher: torch.nn.Module- the teacher model
         run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
     """
-    def __init__(self, arch_params: HpmStruct):
+
+    def __init__(self, arch_params: HpmStruct, student: SgModule, teacher: torch.nn.Module, run_teacher_on_eval=False):
         super(KDModule, self).__init__()
-        self.student = arch_params.student
-        self.teacher = arch_params.teacher
-        self.run_teacher_on_eval = get_param(arch_params, "run_teacher_on_eval", False)
+        self.arch_params = arch_params
+        self.student = student
+        self.teacher = teacher
+        self.run_teacher_on_eval = run_teacher_on_eval
         self._freeze_teacher()
 
         # WHEN CREATING A MODULE SELF.TRAIN() ISN'T CALLED AND SO THE TEACHER MUST BE MOVED TO EVAL MODE EXPLICITLY

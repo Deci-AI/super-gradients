@@ -15,6 +15,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -26,6 +27,8 @@ from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import utils as core_utils
+from super_gradients.training.models import SgModule
+from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
 from super_gradients.training import metrics
 from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat
@@ -44,11 +47,12 @@ from super_gradients.training.utils.weight_averaging_utils import ModelWeightAve
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
 from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path, read_ckpt_state_dict, \
-    load_checkpoint_to_model
+    load_checkpoint_to_model, load_pretrained_weights
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment import environment_config
+
 logger = get_logger(__name__)
 
 
@@ -248,21 +252,19 @@ class SgModel:
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
 
-        pretrained_weights = core_utils.get_param(checkpoint_params, 'pretrained_weights', default_val=None)
-        self.net, self.architecture_cls = sg_model_utils.instantiate_net(architecture, self.arch_params, pretrained_weights)
+        # FIXME: MAKE CLASS METHOD OUT OF INSTANTIATE NET AND PASS STUDENT AND TEEACHER THROUGH KWARGS
+        self.net, self.architecture_cls = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args,
+                                                               **kwargs)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
         if hasattr(self.net, 'structure'):
             self.architecture = self.net.structure
 
         self._net_to_device()
-        self._set_ckpt_loading_attributes()
 
-        if self.load_checkpoint or self.external_checkpoint_path:
-            self._load_checkpoint_to_model(strict=self.strict_load,
-                                           load_backbone=self.load_backbone,
-                                           source_ckpt_folder_name=self.source_ckpt_folder_name,
-                                           load_ema_as_net=self.load_ema_as_net)
+        # TODO: MOVE BELOW LINE INTO _LOAD_CHECKPOINT
+
+        self._load_checkpoint_to_model()
 
     def _set_ckpt_loading_attributes(self):
         """
@@ -278,7 +280,8 @@ class SgModel:
         self.external_checkpoint_path = core_utils.get_param(self.checkpoint_params, 'external_checkpoint_path',
                                                              default_val=None)
         if self.load_checkpoint or self.external_checkpoint_path:
-            self.load_weights_only = core_utils.get_param(self.checkpoint_params, 'load_weights_only', default_val=False)
+            self.load_weights_only = core_utils.get_param(self.checkpoint_params, 'load_weights_only',
+                                                          default_val=False)
 
     def _net_to_device(self):
         """
@@ -391,7 +394,7 @@ class SgModel:
         # RETURN AND THE LOSS LOGGING ITEMS COMPUTED DURING LOSS FORWARD PASS
         return loss, loss_logging_items
 
-    def backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext):
+    def backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
         """
         Run backprop on the loss and perform a step
         :param loss: The value computed by the loss function
@@ -423,7 +426,8 @@ class SgModel:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
 
-    def save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None):
+    def save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None,
+                        context: PhaseContext = None):
         """
         Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
         params)
@@ -740,7 +744,8 @@ class SgModel:
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
-        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+        self.metric_idx_in_results_tuple = (
+                self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -926,7 +931,8 @@ class SgModel:
 
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch, context)
+                    self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch,
+                                                   context)
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
@@ -1060,7 +1066,8 @@ class SgModel:
         # Create a normalization transformation
         if normalize:
             try:
-                mean, std = self.dataset_interface.lib_dataset_params['mean'], self.dataset_interface.lib_dataset_params['std']
+                mean, std = self.dataset_interface.lib_dataset_params['mean'], \
+                            self.dataset_interface.lib_dataset_params['std']
             except AttributeError:
                 raise AttributeError('In \'predict()\', Normalization is set to True while the dataset has no default '
                                      'mean & std => deactivate normalization or inject it to the datasets library.')
@@ -1306,7 +1313,8 @@ class SgModel:
                     self.multi_gpu = MultiGPUMode.OFF
                     if requested_multi_gpu != MultiGPUMode.AUTO:
                         # if AUTO mode was set - do not log a warning
-                        logger.warning('\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n')
+                        logger.warning(
+                            '\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n')
                 else:
                     if requested_multi_gpu == MultiGPUMode.AUTO:
                         if env_helpers.is_distributed():
@@ -1371,26 +1379,30 @@ class SgModel:
         NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params is True
         """
 
-        # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST
-        ckpt_local_path = get_ckpt_local_path(source_ckpt_folder_name=source_ckpt_folder_name,
-                                              experiment_name=self.experiment_name,
-                                              ckpt_name=self.ckpt_name,
-                                              model_checkpoints_location=self.model_checkpoints_location,
-                                              external_checkpoint_path=self.external_checkpoint_path,
-                                              overwrite_local_checkpoint=self.overwrite_local_checkpoint,
-                                              load_weights_only=self.load_weights_only)
+        self._set_ckpt_loading_attributes()
 
-        # LOAD CHECKPOINT TO MODEL
-        self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
-                                                   load_backbone=load_backbone,
-                                                   net=self.net,
-                                                   strict=strict.value if isinstance(strict, StrictLoad) else strict,
-                                                   load_weights_only=self.load_weights_only,
-                                                   load_ema_as_net=load_ema_as_net)
+        if self.load_checkpoint or self.external_checkpoint_path:
+            # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST
+            ckpt_local_path = get_ckpt_local_path(source_ckpt_folder_name=source_ckpt_folder_name,
+                                                  experiment_name=self.experiment_name,
+                                                  ckpt_name=self.ckpt_name,
+                                                  model_checkpoints_location=self.model_checkpoints_location,
+                                                  external_checkpoint_path=self.external_checkpoint_path,
+                                                  overwrite_local_checkpoint=self.overwrite_local_checkpoint,
+                                                  load_weights_only=self.load_weights_only)
 
-        if 'ema_net' in self.checkpoint.keys():
-            logger.warning("[WARNING] Main network has been loaded from checkpoint but EMA network exists as well. It "
-                           " will only be loaded during validation when training with ema=True. ")
+            # LOAD CHECKPOINT TO MODEL
+            self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
+                                                       load_backbone=load_backbone,
+                                                       net=self.net,
+                                                       strict=strict.value if isinstance(strict, StrictLoad) else strict,
+                                                       load_weights_only=self.load_weights_only,
+                                                       load_ema_as_net=load_ema_as_net)
+
+            if 'ema_net' in self.checkpoint.keys():
+                logger.warning("[WARNING] Main network has been loaded from checkpoint but EMA network exists as "
+                               "well. It "
+                               " will only be loaded during validation when training with ema=True. ")
 
         # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS
         self.best_metric = self.checkpoint['acc'] if 'acc' in self.checkpoint.keys() else -1
@@ -1484,7 +1496,8 @@ class SgModel:
 
         self.sg_logger.flush()
 
-    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int, context: PhaseContext):
+    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int,
+                                  context: PhaseContext):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         # STORE VALUES IN A TENSORBOARD FILE
         train_results = list(train_metrics) + list(validation_results) + [inf_time]
@@ -1659,3 +1672,41 @@ class SgModel:
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
         return logging_values
+
+    @staticmethod
+    def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict,
+                        checkpoint_params: dict, *args, **kwargs) -> tuple:
+        """
+        Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
+            module manipulation (i.e head replacement).
+
+        :param architecture: String, torch.nn.Module or uninstantiated SgModule class describing the netowrks architecture.
+        :param arch_params: Architecture's parameters passed to networks c'tor.
+        :param checkpoint_params: checkpoint loading related parameters dictionary with 'pretrained_weights' key,
+            s.t it's value is a string describing the dataset of the pretrained weights (for example "imagenent").
+
+        :return: instantiated netowrk i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
+
+        """
+        pretrained_weights = core_utils.get_param(checkpoint_params, 'pretrained_weights', default_val=None)
+
+        if pretrained_weights is not None:
+            num_classes_new_head = arch_params.num_classes
+            arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
+
+        architecture_cls = None
+        if isinstance(architecture, str):
+            architecture_cls = ARCHITECTURES[architecture]
+            net = architecture_cls(arch_params=arch_params)
+        elif isinstance(architecture, SgModule.__class__):
+            net = architecture(arch_params)
+        else:
+            net = architecture
+
+        if pretrained_weights:
+            load_pretrained_weights(net, architecture, pretrained_weights)
+            if num_classes_new_head != arch_params.num_classes:
+                net.replace_head(new_num_classes=num_classes_new_head)
+                arch_params.num_classes = num_classes_new_head
+
+        return net, architecture_cls
