@@ -20,6 +20,8 @@ from deci_lab_client.models import (
 def main(architecture_name: str):
     # Empty on purpose so that it can be fit to the trainer use case
     checkpoint_dir = ""
+    
+    auth_token = YOUR_API_TOKEN_HERE
 
     model = SgModel(
         f"lab_optimization_{architecture_name}_example",
@@ -61,8 +63,7 @@ def main(architecture_name: str):
     phase_callbacks = [
         ModelConversionCheckCallback(model_meta_data=model_meta_data, opset_version=11),
         DeciLabUploadCallback(
-            email="trainer@company.com",
-            password="TRAINER_PASSWORD",
+            auth_token=auth_token
             model_meta_data=model_meta_data,
             optimization_request_form=optimization_request_form,
             opset_version=11,
