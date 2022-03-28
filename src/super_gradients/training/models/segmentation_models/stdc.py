@@ -304,8 +304,10 @@ class ContextEmbeddingFixedSize(ContextEmbeddingOnline):
 
     @classmethod
     def from_context_embedding_online(cls, ce_online: ContextEmbeddingOnline, upsample_size: Union[list, tuple]):
-        return ContextEmbeddingFixedSize(in_channels=ce_online.in_channels, out_channels=ce_online.out_channels,
-                                         upsample_size=upsample_size)
+        context = ContextEmbeddingFixedSize(in_channels=ce_online.in_channels, out_channels=ce_online.out_channels,
+                                            upsample_size=upsample_size)
+        context.load_state_dict(ce_online.state_dict())
+        return context
 
     def forward(self, x):
         return self.context_embedding(x)
