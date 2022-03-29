@@ -8,6 +8,8 @@ from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, \
     load_checkpoint_to_model
+from super_gradients.training.exceptions.kd_model_exceptions import ArchitectureKwargsException, \
+    UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, TeacherKnowledgeException, UndefinedNumClassesException
 
 logger = get_logger(__name__)
 
@@ -88,14 +90,13 @@ class KDModel(SgModel):
         teacher_arch_params = get_param(kwargs, "teacher_arch_params")
 
         if get_param(checkpoint_params, 'pretrained_weights') is not None:
-            raise ValueError("pretrained_weights is ambiguous for KD models.")
+            raise UnsupportedKDArchitectureException("pretrained_weights", "checkpoint_params")
 
         if not isinstance(architecture, KDModule):
             if student_architecture is None or teacher_architecture is None:
-                raise ValueError("When architecture is not intialized both student_architecture and "
-                                 "teacher_architecture must be passed through **kwargs")
+                raise ArchitectureKwargsException()
             if architecture not in KD_ARCHITECTURES.keys():
-                raise TypeError("Unsupported KD architecture")
+                raise UnsupportedKDArchitectureException(architecture)
 
         # DERIVE NUMBER OF CLASSES FROM DATASET INTERFACE IF NOT SPECIFIED OR ARCH PARAMS FOR TEACHER AND STUDENT
         self._validate_num_classes(student_arch_params, teacher_arch_params)
@@ -109,17 +110,15 @@ class KDModel(SgModel):
         if teacher_pretrained_weights is not None:
             teacher_pretrained_num_classes = PRETRAINED_NUM_CLASSES[teacher_pretrained_weights]
             if teacher_pretrained_num_classes != teacher_arch_params['num_classes']:
-                raise ValueError(
-                    "Pretrained dataset number of classes in teacher's arch params must be equal to the student's "
-                    "number of classes.")
+                raise InconsistentParamsException("Pretrained dataset number of classes", "teacher's arch params",
+                                                  "number of classes", "student's number of classes")
 
         teacher_checkpoint_path = get_param(checkpoint_params, "teacher_checkpoint_path")
         load_kd_model_checkpoint = get_param(checkpoint_params, "load_checkpoint")
 
         # CHECK THAT TEACHER NETWORK HOLDS KNOWLEDGE FOR THE STUDENT TO LEARN FROM OR THAT WE ARE LOADING AN ENTIRE KD
         if not (teacher_pretrained_weights or teacher_checkpoint_path or load_kd_model_checkpoint):
-            raise ValueError("Expected: at least one of: teacher_pretrained_weights, teacher_checkpoint_path or "
-                             "load_kd_model_checkpoint=True")
+            raise TeacherKnowledgeException()
 
     def _validate_num_classes(self, student_arch_params, teacher_arch_params):
         """
@@ -132,7 +131,7 @@ class KDModel(SgModel):
         self._validate_subnet_num_classes(student_arch_params)
         self._validate_subnet_num_classes(teacher_arch_params)
         if teacher_arch_params['num_classes'] != student_arch_params['num_classes']:
-            raise ValueError("num_classes inconsistent between student and teacher architecture params")
+            raise InconsistentParamsException("num_classes", "student_arch_params", "num_classes", "teacher_arch_params")
 
     def _validate_subnet_num_classes(self, subnet_arch_params):
         """
@@ -145,8 +144,7 @@ class KDModel(SgModel):
 
         if 'num_classes' not in subnet_arch_params.keys():
             if self.dataset_interface is None:
-                raise Exception('Error', 'Number of classes must be defined in students and teachers arch params or '
-                                         'by connecting to a dataset interface')
+                raise UndefinedNumClassesException()
             else:
                 subnet_arch_params['num_classes'] = len(self.classes)
 
