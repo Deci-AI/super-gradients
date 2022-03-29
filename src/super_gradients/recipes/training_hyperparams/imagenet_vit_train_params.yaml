@@ -10,6 +10,7 @@ warmup_initial_lr: 0
 warmup_mode: linear_step
 ema: False
 loss: cross_entropy
+clip_grad_norm: 1
 optimizer: SGD
 optimizer_params:
   weight_decay: 0

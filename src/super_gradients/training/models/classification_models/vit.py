@@ -11,7 +11,6 @@ from torch import nn
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param
 from einops import repeat
-from super_gradients.training.utils import HpmStruct
 
 
 class PatchEmbed(nn.Module):
@@ -35,6 +34,7 @@ class PatchEmbed(nn.Module):
             x = x.flatten(2).transpose(1, 2)  # BCHW -> BNC
         x = self.norm(x)
         return x
+
 
 class FeedForward(nn.Module):
     '''
@@ -109,7 +109,7 @@ class Transformer(nn.Module):
         super().__init__()
         self.blocks = nn.ModuleList([])
         for _ in range(depth):
-            self.blocks.append(TransformerBlock( hidden_dim, heads, mlp_dim, dropout_prob=dropout_prob))
+            self.blocks.append(TransformerBlock(hidden_dim, heads, mlp_dim, dropout_prob=dropout_prob))
 
     def forward(self, x):
         for block in self.blocks:
@@ -135,16 +135,8 @@ class ViT(SgModule):
         '''
 
         super().__init__()
-        # TODO: Fix yaml parsing tuple as string
-        if isinstance(image_size, str):
-            image_size = (int(image_size), int(image_size))
-            patch_size = (int(patch_size), int(patch_size))
-        elif isinstance(image_size, int):
-            image_size = (image_size, image_size)
-            patch_size = (patch_size, patch_size)
         image_height, image_width = image_size
         patch_height, patch_width = patch_size
-
 
         assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
         assert hidden_dim % heads == 0, 'Hidden dimension must be divisible by the number of heads.'
@@ -162,43 +154,22 @@ class ViT(SgModule):
         self.pre_head_norm = nn.LayerNorm(hidden_dim, eps=1e-6)
         self.head = nn.Linear(hidden_dim, num_classes)
 
-
     def forward(self, img):
         x = self.patch_embedding(img)  # Convert image to patches and embed
         b, n, _ = x.shape
 
-        cls_tokens = repeat(self.cls_token, '() n d -> b n d', b = b)
+        cls_tokens = repeat(self.cls_token, '() n d -> b n d', b=b)
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding[:, :(n + 1)]
         x = self.dropout(x)
 
         x = self.transformer(x)
         x = self.pre_head_norm(x)
-        # x = x.mean(dim=1)
         x = x[:, 0]
         if self.backbone_mode:
             return x
         else:
             return self.head(x)
-
-    # def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
-    #                         total_batch: int) -> list:
-    #
-    #     param_groups[0]['lr'] = lr
-    #     param_groups[1]['lr'] = lr
-    #     # for param_group in param_groups:
-    #     #     param_group['lr'] = lr
-    #     return param_groups
-    #
-    #
-    # def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
-    #     """
-    #
-    #     :return: list of dictionaries containing the key 'named_params' with a list of named params
-    #     """
-    #     return [{'named_params': list(self.named_parameters())[:-2]},
-    #             {'named_params': list(self.named_parameters())[-2:]}
-    #             ]
 
 
 def vit_base(arch_params, num_classes=None, backbone_mode=None):

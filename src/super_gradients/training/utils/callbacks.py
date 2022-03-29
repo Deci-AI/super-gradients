@@ -269,32 +269,6 @@ class WarmupLRCallback(LRCallbackBase):
             self.update_lr(context.optimizer, context.epoch, None)
 
 
-
-class WarmupLRCallbackStep(LRCallbackBase):
-    """
-    LR scheduling callback for linear step warmup.
-    LR climbs from warmup_initial_lr with even steps to initial lr. When warmup_initial_lr is None- LR climb starts from
-     initial_lr/(1+warmup_epochs).
-
-    """
-
-    def __init__(self, **kwargs):
-        super(WarmupLRCallbackStep, self).__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
-        self.warmup_initial_lr = self.training_params.warmup_initial_lr if self.training_params.warmup_initial_lr is not None \
-            else self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
-        self.num_steps = self.train_loader_len * self.training_params.lr_warmup_epochs
-        self.warmup_step_size = (self.initial_lr - self.warmup_initial_lr) / self.num_steps
-        self.valid = True
-
-    def __call__(self, context: PhaseContext):
-        if self.valid and self.num_steps >= context.batch_idx:
-            self.lr = self.warmup_initial_lr + context.batch_idx * self.warmup_step_size
-            self.update_lr(context.optimizer, context.batch_idx, None)
-        else:
-            self.valid = False
-            self.training_params.lr_warmup_epochs = 0
-
-
 class YoloV5WarmupLRCallback(LRCallbackBase):
     def __init__(self, **kwargs):
         super(YoloV5WarmupLRCallback, self).__init__(Phase.TRAIN_BATCH_END, **kwargs)
@@ -552,6 +526,5 @@ LR_SCHEDULERS_CLS_DICT = {"step": StepLRCallback,
                           "function": FunctionLRCallback
                           }
 
-LR_WARMUP_CLS_DICT = {"linear_step_partial": WarmupLRCallbackStep,
-    "linear_step": WarmupLRCallback,
+LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback,
                       "yolov5_warmup": YoloV5WarmupLRCallback}
