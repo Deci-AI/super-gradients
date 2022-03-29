@@ -1,8 +1,6 @@
 from super_gradients.training.models.sg_module import SgModule
 import torch
 from super_gradients.training.utils.utils import HpmStruct
-from super_gradients.training.utils import get_param
-from typing import Union
 
 
 class KDOutput:

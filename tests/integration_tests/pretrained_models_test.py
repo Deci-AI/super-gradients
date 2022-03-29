@@ -365,7 +365,6 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"], checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         trainer.train(training_params=self.regseg_transfer_segmentation_train_params)
 
-
     def test_pretrained_ddrnet23_cityscapes(self):
         trainer = SgModel('cityscapes_pretrained_ddrnet23', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
@@ -513,7 +512,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
-        trainer.build_model("mobilenet_v2", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],checkpoint_params=self.imagenet_pretrained_ckpt_params)
+        trainer.build_model("mobilenet_v2", arch_params=self.imagenet_pretrained_arch_params["mobilenet"], checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(training_params=self.transfer_classification_train_params)
 
     def test_pretrained_mobilenet_v2_imagenet(self):

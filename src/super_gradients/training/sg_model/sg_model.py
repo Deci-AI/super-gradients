@@ -740,8 +740,7 @@ class SgModel:
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
-        self.metric_idx_in_results_tuple = (
-                self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -1062,8 +1061,7 @@ class SgModel:
         # Create a normalization transformation
         if normalize:
             try:
-                mean, std = self.dataset_interface.lib_dataset_params['mean'], \
-                            self.dataset_interface.lib_dataset_params['std']
+                mean, std = self.dataset_interface.lib_dataset_params['mean'], self.dataset_interface.lib_dataset_params['std']
             except AttributeError:
                 raise AttributeError('In \'predict()\', Normalization is set to True while the dataset has no default '
                                      'mean & std => deactivate normalization or inject it to the datasets library.')

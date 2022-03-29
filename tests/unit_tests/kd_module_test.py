@@ -41,7 +41,6 @@ class KDModuleTest(unittest.TestCase):
 
     def test_build_kd_module_with_pretrained_student(self):
         kd_model = KDModel("build_kd_module_with_pretrained_student", device='cpu')
-
         kd_model.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
                              student_arch_params={'num_classes': 1000}, teacher_arch_params={'num_classes': 1000},
                              checkpoint_params={'student_pretrained_weights': "imagenet",
@@ -49,9 +48,7 @@ class KDModuleTest(unittest.TestCase):
                              )
 
         imagenet_resnet18_sg_model = SgModel("pretrained_resnet18", device='cpu')
-        imagenet_resnet18_sg_model.build_model('resnet18', arch_params={
-            'num_classes': 1000},
-                                               checkpoint_params={'pretrained_weights': "imagenet"})
+        imagenet_resnet18_sg_model.build_model('resnet18', arch_params={'num_classes': 1000}, checkpoint_params={'pretrained_weights': "imagenet"})
 
         self.assertTrue(check_models_have_same_weights(kd_model.net.module.student,
                                                        imagenet_resnet18_sg_model.net.module))

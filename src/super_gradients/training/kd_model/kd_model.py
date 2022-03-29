@@ -1,13 +1,11 @@
 from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
-from super_gradients.training.sg_model import SgModel, StrictLoad
+from super_gradients.training.sg_model import SgModel
 from typing import Union
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import utils as core_utils
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import get_param
-from super_gradients.training.models.sg_module import SgModule
-import torch
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, \
     load_checkpoint_to_model
 
@@ -26,8 +24,6 @@ class KDModel(SgModel):
                     architecture: Union[str, KDModule] = 'kd_module',
                     arch_params={}, checkpoint_params={},
                     *args, **kwargs):
-
-        # FIXME: STUDENTAND TEACHER ARCHITECTURE ARE ONLY PASSED THROUGH KWARGS
         """
         :param architecture: (Union[str, KDModule]) Defines the network's architecture from models/KD_ARCHITECTURES
          (default='kd_module')
@@ -63,7 +59,7 @@ class KDModel(SgModel):
 
         :keyword teacher_architecture: (Union[str, SgModule]) Defines the teacher's architecture from
             models/ALL_ARCHITECTURES (when str), or directly defined the teacher network (when SgModule).
-            
+
         :keyword student_arch_params: (dict) Architecture H.P. e.g.: block, num_blocks, num_classes, etc for student
             net. (deafult={})
 
@@ -158,7 +154,6 @@ class KDModel(SgModel):
     def instantiate_net(architecture: Union[KDModule, KDModule.__class__, str], arch_params: dict,
                         checkpoint_params: dict, *args, **kwargs) -> tuple:
         """
-        
         Instantiates kd_module according to architecture and arch_params, handles pretrained weights for the student
          and teacher networks, and the required module manipulation (i.e head replacement) for the teacher network.
 
@@ -174,10 +169,8 @@ class KDModel(SgModel):
         teacher_architecture = get_param(kwargs, "teacher_architecture")
         student_arch_params = get_param(kwargs, "student_arch_params")
         teacher_arch_params = get_param(kwargs, "teacher_arch_params")
-
         student_arch_params = core_utils.HpmStruct(**student_arch_params)
         teacher_arch_params = core_utils.HpmStruct(**teacher_arch_params)
-        
         student_pretrained_weights = get_param(checkpoint_params, 'student_pretrained_weights')
         teacher_pretrained_weights = get_param(checkpoint_params, 'teacher_pretrained_weights')
 
