@@ -8,7 +8,6 @@ from super_gradients.training.metrics import Accuracy, Top5
 class TestRepVgg(unittest.TestCase):
 
     def setUp(self):
-        # contains all arch_params needed for initialization of all architectures
         self.arch_params = HpmStruct(**{"image_size": (224, 224), "patch_size": (16, 16), "num_classes": 10})
         self.dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 16})
 
