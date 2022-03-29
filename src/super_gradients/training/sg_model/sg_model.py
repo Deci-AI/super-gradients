@@ -1670,8 +1670,7 @@ class SgModel:
             logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
         return logging_values
 
-    @staticmethod
-    def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict,
+    def instantiate_net(self, architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict,
                         checkpoint_params: dict, *args, **kwargs) -> tuple:
         """
         Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required

@@ -139,7 +139,7 @@ class KDModel(SgModel):
         Derives num_classes in student_arch_params/teacher_arch_params from dataset interface or raises an error
          when none is given
 
-        @param subnet_arch_params: Arch params for student/teacher
+        :param subnet_arch_params: Arch params for student/teacher
 
         """
 
@@ -150,8 +150,7 @@ class KDModel(SgModel):
             else:
                 subnet_arch_params['num_classes'] = len(self.classes)
 
-    @staticmethod
-    def instantiate_net(architecture: Union[KDModule, KDModule.__class__, str], arch_params: dict,
+    def instantiate_net(self, architecture: Union[KDModule, KDModule.__class__, str], arch_params: dict,
                         checkpoint_params: dict, *args, **kwargs) -> tuple:
         """
         Instantiates kd_module according to architecture and arch_params, handles pretrained weights for the student
@@ -174,11 +173,10 @@ class KDModel(SgModel):
         student_pretrained_weights = get_param(checkpoint_params, 'student_pretrained_weights')
         teacher_pretrained_weights = get_param(checkpoint_params, 'teacher_pretrained_weights')
 
-        student, _ = SgModel.instantiate_net(student_architecture, student_arch_params,
-                                             {"pretrained_weights": student_pretrained_weights})
-
-        teacher, _ = SgModel.instantiate_net(teacher_architecture, teacher_arch_params,
-                                             {"pretrained_weights": teacher_pretrained_weights})
+        student, _ = super(KDModel, self).instantiate_net(student_architecture, student_arch_params,
+                                                          {"pretrained_weights": student_pretrained_weights})
+        teacher, _ = super(KDModel, self).instantiate_net(teacher_architecture, teacher_arch_params,
+                                                          {"pretrained_weights": teacher_pretrained_weights})
 
         run_teacher_on_eval = get_param(kwargs, "run_teacher_on_eval", default_val=False)
 
