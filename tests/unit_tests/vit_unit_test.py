@@ -5,7 +5,7 @@ from super_gradients import SgModel
 from super_gradients.training.metrics import Accuracy, Top5
 
 
-class TestRepVgg(unittest.TestCase):
+class TestViT(unittest.TestCase):
 
     def setUp(self):
         self.arch_params = HpmStruct(**{"image_size": (224, 224), "patch_size": (16, 16), "num_classes": 10})
