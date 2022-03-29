@@ -262,8 +262,6 @@ class SgModel:
 
         self._net_to_device()
 
-        # TODO: MOVE BELOW LINE INTO _LOAD_CHECKPOINT
-
         self._load_checkpoint_to_model()
 
     def _set_ckpt_loading_attributes(self):
@@ -273,12 +271,10 @@ class SgModel:
         self.checkpoint = {}
         self.strict_load = core_utils.get_param(self.checkpoint_params, 'strict_load', default_val=StrictLoad.ON)
         self.load_ema_as_net = core_utils.get_param(self.checkpoint_params, 'load_ema_as_net', default_val=False)
-        self.source_ckpt_folder_name = core_utils.get_param(self.checkpoint_params, 'source_ckpt_folder_name',
-                                                            default_val=None)
+        self.source_ckpt_folder_name = core_utils.get_param(self.checkpoint_params, 'source_ckpt_folder_name')
         self.load_checkpoint = core_utils.get_param(self.checkpoint_params, 'load_checkpoint', default_val=False)
         self.load_backbone = core_utils.get_param(self.checkpoint_params, 'load_backbone', default_val=False)
-        self.external_checkpoint_path = core_utils.get_param(self.checkpoint_params, 'external_checkpoint_path',
-                                                             default_val=None)
+        self.external_checkpoint_path = core_utils.get_param(self.checkpoint_params, 'external_checkpoint_path')
         if self.load_checkpoint or self.external_checkpoint_path:
             self.load_weights_only = core_utils.get_param(self.checkpoint_params, 'load_weights_only',
                                                           default_val=False)
@@ -1369,21 +1365,24 @@ class SgModel:
         self.net.to(self.device)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def _load_checkpoint_to_model(self, strict: StrictLoad, load_backbone: bool, source_ckpt_folder_name: str,
-                                  load_ema_as_net: bool):  # noqa: C901 - too complex
+    def _load_checkpoint_to_model(self):  # noqa: C901 - too complex
         """
-        Copies the source checkpoint to a local folder and loads the checkpoint's data to the model
-        :param strict:           See StrictLoad class documentation for details.
-        :param load_backbone:    loads the provided checkpoint to self.net.backbone instead of self.net
-        :param source_ckpt_folder_name: The folder where the checkpoint is saved. By default uses the self.experiment_name
-        NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params is True
+        Copies the source checkpoint to a local folder and loads the checkpoint's data to the model using the
+         attributes:
+
+         strict:           See StrictLoad class documentation for details.
+         load_backbone:    loads the provided checkpoint to self.net.backbone instead of self.net
+         source_ckpt_folder_name: The folder where the checkpoint is saved. By default uses the self.experiment_name
+
+        NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params
+         is True
         """
 
         self._set_ckpt_loading_attributes()
 
         if self.load_checkpoint or self.external_checkpoint_path:
             # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST
-            ckpt_local_path = get_ckpt_local_path(source_ckpt_folder_name=source_ckpt_folder_name,
+            ckpt_local_path = get_ckpt_local_path(source_ckpt_folder_name=self.source_ckpt_folder_name,
                                                   experiment_name=self.experiment_name,
                                                   ckpt_name=self.ckpt_name,
                                                   model_checkpoints_location=self.model_checkpoints_location,
@@ -1393,11 +1392,11 @@ class SgModel:
 
             # LOAD CHECKPOINT TO MODEL
             self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
-                                                       load_backbone=load_backbone,
+                                                       load_backbone=self.load_backbone,
                                                        net=self.net,
-                                                       strict=strict.value if isinstance(strict, StrictLoad) else strict,
+                                                       strict=self.strict_load.value if isinstance(self.strict_load, StrictLoad) else self.strict_load,
                                                        load_weights_only=self.load_weights_only,
-                                                       load_ema_as_net=load_ema_as_net)
+                                                       load_ema_as_net=self.load_ema_as_net)
 
             if 'ema_net' in self.checkpoint.keys():
                 logger.warning("[WARNING] Main network has been loaded from checkpoint but EMA network exists as "
