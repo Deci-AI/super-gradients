@@ -115,7 +115,7 @@ class SgModel:
         returns the test loss, accuracy and runtime
     """
 
-    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.AUTO,
+    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF,
                  model_checkpoints_location: str = 'local',
                  overwrite_local_checkpoint: bool = True, ckpt_name: str = 'ckpt_latest.pth',
                  post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir=None):
@@ -423,6 +423,10 @@ class SgModel:
         # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
         self.scaler.scale(loss).backward()
 
+        # APPLY GRADIENT CLIPPING IF REQUIRED
+        if self.training_params.clip_grad_norm:
+            torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
+
         # ACCUMULATE GRADIENT FOR X BATCHES BEFORE OPTIMIZING
         integrated_batches_num = batch_idx + len(self.train_loader) * epoch + 1
 
@@ -727,6 +731,10 @@ class SgModel:
                 -   `sg_logger_params` : dict
 
                     SGLogger parameters
+
+                -   `clip_grad_norm` : float
+
+                    Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped
         :return:
         """
         global logger
@@ -864,13 +872,17 @@ class SgModel:
         else:
             raise UnsupportedOptimizerFormat()
 
+        # VERIFY GRADIENT CLIPPING VALUE
+        if self.training_params.clip_grad_norm is not None and self.training_params.clip_grad_norm <= 0:
+            raise TypeError('Params', 'Invalid clip_grad_norm')
+
         if self.load_checkpoint and load_opt_params:
             self.optimizer.load_state_dict(self.checkpoint['optimizer_state_dict'])
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
         context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name,
-                               ckpt_dir=self.checkpoints_dir_path,
+                               ckpt_dir=self.checkpoints_dir_path, criterion=self.criterion,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 

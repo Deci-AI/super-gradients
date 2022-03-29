@@ -10,8 +10,8 @@ from PIL import Image
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.training.datasets.sg_dataset import DirectoryDataSet, ListDataset
-from super_gradients.training.utils.segmentation_utils import RandomFlip, Rescale, RandomRotate, PadShortToCropSize, \
-    CropImageAndMask, RandomGaussianBlur, RandomRescale
+from super_gradients.training.transforms.transforms import RandomFlip, Rescale, RandomRescale, RandomRotate, \
+    CropImageAndMask, RandomGaussianBlur, PadShortToCropSize
 
 
 class SegmentationDataSet(DirectoryDataSet, ListDataset):

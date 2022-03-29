@@ -43,10 +43,17 @@ load_checkpoint: False
 
 experiment_name: resnet50_imagenet
 
+ckpt_root_dir:
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: 'DDP'
+
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
   model_checkpoints_location: ${model_checkpoints_location}
-  multi_gpu: AUTO
+  ckpt_root_dir: ${ckpt_root_dir}
+  multi_gpu: ${multi_gpu}
 
 architecture: resnet50

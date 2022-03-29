@@ -99,9 +99,17 @@ external_checkpoint_path:
 architecture: stdc1_seg
 experiment_name: ${architecture}50_cityscapes
 
+
+ckpt_root_dir:
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: 'DDP'
+
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
-
-
+  model_checkpoints_location: ${model_checkpoints_location}
+  ckpt_root_dir: ${ckpt_root_dir}
+  multi_gpu: ${multi_gpu}
 
