@@ -172,10 +172,12 @@ class KDModel(SgModel):
 
         student_architecture = get_param(kwargs, "student_architecture")
         teacher_architecture = get_param(kwargs, "teacher_architecture")
-
         student_arch_params = get_param(kwargs, "student_arch_params")
         teacher_arch_params = get_param(kwargs, "teacher_arch_params")
 
+        student_arch_params = core_utils.HpmStruct(**student_arch_params)
+        teacher_arch_params = core_utils.HpmStruct(**teacher_arch_params)
+        
         student_pretrained_weights = get_param(checkpoint_params, 'student_pretrained_weights')
         teacher_pretrained_weights = get_param(checkpoint_params, 'teacher_pretrained_weights')
 
