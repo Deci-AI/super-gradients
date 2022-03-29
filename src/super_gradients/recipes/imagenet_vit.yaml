@@ -38,8 +38,7 @@ dataset_interface:
 data_loader_num_workers: 8
 
 model_checkpoints_location: local
-load_checkpoint: False # TODO: IF PROVIDED EXTERNAL CKPT, load_checkpoint NEEDS TO BE SET TO FALSE?
-external_checkpoint_path: /home/shai.rozenberg/PycharmProjects/super-gradients/checkpoints/vit_pretrained/vit_base_16_imagenet21k.pth
+load_checkpoint: True
 load_weights_only: True
 
 experiment_name: vit_base_imagenet1k

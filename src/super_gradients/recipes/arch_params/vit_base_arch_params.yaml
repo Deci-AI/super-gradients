@@ -5,3 +5,4 @@ num_classes: 1000
 
 image_size: 224
 patch_size: 16
+external_checkpoint_path: # Path to Imagenet 21K checkpoint

@@ -25,5 +25,5 @@ valid_metrics_list:                               # metrics for evaluation
 loss_logging_items_names: [Loss]
 metric_to_watch: Accuracy
 greater_metric_to_watch_is_better: True
-
+average_best_models: False
 _convert_: all
