@@ -252,7 +252,6 @@ class SgModel:
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
 
-        # FIXME: MAKE CLASS METHOD OUT OF INSTANTIATE NET AND PASS STUDENT AND TEEACHER THROUGH KWARGS
         self.net, self.architecture_cls = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args,
                                                                **kwargs)
 
