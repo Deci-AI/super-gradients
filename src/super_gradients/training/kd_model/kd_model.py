@@ -90,7 +90,7 @@ class KDModel(SgModel):
         teacher_arch_params = get_param(kwargs, "teacher_arch_params")
 
         if get_param(checkpoint_params, 'pretrained_weights') is not None:
-            raise UnsupportedKDArchitectureException("pretrained_weights", "checkpoint_params")
+            raise UnsupportedKDModelArgException("pretrained_weights", "checkpoint_params")
 
         if not isinstance(architecture, KDModule):
             if student_architecture is None or teacher_architecture is None:
