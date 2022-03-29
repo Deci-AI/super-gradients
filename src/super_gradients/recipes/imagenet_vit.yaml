@@ -1,7 +1,7 @@
 #  ViT Imagenet1K fine tuning from Imagenet21K classification training:
 #  This example trains with batch_size = 64 * 8 GPUs, total 512.
 #  Training time on 8 x GeForce RTX A5000 is 15min / epoch.
-#  ViT base : 84.04
+#  ViT base : 84.15
 #
 #  Log and tensorboard at XXX
 
