@@ -371,9 +371,32 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 - [ShuffleNet v2](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/shufflenetv2.py) - [https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
 - [VGG](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/vgg.py) - [https://arxiv.org/pdf/1409.1556](https://arxiv.org/pdf/1409.1556)
   
+</details>
+
+<details>
+  
+<summary>Object Detection</summary>
+  
+- [CSP DarkNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/csp_darknet53.py)
+- [DarkNet-53](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/darknet53.py)
+- [SSD (Single Shot Detector)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py) - [https://arxiv.org/pdf/1512.02325](https://arxiv.org/pdf/1512.02325)
+- [YOLO v3](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolov3.py) - [https://arxiv.org/pdf/1804.02767](https://arxiv.org/pdf/1804.02767)
+- [YOLO v5](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolov5.py) - [by Ultralytics](https://docs.ultralytics.com/)
   
 </details>
 
+<details>
+  
+<summary>Semantic Segmentation</summary>
+  
+- [DDRNet (Deep Dual-resolution Networks)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/ddrnet.py) - [https://arxiv.org/pdf/2101.06085.pdf](https://arxiv.org/pdf/2101.06085.pdf)
+- [LadderNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/laddernet.py) - Multi-path networks based on U-Net for medical image segmentation [https://arxiv.org/pdf/1810.07810](https://arxiv.org/pdf/1810.07810)
+- [RegSeg](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/regseg.py) - Rethink Dilated Convolution for Real-time Semantic Segmentation [https://arxiv.org/pdf/2111.09957](https://arxiv.org/pdf/2111.09957)
+- [ShelfNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/shelfnet.py) - [https://arxiv.org/pdf/1811.11254](https://arxiv.org/pdf/1811.11254)
+- [STDC](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/stdc.py) - Rethinking BiSeNet For Real-time Semantic Segmentation [https://arxiv.org/pdf/2104.13188](https://arxiv.org/pdf/2104.13188)
+  
+</details>
+  
 ## Documentation
 
 Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.html) for full documentation, user guide, and examples.
