@@ -11,6 +11,7 @@ defaults:
   - training_hyperparams: imagenet_efficientnet_train_params
   - dataset_params: imagenet_dataset_params
   - arch_params: efficientnet_b0_arch_params
+  - checkpoint_params: default_checkpoint_params
 
 arch_params:
   num_classes: 1000
@@ -30,14 +31,23 @@ dataset_interface:
 
 data_loader_num_workers: 8
 
-model_checkpoints_location: local
 load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
 
 experiment_name: efficientnet_b0_imagenet
+
+model_checkpoints_location: local
+ckpt_root_dir:
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: 'DDP'
 
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
   model_checkpoints_location: ${model_checkpoints_location}
+  ckpt_root_dir: ${ckpt_root_dir}
 
 architecture: efficientnet_b0

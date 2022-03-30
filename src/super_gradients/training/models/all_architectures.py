@@ -112,3 +112,7 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "regseg48": RegSeg48,
                  "kd_module": KDModule
                  }
+
+KD_ARCHITECTURES = {
+    "kd_module": KDModule
+}

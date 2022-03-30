@@ -10,11 +10,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
-from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.models import ARCHITECTURES
-from super_gradients.training.utils import get_param
-from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils.checkpoint_utils import load_pretrained_weights
+
 
 # TODO: These utils should move to sg_model package as internal (private) helper functions
 
@@ -38,8 +34,7 @@ def try_port(port):
     return is_port_available
 
 
-def launch_tensorboard_process(checkpoints_dir_path: str, sleep_postpone: bool = True, port: int = None) -> Tuple[
-    Process, int]:
+def launch_tensorboard_process(checkpoints_dir_path: str, sleep_postpone: bool = True, port: int = None) -> Tuple[Process, int]:
     """
     launch_tensorboard_process - Default behavior is to scan all free ports from 6006-6016 and try using them
                                  unless port is defined by the user
@@ -181,35 +176,3 @@ def log_uncaught_exceptions(logger):
         logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     sys.excepthook = handle_exception
-
-
-def instantiate_net(architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict) -> tuple:
-    """
-    Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
-        module manipulation (i.e head replacement).
-
-    :param architecture: String, torch.nn.Module or uninstantiated SgModule class describing the netowrks architecture.
-    :param arch_params: Architecture's parameters passed to networks c'tor.
-    :return: instantiated netowrk i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
-    """
-    pretrained_weights = get_param(arch_params, 'pretrained_weights', default_val=None)
-    if pretrained_weights is not None:
-        num_classes_new_head = arch_params.num_classes
-        arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
-
-    architecture_cls = None
-    if isinstance(architecture, str):
-        architecture_cls = ARCHITECTURES[architecture]
-        net = architecture_cls(arch_params=arch_params)
-    elif isinstance(architecture, SgModule.__class__):
-        net = architecture(arch_params)
-    else:
-        net = architecture
-
-    if pretrained_weights:
-        load_pretrained_weights(net, architecture, pretrained_weights)
-        if num_classes_new_head != arch_params.num_classes:
-            net.replace_head(new_num_classes=num_classes_new_head)
-            arch_params.num_classes = num_classes_new_head
-
-    return net, architecture_cls

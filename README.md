@@ -4,8 +4,11 @@
   
 **Easily train or fine-tune SOTA computer vision models with one open source training library**
 [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Easily%20train%20or%20fine-tune%20SOTA%20computer%20vision%20models%20from%20one%20training%20repository&url=https://github.com/Deci-AI/super-gradients&via=deci_ai&hashtags=AI,deeplearning,computervision,training,opensource)
+
+#### Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -> [Fill Survey](https://hz8qtlvwkaw.typeform.com/to/OpKda0Qe)
 ______________________________________________________________________
- <p align="center">
+  
+  <p align="center">
   <a href="https://www.supergradients.com/">Website</a> •
   <a href="#why-use-supergradients">Why Use SG?</a> •
   <a href="https://deci-ai.github.io/super-gradients/user_guide.html#introducing-the-supergradients-library">User Guide</a> •
@@ -15,9 +18,9 @@ ______________________________________________________________________
   <a href="#computer-vision-models---pretrained-checkpoints">Pretrained Models</a> •
   <a href="#community">Community</a> •
   <a href="#license">License</a> •
-  <a href="#deci-lab">Deci Lab</a>
+  <a href="#deci-platform">Deci Platform</a>
 </p>
-  
+<p align="center">
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
   <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
@@ -26,8 +29,9 @@ ______________________________________________________________________
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
   <a href="https://deci-ai.github.io/super-gradients/welcome.html"><img src="https://img.shields.io/badge/docs-sphinx-brightgreen" />
-    
+</p>    
 </div>
+
 
 # SuperGradients
 
@@ -48,13 +52,16 @@ Why do all the grind work, if we already did it for you? leverage tested and pro
     
 **Production Readiness and Ease of Integration**
     
-All SuperGradients models’ are production ready in the sense that they are compatible with deployment tools such as TensorRT (Nvidia) and OpenVino (Intel) and can be easily taken into production. With a few lines of code you can easily integrate the models into your codebase.
+All SuperGradients models’ are production ready in the sense that they are compatible with deployment tools such as TensorRT (Nvidia) and OpenVINO (Intel) and can be easily taken into production. With a few lines of code you can easily integrate the models into your codebase.
 
 <div align="center">
 <img src="./docs/assets/SG_img/detection-demo.png" width="600px">
 </div>
 
-
+<div align="center">
+<h3>Missing a Model or a Feature?</h3>
+</div>
+    
 ## What's New
 * 【09/03/2022】 New [quick start](#quick-start-notebook---semantic-segmentation) and [transfer learning](#transfer-learning-with-sg-notebook---semantic-segmentation) example notebooks for Semantic Segmentation.
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
@@ -104,13 +111,33 @@ ________________________________________________________________________________
 
 ## Getting Started
 
+### Start Training with Just 1 Command Line
+The most simple and straightforward way to start training SOTA performance models with SuperGradients reproducible recipes. Just define your dataset path and where you want your checkpoints to be saved and you are good to go from your terminal!
+    
+```bash
+python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+```
+### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
+Want to try our pre-trained models on your machine? Import SuperGradients, initialize your SgModel, and load your desired architecture and pre-trained weights from our [SOTA model zoo](#computer-vision-models---pretrained-checkpoints)
+    
+```python
+# The pretrained_weights argument will load a pre-trained architecture on the provided dataset
+# This is an example of loading COCO-2017 pre-trained weights for a YOLOv5 Nano object detection model
+    
+import super_gradients
+from super_gradients.training import SgModel
+
+trainer = SgModel(experiment_name="yolov5n_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
+trainer.build_model(architecture="yolo_v5n", arch_params={"pretrained_weights": "coco", num_classes": 80})
+```   
+    
 ### Quick Start Notebook - Classification
 
 Get started with our quick start notebook for image classification tasks on Google Colab for a quick and easy start using free GPU hardware.
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/12cURMPVQrvhgYle-wGmE2z8b_p90BdL0?usp=sharing&utm_campaign=SG%20github%20repo&utm_source=Google%20Colab&utm_medium=GitHub%20Repo&utm_content=Quickstart%20classification%20notebook%20-%20README.md"><img src="./docs/assets/SG_img/colab_logo.png" />Classification Quick Start in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/3ufnsgT"><img src="./docs/assets/SG_img/colab_logo.png" />Classification Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_classification.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -127,7 +154,7 @@ Get started with our quick start notebook for object detection tasks on Google C
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1s5frO-0dt5IYaaX49SgfLKCTJR6wLt4y?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/3wqMsEM"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -144,7 +171,7 @@ Get started with our quick start notebook for semantic segmentation tasks on Goo
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1taz1lXDnfiLWoH88ZN60nxmQDTW5VU2H?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Quick Start in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/3Jp7w1U"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Quick Start in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -161,7 +188,7 @@ Learn more about SuperGradients training components with our walkthrough noteboo
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1smwh4EAgE8PwnCtwsdU8a9D9Ezfh6FQK?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/3JspSPF"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_Walkthrough.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -180,7 +207,7 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1JCrPKX3BV9wjig5d7qyH-sjwSbiOvFs8?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Transfer Learning in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/3iGvnP7"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Transfer Learning in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_object_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -196,7 +223,7 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
-   <a target="_blank" href="https://colab.research.google.com/drive/1x8MpySPMqgYna1oei5URT0uBqIY3dnpM?usp=sharing"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Transfer Learning in Google Colab</a>
+   <a target="_blank" href="https://bit.ly/37P04PN"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Transfer Learning in Google Colab</a>
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_semantic_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
@@ -266,35 +293,44 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 ### Pretrained Classification PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency b1<sub>T4</sub> | Throughput b1<sub>T4</sub> |
-|-------------------- |------ | ---------- |----------- |------ | -------- |  :------: |
-| EfficientNet B0 | ImageNet  |224x224   |  77.62   | 93.49  |**1.16ms** |**862fps** |
-| RegNet Y200 | ImageNet  |224x224   |  70.88    |   89.35  |**1.07ms**|**928.3fps** |
-| RegNet Y400  | ImageNet  |224x224   |  74.74    |   91.46  |**1.22ms** |**816.5fps** |
-| RegNet Y600  | ImageNet  |224x224   |  76.18    |  92.34   |**1.19ms** |**838.5fps** |
-| RegNet Y800   | ImageNet  |224x224   |  77.07    |  93.26   |**1.18ms** |**841.4fps** |
-| ResNet 18   | ImageNet  |224x224   |  70.6    |   89.64 |**0.599ms** |**1669fps** |
-| ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.89ms** |**1123fps** |
-| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**0.94ms** |**1063fps** |
-| MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.87ms** |**1149fps** |
-| MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.87ms** |**1149fps** |
-| MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.75ms** |**1333fps** |
-| MobileNet V2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.58ms** |**1724fps** |
+| Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
+|------------ | ------ | ---------- |----------- | ----------- | ----------- |---------- |----------- | ----------- | :------: |
+| EfficientNet B0 | ImageNet | 224x224 |  77.62  | 93.49 |**0.93ms** |**1.38ms** | **-** * |**-**|**3.44ms** |
+| RegNet Y200 | ImageNet  |224x224 |  70.88   | 89.35 |**0.63ms** | **1.08ms** | **2.16ms** |**2.47ms**|**2.06ms** |
+| RegNet Y400  | ImageNet |224x224 |  74.74   | 91.46 |**0.80ms** | **1.25ms** |**2.62ms** |**2.91ms** |**2.87ms** |
+| RegNet Y600  | ImageNet |224x224 |  76.18   | 92.34 |**0.77ms** | **1.22ms** |**2.64ms** |**2.93ms** |**2.39ms** |
+| RegNet Y800  | ImageNet |224x224 |  77.07  |  93.26 |**0.74ms** | **1.19ms** |**2.77ms** |**3.04ms** |**2.81ms** |
+| ResNet 18   | ImageNet  |224x224   |  70.6   |   89.64 |**0.52ms** | **0.95ms** |**2.01ms**|**2.30ms** |**4.56ms** |
+| ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.92ms**  |**1.34ms** |**3.57ms**|**3.87ms** | **7.64ms** |
+| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**1.03ms** | **1.44ms** | **4.78ms**|**5.10ms** |**9.25ms** |
+| MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.67ms** | **1.11ms** |**2.42ms** |**2.71ms** |**1.76ms** |
+| MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.67ms** | **1.11ms** |**2.42ms** |**2.71ms** |**1.76ms** |
+| MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.55ms** | **0.96ms** |**2.01ms** *|**2.35ms** |**1.06ms** |
+| MobileNet V2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.46 ms**| **0.89ms** |**1.65ms** *|**1.90ms** | **1.56ms** |
+> **NOTE:** <br/>
+> - Latency (HW)* - Hardware performance (not including IO)<br/>
+> - Latency (Production)** - Production Performance (including IO)
+> - Performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1
+> - Performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
 
-> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1
+
 
 ### Pretrained Object Detection PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency b1<sub>T4</sub> | Throughput b64<sub>T4</sub>  |
-|--------------------- |------ | ---------- |------ | -------- |   :------: |
-| YOLOv5 nano | COCO |640x640 |27.7  |**6.55ms** |**177.62fps** |
-| YOLOv5 small | COCO |640x640 |37.3   |**7.13ms** |**159.44fps** |
-| YOLOv5 medium  | COCO |640x640 |45.2   |**8.95ms** |**121.78fps** |
-| YOLOv5 large | COCO |640x640 |48.0   |**11.49ms** |**95.99fps** |
+| Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
+|------------- |------ | ---------- |------ | -------- |------ | ---------- |------ | :------: |
+| YOLOv5 nano | COCO |640x640 |27.7  |**1.48ms** |**5.43ms**|**9.28ms** |**17.44ms** |**21.71ms**|
+| YOLOv5 small | COCO |640x640 |37.3 |**2.29ms** |**6.14ms**|**14.31ms** |**22.50ms** |**34.10ms**|
+| YOLOv5 medium| COCO |640x640 |45.2 |**4.60ms** |**8.10ms**|**26.76ms** |**34.95ms** |**65.86ms**|
+| YOLOv5 large | COCO |640x640 |48.0 |**7.20ms** |**10.28ms**|**43.89ms** |**51.92ms** |**122.97ms**|
   
 
-> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency) and batch size 64 (throughput)
+> **NOTE:** <br/>
+> - Latency (HW)* - Hardware performance (not including IO)<br/>
+> - Latency (Production)** - Production Performance (including IO)
+> - Latency performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1
+> - Latency performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
 
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
@@ -356,18 +392,18 @@ This project is released under the [Apache 2.0 license](LICENSE).
 __________________________________________________________________________________________________________
 
 
-## Deci Lab
+## Deci Platform
 
-Deci Lab is our end to end platform for building, optimizing and deploying deep learning models to production.
+Deci Platform is our end to end platform for building, optimizing and deploying deep learning models to production.
 
 Sign up for our [FREE Community Tier](https://console.deci.ai/) to enjoy immediate improvement in throughput, latency, memory footprint and model size.
 
 Features:
-- Automatically compile and quantize your models with just a few clicks (TrT, OpenVino).
+- Automatically compile and quantize your models with just a few clicks (TensorRT, OpenVINO).
 - Gain up to 10X improvement in throughput, latency, memory and model size. 
 - Easily benchmark your models’ performance on different hardware and batch sizes.
 - Invite co-workers to collaborate on models and communicate your progress.
 - Deci supports all common frameworks and Hardware, from Intel CPUs to Nvidia's GPUs and Jetsons.
 
-Sign up for Deci Lab for free [here](https://console.deci.ai/) 
+Sign up for Deci Platform for free [here](https://console.deci.ai/) 
 

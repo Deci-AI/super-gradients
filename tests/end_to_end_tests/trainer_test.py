@@ -49,7 +49,7 @@ class TestTrainer(unittest.TestCase):
     def test_save_load(self):
         model = self.get_classification_trainer(self.folder_names[1])
         model.train(training_params=self.training_params)
-        model.build_model("resnet18_cifar", arch_params={'load_checkpoint': True})
+        model.build_model("resnet18_cifar", checkpoint_params={'load_checkpoint': True})
 
     def test_load_only_weights_from_ckpt(self):
         # Create a checkpoint with 100% accuracy
@@ -60,8 +60,8 @@ class TestTrainer(unittest.TestCase):
         model.train(training_params=params)
         # Build a model that continues the training
         model = self.get_classification_trainer(self.folder_names[3])
-        model.build_model('resnet18_cifar', arch_params={"load_checkpoint": True, "load_weights_only": False,
-                                                         "source_ckpt_folder_name": self.folder_names[2]}
+        model.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": False,
+                                                               "source_ckpt_folder_name": self.folder_names[2]}
                           )
         self.assertTrue(model.best_metric > -1)
         self.assertTrue(model.start_epoch != 0)
@@ -70,8 +70,8 @@ class TestTrainer(unittest.TestCase):
         model.train(training_params=self.training_params)
         # Build a model that loads the weights and starts from scratch
         model = self.get_classification_trainer(self.folder_names[4])
-        model.build_model('resnet18_cifar', arch_params={"load_checkpoint": True, "load_weights_only": True,
-                                                         "source_ckpt_folder_name": self.folder_names[2]}
+        model.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": True,
+                                                               "source_ckpt_folder_name": self.folder_names[2]}
                           )
         self.assertTrue(model.best_metric == -1)
         self.assertTrue(model.start_epoch == 0)

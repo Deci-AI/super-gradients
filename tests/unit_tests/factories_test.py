@@ -39,5 +39,6 @@ class FactoriesTest(unittest.TestCase):
         self.assertIsInstance(model.dataset_interface, ClassificationTestDatasetInterface)
         self.assertIsInstance(model.optimizer, torch.optim.ASGD)
 
+
 if __name__ == '__main__':
     unittest.main()

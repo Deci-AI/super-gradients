@@ -1070,7 +1070,8 @@ Example- how to load a pretrained model:
 sg_model = SgModel("resnet50_experiment")
 
 sg_model.build_model(architecture="resnet50",
-                      arch_params={"pretrained_weights": "imagenet", "num_classes": 1000}
+                      checkpoint_params={"pretrained_weights": "imagenet"}
+                      arch_params={"num_classes": 1000}
                       )
 ```
 
