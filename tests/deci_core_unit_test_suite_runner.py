@@ -12,7 +12,7 @@ from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
 from tests.unit_tests.lr_warmup_test import LRWarmupTest
-from tests.unit_tests.kd_module_test import KDModelTest
+from tests.unit_tests.kd_model_test import KDModelTest
 from tests.unit_tests.dice_loss_test import DiceLossTest
 
 

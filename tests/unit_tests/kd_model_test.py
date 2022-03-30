@@ -119,7 +119,8 @@ class KDModelTest(unittest.TestCase):
     def test_kd_unsupported_model_exception_catching(self):
         sg_kd_model = KDModel("test_teacher_sg_module_methods", device='cpu')
         with self.assertRaises(UnsupportedKDArchitectureException):
-            sg_kd_model.build_model(teacher_architecture='resnet50',
+            sg_kd_model.build_model(student_architecture='resnet18',
+                                    teacher_architecture='resnet50',
                                     student_arch_params={'num_classes': 1000}, teacher_arch_params={'num_classes': 1000},
                                     checkpoint_params={'teacher_pretrained_weights': "imagenet"}, architecture='unsupported_model'
                                     )
