@@ -11,7 +11,7 @@ from super_gradients.training.exceptions.kd_model_exceptions import Architecture
     TeacherKnowledgeException
 
 
-class KDModuleTest(unittest.TestCase):
+class KDModelTest(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls.sg_trained_teacher = SgModel("sg_trained_teacher", device='cpu')
