@@ -9,7 +9,8 @@ from super_gradients.training.utils import get_param
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, \
     load_checkpoint_to_model
 from super_gradients.training.exceptions.kd_model_exceptions import ArchitectureKwargsException, \
-    UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, TeacherKnowledgeException, UndefinedNumClassesException
+    UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, \
+    TeacherKnowledgeException, UndefinedNumClassesException
 
 logger = get_logger(__name__)
 
@@ -131,7 +132,8 @@ class KDModel(SgModel):
         self._validate_subnet_num_classes(student_arch_params)
         self._validate_subnet_num_classes(teacher_arch_params)
         if teacher_arch_params['num_classes'] != student_arch_params['num_classes']:
-            raise InconsistentParamsException("num_classes", "student_arch_params", "num_classes", "teacher_arch_params")
+            raise InconsistentParamsException("num_classes", "student_arch_params", "num_classes",
+                                              "teacher_arch_params")
 
     def _validate_subnet_num_classes(self, subnet_arch_params):
         """
@@ -172,9 +174,9 @@ class KDModel(SgModel):
         teacher_pretrained_weights = get_param(checkpoint_params, 'teacher_pretrained_weights')
 
         student = super().instantiate_net(student_architecture, student_arch_params,
-                                                          {"pretrained_weights": student_pretrained_weights})
+                                          {"pretrained_weights": student_pretrained_weights})
         teacher = super().instantiate_net(teacher_architecture, teacher_arch_params,
-                                                          {"pretrained_weights": teacher_pretrained_weights})
+                                          {"pretrained_weights": teacher_pretrained_weights})
 
         run_teacher_on_eval = get_param(kwargs, "run_teacher_on_eval", default_val=False)
 

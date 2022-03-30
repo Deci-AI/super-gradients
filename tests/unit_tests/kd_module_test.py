@@ -8,7 +8,7 @@ from super_gradients.training.datasets.dataset_interfaces.dataset_interface impo
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.exceptions.kd_model_exceptions import ArchitectureKwargsException, \
     UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, \
-    TeacherKnowledgeException, UndefinedNumClassesException
+    TeacherKnowledgeException
 
 
 class KDModuleTest(unittest.TestCase):
@@ -127,7 +127,7 @@ class KDModuleTest(unittest.TestCase):
     def test_kd_inconsistent_params_exception_catching(self):
         sg_kd_model = KDModel("test_teacher_sg_module_methods", device='cpu')
         with self.assertRaises(InconsistentParamsException):
-            sg_kd_model.build_model(student_architecture='resnet18',teacher_architecture='resnet50',
+            sg_kd_model.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
                                     student_arch_params={'num_classes': 10}, teacher_arch_params={'num_classes': 1000},
                                     checkpoint_params={'teacher_pretrained_weights': "imagenet"}
                                     )
@@ -135,9 +135,10 @@ class KDModuleTest(unittest.TestCase):
     def test_kd_teacher_knowledge_exception_catching(self):
         sg_kd_model = KDModel("test_teacher_sg_module_methods", device='cpu')
         with self.assertRaises(TeacherKnowledgeException):
-            sg_kd_model.build_model(student_architecture='resnet18',teacher_architecture='resnet50',
+            sg_kd_model.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
                                     student_arch_params={'num_classes': 1000}, teacher_arch_params={'num_classes': 1000}
                                     )
+
 
 if __name__ == '__main__':
     unittest.main()
