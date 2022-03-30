@@ -99,7 +99,7 @@ ________________________________________________________________________________
   - [Pretrained Classification PyTorch Checkpoints](#pretrained-classification-pytorch-checkpoints)
   - [Pretrained Object Detection PyTorch Checkpoints](#pretrained-object-detection-pytorch-checkpoints)
   - [Pretrained Semantic Segmentation PyTorch Checkpoints](#pretrained-semantic-segmentation-pytorch-checkpoints)
-- [Implemented Architectures](#implemented-architectures)
+- [Implemented Model Architectures](#implemented-model-architectures)
 - [Contributing](#contributing)
 - [Citation](#citation)
 - [Community](#community)
@@ -332,25 +332,24 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Throughput b1<sub>T4</sub>  | Latency b1<sub>T4</sub> including IO |
-|--------------------- |------ | ---------- | ------ | -------- | -------- | :------: |
-| DDRNet 23   | Cityscapes |1024x2048   |78.65  |**7.62ms** |**131.3fps** |**25.94ms**|
-| DDRNet 23 slim   | Cityscapes |1024x2048 |76.6  |**3.56ms** |**280.5fps** |**22.80ms**|
-| STDC 1-Seg50   | Cityscapes | 512x1024 |74.36 |**2.83ms** |**353.3fps** |**12.57ms**|
-| STDC 1-Seg75   | Cityscapes | 768x1536 |76.87  |**5.71ms** |**175.1fps** |**26.70ms**|
-| STDC 2-Seg50   | Cityscapes | 512x1024 |75.27 |**3.74ms** |**267.2fps** |**13.89ms**
-| STDC 2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**135.9fps** |**28.18ms**|
-| RegSeg (exp48)   | Cityscapes | 1024x2048 |78.15 |**13.09ms** |**76.4fps** |**41.88ms**|
-| Larger RegSeg (exp53)   | Cityscapes | 1024x2048 |79.2|**24.82ms** |**40.3fps** |**51.87ms**|
-| ShelfNet LW 34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |**-** |
+| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO |
+|--------------------- |------ | ---------- | ------ | -------- | :------: |
+| DDRNet 23   | Cityscapes |1024x2048   |78.65  |**7.62ms** |**25.94ms**|
+| DDRNet 23 slim   | Cityscapes |1024x2048 |76.6  |**3.56ms** |**22.80ms**|
+| STDC 1-Seg50   | Cityscapes | 512x1024 |74.36 |**2.83ms** |**12.57ms**|
+| STDC 1-Seg75   | Cityscapes | 768x1536 |76.87  |**5.71ms** |**26.70ms**|
+| STDC 2-Seg50   | Cityscapes | 512x1024 |75.27 |**3.74ms** |**13.89ms**
+| STDC 2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**28.18ms**|
+| RegSeg (exp48)   | Cityscapes | 1024x2048 |78.15 |**13.09ms** |**41.88ms**|
+| Larger RegSeg (exp53)   | Cityscapes | 1024x2048 |79.2|**24.82ms** |**51.87ms**|
+| ShelfNet LW 34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |
 
 
-> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency), and not including IO
+> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency), and not including IO
 
-## Implemented Architectures 
-<details>
+## Implemented Model Architectures 
   
-<summary>Image Classification</summary>
+### Image Classification
   
 - [DensNet (Densely Connected Convolutional Networks)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/densenet.py) - Densely Connected Convolutional Networks [https://arxiv.org/pdf/1608.06993.pdf](https://arxiv.org/pdf/1608.06993.pdf)
 - [DPN](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/dpn.py) - Dual Path Networks [https://arxiv.org/pdf/1707.01629](https://arxiv.org/pdf/1707.01629)
@@ -372,11 +371,8 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
 - [VGG](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/vgg.py) - Very Deep Convolutional Networks for Large-scale Image Recognition [https://arxiv.org/pdf/1409.1556](https://arxiv.org/pdf/1409.1556)
   
-</details>
-
-<details>
   
-<summary>Object Detection</summary>
+### Object Detection
   
 - [CSP DarkNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/csp_darknet53.py)
 - [DarkNet-53](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/darknet53.py)
@@ -384,11 +380,8 @@ Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
 - [YOLO v3](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolov3.py) - [https://arxiv.org/pdf/1804.02767](https://arxiv.org/pdf/1804.02767)
 - [YOLO v5](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolov5.py) - [by Ultralytics](https://docs.ultralytics.com/)
   
-</details>
-
-<details>
   
-<summary>Semantic Segmentation</summary>
+### Semantic Segmentation 
   
 - [DDRNet (Deep Dual-resolution Networks)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/ddrnet.py) - [https://arxiv.org/pdf/2101.06085.pdf](https://arxiv.org/pdf/2101.06085.pdf)
 - [LadderNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/laddernet.py) - Multi-path networks based on U-Net for medical image segmentation [https://arxiv.org/pdf/1810.07810](https://arxiv.org/pdf/1810.07810)
