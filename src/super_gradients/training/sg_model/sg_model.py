@@ -256,8 +256,8 @@ class SgModel:
                                                                **kwargs)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
-        if hasattr(self.net, 'structure'):
-            self.architecture = self.net.structure
+
+        self.architecture = self.net.structure if hasattr(self.net, 'structure') else architecture
 
         self._net_to_device()
 
@@ -1230,7 +1230,7 @@ class SgModel:
 
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.classes = self.arch_params.num_classes
-        self.net = self.instantiate_net(self.arch_params)
+        self.net = self.instantiate_net(self.architecture, self.arch_params, self.checkpoint_params)
         # save the architecture for neural architecture search
         if hasattr(self.net, 'structure'):
             self.architecture = self.net.structure
