@@ -252,7 +252,7 @@ class SgModel:
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
 
-        self.net, self.architecture_cls = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args,
+        self.net = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args,
                                                                **kwargs)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
