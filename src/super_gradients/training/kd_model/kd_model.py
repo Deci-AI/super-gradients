@@ -1,3 +1,5 @@
+import torch.nn
+
 from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.sg_model import SgModel
@@ -119,7 +121,7 @@ class KDModel(SgModel):
         load_kd_model_checkpoint = get_param(checkpoint_params, "load_checkpoint")
 
         # CHECK THAT TEACHER NETWORK HOLDS KNOWLEDGE FOR THE STUDENT TO LEARN FROM OR THAT WE ARE LOADING AN ENTIRE KD
-        if not (teacher_pretrained_weights or teacher_checkpoint_path or load_kd_model_checkpoint):
+        if not (teacher_pretrained_weights or teacher_checkpoint_path or load_kd_model_checkpoint or isinstance(teacher_architecture, torch.nn.Module)):
             raise TeacherKnowledgeException()
 
     def _validate_num_classes(self, student_arch_params, teacher_arch_params):
