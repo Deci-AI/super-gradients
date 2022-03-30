@@ -29,7 +29,6 @@ class MobileNetBase(SgModule):
             self.classifier[-1] = nn.Linear(self.classifier[-1].in_features, new_num_classes)
 
 
-
 def conv_bn(inp, oup, stride):
     return nn.Sequential(
         nn.Conv2d(inp, oup, 3, stride, 1, bias=False),

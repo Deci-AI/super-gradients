@@ -159,7 +159,7 @@ class KDModelTest(unittest.TestCase):
             check_models_have_same_weights(student_model, sg_model.net.module.student))
 
     def test_train_kd_module_external_models(self):
-        sg_model = KDModel("test_training_with_external_teacher", device='cpu')
+        sg_model = KDModel("test_train_kd_module_external_models", device='cpu')
         teacher_model = ResNet50(arch_params={}, num_classes=5)
         student_model = ResNet18(arch_params={}, num_classes=5)
         sg_model.connect_dataset_interface(self.dataset)
@@ -183,7 +183,7 @@ class KDModelTest(unittest.TestCase):
             check_models_have_same_weights(student_model, sg_model.net.module.student))
 
     def test_train_kd_module_pretrained_ckpt(self):
-        sg_model = KDModel("test_training_with_external_teacher", device='cpu')
+        sg_model = KDModel("test_train_kd_module_pretrained_ckpt", device='cpu')
         teacher_model = ResNet50(arch_params={}, num_classes=5)
         teacher_path = '/tmp/teacher.pth'
         torch.save(teacher_model.state_dict(), teacher_path)
