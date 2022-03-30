@@ -6,6 +6,9 @@ import torch
 from super_gradients.training.utils.utils import check_models_have_same_weights
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy
+from super_gradients.training.exceptions.kd_model_exceptions import ArchitectureKwargsException, \
+    UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, \
+    TeacherKnowledgeException, UndefinedNumClassesException
 
 
 class KDModuleTest(unittest.TestCase):
@@ -48,7 +51,8 @@ class KDModuleTest(unittest.TestCase):
                              )
 
         imagenet_resnet18_sg_model = SgModel("pretrained_resnet18", device='cpu')
-        imagenet_resnet18_sg_model.build_model('resnet18', arch_params={'num_classes': 1000}, checkpoint_params={'pretrained_weights': "imagenet"})
+        imagenet_resnet18_sg_model.build_model('resnet18', arch_params={'num_classes': 1000},
+                                               checkpoint_params={'pretrained_weights': "imagenet"})
 
         self.assertTrue(check_models_have_same_weights(kd_model.net.module.student,
                                                        imagenet_resnet18_sg_model.net.module))
@@ -94,6 +98,46 @@ class KDModuleTest(unittest.TestCase):
 
         self.assertTrue(initial_param_groups[0]['lr'] == 0.2 == updated_param_groups[0]['lr'])
 
+    def test_kd_architecture_kwarg_sexception_catching(self):
+        sg_kd_model = KDModel("test_teacher_sg_module_methods", device='cpu')
+        with self.assertRaises(ArchitectureKwargsException):
+            sg_kd_model.build_model(teacher_architecture='resnet50',
+                                    student_arch_params={'num_classes': 5}, teacher_arch_params={'num_classes': 5},
+                                    checkpoint_params={'teacher_pretrained_weights': "imagenet"}
+                                    )
+
+    def test_kd_unsupported_kdmodel_arg_exceptione_catching(self):
+        sg_kd_model = KDModel("test_teacher_sg_module_methods", device='cpu')
+        with self.assertRaises(UnsupportedKDModelArgException):
+            sg_kd_model.build_model(student_architecture='resnet18',
+                                    teacher_architecture='resnet50',
+                                    student_arch_params={'num_classes': 1000},
+                                    teacher_arch_params={'num_classes': 1000},
+                                    checkpoint_params={"pretrained_weights": "imagenet"},
+                                    )
+
+    def test_kd_unsupported_model_exception_catching(self):
+        sg_kd_model = KDModel("test_teacher_sg_module_methods", device='cpu')
+        with self.assertRaises(UnsupportedKDArchitectureException):
+            sg_kd_model.build_model(teacher_architecture='resnet50',
+                                    student_arch_params={'num_classes': 1000}, teacher_arch_params={'num_classes': 1000},
+                                    checkpoint_params={'teacher_pretrained_weights': "imagenet"}, architecture='unsupported_model'
+                                    )
+
+    def test_kd_inconsistent_params_exception_catching(self):
+        sg_kd_model = KDModel("test_teacher_sg_module_methods", device='cpu')
+        with self.assertRaises(InconsistentParamsException):
+            sg_kd_model.build_model(student_architecture='resnet18',teacher_architecture='resnet50',
+                                    student_arch_params={'num_classes': 10}, teacher_arch_params={'num_classes': 1000},
+                                    checkpoint_params={'teacher_pretrained_weights': "imagenet"}
+                                    )
+
+    def test_kd_teacher_knowledge_exception_catching(self):
+        sg_kd_model = KDModel("test_teacher_sg_module_methods", device='cpu')
+        with self.assertRaises(TeacherKnowledgeException):
+            sg_kd_model.build_model(student_architecture='resnet18',teacher_architecture='resnet50',
+                                    student_arch_params={'num_classes': 1000}, teacher_arch_params={'num_classes': 1000}
+                                    )
 
 if __name__ == '__main__':
     unittest.main()
