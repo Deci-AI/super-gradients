@@ -85,9 +85,9 @@ ________________________________________________________________________________
 <!-- toc -->
 
 - [Getting Started](#getting-started)
-    - [Quick Start Notebook - classification example](#quick-start-notebook---classification)
-    - [Quick Start Notebook - object detection example](#quick-start-notebook---object-detection)
-    - [Quick Start Notebook - semantic segmentation example](#quick-start-notebook---semantic-segmentation)
+    - [Quick Start Notebook - Classification example](#quick-start-notebook---classification)
+    - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
+    - [Quick Start Notebook - Semantic segmentation example](#quick-start-notebook---semantic-segmentation)
     - [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
 - [Transfer Learning](#transfer-learning)  
     - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
@@ -104,7 +104,7 @@ ________________________________________________________________________________
 - [Citation](#citation)
 - [Community](#community)
 - [License](#license)
-- [Deci Lab](#deci-lab)
+- [Deci Platform](#deci-platform)
 
 <!-- tocstop -->
   
