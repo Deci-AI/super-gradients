@@ -99,6 +99,7 @@ ________________________________________________________________________________
   - [Pretrained Classification PyTorch Checkpoints](#pretrained-classification-pytorch-checkpoints)
   - [Pretrained Object Detection PyTorch Checkpoints](#pretrained-object-detection-pytorch-checkpoints)
   - [Pretrained Semantic Segmentation PyTorch Checkpoints](#pretrained-semantic-segmentation-pytorch-checkpoints)
+- [Implemented Architectures](#implemented-architectures)
 - [Contributing](#contributing)
 - [Citation](#citation)
 - [Community](#community)
@@ -281,11 +282,7 @@ That's it !
 pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ```
 
-</details>
-
-
-## Documentation
-Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.html) for full documentation, user guide, and examples. 
+</details> 
 
 
 ## Computer Vision Models - Pretrained Checkpoints
@@ -350,7 +347,33 @@ Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.ht
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and  batch size 1 (latency), and not including IO
 
+## Implemented Architectures 
+<details>
+  
+<summary>Image Classification</summary>
+  
+- [DensNet (Densely Connected Convolutional Networks)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/densenet.py) - [https://arxiv.org/pdf/1608.06993.pdf](https://arxiv.org/pdf/1608.06993.pdf)
+- [Dual Path Networks](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/dpn.py)
+- [EfficientNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/efficientnet.py)
+- [GoogleNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/googlenet.py)
+- [LeNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/lenet.py)
+- [MobileNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/mobilenet.py)
+- [MobileNet v2](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/mobilenetv2.py)  
+- [MobileNet v3](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/mobilenetv3.py)
+- [PNASNet (Progressive Neural Architecture Search Networks)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/pnasnet.py)  
+- []()  
+- []()  
+- []()  
+- []()  
+- []()  
+- []()
+  
+</details>
 
+## Documentation
+
+Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.html) for full documentation, user guide, and examples.
+  
 ## Contributing
 
 To learn about making a contribution to SuperGradients, please see our [Contribution page](CONTRIBUTING.md).
