@@ -137,7 +137,7 @@ class SgModel:
         """
         # SET THE EMPTY PROPERTIES
         self.net, self.architecture, self.arch_params, self.dataset_interface = None, None, None, None
-        self.architecture_cls, self.device, self.multi_gpu = None, None, None
+        self.device, self.multi_gpu = None, None
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = None, None, None, None, None
         self.ema = None
         self.ema_model = None
@@ -1230,7 +1230,7 @@ class SgModel:
 
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.classes = self.arch_params.num_classes
-        self.net = self.architecture_cls(arch_params=self.arch_params)
+        self.net = self.instantiate_net(self.arch_params)
         # save the architecture for neural architecture search
         if hasattr(self.net, 'structure'):
             self.architecture = self.net.structure
@@ -1704,4 +1704,4 @@ class SgModel:
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
 
-        return net, architecture_cls
+        return net

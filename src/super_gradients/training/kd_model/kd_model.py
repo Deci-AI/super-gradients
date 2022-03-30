@@ -171,9 +171,9 @@ class KDModel(SgModel):
         student_pretrained_weights = get_param(checkpoint_params, 'student_pretrained_weights')
         teacher_pretrained_weights = get_param(checkpoint_params, 'teacher_pretrained_weights')
 
-        student, _ = super(KDModel, self).instantiate_net(student_architecture, student_arch_params,
+        student = super().instantiate_net(student_architecture, student_arch_params,
                                                           {"pretrained_weights": student_pretrained_weights})
-        teacher, _ = super(KDModel, self).instantiate_net(teacher_architecture, teacher_arch_params,
+        teacher = super().instantiate_net(teacher_architecture, teacher_arch_params,
                                                           {"pretrained_weights": teacher_pretrained_weights})
 
         run_teacher_on_eval = get_param(kwargs, "run_teacher_on_eval", default_val=False)
@@ -189,7 +189,7 @@ class KDModel(SgModel):
         else:
             net = architecture
 
-        return net, architecture_cls
+        return net
 
     def _load_checkpoint_to_model(self):
         """
