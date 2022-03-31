@@ -802,8 +802,8 @@ class SgModel:
                                                             update_param_groups=self.update_param_groups,
                                                             **self.training_params.to_dict()))
 
-        self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
-        self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
+        self.add_metrics_update_callback(Phase.TRAIN_BATCH_END)
+        self.add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
@@ -1422,7 +1422,7 @@ class SgModel:
 
         if test_metrics_list:
             self.test_metrics = MetricCollection(test_metrics_list)
-            self._add_metrics_update_callback(Phase.TEST_BATCH_END)
+            self.add_metrics_update_callback(Phase.TEST_BATCH_END)
             self.phase_callback_handler = CallbackHandler(self.phase_callbacks)
 
         # WHEN TESTING WITHOUT A LOSS FUNCTION- CREATE EPOCH HEADERS FOR PRINTS
@@ -1441,7 +1441,7 @@ class SgModel:
         self.test_metrics.reset()
         self.test_metrics.to(self.device)
 
-    def _add_metrics_update_callback(self, phase: Phase):
+    def add_metrics_update_callback(self, phase: Phase):
         """
         Adds MetricsUpdateCallback to be fired at phase
 
