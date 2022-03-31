@@ -8,7 +8,7 @@ import numpy as np
 import onnx
 import onnxruntime
 import torch
-from typing import Callable
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import get_filename_suffix_by_framework
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
@@ -428,22 +428,25 @@ class LRSchedulerCallback(PhaseCallback):
 
 
 class MetricsUpdateCallback(PhaseCallback):
-    def __init__(self, phase: Phase, preds_prep_fn: Callable = None):
-        self.preds_prep_fn = preds_prep_fn
+    def __init__(self, phase: Phase):
         super(MetricsUpdateCallback, self).__init__(phase)
 
     def __call__(self, context: PhaseContext):
-        metrics_compute_fn_kwargs = {
-            k: self.preds_prep_fn(v) if (k == 'preds' and self.preds_prep_fn is not None) else v for k, v in
-            context.__dict__.items()}
-        context.metrics_compute_fn.update(**metrics_compute_fn_kwargs)
+        context.metrics_compute_fn.update(**context.__dict__)
         if context.criterion is not None:
             context.loss_avg_meter.update(context.loss_log_items, len(context.inputs))
 
 
 class KDModelMetricsUpdateCallback(MetricsUpdateCallback):
     def __init__(self, phase: Phase):
-        super(KDModelMetricsUpdateCallback, self).__init__(phase, lambda preds: preds.student_output)
+        super().__init__(phase=phase)
+
+    def __call__(self, context: PhaseContext):
+        metrics_compute_fn_kwargs = {k: v.student_output if k == 'preds' else v for k, v in
+                                     context.__dict__.items()}
+        context.metrics_compute_fn.update(**metrics_compute_fn_kwargs)
+        if context.criterion is not None:
+            context.loss_avg_meter.update(context.loss_log_items, len(context.inputs))
 
 
 class PhaseContextTestCallback(PhaseCallback):
