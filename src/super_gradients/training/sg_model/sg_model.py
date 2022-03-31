@@ -341,14 +341,12 @@ class SgModel:
                 # COMPUTE THE LOSS FOR BACK PROP + EXTRA METRICS COMPUTED DURING THE LOSS FORWARD PASS
                 loss, loss_log_items = self._get_losses(outputs, targets)
 
-            self.update_context(context,
-                                batch_idx=batch_idx,
-                                inputs=inputs,
-                                preds=outputs,
-                                target=targets,
-                                loss_log_items=loss_log_items,
-                                **additional_batch_items
-                                )
+            context.update_context(batch_idx=batch_idx,
+                                   inputs=inputs,
+                                   preds=outputs,
+                                   target=targets,
+                                   loss_log_items=loss_log_items,
+                                   **additional_batch_items)
 
             self.phase_callback_handler(Phase.TRAIN_BATCH_END, context)
 
@@ -804,8 +802,8 @@ class SgModel:
                                                             update_param_groups=self.update_param_groups,
                                                             **self.training_params.to_dict()))
 
-        self.phase_callbacks.append(MetricsUpdateCallback(Phase.TRAIN_BATCH_END))
-        self.phase_callbacks.append(MetricsUpdateCallback(Phase.VALIDATION_BATCH_END))
+        self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
+        self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
@@ -872,7 +870,7 @@ class SgModel:
 
                 # Phase.TRAIN_EPOCH_START
                 # RUN PHASE CALLBACKS
-                self.update_context(context, epoch=epoch)
+                context.update_context(epoch=epoch)
                 self.phase_callback_handler(Phase.TRAIN_EPOCH_START, context)
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
@@ -887,7 +885,7 @@ class SgModel:
                 train_metrics_dict = get_metrics_dict(train_metrics_tuple, self.train_metrics,
                                                       self.loss_logging_items_names)
 
-                self.update_context(context, metrics_dict=train_metrics_dict)
+                context.update_context(metrics_dict=train_metrics_dict)
                 self.phase_callback_handler(Phase.TRAIN_EPOCH_END, context)
 
                 # CALCULATE PRECISE BATCHNORM STATS
@@ -918,7 +916,7 @@ class SgModel:
                     valid_metrics_dict = get_metrics_dict(validation_results_tuple, self.valid_metrics,
                                                           self.loss_logging_items_names)
 
-                    self.update_context(context, metrics_dict=valid_metrics_dict)
+                    context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler(Phase.VALIDATION_EPOCH_END, context)
 
                 if self.ema:
@@ -1424,7 +1422,7 @@ class SgModel:
 
         if test_metrics_list:
             self.test_metrics = MetricCollection(test_metrics_list)
-            self.phase_callbacks.append(MetricsUpdateCallback(Phase.TEST_BATCH_END))
+            self._add_metrics_update_callback(Phase.TEST_BATCH_END)
             self.phase_callback_handler = CallbackHandler(self.phase_callbacks)
 
         # WHEN TESTING WITHOUT A LOSS FUNCTION- CREATE EPOCH HEADERS FOR PRINTS
@@ -1442,6 +1440,14 @@ class SgModel:
         # RESET METRIC RUNNERS
         self.test_metrics.reset()
         self.test_metrics.to(self.device)
+
+    def _add_metrics_update_callback(self, phase: Phase):
+        """
+        Adds MetricsUpdateCallback to be fired at phase
+
+        :param phase: Phase for the metrics callback to be fired at
+        """
+        self.phase_callbacks.append(MetricsUpdateCallback(phase))
 
     def _initialize_sg_logger_objects(self):
         """Initialize object that collect, write to disk, monitor and store remotely all training outputs"""
@@ -1628,13 +1634,12 @@ class SgModel:
                     # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
                     loss_tuple = self._get_losses(output, targets)[1].cpu()
 
-                self.update_context(context,
-                                    batch_idx=batch_idx,
-                                    inputs=inputs,
-                                    preds=output,
-                                    target=targets,
-                                    loss_log_items=loss_tuple,
-                                    **additional_batch_items)
+                context.update_context(batch_idx=batch_idx,
+                                       inputs=inputs,
+                                       preds=output,
+                                       target=targets,
+                                       loss_log_items=loss_tuple,
+                                       **additional_batch_items)
 
                 # TRIGGER PHASE CALLBACKS CORRESPONDING TO THE EVALUATION TYPE
                 if evaluation_type == EvaluationType.VALIDATION:
@@ -1670,16 +1675,6 @@ class SgModel:
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
         return logging_values
-
-    @staticmethod
-    def update_context(context: PhaseContext, **kwargs):
-        """
-        Updates phase context with **kwargs
-
-        :param context: phase context to be updated
-        :param kwargs: kwargs to be set as the context's attributes.
-        """
-        context.update_context(**kwargs)
 
     def instantiate_net(self, architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict,
                         checkpoint_params: dict, *args, **kwargs) -> tuple:

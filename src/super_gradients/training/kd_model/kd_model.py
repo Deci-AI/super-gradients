@@ -13,8 +13,7 @@ from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict
 from super_gradients.training.exceptions.kd_model_exceptions import ArchitectureKwargsException, \
     UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, \
     TeacherKnowledgeException, UndefinedNumClassesException
-from super_gradients.training.utils.callbacks import PhaseContext
-
+from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallback
 logger = get_logger(__name__)
 
 
@@ -183,7 +182,6 @@ class KDModel(SgModel):
 
         run_teacher_on_eval = get_param(kwargs, "run_teacher_on_eval", default_val=False)
 
-        architecture_cls = None
         if isinstance(architecture, str):
             architecture_cls = KD_ARCHITECTURES[architecture]
             net = architecture_cls(arch_params=arch_params, student=student, teacher=teacher,
@@ -224,12 +222,10 @@ class KDModel(SgModel):
 
         super(KDModel, self)._load_checkpoint_to_model()
 
-    @staticmethod
-    def update_context(context: PhaseContext, **kwargs):
+    def _add_metrics_update_callback(self, phase):
+        """
+        Adds KDModelMetricsUpdateCallback to be fired at phase
 
-        # OVERRIDE PREDS WITH STUDENT OUTPUT TO FIT METRIC CALLBACKS
-        if 'preds' in kwargs.keys():
-            kwargs['teacher_output'] = kwargs['preds'].teacher_output
-            kwargs['preds'] = kwargs['preds'].student_output
-
-        SgModel.update_context(context, **kwargs)
+        :param phase: Phase for the metrics callback to be fired at
+        """
+        self.phase_callbacks.append(KDModelMetricsUpdateCallback(phase))
