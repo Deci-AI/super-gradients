@@ -222,7 +222,7 @@ class KDModel(SgModel):
 
         super(KDModel, self)._load_checkpoint_to_model()
 
-    def add_metrics_update_callback(self, phase):
+    def _add_metrics_update_callback(self, phase):
         """
         Adds KDModelMetricsUpdateCallback to be fired at phase
 

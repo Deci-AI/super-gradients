@@ -15,33 +15,33 @@ from copy import deepcopy
 
 
 class KDModelTest(unittest.TestCase):
-    # def get_kd_train_params(self):
-    #     return {"max_epochs": 3, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
-    #             "lr_warmup_epochs": 0, "initial_lr": 0.1,
-    #             "loss": KDLogitsLoss(torch.nn.CrossEntropyLoss()),
-    #             "optimizer": "SGD",
-    #             "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-    #             "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-    #             "metric_to_watch": "Accuracy",
-    #             "greater_metric_to_watch_is_better": True, "average_best_models": False,
-    #             "loss_logging_items_names": ["Loss", "Task Loss", "Distillation Loss"]}
-    #
-    # def get_sg_trained_teacher(self):
-    #     sg_trained_teacher = SgModel("sg_trained_teacher", device='cpu')
-    #     dataset_params = {"batch_size": 5}
-    #     dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-    #     sg_trained_teacher.connect_dataset_interface(dataset)
-    #     train_params = {"max_epochs": 3, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
-    #                     "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": torch.nn.CrossEntropyLoss(),
-    #                     "optimizer": "SGD",
-    #                     "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-    #                     "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-    #                     "metric_to_watch": "Accuracy",
-    #                     "greater_metric_to_watch_is_better": True, "average_best_models": False}
-    #     sg_trained_teacher.build_model('resnet50', arch_params={'num_classes': 5})
-    #     sg_trained_teacher.train(train_params)
-    #     return sg_trained_teacher
-    #
+    @classmethod
+    def setUp(cls):
+        cls.sg_trained_teacher = SgModel("sg_trained_teacher", device='cpu')
+        cls.dataset_params = {"batch_size": 5}
+        cls.dataset = ClassificationTestDatasetInterface(dataset_params=cls.dataset_params)
+        cls.sg_trained_teacher.connect_dataset_interface(cls.dataset)
+
+        cls.sg_trained_teacher.build_model('resnet50', arch_params={'num_classes': 5})
+
+        cls.train_params = {"max_epochs": 3, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
+                            "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": torch.nn.CrossEntropyLoss(),
+                            "optimizer": "SGD",
+                            "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+                            "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
+                            "metric_to_watch": "Accuracy",
+                            "greater_metric_to_watch_is_better": True, "average_best_models": False}
+
+        cls.kd_train_params = {"max_epochs": 3, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
+                               "lr_warmup_epochs": 0, "initial_lr": 0.1,
+                               "loss": KDLogitsLoss(torch.nn.CrossEntropyLoss()),
+                               "optimizer": "SGD",
+                               "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+                               "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
+                               "metric_to_watch": "Accuracy",
+                               'loss_logging_items_names': ["Loss", "Task Loss", "Distillation Loss"],
+                               "greater_metric_to_watch_is_better": True, "average_best_models": False}
+
     def test_build_kd_module_with_pretrained_teacher(self):
         kd_model = KDModel("build_kd_module_with_pretrained_teacher", device='cpu')
         kd_model.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
@@ -71,20 +71,8 @@ class KDModelTest(unittest.TestCase):
                                                        imagenet_resnet18_sg_model.net.module))
 
     def test_build_kd_module_pretrained_student_with_head_replacement(self):
-        sg_trained_teacher = SgModel("sg_trained_teacher", device='cpu')
-        dataset_params = {"batch_size": 5}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        sg_trained_teacher.connect_dataset_interface(dataset)
-        train_params = {"max_epochs": 3, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
-                        "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": torch.nn.CrossEntropyLoss(),
-                        "optimizer": "SGD",
-                        "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                        "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-                        "metric_to_watch": "Accuracy",
-                        "greater_metric_to_watch_is_better": True, "average_best_models": False}
-        sg_trained_teacher.build_model('resnet50', arch_params={'num_classes': 5})
-        sg_trained_teacher.train(train_params)
-        teacher_path = os.path.join(sg_trained_teacher.checkpoints_dir_path, 'ckpt_latest.pth')
+        self.sg_trained_teacher.train(self.train_params)
+        teacher_path = os.path.join(self.sg_trained_teacher.checkpoints_dir_path, 'ckpt_latest.pth')
 
         sg_kd_model = KDModel('test_build_kd_module_student_replace_head', device='cpu')
         sg_kd_model.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
@@ -94,32 +82,20 @@ class KDModelTest(unittest.TestCase):
                                 )
 
         self.assertTrue(sg_kd_model.net.module.student.linear.out_features == 5)
-    #
-    # def test_build_kd_module_with_sg_trained_teacher(self):
-    #     sg_trained_teacher = SgModel("sg_trained_teacher", device='cpu')
-    #     dataset_params = {"batch_size": 5}
-    #     dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-    #     sg_trained_teacher.connect_dataset_interface(dataset)
-    #     train_params = {"max_epochs": 3, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
-    #                     "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": torch.nn.CrossEntropyLoss(),
-    #                     "optimizer": "SGD",
-    #                     "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-    #                     "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-    #                     "metric_to_watch": "Accuracy",
-    #                     "greater_metric_to_watch_is_better": True, "average_best_models": False}
-    #     sg_trained_teacher.build_model('resnet50', arch_params={'num_classes': 5})
-    #     sg_trained_teacher.train(train_params)
-    #     teacher_path = os.path.join(sg_trained_teacher.checkpoints_dir_path, 'ckpt_latest.pth')
-    #
-    #     sg_kd_model = KDModel('test_build_kd_module_with_sg_trained_teacher', device='cpu')
-    #
-    #     sg_kd_model.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
-    #                             student_arch_params={'num_classes': 5}, teacher_arch_params={'num_classes': 5},
-    #                             checkpoint_params={"teacher_checkpoint_path": teacher_path}
-    #                             )
-    #
-    #     self.assertTrue(
-    #         check_models_have_same_weights(sg_trained_teacher.net.module, sg_kd_model.net.module.teacher))
+
+    def test_build_kd_module_with_sg_trained_teacher(self):
+        self.sg_trained_teacher.train(self.train_params)
+        teacher_path = os.path.join(self.sg_trained_teacher.checkpoints_dir_path, 'ckpt_latest.pth')
+
+        sg_kd_model = KDModel('test_build_kd_module_with_sg_trained_teacher', device='cpu')
+
+        sg_kd_model.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
+                                student_arch_params={'num_classes': 5}, teacher_arch_params={'num_classes': 5},
+                                checkpoint_params={"teacher_checkpoint_path": teacher_path}
+                                )
+
+        self.assertTrue(
+            check_models_have_same_weights(self.sg_trained_teacher.net.module, sg_kd_model.net.module.teacher))
 
     def test_teacher_sg_module_methods(self):
         sg_kd_model = KDModel("test_teacher_sg_module_methods", device='cpu')
@@ -192,63 +168,42 @@ class KDModelTest(unittest.TestCase):
         self.assertTrue(
             check_models_have_same_weights(student_model, sg_model.net.module.student))
 
-    def test_train_kd_external_models(self):
-        kd_model = KDModel("test_train_kd_module_external_models_", device='cpu')
+    def test_train_kd_module_external_models(self):
+        sg_model = KDModel("test_train_kd_module_external_models", device='cpu')
         teacher_model = ResNet50(arch_params={}, num_classes=5)
         student_model = ResNet18(arch_params={}, num_classes=5)
-        dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 5})
-        kd_model.connect_dataset_interface(dataset)
-        kd_model.build_model(run_teacher_on_eval=True,
+        sg_model.connect_dataset_interface(self.dataset)
+        sg_model.build_model(run_teacher_on_eval=True,
                              student_arch_params={'num_classes': 5},
                              teacher_arch_params={'num_classes': 5},
                              student_architecture=deepcopy(student_model),
                              teacher_architecture=deepcopy(teacher_model),
                              )
-        train_params = {"max_epochs": 3, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
-                        "lr_warmup_epochs": 0, "initial_lr": 0.1,
-                        "loss": KDLogitsLoss(torch.nn.CrossEntropyLoss()),
-                        "optimizer": "SGD",
-                        "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                        "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-                        "metric_to_watch": "Accuracy",
-                        "greater_metric_to_watch_is_better": True, "average_best_models": False,
-                        "loss_logging_items_names": ["Loss", "Task Loss", "Distillation Loss"]}
 
-        kd_model.train(train_params)
+        sg_model.train(self.kd_train_params)
 
         # TEACHER WEIGHT'S SHOULD REMAIN THE SAME
         self.assertTrue(
-            check_models_have_same_weights(teacher_model, kd_model.net.module.teacher))
+            check_models_have_same_weights(teacher_model, sg_model.net.module.teacher))
 
         # STUDENT WEIGHT'S SHOULD NOT REMAIN THE SAME
         self.assertFalse(
-            check_models_have_same_weights(student_model, kd_model.net.module.student))
+            check_models_have_same_weights(student_model, sg_model.net.module.student))
 
     def test_train_kd_module_pretrained_ckpt(self):
-        kd_model = KDModel("test_train_kd_module_pretrained_ckpt", device='cpu')
+        sg_model = KDModel("test_train_kd_module_pretrained_ckpt", device='cpu')
         teacher_model = ResNet50(arch_params={}, num_classes=5)
         teacher_path = '/tmp/teacher.pth'
         torch.save(teacher_model.state_dict(), teacher_path)
+        sg_model.connect_dataset_interface(self.dataset)
 
-        dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 5})
-        kd_model.connect_dataset_interface(dataset)
-
-        kd_model.build_model(student_arch_params={'num_classes': 5},
+        sg_model.build_model(student_arch_params={'num_classes': 5},
                              teacher_arch_params={'num_classes': 5},
                              student_architecture='resnet18',
                              teacher_architecture='resnet50',
                              checkpoint_params={"teacher_checkpoint_path": teacher_path}
                              )
-        train_params = {"max_epochs": 3, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
-                        "lr_warmup_epochs": 0, "initial_lr": 0.1,
-                        "loss": KDLogitsLoss(torch.nn.CrossEntropyLoss()),
-                        "optimizer": "SGD",
-                        "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                        "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-                        "metric_to_watch": "Accuracy",
-                        "greater_metric_to_watch_is_better": True, "average_best_models": False,
-                        "loss_logging_items_names": ["Loss", "Task Loss", "Distillation Loss"]}
-        kd_model.train(train_params)
+        sg_model.train(self.kd_train_params)
 
 
 if __name__ == '__main__':
