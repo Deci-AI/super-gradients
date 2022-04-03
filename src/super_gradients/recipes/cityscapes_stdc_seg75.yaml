@@ -43,6 +43,10 @@ dataset_params:
   crop_size: [1536, 768]
   eval_scale: 0.75
 
+load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
+
 training_hyperparams:
   initial_lr: 0.005
 

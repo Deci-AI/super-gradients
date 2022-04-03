@@ -545,8 +545,10 @@ class EfficientNet(SgModule):
                 # MAKE SURE THESE ARE NOT THE FINAL LAYERS
                 pretrained_backbone_weights_dict[name_without_module_prefix] = weights
 
+            pretrained_model_weights_dict = pretrained_backbone_weights_dict
+
         # RETURNING THE UNMODIFIED/MODIFIED STATE DICT DEPENDING ON THE backbone_mode VALUE
-        super().load_state_dict(pretrained_backbone_weights_dict, strict)
+        super().load_state_dict(pretrained_model_weights_dict, strict)
 
 
 def build_efficientnet(width, depth, res, dropout, arch_params):

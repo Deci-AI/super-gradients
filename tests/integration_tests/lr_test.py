@@ -30,7 +30,7 @@ class LRTest(unittest.TestCase):
         dataset_params = {"batch_size": 4}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
-        model.build_model("resnet18_cifar", load_checkpoint=False)
+        model.build_model("resnet18_cifar")
         return model
 
     def test_function_lr(self):
