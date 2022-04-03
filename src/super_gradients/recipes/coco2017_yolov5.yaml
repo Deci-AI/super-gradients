@@ -17,6 +17,7 @@ defaults:
   - training_hyperparams: coco2017_yolov5_train_params
   - dataset_params: coco_detection_dataset_params
   - arch_params: yolov5s_arch_params
+  - checkpoint_params: default_checkpoint_params
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CoCoDetectionDatasetInterface
@@ -24,20 +25,20 @@ dataset_interface:
 
 data_loader_num_workers: 8
 
-model_checkpoints_location: local
-
 load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
 
 architecture: yolo_v5s
 
 experiment_name: ${architecture}_coco2017_320
 
-ckpt_root_dir:
-
 multi_gpu:
   _target_: super_gradients.training.sg_model.MultiGPUMode
   value: 'DDP'
 
+ckpt_root_dir:
+model_checkpoints_location: local
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}

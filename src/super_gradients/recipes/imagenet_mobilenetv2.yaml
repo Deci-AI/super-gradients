@@ -9,6 +9,7 @@ defaults:
   - training_hyperparams: imagenet_mobilenetv2_train_params
   - dataset_params: imagenet_dataset_params
   - arch_params: mobilenet_v2_arch_params
+  - checkpoint_params: default_checkpoint_params
 
 dataset_params:
   train_loader_drop_last: True
@@ -32,6 +33,8 @@ data_loader_num_workers: 8
 
 model_checkpoints_location: local
 load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
 
 experiment_name: mobileNetv2_training
 
