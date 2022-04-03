@@ -22,12 +22,16 @@ from super_gradients.training.losses.stdc_loss import STDCLoss
 class PretrainedModelsTest(unittest.TestCase):
     def setUp(self) -> None:
         super_gradients.init_trainer()
+
         self.imagenet_pretrained_arch_params = {"resnet": {"pretrained_weights": "imagenet"},
                                                 "regnet": {"pretrained_weights": "imagenet"},
                                                 "repvgg_a0": {"pretrained_weights": "imagenet",
                                                               "build_residual_branches": True},
                                                 "efficientnet_b0": {"pretrained_weights": "imagenet"},
-                                                "mobilenet": {"pretrained_weights": "imagenet"}}
+                                                "mobilenet": {"pretrained_weights": "imagenet"},
+                                                "vit_base":
+                                                    {"image_size": (224, 224),
+                                                     "patch_size": (16, 16)}}
 
         self.imagenet_pretrained_accuracies = {"resnet50": 0.7947,
                                                "resnet34": 0.7413,
@@ -40,9 +44,16 @@ class PretrainedModelsTest(unittest.TestCase):
                                                "efficientnet_b0": 0.7762,
                                                "mobilenet_v3_large": 0.7452,
                                                "mobilenet_v3_small": 0.6745,
-                                               "mobilenet_v2": 0.7308
+                                               "mobilenet_v2": 0.7308,
+                                               "vit_base": 0.8415
                                                }
         self.imagenet_dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params={"batch_size": 128})
+
+        self.imagenet_dataset_05_mean_std = ImageNetDatasetInterface(data_dir="/data/Imagenet",
+                                                                     dataset_params={"batch_size": 128,
+                                                                                     "img_mean": [0.5, 0.5, 0.5],
+                                                                                     "img_std": [0.5, 0.5, 0.5]
+                                                                                     })
 
         self.transfer_classification_dataset = ClassificationTestDatasetInterface(image_size=224)
 
@@ -191,7 +202,9 @@ class PretrainedModelsTest(unittest.TestCase):
                                                         "load_opt_params": False,
                                                         "train_metrics_list": [IoU(5)],
                                                         "valid_metrics_list": [IoU(5)],
-                                                        "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
+                                                        "loss_logging_items_names": ["main_loss", "aux_loss1",
+                                                                                     "aux_loss2", "detail_loss",
+                                                                                     "loss"],
                                                         "metric_to_watch": "IoU",
                                                         "greater_metric_to_watch_is_better": True
                                                         }
@@ -360,7 +373,6 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         trainer.build_model("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"])
         trainer.train(training_params=self.regseg_transfer_segmentation_train_params)
-
 
     def test_pretrained_ddrnet23_cityscapes(self):
         trainer = SgModel('cityscapes_pretrained_ddrnet23', model_checkpoints_location='local',
@@ -588,6 +600,23 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         trainer.build_model("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"])
         trainer.train(training_params=self.stdc_transfer_segmentation_train_params)
+
+    def test_transfer_learning_vit_base_imagenet21k(self):
+        trainer = SgModel('imagenet21k_pretrained_vit_base',
+                          model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"])
+        trainer.train(training_params=self.transfer_classification_train_params)
+
+    def test_pretrained_vit_base_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_vit_base', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset_05_mean_std, data_loader_num_workers=8)
+        trainer.build_model("resnet50", arch_params=self.imagenet_pretrained_arch_params["vit_base"])
+        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_base"], delta=0.001)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
