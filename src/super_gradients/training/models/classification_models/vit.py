@@ -171,6 +171,14 @@ class ViT(SgModule):
         else:
             return self.head(x)
 
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self.head = new_head
+        else:
+            self.head = nn.Linear(self.head.in_features, new_num_classes)
+
 
 def vit_base(arch_params, num_classes=None, backbone_mode=None):
     return ViT(image_size=get_param(arch_params, "image_size", (224, 224)),
