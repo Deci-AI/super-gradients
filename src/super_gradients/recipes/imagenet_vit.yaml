@@ -3,7 +3,7 @@
 #  Training time on 8 x GeForce RTX A5000 is 15min / epoch.
 #  ViT base : 84.15
 #
-#  Log and tensorboard at XXX
+#  Log and tensorboard at s3://deci-pretrained-models/vit_base_imagenet1k/
 
 # Instructions:
 # running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
@@ -16,6 +16,7 @@ defaults:
   - training_hyperparams: imagenet_vit_train_params
   - dataset_params: imagenet_dataset_params
   - arch_params: vit_base_arch_params
+  - checkpoint_params: vit_base_imagenet_checkpoint_params
 
 
 dataset_params:

@@ -33,6 +33,8 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.imagenet_pretrained_ckpt_params = {"pretrained_weights": "imagenet"}
 
+        self.imagenet21k_pretrained_ckpt_params = {"pretrained_weights": "imagenet21k"}
+
         self.imagenet_pretrained_accuracies = {"resnet50": 0.7947,
                                                "resnet34": 0.7413,
                                                "resnet18": 0.706,
@@ -52,7 +54,8 @@ class PretrainedModelsTest(unittest.TestCase):
         self.imagenet_dataset_05_mean_std = ImageNetDatasetInterface(data_dir="/data/Imagenet",
                                                                      dataset_params={"batch_size": 128,
                                                                                      "img_mean": [0.5, 0.5, 0.5],
-                                                                                     "img_std": [0.5, 0.5, 0.5]
+                                                                                     "img_std": [0.5, 0.5, 0.5],
+                                                                                     "resize_size": 249
                                                                                      })
 
         self.transfer_classification_dataset = ClassificationTestDatasetInterface(image_size=224)
@@ -607,15 +610,17 @@ class PretrainedModelsTest(unittest.TestCase):
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
-        trainer.build_model("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"])
+        trainer.build_model("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
+                            checkpoint_params=self.imagenet21k_pretrained_ckpt_params)
         trainer.train(training_params=self.transfer_classification_train_params)
 
     def test_pretrained_vit_base_imagenet(self):
         trainer = SgModel('imagenet_pretrained_vit_base', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset_05_mean_std, data_loader_num_workers=8)
-        trainer.build_model("resnet50", arch_params=self.imagenet_pretrained_arch_params["vit_base"])
-        res = trainer.test(test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
+        trainer.build_model("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
+                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+        res = trainer.test(test_loader=self.imagenet_dataset_05_mean_std.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_base"], delta=0.001)
 
