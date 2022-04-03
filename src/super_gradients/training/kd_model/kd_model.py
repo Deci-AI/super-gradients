@@ -1,3 +1,5 @@
+import torch.nn
+
 from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.sg_model import SgModel
@@ -11,7 +13,7 @@ from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict
 from super_gradients.training.exceptions.kd_model_exceptions import ArchitectureKwargsException, \
     UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, \
     TeacherKnowledgeException, UndefinedNumClassesException
-
+from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallback
 logger = get_logger(__name__)
 
 
@@ -118,7 +120,7 @@ class KDModel(SgModel):
         load_kd_model_checkpoint = get_param(checkpoint_params, "load_checkpoint")
 
         # CHECK THAT TEACHER NETWORK HOLDS KNOWLEDGE FOR THE STUDENT TO LEARN FROM OR THAT WE ARE LOADING AN ENTIRE KD
-        if not (teacher_pretrained_weights or teacher_checkpoint_path or load_kd_model_checkpoint):
+        if not (teacher_pretrained_weights or teacher_checkpoint_path or load_kd_model_checkpoint or isinstance(teacher_architecture, torch.nn.Module)):
             raise TeacherKnowledgeException()
 
     def _validate_num_classes(self, student_arch_params, teacher_arch_params):
@@ -180,7 +182,6 @@ class KDModel(SgModel):
 
         run_teacher_on_eval = get_param(kwargs, "run_teacher_on_eval", default_val=False)
 
-        architecture_cls = None
         if isinstance(architecture, str):
             architecture_cls = KD_ARCHITECTURES[architecture]
             net = architecture_cls(arch_params=arch_params, student=student, teacher=teacher,
@@ -220,3 +221,11 @@ class KDModel(SgModel):
                                      load_ema_as_net=load_teachers_ema)
 
         super(KDModel, self)._load_checkpoint_to_model()
+
+    def _add_metrics_update_callback(self, phase):
+        """
+        Adds KDModelMetricsUpdateCallback to be fired at phase
+
+        :param phase: Phase for the metrics callback to be fired at
+        """
+        self.phase_callbacks.append(KDModelMetricsUpdateCallback(phase))

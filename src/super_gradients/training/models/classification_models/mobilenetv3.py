@@ -164,7 +164,6 @@ class MobileNetV3(MobileNetBase):
         x = self.classifier(x)
         return x
 
-
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

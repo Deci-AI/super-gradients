@@ -252,8 +252,7 @@ class SgModel:
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
 
-        self.net = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args,
-                                                               **kwargs)
+        self.net = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args, **kwargs)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
 
@@ -786,7 +785,7 @@ class SgModel:
         self.lr_mode = self.training_params.lr_mode
         load_opt_params = self.training_params.load_opt_params
 
-        self.phase_callbacks = self.training_params.phase_callbacks
+        self.phase_callbacks = self.training_params.phase_callbacks or []
 
         if self.lr_mode is not None:
             sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
@@ -803,8 +802,8 @@ class SgModel:
                                                             update_param_groups=self.update_param_groups,
                                                             **self.training_params.to_dict()))
 
-        self.phase_callbacks.append(MetricsUpdateCallback(Phase.TRAIN_BATCH_END))
-        self.phase_callbacks.append(MetricsUpdateCallback(Phase.VALIDATION_BATCH_END))
+        self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
+        self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
@@ -1423,7 +1422,7 @@ class SgModel:
 
         if test_metrics_list:
             self.test_metrics = MetricCollection(test_metrics_list)
-            self.phase_callbacks.append(MetricsUpdateCallback(Phase.TEST_BATCH_END))
+            self._add_metrics_update_callback(Phase.TEST_BATCH_END)
             self.phase_callback_handler = CallbackHandler(self.phase_callbacks)
 
         # WHEN TESTING WITHOUT A LOSS FUNCTION- CREATE EPOCH HEADERS FOR PRINTS
@@ -1441,6 +1440,14 @@ class SgModel:
         # RESET METRIC RUNNERS
         self.test_metrics.reset()
         self.test_metrics.to(self.device)
+
+    def _add_metrics_update_callback(self, phase: Phase):
+        """
+        Adds MetricsUpdateCallback to be fired at phase
+
+        :param phase: Phase for the metrics callback to be fired at
+        """
+        self.phase_callbacks.append(MetricsUpdateCallback(phase))
 
     def _initialize_sg_logger_objects(self):
         """Initialize object that collect, write to disk, monitor and store remotely all training outputs"""
