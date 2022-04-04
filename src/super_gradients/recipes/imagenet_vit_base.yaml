@@ -9,7 +9,8 @@
 # running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
 #   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
 # Then:
-#   python -m torch.distributed.launch --nproc_per_node=8 train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit
+# for vit_base:
+#   python -m torch.distributed.launch --nproc_per_node=8 train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
 
 
 defaults:
