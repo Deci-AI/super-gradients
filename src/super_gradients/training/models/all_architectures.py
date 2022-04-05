@@ -7,6 +7,7 @@ from super_gradients.training.models.classification_models.mobilenetv3 import mo
 from super_gradients.training.models.classification_models.shufflenetv2 import ShufflenetV2_x0_5, ShufflenetV2_x1_0, \
     ShufflenetV2_x1_5, \
     ShufflenetV2_x2_0, CustomizedShuffleNetV2
+from super_gradients.training.models.classification_models.vit import vit_base, vit_large, vit_huge
 from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
@@ -110,7 +111,10 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "stdc2_seg50": STDC2Seg,
                  "stdc2_seg75": STDC2Seg,
                  "regseg48": RegSeg48,
-                 "kd_module": KDModule
+                 "kd_module": KDModule,
+                 "vit_base": vit_base,
+                 "vit_large": vit_large,
+                 "vit_huge": vit_huge,
                  }
 
 KD_ARCHITECTURES = {

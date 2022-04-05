@@ -1696,7 +1696,6 @@ class SgModel:
             num_classes_new_head = arch_params.num_classes
             arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
 
-        architecture_cls = None
         if isinstance(architecture, str):
             architecture_cls = ARCHITECTURES[architecture]
             net = architecture_cls(arch_params=arch_params)

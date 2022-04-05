@@ -1,0 +1,7 @@
+defaults:
+  - default_arch_params
+
+num_classes: 1000
+
+image_size: [224, 224]
+patch_size: [16, 16]
