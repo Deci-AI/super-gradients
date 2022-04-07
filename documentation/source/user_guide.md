@@ -920,7 +920,7 @@ python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY archi
 ### Weights and Biases
 WandB can be though of an “extended” TensorBoard, where you can manage experiments, create reports, upload files, etc.
 
-### Setting-up the environment
+#### Setting-up the environment
 
 1. Go to your WandB settings, and create an API Key 
 2. In the machine, run `pip install wandb`

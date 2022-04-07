@@ -71,8 +71,10 @@
 <li class="toctree-l1"><a class="reference internal" href="#pretrained-models">Pretrained Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#professional-tools-integration">Professional Tools Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#weights-and-biases">Weights and Biases</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#setting-up-the-environment">Setting-up the environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#weights-and-biases">Weights and Biases</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#setting-up-the-environment">Setting-up the environment</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="#supergradients-faq">SuperGradients FAQ</a><ul>
@@ -1038,9 +1040,8 @@ Example- how to load a pretrained model:</p>
 <section id="weights-and-biases">
 <h2>Weights and Biases<a class="headerlink" href="#weights-and-biases" title="Permalink to this headline"></a></h2>
 <p>WandB can be though of an “extended” TensorBoard, where you can manage experiments, create reports, upload files, etc.</p>
-</section>
 <section id="setting-up-the-environment">
-<h2>Setting-up the environment<a class="headerlink" href="#setting-up-the-environment" title="Permalink to this headline"></a></h2>
+<h3>Setting-up the environment<a class="headerlink" href="#setting-up-the-environment" title="Permalink to this headline"></a></h3>
 <ol class="arabic">
 <li><p>Go to your WandB settings, and create an API Key</p></li>
 <li><p>In the machine, run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">wandb</span></code></p></li>
@@ -1072,6 +1073,7 @@ Example- how to load a pretrained model:</p>
 <blockquote>
 <div><p><strong>NOTE:</strong> Additional Weights and Biases resources - <a class="reference external" href="https://www.ravirajag.dev/blog/mlops-wandb-integration">MLOps blog</a>;</p>
 </div></blockquote>
+</section>
 </section>
 </section>
 <section id="supergradients-faq">
