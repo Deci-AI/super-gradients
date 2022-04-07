@@ -1,10 +1,10 @@
 **Contact Information**
 
-Email – [support@deci.ai](mailto:info@deci.ai)
+Email – [support@deci.ai](mailto:info@deci.ai)</br>
+Community Slack - [SG Slack](https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q)
 
-**Israel \
-**Sasson Hugi Tower, Abba Hillel Silver Rd 12, \
-Ramat Gan, Israel
+**Sasson Hugi Tower, Abba Hillel Silver Rd 12,** \
+**Ramat Gan, Israel**
 
 **Revision History**
 
@@ -17,6 +17,14 @@ Ramat Gan, Israel
    <td>Initial version
    </td>
   </tr>
+ <tr>
+   <td>1.0.2
+   </td>
+   <td>April 2022
+   </td>
+   <td>Pro tools, KD, ViT
+   </td>
+  </tr>
 </table>
 
 ##  What is SuperGradients?
@@ -27,20 +35,19 @@ Who can use SuperGradients:
 
 
 
-* **Open Source Users – **The SuperGradients can be used to easily train your models regardless of whether you ever have or ever will use the <span style="text-decoration:underline;">Deci platform</span>.
-* **Deci Customers – **The SuperGradients library can reproduce the training procedure performed by Deci for their optimized models.
+* **Open Source Users** – **The SuperGradients can be used to easily train your models regardless of whether you ever have or ever will use the <span style="text-decoration:underline;">Deci platform</span>**.
+* **Deci Customers** – **The SuperGradients library can reproduce the training procedure performed by Deci for their optimized models**.
 
 
 ## Introducing the SuperGradients library
 
-The **SuperGradients** training library** **provides all of the scripts, example code and configurations required to demonstrate how to train your model on a dataset and to enable you to do it by yourself.
+The **SuperGradients** training library provides all of the scripts, example code and configurations required to demonstrate how to train your model on a dataset and to enable you to do it by yourself.
 
 SuperGradients comes as an easily installed Python package (pip install) that you can integrate into your code base in order to train your models.
 
 
 ## Installation
 
-*
 **To install the SuperGradients library –**
 
 
@@ -118,7 +125,7 @@ Required parameters can be passed using the `python dataset_params` argument. Wh
 
 #### Integrating Your Training Code - Complete Walkthrough: Model
 
-This is rather straightforward- the only requirement is that the model must be of torch.nn.Module type. In our case, a simple Lenet implementation (taken from https://github.com/icpm/pytorch-cifar10/blob/master/models/LeNet.py).
+This is rather straightforward- the only requirement is that the model must be of torch.nn.Module type. In our case, a simple LeNet implementation (taken from https://github.com/icpm/pytorch-cifar10/blob/master/models/LeNet.py).
 
 
 <table>
@@ -566,14 +573,10 @@ If True,  saves the TensorBoard in S3.
 ## Logs and Checkpoints
 
 The model’s weights, logs and tensorboards are saved in _"YOUR_PYTHONPATH"/ checkpoints/”YOUR_EXPERIMENT_NAME” _. (In our  walkthrough example, _”YOUR_EXPERIMENT_NAME” _ is _user_model_training)_.
-
-
-
-*
+You can also connect your training logs into Weights and Biases (WandB) assuming you have an WandB account (go to connection to [professional tools](#professional-tools-integration)) 
 **To watch training progress –**
 
     **1st option:**
-
 
 
 1. Open a terminal.
@@ -589,25 +592,19 @@ The model’s weights, logs and tensorboards are saved in _"YOUR_PYTHONPATH"/ ch
         Set the “launch_tensorboard_process” flag in your training_params passed to SgModel.train(...), and follow instructions displayed in the shell.
 
 
-
-
-*
-**To resume training –**
+* **To resume training –**
 When building the network- call SgModel.build_model(...arch_params={'load_checkpoint'True...}). Doing so, will load the network’s weights, as well as any relevant information for resuming training (monitored metric values, optimizer states, etc) with the latest checkpoint. For more advanced usage see SgModel.build_model docs in code.
 
 
 
-*
-**Checkpoint structure – state_dict (see [https://pytorch.org/tutorials/beginner/saving_loading_models.html](https://pytorch.org/tutorials/beginner/saving_loading_models.html) for more information regarding state_dicts) with the following keys:**
+* **Checkpoint structure – state_dict (see [https://pytorch.org/tutorials/beginner/saving_loading_models.html](https://pytorch.org/tutorials/beginner/saving_loading_models.html) for more information regarding state_dicts) with the following keys:**
 **-”net”-  The network’s state_dict.**
 
 **-”acc”-  The value of `metric_to_watch` from training.**
 
 **-”epoch”- Last epoch performed before saving this checkpoint.**
 
-**-”ema_net” [Optionall, exists  if training was performed with EMA] - **
-
-**The state dict of the EMA net.**
+**-”ema_net” [Optionall, exists  if training was performed with EMA] -** **The state dict of the EMA net.**
 
 **-”optimizer_state_dict”- Optimizer’s state dict from training.**
 
@@ -1082,7 +1079,46 @@ _The corresponding YAML configuration files can be found under _“_YOUR_LOCAL_P
 
 The configuration files include the specific instructions on how to run the training recipes for reproducibility, as well as links to our tensorboards and logs from their training. Additional information regarding training time, metric scores on different configurations can be found in the configuration files as comments as well.
 
+## Professional Tools Integration
 
+### Weights and Biases
+WandB can be though of an “extended” TensorBoard, where you can manage experiments, create reports, upload files, etc.
+
+### Setting-up the environment
+
+1. Go to your WandB settings, and create an API Key 
+2. In the machine, run `pip install wandb`
+3. Once WandB is installed, run `wandb login` and use your username and the generated key. There should be `.netrc` file created
+4. Run `cat ~/.netrc` and make sure you see something like
+    
+    ```
+    machine **wandb.your_env**
+      login <your user>
+      password <your key>
+    ```
+    
+    In case you don’t see it — just create it manually
+    
+5. To enable WandB logging via Super-Gradients, add the following code to your `.yaml` training file:
+    
+    ```yaml
+    sg_logger: "wandb_sg_logger"
+    sg_logger_params:
+      project_name: <your project name>
+      entity: <your team name>
+      api_server: "https://wandb.your_env"
+      save_checkpoints_remote: True  
+      save_tensorboard_remote: True  
+      save_logs_remote: True
+    ```
+    
+    As can be seen there are two “parameters” - `project_name` and `entity`.
+    
+    The hierarchy of WandB is: `entity -> project_name -> experiment_name`.
+    
+6. Launch you training and see it in WandB.
+
+> **NOTE:** Additional Weights and Biases resources - [MLOps blog](https://www.ravirajag.dev/blog/mlops-wandb-integration);
 ## SuperGradients FAQ
 
 
