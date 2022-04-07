@@ -2,7 +2,7 @@
 **Easily train or fine-tune SOTA computer vision models with one open source training library**
 [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Easily%20train%20or%20fine-tune%20SOTA%20computer%20vision%20models%20from%20one%20training%20repository&url=https://github.com/Deci-AI/super-gradients&via=deci_ai&hashtags=AI,deeplearning,computervision,training,opensource)
 
-#### Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -> [Fill Survey](https://hz8qtlvwkaw.typeform.com/to/OpKda0Qe)
+Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -> [Fill Survey](https://hz8qtlvwkaw.typeform.com/to/OpKda0Qe)
 ______________________________________________________________________
   
   <p align="center">
@@ -18,13 +18,13 @@ ______________________________________________________________________
   <a href="#deci-platform">Deci Platform</a>
 </p>
 
-
 # SuperGradients
 
 ## Introduction
 Welcome to SuperGradients, a free, open-source training library for PyTorch-based deep learning models.
 SuperGradients allows you to train or fine-tune SOTA pre-trained models for all the most commonly applied computer vision tasks with just one training library. We currently support object detection, image classification and semantic segmentation for videos and images.
 
+Docs and full user guide[](#)
 ### Why use SuperGradients?
  
 **Built-in SOTA Models**
@@ -99,7 +99,7 @@ ________________________________________________________________________________
 ### Start Training with Just 1 Command Line
 The most simple and straightforward way to start training SOTA performance models with SuperGradients reproducible recipes. Just define your dataset path and where you want your checkpoints to be saved and you are good to go from your terminal!
     
-```
+```bash
 python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
@@ -249,7 +249,7 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
 <summary>Install stable version using PyPi</summary>
 
 See in [PyPi](https://pypi.org/project/super-gradients/)
-```bash
+```
 pip install super-gradients
 ```
 
@@ -262,11 +262,9 @@ That's it !
 <summary>Install using GitHub</summary>
 
 
-```bash
+```
 pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ```
-
-
 
 
 ## Computer Vision Models - Pretrained Checkpoints
