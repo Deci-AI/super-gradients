@@ -415,9 +415,8 @@ jobs:
         default: latest
       package_name:
         type: string
-    docker:
-      - image: cimg/python:<< parameters.py_version >>
-    resource_class: large
+    machine: true
+    resource_class: deci-ai/standard-runner
     steps:
       - checkout_and_skip_build
       - attach_workspace:
@@ -431,9 +430,6 @@ jobs:
             else
               cat ~/new-env-vars >> $BASH_ENV
             fi
-
-      #      - restore_cache:
-      #          key: << parameters.py_version >>-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "requirements.txt" }}
       - run:
           name: install python dependencies
           command: |
@@ -441,10 +437,6 @@ jobs:
             . venv/bin/activate
             python -m pip install --upgrade pip
             cat requirements.txt | cut -f1 -d"#" | xargs -n 1 -L 1 pip install --progress-bar off
-      #      - save_cache:
-      #          key: << parameters.py_version >>-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "requirements.txt" }}
-      #          paths:
-      #            - "venv"
       - run:
           name: edit package version
           command: |
