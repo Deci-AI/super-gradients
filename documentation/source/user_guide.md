@@ -652,147 +652,178 @@ Will initialize a resnet50 and set it to be sg_model’s network attribute, whic
 
 **'resnet18',**
 
-** 'resnet34',**
+**'resnet34',**
 
-** 'resnet50_3343',**
+**'resnet50_3343',** 
 
-** 'resnet50',**
+**'resnet50',** 
 
-** 'resnet101',**
+**'resnet101',** 
 
-** 'resnet152',**
+**'resnet152',** 
 
-** 'resnet18_cifar',**
+**'resnet18_cifar',**
 
-** 'custom_resnet',**
+**'custom_resnet',**
 
-** 'custom_resnet50',**
+**'custom_resnet50',**
 
-** 'custom_resnet_cifar',**
+**'custom_resnet_cifar',**
 
-** 'custom_resnet50_cifar',**
+**'custom_resnet50_cifar',**
 
-** 'mobilenet_v2',**
+**'mobilenet_v2',**
 
-** 'mobile_net_v2_135',**
+**'mobile_net_v2_135',**
 
-** 'custom_mobilenet_v2',**
+**'custom_mobilenet_v2',**
 
-** 'mobilenet_v3_large',**
+**'mobilenet_v3_large',**
 
-** 'mobilenet_v3_small',**
+**'mobilenet_v3_small',**
 
-** 'mobilenet_v3_custom',**
+**'mobilenet_v3_custom',**
 
-** 'yolo_v3',**
+**'yolo_v3',**
 
-** 'tiny_yolo_v3',**
+**'tiny_yolo_v3',**
 
-** 'custom_densenet',**
+**'custom_densenet',**
 
-** 'densenet121',**
+**'densenet121',**
 
-** 'densenet161',**
+**'densenet161',**
 
-** 'densenet169',**
+**'densenet169',**
 
-** 'densenet201',**
+**'densenet201',**
 
-** 'shelfnet18',**
+**'shelfnet18',**
 
-** 'shelfnet34',**
+**'shelfnet34',**
 
-** 'shelfnet50_3343',**
+**'shelfnet50_3343',**
 
-** 'shelfnet50',**
+**'shelfnet50',**
 
-** 'shelfnet101',**
+**'shelfnet101',**
 
-** 'shufflenet_v2_x0_5',**
+**'shufflenet_v2_x0_5',**
 
-** 'shufflenet_v2_x1_0',**
+**'shufflenet_v2_x1_0',**
 
-** 'shufflenet_v2_x1_5',**
+**'shufflenet_v2_x1_5',**
 
-** 'shufflenet_v2_x2_0',**
+**'shufflenet_v2_x2_0',**
 
-** 'shufflenet_v2_custom5',**
+**'shufflenet_v2_custom5',**
 
-** 'darknet53',**
+**'darknet53',**
 
-** 'csp_darknet53',**
+**'csp_darknet53',**
 
-** 'resnext50',**
+**'resnext50',**
 
-** 'resnext101',**
+**'resnext101',**
 
-** 'googlenet_v1',**
+**'googlenet_v1',**
 
-** 'efficientnet_b0',**
+**'efficientnet_b0',**
 
-** 'efficientnet_b1',**
+**'efficientnet_b1',**
 
-** 'efficientnet_b2',**
+**'efficientnet_b2',**
 
-** 'efficientnet_b3',**
+**'efficientnet_b3',**
 
-** 'efficientnet_b4',**
+**'efficientnet_b4',**
 
-** 'efficientnet_b5',**
+**'efficientnet_b5',**
 
-** 'efficientnet_b6',**
+**'efficientnet_b6',**
 
-** 'efficientnet_b7',**
+**'efficientnet_b7',**
 
-** 'efficientnet_b8',**
+**'efficientnet_b8',**
 
-** 'efficientnet_l2',**
+**'efficientnet_l2',**
 
-** 'CustomizedEfficientnet',**
+**'CustomizedEfficientnet',**
 
-** 'regnetY200',**
+**'regnetY200',**
 
-** 'regnetY400',**
+**'regnetY400',**
 
-** 'regnetY600',**
+**'regnetY600',**
 
-** 'regnetY800',**
+**'regnetY800',**
 
-** 'custom_regnet',**
+**'custom_regnet',**
 
-** 'nas_regnet',**
+**'nas_regnet',**
 
-** 'yolo_v5s',**
+**'yolo_v5s',**
 
-** 'yolo_v5m',**
+**'yolo_v5m',**
 
-** 'yolo_v5l',**
+**'yolo_v5l',**
 
-** 'yolo_v5x',**
+**'yolo_v5x',**
 
-** 'custom_yolov5',**
+**'custom_yolov5',**
 
-** 'ssd_mobilenet_v1',**
+**'ssd_mobilenet_v1',**
 
-** 'ssd_lite_mobilenet_v2',**
+**'ssd_lite_mobilenet_v2',**
 
-** 'repvgg_a0',**
+**'repvgg_a0',**
 
-** 'repvgg_a1',**
+**'repvgg_a1',**
 
-** 'repvgg_a2',**
+**'repvgg_a2',**
 
-** 'repvgg_b0',**
+**'repvgg_b0',**
 
-** 'repvgg_b1',**
+**'repvgg_b1',**
 
-** 'repvgg_b2',**
+**'repvgg_b2',**
 
-** 'repvgg_b3',**
+**'repvgg_b3',**
 
-** 'repvgg_d2se',**
+**'repvgg_d2se',**
 
-** 'repvgg_custom'**
+**'repvgg_custom',**
+
+**'ddrnet_23',**
+
+**'ddrnet_23_slim',**
+
+**'laddernet_50',**
+
+**'laddernet_50_3433',**
+
+**'laddernet_101',**
+
+**'regseg_48',**
+
+**'regseg_53',**
+
+**'shelfnet18_LW',**
+
+**'shelfnet34_LW',**
+
+**'shelfnet53_3343',**
+
+**'shelfnet_50',**
+
+**'shelfnet_101',**
+
+**'custom_stdc',**
+
+**'stdc_1',**
+
+**'stdc_2'**
+
 
 
 ## Pretrained Models
@@ -800,266 +831,65 @@ Will initialize a resnet50 and set it to be sg_model’s network attribute, whic
 Classification models
 
 
-<table>
-  <tr>
-   <td><strong>Model</strong>
-   </td>
-   <td><strong>Dataset</strong>
-   </td>
-   <td><strong>arch_params</strong>
-   </td>
-   <td><strong>Top-1</strong>
-   </td>
-   <td><strong>Latency b1 T4</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>EfficientNet B0
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>77.62
-   </td>
-   <td>1.16ms
-   </td>
-  </tr>
-  <tr>
-   <td>RegNetY200
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>70.88
-   </td>
-   <td>-
-   </td>
-  </tr>
-  <tr>
-   <td>RegNetY400
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>74.74
-   </td>
-   <td>-
-   </td>
-  </tr>
-  <tr>
-   <td>RegNetY600
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>76.18
-   </td>
-   <td>-
-   </td>
-  </tr>
-  <tr>
-   <td>RegNetY800
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>77.07
-   </td>
-   <td>-
-   </td>
-  </tr>
-  <tr>
-   <td>ResNet18
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>70.6
-   </td>
-   <td>0.599ms
-   </td>
-  </tr>
-  <tr>
-   <td>ResNet34
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>74.13
-   </td>
-   <td>0.89ms
-   </td>
-  </tr>
-  <tr>
-   <td>ResNet50
-   </td>
-   <td>ImageNet
-   </td>
-   <td>{"pretrained_weights": "imagenet", “num_classes”:1000}
-   </td>
-   <td>76.3
-   </td>
-   <td>0.94ms
-   </td>
-  </tr>
-  <tr>
-   <td>MobileNetV3_large-150 epochs
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>73.79
-   </td>
-   <td>0.87ms
-   </td>
-  </tr>
-  <tr>
-   <td>MobileNetV3_large-300 epochs
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>74.52
-   </td>
-   <td>0.87ms
-   </td>
-  </tr>
-  <tr>
-   <td>MobileNetV3_small
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>67.45
-   </td>
-   <td>0.75ms
-   </td>
-  </tr>
-  <tr>
-   <td>MobileNetV2_w1
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>73.08
-   </td>
-   <td>0.58ms
-   </td>
-  </tr>
-</table>
+| Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
+|------------ | ------ | ---------- |----------- | ----------- | ----------- |---------- |----------- | ----------- | :------: |
+| EfficientNet B0 | ImageNet | 224x224 |  77.62  | 93.49 |**0.93ms** |**1.38ms** | **-** * |**-**|**3.44ms** |
+| RegNet Y200 | ImageNet  |224x224 |  70.88   | 89.35 |**0.63ms** | **1.08ms** | **2.16ms** |**2.47ms**|**2.06ms** |
+| RegNet Y400  | ImageNet |224x224 |  74.74   | 91.46 |**0.80ms** | **1.25ms** |**2.62ms** |**2.91ms** |**2.87ms** |
+| RegNet Y600  | ImageNet |224x224 |  76.18   | 92.34 |**0.77ms** | **1.22ms** |**2.64ms** |**2.93ms** |**2.39ms** |
+| RegNet Y800  | ImageNet |224x224 |  77.07  |  93.26 |**0.74ms** | **1.19ms** |**2.77ms** |**3.04ms** |**2.81ms** |
+| ResNet 18   | ImageNet  |224x224   |  70.6   |   89.64 |**0.52ms** | **0.95ms** |**2.01ms**|**2.30ms** |**4.56ms** |
+| ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.92ms**  |**1.34ms** |**3.57ms**|**3.87ms** | **7.64ms** |
+| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**1.03ms** | **1.44ms** | **4.78ms**|**5.10ms** |**9.25ms** |
+| MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.67ms** | **1.11ms** |**2.42ms** |**2.71ms** |**1.76ms** |
+| MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.67ms** | **1.11ms** |**2.42ms** |**2.71ms** |**1.76ms** |
+| MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.55ms** | **0.96ms** |**2.01ms** *|**2.35ms** |**1.06ms** |
+| MobileNet V2_w1   | ImageNet  |224x224   |  73.08 | 91.1  |**0.46 ms**| **0.89ms** |**1.65ms** *|**1.90ms** | **1.56ms** |
+> **NOTE:** <br/>
+> - Latency (HW)* - Hardware performance (not including IO)<br/>
+> - Latency (Production)** - Production Performance (including IO)
+> - Performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1
+> - Performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
 
 
 Object Detection models
 
 
-<table>
-  <tr>
-   <td><strong>Model</strong>
-   </td>
-   <td><strong>Dataset</strong>
-   </td>
-   <td><strong>arch_params</strong>
-   </td>
-   <td><strong>mAPval</strong>
-<p>
-<strong>0.5:0.95</strong>
-   </td>
-   <td><strong>Latency b1T4</strong>
-   </td>
-   <td><strong>Throughout b64T4</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>YOLOv5 small
-   </td>
-   <td>CoCo
-   </td>
-   <td>640x640
-   </td>
-   <td>37.3
-   </td>
-   <td>10.09ms
-   </td>
-   <td>101.85fps
-   </td>
-  </tr>
-  <tr>
-   <td>YOLOv5 medium
-   </td>
-   <td>CoCo
-   </td>
-   <td>640x640
-   </td>
-   <td>45.2
-   </td>
-   <td>17.55ms
-   </td>
-   <td>57.66fps
-   </td>
-  </tr>
-</table>
+| Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
+|------------- |------ | ---------- |------ | -------- |------ | ---------- |------ | :------: |
+| YOLOv5 nano | COCO |640x640 |27.7  |**1.48ms** |**5.43ms**|**9.28ms** |**17.44ms** |**21.71ms**|
+| YOLOv5 small | COCO |640x640 |37.3 |**2.29ms** |**6.14ms**|**14.31ms** |**22.50ms** |**34.10ms**|
+| YOLOv5 medium| COCO |640x640 |45.2 |**4.60ms** |**8.10ms**|**26.76ms** |**34.95ms** |**65.86ms**|
+| YOLOv5 large | COCO |640x640 |48.0 |**7.20ms** |**10.28ms**|**43.89ms** |**51.92ms** |**122.97ms**|
+  
+
+> **NOTE:** <br/>
+> - Latency (HW)* - Hardware performance (not including IO)<br/>
+> - Latency (Production)** - Production Performance (including IO)
+> - Latency performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1
+> - Latency performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1
+
 
 
 Semantic Segmentation models
 
 
-<table>
-  <tr>
-   <td><strong>Model</strong>
-   </td>
-   <td><strong>Dataset</strong>
-   </td>
-   <td><strong>arch_params</strong>
-   </td>
-   <td><strong>mIoU</strong>
-   </td>
-   <td><strong>Latency b1T4</strong>
-   </td>
-   <td><strong>Throughout b64T4</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>DDRNet23
-   </td>
-   <td>Cityscapes
-   </td>
-   <td>
-   </td>
-   <td>78.65
-   </td>
-   <td>-
-   </td>
-   <td>-
-   </td>
-  </tr>
-  <tr>
-   <td>DDRNet23 slim
-   </td>
-   <td>Cityscapes
-   </td>
-   <td>
-   </td>
-   <td>76.6
-   </td>
-   <td>
-   </td>
-   <td>
-   </td>
-  </tr>
-</table>
+| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO |
+|--------------------- |------ | ---------- | ------ | -------- | :------: |
+| DDRNet 23   | Cityscapes |1024x2048   |78.65  |**7.62ms** |**25.94ms**|
+| DDRNet 23 slim   | Cityscapes |1024x2048 |76.6  |**3.56ms** |**22.80ms**|
+| STDC 1-Seg50   | Cityscapes | 512x1024 |74.36 |**2.83ms** |**12.57ms**|
+| STDC 1-Seg75   | Cityscapes | 768x1536 |76.87  |**5.71ms** |**26.70ms**|
+| STDC 2-Seg50   | Cityscapes | 512x1024 |75.27 |**3.74ms** |**13.89ms**
+| STDC 2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**28.18ms**|
+| RegSeg (exp48)   | Cityscapes | 1024x2048 |78.15 |**13.09ms** |**41.88ms**|
+| Larger RegSeg (exp53)   | Cityscapes | 1024x2048 |79.2|**24.82ms** |**51.87ms**|
+| ShelfNet LW 34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |
 
 
+> **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency), and not including IO
+
+<br></br>
 Example- how to load a pretrained model:
 
 
@@ -1079,6 +909,12 @@ _The corresponding YAML configuration files can be found under _“_YOUR_LOCAL_P
 
 The configuration files include the specific instructions on how to run the training recipes for reproducibility, as well as links to our tensorboards and logs from their training. Additional information regarding training time, metric scores on different configurations can be found in the configuration files as comments as well.
 
+<br></br>
+
+Example for how to start training with just 1 command line
+```
+python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+```
 ## Professional Tools Integration
 
 ### Weights and Biases
@@ -1123,8 +959,6 @@ WandB can be though of an “extended” TensorBoard, where you can manage exper
 
 
 ### What Type of Tasks Does the SuperGradients Support?
-
-
 
 * Classification
 * Object Detection
