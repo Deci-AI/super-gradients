@@ -37,7 +37,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#supergradients">SuperGradients</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Technical Documentation</span></p>
 <ul>
@@ -56,6 +57,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
@@ -98,7 +100,9 @@
 <span class="kn">from</span> <span class="nn">super_gradients.common.abstractions.abstract_logger</span> <span class="kn">import</span> <span class="n">get_logger</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.utils.utils</span> <span class="kn">import</span> <span class="n">get_filename_suffix_by_framework</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.utils.detection_utils</span> <span class="kn">import</span> <span class="n">DetectionVisualization</span><span class="p">,</span> <span class="n">DetectionPostPredictionCallback</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.segmentation_utils</span> <span class="kn">import</span> <span class="n">BinarySegmentationVisualization</span>
 <span class="kn">import</span> <span class="nn">cv2</span>
+
 <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="k">try</span><span class="p">:</span>
@@ -521,6 +525,18 @@
             <span class="n">context</span><span class="o">.</span><span class="n">loss_avg_meter</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">loss_log_items</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">inputs</span><span class="p">))</span></div>
 
 
+<div class="viewcode-block" id="KDModelMetricsUpdateCallback"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.callbacks.KDModelMetricsUpdateCallback">[docs]</a><span class="k">class</span> <span class="nc">KDModelMetricsUpdateCallback</span><span class="p">(</span><span class="n">MetricsUpdateCallback</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="n">Phase</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">phase</span><span class="o">=</span><span class="n">phase</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">PhaseContext</span><span class="p">):</span>
+        <span class="n">metrics_compute_fn_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">student_output</span> <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;preds&#39;</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span>
+                                     <span class="n">context</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">metrics_compute_fn</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">metrics_compute_fn_kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">criterion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">loss_avg_meter</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">loss_log_items</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">inputs</span><span class="p">))</span></div>
+
+
 <div class="viewcode-block" id="PhaseContextTestCallback"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.callbacks.PhaseContextTestCallback">[docs]</a><span class="k">class</span> <span class="nc">PhaseContextTestCallback</span><span class="p">(</span><span class="n">PhaseCallback</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A callback that saves the phase context the for testing.</span>
@@ -557,6 +573,30 @@
             <span class="n">preds</span> <span class="o">=</span> <span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">preds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">preds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_prediction_callback</span><span class="p">(</span><span class="n">preds</span><span class="p">)</span>
             <span class="n">batch_imgs</span> <span class="o">=</span> <span class="n">DetectionVisualization</span><span class="o">.</span><span class="n">visualize_batch</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">)</span>
+            <span class="n">batch_imgs</span> <span class="o">=</span> <span class="p">[</span><span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2RGB</span><span class="p">)</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">batch_imgs</span><span class="p">]</span>
+            <span class="n">batch_imgs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">batch_imgs</span><span class="p">)</span>
+            <span class="n">tag</span> <span class="o">=</span> <span class="s2">&quot;batch_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_idx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_images&quot;</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">add_images</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="n">batch_imgs</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">last_img_idx_in_batch</span><span class="p">],</span> <span class="n">global_step</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BinarySegmentationVisualizationCallback"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.callbacks.BinarySegmentationVisualizationCallback">[docs]</a><span class="k">class</span> <span class="nc">BinarySegmentationVisualizationCallback</span><span class="p">(</span><span class="n">PhaseCallback</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A callback that adds a visualization of a batch of segmentation predictions to context.sg_logger</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        freq: frequency (in epochs) to perform this callback.</span>
+<span class="sd">        batch_idx: batch index to perform visualization for.</span>
+<span class="sd">        last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="n">Phase</span><span class="p">,</span> <span class="n">freq</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">last_img_idx_in_batch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BinarySegmentationVisualizationCallback</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">phase</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">freq</span> <span class="o">=</span> <span class="n">freq</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_idx</span> <span class="o">=</span> <span class="n">batch_idx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_img_idx_in_batch</span> <span class="o">=</span> <span class="n">last_img_idx_in_batch</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">PhaseContext</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">epoch</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">freq</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">batch_idx</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_idx</span><span class="p">:</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">preds</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="n">batch_imgs</span> <span class="o">=</span> <span class="n">BinarySegmentationVisualization</span><span class="o">.</span><span class="n">visualize_batch</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_idx</span><span class="p">)</span>
             <span class="n">batch_imgs</span> <span class="o">=</span> <span class="p">[</span><span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2RGB</span><span class="p">)</span> <span class="k">for</span> <span class="n">image</span> <span class="ow">in</span> <span class="n">batch_imgs</span><span class="p">]</span>
             <span class="n">batch_imgs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">batch_imgs</span><span class="p">)</span>
             <span class="n">tag</span> <span class="o">=</span> <span class="s2">&quot;batch_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_idx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_images&quot;</span>

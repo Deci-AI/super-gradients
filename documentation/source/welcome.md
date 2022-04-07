@@ -20,16 +20,7 @@ ______________________________________________________________________
   <a href="#license">License</a> •
   <a href="#deci-platform">Deci Platform</a>
 </p>
-<p align="center">
-  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
-  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
-  <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
-  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-25-brightgreen" />
-  <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
-  <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
-  <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
-  <a href="https://deci-ai.github.io/super-gradients/welcome.html"><img src="https://img.shields.io/badge/docs-sphinx-brightgreen" />
-</p>    
+
 </div>
 
 
@@ -39,7 +30,6 @@ ______________________________________________________________________
 Welcome to SuperGradients, a free, open-source training library for PyTorch-based deep learning models.
 SuperGradients allows you to train or fine-tune SOTA pre-trained models for all the most commonly applied computer vision tasks with just one training library. We currently support object detection, image classification and semantic segmentation for videos and images.
 
-Docs and full user guide[](#)
 ### Why use SuperGradients?
  
 **Built-in SOTA Models**
@@ -107,21 +97,20 @@ ________________________________________________________________________________
 - [Deci Platform](#deci-platform)
 
 <!-- tocstop -->
-  
-</details>
+
 
 ## Getting Started
 
 ### Start Training with Just 1 Command Line
 The most simple and straightforward way to start training SOTA performance models with SuperGradients reproducible recipes. Just define your dataset path and where you want your checkpoints to be saved and you are good to go from your terminal!
     
-```bash
+```
 python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
 Want to try our pre-trained models on your machine? Import SuperGradients, initialize your SgModel, and load your desired architecture and pre-trained weights from our [SOTA model zoo](#computer-vision-models---pretrained-checkpoints)
     
-```python
+```
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
 # This is an example of loading COCO-2017 pre-trained weights for a YOLOv5 Nano object detection model
     
@@ -164,7 +153,8 @@ Get started with our quick start notebook for object detection tasks on Google C
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
- </br></br>
+ <br>
+</br>
 
 ### Quick Start Notebook - Semantic Segmentation
 
@@ -181,7 +171,8 @@ Get started with our quick start notebook for semantic segmentation tasks on Goo
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
- </br></br>
+ <br>
+</br>
  
 ### SuperGradients Complete Walkthrough Notebook
 
@@ -198,7 +189,8 @@ Learn more about SuperGradients training components with our walkthrough noteboo
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
- </br></br>
+ <br>
+</br>
  
  
  ## Transfer Learning
@@ -217,7 +209,8 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
- </br></br>
+ <br>
+</br>
  
 ### Transfer Learning with SG Notebook - Semantic Segmentation
 Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
@@ -233,56 +226,50 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
  </td>
 </table>
- </br></br>
+ <br>
+</br>
 
 ## Installation Methods
 ### Prerequisites
-<details>
+
   
-<summary>General requirements</summary>
+General requirements
   
 - Python 3.7, 3.8 or 3.9 installed.
 - torch>=1.9.0
   - https://pytorch.org/get-started/locally/
 - The python packages that are specified in requirements.txt;
 
-</details>
-    
-<details>
+
   
-<summary>To train on nvidia GPUs</summary>
+To train on nvidia GPUs
   
 - [Nvidia CUDA Toolkit >= 11.2](https://developer.nvidia.com/cuda-11.2.0-download-archive?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu)
 - CuDNN >= 8.1.x
 - Nvidia Driver with CUDA >= 11.2 support (≥460.x)
-  
-</details>
+
     
 ### Quick Installation
 
-<details>
   
-<summary>Install stable version using PyPi</summary>
+Install stable version using PyPi
 
 See in [PyPi](https://pypi.org/project/super-gradients/)
-```bash
+```
 pip install super-gradients
 ```
 
 That's it !
 
-</details>
-    
-<details>
+
   
-<summary>Install using GitHub</summary>
+Install using GitHub
 
 
-```bash
+```
 pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ```
 
-</details> 
 
 
 ## Computer Vision Models - Pretrained Checkpoints

@@ -35,11 +35,30 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#supergradients">SuperGradients</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -72,9 +91,9 @@
 <span class="kn">from</span> <span class="nn">torchvision.transforms</span> <span class="kn">import</span> <span class="n">RandomErasing</span>
 
 
-<div class="viewcode-block" id="DataAugmentation"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.DataAugmentation">[docs]</a><span class="k">class</span> <span class="nc">DataAugmentation</span><span class="p">:</span>
+<div class="viewcode-block" id="DataAugmentation"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.training.DataAugmentation">[docs]</a><span class="k">class</span> <span class="nc">DataAugmentation</span><span class="p">:</span>
 
-<div class="viewcode-block" id="DataAugmentation.to_tensor"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.DataAugmentation.to_tensor">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="DataAugmentation.to_tensor"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.training.DataAugmentation.to_tensor">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">to_tensor</span><span class="p">():</span>
         <span class="k">def</span> <span class="nf">_to_tensor</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
@@ -85,7 +104,7 @@
 
         <span class="k">return</span> <span class="n">_to_tensor</span></div>
 
-<div class="viewcode-block" id="DataAugmentation.normalize"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.DataAugmentation.normalize">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="DataAugmentation.normalize"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.training.DataAugmentation.normalize">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="p">):</span>
         <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mean</span><span class="p">)</span>
         <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
@@ -97,7 +116,7 @@
 
         <span class="k">return</span> <span class="n">_normalize</span></div>
 
-<div class="viewcode-block" id="DataAugmentation.cutout"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.DataAugmentation.cutout">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="DataAugmentation.cutout"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.training.DataAugmentation.cutout">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">cutout</span><span class="p">(</span><span class="n">mask_size</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cutout_inside</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_color</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
         <span class="n">mask_size_half</span> <span class="o">=</span> <span class="n">mask_size</span> <span class="o">//</span> <span class="mi">2</span>
         <span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">mask_size</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
@@ -140,7 +159,7 @@
                             <span class="p">[</span><span class="o">-</span><span class="mf">0.5836</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.6948</span><span class="p">,</span> <span class="mf">0.4203</span><span class="p">]])}</span>
 
 
-<div class="viewcode-block" id="Lighting"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.Lighting">[docs]</a><span class="k">class</span> <span class="nc">Lighting</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Lighting"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.training.Lighting">[docs]</a><span class="k">class</span> <span class="nc">Lighting</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Lighting noise(AlexNet - style PCA - based noise)</span>
 <span class="sd">    Taken from fastai Imagenet training - https://github.com/fastai/imagenet-fast/blob/faa0f9dfc9e8e058ffd07a248724bf384f526fae/imagenet_nv/fastai_imagenet.py#L103</span>
@@ -166,7 +185,7 @@
         <span class="k">return</span> <span class="n">img</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">rgb</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">img</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="RandomErase"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.RandomErase">[docs]</a><span class="k">class</span> <span class="nc">RandomErase</span><span class="p">(</span><span class="n">RandomErasing</span><span class="p">):</span>
+<div class="viewcode-block" id="RandomErase"><a class="viewcode-back" href="../../../../super_gradients.training.datasets.html#super_gradients.training.RandomErase">[docs]</a><span class="k">class</span> <span class="nc">RandomErase</span><span class="p">(</span><span class="n">RandomErasing</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A simple class that translates the parameters supported in SuperGradient&#39;s code base</span>
 <span class="sd">    &quot;&quot;&quot;</span>
