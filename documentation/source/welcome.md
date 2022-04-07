@@ -24,7 +24,6 @@ ______________________________________________________________________
 Welcome to SuperGradients, a free, open-source training library for PyTorch-based deep learning models.
 SuperGradients allows you to train or fine-tune SOTA pre-trained models for all the most commonly applied computer vision tasks with just one training library. We currently support object detection, image classification and semantic segmentation for videos and images.
 
-Docs and full user guide[](#)
 ### Why use SuperGradients?
  
 **Built-in SOTA Models**
