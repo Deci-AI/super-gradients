@@ -76,7 +76,7 @@ log_installed_packages: True # when set, the list of all installed packages (and
 
 save_full_train_log: False # When set, a full log (of all super_gradients modules, including uncaught exceptions from any other module) of training will be saved
 
-clip_grad_norm : None # Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped
+clip_grad_norm : # Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped
 
 sg_logger: base_sg_logger
 sg_logger_params:
