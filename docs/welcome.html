@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey &mdash; SuperGradients 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Common package" href="super_gradients.common.html" />
+    <link rel="prev" title="Welcome to SuperGradients’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#supergradients">SuperGradients</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#why-use-supergradients">Why use SuperGradients?</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#what-s-new">What’s New</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#comming-soon">Comming soon</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#table-of-content">Table of Content</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting Started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#start-training-with-just-1-command-line">Start Training with Just 1 Command Line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quickly-load-pre-trained-weights-for-your-desired-model-with-sota-performance">Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quick-start-notebook-classification">Quick Start Notebook - Classification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quick-start-notebook-object-detection">Quick Start Notebook - Object Detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quick-start-notebook-semantic-segmentation">Quick Start Notebook - Semantic Segmentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#supergradients-complete-walkthrough-notebook">SuperGradients Complete Walkthrough Notebook</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#transfer-learning">Transfer Learning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#transfer-learning-with-sg-notebook-object-detection">Transfer Learning with SG Notebook - Object Detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#transfer-learning-with-sg-notebook-semantic-segmentation">Transfer Learning with SG Notebook - Semantic Segmentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-methods">Installation Methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quick-installation">Quick Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#computer-vision-models-pretrained-checkpoints">Computer Vision Models - Pretrained Checkpoints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pretrained-classification-pytorch-checkpoints">Pretrained Classification PyTorch Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pretrained-object-detection-pytorch-checkpoints">Pretrained Object Detection PyTorch Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pretrained-semantic-segmentation-pytorch-checkpoints">Pretrained Semantic Segmentation PyTorch Checkpoints</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#implemented-model-architectures">Implemented Model Architectures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#image-classification">Image Classification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#object-detection">Object Detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#semantic-segmentation">Semantic Segmentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#contributing">Contributing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#citation">Citation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#community">Community</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#license">License</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#deci-platform">Deci Platform</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/welcome.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div align="center">
+  <img src="docs/assets/SG_img/SG - Horizontal.png" width="600"/>
+ <br/><br/>
+<p><strong>Easily train or fine-tune SOTA computer vision models with one open source training library</strong>
+<a class="reference external" href="https://twitter.com/intent/tweet?text=Easily%20train%20or%20fine-tune%20SOTA%20computer%20vision%20models%20from%20one%20training%20repository&amp;url=https://github.com/Deci-AI/super-gradients&amp;via=deci_ai&amp;hashtags=AI,deeplearning,computervision,training,opensource"><img alt="Tweet" src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social" /></a></p>
+<section id="fill-our-4-question-quick-survey-we-will-raffle-free-supergradients-swag-between-those-who-will-participate-fill-survey">
+<h1>Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; <a class="reference external" href="https://hz8qtlvwkaw.typeform.com/to/OpKda0Qe">Fill Survey</a><a class="headerlink" href="#fill-our-4-question-quick-survey-we-will-raffle-free-supergradients-swag-between-those-who-will-participate-fill-survey" title="Permalink to this headline"></a></h1>
+<hr class="docutils" />
+  <p align="center">
+  <a href="https://www.supergradients.com/">Website</a> •
+  <a href="#why-use-supergradients">Why Use SG?</a> •
+  <a href="https://deci-ai.github.io/super-gradients/user_guide.html#introducing-the-supergradients-library">User Guide</a> •
+  <a href="https://deci-ai.github.io/super-gradients/super_gradients.common.html">Docs</a> •
+  <a href="#getting-started">Getting Started Notebooks</a> •
+  <a href="#transfer-learning">Transfer Learning</a> •  
+  <a href="#computer-vision-models---pretrained-checkpoints">Pretrained Models</a> •
+  <a href="#community">Community</a> •
+  <a href="#license">License</a> •
+  <a href="#deci-platform">Deci Platform</a>
+</p>
+<p align="center">
+  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
+  <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
+  <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
+  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-25-brightgreen" />
+  <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
+  <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
+  <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
+  <a href="https://deci-ai.github.io/super-gradients/welcome.html"><img src="https://img.shields.io/badge/docs-sphinx-brightgreen" />
+</p>    
+</div>
+</section>
+<section id="supergradients">
+<h1>SuperGradients<a class="headerlink" href="#supergradients" title="Permalink to this headline"></a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline"></a></h2>
+<p>Welcome to SuperGradients, a free, open-source training library for PyTorch-based deep learning models.
+SuperGradients allows you to train or fine-tune SOTA pre-trained models for all the most commonly applied computer vision tasks with just one training library. We currently support object detection, image classification and semantic segmentation for videos and images.</p>
+<p>Docs and full user guide<span class="xref myst"></span></p>
+<section id="why-use-supergradients">
+<h3>Why use SuperGradients?<a class="headerlink" href="#why-use-supergradients" title="Permalink to this headline"></a></h3>
+<p><strong>Built-in SOTA Models</strong></p>
+<p>Easily load and fine-tune production-ready, <a class="reference external" href="https://github.com/Deci-AI/super-gradients#pretrained-classification-pytorch-checkpoints">pre-trained SOTA models</a> that incorporate best practices and validated hyper-parameters for achieving best-in-class accuracy.</p>
+<p><strong>Easily Reproduce our Results</strong></p>
+<p>Why do all the grind work, if we already did it for you? leverage tested and proven <a class="reference external" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes">recipes</a> &amp; <a class="reference external" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples">code examples</a> for a wide range of computer vision models generated by our team of deep learning experts. Easily configure your own or use plug &amp; play hyperparameters for training, dataset, and architecture.</p>
+<p><strong>Production Readiness and Ease of Integration</strong></p>
+<p>All SuperGradients models’ are production ready in the sense that they are compatible with deployment tools such as TensorRT (Nvidia) and OpenVINO (Intel) and can be easily taken into production. With a few lines of code you can easily integrate the models into your codebase.</p>
+<div align="center">
+<img src="./docs/assets/SG_img/detection-demo.png" width="600px">
+</div>
+<div align="center">
+<h3>Missing a Model or a Feature?</h3>
+</div>
+</section>
+</section>
+<section id="what-s-new">
+<h2>What’s New<a class="headerlink" href="#what-s-new" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>【09/03/2022】 New <span class="xref myst">quick start</span> and <span class="xref myst">transfer learning</span> example notebooks for Semantic Segmentation.</p></li>
+<li><p>【07/02/2022】 We added RegSeg recipes and pre-trained models to our <span class="xref myst">Semantic Segmentation models</span>.</p></li>
+<li><p>【01/02/2022】 We added issue templates for feature requests and bug reporting.</p></li>
+<li><p>【20/01/2022】 STDC family - new recipes added with even higher mIoU💪</p></li>
+<li><p>【17/01/2022】 We have released transfer learning example <span class="xref myst">notebook</span> for object detection (YOLOv5).</p></li>
+</ul>
+<p>Check out SG full <a class="reference external" href="https://github.com/Deci-AI/super-gradients/releases">release notes</a>.</p>
+</section>
+<section id="comming-soon">
+<h2>Comming soon<a class="headerlink" href="#comming-soon" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>[ ] ViT models (Vision Transformer).</p></li>
+<li><p>[ ] Knowledge Distillation support.</p></li>
+<li><p>[ ] YOLOX models (recipes, pre-trained checkpoints).</p></li>
+<li><p>[ ] SSD MobileNet models (recipes, pre-trained checkpoints) for edge devices deployment.</p></li>
+<li><p>[ ] Dali implementation.</p></li>
+<li><p>[ ] Integration with professional tools.</p></li>
+</ul>
+<hr class="docutils" />
+<section id="table-of-content">
+<h3>Table of Content<a class="headerlink" href="#table-of-content" title="Permalink to this headline"></a></h3>
+<!-- toc -->
+<ul class="simple">
+<li><p><span class="xref myst">Getting Started</span></p>
+<ul>
+<li><p><span class="xref myst">Quick Start Notebook - Classification example</span></p></li>
+<li><p><span class="xref myst">Quick Start Notebook - Object detection example</span></p></li>
+<li><p><span class="xref myst">Quick Start Notebook - Semantic segmentation example</span></p></li>
+<li><p><span class="xref myst">Walkthrough Notebook</span></p></li>
+</ul>
+</li>
+<li><p><span class="xref myst">Transfer Learning</span></p>
+<ul>
+<li><p><span class="xref myst">Transfer Learning with SG Notebook - Object detection example</span></p></li>
+<li><p><span class="xref myst">Transfer Learning with SG Notebook - Semantic segmentation example</span></p></li>
+</ul>
+</li>
+<li><p><span class="xref myst">Installation Methods</span></p>
+<ul>
+<li><p><span class="xref myst">Prerequisites</span></p></li>
+<li><p><span class="xref myst">Quick Installation</span></p></li>
+</ul>
+</li>
+<li><p><span class="xref myst">Computer Vision Models - Pretrained Checkpoints</span></p>
+<ul>
+<li><p><span class="xref myst">Pretrained Classification PyTorch Checkpoints</span></p></li>
+<li><p><span class="xref myst">Pretrained Object Detection PyTorch Checkpoints</span></p></li>
+<li><p><span class="xref myst">Pretrained Semantic Segmentation PyTorch Checkpoints</span></p></li>
+</ul>
+</li>
+<li><p><span class="xref myst">Implemented Model Architectures</span></p></li>
+<li><p><span class="xref myst">Contributing</span></p></li>
+<li><p><span class="xref myst">Citation</span></p></li>
+<li><p><span class="xref myst">Community</span></p></li>
+<li><p><span class="xref myst">License</span></p></li>
+<li><p><span class="xref myst">Deci Platform</span></p></li>
+</ul>
+<!-- tocstop -->
+</details>
+</section>
+</section>
+<section id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h2>
+<section id="start-training-with-just-1-command-line">
+<h3>Start Training with Just 1 Command Line<a class="headerlink" href="#start-training-with-just-1-command-line" title="Permalink to this headline"></a></h3>
+<p>The most simple and straightforward way to start training SOTA performance models with SuperGradients reproducible recipes. Just define your dataset path and where you want your checkpoints to be saved and you are good to go from your terminal!</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m super_gradients.train_from_recipe --config-name<span class="o">=</span>imagenet_regnetY <span class="nv">architecture</span><span class="o">=</span>regnetY800 dataset_interface.data_dir<span class="o">=</span>&lt;YOUR_Imagenet_LOCAL_PATH&gt; <span class="nv">ckpt_root_dir</span><span class="o">=</span>&lt;CHEKPOINT_DIRECTORY&gt;
+</pre></div>
+</div>
+</section>
+<section id="quickly-load-pre-trained-weights-for-your-desired-model-with-sota-performance">
+<h3>Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance<a class="headerlink" href="#quickly-load-pre-trained-weights-for-your-desired-model-with-sota-performance" title="Permalink to this headline"></a></h3>
+<p>Want to try our pre-trained models on your machine? Import SuperGradients, initialize your SgModel, and load your desired architecture and pre-trained weights from our <span class="xref myst">SOTA model zoo</span></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># The pretrained_weights argument will load a pre-trained architecture on the provided dataset</span>
+<span class="c1"># This is an example of loading COCO-2017 pre-trained weights for a YOLOv5 Nano object detection model</span>
+    
+<span class="kn">import</span> <span class="nn">super_gradients</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training</span> <span class="kn">import</span> <span class="n">SgModel</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">SgModel</span><span class="p">(</span><span class="n">experiment_name</span><span class="o">=</span><span class="s2">&quot;yolov5n_coco_experiment&quot;</span><span class="p">,</span><span class="n">ckpt_root_dir</span><span class="o">=&lt;</span><span class="n">CHECKPOINT_DIRECTORY</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">build_model</span><span class="p">(</span><span class="n">architecture</span><span class="o">=</span><span class="s2">&quot;yolo_v5n&quot;</span><span class="p">,</span> <span class="n">arch_params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;pretrained_weights&quot;</span><span class="p">:</span> <span class="s2">&quot;coco&quot;</span><span class="p">,</span> <span class="n">num_classes</span><span class="s2">&quot;: 80})</span>
+</pre></div>
+</div>
+</section>
+<section id="quick-start-notebook-classification">
+<h3>Quick Start Notebook - Classification<a class="headerlink" href="#quick-start-notebook-classification" title="Permalink to this headline"></a></h3>
+<p>Get started with our quick start notebook for image classification tasks on Google Colab for a quick and easy start using free GPU hardware.</p>
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://bit.ly/3ufnsgT"><img src="./docs/assets/SG_img/colab_logo.png" />Classification Quick Start in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_classification.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+</section>
+<section id="quick-start-notebook-object-detection">
+<h3>Quick Start Notebook - Object Detection<a class="headerlink" href="#quick-start-notebook-object-detection" title="Permalink to this headline"></a></h3>
+<p>Get started with our quick start notebook for object detection tasks on Google Colab for a quick and easy start using free GPU hardware.</p>
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://bit.ly/3wqMsEM"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+</section>
+<section id="quick-start-notebook-semantic-segmentation">
+<h3>Quick Start Notebook - Semantic Segmentation<a class="headerlink" href="#quick-start-notebook-semantic-segmentation" title="Permalink to this headline"></a></h3>
+<p>Get started with our quick start notebook for semantic segmentation tasks on Google Colab for a quick and easy start using free GPU hardware.</p>
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://bit.ly/3Jp7w1U"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Quick Start in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+</section>
+<section id="supergradients-complete-walkthrough-notebook">
+<h3>SuperGradients Complete Walkthrough Notebook<a class="headerlink" href="#supergradients-complete-walkthrough-notebook" title="Permalink to this headline"></a></h3>
+<p>Learn more about SuperGradients training components with our walkthrough notebook on Google Colab for an easy to use tutorial using free GPU hardware</p>
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://bit.ly/3JspSPF"><img src="./docs/assets/SG_img/colab_logo.png" />SuperGradients Walkthrough in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_Walkthrough.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+</section>
+</section>
+<section id="transfer-learning">
+<h2>Transfer Learning<a class="headerlink" href="#transfer-learning" title="Permalink to this headline"></a></h2>
+<section id="transfer-learning-with-sg-notebook-object-detection">
+<h3>Transfer Learning with SG Notebook - Object Detection<a class="headerlink" href="#transfer-learning-with-sg-notebook-object-detection" title="Permalink to this headline"></a></h3>
+<p>Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware</p>
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://bit.ly/3iGvnP7"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Transfer Learning in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_object_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+</section>
+<section id="transfer-learning-with-sg-notebook-semantic-segmentation">
+<h3>Transfer Learning with SG Notebook - Semantic Segmentation<a class="headerlink" href="#transfer-learning-with-sg-notebook-semantic-segmentation" title="Permalink to this headline"></a></h3>
+<p>Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware</p>
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://bit.ly/37P04PN"><img src="./docs/assets/SG_img/colab_logo.png" />Segmentation Transfer Learning in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_semantic_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+</section>
+</section>
+<section id="installation-methods">
+<h2>Installation Methods<a class="headerlink" href="#installation-methods" title="Permalink to this headline"></a></h2>
+<section id="prerequisites">
+<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline"></a></h3>
+<details>
+<summary>General requirements</summary>
+<ul class="simple">
+<li><p>Python 3.7, 3.8 or 3.9 installed.</p></li>
+<li><p>torch&gt;=1.9.0</p>
+<ul>
+<li><p>https://pytorch.org/get-started/locally/</p></li>
+</ul>
+</li>
+<li><p>The python packages that are specified in requirements.txt;</p></li>
+</ul>
+</details>
+<details>
+<summary>To train on nvidia GPUs</summary>
+<ul class="simple">
+<li><p><a class="reference external" href="https://developer.nvidia.com/cuda-11.2.0-download-archive?target_os=Linux&amp;target_arch=x86_64&amp;target_distro=Ubuntu">Nvidia CUDA Toolkit &gt;= 11.2</a></p></li>
+<li><p>CuDNN &gt;= 8.1.x</p></li>
+<li><p>Nvidia Driver with CUDA &gt;= 11.2 support (≥460.x)</p></li>
+</ul>
+</details>
+</section>
+<section id="quick-installation">
+<h3>Quick Installation<a class="headerlink" href="#quick-installation" title="Permalink to this headline"></a></h3>
+<details>
+<summary>Install stable version using PyPi</summary>
+<p>See in <a class="reference external" href="https://pypi.org/project/super-gradients/">PyPi</a></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install super-gradients
+</pre></div>
+</div>
+<p>That’s it !</p>
+</details>
+<details>
+<summary>Install using GitHub</summary>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install git+https://github.com/Deci-AI/super-gradients.git@stable
+</pre></div>
+</div>
+</details> 
+</section>
+</section>
+<section id="computer-vision-models-pretrained-checkpoints">
+<h2>Computer Vision Models - Pretrained Checkpoints<a class="headerlink" href="#computer-vision-models-pretrained-checkpoints" title="Permalink to this headline"></a></h2>
+<section id="pretrained-classification-pytorch-checkpoints">
+<h3>Pretrained Classification PyTorch Checkpoints<a class="headerlink" href="#pretrained-classification-pytorch-checkpoints" title="Permalink to this headline"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Dataset</p></th>
+<th class="head"><p>Resolution</p></th>
+<th class="head"><p>Top-1</p></th>
+<th class="head"><p>Top-5</p></th>
+<th class="head"><p>Latency (HW)*<sub>T4</sub></p></th>
+<th class="head"><p>Latency (Production)**<sub>T4</sub></p></th>
+<th class="head"><p>Latency (HW)*<sub>Jetson Xavier NX</sub></p></th>
+<th class="head"><p>Latency (Production)**<sub>Jetson Xavier NX</sub></p></th>
+<th class="text-center head"><p>Latency <sub>Cascade Lake</sub></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>EfficientNet B0</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>77.62</p></td>
+<td><p>93.49</p></td>
+<td><p><strong>0.93ms</strong></p></td>
+<td><p><strong>1.38ms</strong></p></td>
+<td><p><strong>-</strong> *</p></td>
+<td><p><strong>-</strong></p></td>
+<td class="text-center"><p><strong>3.44ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>RegNet Y200</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>70.88</p></td>
+<td><p>89.35</p></td>
+<td><p><strong>0.63ms</strong></p></td>
+<td><p><strong>1.08ms</strong></p></td>
+<td><p><strong>2.16ms</strong></p></td>
+<td><p><strong>2.47ms</strong></p></td>
+<td class="text-center"><p><strong>2.06ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>RegNet Y400</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>74.74</p></td>
+<td><p>91.46</p></td>
+<td><p><strong>0.80ms</strong></p></td>
+<td><p><strong>1.25ms</strong></p></td>
+<td><p><strong>2.62ms</strong></p></td>
+<td><p><strong>2.91ms</strong></p></td>
+<td class="text-center"><p><strong>2.87ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>RegNet Y600</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>76.18</p></td>
+<td><p>92.34</p></td>
+<td><p><strong>0.77ms</strong></p></td>
+<td><p><strong>1.22ms</strong></p></td>
+<td><p><strong>2.64ms</strong></p></td>
+<td><p><strong>2.93ms</strong></p></td>
+<td class="text-center"><p><strong>2.39ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>RegNet Y800</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>77.07</p></td>
+<td><p>93.26</p></td>
+<td><p><strong>0.74ms</strong></p></td>
+<td><p><strong>1.19ms</strong></p></td>
+<td><p><strong>2.77ms</strong></p></td>
+<td><p><strong>3.04ms</strong></p></td>
+<td class="text-center"><p><strong>2.81ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>ResNet 18</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>70.6</p></td>
+<td><p>89.64</p></td>
+<td><p><strong>0.52ms</strong></p></td>
+<td><p><strong>0.95ms</strong></p></td>
+<td><p><strong>2.01ms</strong></p></td>
+<td><p><strong>2.30ms</strong></p></td>
+<td class="text-center"><p><strong>4.56ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>ResNet 34</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>74.13</p></td>
+<td><p>91.7</p></td>
+<td><p><strong>0.92ms</strong></p></td>
+<td><p><strong>1.34ms</strong></p></td>
+<td><p><strong>3.57ms</strong></p></td>
+<td><p><strong>3.87ms</strong></p></td>
+<td class="text-center"><p><strong>7.64ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>ResNet 50</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>79.47</p></td>
+<td><p>93.0</p></td>
+<td><p><strong>1.03ms</strong></p></td>
+<td><p><strong>1.44ms</strong></p></td>
+<td><p><strong>4.78ms</strong></p></td>
+<td><p><strong>5.10ms</strong></p></td>
+<td class="text-center"><p><strong>9.25ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileNet V3_large-150 epochs</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>73.79</p></td>
+<td><p>91.54</p></td>
+<td><p><strong>0.67ms</strong></p></td>
+<td><p><strong>1.11ms</strong></p></td>
+<td><p><strong>2.42ms</strong></p></td>
+<td><p><strong>2.71ms</strong></p></td>
+<td class="text-center"><p><strong>1.76ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileNet V3_large-300 epochs</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>74.52</p></td>
+<td><p>91.92</p></td>
+<td><p><strong>0.67ms</strong></p></td>
+<td><p><strong>1.11ms</strong></p></td>
+<td><p><strong>2.42ms</strong></p></td>
+<td><p><strong>2.71ms</strong></p></td>
+<td class="text-center"><p><strong>1.76ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileNet V3_small</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>67.45</p></td>
+<td><p>87.47</p></td>
+<td><p><strong>0.55ms</strong></p></td>
+<td><p><strong>0.96ms</strong></p></td>
+<td><p><strong>2.01ms</strong> *</p></td>
+<td><p><strong>2.35ms</strong></p></td>
+<td class="text-center"><p><strong>1.06ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileNet V2_w1</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>73.08</p></td>
+<td><p>91.1</p></td>
+<td><p><strong>0.46 ms</strong></p></td>
+<td><p><strong>0.89ms</strong></p></td>
+<td><p><strong>1.65ms</strong> *</p></td>
+<td><p><strong>1.90ms</strong></p></td>
+<td class="text-center"><p><strong>1.56ms</strong></p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong>NOTE:</strong> <br/></p>
+<ul class="simple">
+<li><p>Latency (HW)* - Hardware performance (not including IO)<br/></p></li>
+<li><p>Latency (Production)** - Production Performance (including IO)</p></li>
+<li><p>Performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1</p></li>
+<li><p>Performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="pretrained-object-detection-pytorch-checkpoints">
+<h3>Pretrained Object Detection PyTorch Checkpoints<a class="headerlink" href="#pretrained-object-detection-pytorch-checkpoints" title="Permalink to this headline"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Dataset</p></th>
+<th class="head"><p>Resolution</p></th>
+<th class="head"><p>mAP<sup>val<br>0.5:0.95</p></th>
+<th class="head"><p>Latency (HW)*<sub>T4</sub></p></th>
+<th class="head"><p>Latency (Production)**<sub>T4</sub></p></th>
+<th class="head"><p>Latency (HW)*<sub>Jetson Xavier NX</sub></p></th>
+<th class="head"><p>Latency (Production)**<sub>Jetson Xavier NX</sub></p></th>
+<th class="text-center head"><p>Latency <sub>Cascade Lake</sub></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>YOLOv5 nano</p></td>
+<td><p>COCO</p></td>
+<td><p>640x640</p></td>
+<td><p>27.7</p></td>
+<td><p><strong>1.48ms</strong></p></td>
+<td><p><strong>5.43ms</strong></p></td>
+<td><p><strong>9.28ms</strong></p></td>
+<td><p><strong>17.44ms</strong></p></td>
+<td class="text-center"><p><strong>21.71ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>YOLOv5 small</p></td>
+<td><p>COCO</p></td>
+<td><p>640x640</p></td>
+<td><p>37.3</p></td>
+<td><p><strong>2.29ms</strong></p></td>
+<td><p><strong>6.14ms</strong></p></td>
+<td><p><strong>14.31ms</strong></p></td>
+<td><p><strong>22.50ms</strong></p></td>
+<td class="text-center"><p><strong>34.10ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>YOLOv5 medium</p></td>
+<td><p>COCO</p></td>
+<td><p>640x640</p></td>
+<td><p>45.2</p></td>
+<td><p><strong>4.60ms</strong></p></td>
+<td><p><strong>8.10ms</strong></p></td>
+<td><p><strong>26.76ms</strong></p></td>
+<td><p><strong>34.95ms</strong></p></td>
+<td class="text-center"><p><strong>65.86ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>YOLOv5 large</p></td>
+<td><p>COCO</p></td>
+<td><p>640x640</p></td>
+<td><p>48.0</p></td>
+<td><p><strong>7.20ms</strong></p></td>
+<td><p><strong>10.28ms</strong></p></td>
+<td><p><strong>43.89ms</strong></p></td>
+<td><p><strong>51.92ms</strong></p></td>
+<td class="text-center"><p><strong>122.97ms</strong></p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong>NOTE:</strong> <br/></p>
+<ul class="simple">
+<li><p>Latency (HW)* - Hardware performance (not including IO)<br/></p></li>
+<li><p>Latency (Production)** - Production Performance (including IO)</p></li>
+<li><p>Latency performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1</p></li>
+<li><p>Latency performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="pretrained-semantic-segmentation-pytorch-checkpoints">
+<h3>Pretrained Semantic Segmentation PyTorch Checkpoints<a class="headerlink" href="#pretrained-semantic-segmentation-pytorch-checkpoints" title="Permalink to this headline"></a></h3>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Dataset</p></th>
+<th class="head"><p>Resolution</p></th>
+<th class="head"><p>mIoU</p></th>
+<th class="head"><p>Latency b1<sub>T4</sub></p></th>
+<th class="text-center head"><p>Latency b1<sub>T4</sub> including IO</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>DDRNet 23</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>1024x2048</p></td>
+<td><p>78.65</p></td>
+<td><p><strong>7.62ms</strong></p></td>
+<td class="text-center"><p><strong>25.94ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>DDRNet 23 slim</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>1024x2048</p></td>
+<td><p>76.6</p></td>
+<td><p><strong>3.56ms</strong></p></td>
+<td class="text-center"><p><strong>22.80ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>STDC 1-Seg50</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>512x1024</p></td>
+<td><p>74.36</p></td>
+<td><p><strong>2.83ms</strong></p></td>
+<td class="text-center"><p><strong>12.57ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>STDC 1-Seg75</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>768x1536</p></td>
+<td><p>76.87</p></td>
+<td><p><strong>5.71ms</strong></p></td>
+<td class="text-center"><p><strong>26.70ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>STDC 2-Seg50</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>512x1024</p></td>
+<td><p>75.27</p></td>
+<td><p><strong>3.74ms</strong></p></td>
+<td class="text-center"><p><strong>13.89ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>STDC 2-Seg75</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>768x1536</p></td>
+<td><p>78.93</p></td>
+<td><p><strong>7.35ms</strong></p></td>
+<td class="text-center"><p><strong>28.18ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>RegSeg (exp48)</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>1024x2048</p></td>
+<td><p>78.15</p></td>
+<td><p><strong>13.09ms</strong></p></td>
+<td class="text-center"><p><strong>41.88ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>Larger RegSeg (exp53)</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>1024x2048</p></td>
+<td><p>79.2</p></td>
+<td><p><strong>24.82ms</strong></p></td>
+<td class="text-center"><p><strong>51.87ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>ShelfNet LW 34</p></td>
+<td><p>COCO Segmentation (21 classes from PASCAL including background)</p></td>
+<td><p>512x512</p></td>
+<td><p>65.1</p></td>
+<td><p><strong>-</strong></p></td>
+<td class="text-center"><p><strong>-</strong></p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><strong>NOTE:</strong> Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency), and not including IO</p>
+</div></blockquote>
+</section>
+</section>
+<section id="implemented-model-architectures">
+<h2>Implemented Model Architectures<a class="headerlink" href="#implemented-model-architectures" title="Permalink to this headline"></a></h2>
+<section id="image-classification">
+<h3>Image Classification<a class="headerlink" href="#image-classification" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/densenet.py">DensNet (Densely Connected Convolutional Networks)</a> - Densely Connected Convolutional Networks <a class="reference external" href="https://arxiv.org/pdf/1608.06993.pdf">https://arxiv.org/pdf/1608.06993.pdf</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/dpn.py">DPN</a> - Dual Path Networks <a class="reference external" href="https://arxiv.org/pdf/1707.01629">https://arxiv.org/pdf/1707.01629</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/efficientnet.py">EfficientNet</a> - <a class="reference external" href="https://arxiv.org/abs/1905.11946">https://arxiv.org/abs/1905.11946</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/googlenet.py">GoogleNet</a> - <a class="reference external" href="https://arxiv.org/pdf/1409.4842">https://arxiv.org/pdf/1409.4842</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/lenet.py">LeNet</a> - <a class="reference external" href="http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf">https://yann.lecun.com/exdb/lenet/</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/mobilenet.py">MobileNet</a> - Efficient Convolutional Neural Networks for Mobile Vision Applications <a class="reference external" href="https://arxiv.org/pdf/1704.04861">https://arxiv.org/pdf/1704.04861</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/mobilenetv2.py">MobileNet v2</a> - <a class="reference external" href="https://arxiv.org/pdf/1801.04381">https://arxiv.org/pdf/1801.04381</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/mobilenetv3.py">MobileNet v3</a> - <a class="reference external" href="https://arxiv.org/pdf/1905.02244">https://arxiv.org/pdf/1905.02244</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/pnasnet.py">PNASNet</a> - Progressive Neural Architecture Search Networks <a class="reference external" href="https://arxiv.org/pdf/1712.00559">https://arxiv.org/pdf/1712.00559</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/preact_resnet.py">Pre-activation ResNet</a> - <a class="reference external" href="https://arxiv.org/pdf/1603.05027">https://arxiv.org/pdf/1603.05027</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/regnet.py">RegNet</a> - <a class="reference external" href="https://arxiv.org/pdf/2003.13678.pdf">https://arxiv.org/pdf/2003.13678.pdf</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/repvgg.py">RepVGG</a> - Making VGG-style ConvNets Great Again <a class="reference external" href="https://arxiv.org/pdf/2101.03697.pdf">https://arxiv.org/pdf/2101.03697.pdf</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/resnet.py">ResNet</a> - Deep Residual Learning for Image Recognition <a class="reference external" href="https://arxiv.org/pdf/1512.03385">https://arxiv.org/pdf/1512.03385</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/resnext.py">ResNeXt</a> - Aggregated Residual Transformations for Deep Neural Networks <a class="reference external" href="https://arxiv.org/pdf/1611.05431">https://arxiv.org/pdf/1611.05431</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/senet.py">SENet </a> - Squeeze-and-Excitation Networks<a class="reference external" href="https://arxiv.org/pdf/1709.01507">https://arxiv.org/pdf/1709.01507</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/shufflenet.py">ShuffleNet</a> - <a class="reference external" href="https://arxiv.org/pdf/1707.01083">https://arxiv.org/pdf/1707.01083</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/shufflenetv2.py">ShuffleNet v2</a> - Efficient Convolutional Neural Network for Mobile
+Devices<a class="reference external" href="https://arxiv.org/pdf/1807.11164">https://arxiv.org/pdf/1807.11164</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/classification_models/vgg.py">VGG</a> - Very Deep Convolutional Networks for Large-scale Image Recognition <a class="reference external" href="https://arxiv.org/pdf/1409.1556">https://arxiv.org/pdf/1409.1556</a></p></li>
+</ul>
+</section>
+<section id="object-detection">
+<h3>Object Detection<a class="headerlink" href="#object-detection" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/csp_darknet53.py">CSP DarkNet</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/darknet53.py">DarkNet-53</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py">SSD (Single Shot Detector)</a> - <a class="reference external" href="https://arxiv.org/pdf/1512.02325">https://arxiv.org/pdf/1512.02325</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolov3.py">YOLO v3</a> - <a class="reference external" href="https://arxiv.org/pdf/1804.02767">https://arxiv.org/pdf/1804.02767</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolov5.py">YOLO v5</a> - <a class="reference external" href="https://docs.ultralytics.com/">by Ultralytics</a></p></li>
+</ul>
+</section>
+<section id="semantic-segmentation">
+<h3>Semantic Segmentation<a class="headerlink" href="#semantic-segmentation" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/ddrnet.py">DDRNet (Deep Dual-resolution Networks)</a> - <a class="reference external" href="https://arxiv.org/pdf/2101.06085.pdf">https://arxiv.org/pdf/2101.06085.pdf</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/laddernet.py">LadderNet</a> - Multi-path networks based on U-Net for medical image segmentation <a class="reference external" href="https://arxiv.org/pdf/1810.07810">https://arxiv.org/pdf/1810.07810</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/regseg.py">RegSeg</a> - Rethink Dilated Convolution for Real-time Semantic Segmentation <a class="reference external" href="https://arxiv.org/pdf/2111.09957">https://arxiv.org/pdf/2111.09957</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/shelfnet.py">ShelfNet</a> - <a class="reference external" href="https://arxiv.org/pdf/1811.11254">https://arxiv.org/pdf/1811.11254</a></p></li>
+<li><p><a class="reference external" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/stdc.py">STDC</a> - Rethinking BiSeNet For Real-time Semantic Segmentation <a class="reference external" href="https://arxiv.org/pdf/2104.13188">https://arxiv.org/pdf/2104.13188</a></p></li>
+</ul>
+</details>
+</section>
+</section>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline"></a></h2>
+<p>Check SuperGradients <a class="reference external" href="https://deci-ai.github.io/super-gradients/welcome.html">Docs</a> for full documentation, user guide, and examples.</p>
+</section>
+<section id="contributing">
+<h2>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline"></a></h2>
+<p>To learn about making a contribution to SuperGradients, please see our <a class="reference internal" href="CONTRIBUTING.html"><span class="doc std std-doc">Contribution page</span></a>.</p>
+<p>Our awesome contributors:</p>
+<a href="https://github.com/Deci-AI/super-gradients/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Deci-AI/super-gradients" />
+</a>
+<p><br/>Made with <a class="reference external" href="https://contrib.rocks">contrib.rocks</a>.</p>
+</section>
+<section id="citation">
+<h2>Citation<a class="headerlink" href="#citation" title="Permalink to this headline"></a></h2>
+<p>If you are using SuperGradients library or benchmarks in your research, please cite SuperGradients deep learning training library.</p>
+</section>
+<section id="community">
+<h2>Community<a class="headerlink" href="#community" title="Permalink to this headline"></a></h2>
+<p>If you want to be a part of SuperGradients growing community, hear about all the exciting news and updates, need help, request for advanced features,
+or want to file a bug or issue report, we would love to welcome you aboard!</p>
+<ul class="simple">
+<li><p>Slack is the place to be and ask questions about SuperGradients and get support. <a class="reference external" href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q">Click here to join our Slack</a></p></li>
+<li><p>To report a bug, <a class="reference external" href="https://github.com/Deci-AI/super-gradients/issues">file an issue</a> on GitHub.</p></li>
+<li><p>Join the <a class="reference external" href="https://www.supergradients.com/#Newsletter">SG Newsletter</a>
+for staying up to date with new features and models, important announcements, and upcoming events.</p></li>
+<li><p>For a short meeting with us, use this <a class="reference external" href="https://calendly.com/ofer-baratz-deci/15min">link</a> and choose your preferred time.</p></li>
+</ul>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Permalink to this headline"></a></h2>
+<p>This project is released under the <a class="reference internal" href="LICENSE.html"><span class="doc std std-doc">Apache 2.0 license</span></a>.</p>
+</section>
+<hr class="docutils" />
+<section id="deci-platform">
+<h2>Deci Platform<a class="headerlink" href="#deci-platform" title="Permalink to this headline"></a></h2>
+<p>Deci Platform is our end to end platform for building, optimizing and deploying deep learning models to production.</p>
+<p>Sign up for our <a class="reference external" href="https://console.deci.ai/">FREE Community Tier</a> to enjoy immediate improvement in throughput, latency, memory footprint and model size.</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>Automatically compile and quantize your models with just a few clicks (TensorRT, OpenVINO).</p></li>
+<li><p>Gain up to 10X improvement in throughput, latency, memory and model size.</p></li>
+<li><p>Easily benchmark your models’ performance on different hardware and batch sizes.</p></li>
+<li><p>Invite co-workers to collaborate on models and communicate your progress.</p></li>
+<li><p>Deci supports all common frameworks and Hardware, from Intel CPUs to Nvidia’s GPUs and Jetsons.</p></li>
+</ul>
+<p>Sign up for Deci Platform for free <a class="reference external" href="https://console.deci.ai/">here</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to SuperGradients’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="super_gradients.common.html" class="btn btn-neutral float-right" title="Common package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
