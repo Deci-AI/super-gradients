@@ -960,6 +960,6 @@ WandB can be though of an “extended” TensorBoard, where you can manage exper
 
 ### What Type of Tasks Does the SuperGradients Support?
 
-* Classification
+* Image Classification
 * Object Detection
-* Segmentation
+* Semantic Segmentation
