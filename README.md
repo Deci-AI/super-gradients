@@ -220,7 +220,7 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
  </br></br>
  
 ### Transfer Learning with SG Notebook - Semantic Segmentation
-Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
+Learn more about SuperGradients transfer learning or fine tuning abilities with our Citiscapes pre-trained RegSeg48 fine tuning into a sub-dataset of Supervisely example notebook on Google Colab for an easy to use tutorial using free GPU hardware
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
