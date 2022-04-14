@@ -328,7 +328,8 @@ class ExponentialLRCallback(LRCallbackBase):
 
     def __call__(self, context: PhaseContext):
         if self.training_params.lr_warmup_epochs <= context.epoch:
-            current_iter = self.train_loader_len * context.epoch + context.batch_idx
+            effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
+            current_iter = self.train_loader_len * effective_epoch + context.batch_idx
             self.lr = self.initial_lr * self.lr_decay_factor ** (current_iter / self.lr_decay_steps)
             self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
