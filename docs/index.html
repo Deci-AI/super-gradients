@@ -19,7 +19,6 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="SuperGradients" href="welcome.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -39,7 +38,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="welcome.html">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Technical Documentation</span></p>
 <ul>
@@ -58,6 +57,7 @@
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#network-architectures">Network Architectures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#pretrained-models">Pretrained Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
@@ -90,10 +90,9 @@
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="welcome.html">SuperGradients</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="welcome.html#introduction">Introduction</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="welcome.html#why-use-supergradients">Why use SuperGradients?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="welcome.html#documentation">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="welcome.html#what-s-new">What’s New</a></li>
@@ -102,9 +101,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="welcome.html#getting-started">Getting Started</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="welcome.html#quick-start-notebook">Quick Start Notebook</a></li>
-<li class="toctree-l3"><a class="reference internal" href="welcome.html#supergradients-walkthrough-notebook">SuperGradients Walkthrough Notebook</a></li>
-<li class="toctree-l3"><a class="reference internal" href="welcome.html#transfer-learning-with-sg-notebook">Transfer Learning with SG Notebook</a></li>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#start-training-with-just-1-command-line">Start Training with Just 1 Command Line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#quickly-load-pre-trained-weights-for-your-desired-model-with-sota-performance">Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#quick-start-notebook-classification">Quick Start Notebook - Classification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#quick-start-notebook-object-detection">Quick Start Notebook - Object Detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#quick-start-notebook-semantic-segmentation">Quick Start Notebook - Semantic Segmentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#supergradients-complete-walkthrough-notebook">SuperGradients Complete Walkthrough Notebook</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="welcome.html#transfer-learning">Transfer Learning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#transfer-learning-with-sg-notebook-object-detection">Transfer Learning with SG Notebook - Object Detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#transfer-learning-with-sg-notebook-semantic-segmentation">Transfer Learning with SG Notebook - Semantic Segmentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="welcome.html#installation-methods">Installation Methods</a><ul>
@@ -112,17 +119,24 @@
 <li class="toctree-l3"><a class="reference internal" href="welcome.html#quick-installation">Quick Installation</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="welcome.html#computer-vision-models-pretrained-checkpoints">Computer Vision Models’ Pretrained Checkpoints</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="welcome.html#computer-vision-models-pretrained-checkpoints">Computer Vision Models - Pretrained Checkpoints</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="welcome.html#pretrained-classification-pytorch-checkpoints">Pretrained Classification PyTorch Checkpoints</a></li>
 <li class="toctree-l3"><a class="reference internal" href="welcome.html#pretrained-object-detection-pytorch-checkpoints">Pretrained Object Detection PyTorch Checkpoints</a></li>
 <li class="toctree-l3"><a class="reference internal" href="welcome.html#pretrained-semantic-segmentation-pytorch-checkpoints">Pretrained Semantic Segmentation PyTorch Checkpoints</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="welcome.html#implemented-model-architectures">Implemented Model Architectures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#image-classification">Image Classification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#object-detection">Object Detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="welcome.html#semantic-segmentation">Semantic Segmentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="welcome.html#documentation">Documentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="welcome.html#contributing">Contributing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="welcome.html#citation">Citation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="welcome.html#community">Community</a></li>
 <li class="toctree-l2"><a class="reference internal" href="welcome.html#license">License</a></li>
-<li class="toctree-l2"><a class="reference internal" href="welcome.html#deci-lab">Deci Lab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="welcome.html#deci-platform">Deci Platform</a></li>
 </ul>
 </li>
 </ul>
@@ -173,6 +187,13 @@
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#network-architectures">Network Architectures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#pretrained-models">Pretrained Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#professional-tools-integration">Professional Tools Integration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide.html#weights-and-biases">Weights and Biases</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="user_guide.html#setting-up-the-environment">Setting-up the environment</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#supergradients-faq">SuperGradients FAQ</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="user_guide.html#what-type-of-tasks-does-the-supergradients-support">What Type of Tasks Does the SuperGradients Support?</a></li>
 </ul>
@@ -192,9 +213,6 @@
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="welcome.html" class="btn btn-neutral float-right" title="SuperGradients" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
 
   <hr/>
 
