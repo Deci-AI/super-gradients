@@ -99,7 +99,7 @@ def _dice_from_confmat(
         scores = torch.cat(
             [
                 scores[:ignore_index],
-                scores[ignore_index + 1 :],
+                scores[ignore_index + 1:],
             ]
         )
 
