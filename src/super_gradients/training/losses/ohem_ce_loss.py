@@ -11,7 +11,8 @@ class OhemCELoss(_Loss):
                  threshold: float,
                  mining_percent: float = 0.1,
                  ignore_lb: int = -100,
-                 num_pixels_exclude_ignored: bool = True):
+                 num_pixels_exclude_ignored: bool = True,
+                 criteria: torch.nn.Module = None):
         """
         :param threshold: Sample below probability threshold, is considered hard.
         :param num_pixels_exclude_ignored: How to calculate total pixels from which extract mining percent of the
@@ -26,7 +27,7 @@ class OhemCELoss(_Loss):
         self.mining_percent = mining_percent
         self.ignore_lb = -100 if ignore_lb is None or ignore_lb < 0 else ignore_lb
         self.num_pixels_exclude_ignored = num_pixels_exclude_ignored
-        self.criteria = nn.CrossEntropyLoss(ignore_index=self.ignore_lb, reduction='none')
+        self.criteria = criteria or nn.CrossEntropyLoss(ignore_index=self.ignore_lb, reduction='none')
 
     def forward(self, logits, labels):
         loss = self.criteria(logits, labels).view(-1)
@@ -52,3 +53,21 @@ class OhemCELoss(_Loss):
         else:
             loss = loss[:num_mining]
         return torch.mean(loss)
+
+
+class OhemBCELoss(OhemCELoss):
+    """
+    OhemBCELoss - Online Hard Example Mining Binary Cross Entropy Loss
+    """
+    def __init__(self,
+                 threshold: float,
+                 mining_percent: float = 0.1,
+                 num_pixels_exclude_ignored: bool = True,):
+        super(OhemBCELoss, self).__init__(threshold=threshold,
+                                          mining_percent=mining_percent,
+                                          num_pixels_exclude_ignored=num_pixels_exclude_ignored,
+                                          criteria=nn.BCEWithLogitsLoss(reduction='none'))
+        
+    def forward(self, logits, labels):
+        return super(OhemBCELoss, self).forward(logits.squeeze(1), labels.float())
+

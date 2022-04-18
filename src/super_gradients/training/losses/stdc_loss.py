@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from super_gradients.training.utils.segmentation_utils import to_one_hot
 from torch.nn.modules.loss import _Loss
-from super_gradients.training.losses.ohem_ce_loss import OhemCELoss
+from super_gradients.training.losses.ohem_ce_loss import OhemCELoss, OhemBCELoss
 from super_gradients.training.losses.dice_loss import BinaryDiceLoss
 from typing import Union, Tuple
 
@@ -46,8 +46,10 @@ class DetailAggregateModule(nn.Module):
     def forward(self, gt_masks: torch.Tensor):
         if self.device is None:
             self._set_kernels_to_device(gt_masks.device)
-
-        one_hot = to_one_hot(gt_masks, self.num_classes, self.ignore_label).float()
+        if self.num_classes > 1:
+            one_hot = to_one_hot(gt_masks, self.num_classes, self.ignore_label).float()
+        else:
+            one_hot = gt_masks.unsqueeze(1).float()
         # create binary detail maps using filters withs strides of 1, 2 and 4.
         boundary_targets = F.conv2d(one_hot, self.laplacian_kernel, stride=1, padding=1, groups=self.num_classes)
         boundary_targets_x2 = F.conv2d(one_hot, self.laplacian_kernel, stride=2, padding=1, groups=self.num_classes)
@@ -151,7 +153,8 @@ class STDCLoss(_Loss):
                                                        learnable_fusing_kernel=learnable_fusing_kernel)
             self.detail_loss = DetailLoss(weights=detail_weights)
 
-        self.ce_ohem = OhemCELoss(threshold=threshold, mining_percent=mining_percent, ignore_lb=ignore_index)
+        self.ce_ohem = OhemCELoss(threshold=threshold, mining_percent=mining_percent, ignore_lb=ignore_index) if num_classes > 1 else OhemBCELoss(threshold=threshold, mining_percent=mining_percent)
+        self.num_classes = num_classes
 
     def forward(self, preds: Tuple[torch.Tensor], target: torch.Tensor):
         """
