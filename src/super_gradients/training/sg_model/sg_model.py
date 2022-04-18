@@ -217,6 +217,8 @@ class SgModel:
         :param data_loader_num_workers: The number of threads to initialize the Data Loaders with
             The dataset to be connected
         """
+        if self.train_loader:
+            logger.warning("Overriding the dataloaders that SgModel was initialized with")
         self.dataset_interface = dataset_interface
         self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             self.dataset_interface.get_data_loaders(batch_size_factor=self.num_devices,
