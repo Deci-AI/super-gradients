@@ -119,7 +119,8 @@ class SgModel:
     def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF,
                  model_checkpoints_location: str = 'local',
                  overwrite_local_checkpoint: bool = True, ckpt_name: str = 'ckpt_latest.pth',
-                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir=None):
+                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir=None,
+                 train_loader=None, valid_loader=None, test_loader=None, classes=None):
         """
 
         :param experiment_name:                      Used for logging and loading purposes
