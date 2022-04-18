@@ -2,7 +2,7 @@ import os
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Union, Tuple, Mapping
+from typing import Union, Tuple, Mapping, List, Any
 
 import numpy as np
 import pkg_resources
@@ -10,6 +10,7 @@ import torch
 import torchvision.transforms as transforms
 from deprecated import deprecated
 from torch import nn
+from torch.utils.data import DataLoader
 from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
@@ -119,8 +120,9 @@ class SgModel:
     def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF,
                  model_checkpoints_location: str = 'local',
                  overwrite_local_checkpoint: bool = True, ckpt_name: str = 'ckpt_latest.pth',
-                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir=None,
-                 train_loader=None, valid_loader=None, test_loader=None, classes=None):
+                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir: str = None,
+                 train_loader: DataLoader = None, valid_loader: DataLoader = None, test_loader: DataLoader = None,
+                 classes: List[Any] = None):
         """
 
         :param experiment_name:                      Used for logging and loading purposes
@@ -131,15 +133,19 @@ class SgModel:
         :param overwrite_local_checkpoint:      If set to False keeps the current local checkpoint when importing
                                                 checkpoint from cloud service, otherwise overwrites the local checkpoints file
         :param ckpt_name:                       The Checkpoint to Load
-        :ckpt_root_dir:                         Local root directory path where all experiment logging directories will
-                                                 reside. When none is give, it is assumed that
-                                                 pkg_resources.resource_filename('checkpoints', "") exists and will be used.
+        :param ckpt_root_dir:                   Local root directory path where all experiment logging directories will
+                                                reside. When none is give, it is assumed that
+                                                pkg_resources.resource_filename('checkpoints', "") exists and will be used.
+        :param train_loader:                    Training set Dataloader instead of using DatasetInterface, must pass "valid_loader"
+                                                and "classes" along with it
+        :param valid_loader:                    Validation set Dataloader
+        :param test_loader:                     Test set Dataloader
+        :param classes:                         List of class labels
 
         """
         # SET THE EMPTY PROPERTIES
         self.net, self.architecture, self.arch_params, self.dataset_interface = None, None, None, None
         self.device, self.multi_gpu = None, None
-        self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = None, None, None, None, None
         self.ema = None
         self.ema_model = None
         self.sg_logger = None
@@ -180,6 +186,10 @@ class SgModel:
         self.ckpt_name = ckpt_name
         self.overwrite_local_checkpoint = overwrite_local_checkpoint
         self.model_checkpoints_location = model_checkpoints_location
+        if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
+            raise ValueError("train_loader, valid_loader and class parameters need to be passed together")
+        self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
+            None, train_loader, valid_loader, test_loader, classes
 
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
         if ckpt_root_dir:
