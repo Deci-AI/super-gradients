@@ -1,19 +1,7 @@
 import torch
 import unittest
 import numpy as np
-from super_gradients.common.abstractions.abstract_logger import get_logger
-
-logger = get_logger(__name__)
-
-try:
-    import tensorflow.keras as keras
-
-    _imported_tf_failiure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warn(
-        'Failed to tensorflow- only affects TestExternalDatasetInterface which uses keras keras.utils.Sequence.')
-    _imported_tf_failiure = import_err
-
+import tensorflow.keras as keras
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ExternalDatasetInterface
 
 

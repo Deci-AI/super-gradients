@@ -3,22 +3,12 @@ import torch
 import unittest
 import numpy as np
 from PIL import Image
-
+import tensorflow.keras as keras
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import SgModel
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ExternalDatasetInterface, \
     ImageNetDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.common.abstractions.abstract_logger import get_logger
-
-logger = get_logger(__name__)
-
-try:
-    import tensorflow.keras as keras
-    _imported_tf_failiure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warn('Failed to tensorflow- only affects TestExternalDatasetInterface which uses keras keras.utils.Sequence.')
-    _imported_tf_failiure = import_err
 
 
 class DataGenerator(keras.utils.Sequence):
