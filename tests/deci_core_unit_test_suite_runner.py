@@ -2,7 +2,7 @@ import sys
 import unittest
 
 from tests.integration_tests.ema_train_integration_test import EMAIntegrationTest
-from tests.unit_tests import ZeroWdForBnBiasTest, TestExternalDatasetInterface, SaveCkptListUnitTest, TestAverageMeter, \
+from tests.unit_tests import ZeroWdForBnBiasTest, SaveCkptListUnitTest, TestAverageMeter, \
     TestModuleUtils, TestRepVgg, TestWithoutTrainTest, OhemLossTest, EarlyStopTest, SegmentationTransformsTest, \
     TestConvBnRelu, FactoriesTest, InitializeWithDataloadersTest
 from tests.end_to_end_tests import TestTrainer
@@ -33,7 +33,6 @@ class CoreUnitTestSuiteRunner:
             :return:
         """
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(SaveCkptListUnitTest))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestExternalDatasetInterface))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ZeroWdForBnBiasTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestAverageMeter))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestModuleUtils))
