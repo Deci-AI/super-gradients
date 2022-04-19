@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from super_gradients.training.utils.segmentation_utils import to_one_hot
 from torch.nn.modules.loss import _Loss
-from super_gradients.training.losses.ohem_ce_loss import OhemCELoss, OhemBCELoss
+from super_gradients.training.losses.ohem_ce_loss import OhemCELoss, OhemBCELoss, OhemLoss
 from super_gradients.training.losses.dice_loss import BinaryDiceLoss
 from typing import Union, Tuple
 
@@ -125,7 +125,8 @@ class STDCLoss(_Loss):
                  mining_percent: float = 0.1,
                  detail_threshold: float = 1.,
                  learnable_fusing_kernel: bool = True,
-                 ignore_index: int = None):
+                 ignore_index: int = None,
+                 ohem_criteria: OhemLoss = None):
         """
         :param threshold: Online hard-mining probability threshold.
         :param num_aux_heads: num of auxiliary heads.
@@ -135,6 +136,8 @@ class STDCLoss(_Loss):
         :param mining_percent: mining percentage.
         :param detail_threshold: detail threshold to create binary details features in DetailLoss.
         :param learnable_fusing_kernel: whether DetailAggregateModule params are learnable or not.
+        :param ohem_criteria: OhemLoss criterion component of STDC. When none is given, it will be derrived according
+         to num_classes (i.e OhemCELoss if num_classes > 1 and OhemBCELoss otherwise).
         """
         super().__init__()
 
@@ -153,7 +156,10 @@ class STDCLoss(_Loss):
                                                        learnable_fusing_kernel=learnable_fusing_kernel)
             self.detail_loss = DetailLoss(weights=detail_weights)
 
-        self.ce_ohem = OhemCELoss(threshold=threshold, mining_percent=mining_percent, ignore_lb=ignore_index) if num_classes > 1 else OhemBCELoss(threshold=threshold, mining_percent=mining_percent)
+        if ohem_criteria is None:
+            ohem_criteria = OhemCELoss(threshold=threshold, mining_percent=mining_percent, ignore_lb=ignore_index) if num_classes > 1 else OhemBCELoss(threshold=threshold, mining_percent=mining_percent)
+
+        self.ce_ohem = ohem_criteria
         self.num_classes = num_classes
 
     def forward(self, preds: Tuple[torch.Tensor], target: torch.Tensor):
