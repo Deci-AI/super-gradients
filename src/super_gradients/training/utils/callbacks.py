@@ -316,6 +316,23 @@ class StepLRCallback(LRCallbackBase):
             self.update_lr(context.optimizer, context.epoch, None)
 
 
+class ExponentialLRCallback(LRCallbackBase):
+    """
+    Exponential decay learning rate scheduling. Decays the learning rate by `lr_decay_factor` every epoch.
+    """
+
+    def __init__(self, lr_decay_factor: float, **kwargs):
+        super().__init__(phase=Phase.TRAIN_BATCH_STEP, **kwargs)
+        self.lr_decay_factor = lr_decay_factor
+
+    def __call__(self, context: PhaseContext):
+        if self.training_params.lr_warmup_epochs <= context.epoch:
+            effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
+            current_iter = self.train_loader_len * effective_epoch + context.batch_idx
+            self.lr = self.initial_lr * self.lr_decay_factor ** (current_iter / self.train_loader_len)
+            self.update_lr(context.optimizer, context.epoch, context.batch_idx)
+
+
 class PolyLRCallback(LRCallbackBase):
     """
     Hard coded polynomial decay learning rate scheduling (i.e at specific milestones).
@@ -539,6 +556,7 @@ class CallbackHandler:
 LR_SCHEDULERS_CLS_DICT = {"step": StepLRCallback,
                           "poly": PolyLRCallback,
                           "cosine": CosineLRCallback,
+                          "exp": ExponentialLRCallback,
                           "function": FunctionLRCallback
                           }
 
