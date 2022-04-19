@@ -2,8 +2,9 @@ import numpy as np
 import torch
 import torchmetrics
 from torchmetrics import Metric
-from typing import Optional
+from typing import Optional, Tuple
 from torchmetrics.utilities.distributed import reduce
+from abc import ABC, abstractmethod
 
 
 def batch_pix_accuracy(predict, target):
@@ -124,35 +125,59 @@ def intersection_and_union(im_pred, im_lab, num_class):
     return area_inter, area_union
 
 
-def _preprocess_segmentation_inputs(preds, target: torch.Tensor,
-                                    apply_arg_max: bool = False,
-                                    apply_sigmoid: bool = False):
+class AbstractMetricsArgsPrepFn(ABC):
     """
-    preprocess segmentation predictions and target before updating segmentation metrics, handles multiple inputs and
-    apply normalizations.
-    :param apply_arg_max: Whether to apply argmax on predictions tensor.
-    :param apply_sigmoid:  Whether to apply sigmoid on predictions tensor.
+    Abstract preprocess metrics arguments class.
     """
-    # WHEN DEALING WITH MULTIPLE OUTPUTS- OUTPUTS[0] IS THE MAIN SEGMENTATION MAP
-    if isinstance(preds, (tuple, list)):
-        preds = preds[0]
-    if apply_arg_max:
-        _, preds = torch.max(preds, 1)
-    elif apply_sigmoid:
-        preds = torch.sigmoid(preds)
+    @abstractmethod
+    def __call__(self, preds, target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        All base classes must implement this function and return a tuple of torch tensors (predictions, target).
+        """
+        raise NotImplementedError()
 
-    return preds, target
+
+class PreprocessSegmentationMetricsArgs(AbstractMetricsArgsPrepFn):
+    """
+    Default segmentation inputs preprocess function before updating segmentation metrics, handles multiple inputs and
+    apply normalizations.
+    """
+    def __init__(self,
+                 apply_arg_max: bool = False,
+                 apply_sigmoid: bool = False):
+        """
+        :param apply_arg_max: Whether to apply argmax on predictions tensor.
+        :param apply_sigmoid:  Whether to apply sigmoid on predictions tensor.
+        """
+        self.apply_arg_max = apply_arg_max
+        self.apply_sigmoid = apply_sigmoid
+
+    def __call__(self, preds, target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        # WHEN DEALING WITH MULTIPLE OUTPUTS- OUTPUTS[0] IS THE MAIN SEGMENTATION MAP
+        if isinstance(preds, (tuple, list)):
+            preds = preds[0]
+        if self.apply_arg_max:
+            _, preds = torch.max(preds, 1)
+        elif self.apply_sigmoid:
+            preds = torch.sigmoid(preds)
+
+        target = target.long()
+        return preds, target
 
 
 class PixelAccuracy(Metric):
-    def __init__(self, ignore_label=-100, dist_sync_on_step=False):
+    def __init__(self,
+                 ignore_label=-100,
+                 dist_sync_on_step=False,
+                 metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.ignore_label = ignore_label
         self.add_state("total_correct", default=torch.tensor(0.), dist_reduce_fx="sum")
         self.add_state("total_label", default=torch.tensor(0.), dist_reduce_fx="sum")
+        self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
-        predict, target = _preprocess_segmentation_inputs(preds, target, apply_arg_max=True)
+        predict, target = self.metrics_args_prep_fn(preds, target)
 
         labeled_mask = target.ne(self.ignore_label)
         pixel_labeled = torch.sum(labeled_mask)
@@ -170,48 +195,34 @@ class PixelAccuracy(Metric):
 class IoU(torchmetrics.JaccardIndex):
     def __init__(self,
                  num_classes: int,
-                 dist_sync_on_step: bool = True,
+                 dist_sync_on_step: bool = False,
                  ignore_index: Optional[int] = None,
                  reduction: str = "elementwise_mean",
-                 threshold: float = 0.5):
+                 threshold: float = 0.5,
+                 metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
                          reduction=reduction, threshold=threshold)
+        self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
 
     def update(self, preds, target: torch.Tensor):
-        preds, target = _preprocess_segmentation_inputs(preds, target, apply_arg_max=True)
+        preds, target = self.metrics_args_prep_fn(preds, target)
         super().update(preds=preds, target=target)
-
-
-class BinaryIOU(IoU):
-    def __init__(self,
-                 dist_sync_on_step=True,
-                 ignore_index: Optional[int] = None,
-                 threshold: float = 0.5):
-        super().__init__(num_classes=2, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
-                         reduction="none", threshold=threshold)
-        self.component_names = ["target_IOU", "background_IOU", "mean_IOU"]
-
-    def update(self, preds, target: torch.Tensor):
-        preds, target = _preprocess_segmentation_inputs(preds, target, apply_sigmoid=True)
-        super(IoU, self).update(preds=preds, target=target.long())
-
-    def compute(self):
-        ious = super(BinaryIOU, self).compute()
-        return {"target_IOU": ious[1], "background_IOU": ious[0], "mean_IOU": ious.mean()}
 
 
 class Dice(torchmetrics.JaccardIndex):
     def __init__(self,
                  num_classes: int,
-                 dist_sync_on_step: bool = True,
+                 dist_sync_on_step: bool = False,
                  ignore_index: Optional[int] = None,
                  reduction: str = "elementwise_mean",
-                 threshold: float = 0.5):
+                 threshold: float = 0.5,
+                 metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
                          reduction=reduction, threshold=threshold)
+        self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
 
     def update(self, preds, target: torch.Tensor):
-        preds, target = _preprocess_segmentation_inputs(preds, target, apply_arg_max=True)
+        preds, target = self.metrics_args_prep_fn(preds, target)
         super().update(preds=preds, target=target)
 
     def compute(self) -> torch.Tensor:
@@ -221,18 +232,32 @@ class Dice(torchmetrics.JaccardIndex):
         )
 
 
+class BinaryIOU(IoU):
+    def __init__(self,
+                 dist_sync_on_step=True,
+                 ignore_index: Optional[int] = None,
+                 threshold: float = 0.5,
+                 metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
+        metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_sigmoid=True)
+        super().__init__(num_classes=2, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
+                         reduction="none", threshold=threshold, metrics_args_prep_fn=metrics_args_prep_fn)
+        self.component_names = ["target_IOU", "background_IOU", "mean_IOU"]
+
+    def compute(self):
+        ious = super(BinaryIOU, self).compute()
+        return {"target_IOU": ious[1], "background_IOU": ious[0], "mean_IOU": ious.mean()}
+
+
 class BinaryDice(Dice):
     def __init__(self,
                  dist_sync_on_step=True,
                  ignore_index: Optional[int] = None,
-                 threshold: float = 0.5):
+                 threshold: float = 0.5,
+                 metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
+        metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_sigmoid=True)
         super().__init__(num_classes=2, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
-                         reduction="none", threshold=threshold)
+                         reduction="none", threshold=threshold, metrics_args_prep_fn=metrics_args_prep_fn)
         self.component_names = ["target_Dice", "background_Dice", "mean_Dice"]
-
-    def update(self, preds, target: torch.Tensor):
-        preds, target = _preprocess_segmentation_inputs(preds, target, apply_sigmoid=True)
-        super(Dice, self).update(preds=preds, target=target.long())
 
     def compute(self):
         dices = super().compute()
