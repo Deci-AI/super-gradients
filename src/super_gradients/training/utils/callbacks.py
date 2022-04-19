@@ -494,7 +494,10 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
 
     def __call__(self, context: PhaseContext):
         if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx:
-            preds = context.preds.clone()
+            if isinstance(context.preds, tuple):
+                preds = context.preds[0].clone()
+            else:
+                preds = context.preds.clone()
             batch_imgs = BinarySegmentationVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx)
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)

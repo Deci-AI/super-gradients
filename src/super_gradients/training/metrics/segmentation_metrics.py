@@ -119,6 +119,9 @@ class BinaryIOU(torchmetrics.IoU):
         self.component_names = ["target_IOU", "background_IOU", "mean_IOU"]
 
     def update(self, preds, target: torch.Tensor):
+        # WHEN DEALING WITH MULTIPLE OUTPUTS- OUTPUTS[0] IS THE MAIN SEGMENTATION MAP
+        if isinstance(preds, tuple):
+            preds = preds[0]
         super().update(preds=torch.sigmoid(preds), target=target.long())
 
     def compute(self):
