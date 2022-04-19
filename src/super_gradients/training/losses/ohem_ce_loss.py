@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch.nn.modules.loss import _Loss
+from super_gradients.training.exceptions.loss_exceptions import IllegalRangeForLossAttributeException, RequiredLossComponentReductionException
 
 
 class OhemLoss(_Loss):
@@ -26,11 +27,17 @@ class OhemLoss(_Loss):
          num_pixels_exclude_ignored=True  => num_mining = (100 - 30) * 0.1 = 7
         """
         super().__init__()
-        assert 0 <= mining_percent <= 1, "mining percent should be a value from 0 to 1"
+
+        if mining_percent < 0 or mining_percent > 1:
+            raise IllegalRangeForLossAttributeException((0, 1), "mining percent")
+
         self.thresh = -torch.log(torch.tensor(threshold, dtype=torch.float))
         self.mining_percent = mining_percent
         self.ignore_lb = ignore_lb
         self.num_pixels_exclude_ignored = num_pixels_exclude_ignored
+
+        if criteria.reduction != 'none':
+            raise RequiredLossComponentReductionException("criteria", criteria.reduction, 'none')
         self.criteria = criteria
 
     def forward(self, logits, labels):
@@ -93,4 +100,8 @@ class OhemBCELoss(OhemLoss):
                                           criteria=nn.BCEWithLogitsLoss(reduction='none'))
 
     def forward(self, logits, labels):
-        return super(OhemBCELoss, self).forward(logits.squeeze(1), labels.float())
+
+        # REMOVE SINGLE CLASS CHANNEL WHEN DEALING WITH BINARY DATA
+        if logits.shape[1] == 1:
+            logits = logits.squeeze(1)
+        return super(OhemBCELoss, self).forward(logits, labels.float())
