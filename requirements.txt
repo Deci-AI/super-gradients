@@ -15,7 +15,7 @@ coverage~=5.3.1
 torchvision>=0.10.0
 sphinx~=4.0.2
 sphinx-rtd-theme
-torchmetrics>=0.5.0
+torchmetrics==0.7.3
 pillow>=6.2.0
 hydra-core
 omegaconf
