@@ -53,6 +53,7 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment import environment_config
+from super_gradients.training.utils import HpmStruct
 
 logger = get_logger(__name__)
 
@@ -188,8 +189,15 @@ class SgModel:
         self.model_checkpoints_location = model_checkpoints_location
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
             raise ValueError("train_loader, valid_loader and class parameters need to be passed together")
+
+        dataset_params = {"batch_size": train_loader.batch_size if train_loader else None,
+                          "val_batch_size": valid_loader.batch_size if valid_loader else None,
+                          "test_batch_size": test_loader.batch_size if test_loader else None,
+                          "dataset_dir": None,
+                          "s3_link": None}
+
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
-            None, train_loader, valid_loader, test_loader, classes
+            HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
 
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
         if ckpt_root_dir:
@@ -257,7 +265,7 @@ class SgModel:
 
         """
         if 'num_classes' not in arch_params.keys():
-            if self.dataset_interface is None:
+            if self.classes is None and self.dataset_interface is None:
                 raise Exception('Error', 'Number of classes not defined in arch params and dataset is not defined')
             else:
                 arch_params['num_classes'] = len(self.classes)
@@ -727,7 +735,7 @@ class SgModel:
 
         if self.net is None:
             raise Exception('Model', 'No model found')
-        if self.dataset_interface is None:
+        if self.dataset_interface is None and self.train_loader is None:
             raise Exception('Data', 'No dataset found')
 
         self.training_params = TrainingParams()
