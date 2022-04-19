@@ -93,9 +93,11 @@ class OhemBCELoss(OhemLoss):
     def __init__(self,
                  threshold: float,
                  mining_percent: float = 0.1,
+                 ignore_lb: int = -100,
                  num_pixels_exclude_ignored: bool = True, ):
         super(OhemBCELoss, self).__init__(threshold=threshold,
                                           mining_percent=mining_percent,
+                                          ignore_lb=ignore_lb,
                                           num_pixels_exclude_ignored=num_pixels_exclude_ignored,
                                           criteria=nn.BCEWithLogitsLoss(reduction='none'))
 
