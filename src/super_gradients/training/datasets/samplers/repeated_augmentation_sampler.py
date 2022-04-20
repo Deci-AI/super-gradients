@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Sampler
 import torch.distributed as dist
 
-
+torch.utils.data.DistributedSampler
 class RepeatAugSampler(Sampler):
     """
     Sampler that restricts data loading to a subset of the dataset for distributed,
@@ -26,15 +26,22 @@ class RepeatAugSampler(Sampler):
 
     def __init__(
             self,
-            dataset: torch.utils.data.Dataset,
-            shuffle: bool = True,
-            num_repeats: int = 3
+            dataset,
+            num_replicas=None,
+            rank=None,
+            shuffle=True,
+            num_repeats=3,
+            selected_round=256,
+            selected_ratio=0,
     ):
-        if not dist.is_available():
-            raise RuntimeError("Requires distributed package to be available")
-
-        num_replicas = dist.get_world_size()
-        rank = dist.get_rank()
+        if num_replicas is None:
+            if not dist.is_available():
+                raise RuntimeError("Requires distributed package to be available")
+            num_replicas = dist.get_world_size()
+        if rank is None:
+            if not dist.is_available():
+                raise RuntimeError("Requires distributed package to be available")
+            rank = dist.get_rank()
         self.dataset = dataset
         self.num_replicas = num_replicas
         self.rank = rank
@@ -43,7 +50,15 @@ class RepeatAugSampler(Sampler):
         self.epoch = 0
         self.num_samples = int(math.ceil(len(self.dataset) * num_repeats / self.num_replicas))
         self.total_size = self.num_samples * self.num_replicas
-        self.num_selected_samples = int(math.ceil(len(self.dataset) / num_replicas))
+        # Determine the number of samples to select per epoch for each rank.
+        # num_selected logic defaults to be the same as original RASampler impl, but this one can be tweaked
+        # via selected_ratio and selected_round args.
+        selected_ratio = selected_ratio or num_replicas  # ratio to reduce selected samples by, num_replicas if 0
+        if selected_round:
+            self.num_selected_samples = int(math.floor(
+                 len(self.dataset) // selected_round * selected_round / selected_ratio))
+        else:
+            self.num_selected_samples = int(math.ceil(len(self.dataset) / selected_ratio))
 
     def __iter__(self):
         # deterministically shuffle based on epoch
