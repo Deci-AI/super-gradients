@@ -12,3 +12,4 @@ imagenet_pca_aug: 0.0 # imagenet pca augmentation (applied only to trainset)
 train_interpolation: default # interpolation mode
 rand_augment_config_string: # randaugment config string (see super_gradients/training/datasets/auto_augment.py)
 random_erase_prob: 0.0 # random erase probability (applied only to trainset)
+aug_repeat_count: 0 # amount of repetitions (each repetition of an example is augmented differently) for a trainset example.
