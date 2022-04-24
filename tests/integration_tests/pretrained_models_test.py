@@ -655,6 +655,15 @@ class PretrainedModelsTest(unittest.TestCase):
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["beit_base_patch16_224"], delta=0.001)
 
+    def test_transfer_learning_beit_base_imagenet(self):
+        trainer = SgModel('test_transfer_learning_beit_base_imagenet',
+                          model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
+                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+        trainer.train(training_params=self.transfer_classification_train_params)
+
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):
             shutil.rmtree('~/.cache/torch/hub/')

@@ -31,7 +31,7 @@ from super_gradients.training.models.classification_models.vit import PatchEmbed
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils import HpmStruct
-
+from super_gradients.training.models import SgModule
 logger = get_logger(__name__)
 
 
@@ -297,7 +297,7 @@ class RelativePositionBias(nn.Module):
         return relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
 
 
-class Beit(nn.Module):
+class Beit(SgModule):
     """ Vision Transformer with support for patch or hybrid CNN input stage
     """
 
@@ -425,6 +425,14 @@ class Beit(nn.Module):
         x = self.forward_features(x)
         x = self.forward_head(x)
         return x
+
+    def replace_head(self, new_num_classes=None, new_head=None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self.head = new_head
+        else:
+            self.head = nn.Linear(self.head.in_features, new_num_classes)
 
 
 def beit_base_patch16_224(arch_params: HpmStruct):
