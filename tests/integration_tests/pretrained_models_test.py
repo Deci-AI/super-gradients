@@ -653,7 +653,7 @@ class PretrainedModelsTest(unittest.TestCase):
                             checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(test_loader=self.imagenet_dataset_05_mean_std.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, 0.85228, delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["beit_base_patch16_224"], delta=0.001)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):

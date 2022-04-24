@@ -131,53 +131,6 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     return _no_grad_trunc_normal_(tensor, mean, std, a, b)
 
 
-""" Layer/Module Helpers
-
-Hacked together by / Copyright 2020 Ross Wightman
-"""
-from itertools import repeat
-import collections.abc
-
-
-def _cfg(url='', **kwargs):
-    return {
-        'url': url,
-        'num_classes': 1000, 'input_size': (3, 224, 224), 'pool_size': None,
-        'crop_pct': .9, 'interpolation': 'bicubic', 'fixed_input_size': True,
-        'mean': (0.5, 0.5, 0.5), 'std': (0.5, 0.5, 0.5),
-        'first_conv': 'patch_embed.proj', 'classifier': 'head',
-        **kwargs
-    }
-
-
-default_cfgs = {
-    'beit_base_patch16_224': _cfg(
-        url='https://unilm.blob.core.windows.net/beit/beit_base_patch16_224_pt22k_ft22kto1k.pth'),
-    'beit_base_patch16_384': _cfg(
-        url='https://unilm.blob.core.windows.net/beit/beit_base_patch16_384_pt22k_ft22kto1k.pth',
-        input_size=(3, 384, 384), crop_pct=1.0,
-    ),
-    'beit_base_patch16_224_in22k': _cfg(
-        url='https://unilm.blob.core.windows.net/beit/beit_base_patch16_224_pt22k_ft22k.pth',
-        num_classes=21841,
-    ),
-    'beit_large_patch16_224': _cfg(
-        url='https://unilm.blob.core.windows.net/beit/beit_large_patch16_224_pt22k_ft22kto1k.pth'),
-    'beit_large_patch16_384': _cfg(
-        url='https://unilm.blob.core.windows.net/beit/beit_large_patch16_384_pt22k_ft22kto1k.pth',
-        input_size=(3, 384, 384), crop_pct=1.0,
-    ),
-    'beit_large_patch16_512': _cfg(
-        url='https://unilm.blob.core.windows.net/beit/beit_large_patch16_512_pt22k_ft22kto1k.pth',
-        input_size=(3, 512, 512), crop_pct=1.0,
-    ),
-    'beit_large_patch16_224_in22k': _cfg(
-        url='https://unilm.blob.core.windows.net/beit/beit_large_patch16_224_pt22k_ft22k.pth',
-        num_classes=21841,
-    ),
-}
-
-
 class Mlp(nn.Module):
     """ MLP as used in Vision Transformer, MLP-Mixer and related networks
     """
@@ -490,17 +443,21 @@ def beit_base_patch16_224(arch_params: HpmStruct):
                              use_rel_pos_bias=True,
                              init_values=0.1)
     model_kwargs.override(**arch_params.to_dict())
-    beit = Beit(**model_kwargs.to_dict())
-    return beit
+    model = Beit(**model_kwargs.to_dict())
+    return model
 
 
 def beit_large_patch16_224(arch_params: HpmStruct):
-    beit = Beit(
-        patch_size=(16, 16), embed_dim=1024, depth=24, num_heads=16, mlp_ratio=4, qkv_bias=True,
-        use_abs_pos_emb=False, use_rel_pos_bias=True, init_values=1e-5)
-    return beit
+    model_kwargs = HpmStruct(patch_size=(16, 16),
+                             embed_dim=1024,
+                             depth=24,
+                             num_heads=16,
+                             mlp_ratio=4,
+                             qkv_bias=True,
+                             use_abs_pos_emb=False,
+                             use_rel_pos_bias=True,
+                             init_values=1e-5)
 
-
-if __name__ == '__main__':
-    model = beit_base_patch16_224()
-    print(model)
+    model_kwargs.override(**arch_params.to_dict())
+    model = Beit(**model_kwargs.to_dict())
+    return model
