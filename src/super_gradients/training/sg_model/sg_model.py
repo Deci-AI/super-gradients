@@ -836,11 +836,14 @@ class SgModel:
             self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
             load_opt_params = False
 
-        if isinstance(self.training_params.optimizer, str):
+        optimizer_param = self.training_params.optimizer
+        # if is a string or a torch.optim.Optimizer class type
+        if isinstance(optimizer_param, str) or\
+                (isinstance(optimizer_param, type) and issubclass(optimizer_param, torch.optim.Optimizer)):
             self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr,
                                              training_params=self.training_params)
-        elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
-            self.optimizer = self.training_params.optimizer
+        elif isinstance(optimizer_param, torch.optim.Optimizer):
+            self.optimizer = optimizer_param
         else:
             raise UnsupportedOptimizerFormat()
 
