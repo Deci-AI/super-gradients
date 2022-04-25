@@ -88,6 +88,7 @@ ________________________________________________________________________________
     - [Quick Start Notebook - Classification example](#quick-start-notebook---classification)
     - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
     - [Quick Start Notebook - Semantic segmentation example](#quick-start-notebook---semantic-segmentation)
+    - [Quick Start Notebook - Upload to Deci Lab example](#quick-start-notebook---model-upload-to-deci-lab)
     - [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
 - [Transfer Learning](#transfer-learning)  
     - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
@@ -182,6 +183,35 @@ Get started with our quick start notebook for semantic segmentation tasks on Goo
  </td>
 </table>
  </br></br>
+
+### Quick Start Notebook - Model Upload to Deci Lab
+
+Get Started with an example of how to define upload to Deci Lab a freshly trained model
+<table class="tfo-notebook-buttons" align="left">
+  <tbody>
+    <tr>
+      <td vertical-align="middle">
+        <img src="./docs/assets/SG_img/colab_logo.png" />
+        <a target="_blank" href="https://colab.research.google.com/drive/1cNvakn8ttLhD9g8IMbe51PBvk-vJ40Oi?usp=sharing&utm_campaign=SG%20github%20repo&utm_source=Google%20Colab&utm_medium=GitHub%20Repo&utm_content=Quickstart%20trainig%20with20model%20upload%20notebook%20-%20README.md">
+          Classification Quick Start in Google Colab
+        </a>
+      </td>
+      <td vertical-align="middle">
+        <img src="./docs/assets/SG_img/download_logo.png" />
+        <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_model_upload_deci_lab.ipynb">
+          Download notebook
+        </a>
+      </td>
+      <td>
+        <img src="./docs/assets/SG_img/GitHub_logo.png" />
+        <a target="_blank" href="https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/deci_lab_export_example/deci_lab_export_example.py">
+          View source on GitHub
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<br>
  
 ### SuperGradients Complete Walkthrough Notebook
 
