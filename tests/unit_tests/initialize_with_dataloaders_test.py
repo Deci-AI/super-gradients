@@ -22,7 +22,6 @@ class InitializeWithDataloadersTest(unittest.TestCase):
         label = torch.randint(0, len(self.testcase_classes), size=(test_size,))
         self.testcase_testloader = DataLoader(TensorDataset(inp, label))
 
-
     def test_interface_was_not_broken(self):
         model = SgModel("test_interface", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
@@ -38,7 +37,6 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                         "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
         model.train(train_params)
-
 
     def test_initialization_rules(self):
         self.assertRaises(ValueError, SgModel, "test_name", model_checkpoints_location='local',
@@ -59,7 +57,6 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                 valid_loader=self.testcase_validloader, test_loader=self.testcase_testloader,
                 classes=self.testcase_classes)
 
-
     def test_train_with_dataloaders(self):
         model = SgModel(experiment_name="test_name", model_checkpoints_location="local",
                         train_loader=self.testcase_trainloader, valid_loader=self.testcase_validloader,
@@ -67,18 +64,19 @@ class InitializeWithDataloadersTest(unittest.TestCase):
 
         model.build_model("resnet18")
         model.train(training_params={"max_epochs": 2,
-                         "lr_updates": [5, 6, 12],
-                         "lr_decay_factor": 0.01,
-                         "lr_mode": "step",
-                         "initial_lr": 0.01,
-                         "loss": "cross_entropy",
-                         "optimizer": "SGD",
-                         "optimizer_params": {"weight_decay": 1e-5, "momentum": 0.9},
-                         "train_metrics_list": [Accuracy()],
-                         "valid_metrics_list": [Accuracy()],
-                         "metric_to_watch": "Accuracy",
-                         "greater_metric_to_watch_is_better": True})
+                                     "lr_updates": [5, 6, 12],
+                                     "lr_decay_factor": 0.01,
+                                     "lr_mode": "step",
+                                     "initial_lr": 0.01,
+                                     "loss": "cross_entropy",
+                                     "optimizer": "SGD",
+                                     "optimizer_params": {"weight_decay": 1e-5, "momentum": 0.9},
+                                     "train_metrics_list": [Accuracy()],
+                                     "valid_metrics_list": [Accuracy()],
+                                     "metric_to_watch": "Accuracy",
+                                     "greater_metric_to_watch_is_better": True})
         self.assertTrue(0 < model.best_metric.item() < 1)
+
 
 if __name__ == '__main__':
     unittest.main()
