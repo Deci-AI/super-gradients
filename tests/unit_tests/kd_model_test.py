@@ -219,7 +219,7 @@ class KDModelTest(unittest.TestCase):
         imagenet_resnet50_sg_model = SgModel("pretrained_resnet50")
         imagenet_resnet50_sg_model.build_model('resnet50', arch_params={'num_classes': 1000},
                                                checkpoint_params={'pretrained_weights': "imagenet"})
-        self.assertTrue(isinstance(kd_model.net.module.teacher[0],NormalizationAdapter))
+        self.assertTrue(isinstance(kd_model.net.module.teacher[0], NormalizationAdapter))
 
 
 if __name__ == '__main__':
