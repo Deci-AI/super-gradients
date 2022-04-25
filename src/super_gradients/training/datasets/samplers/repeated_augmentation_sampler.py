@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Sampler
 import torch.distributed as dist
 
-torch.utils.data.DistributedSampler
+
 class RepeatAugSampler(Sampler):
     """
     Sampler that restricts data loading to a subset of the dataset for distributed,
@@ -20,19 +20,28 @@ class RepeatAugSampler(Sampler):
 
     Arguments:
         dataset (torch.utils.data.Dataset): dataset to sample from.
+        num_replicas (int): Number of dataset replicas, equals to world_size when set to 0 (default=0).
         shuffle (bool): whether to shuffle the dataset indices (default=True).
         num_repeats (int): amount of repetitions for each example.
+        selected_round (int): When > 0, the number of samples to select per epoch for each rank is determined by
+
+            int(math.floor(len(self.dataset) // selected_round * selected_round / selected_ratio))
+
+            (default=256)
+
+        selected_ratio (int): ratio to reduce selected samples by, num_replicas if 0.
+
     """
 
     def __init__(
             self,
-            dataset,
-            num_replicas=None,
-            rank=None,
-            shuffle=True,
-            num_repeats=3,
-            selected_round=256,
-            selected_ratio=0,
+            dataset: torch.utils.data.Dataset,
+            num_replicas: int = None,
+            rank: int = None,
+            shuffle: bool = True,
+            num_repeats: int = 3,
+            selected_round: int = 256,
+            selected_ratio: int = 0,
     ):
         if num_replicas is None:
             if not dist.is_available():
@@ -54,9 +63,10 @@ class RepeatAugSampler(Sampler):
         # num_selected logic defaults to be the same as original RASampler impl, but this one can be tweaked
         # via selected_ratio and selected_round args.
         selected_ratio = selected_ratio or num_replicas  # ratio to reduce selected samples by, num_replicas if 0
+
         if selected_round:
             self.num_selected_samples = int(math.floor(
-                 len(self.dataset) // selected_round * selected_round / selected_ratio))
+                len(self.dataset) // selected_round * selected_round / selected_ratio))
         else:
             self.num_selected_samples = int(math.ceil(len(self.dataset) / selected_ratio))
 
