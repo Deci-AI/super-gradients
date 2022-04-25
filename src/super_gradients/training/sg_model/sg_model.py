@@ -187,17 +187,7 @@ class SgModel:
         self.ckpt_name = ckpt_name
         self.overwrite_local_checkpoint = overwrite_local_checkpoint
         self.model_checkpoints_location = model_checkpoints_location
-        if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
-            raise ValueError("train_loader, valid_loader and class parameters need to be passed together")
-
-        dataset_params = {"batch_size": train_loader.batch_size if train_loader else None,
-                          "val_batch_size": valid_loader.batch_size if valid_loader else None,
-                          "test_batch_size": test_loader.batch_size if test_loader else None,
-                          "dataset_dir": None,
-                          "s3_link": None}
-
-        self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
-            HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
+        self._set_dataset_properties(classes, test_loader, train_loader, valid_loader)
 
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
         if ckpt_root_dir:
@@ -227,6 +217,17 @@ class SgModel:
 
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
         self.loss_logging_items_names = default_loss_logging_items_names
+
+    def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
+        if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
+            raise ValueError("train_loader, valid_loader and class parameters need to be passed together")
+        dataset_params = {"batch_size": train_loader.batch_size if train_loader else None,
+                          "val_batch_size": valid_loader.batch_size if valid_loader else None,
+                          "test_batch_size": test_loader.batch_size if test_loader else None,
+                          "dataset_dir": None,
+                          "s3_link": None}
+        self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
+            HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
 
     @resolve_param('dataset_interface', DatasetsFactory())
     def connect_dataset_interface(self, dataset_interface: DatasetInterface, data_loader_num_workers: int = 8):
