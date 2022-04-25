@@ -25,8 +25,8 @@ from torch.utils.data import DataLoader
 
 
 # Define any torch DataLoaders, need at least train & valid loaders
-train_dataset = CIFAR10(root='data/', train=True, transform=ToTensor())
-valid_dataset = CIFAR10(root='data/', train=False, transform=ToTensor())
+train_dataset = CIFAR10(root='data/', download=True, train=True, transform=ToTensor())
+valid_dataset = CIFAR10(root='data/', download=True, train=False, transform=ToTensor())
 
 train_loader = DataLoader(train_dataset, shuffle=True, batch_size=16)
 valid_loader = DataLoader(valid_dataset, batch_size=32)
