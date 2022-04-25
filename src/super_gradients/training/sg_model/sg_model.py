@@ -10,7 +10,7 @@ import torch
 import torchvision.transforms as transforms
 from deprecated import deprecated
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
@@ -221,11 +221,19 @@ class SgModel:
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
             raise IllegalDataloaderInitialization()
+
         dataset_params = {"batch_size": train_loader.batch_size if train_loader else None,
                           "val_batch_size": valid_loader.batch_size if valid_loader else None,
                           "test_batch_size": test_loader.batch_size if test_loader else None,
                           "dataset_dir": None,
                           "s3_link": None}
+
+        if train_loader and self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+            if not all([isinstance(train_loader.sampler, DistributedSampler),
+                        isinstance(valid_loader.sampler, DistributedSampler),
+                        isinstance(test_loader.sampler, DistributedSampler) or test_loader is None]):
+                logger.warning("DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
+
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
 
