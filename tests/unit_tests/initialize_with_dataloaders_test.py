@@ -3,6 +3,7 @@ from super_gradients import SgModel, ClassificationTestDatasetInterface
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 from super_gradients.training.metrics import Accuracy
+from super_gradients.training.exceptions.sg_model_exceptions import IllegalDataloaderInitialization
 
 
 class InitializeWithDataloadersTest(unittest.TestCase):
@@ -39,17 +40,17 @@ class InitializeWithDataloadersTest(unittest.TestCase):
         model.train(train_params)
 
     def test_initialization_rules(self):
-        self.assertRaises(ValueError, SgModel, "test_name", model_checkpoints_location='local',
+        self.assertRaises(IllegalDataloaderInitialization, SgModel, "test_name", model_checkpoints_location='local',
                           train_loader=self.testcase_trainloader)
-        self.assertRaises(ValueError, SgModel, "test_name", model_checkpoints_location='local',
+        self.assertRaises(IllegalDataloaderInitialization, SgModel, "test_name", model_checkpoints_location='local',
                           valid_loader=self.testcase_validloader)
-        self.assertRaises(ValueError, SgModel, "test_name", model_checkpoints_location='local',
+        self.assertRaises(IllegalDataloaderInitialization, SgModel, "test_name", model_checkpoints_location='local',
                           classes=self.testcase_classes)
-        self.assertRaises(ValueError, SgModel, "test_name", model_checkpoints_location='local',
+        self.assertRaises(IllegalDataloaderInitialization, SgModel, "test_name", model_checkpoints_location='local',
                           train_loader=self.testcase_trainloader, valid_loader=self.testcase_validloader)
-        self.assertRaises(ValueError, SgModel, "test_name", model_checkpoints_location='local',
+        self.assertRaises(IllegalDataloaderInitialization, SgModel, "test_name", model_checkpoints_location='local',
                           train_loader=self.testcase_trainloader, classes=self.testcase_classes)
-        self.assertRaises(ValueError, SgModel, "test_name", model_checkpoints_location='local',
+        self.assertRaises(IllegalDataloaderInitialization, SgModel, "test_name", model_checkpoints_location='local',
                           valid_loader=self.testcase_validloader, classes=self.testcase_classes)
         SgModel("test_name", model_checkpoints_location='local', train_loader=self.testcase_trainloader,
                 valid_loader=self.testcase_validloader, classes=self.testcase_classes)

@@ -32,7 +32,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
 from super_gradients.training import metrics
-from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat
+from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, IllegalDataloaderInitialization
 from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
@@ -220,7 +220,7 @@ class SgModel:
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
-            raise ValueError("train_loader, valid_loader and class parameters need to be passed together")
+            raise IllegalDataloaderInitialization()
         dataset_params = {"batch_size": train_loader.batch_size if train_loader else None,
                           "val_batch_size": valid_loader.batch_size if valid_loader else None,
                           "test_batch_size": test_loader.batch_size if test_loader else None,
