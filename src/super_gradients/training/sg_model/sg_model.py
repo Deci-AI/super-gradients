@@ -231,7 +231,7 @@ class SgModel:
         if train_loader and self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             if not all([isinstance(train_loader.sampler, DistributedSampler),
                         isinstance(valid_loader.sampler, DistributedSampler),
-                        isinstance(test_loader.sampler, DistributedSampler) or test_loader is None]):
+                        test_loader is None or isinstance(test_loader.sampler, DistributedSampler)]):
                 logger.warning("DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
 
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
