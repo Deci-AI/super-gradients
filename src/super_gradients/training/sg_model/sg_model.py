@@ -1490,6 +1490,9 @@ class SgModel:
         self.sg_logger.flush()
 
     def get_hyper_param_config(self):
+        """
+        Creates a training hyper param config for logging.
+        """
         additional_log_items = {'initial_LR': self.training_params.initial_lr,
                                 'num_devices': self.num_devices,
                                 'multi_gpu': str(self.multi_gpu),

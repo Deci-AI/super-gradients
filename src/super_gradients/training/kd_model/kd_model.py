@@ -237,6 +237,9 @@ class KDModel(SgModel):
         self.phase_callbacks.append(KDModelMetricsUpdateCallback(phase))
 
     def get_hyper_param_config(self):
+        """
+        Creates a training hyper param config for logging with additional KD related hyper params.
+        """
         hyper_param_config = super().get_hyper_param_config()
         hyper_param_config.update({"student_architecture": self.student_architecture,
                                    "teacher_architecture": self.teacher_architecture,
