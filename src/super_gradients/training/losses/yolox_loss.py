@@ -10,6 +10,8 @@ from torch import nn
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
 
+from super_gradients.training.utils.detection_utils import calculate_bbox_iou_matrix
+
 
 class IOUloss(nn.Module):
     def __init__(self, reduction="none", loss_type="iou"):
@@ -48,27 +50,6 @@ class IOUloss(nn.Module):
             loss = loss.sum()
 
         return loss
-
-
-def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
-    if bboxes_a.shape[1] != 4 or bboxes_b.shape[1] != 4:
-        raise IndexError
-
-    if xyxy:
-        tl = torch.max(bboxes_a[:, None, :2], bboxes_b[:, :2])
-        br = torch.min(bboxes_a[:, None, 2:], bboxes_b[:, 2:])
-        area_a = torch.prod(bboxes_a[:, 2:] - bboxes_a[:, :2], 1)
-        area_b = torch.prod(bboxes_b[:, 2:] - bboxes_b[:, :2], 1)
-    else:
-        tl = torch.max((bboxes_a[:, None, :2] - bboxes_a[:, None, 2:] / 2), (bboxes_b[:, :2] - bboxes_b[:, 2:] / 2))
-        br = torch.min((bboxes_a[:, None, :2] + bboxes_a[:, None, 2:] / 2), (bboxes_b[:, :2] + bboxes_b[:, 2:] / 2))
-
-        area_a = torch.prod(bboxes_a[:, 2:], 1)
-        area_b = torch.prod(bboxes_b[:, 2:], 1)
-
-    en = (tl < br).type(tl.type()).prod(dim=2)
-    area_i = torch.prod(br - tl, 2) * en  # * ((tl < br).all())
-    return area_i / (area_a[:, None] + area_b - area_i)
 
 
 class YoloXDetectionLoss(_Loss):
@@ -287,9 +268,10 @@ class YoloXDetectionLoss(_Loss):
             gt_bboxes_per_image = gt_bboxes_per_image.cpu()
             bboxes_preds_per_image = bboxes_preds_per_image.cpu()
 
-        pair_wise_ious = bboxes_iou(gt_bboxes_per_image, bboxes_preds_per_image, False)
+        pair_wise_ious = calculate_bbox_iou_matrix(gt_bboxes_per_image, bboxes_preds_per_image, x1y1x2y2=False)
 
-        gt_cls_per_image = F.one_hot(gt_classes.to(torch.int64), self.num_classes).float().unsqueeze(1).repeat(1, num_in_boxes_anchor, 1)
+        gt_cls_per_image = F.one_hot(gt_classes.to(torch.int64), self.num_classes)
+        gt_cls_per_image = gt_cls_per_image.float().unsqueeze(1).repeat(1, num_in_boxes_anchor, 1)
         pair_wise_ious_loss = -torch.log(pair_wise_ious + 1e-8)
 
         if mode == "cpu":
