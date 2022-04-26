@@ -1,0 +1,4 @@
+defaults:
+  - default_checkpoint_params
+
+pretrained_weights: imagenet21k

@@ -12,7 +12,9 @@ import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import get_filename_suffix_by_framework
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
+from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 import cv2
+
 logger = get_logger(__name__)
 
 try:
@@ -314,6 +316,23 @@ class StepLRCallback(LRCallbackBase):
             self.update_lr(context.optimizer, context.epoch, None)
 
 
+class ExponentialLRCallback(LRCallbackBase):
+    """
+    Exponential decay learning rate scheduling. Decays the learning rate by `lr_decay_factor` every epoch.
+    """
+
+    def __init__(self, lr_decay_factor: float, **kwargs):
+        super().__init__(phase=Phase.TRAIN_BATCH_STEP, **kwargs)
+        self.lr_decay_factor = lr_decay_factor
+
+    def __call__(self, context: PhaseContext):
+        if self.training_params.lr_warmup_epochs <= context.epoch:
+            effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
+            current_iter = self.train_loader_len * effective_epoch + context.batch_idx
+            self.lr = self.initial_lr * self.lr_decay_factor ** (current_iter / self.train_loader_len)
+            self.update_lr(context.optimizer, context.epoch, context.batch_idx)
+
+
 class PolyLRCallback(LRCallbackBase):
     """
     Hard coded polynomial decay learning rate scheduling (i.e at specific milestones).
@@ -435,6 +454,18 @@ class MetricsUpdateCallback(PhaseCallback):
             context.loss_avg_meter.update(context.loss_log_items, len(context.inputs))
 
 
+class KDModelMetricsUpdateCallback(MetricsUpdateCallback):
+    def __init__(self, phase: Phase):
+        super().__init__(phase=phase)
+
+    def __call__(self, context: PhaseContext):
+        metrics_compute_fn_kwargs = {k: v.student_output if k == 'preds' else v for k, v in
+                                     context.__dict__.items()}
+        context.metrics_compute_fn.update(**metrics_compute_fn_kwargs)
+        if context.criterion is not None:
+            context.loss_avg_meter.update(context.loss_log_items, len(context.inputs))
+
+
 class PhaseContextTestCallback(PhaseCallback):
     """
     A callback that saves the phase context the for testing.
@@ -477,6 +508,33 @@ class DetectionVisualizationCallback(PhaseCallback):
             context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch], global_step=context.epoch, data_format='NHWC')
 
 
+class BinarySegmentationVisualizationCallback(PhaseCallback):
+    """
+    A callback that adds a visualization of a batch of segmentation predictions to context.sg_logger
+    Attributes:
+        freq: frequency (in epochs) to perform this callback.
+        batch_idx: batch index to perform visualization for.
+        last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
+    """
+    def __init__(self, phase: Phase, freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
+        super(BinarySegmentationVisualizationCallback, self).__init__(phase)
+        self.freq = freq
+        self.batch_idx = batch_idx
+        self.last_img_idx_in_batch = last_img_idx_in_batch
+
+    def __call__(self, context: PhaseContext):
+        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx:
+            if isinstance(context.preds, tuple):
+                preds = context.preds[0].clone()
+            else:
+                preds = context.preds.clone()
+            batch_imgs = BinarySegmentationVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx)
+            batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
+            batch_imgs = np.stack(batch_imgs)
+            tag = "batch_" + str(self.batch_idx) + "_images"
+            context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch], global_step=context.epoch, data_format='NHWC')
+
+
 class CallbackHandler:
     """
     Runs all callbacks who's phase attribute equals to the given phase.
@@ -498,6 +556,7 @@ class CallbackHandler:
 LR_SCHEDULERS_CLS_DICT = {"step": StepLRCallback,
                           "poly": PolyLRCallback,
                           "cosine": CosineLRCallback,
+                          "exp": ExponentialLRCallback,
                           "function": FunctionLRCallback
                           }
 

@@ -38,15 +38,8 @@
 defaults:
   - training_hyperparams: cityscapes_stdc_train_params
   - dataset_params: cityscapes_dataset_params
+  - checkpoint_params: default_checkpoint_params
 
-arch_params:
-  num_classes: 19
-  use_aux_heads: True
-  sync_bn: True
-  external_checkpoint_path:
-  load_backbone: True
-  load_weights_only: True
-  strict_load: no_key_matching
 
 dataset_params:
   _convert_: all
@@ -91,17 +84,33 @@ dataset_interface:
 
 data_loader_num_workers: 10
 
-model_checkpoints_location: local
+arch_params:
+  num_classes: 19
+  use_aux_heads: True
+  sync_bn: True
+
 load_checkpoint: False
-load_backbone: True
-external_checkpoint_path:
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
+  external_checkpoint_path:
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
 
 architecture: stdc1_seg
 experiment_name: ${architecture}50_cityscapes
 
+model_checkpoints_location: local
+ckpt_root_dir:
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: 'DDP'
+
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
-
-
+  model_checkpoints_location: ${model_checkpoints_location}
+  ckpt_root_dir: ${ckpt_root_dir}
+  multi_gpu: ${multi_gpu}
 

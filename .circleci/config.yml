@@ -417,6 +417,7 @@ jobs:
         type: string
     docker:
       - image: cimg/python:<< parameters.py_version >>
+    resource_class: large
     steps:
       - checkout_and_skip_build
       - attach_workspace:

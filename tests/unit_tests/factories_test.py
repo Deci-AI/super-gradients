@@ -16,7 +16,7 @@ class FactoriesTest(unittest.TestCase):
         model.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
-        model.build_model(net, load_checkpoint=False)
+        model.build_model(net)
         train_params = {"max_epochs": 2,
                         "lr_updates": [1],
                         "lr_decay_factor": 0.1,
@@ -38,6 +38,7 @@ class FactoriesTest(unittest.TestCase):
         self.assertIsInstance(model.valid_metrics.Top5, Top5)
         self.assertIsInstance(model.dataset_interface, ClassificationTestDatasetInterface)
         self.assertIsInstance(model.optimizer, torch.optim.ASGD)
+
 
 if __name__ == '__main__':
     unittest.main()
