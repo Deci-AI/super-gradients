@@ -18,8 +18,8 @@ logger = get_logger(__name__)
 
 
 class KDModel(SgModel):
-    def __init__(self, **kwargs):
-        super(KDModel, self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(KDModel, self).__init__(*args, **kwargs)
         self.student_architecture = None
         self.teacher_architecture = None
         self.student_arch_params = None
