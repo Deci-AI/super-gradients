@@ -738,7 +738,8 @@ class SgModel:
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
-        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+        self.metric_idx_in_results_tuple = (
+                    self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -1059,7 +1060,8 @@ class SgModel:
         # Create a normalization transformation
         if normalize:
             try:
-                mean, std = self.dataset_interface.lib_dataset_params['mean'], self.dataset_interface.lib_dataset_params['std']
+                mean, std = self.dataset_interface.lib_dataset_params['mean'], \
+                            self.dataset_interface.lib_dataset_params['std']
             except AttributeError:
                 raise AttributeError('In \'predict()\', Normalization is set to True while the dataset has no default '
                                      'mean & std => deactivate normalization or inject it to the datasets library.')
@@ -1390,7 +1392,8 @@ class SgModel:
             self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
                                                        load_backbone=self.load_backbone,
                                                        net=self.net,
-                                                       strict=self.strict_load.value if isinstance(self.strict_load, StrictLoad) else self.strict_load,
+                                                       strict=self.strict_load.value if isinstance(self.strict_load,
+                                                                                                   StrictLoad) else self.strict_load,
                                                        load_weights_only=self.load_weights_only,
                                                        load_ema_as_net=self.load_ema_as_net)
 
@@ -1482,22 +1485,27 @@ class SgModel:
 
         # IN CASE SG_LOGGER UPDATED THE DIR PATH
         self.checkpoints_dir_path = self.sg_logger.local_dir()
+        hyper_param_config = self.get_hyper_param_config()
+
+        self.sg_logger.add_config("hyper_params", hyper_param_config)
+
+        self.sg_logger.flush()
+
+    def get_hyper_param_config(self):
         additional_log_items = {'initial_LR': self.training_params.initial_lr,
                                 'num_devices': self.num_devices,
                                 'multi_gpu': str(self.multi_gpu),
                                 'device_type': torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu'}
-
         # ADD INSTALLED PACKAGE LIST + THEIR VERSIONS
         if self.training_params.log_installed_packages:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items['installed_packages'] = pkg_list
-
-        self.sg_logger.add_config("hyper_params", {"arch_params": self.arch_params.__dict__,
-                                                   "training_hyperparams": self.training_params.__dict__,
-                                                   "dataset_params": self.dataset_params.__dict__,
-                                                   "additional_log_items": additional_log_items})
-
-        self.sg_logger.flush()
+        hyper_param_config = {"arch_params": self.arch_params.__dict__,
+                              "checkpoint_params": self.checkpoint_params.__dict__,
+                              "training_hyperparams": self.training_params.__dict__,
+                              "dataset_params": self.dataset_params.__dict__,
+                              "additional_log_items": additional_log_items}
+        return hyper_param_config
 
     def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int,
                                   context: PhaseContext):
