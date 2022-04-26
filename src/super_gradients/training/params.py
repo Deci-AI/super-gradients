@@ -31,7 +31,7 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "precise_bn_batch_size": None,
                            "seed": 42,
                            "lr_mode": None,
-                           "phase_callbacks": [],
+                           "phase_callbacks": None,
                            "log_installed_packages": True,
                            "save_full_train_log": False,
                            "sg_logger": "base_sg_logger",
@@ -45,7 +45,8 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                                 "save_logs_remote": False},  # upload log files to s3
                            "warmup_mode": "linear_step",
                            "step_lr_update_freq": None,
-                           "lr_updates": []
+                           "lr_updates": [],
+                           'clip_grad_norm': None
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}

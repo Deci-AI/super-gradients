@@ -27,5 +27,5 @@ dataset = Cifar10DatasetInterface()
 model.connect_dataset_interface(dataset, data_loader_num_workers=8)
 
 # Build Model
-model.build_model("resnet18_cifar", load_checkpoint=False)
+model.build_model("resnet18_cifar")
 model.train(training_params=train_params)

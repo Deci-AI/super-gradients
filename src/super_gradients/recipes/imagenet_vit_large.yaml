@@ -1,0 +1,28 @@
+#  ViT Imagenet1K fine tuning from Imagenet21K classification training:
+#  This example trains with batch_size = 32 * 8 GPUs, total 256.
+#  Training time on 8 x GeForce RTX A5000 is 52min / epoch.
+#  ViT Large : 85.64 (Final averaged model)
+#
+#  Log and tensorboard at s3://deci-pretrained-models/vit_large_cutmix_randaug_v2_lr=0.03/
+
+# Instructions:
+# running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
+#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
+# Then:
+#   python -m torch.distributed.launch --nproc_per_node=8 train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_large
+
+
+defaults:
+  - imagenet_vit_base
+
+
+dataset_params:
+  batch_size: 32
+
+training_hyperparams:
+  initial_lr: 0.06
+  average_best_models: True
+
+architecture: vit_large
+
+experiment_name: vit_large_imagenet1k

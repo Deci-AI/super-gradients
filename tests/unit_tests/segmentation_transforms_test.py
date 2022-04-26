@@ -2,7 +2,7 @@ import unittest
 
 import torch
 from torchvision.transforms import Compose, ToTensor
-from super_gradients.training.utils.segmentation_utils import Rescale, RandomRescale, PadShortToCropSize, CropImageAndMask
+from super_gradients.training.transforms.transforms import Rescale, RandomRescale, CropImageAndMask, PadShortToCropSize
 from PIL import Image
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 

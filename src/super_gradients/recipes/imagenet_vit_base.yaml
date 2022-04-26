@@ -1,0 +1,56 @@
+#  ViT Imagenet1K fine tuning from Imagenet21K classification training:
+#  This example trains with batch_size = 64 * 8 GPUs, total 512.
+#  Training time on 8 x GeForce RTX A5000 is 15min / epoch.
+#  ViT base : 84.15
+#
+#  Log and tensorboard at s3://deci-pretrained-models/vit_base_imagenet1k/
+
+# Instructions:
+# running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
+#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
+# Then:
+# for vit_base:
+#   python -m torch.distributed.launch --nproc_per_node=8 train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
+
+
+defaults:
+  - training_hyperparams: imagenet_vit_train_params
+  - dataset_params: imagenet_dataset_params
+  - arch_params: vit_base_arch_params
+  - checkpoint_params: vit_base_imagenet_checkpoint_params
+
+
+dataset_params:
+  resize_size: 249
+  batch_size: 64
+  random_erase_prob: 0
+  random_erase_value: random
+  train_interpolation: random
+  rand_augment_config_string: rand-m7-mstd0.5
+  cutmix: True
+  cutmix_params:
+    mixup_alpha: 0.2
+    cutmix_alpha: 1.0
+    label_smoothing: 0.1
+  img_mean: [0.5, 0.5, 0.5]
+  img_std: [0.5, 0.5, 0.5]
+
+dataset_interface:
+  imagenet:
+    dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+
+model_checkpoints_location: local
+load_checkpoint: True
+load_weights_only: True
+
+experiment_name: vit_base_imagenet1k
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: AUTO
+
+architecture: vit_base

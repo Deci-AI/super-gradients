@@ -7,17 +7,21 @@ from super_gradients.training.models.classification_models.mobilenetv3 import mo
 from super_gradients.training.models.classification_models.shufflenetv2 import ShufflenetV2_x0_5, ShufflenetV2_x1_0, \
     ShufflenetV2_x1_5, \
     ShufflenetV2_x2_0, CustomizedShuffleNetV2
+from super_gradients.training.models.classification_models.vit import vit_base, vit_large, vit_huge
 from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolov3 import YoloV3, TinyYoloV3
-from super_gradients.training.models.detection_models.yolov5 import YoLoV5N, YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, Custom_YoLoV5
+from super_gradients.training.models.detection_models.yolov5 import YoLoV5N, YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, \
+    Custom_YoLoV5
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, \
     ShelfNet503343, ShelfNet101
-from super_gradients.training.models.segmentation_models.stdc import STDC1Classification, STDC2Classification,\
+from super_gradients.training.models.segmentation_models.stdc import STDC1Classification, STDC2Classification, \
     STDC1Seg, STDC2Seg
+
+from super_gradients.training.models.kd_modules.kd_module import KDModule
 
 # IF YOU UPDATE THE ARCHITECTURE DICT PLEASE ALSO UPDATE THE ENUM CLASS DOWN BELOW.
 
@@ -107,4 +111,12 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "stdc2_seg50": STDC2Seg,
                  "stdc2_seg75": STDC2Seg,
                  "regseg48": RegSeg48,
+                 "kd_module": KDModule,
+                 "vit_base": vit_base,
+                 "vit_large": vit_large,
+                 "vit_huge": vit_huge,
                  }
+
+KD_ARCHITECTURES = {
+    "kd_module": KDModule
+}

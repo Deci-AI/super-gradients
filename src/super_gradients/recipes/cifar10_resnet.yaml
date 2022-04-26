@@ -10,6 +10,7 @@ defaults:
   - training_hyperparams: cifar10_resnet_train_params
   - dataset_params: cifar10_dataset_params
   - arch_params: resnet18_cifar_arch_params
+  - checkpoint_params: default_checkpoint_params
 
 dataset_interface:
   cifar_10:
@@ -18,10 +19,11 @@ dataset_interface:
 data_loader_num_workers: 8
 
 load_checkpoint: False
-
-experiment_name: Cifar10_Resnet18_Example
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
 
 model_checkpoints_location: local
+ckpt_root_dir:
 
 sg_model:
   _target_: super_gradients.SgModel

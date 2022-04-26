@@ -43,7 +43,8 @@ from super_gradients.training import SgModel, MultiGPUMode
 import argparse
 import torchvision.transforms as transforms
 
-from super_gradients.training.utils.segmentation_utils import RandomFlip, PadShortToCropSize, CropImageAndMask, RandomRescale
+from super_gradients.training.transforms.transforms import RandomFlip, RandomRescale, CropImageAndMask, \
+    PadShortToCropSize
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CITYSCAPES_IGNORE_LABEL
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CityscapesDatasetInterface
@@ -75,7 +76,8 @@ dataset_params = {
         RandomFlip(),
         RandomRescale(scales=(0.5, 2.0)),
         PadShortToCropSize(args.img_size, fill_mask=CITYSCAPES_IGNORE_LABEL,
-                           fill_image=(CITYSCAPES_IGNORE_LABEL, 0, 0)),  # Legacy padding color that works best with this recipe
+                           fill_image=(CITYSCAPES_IGNORE_LABEL, 0, 0)),
+        # Legacy padding color that works best with this recipe
         CropImageAndMask(crop_size=args.img_size, mode="random"),
     ]),
     "image_mask_transforms": transforms.Compose([])  # no transform for evaluation
@@ -106,6 +108,10 @@ train_params = {"max_epochs": args.max_epochs,
                 }
 
 arch_params = {"num_classes": 19, "aux_head": True, "sync_bn": True}
+checkpoint_params = {"load_checkpoint": args.reload,
+                     "load_weights_only": args.pretrained_bb_path is not None,
+                     "load_backbone": args.pretrained_bb_path is not None,
+                     "external_checkpoint_path": args.pretrained_bb_path}
 
 model = SgModel(args.experiment_name,
                 multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
@@ -117,9 +123,6 @@ model.connect_dataset_interface(dataset_interface, data_loader_num_workers=8 * d
 
 model.build_model(architecture="ddrnet_23_slim" if args.slim else "ddrnet_23",
                   arch_params=arch_params,
-                  load_checkpoint=args.reload,
-                  load_weights_only=args.pretrained_bb_path is not None,
-                  load_backbone=args.pretrained_bb_path is not None,
-                  external_checkpoint_path=args.pretrained_bb_path)
+                  checkpoint_params=checkpoint_params)
 
 model.train(training_params=train_params)

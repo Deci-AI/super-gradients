@@ -1,0 +1,30 @@
+defaults:
+  - default_train_params
+
+max_epochs: 10
+initial_lr: 0.03
+lr_mode: cosine
+cosine_final_lr_ratio: 0
+lr_warmup_epochs: 1
+warmup_initial_lr: 0
+warmup_mode: linear_step
+ema: False
+loss: cross_entropy
+clip_grad_norm: 1
+optimizer: SGD
+optimizer_params:
+  weight_decay: 0
+  momentum: 0.9
+
+train_metrics_list:                               # metrics for evaluation
+  - _target_: super_gradients.training.metrics.Accuracy
+  - _target_: super_gradients.training.metrics.Top5
+
+valid_metrics_list:                               # metrics for evaluation
+  - _target_: super_gradients.training.metrics.Accuracy
+  - _target_: super_gradients.training.metrics.Top5
+loss_logging_items_names: [Loss]
+metric_to_watch: Accuracy
+greater_metric_to_watch_is_better: True
+average_best_models: False
+_convert_: all
