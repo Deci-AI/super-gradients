@@ -34,7 +34,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                         model_checkpoints_location='local',
                         post_prediction_callback=YoloV5PostPredictionCallback())
         model.connect_dataset_interface(dataset, data_loader_num_workers=8)
-        model.build_model("yolo_v5s", load_checkpoint=False)
+        model.build_model("yolo_v5s")
 
         training_params = {"max_epochs": 1,  # we dont really need the actual training to run
                            "lr_mode": "cosine",

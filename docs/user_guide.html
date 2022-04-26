@@ -37,9 +37,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
+              <p class="caption"><span class="caption-text"></span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="welcome.html">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Technical Documentation</span></p>
 <ul>
@@ -69,6 +69,13 @@
 <li class="toctree-l1"><a class="reference internal" href="#network-architectures">Network Architectures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#pretrained-models">Pretrained Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#professional-tools-integration">Professional Tools Integration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#weights-and-biases">Weights and Biases</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#setting-up-the-environment">Setting-up the environment</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="#supergradients-faq">SuperGradients FAQ</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#what-type-of-tasks-does-the-supergradients-support">What Type of Tasks Does the SuperGradients Support?</a></li>
 </ul>
@@ -100,18 +107,26 @@
            <div itemprop="articleBody">
              
   <p><strong>Contact Information</strong></p>
-<p>Email – <a class="reference external" href="mailto:info&#37;&#52;&#48;deci&#46;ai">support<span>&#64;</span>deci<span>&#46;</span>ai</a></p>
-<p>**Israel <br />
-**Sasson Hugi Tower, Abba Hillel Silver Rd 12, <br />
-Ramat Gan, Israel</p>
+<p>Email – <a class="reference external" href="mailto:info&#37;&#52;&#48;deci&#46;ai">support<span>&#64;</span>deci<span>&#46;</span>ai</a></br>
+Community Slack - <a class="reference external" href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q">SG Slack</a></p>
+<p><strong>Sasson Hugi Tower, Abba Hillel Silver Rd 12,</strong> <br />
+<strong>Ramat Gan, Israel</strong></p>
 <p><strong>Revision History</strong></p>
 <table>
   <tr>
    <td>1.0.1
    </td>
-   <td>December 2021
+   <td> December 2021
    </td>
-   <td>Initial version
+   <td> Initial version
+   </td>
+  </tr>
+ <tr>
+   <td>1.0.2
+   </td>
+   <td> April 2022
+   </td>
+   <td> Pro tools, KD, ViT
    </td>
   </tr>
 </table>
@@ -120,20 +135,17 @@ Ramat Gan, Israel</p>
 <p>The SuperGradients PyTorch-based training library provides a quick, simple and free open-source platform in which you can train your models using state of the art techniques.</p>
 <p>Who can use SuperGradients:</p>
 <ul class="simple">
-<li><p>**Open Source Users – **The SuperGradients can be used to easily train your models regardless of whether you ever have or ever will use the <span style="text-decoration:underline;">Deci platform</span>.</p></li>
-<li><p>**Deci Customers – **The SuperGradients library can reproduce the training procedure performed by Deci for their optimized models.</p></li>
+<li><p><strong>Open Source Users</strong> – <strong>The SuperGradients can be used to easily train your models regardless of whether you ever have or ever will use the <span style="text-decoration:underline;">Deci platform</span></strong>.</p></li>
+<li><p><strong>Deci Customers</strong> – <strong>The SuperGradients library can reproduce the training procedure performed by Deci for their optimized models</strong>.</p></li>
 </ul>
 </section>
 <section id="introducing-the-supergradients-library">
 <h1>Introducing the SuperGradients library<a class="headerlink" href="#introducing-the-supergradients-library" title="Permalink to this headline"></a></h1>
-<p>The <strong>SuperGradients</strong> training library** **provides all of the scripts, example code and configurations required to demonstrate how to train your model on a dataset and to enable you to do it by yourself.</p>
+<p>The <strong>SuperGradients</strong> training library provides all of the scripts, example code and configurations required to demonstrate how to train your model on a dataset and to enable you to do it by yourself.</p>
 <p>SuperGradients comes as an easily installed Python package (pip install) that you can integrate into your code base in order to train your models.</p>
 </section>
 <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h1>
-<ul class="simple">
-<li></li>
-</ul>
 <p><strong>To install the SuperGradients library –</strong></p>
 <ol class="arabic">
 <li><p>Run the following command on your machine’s terminal –</p>
@@ -197,7 +209,7 @@ Ramat Gan, Israel</p>
 </section>
 <section id="integrating-your-training-code-complete-walkthrough-model">
 <h2>Integrating Your Training Code - Complete Walkthrough: Model<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-model" title="Permalink to this headline"></a></h2>
-<p>This is rather straightforward- the only requirement is that the model must be of torch.nn.Module type. In our case, a simple Lenet implementation (taken from https://github.com/icpm/pytorch-cifar10/blob/master/models/LeNet.py).</p>
+<p>This is rather straightforward- the only requirement is that the model must be of torch.nn.Module type. In our case, a simple LeNet implementation (taken from https://github.com/icpm/pytorch-cifar10/blob/master/models/LeNet.py).</p>
 <table>
   <tr>
   </tr>
@@ -547,11 +559,9 @@ One of super_gradients&#39;s built in options:
 </section>
 <section id="logs-and-checkpoints">
 <h1>Logs and Checkpoints<a class="headerlink" href="#logs-and-checkpoints" title="Permalink to this headline"></a></h1>
-<p>The model’s weights, logs and tensorboards are saved in _”YOUR_PYTHONPATH”/ checkpoints/”YOUR_EXPERIMENT_NAME” _. (In our  walkthrough example, _”YOUR_EXPERIMENT_NAME” _ is <em>user_model_training)</em>.</p>
-<ul class="simple">
-<li></li>
-</ul>
-<p><strong>To watch training progress –</strong></p>
+<p>The model’s weights, logs and tensorboards are saved in _”YOUR_PYTHONPATH”/ checkpoints/”YOUR_EXPERIMENT_NAME” _. (In our  walkthrough example, _”YOUR_EXPERIMENT_NAME” _ is <em>user_model_training)</em>.
+You can also connect your training logs into Weights and Biases (WandB) assuming you have an WandB account (go to connection to <span class="xref myst">professional tools</span>)
+<strong>To watch training progress –</strong></p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>**1st option:**
 </pre></div>
 </div>
@@ -570,19 +580,14 @@ One of super_gradients&#39;s built in options:
 </li>
 </ol>
 <ul class="simple">
-<li></li>
+<li><p><strong>To resume training –</strong>
+When building the network- call SgModel.build_model(…arch_params={‘load_checkpoint’True…}). Doing so, will load the network’s weights, as well as any relevant information for resuming training (monitored metric values, optimizer states, etc) with the latest checkpoint. For more advanced usage see SgModel.build_model docs in code.</p></li>
+<li><p><strong>Checkpoint structure – state_dict (see <a class="reference external" href="https://pytorch.org/tutorials/beginner/saving_loading_models.html">https://pytorch.org/tutorials/beginner/saving_loading_models.html</a> for more information regarding state_dicts) with the following keys:</strong>
+<strong>-”net”-  The network’s state_dict.</strong></p></li>
 </ul>
-<p><strong>To resume training –</strong>
-When building the network- call SgModel.build_model(…load_checkpoint=True). Doing so, will load the network’s weights, as well as any relevant information for resuming training (monitored metric values, optimizer states, etc) with the latest checkpoint. For more advanced usage see SgModel.build_model docs in code.</p>
-<ul class="simple">
-<li></li>
-</ul>
-<p><strong>Checkpoint structure – state_dict (see <a class="reference external" href="https://pytorch.org/tutorials/beginner/saving_loading_models.html">https://pytorch.org/tutorials/beginner/saving_loading_models.html</a> for more information regarding state_dicts) with the following keys:</strong>
-<strong>-”net”-  The network’s state_dict.</strong></p>
 <p><strong>-”acc”-  The value of <code class="docutils literal notranslate"><span class="pre">metric_to_watch</span></code> from training.</strong></p>
 <p><strong>-”epoch”- Last epoch performed before saving this checkpoint.</strong></p>
-<p>**-”ema_net” [Optionall, exists  if training was performed with EMA] - **</p>
-<p><strong>The state dict of the EMA net.</strong></p>
+<p><strong>-”ema_net” [Optionall, exists  if training was performed with EMA] -</strong> <strong>The state dict of the EMA net.</strong></p>
 <p><strong>-”optimizer_state_dict”- Optimizer’s state dict from training.</strong></p>
 <p><strong>-”scaler_state_dict”- Gradient scalar state_dict from training.</strong></p>
 </section>
@@ -614,332 +619,402 @@ When building the network- call SgModel.build_model(…load_checkpoint=True). Do
 </div>
 <p>Will initialize a resnet50 and set it to be sg_model’s network attribute, which will be used for training.</p>
 <p><strong>‘resnet18’,</strong></p>
-<p>** ‘resnet34’,**</p>
-<p>** ‘resnet50_3343’,**</p>
-<p>** ‘resnet50’,**</p>
-<p>** ‘resnet101’,**</p>
-<p>** ‘resnet152’,**</p>
-<p>** ‘resnet18_cifar’,**</p>
-<p>** ‘custom_resnet’,**</p>
-<p>** ‘custom_resnet50’,**</p>
-<p>** ‘custom_resnet_cifar’,**</p>
-<p>** ‘custom_resnet50_cifar’,**</p>
-<p>** ‘mobilenet_v2’,**</p>
-<p>** ‘mobile_net_v2_135’,**</p>
-<p>** ‘custom_mobilenet_v2’,**</p>
-<p>** ‘mobilenet_v3_large’,**</p>
-<p>** ‘mobilenet_v3_small’,**</p>
-<p>** ‘mobilenet_v3_custom’,**</p>
-<p>** ‘yolo_v3’,**</p>
-<p>** ‘tiny_yolo_v3’,**</p>
-<p>** ‘custom_densenet’,**</p>
-<p>** ‘densenet121’,**</p>
-<p>** ‘densenet161’,**</p>
-<p>** ‘densenet169’,**</p>
-<p>** ‘densenet201’,**</p>
-<p>** ‘shelfnet18’,**</p>
-<p>** ‘shelfnet34’,**</p>
-<p>** ‘shelfnet50_3343’,**</p>
-<p>** ‘shelfnet50’,**</p>
-<p>** ‘shelfnet101’,**</p>
-<p>** ‘shufflenet_v2_x0_5’,**</p>
-<p>** ‘shufflenet_v2_x1_0’,**</p>
-<p>** ‘shufflenet_v2_x1_5’,**</p>
-<p>** ‘shufflenet_v2_x2_0’,**</p>
-<p>** ‘shufflenet_v2_custom5’,**</p>
-<p>** ‘darknet53’,**</p>
-<p>** ‘csp_darknet53’,**</p>
-<p>** ‘resnext50’,**</p>
-<p>** ‘resnext101’,**</p>
-<p>** ‘googlenet_v1’,**</p>
-<p>** ‘efficientnet_b0’,**</p>
-<p>** ‘efficientnet_b1’,**</p>
-<p>** ‘efficientnet_b2’,**</p>
-<p>** ‘efficientnet_b3’,**</p>
-<p>** ‘efficientnet_b4’,**</p>
-<p>** ‘efficientnet_b5’,**</p>
-<p>** ‘efficientnet_b6’,**</p>
-<p>** ‘efficientnet_b7’,**</p>
-<p>** ‘efficientnet_b8’,**</p>
-<p>** ‘efficientnet_l2’,**</p>
-<p>** ‘CustomizedEfficientnet’,**</p>
-<p>** ‘regnetY200’,**</p>
-<p>** ‘regnetY400’,**</p>
-<p>** ‘regnetY600’,**</p>
-<p>** ‘regnetY800’,**</p>
-<p>** ‘custom_regnet’,**</p>
-<p>** ‘nas_regnet’,**</p>
-<p>** ‘yolo_v5s’,**</p>
-<p>** ‘yolo_v5m’,**</p>
-<p>** ‘yolo_v5l’,**</p>
-<p>** ‘yolo_v5x’,**</p>
-<p>** ‘custom_yolov5’,**</p>
-<p>** ‘ssd_mobilenet_v1’,**</p>
-<p>** ‘ssd_lite_mobilenet_v2’,**</p>
-<p>** ‘repvgg_a0’,**</p>
-<p>** ‘repvgg_a1’,**</p>
-<p>** ‘repvgg_a2’,**</p>
-<p>** ‘repvgg_b0’,**</p>
-<p>** ‘repvgg_b1’,**</p>
-<p>** ‘repvgg_b2’,**</p>
-<p>** ‘repvgg_b3’,**</p>
-<p>** ‘repvgg_d2se’,**</p>
-<p>** ‘repvgg_custom’**</p>
+<p><strong>‘resnet34’,</strong></p>
+<p><strong>‘resnet50_3343’,</strong></p>
+<p><strong>‘resnet50’,</strong></p>
+<p><strong>‘resnet101’,</strong></p>
+<p><strong>‘resnet152’,</strong></p>
+<p><strong>‘resnet18_cifar’,</strong></p>
+<p><strong>‘custom_resnet’,</strong></p>
+<p><strong>‘custom_resnet50’,</strong></p>
+<p><strong>‘custom_resnet_cifar’,</strong></p>
+<p><strong>‘custom_resnet50_cifar’,</strong></p>
+<p><strong>‘mobilenet_v2’,</strong></p>
+<p><strong>‘mobile_net_v2_135’,</strong></p>
+<p><strong>‘custom_mobilenet_v2’,</strong></p>
+<p><strong>‘mobilenet_v3_large’,</strong></p>
+<p><strong>‘mobilenet_v3_small’,</strong></p>
+<p><strong>‘mobilenet_v3_custom’,</strong></p>
+<p><strong>‘yolo_v3’,</strong></p>
+<p><strong>‘tiny_yolo_v3’,</strong></p>
+<p><strong>‘custom_densenet’,</strong></p>
+<p><strong>‘densenet121’,</strong></p>
+<p><strong>‘densenet161’,</strong></p>
+<p><strong>‘densenet169’,</strong></p>
+<p><strong>‘densenet201’,</strong></p>
+<p><strong>‘shelfnet18’,</strong></p>
+<p><strong>‘shelfnet34’,</strong></p>
+<p><strong>‘shelfnet50_3343’,</strong></p>
+<p><strong>‘shelfnet50’,</strong></p>
+<p><strong>‘shelfnet101’,</strong></p>
+<p><strong>‘shufflenet_v2_x0_5’,</strong></p>
+<p><strong>‘shufflenet_v2_x1_0’,</strong></p>
+<p><strong>‘shufflenet_v2_x1_5’,</strong></p>
+<p><strong>‘shufflenet_v2_x2_0’,</strong></p>
+<p><strong>‘shufflenet_v2_custom5’,</strong></p>
+<p><strong>‘darknet53’,</strong></p>
+<p><strong>‘csp_darknet53’,</strong></p>
+<p><strong>‘resnext50’,</strong></p>
+<p><strong>‘resnext101’,</strong></p>
+<p><strong>‘googlenet_v1’,</strong></p>
+<p><strong>‘efficientnet_b0’,</strong></p>
+<p><strong>‘efficientnet_b1’,</strong></p>
+<p><strong>‘efficientnet_b2’,</strong></p>
+<p><strong>‘efficientnet_b3’,</strong></p>
+<p><strong>‘efficientnet_b4’,</strong></p>
+<p><strong>‘efficientnet_b5’,</strong></p>
+<p><strong>‘efficientnet_b6’,</strong></p>
+<p><strong>‘efficientnet_b7’,</strong></p>
+<p><strong>‘efficientnet_b8’,</strong></p>
+<p><strong>‘efficientnet_l2’,</strong></p>
+<p><strong>‘CustomizedEfficientnet’,</strong></p>
+<p><strong>‘regnetY200’,</strong></p>
+<p><strong>‘regnetY400’,</strong></p>
+<p><strong>‘regnetY600’,</strong></p>
+<p><strong>‘regnetY800’,</strong></p>
+<p><strong>‘custom_regnet’,</strong></p>
+<p><strong>‘nas_regnet’,</strong></p>
+<p><strong>‘yolo_v5s’,</strong></p>
+<p><strong>‘yolo_v5m’,</strong></p>
+<p><strong>‘yolo_v5l’,</strong></p>
+<p><strong>‘yolo_v5x’,</strong></p>
+<p><strong>‘custom_yolov5’,</strong></p>
+<p><strong>‘ssd_mobilenet_v1’,</strong></p>
+<p><strong>‘ssd_lite_mobilenet_v2’,</strong></p>
+<p><strong>‘repvgg_a0’,</strong></p>
+<p><strong>‘repvgg_a1’,</strong></p>
+<p><strong>‘repvgg_a2’,</strong></p>
+<p><strong>‘repvgg_b0’,</strong></p>
+<p><strong>‘repvgg_b1’,</strong></p>
+<p><strong>‘repvgg_b2’,</strong></p>
+<p><strong>‘repvgg_b3’,</strong></p>
+<p><strong>‘repvgg_d2se’,</strong></p>
+<p><strong>‘repvgg_custom’,</strong></p>
+<p><strong>‘ddrnet_23’,</strong></p>
+<p><strong>‘ddrnet_23_slim’,</strong></p>
+<p><strong>‘laddernet_50’,</strong></p>
+<p><strong>‘laddernet_50_3433’,</strong></p>
+<p><strong>‘laddernet_101’,</strong></p>
+<p><strong>‘regseg_48’,</strong></p>
+<p><strong>‘regseg_53’,</strong></p>
+<p><strong>‘shelfnet18_LW’,</strong></p>
+<p><strong>‘shelfnet34_LW’,</strong></p>
+<p><strong>‘shelfnet53_3343’,</strong></p>
+<p><strong>‘shelfnet_50’,</strong></p>
+<p><strong>‘shelfnet_101’,</strong></p>
+<p><strong>‘custom_stdc’,</strong></p>
+<p><strong>‘stdc_1’,</strong></p>
+<p><strong>‘stdc_2’</strong></p>
 </section>
 <section id="pretrained-models">
 <h1>Pretrained Models<a class="headerlink" href="#pretrained-models" title="Permalink to this headline"></a></h1>
 <p>Classification models</p>
-<table>
-  <tr>
-   <td><strong>Model</strong>
-   </td>
-   <td><strong>Dataset</strong>
-   </td>
-   <td><strong>arch_params</strong>
-   </td>
-   <td><strong>Top-1</strong>
-   </td>
-   <td><strong>Latency b1 T4</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>EfficientNet B0
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>77.62
-   </td>
-   <td>1.16ms
-   </td>
-  </tr>
-  <tr>
-   <td>RegNetY200
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>70.88
-   </td>
-   <td>-
-   </td>
-  </tr>
-  <tr>
-   <td>RegNetY400
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>74.74
-   </td>
-   <td>-
-   </td>
-  </tr>
-  <tr>
-   <td>RegNetY600
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>76.18
-   </td>
-   <td>-
-   </td>
-  </tr>
-  <tr>
-   <td>RegNetY800
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>77.07
-   </td>
-   <td>-
-   </td>
-  </tr>
-  <tr>
-   <td>ResNet18
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>70.6
-   </td>
-   <td>0.599ms
-   </td>
-  </tr>
-  <tr>
-   <td>ResNet34
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>74.13
-   </td>
-   <td>0.89ms
-   </td>
-  </tr>
-  <tr>
-   <td>ResNet50
-   </td>
-   <td>ImageNet
-   </td>
-   <td>{"pretrained_weights": "imagenet", “num_classes”:1000}
-   </td>
-   <td>76.3
-   </td>
-   <td>0.94ms
-   </td>
-  </tr>
-  <tr>
-   <td>MobileNetV3_large-150 epochs
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>73.79
-   </td>
-   <td>0.87ms
-   </td>
-  </tr>
-  <tr>
-   <td>MobileNetV3_large-300 epochs
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>74.52
-   </td>
-   <td>0.87ms
-   </td>
-  </tr>
-  <tr>
-   <td>MobileNetV3_small
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>67.45
-   </td>
-   <td>0.75ms
-   </td>
-  </tr>
-  <tr>
-   <td>MobileNetV2_w1
-   </td>
-   <td>ImageNet
-   </td>
-   <td>
-   </td>
-   <td>73.08
-   </td>
-   <td>0.58ms
-   </td>
-  </tr>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Dataset</p></th>
+<th class="head"><p>Resolution</p></th>
+<th class="head"><p>Top-1</p></th>
+<th class="head"><p>Top-5</p></th>
+<th class="head"><p>Latency (HW)*<sub>T4</sub></p></th>
+<th class="head"><p>Latency (Production)**<sub>T4</sub></p></th>
+<th class="head"><p>Latency (HW)*<sub>Jetson Xavier NX</sub></p></th>
+<th class="head"><p>Latency (Production)**<sub>Jetson Xavier NX</sub></p></th>
+<th class="text-center head"><p>Latency <sub>Cascade Lake</sub></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>EfficientNet B0</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>77.62</p></td>
+<td><p>93.49</p></td>
+<td><p><strong>0.93ms</strong></p></td>
+<td><p><strong>1.38ms</strong></p></td>
+<td><p><strong>-</strong> *</p></td>
+<td><p><strong>-</strong></p></td>
+<td class="text-center"><p><strong>3.44ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>RegNet Y200</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>70.88</p></td>
+<td><p>89.35</p></td>
+<td><p><strong>0.63ms</strong></p></td>
+<td><p><strong>1.08ms</strong></p></td>
+<td><p><strong>2.16ms</strong></p></td>
+<td><p><strong>2.47ms</strong></p></td>
+<td class="text-center"><p><strong>2.06ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>RegNet Y400</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>74.74</p></td>
+<td><p>91.46</p></td>
+<td><p><strong>0.80ms</strong></p></td>
+<td><p><strong>1.25ms</strong></p></td>
+<td><p><strong>2.62ms</strong></p></td>
+<td><p><strong>2.91ms</strong></p></td>
+<td class="text-center"><p><strong>2.87ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>RegNet Y600</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>76.18</p></td>
+<td><p>92.34</p></td>
+<td><p><strong>0.77ms</strong></p></td>
+<td><p><strong>1.22ms</strong></p></td>
+<td><p><strong>2.64ms</strong></p></td>
+<td><p><strong>2.93ms</strong></p></td>
+<td class="text-center"><p><strong>2.39ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>RegNet Y800</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>77.07</p></td>
+<td><p>93.26</p></td>
+<td><p><strong>0.74ms</strong></p></td>
+<td><p><strong>1.19ms</strong></p></td>
+<td><p><strong>2.77ms</strong></p></td>
+<td><p><strong>3.04ms</strong></p></td>
+<td class="text-center"><p><strong>2.81ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>ResNet 18</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>70.6</p></td>
+<td><p>89.64</p></td>
+<td><p><strong>0.52ms</strong></p></td>
+<td><p><strong>0.95ms</strong></p></td>
+<td><p><strong>2.01ms</strong></p></td>
+<td><p><strong>2.30ms</strong></p></td>
+<td class="text-center"><p><strong>4.56ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>ResNet 34</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>74.13</p></td>
+<td><p>91.7</p></td>
+<td><p><strong>0.92ms</strong></p></td>
+<td><p><strong>1.34ms</strong></p></td>
+<td><p><strong>3.57ms</strong></p></td>
+<td><p><strong>3.87ms</strong></p></td>
+<td class="text-center"><p><strong>7.64ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>ResNet 50</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>79.47</p></td>
+<td><p>93.0</p></td>
+<td><p><strong>1.03ms</strong></p></td>
+<td><p><strong>1.44ms</strong></p></td>
+<td><p><strong>4.78ms</strong></p></td>
+<td><p><strong>5.10ms</strong></p></td>
+<td class="text-center"><p><strong>9.25ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileNet V3_large-150 epochs</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>73.79</p></td>
+<td><p>91.54</p></td>
+<td><p><strong>0.67ms</strong></p></td>
+<td><p><strong>1.11ms</strong></p></td>
+<td><p><strong>2.42ms</strong></p></td>
+<td><p><strong>2.71ms</strong></p></td>
+<td class="text-center"><p><strong>1.76ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileNet V3_large-300 epochs</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>74.52</p></td>
+<td><p>91.92</p></td>
+<td><p><strong>0.67ms</strong></p></td>
+<td><p><strong>1.11ms</strong></p></td>
+<td><p><strong>2.42ms</strong></p></td>
+<td><p><strong>2.71ms</strong></p></td>
+<td class="text-center"><p><strong>1.76ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileNet V3_small</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>67.45</p></td>
+<td><p>87.47</p></td>
+<td><p><strong>0.55ms</strong></p></td>
+<td><p><strong>0.96ms</strong></p></td>
+<td><p><strong>2.01ms</strong> *</p></td>
+<td><p><strong>2.35ms</strong></p></td>
+<td class="text-center"><p><strong>1.06ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileNet V2_w1</p></td>
+<td><p>ImageNet</p></td>
+<td><p>224x224</p></td>
+<td><p>73.08</p></td>
+<td><p>91.1</p></td>
+<td><p><strong>0.46 ms</strong></p></td>
+<td><p><strong>0.89ms</strong></p></td>
+<td><p><strong>1.65ms</strong> *</p></td>
+<td><p><strong>1.90ms</strong></p></td>
+<td class="text-center"><p><strong>1.56ms</strong></p></td>
+</tr>
+</tbody>
 </table>
+<blockquote>
+<div><p><strong>NOTE:</strong> <br/></p>
+<ul class="simple">
+<li><p>Latency (HW)* - Hardware performance (not including IO)<br/></p></li>
+<li><p>Latency (Production)** - Production Performance (including IO)</p></li>
+<li><p>Performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1</p></li>
+<li><p>Performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1</p></li>
+</ul>
+</div></blockquote>
 <p>Object Detection models</p>
-<table>
-  <tr>
-   <td><strong>Model</strong>
-   </td>
-   <td><strong>Dataset</strong>
-   </td>
-   <td><strong>arch_params</strong>
-   </td>
-   <td><strong>mAPval</strong>
-<p>
-<strong>0.5:0.95</strong>
-   </td>
-   <td><strong>Latency b1T4</strong>
-   </td>
-   <td><strong>Throughout b64T4</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>YOLOv5 small
-   </td>
-   <td>CoCo
-   </td>
-   <td>640x640
-   </td>
-   <td>37.3
-   </td>
-   <td>10.09ms
-   </td>
-   <td>101.85fps
-   </td>
-  </tr>
-  <tr>
-   <td>YOLOv5 medium
-   </td>
-   <td>CoCo
-   </td>
-   <td>640x640
-   </td>
-   <td>45.2
-   </td>
-   <td>17.55ms
-   </td>
-   <td>57.66fps
-   </td>
-  </tr>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Dataset</p></th>
+<th class="head"><p>Resolution</p></th>
+<th class="head"><p>mAP<sup>val<br>0.5:0.95</p></th>
+<th class="head"><p>Latency (HW)*<sub>T4</sub></p></th>
+<th class="head"><p>Latency (Production)**<sub>T4</sub></p></th>
+<th class="head"><p>Latency (HW)*<sub>Jetson Xavier NX</sub></p></th>
+<th class="head"><p>Latency (Production)**<sub>Jetson Xavier NX</sub></p></th>
+<th class="text-center head"><p>Latency <sub>Cascade Lake</sub></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>YOLOv5 nano</p></td>
+<td><p>COCO</p></td>
+<td><p>640x640</p></td>
+<td><p>27.7</p></td>
+<td><p><strong>1.48ms</strong></p></td>
+<td><p><strong>5.43ms</strong></p></td>
+<td><p><strong>9.28ms</strong></p></td>
+<td><p><strong>17.44ms</strong></p></td>
+<td class="text-center"><p><strong>21.71ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>YOLOv5 small</p></td>
+<td><p>COCO</p></td>
+<td><p>640x640</p></td>
+<td><p>37.3</p></td>
+<td><p><strong>2.29ms</strong></p></td>
+<td><p><strong>6.14ms</strong></p></td>
+<td><p><strong>14.31ms</strong></p></td>
+<td><p><strong>22.50ms</strong></p></td>
+<td class="text-center"><p><strong>34.10ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>YOLOv5 medium</p></td>
+<td><p>COCO</p></td>
+<td><p>640x640</p></td>
+<td><p>45.2</p></td>
+<td><p><strong>4.60ms</strong></p></td>
+<td><p><strong>8.10ms</strong></p></td>
+<td><p><strong>26.76ms</strong></p></td>
+<td><p><strong>34.95ms</strong></p></td>
+<td class="text-center"><p><strong>65.86ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>YOLOv5 large</p></td>
+<td><p>COCO</p></td>
+<td><p>640x640</p></td>
+<td><p>48.0</p></td>
+<td><p><strong>7.20ms</strong></p></td>
+<td><p><strong>10.28ms</strong></p></td>
+<td><p><strong>43.89ms</strong></p></td>
+<td><p><strong>51.92ms</strong></p></td>
+<td class="text-center"><p><strong>122.97ms</strong></p></td>
+</tr>
+</tbody>
 </table>
+<blockquote>
+<div><p><strong>NOTE:</strong> <br/></p>
+<ul class="simple">
+<li><p>Latency (HW)* - Hardware performance (not including IO)<br/></p></li>
+<li><p>Latency (Production)** - Production Performance (including IO)</p></li>
+<li><p>Latency performance measured for T4 and Jetson Xavier NX with TensorRT, using FP16 precision and batch size 1</p></li>
+<li><p>Latency performance measured for Cascade Lake CPU with OpenVINO, using FP16 precision and batch size 1</p></li>
+</ul>
+</div></blockquote>
 <p>Semantic Segmentation models</p>
-<table>
-  <tr>
-   <td><strong>Model</strong>
-   </td>
-   <td><strong>Dataset</strong>
-   </td>
-   <td><strong>arch_params</strong>
-   </td>
-   <td><strong>mIoU</strong>
-   </td>
-   <td><strong>Latency b1T4</strong>
-   </td>
-   <td><strong>Throughout b64T4</strong>
-   </td>
-  </tr>
-  <tr>
-   <td>DDRNet23
-   </td>
-   <td>Cityscapes
-   </td>
-   <td>
-   </td>
-   <td>78.65
-   </td>
-   <td>-
-   </td>
-   <td>-
-   </td>
-  </tr>
-  <tr>
-   <td>DDRNet23 slim
-   </td>
-   <td>Cityscapes
-   </td>
-   <td>
-   </td>
-   <td>76.6
-   </td>
-   <td>
-   </td>
-   <td>
-   </td>
-  </tr>
+<table class="colwidths-auto docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Dataset</p></th>
+<th class="head"><p>Resolution</p></th>
+<th class="head"><p>mIoU</p></th>
+<th class="head"><p>Latency b1<sub>T4</sub></p></th>
+<th class="text-center head"><p>Latency b1<sub>T4</sub> including IO</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>DDRNet 23</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>1024x2048</p></td>
+<td><p>78.65</p></td>
+<td><p><strong>7.62ms</strong></p></td>
+<td class="text-center"><p><strong>25.94ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>DDRNet 23 slim</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>1024x2048</p></td>
+<td><p>76.6</p></td>
+<td><p><strong>3.56ms</strong></p></td>
+<td class="text-center"><p><strong>22.80ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>STDC 1-Seg50</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>512x1024</p></td>
+<td><p>74.36</p></td>
+<td><p><strong>2.83ms</strong></p></td>
+<td class="text-center"><p><strong>12.57ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>STDC 1-Seg75</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>768x1536</p></td>
+<td><p>76.87</p></td>
+<td><p><strong>5.71ms</strong></p></td>
+<td class="text-center"><p><strong>26.70ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>STDC 2-Seg50</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>512x1024</p></td>
+<td><p>75.27</p></td>
+<td><p><strong>3.74ms</strong></p></td>
+<td class="text-center"><p><strong>13.89ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>STDC 2-Seg75</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>768x1536</p></td>
+<td><p>78.93</p></td>
+<td><p><strong>7.35ms</strong></p></td>
+<td class="text-center"><p><strong>28.18ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>RegSeg (exp48)</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>1024x2048</p></td>
+<td><p>78.15</p></td>
+<td><p><strong>13.09ms</strong></p></td>
+<td class="text-center"><p><strong>41.88ms</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>Larger RegSeg (exp53)</p></td>
+<td><p>Cityscapes</p></td>
+<td><p>1024x2048</p></td>
+<td><p>79.2</p></td>
+<td><p><strong>24.82ms</strong></p></td>
+<td class="text-center"><p><strong>51.87ms</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>ShelfNet LW 34</p></td>
+<td><p>COCO Segmentation (21 classes from PASCAL including background)</p></td>
+<td><p>512x512</p></td>
+<td><p>65.1</p></td>
+<td><p><strong>-</strong></p></td>
+<td class="text-center"><p><strong>-</strong></p></td>
+</tr>
+</tbody>
 </table>
-<p>Example- how to load a pretrained model:</p>
+<blockquote>
+<div><p><strong>NOTE:</strong> Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency), and not including IO</p>
+</div></blockquote>
+<p><br></br>
+Example- how to load a pretrained model:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sg_model</span> <span class="o">=</span> <span class="n">SgModel</span><span class="p">(</span><span class="s2">&quot;resnet50_experiment&quot;</span><span class="p">)</span>
 
 <span class="n">sg_model</span><span class="o">.</span><span class="n">build_model</span><span class="p">(</span><span class="n">architecture</span><span class="o">=</span><span class="s2">&quot;resnet50&quot;</span><span class="p">,</span>
@@ -953,15 +1028,61 @@ When building the network- call SgModel.build_model(…load_checkpoint=True). Do
 <p>The training recipes for the pretrained models are completely visible for the SuperGradients’ users and can be found under “<em>YOUR_LOCAL_PATH_TO_SUPER_GRADIENTS_PACKAGE”/ examples/{DATASET_NAME}</em>{ARCHITECTURE_NAME}_example. _</p>
 <p>_The corresponding YAML configuration files can be found under _“<em>YOUR_LOCAL_PATH_TO_SUPER_GRADIENTS_PACKAGE”/conf/{DATASET_NAME}</em>{ARCHITECTURE_NAME}_conf _</p>
 <p>The configuration files include the specific instructions on how to run the training recipes for reproducibility, as well as links to our tensorboards and logs from their training. Additional information regarding training time, metric scores on different configurations can be found in the configuration files as comments as well.</p>
+<p><br></br></p>
+<p>Example for how to start training with just 1 command line</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">super_gradients</span><span class="o">.</span><span class="n">train_from_recipe</span> <span class="o">--</span><span class="n">config</span><span class="o">-</span><span class="n">name</span><span class="o">=</span><span class="n">imagenet_regnetY</span> <span class="n">architecture</span><span class="o">=</span><span class="n">regnetY800</span> <span class="n">dataset_interface</span><span class="o">.</span><span class="n">data_dir</span><span class="o">=&lt;</span><span class="n">YOUR_Imagenet_LOCAL_PATH</span><span class="o">&gt;</span> <span class="n">ckpt_root_dir</span><span class="o">=&lt;</span><span class="n">CHEKPOINT_DIRECTORY</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+</section>
+<section id="professional-tools-integration">
+<h1>Professional Tools Integration<a class="headerlink" href="#professional-tools-integration" title="Permalink to this headline"></a></h1>
+<section id="weights-and-biases">
+<h2>Weights and Biases<a class="headerlink" href="#weights-and-biases" title="Permalink to this headline"></a></h2>
+<p>WandB can be though of an “extended” TensorBoard, where you can manage experiments, create reports, upload files, etc.</p>
+<section id="setting-up-the-environment">
+<h3>Setting-up the environment<a class="headerlink" href="#setting-up-the-environment" title="Permalink to this headline"></a></h3>
+<ol class="arabic">
+<li><p>Go to your WandB settings, and create an API Key</p></li>
+<li><p>In the machine, run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">wandb</span></code></p></li>
+<li><p>Once WandB is installed, run <code class="docutils literal notranslate"><span class="pre">wandb</span> <span class="pre">login</span></code> and use your username and the generated key. There should be <code class="docutils literal notranslate"><span class="pre">.netrc</span></code> file created</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">cat</span> <span class="pre">~/.netrc</span></code> and make sure you see something like</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">machine</span> <span class="o">**</span><span class="n">wandb</span><span class="o">.</span><span class="n">your_env</span><span class="o">**</span>
+  <span class="n">login</span> <span class="o">&lt;</span><span class="n">your</span> <span class="n">user</span><span class="o">&gt;</span>
+  <span class="n">password</span> <span class="o">&lt;</span><span class="n">your</span> <span class="n">key</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>In case you don’t see it — just create it manually</p>
+</li>
+<li><p>To enable WandB logging via Super-Gradients, add the following code to your <code class="docutils literal notranslate"><span class="pre">.yaml</span></code> training file:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">sg_logger</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;wandb_sg_logger&quot;</span><span class="w"></span>
+<span class="nt">sg_logger_params</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">project_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your project name&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">entity</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your team name&gt;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">api_server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://wandb.your_env&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">save_checkpoints_remote</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span><span class="w">  </span>
+<span class="w">  </span><span class="nt">save_tensorboard_remote</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span><span class="w">  </span>
+<span class="w">  </span><span class="nt">save_logs_remote</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span><span class="w"></span>
+</pre></div>
+</div>
+<p>As can be seen there are two “parameters” - <code class="docutils literal notranslate"><span class="pre">project_name</span></code> and <code class="docutils literal notranslate"><span class="pre">entity</span></code>.</p>
+<p>The hierarchy of WandB is: <code class="docutils literal notranslate"><span class="pre">entity</span> <span class="pre">-&gt;</span> <span class="pre">project_name</span> <span class="pre">-&gt;</span> <span class="pre">experiment_name</span></code>.</p>
+</li>
+<li><p>Launch you training and see it in WandB.</p></li>
+</ol>
+<blockquote>
+<div><p><strong>NOTE:</strong> Additional Weights and Biases resources - <a class="reference external" href="https://www.ravirajag.dev/blog/mlops-wandb-integration">MLOps blog</a>;</p>
+</div></blockquote>
+</section>
+</section>
 </section>
 <section id="supergradients-faq">
 <h1>SuperGradients FAQ<a class="headerlink" href="#supergradients-faq" title="Permalink to this headline"></a></h1>
 <section id="what-type-of-tasks-does-the-supergradients-support">
 <h2>What Type of Tasks Does the SuperGradients Support?<a class="headerlink" href="#what-type-of-tasks-does-the-supergradients-support" title="Permalink to this headline"></a></h2>
 <ul class="simple">
-<li><p>Classification</p></li>
+<li><p>Image Classification</p></li>
 <li><p>Object Detection</p></li>
-<li><p>Segmentation</p></li>
+<li><p>Semantic Segmentation</p></li>
 </ul>
 </section>
 </section>

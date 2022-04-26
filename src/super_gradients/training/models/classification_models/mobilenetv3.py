@@ -8,6 +8,7 @@ arXiv preprint arXiv:1905.02244.
 import torch.nn as nn
 import math
 from super_gradients.training.models.classification_models.mobilenetv2 import MobileNetBase
+from super_gradients.training.utils import get_param
 
 
 def _make_divisible(v, divisor, min_value=None):
@@ -124,25 +125,25 @@ class InvertedResidual(nn.Module):
 
 
 class MobileNetV3(MobileNetBase):
-    def __init__(self, cfgs, mode, num_classes=1000, width_mult=1.):
+    def __init__(self, cfgs, mode, num_classes=1000, width_mult=1., in_channels=3):
         super(MobileNetV3, self).__init__()
         # setting of inverted residual blocks
         self.cfgs = cfgs
         assert mode in ['large', 'small']
 
         # building first layer
-        input_channel = _make_divisible(16 * width_mult, 8)
-        layers = [conv_3x3_bn(3, input_channel, 2)]
+        curr_channels = _make_divisible(16 * width_mult, 8)
+        layers = [conv_3x3_bn(in_channels, curr_channels, 2)]
         # building inverted residual blocks
         block = InvertedResidual
         for k, t, c, use_se, use_hs, s in self.cfgs:
             output_channel = _make_divisible(c * width_mult, 8)
-            exp_size = _make_divisible(input_channel * t, 8)
-            layers.append(block(input_channel, exp_size, output_channel, k, s, use_se, use_hs))
-            input_channel = output_channel
+            exp_size = _make_divisible(curr_channels * t, 8)
+            layers.append(block(curr_channels, exp_size, output_channel, k, s, use_se, use_hs))
+            curr_channels = output_channel
         self.features = nn.Sequential(*layers)
         # building last several layers
-        self.conv = conv_1x1_bn(input_channel, exp_size)
+        self.conv = conv_1x1_bn(curr_channels, exp_size)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         output_channel = {'large': 1280, 'small': 1024}
         output_channel = _make_divisible(output_channel[mode] * width_mult, 8) if width_mult > 1.0 else output_channel[
@@ -163,7 +164,6 @@ class MobileNetV3(MobileNetBase):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
         return x
-
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -204,7 +204,8 @@ def mobilenetv3_large(arch_params):
         [5, 6, 160, 1, 1, 1],
         [5, 6, 160, 1, 1, 1]
     ]
-    return MobileNetV3(cfgs, mode='large', num_classes=arch_params.num_classes, width_mult=width_mult)
+    return MobileNetV3(cfgs, mode='large', num_classes=arch_params.num_classes, width_mult=width_mult,
+                       in_channels=get_param(arch_params, "in_channels", 3))
 
 
 def mobilenetv3_small(arch_params):
@@ -227,7 +228,8 @@ def mobilenetv3_small(arch_params):
         [5, 6, 96, 1, 1, 1],
     ]
 
-    return MobileNetV3(cfgs, mode='small', num_classes=arch_params.num_classes, width_mult=width_mult)
+    return MobileNetV3(cfgs, mode='small', num_classes=arch_params.num_classes, width_mult=width_mult,
+                       in_channels=get_param(arch_params, "in_channels", 3))
 
 
 def mobilenetv3_custom(arch_params):
@@ -235,4 +237,5 @@ def mobilenetv3_custom(arch_params):
     Constructs a MobileNetV3-Customized model
     """
     return MobileNetV3(cfgs=arch_params.structure, mode=arch_params.mode, num_classes=arch_params.num_classes,
-                       width_mult=arch_params.width_mult)
+                       width_mult=arch_params.width_mult,
+                       in_channels=get_param(arch_params, "in_channels", 3))
