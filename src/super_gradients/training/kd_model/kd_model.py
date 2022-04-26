@@ -2,7 +2,7 @@ import torch.nn
 
 from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
-from super_gradients.training.sg_model import SgModel, MultiGPUMode
+from super_gradients.training.sg_model import SgModel
 from typing import Union
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import utils as core_utils
@@ -244,5 +244,3 @@ class KDModel(SgModel):
                                    "teacher_arch_params": self.teacher_arch_params
                                    })
         return hyper_param_config
-
-
