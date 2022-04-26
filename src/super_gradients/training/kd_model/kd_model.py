@@ -18,11 +18,12 @@ logger = get_logger(__name__)
 
 
 class KDModel(SgModel):
-    """
-    KDModel
-
-    This class extends SgModel to support knowledge distillation.
-    """
+    def __init__(self, *args, **kwargs):
+        super(KDModel, self).__init__(*args, **kwargs)
+        self.student_architecture = None
+        self.teacher_architecture = None
+        self.student_arch_params = None
+        self.teacher_arch_params = None
 
     def build_model(self,
                     # noqa: C901 - too complex
@@ -82,6 +83,11 @@ class KDModel(SgModel):
         kwargs.setdefault("run_teacher_on_eval", False)
 
         self._validate_args(arch_params, architecture, checkpoint_params, **kwargs)
+
+        self.student_architecture = kwargs.get("student_architecture")
+        self.teacher_architecture = kwargs.get("teacher_architecture")
+        self.student_arch_params = kwargs.get("student_arch_params")
+        self.teacher_arch_params = kwargs.get("teacher_arch_params")
 
         super(KDModel, self).build_model(architecture=architecture, arch_params=arch_params,
                                          checkpoint_params=checkpoint_params, **kwargs)
@@ -229,3 +235,15 @@ class KDModel(SgModel):
         :param phase: Phase for the metrics callback to be fired at
         """
         self.phase_callbacks.append(KDModelMetricsUpdateCallback(phase))
+
+    def get_hyper_param_config(self):
+        """
+        Creates a training hyper param config for logging with additional KD related hyper params.
+        """
+        hyper_param_config = super().get_hyper_param_config()
+        hyper_param_config.update({"student_architecture": self.student_architecture,
+                                   "teacher_architecture": self.teacher_architecture,
+                                   "student_arch_params": self.student_arch_params,
+                                   "teacher_arch_params": self.teacher_arch_params
+                                   })
+        return hyper_param_config
