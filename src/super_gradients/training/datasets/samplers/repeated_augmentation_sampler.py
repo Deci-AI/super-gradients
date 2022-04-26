@@ -4,6 +4,8 @@ from torch.utils.data import Sampler
 import torch.distributed as dist
 
 
+# TODO: Add unit test for RepeatAugSampler once DDP unit tests are supported.
+
 class RepeatAugSampler(Sampler):
     """
     Sampler that restricts data loading to a subset of the dataset for distributed,
