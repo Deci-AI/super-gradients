@@ -201,6 +201,10 @@ class NormalizationAdapter(torch.nn.Module):
     Denormalizes input by mean_original, std_original, then normalizes by mean_required, std_required.
 
     Used in KD training where teacher expects data normalized by mean_required, std_required.
+
+    mean_original, std_original, mean_required, std_required are all list-like objects of length that's equal to the
+     number of input channels.
+
     """
     def __init__(self, mean_original, std_original, mean_required, std_required):
         super(NormalizationAdapter, self).__init__()
