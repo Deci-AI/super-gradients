@@ -1,4 +1,4 @@
-from super_gradients.training.models.detection_models.yolov5 import YoLoV5Base, YoLoV5DarknetBackbone
+from super_gradients.training.models.detection_models.yolov5_base import YoLoV5Base, YoLoV5DarknetBackbone
 from super_gradients.training.utils.utils import HpmStruct, get_param
 
 
