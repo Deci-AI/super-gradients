@@ -324,10 +324,10 @@ class StepLRCallback(LRCallbackBase):
             raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor")
 
         if step_lr_update_freq:
-            max_epochs = self.training_params.max_epochs - self.training_params.cooldown_epochs
+            max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
             warmup_epochs = self.training_params.lr_warmup_epochs
             lr_updates = [int(np.ceil(step_lr_update_freq * x)) for x in range(1, max_epochs) if warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs]
-        elif self.training_params.cooldown_epochs > 0:
+        elif self.training_params.lr_cooldown_epochs > 0:
             logger.warning("Specific lr_updates were passed along with cooldown_epochs > 0,"
                            " cooldown will have no effect.")
         self.lr_updates = lr_updates
@@ -358,7 +358,7 @@ class ExponentialLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def enable_lr_scheduling(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
 
 
 class PolyLRCallback(LRCallbackBase):
@@ -371,15 +371,15 @@ class PolyLRCallback(LRCallbackBase):
         self.max_epochs = max_epochs
 
     def perform_scheduling(self, context):
-        effective_epoch = context.epoch - self.training_params.lr_warmup_epochs - self.training_params.cooldown_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.cooldown_epochs
+        effective_epoch = context.epoch - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
         current_iter = (self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
         max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
         self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def enable_lr_scheduling(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
 
 
 class CosineLRCallback(LRCallbackBase):
@@ -394,7 +394,7 @@ class CosineLRCallback(LRCallbackBase):
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.cooldown_epochs
+        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
         current_iter = self.train_loader_len * effective_epoch + context.batch_idx
         max_iter = self.train_loader_len * effective_max_epochs
         lr = 0.5 * self.initial_lr * (1.0 + math.cos(current_iter / (max_iter + 1) * math.pi))
@@ -403,7 +403,7 @@ class CosineLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def enable_lr_scheduling(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
 
 
 class FunctionLRCallback(LRCallbackBase):
@@ -418,11 +418,11 @@ class FunctionLRCallback(LRCallbackBase):
         self.max_epochs = max_epochs
 
     def enable_lr_scheduling(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.cooldown_epochs
+        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
         self.lr = self.lr_schedule_function(initial_lr=self.initial_lr, epoch=effective_epoch,
                                             iter=context.batch_idx,
                                             max_epoch=effective_max_epochs,
@@ -591,3 +591,18 @@ LR_SCHEDULERS_CLS_DICT = {"step": StepLRCallback,
 
 LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback,
                       "yolov5_warmup": YoloV5WarmupLRCallback}
+
+
+class TestLRCallback(PhaseCallback):
+    """
+    Phase callback that collects the learning rates in lr_placeholder at the end of each epoch (used for testing). In
+     the case of multiple parameter groups (i.e multiple learning rates) the learning rate is collected from the first
+     one. The phase is VALIDATION_EPOCH_END to ensure all lr updates have been performed before calling this callback.
+    """
+
+    def __init__(self, lr_placeholder):
+        super(TestLRCallback, self).__init__(Phase.VALIDATION_EPOCH_END)
+        self.lr_placeholder = lr_placeholder
+
+    def __call__(self, context: PhaseContext):
+        self.lr_placeholder.append(context.optimizer.param_groups[0]['lr'])
