@@ -5,6 +5,7 @@ from torch import optim
 
 from super_gradients.common.factories.base_factory import AbstractFactory
 from super_gradients.training.utils.optimizers.rmsprop_tf import RMSpropTF
+from super_gradients.training.utils.optimizers.lamb import Lamb
 
 
 class OptimizersTypeFactory(AbstractFactory):
@@ -21,6 +22,7 @@ class OptimizersTypeFactory(AbstractFactory):
             "Adam": optim.Adam,
             "RMSprop": optim.RMSprop,
             "RMSpropTF": RMSpropTF,
+            "Lamb": Lamb
         }
 
     def get(self, conf: Union[str]):
