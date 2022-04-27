@@ -55,7 +55,6 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(KDModelTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRCooldownTest))
 
-
     def _add_modules_to_end_to_end_tests_suite(self):
         """
         _add_modules_to_end_to_end_tests_suite - Adds end to end tests to the Unit Tests Test Suite
