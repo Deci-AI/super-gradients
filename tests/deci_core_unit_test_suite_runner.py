@@ -15,6 +15,7 @@ from tests.unit_tests.lr_warmup_test import LRWarmupTest
 from tests.unit_tests.kd_model_test import KDModelTest
 from tests.unit_tests.dice_loss_test import DiceLossTest
 from tests.unit_tests.vit_unit_test import TestViT
+from tests.unit_tests.lr_cooldown_test import LRCooldownTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -53,6 +54,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestViT))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(KDModelTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(InitializeWithDataloadersTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRCooldownTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
