@@ -238,10 +238,10 @@ class LRCallbackBase(PhaseCallback):
         self.training_params = training_params
 
     def __call__(self, context: PhaseContext, **kwargs):
-        if self.enable_lr_scheduling(context):
+        if self.is_lr_scheduling_enabled(context):
             self.perform_scheduling(context)
 
-    def enable_lr_scheduling(self, context: PhaseContext):
+    def is_lr_scheduling_enabled(self, context: PhaseContext):
         """
         Predicate that controls whether to perform lr scheduling based on values in context.
 
@@ -286,7 +286,7 @@ class WarmupLRCallback(LRCallbackBase):
         self.lr = self.warmup_initial_lr + context.epoch * self.warmup_step_size
         self.update_lr(context.optimizer, context.epoch, None)
 
-    def enable_lr_scheduling(self, context):
+    def is_lr_scheduling_enabled(self, context):
         return self.training_params.lr_warmup_epochs >= context.epoch
 
 
@@ -294,7 +294,7 @@ class YoloV5WarmupLRCallback(LRCallbackBase):
     def __init__(self, **kwargs):
         super(YoloV5WarmupLRCallback, self).__init__(Phase.TRAIN_BATCH_END, **kwargs)
 
-    def enable_lr_scheduling(self, context):
+    def is_lr_scheduling_enabled(self, context):
         return context.epoch < self.training_params.lr_warmup_epochs
 
     def perform_scheduling(self, context):
@@ -338,7 +338,7 @@ class StepLRCallback(LRCallbackBase):
         self.lr = self.initial_lr * self.lr_decay_factor ** len(num_updates_passed)
         self.update_lr(context.optimizer, context.epoch, None)
 
-    def enable_lr_scheduling(self, context):
+    def is_lr_scheduling_enabled(self, context):
         return self.training_params.lr_warmup_epochs <= context.epoch
 
 
@@ -357,7 +357,7 @@ class ExponentialLRCallback(LRCallbackBase):
         self.lr = self.initial_lr * self.lr_decay_factor ** (current_iter / self.train_loader_len)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
-    def enable_lr_scheduling(self, context):
+    def is_lr_scheduling_enabled(self, context):
         return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
 
 
@@ -378,7 +378,7 @@ class PolyLRCallback(LRCallbackBase):
         self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
-    def enable_lr_scheduling(self, context):
+    def is_lr_scheduling_enabled(self, context):
         return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
 
 
@@ -402,7 +402,7 @@ class CosineLRCallback(LRCallbackBase):
         self.lr = lr * (1 - self.cosine_final_lr_ratio) + (self.initial_lr * self.cosine_final_lr_ratio)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
-    def enable_lr_scheduling(self, context):
+    def is_lr_scheduling_enabled(self, context):
         return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
 
 
@@ -417,7 +417,7 @@ class FunctionLRCallback(LRCallbackBase):
         self.lr_schedule_function = lr_schedule_function
         self.max_epochs = max_epochs
 
-    def enable_lr_scheduling(self, context):
+    def is_lr_scheduling_enabled(self, context):
         return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
 
     def perform_scheduling(self, context):
