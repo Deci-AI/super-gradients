@@ -1420,7 +1420,8 @@ class SgModel:
             self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
                                                        load_backbone=self.load_backbone,
                                                        net=self.net,
-                                                       strict=self.strict_load.value if isinstance(self.strict_load, StrictLoad) else self.strict_load,
+                                                       strict=self.strict_load.value if isinstance(self.strict_load,
+                                                                                                   StrictLoad) else self.strict_load,
                                                        load_weights_only=self.load_weights_only,
                                                        load_ema_as_net=self.load_ema_as_net)
 
@@ -1512,22 +1513,30 @@ class SgModel:
 
         # IN CASE SG_LOGGER UPDATED THE DIR PATH
         self.checkpoints_dir_path = self.sg_logger.local_dir()
+        hyper_param_config = self.get_hyper_param_config()
+
+        self.sg_logger.add_config("hyper_params", hyper_param_config)
+
+        self.sg_logger.flush()
+
+    def get_hyper_param_config(self):
+        """
+        Creates a training hyper param config for logging.
+        """
         additional_log_items = {'initial_LR': self.training_params.initial_lr,
                                 'num_devices': self.num_devices,
                                 'multi_gpu': str(self.multi_gpu),
                                 'device_type': torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu'}
-
         # ADD INSTALLED PACKAGE LIST + THEIR VERSIONS
         if self.training_params.log_installed_packages:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items['installed_packages'] = pkg_list
-
-        self.sg_logger.add_config("hyper_params", {"arch_params": self.arch_params.__dict__,
-                                                   "training_hyperparams": self.training_params.__dict__,
-                                                   "dataset_params": self.dataset_params.__dict__,
-                                                   "additional_log_items": additional_log_items})
-
-        self.sg_logger.flush()
+        hyper_param_config = {"arch_params": self.arch_params.__dict__,
+                              "checkpoint_params": self.checkpoint_params.__dict__,
+                              "training_hyperparams": self.training_params.__dict__,
+                              "dataset_params": self.dataset_params.__dict__,
+                              "additional_log_items": additional_log_items}
+        return hyper_param_config
 
     def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int,
                                   context: PhaseContext):
