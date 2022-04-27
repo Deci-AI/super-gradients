@@ -40,6 +40,7 @@ DEFAULT_YOLO_ARCH_PARAMS = {
     'yolo_type': 'yoloV5',  # Type of yolo to build: 'yoloV5' and 'yoloX' are supported
     'yolo_version': 'v6.0',  # Release version of Ultralytics yoloV5 to build a model from: v6.0 and v3.0 are supported
                              # (has an impact only if yolo_type is yoloV5)
+    'stem_type': None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
 }
 
 
