@@ -1,5 +1,5 @@
 import importlib
-from typing import Union, Mapping
+from typing import Union
 
 from torch import optim
 

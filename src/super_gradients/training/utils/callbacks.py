@@ -373,8 +373,7 @@ class PolyLRCallback(LRCallbackBase):
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs - self.training_params.cooldown_epochs
         effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.cooldown_epochs
-        current_iter = (
-                                   self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
+        current_iter = (self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
         max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
         self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
