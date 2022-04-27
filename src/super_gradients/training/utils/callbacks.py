@@ -324,9 +324,12 @@ class StepLRCallback(LRCallbackBase):
             raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor")
 
         if step_lr_update_freq:
-            max_epochs = self.training_params.max_epochs
+            max_epochs = self.training_params.max_epochs - self.training_params.cooldown_epochs
             warmup_epochs = self.training_params.lr_warmup_epochs
             lr_updates = [int(np.ceil(step_lr_update_freq * x)) for x in range(1, max_epochs) if warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs]
+        elif self.training_params.cooldown_epochs > 0:
+            logger.warning("Specific lr_updates were passed along with cooldown_epochs > 0,"
+                           " cooldown will have no effect.")
         self.lr_updates = lr_updates
         self.lr_decay_factor = lr_decay_factor
 
