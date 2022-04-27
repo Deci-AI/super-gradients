@@ -368,8 +368,8 @@ class PolyLRCallback(LRCallbackBase):
         self.max_epochs = max_epochs
 
     def perform_scheduling(self, context):
-        effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs
+        effective_epoch = context.epoch - self.training_params.lr_warmup_epochs - self.training_params.cooldown_epochs
+        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.cooldown_epochs
         current_iter = (
                                    self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
         max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
@@ -392,7 +392,7 @@ class CosineLRCallback(LRCallbackBase):
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs
+        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.cooldown_epochs
         current_iter = self.train_loader_len * effective_epoch + context.batch_idx
         max_iter = self.train_loader_len * effective_max_epochs
         lr = 0.5 * self.initial_lr * (1.0 + math.cos(current_iter / (max_iter + 1) * math.pi))
@@ -420,7 +420,7 @@ class FunctionLRCallback(LRCallbackBase):
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs
+        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.cooldown_epochs
         self.lr = self.lr_schedule_function(initial_lr=self.initial_lr, epoch=effective_epoch,
                                             iter=context.batch_idx,
                                             max_epoch=effective_max_epochs,
