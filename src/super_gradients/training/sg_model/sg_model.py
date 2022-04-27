@@ -708,6 +708,12 @@ class SgModel:
                 -   `clip_grad_norm` : float
 
                     Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped
+
+                -   `lr_cooldown_epochs` : int (default=0)
+
+                    Number of epochs to cooldown LR (i.e the last epoch from scheduling view point=max_epochs-cooldown).
+
+
         :return:
         """
         global logger
