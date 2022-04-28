@@ -2,6 +2,7 @@ defaults:
   - training_hyperparams: coco2017_yolox_train_params
   - dataset_params: coco_detection_dataset_params
   - arch_params: yolov5s_arch_params
+  - checkpoint_params: default_checkpoint_params
 
 dataset_params:
   val_image_size: 640
@@ -20,6 +21,8 @@ data_loader_num_workers: 8
 model_checkpoints_location: local
 
 load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
 
 architecture: yolox_s
 
@@ -33,5 +36,5 @@ sg_model:
 training_hyperparams:
   criterion_params:
     strides: [8, 16, 32]  # output strides of all yolo outputs
-    im_size: 640
+    im_size: ${dataset_params.train_image_size}
     num_classes: 80
