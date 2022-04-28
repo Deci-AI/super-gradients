@@ -18,9 +18,11 @@ from tests.unit_tests.early_stop_test import EarlyStopTest
 from tests.unit_tests.segmentation_transforms_test import SegmentationTransformsTest
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
 from tests.unit_tests.conv_bn_relu_test import TestConvBnRelu
+from tests.unit_tests.initialize_with_dataloaders_test import InitializeWithDataloadersTest
 
 
 __all__ = ['TestDatasetInterface', 'ZeroWdForBnBiasTest', 'SaveCkptListUnitTest',
            'TestYoloV5', 'AllArchitecturesTest', 'TestAverageMeter', 'TestModuleUtils', 'TestRepVgg', 'TestWithoutTrainTest',
            'LoadCheckpointFromDirectPathTest', 'StrictLoadEnumTest', 'TrainWithInitializedObjectsTest', 'TestAutoAugment',
-           'OhemLossTest', 'EarlyStopTest', 'SegmentationTransformsTest', 'PretrainedModelsUnitTest', 'TestConvBnRelu', 'FactoriesTest']
+           'OhemLossTest', 'EarlyStopTest', 'SegmentationTransformsTest', 'PretrainedModelsUnitTest', 'TestConvBnRelu',
+           'FactoriesTest', 'InitializeWithDataloadersTest']
