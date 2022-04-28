@@ -5,10 +5,8 @@ from tests.unit_tests.load_checkpoint_from_direct_path_test import LoadCheckpoin
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.zero_weight_decay_on_bias_bn_test import ZeroWdForBnBiasTest
 from tests.unit_tests.save_ckpt_test import SaveCkptListUnitTest
-from tests.unit_tests.yolov5_unit_test import TestYoloV5
 from tests.unit_tests.all_architectures_test import AllArchitecturesTest
 from tests.unit_tests.average_meter_test import TestAverageMeter
-from tests.unit_tests.module_utils_test import TestModuleUtils
 from tests.unit_tests.repvgg_unit_test import TestRepVgg
 from tests.unit_tests.test_without_train_test import TestWithoutTrainTest
 from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInitializedObjectsTest
@@ -20,7 +18,6 @@ from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTes
 from tests.unit_tests.conv_bn_relu_test import TestConvBnRelu
 
 
-__all__ = ['TestDatasetInterface', 'ZeroWdForBnBiasTest', 'SaveCkptListUnitTest',
-           'TestYoloV5', 'AllArchitecturesTest', 'TestAverageMeter', 'TestModuleUtils', 'TestRepVgg', 'TestWithoutTrainTest',
+__all__ = ['TestDatasetInterface', 'ZeroWdForBnBiasTest', 'SaveCkptListUnitTest', 'AllArchitecturesTest', 'TestAverageMeter', 'TestRepVgg', 'TestWithoutTrainTest',
            'LoadCheckpointFromDirectPathTest', 'StrictLoadEnumTest', 'TrainWithInitializedObjectsTest', 'TestAutoAugment',
            'OhemLossTest', 'EarlyStopTest', 'SegmentationTransformsTest', 'PretrainedModelsUnitTest', 'TestConvBnRelu', 'FactoriesTest']
