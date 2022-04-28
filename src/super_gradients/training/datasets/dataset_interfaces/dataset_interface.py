@@ -21,7 +21,6 @@ from torch.utils.data import ConcatDataset
 import xml.etree.ElementTree as ET
 from tqdm import tqdm
 from pathlib import Path
-from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
 from super_gradients.training.utils.utils import download_and_unzip_from_url
 from super_gradients.training.utils import get_param
 import torchvision.transforms as transforms
