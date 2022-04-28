@@ -2,7 +2,7 @@ from super_gradients.training.models.sg_module import SgModule
 from collections import namedtuple
 import torch
 from super_gradients.training.utils.utils import HpmStruct
-
+from super_gradients.training.utils import get_param
 
 KDOutput = namedtuple('KDOutput', 'student_output teacher_output')
 
@@ -17,6 +17,12 @@ class KDModule(SgModule):
         student: SgModule - the student model
         teacher: torch.nn.Module- the teacher model
         run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
+        arch_params: HpmStruct- Architecture H.P.
+
+        Additionally, by passing teacher_input_adapter (torch.nn.Module) one can modify the teacher net s.t
+        teacher = torch.nn.Sequential(teacher_input_adapter, teacher). This is useful when teacher net expects a
+        different input format from the student (for example different normalization).
+
     """
 
     def __init__(self, arch_params: HpmStruct, student: SgModule, teacher: torch.nn.Module, run_teacher_on_eval=False):
@@ -24,6 +30,9 @@ class KDModule(SgModule):
         self.arch_params = arch_params
         self.student = student
         self.teacher = teacher
+        teacher_input_adapter = get_param(self.arch_params, "teacher_input_adapter")
+        if teacher_input_adapter is not None:
+            self.teacher = torch.nn.Sequential(teacher_input_adapter, self.teacher)
         self.run_teacher_on_eval = run_teacher_on_eval
         self._freeze_teacher()
 
