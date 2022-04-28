@@ -8,7 +8,6 @@ from typing import Callable
 from tqdm import tqdm
 from PIL import Image, ExifTags
 from super_gradients.training.datasets.sg_dataset import ListDataset
-from super_gradients.training.utils.detection_utils import convert_xyxy_bbox_to_xywh
 from super_gradients.training.utils.utils import get_param
 # PREVENTS THE cv2 DEADLOCK
 cv2.setNumThreads(0)
@@ -650,3 +649,17 @@ class DetectionDataSet(ListDataset):
         padh = y1a - y1b
 
         return mosaic_image, padw, padh
+
+
+def convert_xyxy_bbox_to_xywh(input_bbox):
+    """
+    convert_xyxy_bbox_to_xywh - Converts bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
+        :param input_bbox:  input bbox
+        :return:            Converted bbox
+    """
+    converted_bbox = torch.zeros_like(input_bbox) if isinstance(input_bbox, torch.Tensor) else np.zeros_like(input_bbox)
+    converted_bbox[:, 0] = (input_bbox[:, 0] + input_bbox[:, 2]) / 2
+    converted_bbox[:, 1] = (input_bbox[:, 1] + input_bbox[:, 3]) / 2
+    converted_bbox[:, 2] = input_bbox[:, 2] - input_bbox[:, 0]
+    converted_bbox[:, 3] = input_bbox[:, 3] - input_bbox[:, 1]
+    return converted_bbox

@@ -8,7 +8,6 @@ from super_gradients.training.models.classification_models.shufflenetv2 import S
     ShufflenetV2_x1_5, \
     ShufflenetV2_x2_0, CustomizedShuffleNetV2
 from super_gradients.training.models.classification_models.vit import vit_base, vit_large, vit_huge
-from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
@@ -54,7 +53,6 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "shufflenet_v2_x1_5": ShufflenetV2_x1_5,
                  "shufflenet_v2_x2_0": ShufflenetV2_x2_0,
                  "shufflenet_v2_custom5": CustomizedShuffleNetV2,
-                 'darknet53': Darknet53,
                  "resnext50": ResNeXt50,
                  "resnext101": ResNeXt101,
                  "googlenet_v1": googlenet_v1,

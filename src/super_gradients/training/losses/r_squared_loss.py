@@ -10,7 +10,7 @@ from super_gradients.training.utils import convert_to_tensor
 class RSquaredLoss(_Loss):
 
     def forward(self, output, target):
-        # FIXME - THIS NEEDS TO BE CHANGED SUCH THAT THIS CLASS INHERETS FROM _Loss (TAKE A LOOK AT YoLoV3DetectionLoss)
+        # FIXME - THIS NEEDS TO BE CHANGED SUCH THAT THIS CLASS INHERETS FROM _Loss
         """Computes the R-squared for the output and target values
         :param output: Tensor / Numpy / List
             The prediction

@@ -14,7 +14,6 @@ from super_gradients.training.datasets.segmentation_datasets import PascalVOC201
 from super_gradients.training import utils as core_utils
 from super_gradients.common import DatasetDataInterface
 from super_gradients.common.environment import AWS_ENV_NAME
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset

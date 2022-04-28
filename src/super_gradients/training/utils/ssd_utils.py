@@ -4,8 +4,6 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
-from super_gradients.training.utils.detection_utils import non_max_suppression, NMS_Type, \
-    matrix_non_max_suppression, DetectionPostPredictionCallback
 
 
 class DefaultBoxes(object):

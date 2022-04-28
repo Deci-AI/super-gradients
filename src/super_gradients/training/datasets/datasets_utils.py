@@ -22,7 +22,7 @@ from torchvision.transforms import transforms, InterpolationMode, RandomResizedC
 from tqdm import tqdm
 
 from super_gradients.training.utils.utils import AverageMeter
-from super_gradients.training.utils.detection_utils import DetectionVisualization
+
 
 import matplotlib.pyplot as plt
 

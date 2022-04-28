@@ -2,9 +2,6 @@ import unittest
 
 import super_gradients
 import torch
-from super_gradients.training.datasets import COCODetectionDataSet
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn, \
-    plot_coco_datasaet_images_with_detections
 import os
 
 

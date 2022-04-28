@@ -1,8 +1,6 @@
 import numpy as np
 import torch
 from torchmetrics import Metric
-from super_gradients.training.utils.detection_utils import calc_batch_prediction_accuracy, DetectionPostPredictionCallback, \
-    IouThreshold
 import super_gradients
 
 

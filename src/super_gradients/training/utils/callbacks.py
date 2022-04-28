@@ -11,7 +11,6 @@ import torch
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import get_filename_suffix_by_framework
-from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 import cv2
 
@@ -268,28 +267,6 @@ class WarmupLRCallback(LRCallbackBase):
         if self.training_params.lr_warmup_epochs >= context.epoch:
             self.lr = self.warmup_initial_lr + context.epoch * self.warmup_step_size
             self.update_lr(context.optimizer, context.epoch, None)
-
-
-class YoloV5WarmupLRCallback(LRCallbackBase):
-    def __init__(self, **kwargs):
-        super(YoloV5WarmupLRCallback, self).__init__(Phase.TRAIN_BATCH_END, **kwargs)
-
-    def __call__(self, context, **kwargs):
-        lr_warmup_epochs = get_param(self.training_params, 'lr_warmup_epochs', 0)
-        if context.epoch < self.training_params.lr_warmup_epochs:
-            # OVERRIDE THE lr FROM DeciModelBase WITH initial_lr, SINCE DeciModelBase MANIPULATE THE ORIGINAL VALUE
-            lr = self.training_params.initial_lr
-            momentum = get_param(self.training_params.optimizer_params, 'momentum')
-            warmup_momentum = get_param(self.training_params, 'warmup_momentum', momentum)
-            warmup_bias_lr = get_param(self.training_params, 'warmup_bias_lr', lr)
-            nw = lr_warmup_epochs * self.train_loader_len
-            ni = context.epoch * self.train_loader_len + context.batch_idx
-            xi = [0, nw]  # x interp
-            for x in context.optimizer.param_groups:
-                # BIAS LR FALLS FROM 0.1 TO LR0, ALL OTHER LRS RISE FROM 0.0 TO LR0
-                x['lr'] = np.interp(ni, xi, [warmup_bias_lr if x['name'] == 'bias' else 0.0, lr])
-                if 'momentum' in x:
-                    x['momentum'] = np.interp(ni, xi, [warmup_momentum, momentum])
 
 
 class StepLRCallback(LRCallbackBase):
@@ -560,5 +537,4 @@ LR_SCHEDULERS_CLS_DICT = {"step": StepLRCallback,
                           "function": FunctionLRCallback
                           }
 
-LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback,
-                      "yolov5_warmup": YoloV5WarmupLRCallback}
+LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback}
