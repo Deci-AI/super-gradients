@@ -33,5 +33,5 @@ sg_model:
 training_hyperparams:
   criterion_params:
     strides: [8, 16, 32]  # output strides of all yolo outputs
-    im_size: 640
+    im_size: ${dataset_params.train_image_size}
     num_classes: 80
