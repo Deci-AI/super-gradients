@@ -5,11 +5,15 @@ from enum import Enum
 from typing import Callable, List, Union, Tuple
 
 import cv2
+from scipy.cluster.vq import kmeans
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+from PIL import Image
 
 import torch
 import numpy as np
 from torch import nn
-import matplotlib as plt
+from super_gradients.common.abstractions.abstract_logger import get_logger
 
 
 def base_detection_collate_fn(batch):
@@ -288,6 +292,229 @@ def make_divisible(x, divisor, ceil=True):
         return math.ceil(x / divisor) * divisor
     else:
         return math.floor(x / divisor) * divisor
+
+
+def matrix_non_max_suppression(pred, conf_thres: float = 0.1, kernel: str = 'gaussian',
+                               sigma: float = 3.0, max_num_of_detections: int = 500):
+    """Performs Matrix Non-Maximum Suppression (NMS) on inference results
+        https://arxiv.org/pdf/1912.04488.pdf
+        :param pred: raw model prediction (in test mode) - a Tensor of shape [batch, num_predictions, 85]
+        where each item format is (x, y, w, h, object_conf, class_conf, ... 80 classes score ...)
+        :param conf_thres: below the confidence threshold - prediction are discarded
+        :param kernel: type of kernel to use ['gaussian', 'linear']
+        :param sigma: sigma for the gussian kernel
+        :param max_num_of_detections: maximum number of boxes to output
+        :return:  list of (x1, y1, x2, y2, object_conf, class_conf, class)
+
+    Returns:
+         detections list with shape: (x1, y1, x2, y2, conf, cls)
+    """
+    # MULTIPLY CONF BY CLASS CONF TO GET COMBINED CONFIDENCE
+    class_conf, class_pred = pred[:, :, 5:].max(2)
+    pred[:, :, 4] *= class_conf
+
+    # BOX (CENTER X, CENTER Y, WIDTH, HEIGHT) TO (X1, Y1, X2, Y2)
+    pred[:, :, :4] = convert_xywh_bbox_to_xyxy(pred[:, :, :4])
+
+    # DETECTIONS ORDERED AS (x1y1x2y2, obj_conf, class_conf, class_pred)
+    pred = torch.cat((pred[:, :, :5], class_pred.unsqueeze(2)), 2)
+
+    # SORT DETECTIONS BY DECREASING CONFIDENCE SCORES
+    sort_ind = (-pred[:, :, 4]).argsort()
+    pred = torch.stack([pred[i, sort_ind[i]] for i in range(pred.shape[0])])[:, 0:max_num_of_detections]
+
+    ious = calc_bbox_iou_matrix(pred)
+
+    ious = ious.triu(1)
+
+    # CREATE A LABELS MASK, WE WANT ONLY BOXES WITH THE SAME LABEL TO AFFECT EACH OTHER
+    labels = pred[:, :, 5:]
+    labeles_matrix = (labels == labels.transpose(2, 1)).float().triu(1)
+
+    ious *= labeles_matrix
+    ious_cmax, _ = ious.max(1)
+    ious_cmax = ious_cmax.unsqueeze(2).repeat(1, 1, max_num_of_detections)
+
+    if kernel == 'gaussian':
+        decay_matrix = torch.exp(-1 * sigma * (ious ** 2))
+        compensate_matrix = torch.exp(-1 * sigma * (ious_cmax ** 2))
+        decay, _ = (decay_matrix / compensate_matrix).min(dim=1)
+    else:
+        decay = (1 - ious) / (1 - ious_cmax)
+        decay, _ = decay.min(dim=1)
+
+    pred[:, :, 4] *= decay
+
+    output = [pred[i, pred[i, :, 4] > conf_thres] for i in range(pred.shape[0])]
+
+    return output
+
+
+class NMS_Type(str, Enum):
+    """
+    Type of non max suppression algorithm that can be used for post processing detection
+    """
+    ITERATIVE = 'iterative'
+    MATRIX = 'matrix'
+
+
+
+class AnchorGenerator:
+    logger = get_logger(__name__)
+
+    @staticmethod
+    def _metric(objects, anchors):
+        """ measure how 'far' each object is from the closest anchor
+            :returns a matrix n by number of objects and the measurements to the closest anchor for each object
+        """
+        r = objects[:, None] / anchors[None]
+        matrix = np.amin(np.minimum(r, 1. / r), axis=2)
+        return matrix, matrix.max(1)
+
+    @staticmethod
+    def _anchor_fitness(objects, anchors, thresh):
+        """ how well the anchors fit the objects"""
+        _, best = AnchorGenerator._metric(objects, anchors)
+        return (best * (best > thresh)).mean()  # fitness
+
+    @staticmethod
+    def _print_results(objects, anchors, thresh, num_anchors, img_size):
+        # SORT SMALL TO LARGE (BY AREA)
+        anchors = anchors[np.argsort(anchors.prod(1))]
+        x, best = AnchorGenerator._metric(objects, anchors)
+        best_possible_recall = (best > thresh).mean()
+        anchors_above_thesh = (x > thresh).mean() * num_anchors
+
+        AnchorGenerator.logger.info(
+            f'thr={thresh:.2f}: {best_possible_recall:.4f} best possible recall, {anchors_above_thesh:.2f} anchors past thr')
+        AnchorGenerator.logger.info(f'num_anchors={num_anchors}, img_size={img_size}')
+        AnchorGenerator.logger.info(
+            f' metric_all={x.mean():.3f}/{best.mean():.3f}-mean/best, past_thr={x[x > thresh].mean():.3f}-mean: ')
+
+        for i, mean in enumerate(anchors):
+            print('%i,%i' % (round(mean[0]), round(mean[1])),
+                  end=',  ' if i < len(anchors) - 1 else '\n')  # use in *.cfg
+
+    @staticmethod
+    def _plot_object_distribution(objects, anchors):
+        selected = np.random.choice(objects.shape[0], size=objects.shape[0] // 50, replace=False)
+
+        distance_matrix = np.sqrt(np.power(objects[:, :, None] - anchors[:, :, None].T, 2).sum(1))
+        labels = np.argmin(distance_matrix, axis=1)
+        plt.scatter(objects[selected, 0], objects[selected, 1], c=labels[selected], marker='.')
+        plt.scatter(anchors[:, 0], anchors[:, 1], marker='P')
+        plt.show()
+
+    @staticmethod
+    def _generate_anchors(dataset, num_anchors=9, thresh=0.25, gen=1000):
+        """ Creates kmeans-evolved anchors from training dataset
+            Based on the implementation by Ultralytics for Yolo V5
+
+            :param dataset: a loaded dataset (must be with cached labels and "train_sample_loading_method":'rectangular')
+            :param num_anchors: number of anchors
+            :param thresh: anchor-label wh ratio threshold used to asses if a label can be detected by an anchor.
+                    it means that the aspect ratio of the object is not more than thres from the aspect ratio of the anchor.
+            :param gen: generations to evolve anchors using genetic algorithm. after kmeans, this algorithm iteratively
+                    make minor random changes in the anchors and if a change imporve the anchors-data fit it evolves the
+                    anchors.
+            :returns anchors array num_anchors by 2 (x,y) normalized to image size
+        """
+        _prefix = 'Anchors Generator: '
+        img_size = dataset.img_size
+        assert dataset.cache_labels, "dataset labels have to be cached before generating anchors"
+
+        image_shapes = np.array(
+            [dataset.exif_size(Image.open(f)) for f in tqdm(dataset.img_files, desc='Reading image shapes')])
+
+        # Get label wh
+        shapes = img_size * image_shapes / image_shapes.max(1, keepdims=True)
+        objects_wh = np.concatenate([l[:, 3:5] * s for s, l in zip(shapes, dataset.labels)])
+
+        # Filter
+        i = (objects_wh < 3.0).any(1).sum()
+        if i:
+            AnchorGenerator.logger.warning(
+                f'Extremely small objects found. {i} of {len(objects_wh)} labels are < 3 pixels in size.')
+        object_wh_filtered = objects_wh[(objects_wh >= 2.0).any(1)]
+
+        # Kmeans calculation
+        AnchorGenerator.logger.info(f'Running kmeans for {num_anchors} anchors on {len(object_wh_filtered)} points...')
+        mean_wh = object_wh_filtered.std(0)  # sigmas for whitening
+        anchors, dist = kmeans(object_wh_filtered / mean_wh, num_anchors, iter=30)  # points, mean distance
+        # MEANS WHERE NORMALIZED. SCALE THEM BACK TO IMAGE SIZE
+        anchors *= mean_wh
+
+        AnchorGenerator.logger.info('Initial results')
+        AnchorGenerator._print_results(objects_wh, anchors, thresh, num_anchors, img_size)
+        AnchorGenerator._plot_object_distribution(objects_wh, anchors)
+
+        # EVOLVE
+        fitness, generations, mutation_prob, sigma = AnchorGenerator._anchor_fitness(object_wh_filtered, anchors,
+                                                                                     thresh), anchors.shape, 0.9, 0.1
+        progress_bar = tqdm(range(gen), desc=f'{_prefix}Evolving anchors with Genetic Algorithm:')
+        for _ in progress_bar:
+            v = np.ones(generations)
+            while (v == 1).all():  # mutate until a change occurs (prevent duplicates)
+                v = ((np.random.random(generations) < mutation_prob) * np.random.random() * np.random.randn(
+                    *generations) * sigma + 1).clip(0.3, 3.0)
+            evolved_anchors = (anchors * v).clip(min=2.0)
+            evolved_anchors_fitness = AnchorGenerator._anchor_fitness(object_wh_filtered, evolved_anchors, thresh)
+            if evolved_anchors_fitness > fitness:
+                fitness, anchors = evolved_anchors_fitness, evolved_anchors.copy()
+                progress_bar.desc = f'{_prefix}Evolving anchors with Genetic Algorithm: fitness = {fitness:.4f}'
+
+        AnchorGenerator.logger.info('Final results')
+        AnchorGenerator._print_results(objects_wh, anchors, thresh, num_anchors, img_size)
+        AnchorGenerator._plot_object_distribution(objects_wh, anchors)
+
+        anchors = anchors[np.argsort(anchors.prod(1))]
+        anchors_list = np.round(anchors.reshape((3, -1))).astype(np.int32).tolist()
+        return anchors_list
+
+    @staticmethod
+    def __call__(dataset, num_anchors=9, thresh=0.25, gen=1000):
+        return AnchorGenerator._generate_anchors(dataset, num_anchors, thresh, gen)
+
+
+def plot_coco_datasaet_images_with_detections(data_loader, num_images_to_plot=1):
+    """
+    plot_coco_images
+        :param data_loader:
+        :param num_images_to_plot:
+        :return:
+    # """
+    images_counter = 0
+
+    # PLOT ONE image AND ONE GROUND_TRUTH bbox
+    for imgs, targets in data_loader:
+
+        # PLOTS TRAINING IMAGES OVERLAID WITH TARGETS
+        imgs = imgs.cpu().numpy()
+        targets = targets.cpu().numpy()
+
+        fig = plt.figure(figsize=(10, 10))
+        batch_size, _, h, w = imgs.shape
+
+        # LIMIT PLOT TO 16 IMAGES
+        batch_size = min(batch_size, 16)
+
+        # NUMBER OF SUBPLOTS
+        ns = np.ceil(batch_size ** 0.5)
+
+        for i in range(batch_size):
+            boxes = convert_xywh_bbox_to_xyxy(torch.from_numpy(targets[targets[:, 0] == i, 2:6])).cpu().detach().numpy().T
+            boxes[[0, 2]] *= w
+            boxes[[1, 3]] *= h
+            plt.subplot(ns, ns, i + 1).imshow(imgs[i].transpose(1, 2, 0))
+            plt.plot(boxes[[0, 2, 2, 0, 0]], boxes[[1, 1, 3, 3, 1]], '.-')
+            plt.axis('off')
+        fig.tight_layout()
+        plt.show()
+        plt.close()
+
+        images_counter += 1
+        if images_counter == num_images_to_plot:
+            break
 
 
 def undo_image_preprocessing(im_tensor: torch.Tensor) -> np.ndarray:

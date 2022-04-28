@@ -2,8 +2,7 @@ import sys
 import unittest
 
 from tests.integration_tests.ema_train_integration_test import EMAIntegrationTest
-from tests.unit_tests import ZeroWdForBnBiasTest, SaveCkptListUnitTest, TestAverageMeter, \
-    TestModuleUtils, TestRepVgg, TestWithoutTrainTest, OhemLossTest, EarlyStopTest, SegmentationTransformsTest, \
+from tests.unit_tests import ZeroWdForBnBiasTest, SaveCkptListUnitTest, TestAverageMeter, TestRepVgg, TestWithoutTrainTest, OhemLossTest, EarlyStopTest, SegmentationTransformsTest, \
     TestConvBnRelu, FactoriesTest
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.load_checkpoint_from_direct_path_test import LoadCheckpointFromDirectPathTest
@@ -35,7 +34,6 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(SaveCkptListUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ZeroWdForBnBiasTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestAverageMeter))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestModuleUtils))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestRepVgg))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestWithoutTrainTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(StrictLoadEnumTest))

@@ -51,6 +51,7 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment import environment_config
+from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 
 logger = get_logger(__name__)
 

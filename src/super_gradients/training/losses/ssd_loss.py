@@ -3,7 +3,7 @@ from torch import nn
 from torch.nn.modules.loss import _Loss
 
 from super_gradients.training.utils.ssd_utils import DefaultBoxes
-
+from super_gradients.training.utils.detection_utils import calculate_bbox_iou_matrix
 
 class SSDLoss(_Loss):
     """

@@ -20,9 +20,8 @@ from torchvision.datasets import ImageFolder
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from torchvision.transforms import transforms, InterpolationMode, RandomResizedCrop
 from tqdm import tqdm
-
+from super_gradients.training.utils.detection_utils import DetectionVisualization
 from super_gradients.training.utils.utils import AverageMeter
-
 
 import matplotlib.pyplot as plt
 

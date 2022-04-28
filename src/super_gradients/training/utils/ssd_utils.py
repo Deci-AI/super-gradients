@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
+from super_gradients.training.utils.detection_utils import NMS_Type, matrix_non_max_suppression, DetectionPostPredictionCallback
 
 
 class DefaultBoxes(object):
@@ -158,11 +159,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
 
         nms_input = torch.cat((bboxes_in, scores_in), dim=2)
 
-        if self.nms_type == NMS_Type.ITERATIVE:
-            nms_res = non_max_suppression(nms_input, conf_thres=self.conf, iou_thres=self.iou,
-                                          classes=self.classes)
-        else:
-            nms_res = matrix_non_max_suppression(nms_input, conf_thres=self.conf,
+        nms_res = matrix_non_max_suppression(nms_input, conf_thres=self.conf,
                                                  max_num_of_detections=self.max_predictions)
 
         # NMS OUTPUT A 0-BASED CLASS LABEL, BUT SSD WORKS WITH 1-BASED CLASS LABEL
