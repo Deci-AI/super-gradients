@@ -8,7 +8,6 @@ from torch.utils.data.distributed import DistributedSampler
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation
-from super_gradients.training.datasets.detection_datasets import COCODetectionDataSet, PascalVOCDetectionDataSet
 from super_gradients.training.datasets.segmentation_datasets import PascalVOC2012SegmentationDataSet, \
     PascalAUG2012SegmentationDataSet, CoCoSegmentationDataSet
 from super_gradients.training import utils as core_utils
@@ -17,7 +16,6 @@ from super_gradients.common.environment import AWS_ENV_NAME
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
-from super_gradients.training.utils.utils import download_and_unzip_from_url
 from super_gradients.training.utils import get_param
 import torchvision.transforms as transforms
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
@@ -550,71 +548,6 @@ class CoCoDataSetInterfaceBase(DatasetInterface):
         self.root_dir = dataset_params['dataset_dir'] if 'dataset_dir' in dataset_params.keys() else '/data/coco/'
 
 
-class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
-    def __init__(self, dataset_params=None, cache_labels=False, cache_images=False, train_list_file='train2017.txt',
-                 val_list_file='val2017.txt'):
-        super().__init__(dataset_params=dataset_params)
-
-        default_hyper_params = {
-            'hsv_h': 0.0138,  # IMAGE HSV-Hue AUGMENTATION (fraction)
-            'hsv_s': 0.678,  # IMAGE HSV-Saturation AUGMENTATION (fraction)
-            'hsv_v': 0.36,  # IMAGE HSV-Value AUGMENTATION (fraction)
-            'degrees': 1.98,  # IMAGE ROTATION (+/- deg)
-            'translate': 0.05,  # IMAGE TRANSLATION (+/- fraction)
-            'scale': 0.05,  # IMAGE SCALE (+/- gain)
-            'shear': 0.641,  # IMAGE SHEAR (+/- deg)
-            'mixup': 0.0}  # IMAGE MIXUP AUGMENTATION (fraction)
-
-        self.coco_dataset_hyper_params = core_utils.get_param(self.dataset_params, 'dataset_hyper_param',
-                                                              default_val=default_hyper_params)
-        train_sample_method = core_utils.get_param(self.dataset_params, 'train_sample_loading_method',
-                                                   default_val='mosaic')
-        val_sample_method = core_utils.get_param(self.dataset_params, 'val_sample_loading_method',
-                                                 default_val='rectangular')
-        train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn', base_detection_collate_fn)
-        val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn', base_detection_collate_fn)
-
-        image_size = core_utils.get_param(self.dataset_params, 'image_size')
-        train_image_size = core_utils.get_param(self.dataset_params, 'train_image_size')
-        val_image_size = core_utils.get_param(self.dataset_params, 'val_image_size')
-        labels_offset = core_utils.get_param(self.dataset_params, 'labels_offset', default_val=0)
-        class_inclusion_list = core_utils.get_param(self.dataset_params, 'class_inclusion_list')
-
-        if image_size is None:
-            assert train_image_size is not None and val_image_size is not None, 'Please provide either only image_size or ' \
-                                                                                'both train_image_size AND val_image_size'
-        else:
-            assert train_image_size is None and val_image_size is None, 'Please provide either only image_size or ' \
-                                                                        'both train_image_size AND val_image_size'
-            train_image_size = image_size
-            val_image_size = image_size
-
-        self.trainset = COCODetectionDataSet(root=self.root_dir, list_file=train_list_file,
-                                             dataset_hyper_params=self.coco_dataset_hyper_params,
-                                             batch_size=self.dataset_params.batch_size,
-                                             img_size=train_image_size,
-                                             collate_fn=train_collate_fn,
-                                             augment=True,
-                                             sample_loading_method=train_sample_method,
-                                             cache_labels=cache_labels,
-                                             cache_images=cache_images,
-                                             labels_offset=labels_offset,
-                                             class_inclusion_list=class_inclusion_list)
-
-        self.valset = COCODetectionDataSet(root=self.root_dir, list_file=val_list_file,
-                                           dataset_hyper_params=self.coco_dataset_hyper_params,
-                                           batch_size=self.dataset_params.val_batch_size,
-                                           img_size=val_image_size,
-                                           collate_fn=val_collate_fn,
-                                           sample_loading_method=val_sample_method,
-                                           cache_labels=cache_labels,
-                                           cache_images=cache_images,
-                                           labels_offset=labels_offset,
-                                           class_inclusion_list=class_inclusion_list)
-
-        self.coco_classes = self.trainset.classes
-
-
 class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):
     def __init__(self, dataset_params=None, cache_labels: bool = False, cache_images: bool = False,
                  dataset_classes_inclusion_tuples_list: list = None):
@@ -641,14 +574,6 @@ class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):
             dataset_classes_inclusion_tuples_list=dataset_classes_inclusion_tuples_list)
 
         self.coco_classes = self.trainset.classes
-
-
-class CoCo2014DetectionDatasetInterface(CoCoDetectionDatasetInterface):
-    def __init__(self, dataset_params=None, cache_labels=False, cache_images=False, train_list_file='train2014.txt',
-                 val_list_file='val2014.txt'):
-        dataset_params['dataset_dir'] = core_utils.get_param(dataset_params, 'dataset_dir', '/data/coco2014/')
-        super().__init__(dataset_params=dataset_params, cache_labels=cache_labels, cache_images=cache_images,
-                         train_list_file=train_list_file, val_list_file=val_list_file)
 
 
 class CityscapesDatasetInterface(DatasetInterface):

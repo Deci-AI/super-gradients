@@ -3,7 +3,6 @@ import getpass
 import os
 from enum import Enum
 import math
-from super_gradients.training.utils.utils import get_param
 import numpy as np
 import onnx
 import onnxruntime
@@ -456,33 +455,6 @@ class PhaseContextTestCallback(PhaseCallback):
         self.context = context
 
 
-class DetectionVisualizationCallback(PhaseCallback):
-    """
-    A callback that adds a visualization of a batch of detection predictions to context.sg_logger
-    Attributes:
-        freq: frequency (in epochs) to perform this callback.
-        batch_idx: batch index to perform visualization for.
-        classes: class list of the dataset.
-        last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
-    """
-    def __init__(self, phase: Phase, freq: int, post_prediction_callback: DetectionPostPredictionCallback, classes: list, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
-        super(DetectionVisualizationCallback, self).__init__(phase)
-        self.freq = freq
-        self.post_prediction_callback = post_prediction_callback
-        self.batch_idx = batch_idx
-        self.classes = classes
-        self.last_img_idx_in_batch = last_img_idx_in_batch
-
-    def __call__(self, context: PhaseContext):
-        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx:
-            # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
-            preds = (context.preds[0].clone(), None)
-            preds = self.post_prediction_callback(preds)
-            batch_imgs = DetectionVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx, self.classes)
-            batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
-            batch_imgs = np.stack(batch_imgs)
-            tag = "batch_" + str(self.batch_idx) + "_images"
-            context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch], global_step=context.epoch, data_format='NHWC')
 
 
 class BinarySegmentationVisualizationCallback(PhaseCallback):
