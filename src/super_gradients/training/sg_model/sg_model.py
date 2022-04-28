@@ -533,10 +533,8 @@ class SgModel:
                               "cross_entropy": LabelSmoothingCrossEntropyLoss,
                               "mse": MSELoss,
                               "r_squared_loss": RSquaredLoss,
-                              "detection_loss": YoLoV3DetectionLoss,
                               "shelfnet_ohem_loss": ShelfNetOHEMLoss,
                               "shelfnet_se_loss": ShelfNetSemanticEncodingLoss,
-                              "yolo_v5_loss": YoLoV5DetectionLoss,
                               "ssd_loss": SSDLoss,
 
 

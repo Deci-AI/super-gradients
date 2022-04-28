@@ -5,7 +5,6 @@ from super_gradients import SgModel, \
     ClassificationTestDatasetInterface, \
     SegmentationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.metrics.segmentation_metrics import PixelAccuracy, IoU
 
 
@@ -52,12 +51,6 @@ class TestWithoutTrainTest(unittest.TestCase):
     def test_test_on_valid_loader_without_train(self):
         model = self.get_classification_trainer(self.folder_names[0])
         assert isinstance(model.test(test_loader=model.valid_loader, silent_mode=True, test_metrics_list=[Accuracy(), Top5()]), tuple)
-
-        model = self.get_detection_trainer(self.folder_names[1])
-
-        test_metrics = [DetectionMetrics(post_prediction_callback=model.post_prediction_callback, num_cls=5)]
-
-        assert isinstance(model.test(test_loader=model.valid_loader, silent_mode=True, test_metrics_list=test_metrics), tuple)
 
         model = self.get_segmentation_trainer(self.folder_names[2])
         assert isinstance(model.test(test_loader=model.valid_loader, silent_mode=True, test_metrics_list=[IoU(21), PixelAccuracy()]), tuple)
