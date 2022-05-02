@@ -4,7 +4,7 @@ import unittest
 from tests.integration_tests.ema_train_integration_test import EMAIntegrationTest
 from tests.unit_tests import ZeroWdForBnBiasTest, SaveCkptListUnitTest, TestAverageMeter, \
     TestModuleUtils, TestRepVgg, TestWithoutTrainTest, OhemLossTest, EarlyStopTest, SegmentationTransformsTest, \
-    TestConvBnRelu, FactoriesTest
+    TestConvBnRelu, FactoriesTest, InitializeWithDataloadersTest
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.load_checkpoint_from_direct_path_test import LoadCheckpointFromDirectPathTest
 from tests.unit_tests.random_erase_test import RandomEraseTest
@@ -15,6 +15,7 @@ from tests.unit_tests.lr_warmup_test import LRWarmupTest
 from tests.unit_tests.kd_model_test import KDModelTest
 from tests.unit_tests.dice_loss_test import DiceLossTest
 from tests.unit_tests.vit_unit_test import TestViT
+from tests.unit_tests.lr_cooldown_test import LRCooldownTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -52,6 +53,8 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DiceLossTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestViT))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(KDModelTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(InitializeWithDataloadersTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRCooldownTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
