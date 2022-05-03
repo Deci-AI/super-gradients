@@ -103,7 +103,7 @@
 <span class="sd">        :param model: Union[SgModule, nn.Module], the training model to construct the EMA model by</span>
 <span class="sd">                    IMPORTANT: WHEN THE APPLICATION OF EMA ONLY ON A SUBSET OF ATTRIBUTES IS DESIRED, WRAP THE NN.MODULE</span>
 <span class="sd">                    AS SgModule AND OVERWRITE get_include_attributes() AND get_exclude_attributes() AS DESIRED (SEE</span>
-<span class="sd">                    YoLoV5Base IMPLEMENTATION IN super_gradients.trainer.models.yolov5.py AS AN EXAMPLE).</span>
+<span class="sd">                    YoLoV5Base IMPLEMENTATION IN super_gradients.trainer.models.yolov5_base.py AS AN EXAMPLE).</span>
 <span class="sd">        :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value</span>
 <span class="sd">                      until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)</span>
 <span class="sd">        :param beta: the exponent coefficient. The higher the beta, the sooner in the training the decay will saturate to</span>
