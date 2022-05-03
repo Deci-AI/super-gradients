@@ -567,6 +567,13 @@ class TrainingStageSwitchCallbackBase(PhaseCallback):
 
 
 class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
+    """
+    YoloXTrainingStageSwitchCallback
+
+    Training stage switch for YoloX training.
+    Disables mosaic, and manipulates YoloX loss to use L1.
+
+    """
     def __init__(self, next_stage_start_epoch: int = 285):
         super(YoloXTrainingStageSwitchCallback, self).__init__(next_stage_start_epoch=next_stage_start_epoch)
 
