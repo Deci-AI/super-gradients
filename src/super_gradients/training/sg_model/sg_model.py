@@ -2,7 +2,7 @@ import os
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Union, Tuple, Mapping
+from typing import Union, Tuple, Mapping, List, Any
 
 import numpy as np
 import pkg_resources
@@ -10,6 +10,7 @@ import torch
 import torchvision.transforms as transforms
 from deprecated import deprecated
 from torch import nn
+from torch.utils.data import DataLoader, DistributedSampler
 from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
@@ -31,7 +32,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
 from super_gradients.training import metrics
-from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat
+from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, IllegalDataloaderInitialization
 from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
@@ -52,6 +53,7 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment import environment_config
+from super_gradients.training.utils import HpmStruct
 
 logger = get_logger(__name__)
 
@@ -119,7 +121,9 @@ class SgModel:
     def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF,
                  model_checkpoints_location: str = 'local',
                  overwrite_local_checkpoint: bool = True, ckpt_name: str = 'ckpt_latest.pth',
-                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir=None):
+                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir: str = None,
+                 train_loader: DataLoader = None, valid_loader: DataLoader = None, test_loader: DataLoader = None,
+                 classes: List[Any] = None):
         """
 
         :param experiment_name:                      Used for logging and loading purposes
@@ -130,15 +134,19 @@ class SgModel:
         :param overwrite_local_checkpoint:      If set to False keeps the current local checkpoint when importing
                                                 checkpoint from cloud service, otherwise overwrites the local checkpoints file
         :param ckpt_name:                       The Checkpoint to Load
-        :ckpt_root_dir:                         Local root directory path where all experiment logging directories will
-                                                 reside. When none is give, it is assumed that
-                                                 pkg_resources.resource_filename('checkpoints', "") exists and will be used.
+        :param ckpt_root_dir:                   Local root directory path where all experiment logging directories will
+                                                reside. When none is give, it is assumed that
+                                                pkg_resources.resource_filename('checkpoints', "") exists and will be used.
+        :param train_loader:                    Training set Dataloader instead of using DatasetInterface, must pass "valid_loader"
+                                                and "classes" along with it
+        :param valid_loader:                    Validation set Dataloader
+        :param test_loader:                     Test set Dataloader
+        :param classes:                         List of class labels
 
         """
         # SET THE EMPTY PROPERTIES
         self.net, self.architecture, self.arch_params, self.dataset_interface = None, None, None, None
         self.device, self.multi_gpu = None, None
-        self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = None, None, None, None, None
         self.ema = None
         self.ema_model = None
         self.sg_logger = None
@@ -179,6 +187,7 @@ class SgModel:
         self.ckpt_name = ckpt_name
         self.overwrite_local_checkpoint = overwrite_local_checkpoint
         self.model_checkpoints_location = model_checkpoints_location
+        self._set_dataset_properties(classes, test_loader, train_loader, valid_loader)
 
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
         if ckpt_root_dir:
@@ -209,6 +218,25 @@ class SgModel:
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
         self.loss_logging_items_names = default_loss_logging_items_names
 
+    def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
+        if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
+            raise IllegalDataloaderInitialization()
+
+        dataset_params = {"batch_size": train_loader.batch_size if train_loader else None,
+                          "val_batch_size": valid_loader.batch_size if valid_loader else None,
+                          "test_batch_size": test_loader.batch_size if test_loader else None,
+                          "dataset_dir": None,
+                          "s3_link": None}
+
+        if train_loader and self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+            if not all([isinstance(train_loader.sampler, DistributedSampler),
+                        isinstance(valid_loader.sampler, DistributedSampler),
+                        test_loader is None or isinstance(test_loader.sampler, DistributedSampler)]):
+                logger.warning("DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
+
+        self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
+            HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
+
     @resolve_param('dataset_interface', DatasetsFactory())
     def connect_dataset_interface(self, dataset_interface: DatasetInterface, data_loader_num_workers: int = 8):
         """
@@ -216,6 +244,8 @@ class SgModel:
         :param data_loader_num_workers: The number of threads to initialize the Data Loaders with
             The dataset to be connected
         """
+        if self.train_loader:
+            logger.warning("Overriding the dataloaders that SgModel was initialized with")
         self.dataset_interface = dataset_interface
         self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             self.dataset_interface.get_data_loaders(batch_size_factor=self.num_devices,
@@ -244,7 +274,7 @@ class SgModel:
 
         """
         if 'num_classes' not in arch_params.keys():
-            if self.dataset_interface is None:
+            if self.classes is None and self.dataset_interface is None:
                 raise Exception('Error', 'Number of classes not defined in arch params and dataset is not defined')
             else:
                 arch_params['num_classes'] = len(self.classes)
@@ -708,13 +738,19 @@ class SgModel:
                 -   `clip_grad_norm` : float
 
                     Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped
+
+                -   `lr_cooldown_epochs` : int (default=0)
+
+                    Number of epochs to cooldown LR (i.e the last epoch from scheduling view point=max_epochs-cooldown).
+
+
         :return:
         """
         global logger
 
         if self.net is None:
             raise Exception('Model', 'No model found')
-        if self.dataset_interface is None:
+        if self.dataset_interface is None and self.train_loader is None:
             raise Exception('Data', 'No dataset found')
 
         self.training_params = TrainingParams()
@@ -1397,7 +1433,8 @@ class SgModel:
             self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
                                                        load_backbone=self.load_backbone,
                                                        net=self.net,
-                                                       strict=self.strict_load.value if isinstance(self.strict_load, StrictLoad) else self.strict_load,
+                                                       strict=self.strict_load.value if isinstance(self.strict_load,
+                                                                                                   StrictLoad) else self.strict_load,
                                                        load_weights_only=self.load_weights_only,
                                                        load_ema_as_net=self.load_ema_as_net)
 
@@ -1489,22 +1526,30 @@ class SgModel:
 
         # IN CASE SG_LOGGER UPDATED THE DIR PATH
         self.checkpoints_dir_path = self.sg_logger.local_dir()
+        hyper_param_config = self.get_hyper_param_config()
+
+        self.sg_logger.add_config("hyper_params", hyper_param_config)
+
+        self.sg_logger.flush()
+
+    def get_hyper_param_config(self):
+        """
+        Creates a training hyper param config for logging.
+        """
         additional_log_items = {'initial_LR': self.training_params.initial_lr,
                                 'num_devices': self.num_devices,
                                 'multi_gpu': str(self.multi_gpu),
                                 'device_type': torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu'}
-
         # ADD INSTALLED PACKAGE LIST + THEIR VERSIONS
         if self.training_params.log_installed_packages:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items['installed_packages'] = pkg_list
-
-        self.sg_logger.add_config("hyper_params", {"arch_params": self.arch_params.__dict__,
-                                                   "training_hyperparams": self.training_params.__dict__,
-                                                   "dataset_params": self.dataset_params.__dict__,
-                                                   "additional_log_items": additional_log_items})
-
-        self.sg_logger.flush()
+        hyper_param_config = {"arch_params": self.arch_params.__dict__,
+                              "checkpoint_params": self.checkpoint_params.__dict__,
+                              "training_hyperparams": self.training_params.__dict__,
+                              "dataset_params": self.dataset_params.__dict__,
+                              "additional_log_items": additional_log_items}
+        return hyper_param_config
 
     def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int,
                                   context: PhaseContext):
