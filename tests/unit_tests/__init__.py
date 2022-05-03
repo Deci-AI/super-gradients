@@ -6,6 +6,7 @@ from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.zero_weight_decay_on_bias_bn_test import ZeroWdForBnBiasTest
 from tests.unit_tests.save_ckpt_test import SaveCkptListUnitTest
 from tests.unit_tests.yolov5_unit_test import TestYoloV5
+from tests.unit_tests.yolox_unit_test import TestYOLOX
 from tests.unit_tests.all_architectures_test import AllArchitecturesTest
 from tests.unit_tests.average_meter_test import TestAverageMeter
 from tests.unit_tests.module_utils_test import TestModuleUtils
@@ -22,7 +23,7 @@ from tests.unit_tests.initialize_with_dataloaders_test import InitializeWithData
 
 
 __all__ = ['TestDatasetInterface', 'ZeroWdForBnBiasTest', 'SaveCkptListUnitTest',
-           'TestYoloV5', 'AllArchitecturesTest', 'TestAverageMeter', 'TestModuleUtils', 'TestRepVgg', 'TestWithoutTrainTest',
+           'TestYoloV5', 'TestYOLOX', 'AllArchitecturesTest', 'TestAverageMeter', 'TestModuleUtils', 'TestRepVgg', 'TestWithoutTrainTest',
            'LoadCheckpointFromDirectPathTest', 'StrictLoadEnumTest', 'TrainWithInitializedObjectsTest', 'TestAutoAugment',
            'OhemLossTest', 'EarlyStopTest', 'SegmentationTransformsTest', 'PretrainedModelsUnitTest', 'TestConvBnRelu',
            'FactoriesTest', 'InitializeWithDataloadersTest']

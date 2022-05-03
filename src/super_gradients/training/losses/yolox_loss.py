@@ -14,6 +14,14 @@ from super_gradients.training.utils.detection_utils import calculate_bbox_iou_ma
 
 
 class IOUloss(nn.Module):
+    """
+    IoU loss with the following supported loss types:
+        * 'iou' for
+            (1 - iou^2)
+        * 'giou' according to "Generalized Intersection over Union: A Metric and A Loss for Bounding Box Regression"
+            (1 - giou), where giou = iou - (cover_box - union_box)/cover_box
+    """
+
     def __init__(self, reduction="none", loss_type="iou"):
         super(IOUloss, self).__init__()
         self.reduction = reduction
@@ -55,10 +63,10 @@ class IOUloss(nn.Module):
 class YoloXDetectionLoss(_Loss):
     """
     Calculate YOLO V5 loss:
-    L = L_objectivness + L_iou + L_classification (+ L_l1)
+    L = L_objectivness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
     """
 
-    def __init__(self, strides, im_size, num_classes, use_l1=False, center_sampling_radius=2.5):
+    def __init__(self, strides, im_size, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou'):
         super().__init__()
         self.grids = [torch.zeros(1)] * len(strides)
         self.strides = strides
@@ -69,7 +77,7 @@ class YoloXDetectionLoss(_Loss):
         self.use_l1 = use_l1
         self.l1_loss = nn.L1Loss(reduction="none")
         self.bcewithlog_loss = nn.BCEWithLogitsLoss(reduction="none")
-        self.iou_loss = IOUloss(reduction="none")
+        self.iou_loss = IOUloss(reduction="none", loss_type=iou_type)
 
     def forward(self, model_output, targets):
         if isinstance(model_output, tuple) and len(model_output) == 2:
@@ -87,6 +95,34 @@ class YoloXDetectionLoss(_Loss):
 
     def compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        L = L_objectivness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
+        where:
+            * L_boxes, L_classification and L_l1 are calculated only between cells and targets that suit them;
+            * L_objectivness is calculated for all cells.
+
+        L_classification:
+            for cells that have suitable ground truths in their grid locations add BCEs
+            to force a prediction of IoU with a GT in a multi-label way
+            Coef: 1.
+        L_iou:
+            for cells that have suitable ground truths in their grid locations
+            add (1 - IoU^2), IoU between a predicted box and each GT box, force maximum IoU
+            Coef: 1.
+        L_l1:
+            for cells that have suitable ground truths in their grid locations
+            l1 distance between the logits and GTs in “logits” format (the inverse of “logits to predictions” ops)
+            Coef: 1[no_aug_epoch]
+        L_objectness:
+            for each cell add BCE with a label of 1 if there is GT assigned to the cell
+            Coef: 1
+
+        :param predictions:     output from all Yolo levels, each of shape
+                                [Batch x Num_Anchors x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]
+        :param targets:         [Num_targets x (4 + 2)], values on dim 1 are: image id in a batch, class, box x y w h
+
+        :return:                loss, all losses separately in a detached tensor
+        """
         x_shifts, y_shifts, expanded_strides, transformed_outputs, raw_outputs = self.prepare_predictions(predictions)
 
         bbox_preds = transformed_outputs[:, :, :4]  # [batch, n_anchors_all, 4]
@@ -114,11 +150,13 @@ class YoloXDetectionLoss(_Loss):
                 obj_target = transformed_outputs.new_zeros((total_num_anchors, 1))
                 fg_mask = transformed_outputs.new_zeros(total_num_anchors).bool()
             else:
+                # GT boxes to image coordinates
                 gt_bboxes_per_image = labels_im[:, 2:6] * self.im_size
                 gt_classes = labels_im[:, 1]
                 bboxes_preds_per_image = bbox_preds[batch_idx]
 
                 try:
+                    # assign cells to ground truths, at most one GT per cell
                     gt_matched_classes, fg_mask, pred_ious_this_matching, matched_gt_inds, num_fg_img = \
                         self.get_assignments(batch_idx, num_gt, total_num_anchors, gt_bboxes_per_image,
                                              gt_classes, bboxes_preds_per_image,
@@ -145,6 +183,7 @@ class YoloXDetectionLoss(_Loss):
                                                    gt_bboxes_per_image[matched_gt_inds], expanded_strides[0][fg_mask],
                                                    x_shifts=x_shifts[0][fg_mask], y_shifts=y_shifts[0][fg_mask])
 
+            # collect targets for all loss terms over the whole batch
             cls_targets.append(cls_target)
             reg_targets.append(reg_target)
             obj_targets.append(obj_target.to(transformed_outputs.dtype))
@@ -152,6 +191,7 @@ class YoloXDetectionLoss(_Loss):
             if self.use_l1:
                 l1_targets.append(l1_target)
 
+        # concat all targets over the batch (get rid of batch dim)
         cls_targets = torch.cat(cls_targets, 0)
         reg_targets = torch.cat(reg_targets, 0)
         obj_targets = torch.cat(obj_targets, 0)
@@ -160,6 +200,7 @@ class YoloXDetectionLoss(_Loss):
             l1_targets = torch.cat(l1_targets, 0)
 
         num_fg = max(num_fg, 1)
+        # loss terms divided by the total number of foregrounds
         loss_iou = self.iou_loss(bbox_preds.view(-1, 4)[fg_masks], reg_targets).sum() / num_fg
         loss_obj = self.bcewithlog_loss(obj_preds.view(-1, 1), obj_targets).sum() / num_fg
         loss_cls = self.bcewithlog_loss(cls_preds.view(-1, self.num_classes)[fg_masks], cls_targets).sum() / num_fg
@@ -189,9 +230,9 @@ class YoloXDetectionLoss(_Loss):
                         * expanded_strides: shape [1 x (num_anchors * num_cells) x 1],
                           stride of the output grid the prediction is coming from
                         * transformed_outputs: shape [batch_size x (num_anchors * num_cells) x (num_classes + 5)],
-                          predictions with boxes in real coordinates
+                          predictions with boxes in real coordinates and logprobabilities
                         * raw_outputs: shape [batch_size x (num_anchors * num_cells) x (num_classes + 5)],
-                          raw predictions with boxes as logits
+                          raw predictions with boxes and confidences as logits
 
         """
         raw_outputs = []
@@ -213,6 +254,7 @@ class YoloXDetectionLoss(_Loss):
                 # e.g [1, 784, 4]
                 raw_outputs.append(output_raveled[:, :, :4].clone())
 
+            # box logits to coordinates
             output_raveled[..., :2] = (output_raveled[..., :2] + grid_raveled) * self.strides[k]
             output_raveled[..., 2:4] = torch.exp(output_raveled[..., 2:4]) * self.strides[k]
 
@@ -237,6 +279,12 @@ class YoloXDetectionLoss(_Loss):
         return x_shifts, y_shifts, expanded_strides, transformed_outputs, raw_outputs
 
     def get_l1_target(self, l1_target, gt, stride, x_shifts, y_shifts, eps=1e-8):
+        """
+        :param l1_target:   tensor of zeros of shape [Num_cell_gt_pairs x 4]
+        :param gt:          targets in coordinates [Num_cell_gt_pairs x (4 + 1 + num_classes)]
+
+        :return:            targets in the format corresponding to logits
+        """
         l1_target[:, 0] = gt[:, 0] / stride - x_shifts
         l1_target[:, 1] = gt[:, 1] / stride - y_shifts
         l1_target[:, 2] = torch.log(gt[:, 2] / stride + eps)
@@ -247,6 +295,11 @@ class YoloXDetectionLoss(_Loss):
     def get_assignments(self, batch_idx, num_gt, total_num_anchors, gt_bboxes_per_image, gt_classes,
                         bboxes_preds_per_image, expanded_strides, x_shifts, y_shifts, cls_preds,
                         obj_preds, mode="gpu"):
+        """
+        Match cells to ground truth:
+            * at most 1 GT per cell
+            * dynamic number of cells per GT
+        """
         if mode == "cpu":
             print("------------CPU Mode for This Batch-------------")
             gt_bboxes_per_image = gt_bboxes_per_image.cpu().float()
@@ -256,6 +309,7 @@ class YoloXDetectionLoss(_Loss):
             x_shifts = x_shifts.cpu()
             y_shifts = y_shifts.cpu()
 
+        # create a mask for foreground cells
         fg_mask, is_in_boxes_and_center = self.get_in_boxes_info(gt_bboxes_per_image, expanded_strides,
                                                                  x_shifts, y_shifts, total_num_anchors, num_gt)
 
@@ -268,8 +322,8 @@ class YoloXDetectionLoss(_Loss):
             gt_bboxes_per_image = gt_bboxes_per_image.cpu()
             bboxes_preds_per_image = bboxes_preds_per_image.cpu()
 
+        # calculate cost between all foregrounds and all ground truths (used only for matching)
         pair_wise_ious = calculate_bbox_iou_matrix(gt_bboxes_per_image, bboxes_preds_per_image, x1y1x2y2=False)
-
         gt_cls_per_image = F.one_hot(gt_classes.to(torch.int64), self.num_classes)
         gt_cls_per_image = gt_cls_per_image.float().unsqueeze(1).repeat(1, num_in_boxes_anchor, 1)
         pair_wise_ious_loss = -torch.log(pair_wise_ious + 1e-8)
@@ -285,8 +339,10 @@ class YoloXDetectionLoss(_Loss):
 
         cost = pair_wise_cls_loss + 3.0 * pair_wise_ious_loss + 100000.0 * (~is_in_boxes_and_center)
 
+        # further filter foregrounds: create pairs between cells and ground truth, based on cost and IoUs
         num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds = \
             self.dynamic_k_matching(cost, pair_wise_ious, gt_classes, num_gt, fg_mask)
+        # discard tensors related to cost
         del pair_wise_cls_loss, cost, pair_wise_ious, pair_wise_ious_loss
 
         if mode == "cpu":
@@ -298,6 +354,12 @@ class YoloXDetectionLoss(_Loss):
         return gt_matched_classes, fg_mask, pred_ious_this_matching, matched_gt_inds, num_fg
 
     def get_in_boxes_info(self, gt_bboxes_per_image, expanded_strides, x_shifts, y_shifts, total_num_anchors, num_gt):
+        """
+        Create a mask for all cells, mask in only foreground: cells that have a center located:
+            * withing a GT box;
+            OR
+            * within a fixed radius around a GT box (center sampling);
+        """
         expanded_strides_per_image = expanded_strides[0]
 
         # cell coordinates, shape [n_predictions] -> repeated to [n_gts, n_predictions]
@@ -350,15 +412,24 @@ class YoloXDetectionLoss(_Loss):
         is_in_centers = center_deltas.min(dim=-1).values > 0.0
         is_in_centers_all = is_in_centers.sum(dim=0) > 0
 
-        # in boxes and in centers
+        # in boxes OR in centers
         is_in_boxes_anchor = is_in_boxes_all | is_in_centers_all
 
+        # in boxes AND in centers, preserving a shape [num_GTs x num_FGs]
         is_in_boxes_and_center = (is_in_boxes[:, is_in_boxes_anchor] & is_in_centers[:, is_in_boxes_anchor])
         return is_in_boxes_anchor, is_in_boxes_and_center
 
     def dynamic_k_matching(self, cost, pair_wise_ious, gt_classes, num_gt, fg_mask):
+        """
+        :param cost:            pairwise cost, [num_FGs x num_GTs]
+        :param pair_wise_ious:  pairwise IoUs, [num_FGs x num_GTs]
+        :param gt_classes:      class of each GT
+        :param num_gt:          number of GTs
+        """
+        # create a matrix with shape [num_GTs x num_FGs]
         matching_matrix = torch.zeros_like(cost, dtype=torch.uint8)
 
+        # for each GT get a dynamic k of foregrounds with a minimum cost: k = int(sum[top 10 IoUs])
         ious_in_boxes_matrix = pair_wise_ious
         n_candidate_k = min(10, ious_in_boxes_matrix.size(1))
         topk_ious, _ = torch.topk(ious_in_boxes_matrix, n_candidate_k, dim=1)
@@ -370,11 +441,13 @@ class YoloXDetectionLoss(_Loss):
 
         del topk_ious, dynamic_ks, pos_idx
 
+        # leave at most one GT per foreground, chose the one with the smallest cost
         anchor_matching_gt = matching_matrix.sum(0)
         if (anchor_matching_gt > 1).sum() > 0:
             _, cost_argmin = torch.min(cost[:, anchor_matching_gt > 1], dim=0)
             matching_matrix[:, anchor_matching_gt > 1] *= 0
             matching_matrix[cost_argmin, anchor_matching_gt > 1] = 1
+
         fg_mask_inboxes = matching_matrix.sum(0) > 0
         num_fg = fg_mask_inboxes.sum().item()
 
