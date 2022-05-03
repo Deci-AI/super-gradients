@@ -208,9 +208,9 @@ class CSPDarknet53(SgModule):
         struct = [depth_mult(s) for s in struct]
         self._modules_list = nn.ModuleList()
 
-        if yolo_type == 'yoloX' or yolo_version == 'v3.0':
+        if get_param(arch_params, 'stem_type') == 'focus' or yolo_type == 'yoloX' or yolo_version == 'v3.0':
             self._modules_list.append(Focus(channels_in, width_mult(64), 3, 1, activation_type))  # 0
-        elif yolo_version == 'v6.0':
+        elif get_param(arch_params, 'stem_type') == '6x6' or yolo_version == 'v6.0':
             self._modules_list.append(Conv(channels_in, width_mult(64), 6, 2, activation_type, padding=2))    # 0
         else:
             raise NotImplementedError(f'One of {yolo_type} yolo type or {yolo_version} yolo version is not supported')
