@@ -12,6 +12,7 @@ from super_gradients.training.exceptions.kd_model_exceptions import Architecture
 from super_gradients.training.models.classification_models.resnet import ResNet50, ResNet18
 from super_gradients.training.losses.kd_losses import KDLogitsLoss
 from copy import deepcopy
+from super_gradients.training.utils.module_utils import NormalizationAdapter
 
 
 class KDModelTest(unittest.TestCase):
@@ -204,6 +205,18 @@ class KDModelTest(unittest.TestCase):
                              checkpoint_params={"teacher_checkpoint_path": teacher_path}
                              )
         sg_model.train(self.kd_train_params)
+
+    def test_build_model_with_input_adapter(self):
+        kd_model = KDModel("build_kd_module_with_with_input_adapter", device='cpu')
+        kd_model.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
+                             student_arch_params={'num_classes': 1000}, teacher_arch_params={'num_classes': 1000},
+                             checkpoint_params={'teacher_pretrained_weights': "imagenet"},
+                             arch_params={
+                                 "teacher_input_adapter": NormalizationAdapter(mean_original=[0.485, 0.456, 0.406],
+                                                                               std_original=[0.229, 0.224, 0.225],
+                                                                               mean_required=[0.5, 0.5, 0.5],
+                                                                               std_required=[0.5, 0.5, 0.5])})
+        self.assertTrue(isinstance(kd_model.net.module.teacher[0], NormalizationAdapter))
 
 
 if __name__ == '__main__':

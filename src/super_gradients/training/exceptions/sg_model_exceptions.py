@@ -21,3 +21,12 @@ class UnsupportedOptimizerFormat(UnsupportedTrainingParameterFormat):
     def __init__(self):
         super().__init__(
             "optimizer parameter expected one of ['Adam','SGD','RMSProp'], or torch.optim.Optimizer object")
+
+
+class IllegalDataloaderInitialization(Exception):
+    """Exception raised illegal data loaders.
+    """
+
+    def __init__(self):
+        super().__init__(
+            "train_loader, valid_loader and class parameters are required when initializing SgModel with data loaders")
