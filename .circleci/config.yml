@@ -429,21 +429,9 @@ jobs:
       - image: cimg/python:<< parameters.py_version >>
     resource_class: large
     steps:
-      - checkout_and_skip_build
-      - attach_workspace:
-          at: ~/
-      - run:
-          name: set version at bash env
-          command: |
-            if [[ $CIRCLE_TAG ]]
-            then
-              echo "export NEW_VERSION=$CIRCLE_TAG" >> $BASH_ENV
-            else
-              cat ~/new-env-vars >> $BASH_ENV
-            fi
-
-      #      - restore_cache:
-      #          key: << parameters.py_version >>-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "requirements.txt" }}
+      - deci-common/checkout_and_skip_build:
+          check_version_file: true
+      - deci-common/get_persisted_version_info
       - run:
           name: install python dependencies
           command: |
@@ -451,10 +439,6 @@ jobs:
             . venv/bin/activate
             python -m pip install --upgrade pip
             cat requirements.txt | cut -f1 -d"#" | xargs -n 1 -L 1 pip install --progress-bar off
-      #      - save_cache:
-      #          key: << parameters.py_version >>-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "requirements.txt" }}
-      #          paths:
-      #            - "venv"
       - run:
           name: edit package version
           command: |
@@ -469,10 +453,6 @@ jobs:
           no_output_timeout: 30m
           command: |
             . venv/bin/activate
-            cp requirements.txt tmp.txt
-            cat tmp.txt | head -n -1 > requirements.txt
-            rm tmp.txt
-            rm ~/.config/pip/pip.conf
             python -m pip install .
       - run:
           name: run tests with coverage
