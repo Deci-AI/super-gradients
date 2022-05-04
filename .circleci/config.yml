@@ -174,68 +174,32 @@ commands:
       - unless:
           condition: << parameters.clone_specific_tag >>
           steps:
-            - checkout_and_skip_build
+            - deci-common/checkout_and_skip_build:
+                check_version_file: true
       - when:
           condition: << parameters.clone_specific_tag >>
           steps:
             - clone_specific_tag:
                 tag_to_checkout_from: << parameters.tag_to_checkout_from >>
-      - attach_workspace:
-          at: ~/
-      - restore_cache:
-          key: << parameters.py_version >>-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "requirements.txt" }}
+      - deci-common/get_persisted_version_info
       - run:
-          name: Taking version from tag or env vars
+          name: edit package version
           command: |
-            echo "upload_package Command got version: << parameters.version >>"
-            NEW_VERSION=<< parameters.version >>
-            if [[ $NEW_VERSION ]]
-            then
-              export NEW_VERSION=$NEW_VERSION
-              echo "export NEW_VERSION=$NEW_VERSION" >> $BASH_ENV
-            else
-              cat ~/new-env-vars >> $BASH_ENV
-              source $BASH_ENV
-            fi
-
-            echo "new version is ${NEW_VERSION}"
-      #      - run: #TODO:implement linter
-      #          name: install Flake8 python linter
-      #          command: |
-      #            pip install --user flake8
-      #      - run:
-      #          name: Lint all python files changed since develop branch
-      #          command: |
-      #            flake8 --statistics --config  -v --exclude venv/,documentation  scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$')
-      - run:
-          command: |
-            sudo apt-get update
-            pip install -U importlib-metadata>=3.6
-            pip install --user awscli twine wheel
-      - set_codeartifact_login:
+            echo $NEW_VERSION > version.txt
+      - deci-common/codeartifact_login_account:
           aws_role: << parameters.aws_role >>
           aws_account: << parameters.aws_account >>
           tool: "twine"
-          repository: << parameters.codeartifact_repository >>
-      #      - run:
-      #          name: build documentation
-      #          command: |
-      #            . venv/bin/activate
-      #            pip install -r documentation/requirements.txt
-      #            sh ./scripts/generate_docs.sh
-      #      - store_artifacts:
-      #          path: docs/
-      - upload_package_and_edit_version:
-          version: $NEW_VERSION
-      - set_codeartifact_login:
+          repo_name: << parameters.codeartifact_repository >>
+      - deci-common/twine_upload_package
+      - deci-common/codeartifact_login_account:
           aws_role: << parameters.aws_role >>
           aws_account: << parameters.aws_account >>
           tool: "pip"
-          repository: << parameters.codeartifact_repository >>
-      - test_on_clean_env:
+          repo_name: << parameters.codeartifact_repository >>
+      - deci-common/pip_install_specific_package:
           package_name: "super-gradients"
           version: $NEW_VERSION
-          ## if test worked push to repo, otherwise delete from pypi
       - run:
           name: delete dist
           command: |
@@ -254,53 +218,6 @@ commands:
           command: |
             scripts/aws-sudo.sh -c '<< parameters.command >>' << parameters.aws_role >>
 
-  set_codeartifact_login:
-    description: "Connecting to codeartifact"
-    parameters:
-      repository:
-        type: string
-        default: "deci-packages"
-      domain:
-        type: string
-        default: "deci-packages"
-      aws_role:
-        type: string
-      aws_account:
-        type: string
-      tool:
-        type: string
-    steps:
-      - run:
-          name: "remove old"
-          command: |
-            if [ -f ~/.config/pip/pip.conf ]; then
-              rm ~/.config/pip/pip.conf
-            fi
-      - run_on_aws_account:
-          aws_role: << parameters.aws_role >>
-          command: |
-            CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain << parameters.domain >> --domain-owner << parameters.aws_account >> --query authorizationToken --output text`
-            aws codeartifact login --tool << parameters.tool >> --repository << parameters.repository >> --domain << parameters.domain >> --domain-owner << parameters.aws_account >>
-
-  test_on_clean_env:
-    parameters:
-      package_name:
-        type: string
-      version:
-        type: string
-    steps:
-      - run:
-          name: install python dependencies
-          command: |
-            python3 -m venv clean_env
-            . clean_env/bin/activate
-            sed -i 's/^index-url/extra-index-url/g'  ~/.config/pip/pip.conf
-            python -m pip install << parameters.package_name >>==<< parameters.version >>
-      - run:
-          name: todo - implement tests for the package. Maybe use poc repo # TODO: Still need to get the tests going
-          command: |
-            . clean_env/bin/activate
-            echo "TODO: Still need to get the pacakge tests going"
 
   upload_package_and_edit_version:
     parameters:
@@ -308,10 +225,7 @@ commands:
         type: string
     description: "Uploading a package to pypi"
     steps:
-      - run:
-          name: edit package version
-          command: |
-            echo << parameters.version >> > version.txt
+
       - run:
           name: create packages
           command: |
@@ -347,30 +261,6 @@ commands:
           delete_remote: << parameters.is_release >>
 
 
-  checkout_and_skip_build:
-    description: "Checkout code and check if we should skip the build"
-    steps:
-      - checkout
-      - run:
-          name: Check if we should skip build when not triggered by tag
-          command: |
-            if [[ ! $CIRCLE_TAG ]]; then
-              last_commit_user=$(git log -1 --pretty=format:'%an')
-              if [ "${last_commit_user}" == "CircleCI commit" ]; then
-                 echo "\n\n PLEASE NOTICE: Skipping Build to prevent commit loop since the last commit was genereated by automated CI/CD \n\n"
-                 circleci-agent step halt
-              fi
-            fi
-      - run:
-          name: Check if we should skip build when triggered by tag
-          command: |
-            version_in_file=`cat version.txt`
-            echo "The version written in version.txt is ${version_in_file}"
-            if [[ $CIRCLE_TAG ]] && [[ "$CIRCLE_TAG" == "${version_in_file}" ]]; then
-                echo "** version.txt is set with the same version , avoiding loop and exiting **"
-                circleci-agent step halt
-            fi
-
   clone_specific_tag:
     description: "got clone and check out specific tag"
     parameters:
@@ -385,39 +275,7 @@ commands:
             git checkout tags/<< parameters.tag_to_checkout_from >>
 
 jobs:
-  get_version_info:
-    working_directory: ~/project
-    docker:
-      - image: cimg/base:2021.04
-    resource_class: small
-    description: "Putting latest tag in environment"
-    steps:
-      - checkout_and_skip_build
-      - run:
-          name: get latest tag
-          command: |
-            set +e
 
-            LATEST_RELEASE=$(git tag --list | grep --regexp="^[0-9]\+\.[0-9]\+\.[0-9]\+$" | sort -V | tail -n 1)
-            echo "export LATEST_RELEASE=${LATEST_RELEASE}" >> $BASH_ENV
-            NEW_VERSION=$(bash scripts/version-up.sh -v $LATEST_RELEASE -i)
-
-            BRANCH=<< pipeline.git.branch >>
-            echo "PIPELINE is ${BRANCH} "
-            case << pipeline.git.branch >> in
-            master)
-                  echo "export NEW_VERSION=${NEW_VERSION}rc${CIRCLE_BUILD_NUM}" >> $BASH_ENV
-                  ;;
-            *)
-                  echo "export NEW_VERSION=${NEW_VERSION}b${CIRCLE_BUILD_NUM}" >> $BASH_ENV
-                  ;;
-            esac
-            cat $BASH_ENV
-      - run: cat $BASH_ENV >> ~/new-env-vars
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - new-env-vars
   build:
     parameters:
       py_version:
@@ -538,7 +396,8 @@ jobs:
         type: string
         default: "0"
     steps:
-      - checkout_and_skip_build
+      - deci-common/checkout_and_skip_build:
+          check_version_file: true
       - run:
           command: |
             sudo apt-get update
