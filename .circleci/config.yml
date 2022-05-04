@@ -254,6 +254,34 @@ commands:
           command: |
             scripts/aws-sudo.sh -c '<< parameters.command >>' << parameters.aws_role >>
 
+  set_codeartifact_login:
+    description: "Connecting to codeartifact"
+    parameters:
+      repository:
+        type: string
+        default: "deci-packages"
+      domain:
+        type: string
+        default: "deci-packages"
+      aws_role:
+        type: string
+      aws_account:
+        type: string
+      tool:
+        type: string
+    steps:
+      - run:
+          name: "remove old"
+          command: |
+            if [ -f ~/.config/pip/pip.conf ]; then
+              rm ~/.config/pip/pip.conf
+            fi
+      - run_on_aws_account:
+          aws_role: << parameters.aws_role >>
+          command: |
+            CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain << parameters.domain >> --domain-owner << parameters.aws_account >> --query authorizationToken --output text`
+            aws codeartifact login --tool << parameters.tool >> --repository << parameters.repository >> --domain << parameters.domain >> --domain-owner << parameters.aws_account >>
+
   test_on_clean_env:
     parameters:
       package_name:
@@ -357,7 +385,39 @@ commands:
             git checkout tags/<< parameters.tag_to_checkout_from >>
 
 jobs:
+  get_version_info:
+    working_directory: ~/project
+    docker:
+      - image: cimg/base:2021.04
+    resource_class: small
+    description: "Putting latest tag in environment"
+    steps:
+      - checkout_and_skip_build
+      - run:
+          name: get latest tag
+          command: |
+            set +e
 
+            LATEST_RELEASE=$(git tag --list | grep --regexp="^[0-9]\+\.[0-9]\+\.[0-9]\+$" | sort -V | tail -n 1)
+            echo "export LATEST_RELEASE=${LATEST_RELEASE}" >> $BASH_ENV
+            NEW_VERSION=$(bash scripts/version-up.sh -v $LATEST_RELEASE -i)
+
+            BRANCH=<< pipeline.git.branch >>
+            echo "PIPELINE is ${BRANCH} "
+            case << pipeline.git.branch >> in
+            master)
+                  echo "export NEW_VERSION=${NEW_VERSION}rc${CIRCLE_BUILD_NUM}" >> $BASH_ENV
+                  ;;
+            *)
+                  echo "export NEW_VERSION=${NEW_VERSION}b${CIRCLE_BUILD_NUM}" >> $BASH_ENV
+                  ;;
+            esac
+            cat $BASH_ENV
+      - run: cat $BASH_ENV >> ~/new-env-vars
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - new-env-vars
   build:
     parameters:
       py_version:
@@ -612,6 +672,44 @@ jobs:
           root: ~/
           paths:
             - new-env-vars
+
+  login_to_codeartifact:
+    description: Authenticate to aws code artifact. By default authenticates to prod
+    docker:
+      - image: cimg/python:3.7.5
+    parameters:
+      dev_account:
+        description: authenticate to development codeartifact
+        type: boolean
+        default: false
+      pip_repo_name:
+        type: string
+    steps:
+      - checkout
+      - run:
+          command: |
+            pip install --user awscli
+      - when:
+          condition: << parameters.dev_account >>
+          steps:
+            - set_env_login_details:
+                repo_name: << parameters.pip_repo_name >>
+                aws_account_id: ${AWS_DEV_ACCOUNT_ID}
+                aws_role: ${AWS_DEV_ROLE}
+                env_name: "development"
+      - unless:
+          condition: << parameters.dev_account >>
+          steps:
+            - set_env_login_details:
+                repo_name: << parameters.pip_repo_name >>
+                aws_account_id: ${AWS_PROD_ACCOUNT_ID}
+                aws_role: ${AWS_PROD_ROLE}
+                env_name: "production"
+
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - .config/pip/pip.conf
 
 
 workflows:
