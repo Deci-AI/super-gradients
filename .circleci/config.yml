@@ -188,13 +188,13 @@ commands:
             echo $NEW_VERSION > version.txt
       - deci-common/codeartifact_login_account:
           aws_role: << parameters.aws_role >>
-          aws_account: << parameters.aws_account >>
+          aws_account_id: << parameters.aws_account >>
           tool: "twine"
           repo_name: << parameters.codeartifact_repository >>
       - deci-common/twine_upload_package
       - deci-common/codeartifact_login_account:
           aws_role: << parameters.aws_role >>
-          aws_account: << parameters.aws_account >>
+          aws_account_id: << parameters.aws_account >>
           tool: "pip"
           repo_name: << parameters.codeartifact_repository >>
       - deci-common/pip_install_specific_package:
