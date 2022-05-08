@@ -119,7 +119,7 @@ jobs:
           command: |
             echo $CIRCLE_TAG > version.txt
 
-      - deci-common/pip_upload_package_codeartifact_all_acoounts:
+      - deci-common/pip_upload_package_codeartifact_all_accounts:
           codeartifact_repository: "deci-packages"
 
       - deci-common/pip_test_package_installation_codeartifact_dev:
