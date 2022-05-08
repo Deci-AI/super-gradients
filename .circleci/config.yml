@@ -295,7 +295,7 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            python -m pip install --upgrade pip
+            python3 -m pip install --upgrade pip
             cat requirements.txt | cut -f1 -d"#" | xargs -n 1 -L 1 pip install --progress-bar off
       - run:
           name: edit package version
@@ -311,7 +311,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             . venv/bin/activate
-            python -m pip install .
+            python3 -m pip install .
       - run:
           name: run tests with coverage
           no_output_timeout: 30m
