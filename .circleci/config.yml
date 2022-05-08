@@ -23,256 +23,6 @@ release_candidate_filter: &release_candidate_filter
     branches:
       only: master
 
-commands:
-
-  run_on_account:
-    description: "Run a command using a given role"
-    parameters:
-      command:
-        type: string
-      aws_role:
-        type: string
-      env_name:
-        type: string
-    steps:
-      - run:
-          environment:
-            ENVIRONMENT_NAME: << parameters.env_name >>
-          name: Run a command on << parameters.aws_role >> aws account
-          command: scripts/aws-sudo.sh -c '<< parameters.command >>' << parameters.aws_role >>
-
-
-
-  set_env_login_details:
-    description: "log into codeartifcat specific repo "
-    parameters:
-      repo_name:
-        type: string
-      aws_account_id:
-        type: string
-      aws_role:
-        type: string
-      env_name:
-        type: string
-    steps:
-      - run_on_account:
-          aws_role: << parameters.aws_role >>
-          env_name: << parameters.env_name >>
-          command: |
-            aws codeartifact login --tool pip --repository << parameters.repo_name >> --domain deci-packages --domain-owner << parameters.aws_account_id >>
-      - run:
-          name: edit the pip conf
-          command: sed -i 's/^index-url/extra-index-url/g'  ~/.config/pip/pip.conf
-
-  create_github_release:
-    description: create a pull request on github
-    parameters:
-      directory_to_cd_into:
-        type: string
-      tag:
-        type: string
-      notes:
-        type: string
-        default: "Automated nightly release"
-    steps:
-      - run:
-          name: install gh cli
-          command: |
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-            sudo apt update
-            sudo apt install gh
-      - run:
-          name: authenticate
-          command: |
-            echo "$GITHUB_CLI_TOKEN" > token.txt
-            gh auth login --with-token < token.txt
-            rm  token.txt
-      - run:
-          name: create the release
-          command: |
-            cd << parameters.directory_to_cd_into >>
-            gh release create << parameters.tag >> --notes "<< parameters.notes >>"
-            #gh auth logout
-
-  tag_as:
-    description: "tag as a certain name"
-    parameters:
-      tag_name:
-        type: string
-      delete_remote:
-        type: boolean
-    steps:
-      - when:
-          condition: << parameters.delete_remote >>
-          steps:
-            - run:
-                name: Remove local and remote tag
-                command: |
-                  git tag -d << parameters.tag_name >>
-                  git push --delete origin << parameters.tag_name >>
-      - run:
-          name: Tag stable and push
-          command: |
-            git tag << parameters.tag_name >>
-            git push origin << parameters.tag_name >>
-
-  upload_package_run:
-    description: "uploads the package to dev and prod"
-    parameters:
-      version:
-        type: string
-        default: ""
-      py_version:
-        type: string
-        default: ""
-      clone_specific_tag:
-        type: boolean
-        default: false
-      tag_to_checkout_from:
-        type: string
-        default: ""
-    steps:
-      - upload_package:
-          aws_role: $AWS_DEV_ROLE
-          aws_account: $AWS_DEV_ACCOUNT_ID
-          version: << parameters.version >>
-          py_version: << parameters.py_version >>
-          clone_specific_tag: << parameters.clone_specific_tag >>
-          tag_to_checkout_from: << parameters.tag_to_checkout_from >>
-      - upload_package:
-          aws_role: $AWS_PROD_ROLE
-          aws_account: $AWS_PROD_ACCOUNT_ID
-          version: << parameters.version >>
-          py_version: << parameters.py_version >>
-          clone_specific_tag: << parameters.clone_specific_tag >>
-          tag_to_checkout_from: << parameters.tag_to_checkout_from >>
-
-  upload_package:
-    description: "uploads a package to a designated repo"
-    parameters:
-      aws_account:
-        type: string
-      aws_role:
-        type: string
-      version:
-        type: string
-        default: ""
-      py_version:
-        type: string
-        default: ""
-      clone_specific_tag:
-        type: boolean
-        default: false
-      tag_to_checkout_from:
-        type: string
-        default: ""
-      codeartifact_repository:
-        type: string
-        default: "deci-packages"
-    steps:
-      - unless:
-          condition: << parameters.clone_specific_tag >>
-          steps:
-            - deci-common/checkout_and_skip_build:
-                check_version_file: true
-      - when:
-          condition: << parameters.clone_specific_tag >>
-          steps:
-            - clone_specific_tag:
-                tag_to_checkout_from: << parameters.tag_to_checkout_from >>
-      - deci-common/get_persisted_version_info
-      - run:
-          name: edit package version
-          command: |
-            echo $NEW_VERSION > version.txt
-      - deci-common/codeartifact_login_account:
-          aws_role: << parameters.aws_role >>
-          aws_account_id: << parameters.aws_account >>
-          tool: "twine"
-          repo_name: << parameters.codeartifact_repository >>
-      - deci-common/twine_upload_package
-      - deci-common/codeartifact_login_account:
-          aws_role: << parameters.aws_role >>
-          aws_account_id: << parameters.aws_account >>
-          tool: "pip"
-          repo_name: << parameters.codeartifact_repository >>
-      - deci-common/pip_install_specific_package:
-          package_name: "super-gradients"
-          version: $NEW_VERSION
-      - run:
-          name: delete dist
-          command: |
-            rm -rf dist/*
-
-  run_on_aws_account:
-    description: "Run a command using a role"
-    parameters:
-      command:
-        type: string
-      aws_role:
-        type: string
-    steps:
-      - run:
-          name: Run a command using an aws account
-          command: |
-            scripts/aws-sudo.sh -c '<< parameters.command >>' << parameters.aws_role >>
-
-
-  upload_package_and_edit_version:
-    parameters:
-      version:
-        type: string
-    description: "Uploading a package to pypi"
-    steps:
-
-      - run:
-          name: create packages
-          command: |
-            python setup.py bdist_wheel
-      - run:
-          name: upload to pypi using codeartifact
-          command: |
-            twine upload -r codeartifact dist/*
-
-
-
-  git_commit_and_tag:
-    parameters:
-      version:
-        type: string
-        default: ""
-      is_release:
-        type: boolean
-        default: false
-    steps:
-      - run:
-          name: Avoid hosts unknown for github
-          command: mkdir -p ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
-      - run:
-          name: Commit and Push version file
-          command: |
-            git config --global user.email "circleci@deci.ai"
-            git config --global user.name  "CircleCI commit"
-            git commit version.txt -m "CircleCi - Changed version to << parameters.version >>"
-            git push --force --set-upstream origin master
-      - tag_as:
-          tag_name: << parameters.version >>
-          delete_remote: << parameters.is_release >>
-
-
-  clone_specific_tag:
-    description: "got clone and check out specific tag"
-    parameters:
-      tag_to_checkout_from:
-        type: string
-    steps:
-      - checkout
-      - run:
-          name: Checkout tag
-          command: |
-            cd super_gradients
-            git checkout tags/<< parameters.tag_to_checkout_from >>
 
 jobs:
 
@@ -328,60 +78,70 @@ jobs:
           path: ~/sg_logs
 
 
-  build_and_release:
-    docker:
-      - image: cimg/python:3.7
-    steps:
-      - get_version_info
-      - build:
-          name: "build3.7"
-          py_version: "3.7"
-          package_name: "super-gradients"
-          requires:
-            - get_version_info
-      - upload_package:
-          aws_role: $AWS_PROD_ROLE
-          aws_account: $AWS_PROD_ACCOUNT_ID
-          version: $CIRCLE_TAG
-          py_version: << parameters.py_version >>
-
   release_candidate:
-    docker:
-      - image: cimg/python:3.7
     parameters:
       py_version:
         type: string
+    docker:
+      - image: cimg/python:<< parameters.py_version >>
     steps:
-      - upload_package:
-          aws_role: $AWS_DEV_ROLE
-          aws_account: $AWS_DEV_ACCOUNT_ID
-          py_version: << parameters.py_version >>
-      - git_commit_and_tag:
+      - deci-common/checkout_and_skip_build:
+          check_version_file: true
+      - deci-common/get_persisted_version_info
+      - run:
+          name: edit package version
+          command: |
+            echo $NEW_VERSION > version.txt
+      - deci-common/pip_upload_package_codeartifact_dev:
+          codeartifact_repository: "deci-packages"
+      - deci-common/pip_test_package_installation_codeartifact_dev:
+          package_name: "super-gradients"
+          version: $NEW_VERSION
+      - run:
+          name: "commit version file"
+          command: | 
+            git commit version.txt -m "Deci Services - Changed version to $NEW_VERSION"
+      - deci-common/git_commit_and_tag:
           version: $NEW_VERSION
 
   release_version:
-    docker:
-      - image: cimg/python:3.7
     parameters:
       py_version:
         type: string
+    docker:
+      - image: cimg/python:<< parameters.py_version >>
     steps:
-      - upload_package_run:
+      - deci-common/checkout_and_skip_build:
+          check_version_file: true
+
+      - run:
+          name: edit package version
+          command: |
+            echo $CIRCLE_TAG > version.txt
+
+      - deci-common/pip_upload_package_codeartifact_all_acoounts:
+          codeartifact_repository: "deci-packages"
+
+      - deci-common/pip_test_package_installation_codeartifact_dev:
+          package_name: "super-gradients"
           version: $CIRCLE_TAG
-          py_version: << parameters.py_version >>
-      - upload_package:
-          aws_role: $AWS_PROD_ROLE
-          aws_account: $AWS_PROD_ACCOUNT_ID
+
+      - deci-common/pip_test_package_installation_codeartifact_prod:
+          package_name: "super-gradients"
           version: $CIRCLE_TAG
-          py_version: << parameters.py_version >>
+
+      - deci-common/pip_upload_package_codeartifact_prod:
           codeartifact_repository: "deci-toolkit"
-      - git_commit_and_tag:
+
+      - deci-common/git_commit_and_tag:
           version: $CIRCLE_TAG
-          is_release: true
-      - tag_as:
+          delete_remote_tag_before_tagging: true
+
+      - deci-common/tag_as:
           tag_name: "stable"
           delete_remote: true
-      - create_github_release:
+
+      - deci-common/github_create_release:
           directory_to_cd_into: "."
           tag: $CIRCLE_TAG
           notes: "This GitHub Release was done automatically by CircleCI"
@@ -429,126 +189,6 @@ jobs:
 
             # it's funny because it's gas
 
-
-  release_version_from_rc:
-    docker:
-      - image: cimg/python:3.7
-    steps:
-      - attach_workspace:
-          at: ~/
-      - run:
-          name: exit if $AUTO_RELEASED_VERSION is empty
-          command: |
-            if ! [[ -f ~/new-env-vars ]]; then
-              echo "no version to release"
-              circleci-agent step halt
-              exit 0
-            fi
-
-            cat ~/new-env-vars >> $BASH_ENV
-            source $BASH_ENV
-            if [[ -z $AUTO_RELEASED_VERSION ]]; then
-              echo "no version to release"
-              circleci-agent step halt
-              exit 0
-            else
-              echo "will create a release $AUTO_RELEASED_VERSION from  ${LATEST_RELEASE_AWS}"
-            fi
-      - clone_specific_tag:
-          tag_to_checkout_from: $LATEST_RELEASE_AWS
-      - run:
-          name: tag git repository
-          command: |
-            git tag $AUTO_RELEASED_VERSION
-            git push origin $AUTO_RELEASED_VERSION
-      - create_github_release:
-          directory_to_cd_into: "."
-          tag: $AUTO_RELEASED_VERSION
-          notes: "Automated nightly release. Generated from  ${LATEST_RELEASE_AWS}"
-
-
-  get_unreleased_rc:
-    working_directory: ~/repo
-    docker:
-      - image: cimg/python:3.7.5
-    resource_class: small
-    steps:
-      - checkout
-      - run:
-          command: |
-            pip install --user awscli
-      - run_on_aws_account:
-          aws_role: $AWS_DEV_ROLE
-          command: |
-            LATEST_RELEASE_AWS="null"
-            LATEST_RELEASE_AWS=$(aws codeartifact list-package-versions --domain deci-packages  --domain-owner $AWS_DEV_ACCOUNT_ID --repository deci-packages --format pypi --package  super-gradients --max-results 1 --sort-by PUBLISHED_TIME --query versions[0].version --output text)
-            echo "export LATEST_RELEASE_AWS=${LATEST_RELEASE_AWS}" >> $BASH_ENV
-      - run:
-          name: "check for unreleased rc"
-          command: |
-            source $BASH_ENV
-            LAST_REV=$(git rev-list --tags --max-count=1)
-            GIT_LATEST_TAG=$(git describe --tags "${LAST_REV}")
-            echo "latest tag: ${GIT_LATEST_TAG}"
-            echo "latest release on AWS: ${LATEST_RELEASE_AWS}"
-
-            if ! [[ "${GIT_LATEST_TAG}" =~ "rc" ]]; then
-              echo "latest is a release, nothing to do. Off for fusball"
-              circleci-agent step halt
-            elif [[ "${GIT_LATEST_TAG}" != "${LATEST_RELEASE_AWS}" ]]; then
-              echo "latest tag does not equal the latest release on dev account"
-              echo "something is phishy, we wont proceed"
-              circleci-agent step halt
-            else
-              echo "we have a release candidate to release - ${GIT_LATEST_TAG}"
-              AUTO_RELEASED_VERSION=$(echo $GIT_LATEST_TAG | cut -d 'r' -f1)
-              echo "version to release: $AUTO_RELEASED_VERSION"
-              echo "export AUTO_RELEASED_VERSION=${AUTO_RELEASED_VERSION}" >> $BASH_ENV
-            fi
-
-      - run: cat $BASH_ENV >> ~/new-env-vars
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - new-env-vars
-
-  login_to_codeartifact:
-    description: Authenticate to aws code artifact. By default authenticates to prod
-    docker:
-      - image: cimg/python:3.7.5
-    parameters:
-      dev_account:
-        description: authenticate to development codeartifact
-        type: boolean
-        default: false
-      pip_repo_name:
-        type: string
-    steps:
-      - checkout
-      - run:
-          command: |
-            pip install --user awscli
-      - when:
-          condition: << parameters.dev_account >>
-          steps:
-            - set_env_login_details:
-                repo_name: << parameters.pip_repo_name >>
-                aws_account_id: ${AWS_DEV_ACCOUNT_ID}
-                aws_role: ${AWS_DEV_ROLE}
-                env_name: "development"
-      - unless:
-          condition: << parameters.dev_account >>
-          steps:
-            - set_env_login_details:
-                repo_name: << parameters.pip_repo_name >>
-                aws_account_id: ${AWS_PROD_ACCOUNT_ID}
-                aws_role: ${AWS_PROD_ROLE}
-                env_name: "production"
-
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - .config/pip/pip.conf
 
 
 workflows:
