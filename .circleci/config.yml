@@ -163,7 +163,7 @@ jobs:
             sudo apt-get update
             pip install --user awscli twine
             sleep << parameters.sleep >>
-      - run_on_aws_account:
+      - deci-common/run_on_account:
           aws_role: $AWS_PROD_ROLE
           command: |
             export LATEST_VERSION_ON_AWS="$(aws codeartifact list-package-versions  --domain deci-packages --repository \
