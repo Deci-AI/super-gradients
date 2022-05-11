@@ -1,0 +1,53 @@
+name: Whitesource Unified Agent Scan - Conan
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  prioritize:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Conan
+      run: |
+        python -m pip install --upgrade pip
+        pip install virtualenv --user
+        sudo apt install -y cmake
+        pip install conan --upgrade
+        conan profile new default --detect
+        conan profile update settings.compiler.libcxx=libstdc++11 default
+    - name: Build 
+      run: |
+        mkdir build && cd build
+        conan install ..
+        cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+        cmake --build .
+    - name: WhiteSource Unified Agent Scan
+      env:
+        WS_APIKEY: ${{secrets.APIKEY}}
+        WS_USERKEY: ${{secrets.USERKEY}}
+        WS_WSS_URL: https://saas.whitesourcesoftware.com/agent
+        WS_PRODUCTNAME: GH_${{github.event.repository.name}}
+        WS_PROJECTNAME: ${{github.ref}}_ghaction
+        WS_EXCLUDES: "**/*conan_export.tgz **/*conan_package.tgz **/*conanfile.py **/node_modules **/src/test **/testdata **/*sources.jar **/*javadoc.jar"
+      run: |
+        echo Downloading WhiteSource Unified Agent
+        curl -LJO https://unified-agent.s3.amazonaws.com/wss-unified-agent.jar
+        if [[ "$(curl -sL https://unified-agent.s3.amazonaws.com/wss-unified-agent.jar.sha256)" != "$(sha256sum wss-unified-agent.jar)" ]] ; then
+          echo "Integrity Check Failed"
+        else
+          echo "Integrity Check Passed"
+          cp -r ~/.conan/data ./conan-libraries
+          echo Starting WhiteSource Scan
+          java -jar wss-unified-agent.jar
+        fi
