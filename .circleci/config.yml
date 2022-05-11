@@ -1,5 +1,15 @@
 version: 2.1
 
+parameters:
+  orb_version:
+    type: string
+    description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
+#    default: "2.2.0"
+    default: "dev:97026bc9258a01f7c7c0bc504bb018e4db3cd48e"
+
+orbs:
+  deci-common: deci-ai/circleci-common-orb@<< pipeline.parameters.orb_version >>
+
 # This filter operates on SemVer2 tags only
 release_tag_filter: &release_tag_filter
   filters:
@@ -734,20 +744,21 @@ workflows:
 
   build_and_deploy:
     jobs:
-      - get_version_info
-      - login_to_codeartifact:
-          pip_repo_name: "deci-packages"
-          dev_account: false
-      - build:
-          name: "build3.7"
-          py_version: "3.7"
-          package_name: "super-gradients"
-          requires:
-            - get_version_info
-            - login_to_codeartifact
-      - release_candidate: # happens on merge
-          py_version: "3.7"
-          requires:
-            - "build3.7"
-          <<: *release_candidate_filter
+      - deci-common/avi
+#      - get_version_info
+#      - login_to_codeartifact:
+#          pip_repo_name: "deci-packages"
+#          dev_account: false
+#      - build:
+#          name: "build3.7"
+#          py_version: "3.7"
+#          package_name: "super-gradients"
+#          requires:
+#            - get_version_info
+#            - login_to_codeartifact
+#      - release_candidate: # happens on merge
+#          py_version: "3.7"
+#          requires:
+#            - "build3.7"
+#          <<: *release_candidate_filter
 
