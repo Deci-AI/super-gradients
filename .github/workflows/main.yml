@@ -36,7 +36,7 @@ jobs:
       env:
         WS_APIKEY: ${{secrets.APIKEY}}
         WS_USERKEY: ${{secrets.USERKEY}}
-        WS_WSS_URL: https://saas.whitesourcesoftware.com/agent
+        WS_WSS_URL: https://saas-eu.whitesourcesoftware.com/agent
         WS_PRODUCTNAME: GH_${{github.event.repository.name}}
         WS_PROJECTNAME: ${{github.ref}}_ghaction
         WS_EXCLUDES: "**/*conan_export.tgz **/*conan_package.tgz **/*conanfile.py **/node_modules **/src/test **/testdata **/*sources.jar **/*javadoc.jar"
