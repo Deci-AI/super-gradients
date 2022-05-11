@@ -398,6 +398,12 @@ class SgModel:
 
             progress_bar_train_loader.set_postfix(**pbar_message_dict)
 
+            # if batch_idx == 1:
+            #     break
+
+            if batch_idx == len(self.train_loader)-1:
+                break
+
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
 
@@ -889,9 +895,16 @@ class SgModel:
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
-        context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name,
-                               ckpt_dir=self.checkpoints_dir_path, criterion=self.criterion,
-                               lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger)
+        context = PhaseContext(optimizer=self.optimizer,
+                               net=self.net,
+                               experiment_name=self.experiment_name,
+                               ckpt_dir=self.checkpoints_dir_path,
+                               criterion=self.criterion,
+                               lr_warmup_epochs=self.training_params.lr_warmup_epochs,
+                               sg_logger=self.sg_logger,
+                               train_loader=self.train_loader,
+                               valid_loader=self.valid_loader)
+
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
         try:
@@ -911,7 +924,7 @@ class SgModel:
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
-                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader.sampler, "set_epoch"):
                     self.train_loader.sampler.set_epoch(epoch)
 
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)

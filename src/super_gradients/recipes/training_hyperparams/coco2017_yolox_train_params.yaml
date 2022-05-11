@@ -5,10 +5,13 @@ max_epochs: 300
 lr_mode: cosine
 cosine_final_lr_ratio: 0.05
 lr_warmup_epochs: 5
+lr_cooldown_epochs: 15
 warmup_bias_lr: 0.0
 warmup_momentum: 0.9
 initial_lr: 0.01
 warmup_mode: yolov5_warmup
+
+save_ckpt_epoch_list: [285]
 
 loss: yolox_loss
 criterion_params: ??? # will be overridden in train conf as it includes sg_model
@@ -26,7 +29,7 @@ mixed_precision: False
 valid_metrics_list:
   - _target_: super_gradients.training.metrics.DetectionMetrics
     post_prediction_callback:
-      _target_: super_gradients.training.models.detection_models.yolov5.YoloV5PostPredictionCallback
+      _target_: super_gradients.training.models.detection_models.yolov5_base.YoloV5PostPredictionCallback
     num_cls: 80
 
 metric_to_watch: 'mAP@0.50:0.95'

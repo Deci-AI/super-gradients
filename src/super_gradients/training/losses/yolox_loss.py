@@ -217,6 +217,11 @@ class YoloXDetectionLoss(_Loss):
                                 torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).cuda(),
                                 loss.unsqueeze(0))).detach()
 
+        # return loss, torch.cat((loss_iou.unsqueeze(0), loss_obj.unsqueeze(0), loss_cls.unsqueeze(0),
+        #                         torch.tensor(loss_l1).unsqueeze(0),
+        #                         torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0),
+        #                         loss.unsqueeze(0))).detach()
+
     def prepare_predictions(self, predictions: List[torch.Tensor]) -> \
             Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
@@ -255,8 +260,10 @@ class YoloXDetectionLoss(_Loss):
                 raw_outputs.append(output_raveled[:, :, :4].clone())
 
             # box logits to coordinates
-            output_raveled[..., :2] = (output_raveled[..., :2] + grid_raveled) * self.strides[k]
-            output_raveled[..., 2:4] = torch.exp(output_raveled[..., 2:4]) * self.strides[k]
+            centers = (output_raveled[..., :2] + grid_raveled) * self.strides[k]
+            wh = torch.exp(output_raveled[..., 2:4]) * self.strides[k]
+            classes = output_raveled[..., 4:]
+            output_raveled = torch.cat([centers, wh, classes], -1)
 
             # outputs with boxes in real coordinates, probs as logits
             transformed_outputs.append(output_raveled)
@@ -350,6 +357,10 @@ class YoloXDetectionLoss(_Loss):
             fg_mask = fg_mask.cuda()
             pred_ious_this_matching = pred_ious_this_matching.cuda()
             matched_gt_inds = matched_gt_inds.cuda()
+            # gt_matched_classes = gt_matched_classes
+            # fg_mask = fg_mask
+            # pred_ious_this_matching = pred_ious_this_matching
+            # matched_gt_inds = matched_gt_inds
 
         return gt_matched_classes, fg_mask, pred_ious_this_matching, matched_gt_inds, num_fg
 

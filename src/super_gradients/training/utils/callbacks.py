@@ -49,7 +49,8 @@ class PhaseContext:
 
     def __init__(self, epoch=None, batch_idx=None, optimizer=None, metrics_dict=None, inputs=None, preds=None,
                  target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
-                 device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None):
+                 device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None,
+                 train_loader=None, valid_loader=None):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -68,6 +69,8 @@ class PhaseContext:
         self.net = net
         self.lr_warmup_epochs = lr_warmup_epochs
         self.sg_logger = sg_logger
+        self.train_loader = train_loader
+        self.valid_loader = valid_loader
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():
@@ -562,6 +565,51 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
             context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch], global_step=context.epoch, data_format='NHWC')
+
+
+class TrainingStageSwitchCallbackBase(PhaseCallback):
+    """
+    TrainingStageSwitchCallback
+
+    A phase callback that is called at a specific epoch (epoch start) to support multi-stage training.
+    It does so by manipulating the objects inside the context.
+
+    Attributes:
+        next_stage_start_epoch: int, the epoch idx to apply the stage change.
+    """
+    def __init__(self, next_stage_start_epoch: int):
+        super(TrainingStageSwitchCallbackBase, self).__init__(phase=Phase.TRAIN_EPOCH_START)
+        self.next_stage_start_epoch = next_stage_start_epoch
+
+    def __call__(self, context: PhaseContext):
+        if context.epoch == self.next_stage_start_epoch:
+            self.apply_stage_change(context)
+
+    def apply_stage_change(self, context: PhaseContext):
+        """
+        This method is called when the callback is fired on the next_stage_start_epoch,
+         and holds the stage change logic that should be applied to the context's objects.
+
+        :param context: PhaseContext, context of current phase
+        """
+        raise NotImplementedError
+
+
+class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
+    """
+    YoloXTrainingStageSwitchCallback
+
+    Training stage switch for YoloX training.
+    Disables mosaic, and manipulates YoloX loss to use L1.
+
+    """
+    def __init__(self, next_stage_start_epoch: int = 285):
+        super(YoloXTrainingStageSwitchCallback, self).__init__(next_stage_start_epoch=next_stage_start_epoch)
+
+    def apply_stage_change(self, context: PhaseContext):
+        context.train_loader.close_mosaic()
+        context.train_loader.dataset.enable_mixup = False
+        context.criterion.use_l1 = True
 
 
 class CallbackHandler:

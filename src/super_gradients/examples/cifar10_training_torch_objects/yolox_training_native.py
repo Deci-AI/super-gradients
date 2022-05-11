@@ -1,4 +1,3 @@
-
 """
 Cifar10 training with SuperGradients training with the following initialized torch objects:
 
@@ -17,28 +16,46 @@ import pkg_resources
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
-
 from super_gradients import SgModel
 import super_gradients
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training import MultiGPUMode
+import numpy as np
+from super_gradients.training.utils.callbacks import YoloXTrainingStageSwitchCallback
 
+class get_targets_prep_collate_fn:
+    def __init__(self, resolution, val=True, max_targets=120):
+        self.resolution = resolution
+        self.val = val
+        self.max_targets = max_targets
 
-def prep_targets(data, resolution):
-    batch = default_collate(data)
-    ims = batch[0]
+    def _pad_targets(self, data):
+        for sample_id, sample in enumerate(data):
+            if sample[1].shape[0] < self.max_targets:
+                boxes = np.zeros((self.max_targets, 5))
+                boxes[:sample[1].shape[0], :] = sample[1]
+                boxes = np.roll(boxes, 1)
+                sample = list(sample)
+                sample[1] = boxes
+                sample = tuple(sample)
+                data[sample_id] = sample
 
-    targets = batch[1]
-    nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of objects
-    targets[:, :, 1:] /= resolution
-    targets_merged = []
-    for i in range(targets.shape[0]):
-        targets_im = targets[i, :nlabel[i]]
-        batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
-        targets_merged.append(torch.cat((batch_column, targets_im), 1))
+    def __call__(self, data):
+        if self.val:
+            self._pad_targets(data)
+        batch = default_collate(data)
+        ims = batch[0]
 
-    return ims, torch.cat(targets_merged, 0)
+        targets = batch[1]
+        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of objects
+        targets[:, :, 1:] /= self.resolution
+        targets_merged = []
+        for i in range(targets.shape[0]):
+            targets_im = targets[i, :nlabel[i]]
+            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
+            targets_merged.append(torch.cat((batch_column, targets_im), 1))
 
+        return ims, torch.cat(targets_merged, 0)
 
 
 def get_data_loader(cfg, no_aug=False, cache_img=False):
@@ -58,7 +75,6 @@ def get_data_loader(cfg, no_aug=False, cache_img=False):
     )
 
     local_rank = get_local_rank()
-
     input_size = (cfg.dataset_params.train_image_size, cfg.dataset_params.train_image_size)
     with wait_for_the_master(local_rank):
         dataset = COCODataset(
@@ -104,6 +120,7 @@ def get_data_loader(cfg, no_aug=False, cache_img=False):
     )
 
     dataloader_kwargs = {"num_workers": cfg.data_loader_num_workers, "pin_memory": True}
+    # dataloader_kwargs = {"num_workers": 0, "pin_memory": True}
     dataloader_kwargs["batch_sampler"] = batch_sampler
 
     # Make sure each process has different random seed, especially for 'fork' method.
@@ -111,7 +128,7 @@ def get_data_loader(cfg, no_aug=False, cache_img=False):
     dataloader_kwargs["worker_init_fn"] = worker_init_reset_seed
 
     train_loader = DataLoader(dataset, **dataloader_kwargs,
-                              collate_fn=lambda x: prep_targets(x, cfg.dataset_params.train_image_size))
+                              collate_fn=get_targets_prep_collate_fn(cfg.dataset_params.train_image_size, val=False))
 
     return train_loader
 
@@ -133,16 +150,16 @@ def get_eval_loader(cfg, legacy=False):
         sampler = torch.utils.data.SequentialSampler(valdataset)
 
     dataloader_kwargs = {"num_workers": cfg.data_loader_num_workers, "pin_memory": True, "sampler": sampler}
+    # dataloader_kwargs = {"num_workers":0, "pin_memory": True, "sampler": sampler}
+
     dataloader_kwargs["batch_size"] = cfg.dataset_params.val_batch_size
     val_loader = torch.utils.data.DataLoader(valdataset, **dataloader_kwargs,
-                                             collate_fn=lambda x: prep_targets(x, cfg.dataset_params.val_image_size))
+                                             collate_fn=get_targets_prep_collate_fn(cfg.dataset_params.val_image_size))
 
     return val_loader
 
-
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""))
 def main(cfg: DictConfig) -> None:
-
     cfg = hydra.utils.instantiate(cfg)
 
     train_loader = get_data_loader(cfg)
@@ -157,7 +174,8 @@ def main(cfg: DictConfig) -> None:
     cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
 
     cfg.training_hyperparams.initial_lr /= 64
-    cfg.training_hyperparams.initial_lr *= cfg.dataset_params.batch_size
+    cfg.training_hyperparams.initial_lr *= cfg.dataset_params.batch_size * 8
+    cfg.training_hyperparams.phase_callbacks = [YoloXTrainingStageSwitchCallback(285)]
     print(cfg.training_hyperparams.initial_lr)
 
     cfg.sg_model.train(training_params=cfg.training_hyperparams)
@@ -166,4 +184,3 @@ def main(cfg: DictConfig) -> None:
 if __name__ == "__main__":
     super_gradients.init_trainer()
     main()
-
