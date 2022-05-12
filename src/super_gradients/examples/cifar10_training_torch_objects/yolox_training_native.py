@@ -22,6 +22,9 @@ from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASS
 from super_gradients.training import MultiGPUMode
 import numpy as np
 from super_gradients.training.utils.callbacks import YoloXTrainingStageSwitchCallback
+from super_gradients.training.utils.callbacks import DetectionVisualizationCallback, Phase
+from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
+from torchvision.transforms import Resize
 
 class get_targets_prep_collate_fn:
     def __init__(self, resolution, val=True, max_targets=120):
@@ -34,7 +37,7 @@ class get_targets_prep_collate_fn:
             if sample[1].shape[0] < self.max_targets:
                 boxes = np.zeros((self.max_targets, 5))
                 boxes[:sample[1].shape[0], :] = sample[1]
-                boxes = np.roll(boxes, 1)
+                boxes = np.roll(boxes, 1, axis=1)
                 sample = list(sample)
                 sample[1] = boxes
                 sample = tuple(sample)
@@ -158,6 +161,7 @@ def get_eval_loader(cfg, legacy=False):
 
     return val_loader
 
+
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""))
 def main(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
@@ -175,6 +179,11 @@ def main(cfg: DictConfig) -> None:
 
     cfg.training_hyperparams.initial_lr /= 64
     cfg.training_hyperparams.initial_lr *= cfg.dataset_params.batch_size * 8
+    # dvcb = DetectionVisualizationCallback(phase=Phase.VALIDATION_BATCH_END,
+    #                                       freq=1,
+    #                                       post_prediction_callback=YoloV5PostPredictionCallback(iou=0.65, conf=0.99),
+    #                                       classes=classes,
+    #                                       last_img_idx_in_batch=8)
     cfg.training_hyperparams.phase_callbacks = [YoloXTrainingStageSwitchCallback(285)]
     print(cfg.training_hyperparams.initial_lr)
 

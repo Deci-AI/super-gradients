@@ -398,9 +398,6 @@ class SgModel:
 
             progress_bar_train_loader.set_postfix(**pbar_message_dict)
 
-            # if batch_idx == 1:
-            #     break
-
             if batch_idx == len(self.train_loader)-1:
                 break
 
