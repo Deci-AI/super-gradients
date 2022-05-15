@@ -30,8 +30,8 @@ valid_metrics_list:
   - _target_: super_gradients.training.metrics.DetectionMetrics
     post_prediction_callback:
       _target_: super_gradients.training.models.detection_models.yolov5_base.YoloV5PostPredictionCallback
-      iou: 0.01
-      conf: 0.65
+      iou: 0.65
+      conf: 0.01
     num_cls: 80
 
 

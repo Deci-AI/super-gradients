@@ -634,6 +634,9 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
         self.coco_classes = self.trainset.classes
 
 
+class CoCoDetectionDatasetInterfaceX(DatasetInterface):
+
+
 class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):
     def __init__(self, dataset_params=None, cache_labels: bool = False, cache_images: bool = False,
                  dataset_classes_inclusion_tuples_list: list = None):

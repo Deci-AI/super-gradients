@@ -4,6 +4,8 @@ from torchmetrics import Metric
 from super_gradients.training.utils.detection_utils import calc_batch_prediction_accuracy, DetectionPostPredictionCallback, \
     IouThreshold
 import super_gradients
+from super_gradients.common.abstractions.abstract_logger import get_logger
+logger = get_logger(__name__)
 
 
 def compute_ap(recall, precision, method: str = 'interp'):
@@ -114,6 +116,7 @@ class DetectionMetrics(Metric):
         self.world_size = None
         self.rank = None
         self.add_state("metrics", default=[], dist_reduce_fx=None)
+        logger.info("MAP calculated with NMS with conf=" + str(self.post_prediction_callback.conf) + " and iou_thresh=" + str(self.post_prediction_callback.iou))
 
     def update(self, preds: torch.Tensor, target: torch.Tensor, device, inputs):
         preds = self.post_prediction_callback(preds, device=device)
