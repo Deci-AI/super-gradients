@@ -23,6 +23,7 @@ from tqdm import tqdm
 
 from super_gradients.training.utils.utils import AverageMeter
 from super_gradients.training.utils.detection_utils import DetectionVisualization
+import uuid
 
 import matplotlib.pyplot as plt
 
@@ -529,3 +530,10 @@ def get_color_augmentation(rand_augment_config_string: str, color_jitter: tuple,
     else:  # RandAugment includes colorjitter like augmentations, both cannot be applied together.
         color_augmentation = transforms.ColorJitter(*color_jitter)
     return color_augmentation
+
+
+def worker_init_reset_seed(worker_id):
+    seed = uuid.uuid4().int % 2**32
+    random.seed(seed)
+    torch.set_rng_state(torch.manual_seed(seed).get_state())
+    np.random.seed(seed)

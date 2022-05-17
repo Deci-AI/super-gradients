@@ -1,4 +1,5 @@
 import torch
+from torch import distributed as dist
 from torch.cuda.amp import autocast
 import torch.nn as nn
 import itertools
@@ -114,3 +115,7 @@ def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoad
         bn.running_mean = running_means[i]
         bn.running_var = running_vars[i]
         bn.momentum = momentums[i]
+
+
+def get_local_rank():
+    return dist.get_rank() if dist.is_initialized() else 0

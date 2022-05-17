@@ -1,5 +1,6 @@
 import math
 import os
+import random
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Union, Tuple
@@ -1164,3 +1165,153 @@ class Anchors(nn.Module):
 
     def __repr__(self):
         return f"anchors_list: {self.__anchors_list} strides: {self.__strides}"
+
+
+def get_yolox_datadir():
+    """
+    get dataset dir of YOLOX. If environment variable named `YOLOX_DATADIR` is set,
+    this function will return value of the environment variable. Otherwise, use data
+    """
+    yolox_datadir = os.getenv("YOLOX_DATADIR", None)
+    if yolox_datadir is None:
+        import yolox
+        yolox_path = os.path.dirname(os.path.dirname(yolox.__file__))
+        yolox_datadir = os.path.join(yolox_path, "datasets")
+    return yolox_datadir
+
+
+def xyxy2cxcywh(bboxes):
+    bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 0]
+    bboxes[:, 3] = bboxes[:, 3] - bboxes[:, 1]
+    bboxes[:, 0] = bboxes[:, 0] + bboxes[:, 2] * 0.5
+    bboxes[:, 1] = bboxes[:, 1] + bboxes[:, 3] * 0.5
+    return bboxes
+
+
+def get_aug_params(value, center=0):
+    if isinstance(value, float):
+        return random.uniform(center - value, center + value)
+    elif len(value) == 2:
+        return random.uniform(value[0], value[1])
+    else:
+        raise ValueError(
+            "Affine params should be either a sequence containing two values\
+                          or single float values. Got {}".format(
+                value
+            )
+        )
+
+
+def get_affine_matrix(
+        target_size,
+        degrees=10,
+        translate=0.1,
+        scales=0.1,
+        shear=10,
+):
+    twidth, theight = target_size
+
+    # Rotation and Scale
+    angle = get_aug_params(degrees)
+    scale = get_aug_params(scales, center=1.0)
+
+    if scale <= 0.0:
+        raise ValueError("Argument scale should be positive")
+
+    R = cv2.getRotationMatrix2D(angle=angle, center=(0, 0), scale=scale)
+
+    M = np.ones([2, 3])
+    # Shear
+    shear_x = math.tan(get_aug_params(shear) * math.pi / 180)
+    shear_y = math.tan(get_aug_params(shear) * math.pi / 180)
+
+    M[0] = R[0] + shear_y * R[1]
+    M[1] = R[1] + shear_x * R[0]
+
+    # Translation
+    translation_x = get_aug_params(translate) * twidth  # x translation (pixels)
+    translation_y = get_aug_params(translate) * theight  # y translation (pixels)
+
+    M[0, 2] = translation_x
+    M[1, 2] = translation_y
+
+    return M, scale
+
+
+def apply_affine_to_bboxes(targets, target_size, M, scale):
+    num_gts = len(targets)
+
+    # warp corner points
+    twidth, theight = target_size
+    corner_points = np.ones((4 * num_gts, 3))
+    corner_points[:, :2] = targets[:, [0, 1, 2, 3, 0, 3, 2, 1]].reshape(
+        4 * num_gts, 2
+    )  # x1y1, x2y2, x1y2, x2y1
+    corner_points = corner_points @ M.T  # apply affine transform
+    corner_points = corner_points.reshape(num_gts, 8)
+
+    # create new boxes
+    corner_xs = corner_points[:, 0::2]
+    corner_ys = corner_points[:, 1::2]
+    new_bboxes = (
+        np.concatenate(
+            (corner_xs.min(1), corner_ys.min(1), corner_xs.max(1), corner_ys.max(1))
+        )
+            .reshape(4, num_gts)
+            .T
+    )
+
+    # clip boxes
+    new_bboxes[:, 0::2] = new_bboxes[:, 0::2].clip(0, twidth)
+    new_bboxes[:, 1::2] = new_bboxes[:, 1::2].clip(0, theight)
+
+    targets[:, :4] = new_bboxes
+
+    return targets
+
+
+def random_affine(
+        img,
+        targets=(),
+        target_size=(640, 640),
+        degrees=10,
+        translate=0.1,
+        scales=0.1,
+        shear=10,
+):
+    M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
+
+    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(114, 114, 114))
+
+    # Transform label coordinates
+    if len(targets) > 0:
+        targets = apply_affine_to_bboxes(targets, target_size, M, scale)
+
+    return img, targets
+
+
+def get_mosaic_coordinate(mosaic_image, mosaic_index, xc, yc, w, h, input_h, input_w):
+    # TODO update doc
+    # index0 to top left part of image
+    if mosaic_index == 0:
+        x1, y1, x2, y2 = max(xc - w, 0), max(yc - h, 0), xc, yc
+        small_coord = w - (x2 - x1), h - (y2 - y1), w, h
+    # index1 to top right part of image
+    elif mosaic_index == 1:
+        x1, y1, x2, y2 = xc, max(yc - h, 0), min(xc + w, input_w * 2), yc
+        small_coord = 0, h - (y2 - y1), min(w, x2 - x1), h
+    # index2 to bottom left part of image
+    elif mosaic_index == 2:
+        x1, y1, x2, y2 = max(xc - w, 0), yc, xc, min(input_h * 2, yc + h)
+        small_coord = w - (x2 - x1), 0, w, min(y2 - y1, h)
+    # index2 to bottom right part of image
+    elif mosaic_index == 3:
+        x1, y1, x2, y2 = xc, yc, min(xc + w, input_w * 2), min(input_h * 2, yc + h)  # noqa
+        small_coord = 0, 0, min(w, x2 - x1), min(y2 - y1, h)
+    return (x1, y1, x2, y2), small_coord
+
+
+def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
+    bbox[:, 0::2] = np.clip(bbox[:, 0::2] * scale_ratio + padw, 0, w_max)
+    bbox[:, 1::2] = np.clip(bbox[:, 1::2] * scale_ratio + padh, 0, h_max)
+    return bbox

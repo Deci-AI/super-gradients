@@ -634,7 +634,7 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
         self.coco_classes = self.trainset.classes
 
 
-class CoCoDetectionDatasetInterfaceX(DatasetInterface):
+# class CoCoDetectionDatasetInterfaceX(DatasetInterface):
 
 
 class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):

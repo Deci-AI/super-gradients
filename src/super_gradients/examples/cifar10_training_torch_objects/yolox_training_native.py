@@ -25,6 +25,13 @@ from super_gradients.training.utils.callbacks import YoloXTrainingStageSwitchCal
 from super_gradients.training.utils.callbacks import DetectionVisualizationCallback, Phase
 from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
 from torchvision.transforms import Resize
+from super_gradients.training.utils.distributed_training_utils import get_local_rank
+from yolox.data import TrainTransform, ValTransform, DataLoader, InfiniteSampler
+from yolox.utils import wait_for_the_master
+from yolox.data import ValTransform
+
+from super_gradients.training.datasets.detection_datasets.coco_detection_yolox import COCODataset, MosaicDetection
+from super_gradients.training.datasets.datasets_utils import worker_init_reset_seed
 
 class get_targets_prep_collate_fn:
     def __init__(self, resolution, val=True, max_targets=120):
@@ -62,21 +69,6 @@ class get_targets_prep_collate_fn:
 
 
 def get_data_loader(cfg, no_aug=False, cache_img=False):
-    from yolox.data import (
-        COCODataset,
-        TrainTransform,
-        ValTransform,
-        YoloBatchSampler,
-        DataLoader,
-        InfiniteSampler,
-        MosaicDetection,
-        worker_init_reset_seed,
-    )
-    from yolox.utils import (
-        wait_for_the_master,
-        get_local_rank,
-    )
-
     local_rank = get_local_rank()
     input_size = (cfg.dataset_params.train_image_size, cfg.dataset_params.train_image_size)
     with wait_for_the_master(local_rank):
@@ -137,7 +129,6 @@ def get_data_loader(cfg, no_aug=False, cache_img=False):
 
 
 def get_eval_loader(cfg, legacy=False):
-    from yolox.data import COCODataset, ValTransform
 
     valdataset = COCODataset(
         data_dir='/data/coco',
