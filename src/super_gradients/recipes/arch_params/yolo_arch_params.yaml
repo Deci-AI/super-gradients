@@ -23,4 +23,5 @@ nms_iou: 0.45  # When add_nms is True IoU threshold for NMS algorithm
 yolo_type: 'yoloV5'   # Type of yolo to build: 'yoloV5' and 'yoloX' are supported
 yolo_version: 'v6.0'  # Release version of Ultralytics to built a model from: v.6.0 and v3.0 are supported
 stem_type: None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
+depthwise: False  # use depthwise separable convolutions all over the model
 _convert_: all

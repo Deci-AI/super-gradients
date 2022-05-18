@@ -7,6 +7,7 @@ class YoloX_N(YoLoV5Base):
         arch_params.depth_mult_factor = 0.33
         arch_params.width_mult_factor = 0.25
         arch_params.yolo_type = 'yoloX'
+        arch_params.depthwise = True
         super().__init__(backbone=YoLoV5DarknetBackbone, arch_params=arch_params)
 
 
