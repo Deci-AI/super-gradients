@@ -280,7 +280,7 @@ class YoLoV5Head(nn.Module):
             strides = anchors.stride
             self._modules_list.append(
                 DetectX(num_classes, strides, activation_type, channels=[width_mult(v) for v in (256, 512, 1024)],
-                        depthwise=arch_params.depthwise))  # 24
+                        depthwise=depthwise))  # 24
 
         self.anchors = anchors
         self.width_mult = width_mult

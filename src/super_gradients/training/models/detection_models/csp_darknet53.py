@@ -83,7 +83,8 @@ class DepthWiseConv(nn.Module):
                  padding: int = None):
         super().__init__()
 
-        self.dconv = Conv(input_channels, input_channels, kernel, stride, activation_type, padding, input_channels)
+        self.dconv = Conv(input_channels, input_channels, kernel, stride, activation_type, padding,
+                          groups=input_channels)
         self.conv = Conv(input_channels, output_channels, 1, 1, activation_type)
 
     def forward(self, x):
