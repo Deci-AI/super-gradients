@@ -96,12 +96,12 @@ class Detect(nn.Module):
         self.register_buffer('anchors', anchors.anchors)
         self.register_buffer('anchor_grid', anchors.anchor_grid)
 
-        self.m = nn.ModuleList(nn.Conv2d(x, self.num_outputs * self.num_anchors, 1) for x in channels)  # output conv
+        self.output_convs = nn.ModuleList(nn.Conv2d(x, self.num_outputs * self.num_anchors, 1) for x in channels)
 
     def forward(self, x):
         z = []  # inference output
         for i in range(self.detection_layers_num):
-            x[i] = self.m[i](x[i])  # conv
+            x[i] = self.output_convs[i](x[i])  # conv
             bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             x[i] = x[i].view(bs, self.num_anchors, self.num_outputs, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
 
@@ -396,25 +396,25 @@ class YoLoV5Base(SgModule):
 
     def _initialize_biases(self, cf=None):
         """initialize biases into Detect(), cf is class frequency"""
-        m = self._head._modules_list[-1]  # Detect() module
-        if isinstance(m, Detect):
-            for mi, s in zip(m.m, m.stride):  # from
-                b = mi.bias.view(m.num_anchors, -1)  # conv.bias(255) to (3,85)
+        detect_module = self._head._modules_list[-1]  # Detect() module
+        if isinstance(detect_module, Detect):
+            for pred_conv, s in zip(detect_module.output_convs, detect_module.stride):  # from
+                bias = pred_conv.bias.view(detect_module.num_anchors, -1)  # conv.bias(255) to (3,85)
                 with torch.no_grad():
-                    b[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
-                    b[:, 5:] += math.log(0.6 / (m.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
-                mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
-        elif isinstance(m, DetectX):
+                    bias[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
+                    bias[:, 5:] += math.log(0.6 / (detect_module.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
+                pred_conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
+        elif isinstance(detect_module, DetectX):
             prior_prob = 1e-2
-            for conv in m.cls_preds:
-                b = conv.bias.view(m.n_anchors, -1)
-                b.data.fill_(-math.log((1 - prior_prob) / prior_prob))
-                conv.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+            for conv in detect_module.cls_preds:
+                bias = conv.bias.view(detect_module.n_anchors, -1)
+                bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+                conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
 
-            for conv in m.obj_preds:
-                b = conv.bias.view(m.n_anchors, -1)
-                b.data.fill_(-math.log((1 - prior_prob) / prior_prob))
-                conv.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+            for conv in detect_module.obj_preds:
+                bias = conv.bias.view(detect_module.n_anchors, -1)
+                bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+                conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
 
     def _initialize_weights(self):
         for m in self.modules():
