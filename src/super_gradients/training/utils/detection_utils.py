@@ -1237,47 +1237,119 @@ def get_affine_matrix(
 
     return M, scale
 
-
-def apply_affine_to_bboxes(targets, target_size, M, scale):
+def apply_affine_to_bboxes(targets, targets_seg, target_size, M, scale):
     num_gts = len(targets)
-
-    # warp corner points
     twidth, theight = target_size
-    corner_points = np.ones((4 * num_gts, 3))
-    corner_points[:, :2] = targets[:, [0, 1, 2, 3, 0, 3, 2, 1]].reshape(
-        4 * num_gts, 2
-    )  # x1y1, x2y2, x1y2, x2y1
-    corner_points = corner_points @ M.T  # apply affine transform
-    corner_points = corner_points.reshape(num_gts, 8)
+    seg_is_present_mask = np.logical_or.reduce(~np.isnan(targets_seg), axis=1)
+    num_gts_masks = seg_is_present_mask.sum()
+    num_gts_boxes = num_gts - num_gts_masks
 
-    # create new boxes
-    corner_xs = corner_points[:, 0::2]
-    corner_ys = corner_points[:, 1::2]
-    new_bboxes = (
-        np.concatenate(
-            (corner_xs.min(1), corner_ys.min(1), corner_xs.max(1), corner_ys.max(1))
-        )
-            .reshape(4, num_gts)
-            .T
-    )
+    if num_gts_boxes:
+        # warp corner points
+        corner_points = np.ones((num_gts_boxes * 4, 3))
+        # x1y1, x2y2, x1y2, x2y1
+        corner_points[:, :2] = targets[~seg_is_present_mask][:, [0, 1, 2, 3, 0, 3, 2, 1]].reshape(num_gts_boxes * 4, 2)
+        corner_points = corner_points @ M.T  # apply affine transform
+        corner_points = corner_points.reshape(num_gts_boxes, 8)
+
+        # create new boxes
+        corner_xs = corner_points[:, 0::2]
+        corner_ys = corner_points[:, 1::2]
+        new_bboxes = (np.concatenate(
+            (np.min(corner_xs, 1), np.min(corner_ys, 1),
+             np.max(corner_xs, 1), np.max(corner_ys, 1))
+            ).reshape(4, -1).T)
+    else:
+        new_bboxes = np.ones((0, 4), dtype=np.float)
+
+    if num_gts_masks:
+        # warp segmentation points
+        num_seg_points = targets_seg.shape[1] // 2
+        corner_points_seg = np.ones((num_gts_masks * num_seg_points, 3))
+        corner_points_seg[:, :2] = targets_seg[seg_is_present_mask].reshape(num_gts_masks * num_seg_points, 2)
+        corner_points_seg = corner_points_seg @ M.T
+        corner_points_seg = corner_points_seg.reshape(num_gts_masks, num_seg_points * 2)
+
+        # create new boxes
+        seg_points_xs = corner_points_seg[:, 0::2]
+        seg_points_ys = corner_points_seg[:, 1::2]
+        new_tight_bboxes = (np.concatenate(
+            (np.nanmin(seg_points_xs, 1), np.nanmin(seg_points_ys, 1),
+             np.nanmax(seg_points_xs, 1), np.nanmax(seg_points_ys, 1))
+            ).reshape(4, -1).T)
+    else:
+        new_tight_bboxes = np.ones((0, 4), dtype=np.float)
+
+    targets[~seg_is_present_mask, :4] = new_bboxes
+    targets[seg_is_present_mask, :4] = new_tight_bboxes
 
     # clip boxes
-    new_bboxes[:, 0::2] = new_bboxes[:, 0::2].clip(0, twidth)
-    new_bboxes[:, 1::2] = new_bboxes[:, 1::2].clip(0, theight)
-
-    targets[:, :4] = new_bboxes
+    targets[:, [0, 2]] = targets[:, [0, 2]].clip(0, twidth)
+    targets[:, [1, 3]] = targets[:, [1, 3]].clip(0, theight)
 
     return targets
 
 
+# def apply_affine_to_bboxes(targets, target_size, M, scale):
+#     num_gts = len(targets)
+#
+#     # warp corner points
+#     twidth, theight = target_size
+#     corner_points = np.ones((4 * num_gts, 3))
+#     corner_points[:, :2] = targets[:, [0, 1, 2, 3, 0, 3, 2, 1]].reshape(
+#         4 * num_gts, 2
+#     )  # x1y1, x2y2, x1y2, x2y1
+#     corner_points = corner_points @ M.T  # apply affine transform
+#     corner_points = corner_points.reshape(num_gts, 8)
+#
+#     # create new boxes
+#     corner_xs = corner_points[:, 0::2]
+#     corner_ys = corner_points[:, 1::2]
+#     new_bboxes = (
+#         np.concatenate(
+#             (corner_xs.min(1), corner_ys.min(1), corner_xs.max(1), corner_ys.max(1))
+#         )
+#             .reshape(4, num_gts)
+#             .T
+#     )
+#
+#     # clip boxes
+#     new_bboxes[:, 0::2] = new_bboxes[:, 0::2].clip(0, twidth)
+#     new_bboxes[:, 1::2] = new_bboxes[:, 1::2].clip(0, theight)
+#
+#     targets[:, :4] = new_bboxes
+#
+#     return targets
+
+
+# def random_affine(
+#         img,
+#         targets=(),
+#         target_size=(640, 640),
+#         degrees=10,
+#         translate=0.1,
+#         scales=0.1,
+#         shear=10,
+# ):
+#     M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
+#
+#     img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(114, 114, 114))
+#
+#     # Transform label coordinates
+#     if len(targets) > 0:
+#         targets = apply_affine_to_bboxes(targets, target_size, M, scale)
+#
+#     return img, targets
+
 def random_affine(
-        img,
-        targets=(),
-        target_size=(640, 640),
-        degrees=10,
-        translate=0.1,
-        scales=0.1,
-        shear=10,
+    img,
+    targets=(),
+    targets_seg=(),
+    target_size=(640, 640),
+    degrees=10,
+    translate=0.1,
+    scales=0.1,
+    shear=10,
 ):
     M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
 
@@ -1285,10 +1357,9 @@ def random_affine(
 
     # Transform label coordinates
     if len(targets) > 0:
-        targets = apply_affine_to_bboxes(targets, target_size, M, scale)
+        targets = apply_affine_to_bboxes(targets, targets_seg, target_size, M, scale)
 
     return img, targets
-
 
 def get_mosaic_coordinate(mosaic_image, mosaic_index, xc, yc, w, h, input_h, input_w):
     # TODO update doc

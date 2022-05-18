@@ -8,12 +8,14 @@ import numpy as np
 import onnx
 import onnxruntime
 import torch
-
+import random
+import torch.distributed as dist
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import get_filename_suffix_by_framework
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 import cv2
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
 
 logger = get_logger(__name__)
 
@@ -50,7 +52,7 @@ class PhaseContext:
     def __init__(self, epoch=None, batch_idx=None, optimizer=None, metrics_dict=None, inputs=None, preds=None,
                  target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
                  device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None,
-                 train_loader=None, valid_loader=None):
+                 train_loader=None, valid_loader=None, sg_model=None):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -71,6 +73,7 @@ class PhaseContext:
         self.sg_logger = sg_logger
         self.train_loader = train_loader
         self.valid_loader = valid_loader
+        self.sg_model = sg_model
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():
@@ -282,7 +285,8 @@ class WarmupLRCallback(LRCallbackBase):
 
     def __init__(self, **kwargs):
         super(WarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
-        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
+        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (
+                    self.training_params.lr_warmup_epochs + 1)
         self.warmup_step_size = (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs
 
     def perform_scheduling(self, context):
@@ -324,12 +328,14 @@ class StepLRCallback(LRCallbackBase):
     def __init__(self, lr_updates, lr_decay_factor, step_lr_update_freq=None, **kwargs):
         super(StepLRCallback, self).__init__(Phase.TRAIN_EPOCH_END, **kwargs)
         if step_lr_update_freq and len(lr_updates):
-            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor")
+            raise ValueError(
+                "Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor")
 
         if step_lr_update_freq:
             max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
             warmup_epochs = self.training_params.lr_warmup_epochs
-            lr_updates = [int(np.ceil(step_lr_update_freq * x)) for x in range(1, max_epochs) if warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs]
+            lr_updates = [int(np.ceil(step_lr_update_freq * x)) for x in range(1, max_epochs) if
+                          warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs]
         elif self.training_params.lr_cooldown_epochs > 0:
             logger.warning("Specific lr_updates were passed along with cooldown_epochs > 0,"
                            " cooldown will have no effect.")
@@ -376,7 +382,8 @@ class PolyLRCallback(LRCallbackBase):
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
         effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        current_iter = (self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
+        current_iter = (
+                                   self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
         max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
         self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
@@ -520,7 +527,9 @@ class DetectionVisualizationCallback(PhaseCallback):
         classes: class list of the dataset.
         last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
     """
-    def __init__(self, phase: Phase, freq: int, post_prediction_callback: DetectionPostPredictionCallback, classes: list, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
+
+    def __init__(self, phase: Phase, freq: int, post_prediction_callback: DetectionPostPredictionCallback,
+                 classes: list, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
         super(DetectionVisualizationCallback, self).__init__(phase)
         self.freq = freq
         self.post_prediction_callback = post_prediction_callback
@@ -533,11 +542,13 @@ class DetectionVisualizationCallback(PhaseCallback):
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
             preds = (context.preds[0].clone(), None)
             preds = self.post_prediction_callback(preds)
-            batch_imgs = DetectionVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx, self.classes)
+            batch_imgs = DetectionVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx,
+                                                                self.classes)
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
-            context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch], global_step=context.epoch, data_format='NHWC')
+            context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch],
+                                         global_step=context.epoch, data_format='NHWC')
 
 
 class BinarySegmentationVisualizationCallback(PhaseCallback):
@@ -548,6 +559,7 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
         batch_idx: batch index to perform visualization for.
         last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
     """
+
     def __init__(self, phase: Phase, freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
         super(BinarySegmentationVisualizationCallback, self).__init__(phase)
         self.freq = freq
@@ -560,11 +572,13 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
                 preds = context.preds[0].clone()
             else:
                 preds = context.preds.clone()
-            batch_imgs = BinarySegmentationVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx)
+            batch_imgs = BinarySegmentationVisualization.visualize_batch(context.inputs, preds, context.target,
+                                                                         self.batch_idx)
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
-            context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch], global_step=context.epoch, data_format='NHWC')
+            context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch],
+                                         global_step=context.epoch, data_format='NHWC')
 
 
 class TrainingStageSwitchCallbackBase(PhaseCallback):
@@ -577,6 +591,7 @@ class TrainingStageSwitchCallbackBase(PhaseCallback):
     Attributes:
         next_stage_start_epoch: int, the epoch idx to apply the stage change.
     """
+
     def __init__(self, next_stage_start_epoch: int):
         super(TrainingStageSwitchCallbackBase, self).__init__(phase=Phase.TRAIN_EPOCH_START)
         self.next_stage_start_epoch = next_stage_start_epoch
@@ -603,13 +618,58 @@ class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
     Disables mosaic, and manipulates YoloX loss to use L1.
 
     """
+
     def __init__(self, next_stage_start_epoch: int = 285):
         super(YoloXTrainingStageSwitchCallback, self).__init__(next_stage_start_epoch=next_stage_start_epoch)
 
     def apply_stage_change(self, context: PhaseContext):
-        context.train_loader.close_mosaic()
+        context.train_loader.dataset.enable_mosaic = False
         context.train_loader.dataset.enable_mixup = False
+        context.sg_model.train_loader = iter(context.sg_model.train_loader)
         context.criterion.use_l1 = True
+
+
+class YoloXMultiscaleImagesCallback(PhaseCallback):
+    """
+    YoloXMultiscaleImagesCallback
+
+    Enables changing the final rescaling of images during training on the fly.
+    """
+
+    def __init__(self, freq: int = 10, multiscale_range: int = 5):
+        super(YoloXMultiscaleImagesCallback, self).__init__(phase=Phase.TRAIN_BATCH_END)
+        self.freq = freq
+        self.multiscale_range = multiscale_range
+        self.rank = None
+        self.is_distributed = None
+
+    def __call__(self, context: PhaseContext):
+        if self.rank is None:
+            self.rank = get_local_rank()
+        if self.is_distributed is None:
+            self.is_distributed = get_world_size() > 1
+
+        if context.batch_idx % self.freq == 0:
+            tensor = torch.LongTensor(2).cuda()
+            original_res = context.train_loader.collate_fn.resolution
+
+            if self.rank == 0:
+                size_factor = original_res[1] * 1.0 / original_res[0]
+                min_size = int(original_res[0] / 32) - self.multiscale_range
+                max_size = int(original_res[0] / 32) + self.multiscale_range
+                random_size = (min_size, max_size)
+                size = random.randint(*random_size)
+                size = (int(32 * size), 32 * int(size * size_factor))
+                tensor[0] = size[0]
+                tensor[1] = size[1]
+
+            if self.is_distributed:
+                dist.barrier()
+                dist.broadcast(tensor, 0)
+            logger.info("new res in callback "+str((tensor[0].item(), tensor[1].item())))
+            if not hasattr(context.train_loader.collate_fn,"target_resolution"):
+                raise ValueError("TARGET RES NOT HERE")
+            context.train_loader.collate_fn.target_resolution = (tensor[0].item(), tensor[1].item())
 
 
 class CallbackHandler:

@@ -157,6 +157,7 @@ class SgModel:
         self.scaler = None
         self.phase_callbacks = None
         self.checkpoint_params = None
+        self.forward_pass_prep_fn = None
 
         # SET THE DEFAULT PROPERTIES
         self.half_precision = False
@@ -358,11 +359,16 @@ class SgModel:
                                criterion=self.criterion,
                                device=self.device,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
-                               sg_logger=self.sg_logger)
+                               sg_logger=self.sg_logger,
+                               sg_model=self,
+                               train_loader=self.train_loader)
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
             batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
             inputs, targets, additional_batch_items = sg_model_utils.unpack_batch_items(batch_items)
+
+            if self.forward_pass_prep_fn is not None:
+                inputs, targets = self.forward_pass_prep_fn(inputs, targets, batch_idx, context)
             # AUTOCAST IS ENABLED ONLY IF self.training_params.mixed_precision - IF enabled=False AUTOCAST HAS NO EFFECT
             with autocast(enabled=self.training_params.mixed_precision):
                 # FORWARD PASS TO GET NETWORK'S PREDICTIONS
@@ -397,7 +403,8 @@ class SgModel:
                                                                 gpu_mem=gpu_memory_utilization)
 
             progress_bar_train_loader.set_postfix(**pbar_message_dict)
-
+            # if batch_idx%10 == 0 or batch_idx%10 == 5:
+            #     logger.info("Inputs shape "+str(inputs.shape))
             if batch_idx == len(self.train_loader)-1:
                 break
 
@@ -890,6 +897,8 @@ class SgModel:
         if self.load_checkpoint and load_opt_params:
             self.optimizer.load_state_dict(self.checkpoint['optimizer_state_dict'])
 
+        self.forward_pass_prep_fn = self.training_params.forward_pass_prep_fn
+
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
         context = PhaseContext(optimizer=self.optimizer,
@@ -900,7 +909,8 @@ class SgModel:
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
                                train_loader=self.train_loader,
-                               valid_loader=self.valid_loader)
+                               valid_loader=self.valid_loader,
+                               sg_model=self)
 
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 

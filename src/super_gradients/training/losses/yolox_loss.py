@@ -9,9 +9,9 @@ import torch
 from torch import nn
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
-
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.detection_utils import calculate_bbox_iou_matrix
-
+logger = get_logger(__name__)
 
 class IOUloss(nn.Module):
     """
@@ -447,7 +447,10 @@ class YoloXDetectionLoss(_Loss):
         dynamic_ks = torch.clamp(topk_ious.sum(1).int(), min=1)
         dynamic_ks = dynamic_ks.tolist()
         for gt_idx in range(num_gt):
-            _, pos_idx = torch.topk(cost[gt_idx], k=dynamic_ks[gt_idx], largest=False)
+            try:
+                _, pos_idx = torch.topk(cost[gt_idx], k=dynamic_ks[gt_idx], largest=False)
+            except:
+                logger.warning("cost[gt_idx]: "+str(cost[gt_idx])+" dynamic_ks[gt_idx]L "+str(dynamic_ks[gt_idx]))
             matching_matrix[gt_idx][pos_idx] = 1
 
         del topk_ious, dynamic_ks, pos_idx

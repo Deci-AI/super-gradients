@@ -14,16 +14,18 @@ from super_gradients.training.utils.distributed_training_utils import get_local_
 
 logger = get_logger(__name__)
 
+
 class MosaicDetection(Dataset):
     """Detection dataset wrapper that performs mixup for normal dataset."""
 
     def __init__(
-            self, dataset, img_size, mosaic=True, preproc=None,
-            degrees=10.0, translate=0.1, mosaic_scale=(0.5, 1.5),
-            mixup_scale=(0.5, 1.5), shear=2.0, enable_mixup=True,
-            mosaic_prob=1.0, mixup_prob=1.0, *args
+        self, dataset, img_size, mosaic=True, preproc=None,
+        degrees=10.0, translate=0.1, mosaic_scale=(0.5, 1.5),
+        mixup_scale=(0.5, 1.5), shear=2.0, enable_mixup=True,
+        mosaic_prob=1.0, mixup_prob=1.0, *args
     ):
         """
+
         Args:
             dataset(Dataset) : Pytorch dataset object.
             img_size (tuple):
@@ -58,6 +60,7 @@ class MosaicDetection(Dataset):
     def __getitem__(self, idx):
         if self.enable_mosaic and random.random() < self.mosaic_prob:
             mosaic_labels = []
+            mosaic_labels_seg = []
             input_dim = self._dataset.input_dim
             input_h, input_w = input_dim[0], input_dim[1]
 
@@ -69,7 +72,7 @@ class MosaicDetection(Dataset):
             indices = [idx] + [random.randint(0, len(self._dataset) - 1) for _ in range(3)]
 
             for i_mosaic, index in enumerate(indices):
-                img, _labels, _, img_id = self._dataset.pull_item(index)
+                img, _labels, _labels_seg, _, img_id = self._dataset.pull_item(index)
                 h0, w0 = img.shape[:2]  # orig hw
                 scale = min(1. * input_h / h0, 1. * input_w / w0)
                 img = cv2.resize(
@@ -89,12 +92,17 @@ class MosaicDetection(Dataset):
                 padw, padh = l_x1 - s_x1, l_y1 - s_y1
 
                 labels = _labels.copy()
+                labels_seg = _labels_seg.copy()
                 # Normalized xywh to pixel xyxy format
                 if _labels.size > 0:
                     labels[:, 0] = scale * _labels[:, 0] + padw
                     labels[:, 1] = scale * _labels[:, 1] + padh
                     labels[:, 2] = scale * _labels[:, 2] + padw
                     labels[:, 3] = scale * _labels[:, 3] + padh
+
+                    labels_seg[:, ::2] = scale * labels_seg[:, ::2] + padw
+                    labels_seg[:, 1::2] = scale * labels_seg[:, 1::2] + padh
+                mosaic_labels_seg.append(labels_seg)
                 mosaic_labels.append(labels)
 
             if len(mosaic_labels):
@@ -103,10 +111,14 @@ class MosaicDetection(Dataset):
                 np.clip(mosaic_labels[:, 1], 0, 2 * input_h, out=mosaic_labels[:, 1])
                 np.clip(mosaic_labels[:, 2], 0, 2 * input_w, out=mosaic_labels[:, 2])
                 np.clip(mosaic_labels[:, 3], 0, 2 * input_h, out=mosaic_labels[:, 3])
+                mosaic_labels_seg = np.concatenate(mosaic_labels_seg, 0)
+                np.clip(mosaic_labels_seg[:, ::2], 0, 2 * input_w, out=mosaic_labels_seg[:, ::2])
+                np.clip(mosaic_labels_seg[:, 1::2], 0, 2 * input_h, out=mosaic_labels_seg[:, 1::2])
 
             mosaic_img, mosaic_labels = random_affine(
                 mosaic_img,
                 mosaic_labels,
+                mosaic_labels_seg,
                 target_size=(input_w, input_h),
                 degrees=self.degrees,
                 translate=self.translate,
@@ -114,23 +126,27 @@ class MosaicDetection(Dataset):
                 shear=self.shear,
             )
 
+            # -----------------------------------------------------------------
             # CopyPaste: https://arxiv.org/abs/2012.07177
+            # -----------------------------------------------------------------
             if (
-                    self.enable_mixup
-                    and not len(mosaic_labels) == 0
-                    and random.random() < self.mixup_prob
+                self.enable_mixup
+                and not len(mosaic_labels) == 0
+                and random.random() < self.mixup_prob
             ):
                 mosaic_img, mosaic_labels = self.mixup(mosaic_img, mosaic_labels, self.input_dim)
             mix_img, padded_labels = self.preproc(mosaic_img, mosaic_labels, self.input_dim)
             img_info = (mix_img.shape[1], mix_img.shape[0])
 
+            # -----------------------------------------------------------------
             # img_info and img_id are not used for training.
             # They are also hard to be specified on a mosaic image.
+            # -----------------------------------------------------------------
             return mix_img, padded_labels, img_info, img_id
 
         else:
             self._dataset._input_dim = self.input_dim
-            img, label, img_info, img_id = self._dataset.pull_item(idx)
+            img, label, _, img_info, img_id = self._dataset.pull_item(idx)
             img, label = self.preproc(img, label, self.input_dim)
             return img, label, img_info, img_id
 
@@ -141,7 +157,7 @@ class MosaicDetection(Dataset):
         while len(cp_labels) == 0:
             cp_index = random.randint(0, self.__len__() - 1)
             cp_labels = self._dataset.load_anno(cp_index)
-        img, cp_labels, _, _ = self._dataset.pull_item(cp_index)
+        img, cp_labels, _, _, _ = self._dataset.pull_item(cp_index)
 
         if len(img.shape) == 3:
             cp_img = np.ones((input_dim[0], input_dim[1], 3), dtype=np.uint8) * 114
@@ -156,7 +172,7 @@ class MosaicDetection(Dataset):
         )
 
         cp_img[
-        : int(img.shape[0] * cp_scale_ratio), : int(img.shape[1] * cp_scale_ratio)
+            : int(img.shape[0] * cp_scale_ratio), : int(img.shape[1] * cp_scale_ratio)
         ] = resized_img
 
         cp_img = cv2.resize(
@@ -181,14 +197,16 @@ class MosaicDetection(Dataset):
         if padded_img.shape[1] > target_w:
             x_offset = random.randint(0, padded_img.shape[1] - target_w - 1)
         padded_cropped_img = padded_img[
-                             y_offset: y_offset + target_h, x_offset: x_offset + target_w
-                             ]
+            y_offset: y_offset + target_h, x_offset: x_offset + target_w
+        ]
 
         cp_bboxes_origin_np = adjust_box_anns(
             cp_labels[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h
         )
         if FLIP:
-            cp_bboxes_origin_np[:, 0::2] = (origin_w - cp_bboxes_origin_np[:, 0::2][:, ::-1])
+            cp_bboxes_origin_np[:, 0::2] = (
+                origin_w - cp_bboxes_origin_np[:, 0::2][:, ::-1]
+            )
         cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
         cp_bboxes_transformed_np[:, 0::2] = np.clip(
             cp_bboxes_transformed_np[:, 0::2] - x_offset, 0, target_w
@@ -206,6 +224,481 @@ class MosaicDetection(Dataset):
 
         return origin_img.astype(np.uint8), origin_labels
 
+# class MosaicDetection(Dataset):
+#     """Detection dataset wrapper that performs mixup for normal dataset."""
+#
+#     def __init__(
+#             self, dataset, img_size, mosaic=True, preproc=None,
+#             degrees=10.0, translate=0.1, mosaic_scale=(0.5, 1.5),
+#             mixup_scale=(0.5, 1.5), shear=2.0, enable_mixup=True,
+#             mosaic_prob=1.0, mixup_prob=1.0, *args
+#     ):
+#         """
+#         Args:
+#             dataset(Dataset) : Pytorch dataset object.
+#             img_size (tuple):
+#             mosaic (bool): enable mosaic augmentation or not.
+#             preproc (func):
+#             degrees (float):
+#             translate (float):
+#             mosaic_scale (tuple):
+#             mixup_scale (tuple):
+#             shear (float):
+#             enable_mixup (bool):
+#             *args(tuple) : Additional arguments for mixup random sampler.
+#         """
+#         super().__init__()
+#         self._dataset = dataset
+#         self.preproc = preproc
+#         self.degrees = degrees
+#         self.translate = translate
+#         self.scale = mosaic_scale
+#         self.shear = shear
+#         self.mixup_scale = mixup_scale
+#         self.enable_mosaic = mosaic
+#         self.enable_mixup = enable_mixup
+#         self.mosaic_prob = mosaic_prob
+#         self.mixup_prob = mixup_prob
+#         self.local_rank = get_local_rank()
+#         self.input_dim = img_size
+#
+#     def __len__(self):
+#         return len(self._dataset)
+#
+#     def __getitem__(self, idx):
+#         if self.enable_mosaic and random.random() < self.mosaic_prob:
+#             mosaic_labels = []
+#             input_dim = self._dataset.input_dim
+#             input_h, input_w = input_dim[0], input_dim[1]
+#
+#             # yc, xc = s, s  # mosaic center x, y
+#             yc = int(random.uniform(0.5 * input_h, 1.5 * input_h))
+#             xc = int(random.uniform(0.5 * input_w, 1.5 * input_w))
+#
+#             # 3 additional image indices
+#             indices = [idx] + [random.randint(0, len(self._dataset) - 1) for _ in range(3)]
+#
+#             for i_mosaic, index in enumerate(indices):
+#                 img, _labels, _, img_id = self._dataset.pull_item(index)
+#                 h0, w0 = img.shape[:2]  # orig hw
+#                 scale = min(1. * input_h / h0, 1. * input_w / w0)
+#                 img = cv2.resize(
+#                     img, (int(w0 * scale), int(h0 * scale)), interpolation=cv2.INTER_LINEAR
+#                 )
+#                 # generate output mosaic image
+#                 (h, w, c) = img.shape[:3]
+#                 if i_mosaic == 0:
+#                     mosaic_img = np.full((input_h * 2, input_w * 2, c), 114, dtype=np.uint8)
+#
+#                 # suffix l means large image, while s means small image in mosaic aug.
+#                 (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(
+#                     mosaic_img, i_mosaic, xc, yc, w, h, input_h, input_w
+#                 )
+#
+#                 mosaic_img[l_y1:l_y2, l_x1:l_x2] = img[s_y1:s_y2, s_x1:s_x2]
+#                 padw, padh = l_x1 - s_x1, l_y1 - s_y1
+#
+#                 labels = _labels.copy()
+#                 # Normalized xywh to pixel xyxy format
+#                 if _labels.size > 0:
+#                     labels[:, 0] = scale * _labels[:, 0] + padw
+#                     labels[:, 1] = scale * _labels[:, 1] + padh
+#                     labels[:, 2] = scale * _labels[:, 2] + padw
+#                     labels[:, 3] = scale * _labels[:, 3] + padh
+#                 mosaic_labels.append(labels)
+#
+#             if len(mosaic_labels):
+#                 mosaic_labels = np.concatenate(mosaic_labels, 0)
+#                 np.clip(mosaic_labels[:, 0], 0, 2 * input_w, out=mosaic_labels[:, 0])
+#                 np.clip(mosaic_labels[:, 1], 0, 2 * input_h, out=mosaic_labels[:, 1])
+#                 np.clip(mosaic_labels[:, 2], 0, 2 * input_w, out=mosaic_labels[:, 2])
+#                 np.clip(mosaic_labels[:, 3], 0, 2 * input_h, out=mosaic_labels[:, 3])
+#
+#             mosaic_img, mosaic_labels = random_affine(
+#                 mosaic_img,
+#                 mosaic_labels,
+#                 target_size=(input_w, input_h),
+#                 degrees=self.degrees,
+#                 translate=self.translate,
+#                 scales=self.scale,
+#                 shear=self.shear,
+#             )
+#
+#             # CopyPaste: https://arxiv.org/abs/2012.07177
+#             if (
+#                     self.enable_mixup
+#                     and not len(mosaic_labels) == 0
+#                     and random.random() < self.mixup_prob
+#             ):
+#                 mosaic_img, mosaic_labels = self.mixup(mosaic_img, mosaic_labels, self.input_dim)
+#             mix_img, padded_labels = self.preproc(mosaic_img, mosaic_labels, self.input_dim)
+#             img_info = (mix_img.shape[1], mix_img.shape[0])
+#
+#             # img_info and img_id are not used for training.
+#             # They are also hard to be specified on a mosaic image.
+#             return mix_img, padded_labels, img_info, img_id
+#
+#         else:
+#             self._dataset._input_dim = self.input_dim
+#             img, label, img_info, img_id = self._dataset.pull_item(idx)
+#             img, label = self.preproc(img, label, self.input_dim)
+#             return img, label, img_info, img_id
+#
+#     def mixup(self, origin_img, origin_labels, input_dim):
+#         jit_factor = random.uniform(*self.mixup_scale)
+#         FLIP = random.uniform(0, 1) > 0.5
+#         cp_labels = []
+#         while len(cp_labels) == 0:
+#             cp_index = random.randint(0, self.__len__() - 1)
+#             cp_labels = self._dataset.load_anno(cp_index)
+#         img, cp_labels, _, _ = self._dataset.pull_item(cp_index)
+#
+#         if len(img.shape) == 3:
+#             cp_img = np.ones((input_dim[0], input_dim[1], 3), dtype=np.uint8) * 114
+#         else:
+#             cp_img = np.ones(input_dim, dtype=np.uint8) * 114
+#
+#         cp_scale_ratio = min(input_dim[0] / img.shape[0], input_dim[1] / img.shape[1])
+#         resized_img = cv2.resize(
+#             img,
+#             (int(img.shape[1] * cp_scale_ratio), int(img.shape[0] * cp_scale_ratio)),
+#             interpolation=cv2.INTER_LINEAR,
+#         )
+#
+#         cp_img[
+#         : int(img.shape[0] * cp_scale_ratio), : int(img.shape[1] * cp_scale_ratio)
+#         ] = resized_img
+#
+#         cp_img = cv2.resize(
+#             cp_img,
+#             (int(cp_img.shape[1] * jit_factor), int(cp_img.shape[0] * jit_factor)),
+#         )
+#         cp_scale_ratio *= jit_factor
+#
+#         if FLIP:
+#             cp_img = cp_img[:, ::-1, :]
+#
+#         origin_h, origin_w = cp_img.shape[:2]
+#         target_h, target_w = origin_img.shape[:2]
+#         padded_img = np.zeros(
+#             (max(origin_h, target_h), max(origin_w, target_w), 3), dtype=np.uint8
+#         )
+#         padded_img[:origin_h, :origin_w] = cp_img
+#
+#         x_offset, y_offset = 0, 0
+#         if padded_img.shape[0] > target_h:
+#             y_offset = random.randint(0, padded_img.shape[0] - target_h - 1)
+#         if padded_img.shape[1] > target_w:
+#             x_offset = random.randint(0, padded_img.shape[1] - target_w - 1)
+#         padded_cropped_img = padded_img[
+#                              y_offset: y_offset + target_h, x_offset: x_offset + target_w
+#                              ]
+#
+#         cp_bboxes_origin_np = adjust_box_anns(
+#             cp_labels[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h
+#         )
+#         if FLIP:
+#             cp_bboxes_origin_np[:, 0::2] = (origin_w - cp_bboxes_origin_np[:, 0::2][:, ::-1])
+#         cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
+#         cp_bboxes_transformed_np[:, 0::2] = np.clip(
+#             cp_bboxes_transformed_np[:, 0::2] - x_offset, 0, target_w
+#         )
+#         cp_bboxes_transformed_np[:, 1::2] = np.clip(
+#             cp_bboxes_transformed_np[:, 1::2] - y_offset, 0, target_h
+#         )
+#
+#         cls_labels = cp_labels[:, 4:5].copy()
+#         box_labels = cp_bboxes_transformed_np
+#         labels = np.hstack((box_labels, cls_labels))
+#         origin_labels = np.vstack((origin_labels, labels))
+#         origin_img = origin_img.astype(np.float32)
+#         origin_img = 0.5 * origin_img + 0.5 * padded_cropped_img.astype(np.float32)
+#
+#         return origin_img.astype(np.uint8), origin_labels
+
+
+# class COCODataset(Dataset):
+#     """
+#     COCO dataset class.
+#     """
+#
+#     def __init__(
+#             self,
+#             data_dir=None,
+#             json_file="instances_train2017.json",
+#             name="train2017",
+#             img_size=(416, 416),
+#             preproc=None,
+#             cache=False,
+#     ):
+#         """
+#         COCO dataset initialization. Annotation data are read into memory by COCO API.
+#         Args:
+#             data_dir (str): dataset root directory
+#             json_file (str): COCO json file name
+#             name (str): COCO data name (e.g. 'train2017' or 'val2017')
+#             img_size (int): target image size after pre-processing
+#             preproc: data augmentation strategy
+#         """
+#         super().__init__()
+#         if data_dir is None:
+#             data_dir = os.path.join(get_yolox_datadir(), "COCO")
+#         self.data_dir = data_dir
+#         self.json_file = json_file
+#
+#         self.coco = COCO(os.path.join(self.data_dir, "annotations", self.json_file))
+#         self.ids = self.coco.getImgIds()
+#         self.class_ids = sorted(self.coco.getCatIds())
+#         cats = self.coco.loadCats(self.coco.getCatIds())
+#         self._classes = tuple([c["name"] for c in cats])
+#         self.imgs = None
+#         self.name = name
+#         self.img_size = img_size
+#
+#         # TODO: figure out why this is needed (also in the original repo in parent class)
+#         self.input_dim = img_size
+#         self.preproc = preproc
+#         self.annotations = self._load_coco_annotations()
+#         if cache:
+#             self._cache_images()
+#
+#     def __len__(self):
+#         return len(self.ids)
+#
+#     def __del__(self):
+#         del self.imgs
+#
+#     def _load_coco_annotations(self):
+#         return [self.load_anno_from_ids(_ids) for _ids in self.ids]
+#
+#     def _cache_images(self):
+#         logger.warning(
+#             "\n********************************************************************************\n"
+#             "You are using cached images in RAM to accelerate training.\n"
+#             "This requires large system RAM.\n"
+#             "Make sure you have 200G+ RAM and 136G available disk space for training COCO.\n"
+#             "********************************************************************************\n"
+#         )
+#         max_h = self.img_size[0]
+#         max_w = self.img_size[1]
+#         cache_file = self.data_dir + "/img_resized_cache_" + self.name + ".array"
+#         if not os.path.exists(cache_file):
+#             logger.info(
+#                 "Caching images for the first time. This might take about 20 minutes for COCO"
+#             )
+#             self.imgs = np.memmap(
+#                 cache_file,
+#                 shape=(len(self.ids), max_h, max_w, 3),
+#                 dtype=np.uint8,
+#                 mode="w+",
+#             )
+#             from tqdm import tqdm
+#             from multiprocessing.pool import ThreadPool
+#
+#             NUM_THREADs = min(8, os.cpu_count())
+#             loaded_images = ThreadPool(NUM_THREADs).imap(
+#                 lambda x: self.load_resized_img(x),
+#                 range(len(self.annotations)),
+#             )
+#             pbar = tqdm(enumerate(loaded_images), total=len(self.annotations))
+#             for k, out in pbar:
+#                 self.imgs[k][: out.shape[0], : out.shape[1], :] = out.copy()
+#             self.imgs.flush()
+#             pbar.close()
+#         else:
+#             logger.warning(
+#                 "You are using cached imgs! Make sure your dataset is not changed!!\n"
+#                 "Everytime the self.input_size is changed in your exp file, you need to delete\n"
+#                 "the cached data and re-generate them.\n"
+#             )
+#
+#         logger.info("Loading cached imgs...")
+#         self.imgs = np.memmap(
+#             cache_file,
+#             shape=(len(self.ids), max_h, max_w, 3),
+#             dtype=np.uint8,
+#             mode="r+",
+#         )
+#
+#     def load_anno_from_ids(self, id_):
+#         im_ann = self.coco.loadImgs(id_)[0]
+#         width = im_ann["width"]
+#         height = im_ann["height"]
+#         anno_ids = self.coco.getAnnIds(imgIds=[int(id_)], iscrowd=False)
+#         annotations = self.coco.loadAnns(anno_ids)
+#         objs = []
+#         for obj in annotations:
+#             x1 = np.max((0, obj["bbox"][0]))
+#             y1 = np.max((0, obj["bbox"][1]))
+#             x2 = np.min((width, x1 + np.max((0, obj["bbox"][2]))))
+#             y2 = np.min((height, y1 + np.max((0, obj["bbox"][3]))))
+#             if obj["area"] > 0 and x2 >= x1 and y2 >= y1:
+#                 obj["clean_bbox"] = [x1, y1, x2, y2]
+#                 objs.append(obj)
+#
+#         num_objs = len(objs)
+#
+#         res = np.zeros((num_objs, 5))
+#
+#         for ix, obj in enumerate(objs):
+#             cls = self.class_ids.index(obj["category_id"])
+#             res[ix, 0:4] = obj["clean_bbox"]
+#             res[ix, 4] = cls
+#
+#         r = min(self.img_size[0] / height, self.img_size[1] / width)
+#         res[:, :4] *= r
+#
+#         img_info = (height, width)
+#         resized_info = (int(height * r), int(width * r))
+#
+#         file_name = im_ann["file_name"] if "file_name" in im_ann else "{:012}".format(id_) + ".jpg"
+#
+#         return (res, img_info, resized_info, file_name)
+#
+#     def load_anno(self, index):
+#         return self.annotations[index][0]
+#
+#     def load_resized_img(self, index):
+#         img = self.load_image(index)
+#         r = min(self.img_size[0] / img.shape[0], self.img_size[1] / img.shape[1])
+#         resized_img = cv2.resize(
+#             img,
+#             (int(img.shape[1] * r), int(img.shape[0] * r)),
+#             interpolation=cv2.INTER_LINEAR,
+#         ).astype(np.uint8)
+#         return resized_img
+#
+#     def load_image(self, index):
+#         file_name = self.annotations[index][3]
+#
+#         img_file = os.path.join(self.data_dir, self.name, file_name)
+#
+#         img = cv2.imread(img_file)
+#         assert img is not None, "Plz check {} carefully!".format(img_file)
+#
+#         return img
+#
+#     def pull_item(self, index):
+#         id_ = self.ids[index]
+#
+#         res, img_info, resized_info, _ = self.annotations[index]
+#         if self.imgs is not None:
+#             pad_img = self.imgs[index]
+#             img = pad_img[: resized_info[0], : resized_info[1], :].copy()
+#         else:
+#             img = self.load_resized_img(index)
+#
+#         return img, res.copy(), img_info, np.array([id_])
+#
+#     def __getitem__(self, index):
+#         """
+#         One image / label pair for the given index is picked up and pre-processed.
+#
+#         Args:
+#             index (int): data index
+#
+#         Returns:
+#             img (numpy.ndarray): pre-processed image
+#             padded_labels (torch.Tensor): pre-processed label data.
+#                 The shape is :math:`[max_labels, 5]`.
+#                 each label consists of [class, xc, yc, w, h]:
+#                     class (float): class index.
+#                     xc, yc (float) : center of bbox whose values range from 0 to 1.
+#                     w, h (float) : size of bbox whose values range from 0 to 1.
+#             info_img : tuple of h, w.  h, w (int): original shape of the image
+#             img_id (int): same as the input index. Used for evaluation.
+#         """
+#         img, target, img_info, img_id = self.pull_item(index)
+#
+#         if self.preproc is not None:
+#             img, target = self.preproc(img, target, self.input_dim)
+#         return img, target, img_info, img_id
+
+
+def remove_useless_info(coco, use_seg_info=False):
+    """
+    Remove useless info in coco dataset. COCO object is modified inplace.
+    This function is mainly used for saving memory (save about 30% mem).
+    """
+    if isinstance(coco, COCO):
+        dataset = coco.dataset
+        dataset.pop("info", None)
+        dataset.pop("licenses", None)
+        for img in dataset["images"]:
+            img.pop("license", None)
+            img.pop("coco_url", None)
+            img.pop("date_captured", None)
+            img.pop("flickr_url", None)
+        if "annotations" in coco.dataset and not use_seg_info:
+            for anno in coco.dataset["annotations"]:
+                anno.pop("segmentation", None)
+
+
+class COCO_pseudo(COCO):
+    def __init__(self, annotation_file, score_thresh=0.):
+        super().__init__(annotation_file)
+
+        if not score_thresh:
+            return
+
+        if 1 > score_thresh > 0:
+            # constant threshold
+            ann_total = len(self.dataset['annotations'])
+            self.dataset['annotations'] = [ann for ann in self.dataset['annotations']
+                                           if 'score' in ann and ann['score'] > score_thresh]
+        elif score_thresh == 2:
+            logger.info('Applying an adaptive threshold where precision and recall are the closest')
+            if 'yoloxx' in annotation_file:
+                thresholds = [0.197, 0.2587, 0.3007, 0.3259, 0.2628, 0.3785, 0.3049, 0.3666, 0.2073, 0.1431, 0.2756,
+                              0.3067, 0.2548, 0.2349, 0.0725, 0.4214, 0.3882, 0.2982, 0.4188, 0.2224, 0.5258, 0.0716,
+                              0.3221, 0.4801, 0.2563, 0.3075, 0.253, 0.2123, 0.3352, 0.3725, 0.2243, 0.2214, 0.0438,
+                              0.1883, 0.193, 0.1873, 0.2261, 0.241, 0.2596, 0.266, 0.2174, 0.3233, 0.3141, 0.1928,
+                              0.2656, 0.3502, 0.1987, 0.2234, 0.3283, 0.3072, 0.2485, 0.292, 0.1152, 0.3234, 0.1558,
+                              0.2347, 0.3254, 0.3834, 0.3561, 0.3466, 0.3302, 0.4009, 0.3163, 0.4467, 0.4105, 0.2898,
+                              0.3415, 0.3207, 0.4646, 0.3814, 0.3264, 0.2706, 0.4361, 0.1636, 0.2786, 0.3883, 0.1917,
+                              0.3753, 0.1167, 0.2368]
+            elif 'yolov5x6' in annotation_file:
+                thresholds = [0.2, 0.2276, 0.3011, 0.2636, 0.39, 0.2863, 0.3218, 0.3091, 0.2081, 0.2474, 0.2921,
+                              0.2449, 0.2405, 0.2192, 0.0845, 0.3397, 0.3698, 0.3796, 0.356, 0.2383, 0.3972, 0.1325,
+                              0.2338, 0.2786, 0.262, 0.2892, 0.2524, 0.2173, 0.2734, 0.4308, 0.169, 0.1589, 0.141,
+                              0.2115, 0.2094, 0.2495, 0.199, 0.2179, 0.312, 0.2637, 0.218, 0.3255, 0.3033, 0.2071,
+                              0.2894, 0.3173, 0.1309, 0.1878, 0.2488, 0.2482, 0.2046, 0.2507, 0.1145, 0.3484, 0.138,
+                              0.2038, 0.2534, 0.315, 0.3098, 0.2577, 0.2799, 0.3292, 0.2359, 0.3497, 0.3696, 0.2955,
+                              0.312, 0.3492, 0.3684, 0.2924, 0.6337, 0.2745, 0.4524, 0.1651, 0.2733, 0.3265, 0.1371,
+                              0.3437, 0.0216, 0.3689]
+            else:
+                raise RuntimeError(f'adaptive thresholds are undefined for {annotation_file}')
+
+            catIds = self.getCatIds()
+            ann_total = len(self.dataset['annotations'])
+            self.dataset['annotations'] = [ann for ann in self.dataset['annotations'] if 'score' in ann and
+                                           ann['score'] > thresholds[catIds.index(ann['category_id'])]]
+
+        elif score_thresh == 3:
+            logger.info('Applying an adaptive threshold where precision and recall are the closest to (1, 1)')
+            if 'yoloxx' in annotation_file:
+                thresholds = [0.3794, 0.536, 0.502, 0.5164, 0.5319, 0.3785, 0.4977, 0.3987, 0.3604, 0.5214, 0.2756,
+                              0.4981, 0.6923, 0.6188, 0.4859, 0.7286, 0.5914, 0.7069, 0.4981, 0.2224, 0.5258, 0.4529,
+                              0.6619, 0.6474, 0.31, 0.3629, 0.5905, 0.647, 0.5438, 0.5894, 0.3216, 0.696, 0.4563,
+                              0.4817, 0.4638, 0.4883, 0.6859, 0.4643, 0.4627, 0.4719, 0.5306, 0.563, 0.5137, 0.49,
+                              0.5858, 0.6081, 0.381, 0.3363, 0.5707, 0.4086, 0.5597, 0.3466, 0.3523, 0.4205, 0.2103,
+                              0.4869, 0.5099, 0.5016, 0.4331, 0.635, 0.5641, 0.6348, 0.5439, 0.8315, 0.4105, 0.5435,
+                              0.5156, 0.6712, 0.4646, 0.4795, 0.8366, 0.4959, 0.6084, 0.3206, 0.4827, 0.4772, 0.7941,
+                              0.623, 0.0, 0.5943]
+            # elif 'yolov5x6' in annotation_file:
+            #     pass
+            else:
+                raise RuntimeError(f'adaptive thresholds are undefined for {annotation_file}')
+
+            catIds = self.getCatIds()
+            ann_total = len(self.dataset['annotations'])
+            self.dataset['annotations'] = [ann for ann in self.dataset['annotations'] if 'score' in ann and
+                                           ann['score'] > thresholds[catIds.index(ann['category_id'])]]
+
+        ann_filtered = len(self.dataset['annotations'])
+        logger.info(f"Filtered out {ann_total - ann_filtered}, left {ann_filtered} bboxes")
+        self.createIndex()
+
 
 class COCODataset(Dataset):
     """
@@ -213,43 +706,71 @@ class COCODataset(Dataset):
     """
 
     def __init__(
-            self,
-            data_dir=None,
-            json_file="instances_train2017.json",
-            name="train2017",
-            img_size=(416, 416),
-            preproc=None,
-            cache=False,
+        self,
+        data_dir=None,
+        json_file="instances_train2017.json",
+        name="images/train2017",
+        img_size=(416, 416),
+        preproc=None,
+        cache=False,
+        add_pseudo_labels=False,
+        data_dir_pseudo=None,
+        json_file_pseudo="instances_pseudolabels2017_yoloxx.json",
+        name_pseudo="images/unlabeled2017",
+        score_threshold=0.,
+        tight_box_rotation=False
     ):
         """
         COCO dataset initialization. Annotation data are read into memory by COCO API.
         Args:
             data_dir (str): dataset root directory
             json_file (str): COCO json file name
-            name (str): COCO data name (e.g. 'train2017' or 'val2017')
+            name (str): COCO data name (e.g. 'images/train2017' or 'images/val2017')
             img_size (int): target image size after pre-processing
             preproc: data augmentation strategy
         """
         super().__init__()
         if data_dir is None:
             data_dir = os.path.join(get_yolox_datadir(), "COCO")
+
+        self.imgs = None
+        self.img_size = img_size
+        self.preproc = preproc
+
         self.data_dir = data_dir
         self.json_file = json_file
-
-        self.coco = COCO(os.path.join(self.data_dir, "annotations", self.json_file))
+        self.name = name
+        self.coco = COCO(os.path.join(self.data_dir, "annotations", self.json_file))  # duplicate
+        self.tight_box_rotation = tight_box_rotation
+        remove_useless_info(self.coco, self.tight_box_rotation)
         self.ids = self.coco.getImgIds()
         self.class_ids = sorted(self.coco.getCatIds())
         cats = self.coco.loadCats(self.coco.getCatIds())
-        self._classes = tuple([c["name"] for c in cats])
-        self.imgs = None
-        self.name = name
-        self.img_size = img_size
-
-        # TODO: figure out why this is needed (also in the original repo in parent class)
         self.input_dim = img_size
-        self.preproc = preproc
+        self._classes = tuple([c["name"] for c in cats])
         self.annotations = self._load_coco_annotations()
-        if cache:
+
+        if add_pseudo_labels:
+            # Load pseudo-labels
+            self.data_dir_pseudo = data_dir_pseudo or data_dir.replace('datasets', 'datasets_pseudo')
+            self.json_file_pseudo = json_file_pseudo
+            self.name_pseudo = name_pseudo
+            self.coco_pseudo = COCO_pseudo(os.path.join(self.data_dir_pseudo, "annotations", self.json_file_pseudo),
+                                           score_threshold)
+            remove_useless_info(self.coco_pseudo)
+            self.ids_pseudo = self.coco_pseudo.getImgIds()
+
+            # Check classes match
+            assert self.class_ids == sorted(self.coco_pseudo.getCatIds()), 'Class ids are different in pseudo-labels'
+            cats = self.coco_pseudo.loadCats(self.coco_pseudo.getCatIds())
+            assert self._classes == tuple([c["name"] for c in cats]), 'Class names are different in pseudo-labels'
+            self.annotations_pseudo = self._load_coco_annotations(pseudo=True)
+
+            # Merge ids and annotations
+            self.ids += self.ids_pseudo
+            self.annotations += self.annotations_pseudo
+
+        if cache:  # cache after merged
             self._cache_images()
 
     def __len__(self):
@@ -258,8 +779,9 @@ class COCODataset(Dataset):
     def __del__(self):
         del self.imgs
 
-    def _load_coco_annotations(self):
-        return [self.load_anno_from_ids(_ids) for _ids in self.ids]
+    def _load_coco_annotations(self, pseudo=False):
+        ids = self.ids_pseudo if pseudo else self.ids
+        return [self.load_anno_from_ids(_ids, pseudo) for _ids in ids]
 
     def _cache_images(self):
         logger.warning(
@@ -271,7 +793,7 @@ class COCODataset(Dataset):
         )
         max_h = self.img_size[0]
         max_w = self.img_size[1]
-        cache_file = self.data_dir + "/img_resized_cache_" + self.name + ".array"
+        cache_file = os.path.join(self.data_dir, f"img_resized_cache_{self.name}.array")
         if not os.path.exists(cache_file):
             logger.info(
                 "Caching images for the first time. This might take about 20 minutes for COCO"
@@ -310,12 +832,21 @@ class COCODataset(Dataset):
             mode="r+",
         )
 
-    def load_anno_from_ids(self, id_):
-        im_ann = self.coco.loadImgs(id_)[0]
+    def load_anno_from_ids(self, id_, pseudo=False):
+        if pseudo:
+            coco = self.coco_pseudo
+            data_dir = self.data_dir_pseudo
+            name = self.name_pseudo
+        else:
+            coco = self.coco
+            data_dir = self.data_dir
+            name = self.name
+
+        im_ann = coco.loadImgs(id_)[0]
         width = im_ann["width"]
         height = im_ann["height"]
-        anno_ids = self.coco.getAnnIds(imgIds=[int(id_)], iscrowd=False)
-        annotations = self.coco.loadAnns(anno_ids)
+        anno_ids = coco.getAnnIds(imgIds=[int(id_)], iscrowd=False)
+        annotations = coco.loadAnns(anno_ids)
         objs = []
         for obj in annotations:
             x1 = np.max((0, obj["bbox"][0]))
@@ -329,21 +860,37 @@ class COCODataset(Dataset):
         num_objs = len(objs)
 
         res = np.zeros((num_objs, 5))
+        num_seg_values = 98 if self.tight_box_rotation else 0
+        res_seg = np.ones((num_objs, num_seg_values))
+        res_seg.fill(np.nan)
 
         for ix, obj in enumerate(objs):
             cls = self.class_ids.index(obj["category_id"])
             res[ix, 0:4] = obj["clean_bbox"]
             res[ix, 4] = cls
+            if self.tight_box_rotation:
+                seg_points = [j for i in obj.get("segmentation", []) for j in i]
+                if seg_points:
+                    seg_points_c = np.array(seg_points).reshape((-1, 2)).astype(np.int)
+                    seg_points_convex = cv2.convexHull(seg_points_c).ravel()
+                else:
+                    seg_points_convex = []
+                res_seg[ix, :len(seg_points_convex)] = seg_points_convex
 
         r = min(self.img_size[0] / height, self.img_size[1] / width)
         res[:, :4] *= r
+        res_seg *= r
 
         img_info = (height, width)
         resized_info = (int(height * r), int(width * r))
 
-        file_name = im_ann["file_name"] if "file_name" in im_ann else "{:012}".format(id_) + ".jpg"
+        file_name = (
+            im_ann["file_name"]
+            if "file_name" in im_ann
+            else "{:012}".format(id_) + ".jpg"
+        )
 
-        return (res, img_info, resized_info, file_name)
+        return (res, res_seg, img_info, resized_info, os.path.join(data_dir, name, file_name))
 
     def load_anno(self, index):
         return self.annotations[index][0]
@@ -359,26 +906,26 @@ class COCODataset(Dataset):
         return resized_img
 
     def load_image(self, index):
-        file_name = self.annotations[index][3]
+        file_name = self.annotations[index][4]
 
-        img_file = os.path.join(self.data_dir, self.name, file_name)
+        img_file = os.path.join(file_name)
 
         img = cv2.imread(img_file)
-        assert img is not None, "Plz check {} carefully!".format(img_file)
+        assert img is not None
 
         return img
 
     def pull_item(self, index):
         id_ = self.ids[index]
 
-        res, img_info, resized_info, _ = self.annotations[index]
+        res, res_seg, img_info, resized_info, _ = self.annotations[index]
         if self.imgs is not None:
             pad_img = self.imgs[index]
             img = pad_img[: resized_info[0], : resized_info[1], :].copy()
         else:
             img = self.load_resized_img(index)
 
-        return img, res.copy(), img_info, np.array([id_])
+        return img, res.copy(), res_seg, img_info, np.array([id_])
 
     def __getitem__(self, index):
         """
@@ -395,10 +942,11 @@ class COCODataset(Dataset):
                     class (float): class index.
                     xc, yc (float) : center of bbox whose values range from 0 to 1.
                     w, h (float) : size of bbox whose values range from 0 to 1.
-            info_img : tuple of h, w.  h, w (int): original shape of the image
+            info_img : tuple of h, w.
+                h, w (int): original shape of the image
             img_id (int): same as the input index. Used for evaluation.
         """
-        img, target, img_info, img_id = self.pull_item(index)
+        img, target, _, img_info, img_id = self.pull_item(index)
 
         if self.preproc is not None:
             img, target = self.preproc(img, target, self.input_dim)
