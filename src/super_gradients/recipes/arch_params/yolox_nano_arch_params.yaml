@@ -10,3 +10,4 @@ yolo_type: 'yoloX'
 
 depth_mult_factor: 0.33
 width_mult_factor: 0.25
+depthwise: true
