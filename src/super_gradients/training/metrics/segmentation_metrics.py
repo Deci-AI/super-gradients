@@ -101,7 +101,7 @@ class PixelAccuracy(Metric):
         return pix_acc
 
 
-class IoU(torchmetrics.IoU):
+class IoU(torchmetrics.JaccardIndex):
     def __init__(self, num_classes, dist_sync_on_step=True, ignore_index=None):
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index)
 
