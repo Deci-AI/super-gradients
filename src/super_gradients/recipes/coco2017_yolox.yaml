@@ -1,7 +1,7 @@
 defaults:
   - training_hyperparams: coco2017_yolox_train_params
   - dataset_params: coco_detection_dataset_params
-  - arch_params: yolov5s_arch_params
+  - arch_params: yolox_s_arch_params
   - checkpoint_params: default_checkpoint_params
 
 dataset_params:
@@ -26,7 +26,7 @@ checkpoint_params:
 
 architecture: yolox_s
 
-experiment_name: ${architecture}_coco2017_640
+experiment_name: ${architecture}_coco2017_tr${dataset_params.train_image_size}_val${dataset_params.val_image_size}
 
 sg_model:
   _target_: super_gradients.SgModel
@@ -37,4 +37,4 @@ training_hyperparams:
   criterion_params:
     strides: [8, 16, 32]  # output strides of all yolo outputs
     im_size: ${dataset_params.train_image_size}
-    num_classes: 80
+    num_classes: ${arch_params.num_classes}

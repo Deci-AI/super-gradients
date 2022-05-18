@@ -24,10 +24,10 @@ ema: True
 mixed_precision: False
 
 valid_metrics_list:
-  - _target_: super_gradients.training.metrics.DetectionMetrics
-    post_prediction_callback:
-      _target_: super_gradients.training.models.detection_models.yolov5.YoloV5PostPredictionCallback
-    num_cls: 80
+  - DetectionMetrics:
+      post_prediction_callback:
+        _target_: super_gradients.training.models.detection_models.yolov5_base.YoloV5PostPredictionCallback
+      num_cls: 80
 
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True
