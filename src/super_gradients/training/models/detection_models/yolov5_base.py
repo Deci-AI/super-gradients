@@ -397,24 +397,31 @@ class YoLoV5Base(SgModule):
     def _initialize_biases(self, cf=None):
         """initialize biases into Detect(), cf is class frequency"""
         m = self._head._modules_list[-1]  # Detect() module
-        if not isinstance(m, Detect):
-            return
-        for mi, s in zip(m.m, m.stride):  # from
-            b = mi.bias.view(m.num_anchors, -1)  # conv.bias(255) to (3,85)
-            with torch.no_grad():
-                b[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
-                b[:, 5:] += math.log(0.6 / (m.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
-            mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+        if isinstance(m, Detect):
+            for mi, s in zip(m.m, m.stride):  # from
+                b = mi.bias.view(m.num_anchors, -1)  # conv.bias(255) to (3,85)
+                with torch.no_grad():
+                    b[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
+                    b[:, 5:] += math.log(0.6 / (m.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
+                mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+        elif isinstance(m, DetectX):
+            prior_prob = 1e-2
+            for conv in m.cls_preds:
+                b = conv.bias.view(m.n_anchors, -1)
+                b.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+                conv.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+
+            for conv in m.obj_preds:
+                b = conv.bias.view(m.n_anchors, -1)
+                b.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+                conv.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
 
     def _initialize_weights(self):
         for m in self.modules():
-            t = type(m)
-            if t is nn.Conv2d:
-                pass  # nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif t is nn.BatchNorm2d:
+            if isinstance(m, nn.BatchNorm2d):
                 m.eps = 1e-3
                 m.momentum = 0.03
-            elif t in [nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.Hardswish]:
+            elif isinstance(m, (nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.Hardswish)):
                 m.inplace = True
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
