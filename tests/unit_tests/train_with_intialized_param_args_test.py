@@ -6,7 +6,7 @@ from super_gradients.training.models import ResNet18
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
 from super_gradients.training.utils.callbacks import LRSchedulerCallback, Phase
-from torchmetrics import F1
+from torchmetrics import F1Score
 import torch
 import numpy as np
 from super_gradients.training.datasets.dataset_interfaces import DatasetInterface
@@ -105,8 +105,8 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                        "train_metrics_list": [F1()], "valid_metrics_list": [F1()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1",
+                        "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
+                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
         model.train(train_params)
 
@@ -130,8 +130,8 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                        "train_metrics_list": [F1()], "valid_metrics_list": [F1()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1",
+                        "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
+                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
         model.train(train_params)
 
