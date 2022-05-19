@@ -200,6 +200,38 @@ class MultiScaleCollateFunction(AbstractCollateFunction):
 
             return batch[0], batch[1]
 
+# def random_resize(self, data_loader, epoch, rank, is_distributed):
+#     tensor = torch.LongTensor(2).cuda()
+#
+#     if rank == 0:
+#         size_factor = self.input_size[1] * 1.0 / self.input_size[0]
+#         if not hasattr(self, 'random_size'):
+#             min_size = int(self.input_size[0] / 32) - self.multiscale_range
+#             max_size = int(self.input_size[0] / 32) + self.multiscale_range
+#             self.random_size = (min_size, max_size)
+#         size = random.randint(*self.random_size)
+#         size = (int(32 * size), 32 * int(size * size_factor))
+#         tensor[0] = size[0]
+#         tensor[1] = size[1]
+#
+#     if is_distributed:
+#         dist.barrier()
+#         dist.broadcast(tensor, 0)
+#
+#     input_size = (tensor[0].item(), tensor[1].item())
+#     return input_size
+#
+# def preprocess(self, inputs, targets, tsize):
+#     scale_y = tsize[0] / self.input_size[0]
+#     scale_x = tsize[1] / self.input_size[1]
+#     if scale_x != 1 or scale_y != 1:
+#         inputs = nn.functional.interpolate(
+#             inputs, size=tsize, mode="bilinear", align_corners=False
+#         )
+#         targets[..., 1::2] = targets[..., 1::2] * scale_x
+#         targets[..., 2::2] = targets[..., 2::2] * scale_y
+#     return inputs, targets
+
 
 class MultiscaleForwardPassPrepFunction:
     """
@@ -207,7 +239,7 @@ class MultiscaleForwardPassPrepFunction:
     according to https://arxiv.org/pdf/1612.08242.pdf
     """
 
-    def __init__(self, target_size: int = None, min_image_size: int = None, max_image_size: int = None,
+    def __init__(self, multiscale_range: int = 5,
                  image_size_steps: int = 32,
                  change_frequency: int = 10):
         """
@@ -221,21 +253,10 @@ class MultiscaleForwardPassPrepFunction:
                     size multiplications
             :param change_frequency:
         """
-        assert target_size is not None or (max_image_size is not None and min_image_size is not None), \
-            'either target_size or min_image_size and max_image_size has to be set'
-        assert target_size is None or max_image_size is None, 'target_size and max_image_size cannot be both defined'
 
-        if target_size is not None:
-            min_image_size = int(0.66 * target_size - ((0.66 * target_size) % image_size_steps) + image_size_steps)
-            max_image_size = int(1.5 * target_size - ((1.5 * target_size) % image_size_steps))
-
-        print('Using multi-scale %g - %g' % (min_image_size, max_image_size))
-
-        self.sizes = np.arange(min_image_size, max_image_size + image_size_steps, image_size_steps)
+        self.multiscale_range = multiscale_range
         self.image_size_steps = image_size_steps
         self.frequency = change_frequency
-        self.rand_gen = random.Random(17)
-        self._current_size = self.rand_gen.choice(self.sizes)
         self.rank = None
         self.is_distributed = None
 
@@ -247,31 +268,106 @@ class MultiscaleForwardPassPrepFunction:
             self.is_distributed = get_world_size() > 1
 
         if batch_idx % self.frequency == 0:
-            current_size = torch.LongTensor(1).cuda()
-            if self.is_distributed:
-                dist.barrier()
+            tensor = torch.LongTensor(2).cuda()
+            input_size = inputs.shape[2:]
 
-            assert inputs.shape[2] % self.image_size_steps == 0 and inputs.shape[3] % self.image_size_steps == 0, \
-                'images sized not divisible by %d. (resize images before calling multi_scale)' % self.image_size_steps
             if self.rank == 0:
-                current_size[0] = self.rand_gen.choice(self.sizes)
+                size_factor = input_size[1] * 1.0 / input_size[0]
+                min_size = int(input_size[0] / self.image_size_steps) - self.multiscale_range
+                max_size = int(input_size[0] / self.image_size_steps) + self.multiscale_range
+                random_size = (min_size, max_size)
+                size = random.randint(*random_size)
+                size = (int(self.image_size_steps * size), self.image_size_steps * int(size * size_factor))
+                tensor[0] = size[0]
+                tensor[1] = size[1]
 
             if self.is_distributed:
                 dist.barrier()
-                dist.broadcast(current_size, 0, async_op=False)
+                dist.broadcast(tensor, 0)
 
-            current_size = current_size[0].item()
+            new_input_size = (tensor[0].item(), tensor[1].item())
 
-            if current_size != max(inputs.shape[2:]):
-                context.criterion.im_size = current_size
-                ratio = float(current_size) / max(inputs.shape[2:])
-                new_size = (int(round(inputs.shape[2] * ratio)), int(round(inputs.shape[3] * ratio)))
-                inputs = F.interpolate(inputs, size=new_size, mode='bilinear', align_corners=False)
-
-        if self.is_distributed:
-            dist.barrier()
-
+            scale_y = new_input_size[0] / input_size[0]
+            scale_x = new_input_size[1] / input_size[1]
+            if scale_x != 1 or scale_y != 1:
+                inputs = torch.nn.functional.interpolate(
+                    inputs, size=new_input_size, mode="bilinear", align_corners=False
+                )
+                targets[..., 2::2] = targets[..., 2::2] * scale_x
+                targets[..., 3::2] = targets[..., 3::2] * scale_y
         return inputs, targets
+
+# class MultiscaleForwardPassPrepFunction:
+#     """
+#     a collate function to implement multi-scale data augmentation
+#     according to https://arxiv.org/pdf/1612.08242.pdf
+#     """
+#
+#     def __init__(self, target_size: int = None, min_image_size: int = None, max_image_size: int = None,
+#                  image_size_steps: int = 32,
+#                  change_frequency: int = 10):
+#         """
+#         set parameters for the multi-scale collate function
+#         the possible image sizes are in range [min_image_size, max_image_size] in steps of image_size_steps
+#         a new size will be randomly selected every change_frequency calls to the collate_fn()
+#             :param target_size: scales will be [0.66 * target_size, 1.5 * target_size]
+#             :param min_image_size: the minimum size to scale down to (in pixels)
+#             :param max_image_size: the maximum size to scale up to (in pixels)
+#             :param image_size_steps: typically, the stride of the net, which defines the possible image
+#                     size multiplications
+#             :param change_frequency:
+#         """
+#         assert target_size is not None or (max_image_size is not None and min_image_size is not None), \
+#             'either target_size or min_image_size and max_image_size has to be set'
+#         assert target_size is None or max_image_size is None, 'target_size and max_image_size cannot be both defined'
+#
+#         if target_size is not None:
+#             min_image_size = int(0.66 * target_size - ((0.66 * target_size) % image_size_steps) + image_size_steps)
+#             max_image_size = int(1.5 * target_size - ((1.5 * target_size) % image_size_steps))
+#
+#         print('Using multi-scale %g - %g' % (min_image_size, max_image_size))
+#
+#         self.sizes = np.arange(min_image_size, max_image_size + image_size_steps, image_size_steps)
+#         self.image_size_steps = image_size_steps
+#         self.frequency = change_frequency
+#         self.rand_gen = random.Random(17)
+#         self._current_size = self.rand_gen.choice(self.sizes)
+#         self.rank = None
+#         self.is_distributed = None
+#
+#     def __call__(self, inputs, targets, batch_idx, context):
+#
+#         if self.rank is None:
+#             self.rank = get_local_rank()
+#         if self.is_distributed is None:
+#             self.is_distributed = get_world_size() > 1
+#
+#         if batch_idx % self.frequency == 0:
+#             current_size = torch.LongTensor(1).cuda()
+#             if self.is_distributed:
+#                 dist.barrier()
+#
+#             assert inputs.shape[2] % self.image_size_steps == 0 and inputs.shape[3] % self.image_size_steps == 0, \
+#                 'images sized not divisible by %d. (resize images before calling multi_scale)' % self.image_size_steps
+#             if self.rank == 0:
+#                 current_size[0] = self.rand_gen.choice(self.sizes)
+#
+#             if self.is_distributed:
+#                 dist.barrier()
+#                 dist.broadcast(current_size, 0, async_op=False)
+#
+#             current_size = current_size[0].item()
+#
+#             if current_size != max(inputs.shape[2:]):
+#                 context.criterion.im_size = current_size
+#                 ratio = float(current_size) / max(inputs.shape[2:])
+#                 new_size = (int(round(inputs.shape[2] * ratio)), int(round(inputs.shape[3] * ratio)))
+#                 inputs = F.interpolate(inputs, size=new_size, mode='bilinear', align_corners=False)
+#
+#         if self.is_distributed:
+#             dist.barrier()
+#
+#         return inputs, targets
 
 
 _pil_interpolation_to_str = {

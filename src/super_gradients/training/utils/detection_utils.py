@@ -8,6 +8,7 @@ from typing import Callable, List, Union, Tuple
 import cv2
 from deprecated import deprecated
 from scipy.cluster.vq import kmeans
+from torch.utils.data._utils.collate import default_collate
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -1386,3 +1387,43 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     bbox[:, 0::2] = np.clip(bbox[:, 0::2] * scale_ratio + padw, 0, w_max)
     bbox[:, 1::2] = np.clip(bbox[:, 1::2] * scale_ratio + padh, 0, h_max)
     return bbox
+
+
+class YoloXCollateFN:
+    def __init__(self, resolution, target_resolution=None, val=True, max_targets=120):
+        self.resolution = resolution if isinstance(resolution, tuple) else (resolution, resolution)
+        self.target_resolution = target_resolution or self.resolution
+        self.val = val
+        self.max_targets = max_targets
+
+    def _pad_targets(self, data):
+        for sample_id, sample in enumerate(data):
+            if sample[1].shape[0] < self.max_targets:
+                boxes = np.zeros((self.max_targets, 5))
+                boxes[:sample[1].shape[0], :] = sample[1]
+
+                # MOVE LABEL TO FIRST INDEX
+                boxes = np.roll(boxes, 1, axis=1)
+                sample = list(sample)
+                sample[1] = boxes
+                sample = tuple(sample)
+                data[sample_id] = sample
+
+    def __call__(self, data):
+        if self.val:
+            self._pad_targets(data)
+        batch = default_collate(data)
+        ims = batch[0]
+        targets = batch[1]
+        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of objects
+
+        # TODO: divide coords properly to support non rectangular inputs
+        # targets[:, :, 1:] /= self.resolution[0]
+        targets_merged = []
+        for i in range(targets.shape[0]):
+            targets_im = targets[i, :nlabel[i]]
+            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
+            targets_merged.append(torch.cat((batch_column, targets_im), 1))
+        targets = torch.cat(targets_merged, 0)
+        # ims, targets = self._final_rescale(ims, targets)
+        return ims, targets

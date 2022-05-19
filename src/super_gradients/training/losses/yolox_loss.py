@@ -70,7 +70,6 @@ class YoloXDetectionLoss(_Loss):
         super().__init__()
         self.grids = [torch.zeros(1)] * len(strides)
         self.strides = strides
-        self.im_size = im_size
         self.num_classes = num_classes
 
         self.center_sampling_radius = center_sampling_radius
@@ -151,7 +150,8 @@ class YoloXDetectionLoss(_Loss):
                 fg_mask = transformed_outputs.new_zeros(total_num_anchors).bool()
             else:
                 # GT boxes to image coordinates
-                gt_bboxes_per_image = labels_im[:, 2:6] * self.im_size
+                gt_bboxes_per_image = labels_im[:, 2:6].clone()
+                # gt_bboxes_per_image = labels_im[:, 2:6] * self.im_size
                 gt_classes = labels_im[:, 1]
                 bboxes_preds_per_image = bbox_preds[batch_idx]
 

@@ -5,6 +5,7 @@ import torchvision
 import torchvision.datasets as datasets
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from torch.utils.data.distributed import DistributedSampler
+
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation
@@ -882,3 +883,14 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
         )
 
         self.classes = self.trainset.classes
+
+
+class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
+    def __init__(self, dataset_params={}, train_loader=None, val_loader=None, test_loader=None, classes=None):
+        super(CocoDetectionDatasetInterfaceYolox, self).__init__(dataset_params=dataset_params)
+
+    def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
+                           test_batch_size=None, distributed_sampler: bool = False):
+        pass
+
+

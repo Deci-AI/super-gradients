@@ -403,8 +403,7 @@ class SgModel:
                                                                 gpu_mem=gpu_memory_utilization)
 
             progress_bar_train_loader.set_postfix(**pbar_message_dict)
-            # if batch_idx%10 == 0 or batch_idx%10 == 5:
-            #     logger.info("Inputs shape "+str(inputs.shape))
+
             if batch_idx == len(self.train_loader)-1:
                 break
 

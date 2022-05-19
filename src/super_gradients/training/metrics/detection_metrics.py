@@ -112,18 +112,20 @@ class DetectionMetrics(Metric):
         self.components = len(self.component_names)
         self.post_prediction_callback = post_prediction_callback
         self.is_distributed = super_gradients.is_distributed()
-
+        self.normalize_targets = True
         self.world_size = None
         self.rank = None
         self.add_state("metrics", default=[], dist_reduce_fx=None)
         logger.info("MAP calculated with NMS with conf=" + str(self.post_prediction_callback.conf) + " and iou_thresh=" + str(self.post_prediction_callback.iou))
 
     def update(self, preds: torch.Tensor, target: torch.Tensor, device, inputs):
+        _, _, height, width = inputs.shape
+        targets = target.clone()
+        if self.normalize_targets:
+            targets[:, 2:] /= max(height, width)
         preds = self.post_prediction_callback(preds, device=device)
 
-        _, _, height, width = inputs.shape
-
-        metrics, batch_images_counter = calc_batch_prediction_accuracy(preds, target, height, width,
+        metrics, batch_images_counter = calc_batch_prediction_accuracy(preds, targets, height, width,
                                                                        self.iou_thres)
         acc_metrics = getattr(self, "metrics")
         setattr(self, "metrics", acc_metrics + metrics)
