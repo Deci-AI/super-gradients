@@ -34,6 +34,13 @@ valid_metrics_list:
       conf: 0.01
     num_cls: 80
 
+forward_pass_prep_fn:
+  _target_: super_gradients.training.datasets.datasets_utils.MultiscaleForwardPassPrepFunction
+
+phase_callbacks:
+  - _target_: from super_gradients.training.utils.callbacks.YoloXTrainingStageSwitchCallback
+    next_stage_start_epoch: 285
+
 
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True

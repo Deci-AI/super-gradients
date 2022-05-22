@@ -16,7 +16,8 @@ translate: 0.1
 val_collate_fn: # collate function for valset in CoCoDetectionDatasetInterface
   _target_: super_gradients.training.utils.detection_utils.YoloXCollateFN
   resolution: 640
-  val: False
+  val: True
+
 
 train_collate_fn: # collate function for trainset in CoCoDetectionDatasetInterface
   _target_: super_gradients.training.utils.detection_utils.YoloXCollateFN

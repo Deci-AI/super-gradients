@@ -619,7 +619,7 @@ class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
 
     """
 
-    def __init__(self, next_stage_start_epoch: int = 285):
+    def x__init__(self, next_stage_start_epoch: int = 285):
         super(YoloXTrainingStageSwitchCallback, self).__init__(next_stage_start_epoch=next_stage_start_epoch)
 
     def apply_stage_change(self, context: PhaseContext):
