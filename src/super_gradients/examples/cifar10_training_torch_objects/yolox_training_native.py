@@ -41,8 +41,8 @@ def main(cfg: DictConfig) -> None:
     # cfg.sg_model.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
     cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
 
-    cfg.training_hyperparams.initial_lr /= 64
-    cfg.training_hyperparams.initial_lr *= cfg.dataset_params.batch_size * 8
+    # cfg.training_hyperparams.initial_lr /= 64
+    # cfg.training_hyperparams.initial_lr *= cfg.dataset_params.batch_size * 8
     # dvcb = DetectionVisualizationCallback(phase=Phase.VALIDATION_BATCH_END,
     #                                       freq=1,
     #                                       post_prediction_callback=YoloV5PostPredictionCallback(iou=0.65, conf=0.99),

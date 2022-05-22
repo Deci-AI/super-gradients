@@ -8,18 +8,17 @@ from torch.utils.data.distributed import DistributedSampler
 
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
-from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed, \
-    ComposedCollateFunction
+from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataSet, PascalVOCDetectionDataSet
 from super_gradients.training.datasets.detection_datasets.coco_detection_yolox import COCODataset, MosaicDetection
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.datasets.segmentation_datasets import PascalVOC2012SegmentationDataSet, \
     PascalAUG2012SegmentationDataSet, CoCoSegmentationDataSet
-from super_gradients.training import utils as core_utils, MultiGPUMode
+from super_gradients.training import utils as core_utils
 from super_gradients.common import DatasetDataInterface
 from super_gradients.common.environment import AWS_ENV_NAME
 from super_gradients.training.transforms.yolox_transforms import TrainTransform, ValTransform
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn, YoloXCollateFN
+from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
@@ -35,6 +34,7 @@ import torchvision.transforms as transforms
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import \
     SuperviselyPersonsDataset
 from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -658,7 +658,6 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
         self.coco_classes = self.trainset.classes
 
 
-
 class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):
     def __init__(self, dataset_params=None, cache_labels: bool = False, cache_images: bool = False,
                  dataset_classes_inclusion_tuples_list: list = None):
@@ -893,120 +892,157 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
 
         self.classes = self.trainset.classes
 
-# img_size, mosaic=True, preproc=None,
-#         degrees=10.0, translate=0.1, mosaic_scale=(0.5, 1.5),
-#         mixup_scale=(0.5, 1.5), shear=2.0, enable_mixup=True,
-#         mosaic_prob=1.0, mixup_prob=1.0,
-
-
-#         data_dir=None,
-#         json_file="instances_train2017.json",
-#         name="images/train2017",
-#         img_size=(416, 416),
-#         preproc=None,
-#         cache=False,
-#         add_pseudo_labels=False,
-#         data_dir_pseudo=None,
-#         json_file_pseudo="instances_pseudolabels2017_yoloxx.json",
-#         name_pseudo="images/unlabeled2017",
-#         score_threshold=0.,
-#         tight_box_rotation=False
-
 
 class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
     def __init__(self, dataset_params={}):
         super(CocoDetectionDatasetInterfaceYolox, self).__init__(dataset_params=dataset_params)
-        default_hyper_params = {
-            'hsv_h': 0.0138,  # IMAGE HSV-Hue AUGMENTATION (fraction)
-            'hsv_s': 0.678,  # IMAGE HSV-Saturation AUGMENTATION (fraction)
-            'hsv_v': 0.36,  # IMAGE HSV-Value AUGMENTATION (fraction)
-            'degrees': 1.98,  # IMAGE ROTATION (+/- deg)
-            'translate': 0.05,  # IMAGE TRANSLATION (+/- fraction)
-            'scale': 0.05,  # IMAGE SCALE (+/- gain)
-            'shear': 0.641,  # IMAGE SHEAR (+/- deg)
-            'mixup': 0.0}  # IMAGE MIXUP AUGMENTATION (fraction)
-
-        self.coco_dataset_hyper_params = core_utils.get_param(self.dataset_params, 'dataset_hyper_param',
-                                                              default_val=default_hyper_params)
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
-        pass
 
-    def get_data_loader(self, cfg, no_aug=False, cache_img=False):
         local_rank = get_local_rank()
-        input_size = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
+        train_input_size = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
         with wait_for_the_master(local_rank):
-            dataset = COCODataset(
+            train_dataset = COCODataset(
                 data_dir="/data/coco",
                 json_file="instances_train2017.json",
-                img_size=input_size,
+                img_size=train_input_size,
                 preproc=TrainTransform(
                     max_labels=50,
-                    flip_prob=0.5,
-                    hsv_prob=1.0),
-                cache=cache_img
+                    flip_prob=self.dataset_params.flip_prob,
+                    hsv_prob=self.dataset_params.hsv_prob),
+                cache=self.dataset_params.cache_images
             )
 
-        dataset = MosaicDetection(
-            dataset,
-            mosaic=not no_aug,
-            img_size=input_size,
+        train_dataset = MosaicDetection(
+            train_dataset,
+            img_size=train_input_size,
             preproc=TrainTransform(
                 max_labels=120,
-                flip_prob=0.5,
-                hsv_prob=1.0),
-            degrees=cfg.dataset_params.dataset_hyper_param.degrees,
-            translate=cfg.dataset_params.dataset_hyper_param.translate,
-            mosaic_scale=(0.1, 2),
-            mixup_scale=(0.5, 1.5),
-            shear=cfg.dataset_params.dataset_hyper_param.shear,
-            enable_mixup=True,
-            mosaic_prob=1.,
-            mixup_prob=cfg.dataset_params.dataset_hyper_param.mixup,
+                flip_prob=self.dataset_params.flip_prob,
+                hsv_prob=self.dataset_params.hsv_prob),
+            degrees=self.dataset_params.degrees,
+            translate=self.dataset_params.translate,
+            mosaic_scale=self.dataset_params.mosaic_scale,
+            mixup_scale=self.dataset_params.mixup_scale,
+            shear=self.dataset_params.shear,
+            mosaic_prob=self.dataset_params.mosaic_prob,
+            mixup_prob=self.dataset_params.mixup_prob,
         )
 
-        sampler = InfiniteSampler(len(dataset), seed=0)
+        sampler = InfiniteSampler(len(train_dataset), seed=0)
 
         batch_sampler = BatchSampler(
             sampler=sampler,
-            batch_size=cfg.dataset_params.batch_size,
+            batch_size=self.dataset_params.batch_size,
             drop_last=False,
         )
 
-        dataloader_kwargs = {"num_workers": cfg.data_loader_num_workers, "pin_memory": True}
-        # dataloader_kwargs = {"num_workers": 0, "pin_memory": True}
-        dataloader_kwargs["batch_sampler"] = batch_sampler
+        self.train_loader = DataLoader(train_dataset,
+                                       batch_sampler=batch_sampler,
+                                       num_workers=num_workers,
+                                       pin_memory=True,
+                                       worker_init_fn=worker_init_reset_seed,
+                                       collate_fn=self.dataset_params.train_collate_fn)
 
-        # Make sure each process has different random seed, especially for 'fork' method.
-        # Check https://github.com/pytorch/pytorch/issues/63311 for more details.
-        dataloader_kwargs["worker_init_fn"] = worker_init_reset_seed
-
-        train_loader = DataLoader(dataset, **dataloader_kwargs,
-                                  collate_fn=ComposedCollateFunction(
-                                      [YoloXCollateFN(cfg.dataset_params.train_image_size, val=False)]))
-
-        return train_loader
-
-    def get_eval_loader(self, cfg, legacy=False):
-        valdataset = COCODataset(
+        val_input_size = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
+        val_dataset = COCODataset(
             data_dir='/data/coco',
             json_file="instances_val2017.json",
             name="images/val2017",
-            img_size=(cfg.dataset_params.val_image_size, cfg.dataset_params.val_image_size),
-            preproc=ValTransform(legacy=legacy),
+            img_size=val_input_size,
+            preproc=ValTransform(),
         )
 
-        if cfg.sg_model.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-            sampler = torch.utils.data.distributed.DistributedSampler(valdataset, shuffle=False)
+        if distributed_sampler:
+            sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False)
         else:
-            sampler = torch.utils.data.SequentialSampler(valdataset)
+            sampler = torch.utils.data.SequentialSampler(val_dataset)
 
-        dataloader_kwargs = {"num_workers": cfg.data_loader_num_workers, "pin_memory": True, "sampler": sampler}
-        # dataloader_kwargs = {"num_workers":0, "pin_memory": True, "sampler": sampler}
+        val_loader = torch.utils.data.DataLoader(val_dataset,
+                                                 num_workers=num_workers,
+                                                 pin_memory=True,
+                                                 sampler=sampler,
+                                                 batch_size=self.dataset_params.val_batch_size,
+                                                 collate_fn=self.dataset_params.val_collate_fn)
 
-        dataloader_kwargs["batch_size"] = cfg.dataset_params.val_batch_size
-        val_loader = torch.utils.data.DataLoader(valdataset, **dataloader_kwargs,
-                                                 collate_fn=YoloXCollateFN(cfg.dataset_params.val_image_size))
+        self.val_loader = val_loader
+        self.classes = COCO_DETECTION_CLASSES_LIST
 
-        return val_loader
+    # def get_data_loader(self, no_aug=False, cache_img=False):
+    #     local_rank = get_local_rank()
+    #     input_size = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
+    #     with wait_for_the_master(local_rank):
+    #         dataset = COCODataset(
+    #             data_dir="/data/coco",
+    #             json_file="instances_train2017.json",
+    #             img_size=input_size,
+    #             preproc=TrainTransform(
+    #                 max_labels=50,
+    #                 flip_prob=0.5,
+    #                 hsv_prob=1.0),
+    #             cache=cache_img
+    #         )
+    #
+    #     dataset = MosaicDetection(
+    #         dataset,
+    #         mosaic=not no_aug,
+    #         img_size=input_size,
+    #         preproc=TrainTransform(
+    #             max_labels=120,
+    #             flip_prob=0.5,
+    #             hsv_prob=1.0),
+    #         degrees=self.dataset_params.degrees,
+    #         translate=self.dataset_params.translate,
+    #         mosaic_scale=(0.1, 2),
+    #         mixup_scale=(0.5, 1.5),
+    #         shear=self.dataset_params.dataset_hyper_param.shear,
+    #         enable_mixup=True,
+    #         mosaic_prob=1.,
+    #         mixup_prob=self.dataset_params.dataset_hyper_param.mixup,
+    #     )
+    #
+    #     sampler = InfiniteSampler(len(dataset), seed=0)
+    #
+    #     batch_sampler = BatchSampler(
+    #         sampler=sampler,
+    #         batch_size=self.dataset_params.batch_size,
+    #         drop_last=False,
+    #     )
+    #
+    #     dataloader_kwargs = {"num_workers": self.data_loader_num_workers, "pin_memory": True}
+    #     # dataloader_kwargs = {"num_workers": 0, "pin_memory": True}
+    #     dataloader_kwargs["batch_sampler"] = batch_sampler
+    #
+    #     # Make sure each process has different random seed, especially for 'fork' method.
+    #     # Check https://github.com/pytorch/pytorch/issues/63311 for more details.
+    #     dataloader_kwargs["worker_init_fn"] = worker_init_reset_seed
+    #
+    #     train_loader = DataLoader(dataset, **dataloader_kwargs,
+    #                               collate_fn=ComposedCollateFunction(
+    #                                   [YoloXCollateFN(self.dataset_params.train_image_size, val=False)]))
+    #
+    #     return train_loader
+    #
+    # def get_eval_loader(self, legacy=False):
+    #     valdataset = COCODataset(
+    #         data_dir='/data/coco',
+    #         json_file="instances_val2017.json",
+    #         name="images/val2017",
+    #         img_size=(self.dataset_params.val_image_size, self.dataset_params.val_image_size),
+    #         preproc=ValTransform(legacy=legacy),
+    #     )
+    #
+    #     if self.sg_model.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+    #         sampler = torch.utils.data.distributed.DistributedSampler(valdataset, shuffle=False)
+    #     else:
+    #         sampler = torch.utils.data.SequentialSampler(valdataset)
+    #
+    #     dataloader_kwargs = {"num_workers": self.data_loader_num_workers, "pin_memory": True, "sampler": sampler}
+    #     # dataloader_kwargs = {"num_workers":0, "pin_memory": True, "sampler": sampler}
+    #
+    #     dataloader_kwargs["batch_size"] = self.dataset_params.val_batch_size
+    #     val_loader = torch.utils.data.DataLoader(valdataset, **dataloader_kwargs,
+    #                                              collate_fn=YoloXCollateFN(self.dataset_params.val_image_size))
+    #
+    #     return val_loader

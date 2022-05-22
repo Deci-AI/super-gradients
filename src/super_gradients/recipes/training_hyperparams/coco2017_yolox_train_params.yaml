@@ -8,7 +8,7 @@ lr_warmup_epochs: 5
 lr_cooldown_epochs: 15
 warmup_bias_lr: 0.0
 warmup_momentum: 0.9
-initial_lr: 0.01
+initial_lr:  0.02
 warmup_mode: yolov5_warmup
 
 save_ckpt_epoch_list: [285]
@@ -24,7 +24,7 @@ optimizer_params:
   nesterov: True
 
 ema: True
-mixed_precision: False
+mixed_precision: True
 
 valid_metrics_list:
   - _target_: super_gradients.training.metrics.DetectionMetrics
