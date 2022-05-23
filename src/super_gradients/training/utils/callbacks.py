@@ -609,7 +609,7 @@ class TrainingStageSwitchCallbackBase(PhaseCallback):
         """
         raise NotImplementedError
 
-
+from torch.utils.data import DataLoader
 class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
     """
     YoloXTrainingStageSwitchCallback
@@ -619,13 +619,13 @@ class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
 
     """
 
-    def x__init__(self, next_stage_start_epoch: int = 285):
+    def __init__(self, next_stage_start_epoch: int = 285):
         super(YoloXTrainingStageSwitchCallback, self).__init__(next_stage_start_epoch=next_stage_start_epoch)
 
     def apply_stage_change(self, context: PhaseContext):
         context.train_loader.dataset.enable_mosaic = False
         context.train_loader.dataset.enable_mixup = False
-        context.sg_model.train_loader = iter(context.sg_model.train_loader)
+        iter(context.train_loader)
         context.criterion.use_l1 = True
 
 

@@ -25,11 +25,20 @@ def augment_hsv(img, hgain=5, sgain=30, vgain=30):
     cv2.cvtColor(img_hsv.astype(img.dtype), cv2.COLOR_HSV2BGR, dst=img)  # no return needed
 
 
-def preproc(img, input_size, swap=(2, 0, 1)):
+def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
+    """
+    Rescales image according to minimum ratio between the target height /image height, target width / image width,
+    and pads the image to the target size.
+
+    :param img: Image to be rescaled
+    :param input_size: Target size
+    :param swap: Axis's to be rearranged.
+    :return: rescaled image, ratio
+    """
     if len(img.shape) == 3:
-        padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * 114
+        padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * pad_val
     else:
-        padded_img = np.ones(input_size, dtype=np.uint8) * 114
+        padded_img = np.ones(input_size, dtype=np.uint8) * pad_val
 
     r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
     resized_img = cv2.resize(
@@ -56,7 +65,7 @@ class TrainTransform:
         labels = targets[:, 4].copy()
         if len(boxes) == 0:
             targets = np.zeros((self.max_labels, 5), dtype=np.float32)
-            image, r_o = preproc(image, input_dim)
+            image, r_o = rescale_and_pad_to_size(image, input_dim)
             return image, targets
 
         image_o = image.copy()
@@ -71,7 +80,7 @@ class TrainTransform:
             augment_hsv(image)
         image_t, boxes = _mirror(image, boxes, self.flip_prob)
         height, width, _ = image_t.shape
-        image_t, r_ = preproc(image_t, input_dim)
+        image_t, r_ = rescale_and_pad_to_size(image_t, input_dim)
         # boxes [xyxy] 2 [cx,cy,w,h]
         boxes = xyxy2cxcywh(boxes)
         boxes *= r_
@@ -81,7 +90,7 @@ class TrainTransform:
         labels_t = labels[mask_b]
 
         if len(boxes_t) == 0:
-            image_t, r_o = preproc(image_o, input_dim)
+            image_t, r_o = rescale_and_pad_to_size(image_o, input_dim)
             boxes_o *= r_o
             boxes_t = boxes_o
             labels_t = labels_o
@@ -120,8 +129,9 @@ class ValTransform:
 
     # assume input is cv2 img for now
     def __call__(self, img, res, input_size):
-        boxes = res[:, :4]
-        img, r = preproc(img, input_size, self.swap)
+        label = res.copy()
+        boxes = label[:, :4]
+        img, r = rescale_and_pad_to_size(img, input_size, self.swap)
         boxes = xyxy2cxcywh(boxes)
         boxes *= r
-        return img, res
+        return img, label

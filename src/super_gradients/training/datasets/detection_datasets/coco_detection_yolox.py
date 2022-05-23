@@ -164,6 +164,7 @@ class COCODetectionDatasetYolox(Dataset):
             return mix_img, padded_labels, img_info, img_id
 
         else:
+            logger.info("MOSAIC DISABLED")
             img, label, _, img_info, img_id = self.pull_item(idx)
             img, label = self.preproc(img, label, self.input_dim)
             return img, label, img_info, img_id

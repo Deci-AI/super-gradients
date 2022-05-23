@@ -900,10 +900,9 @@ class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
 
-        train_input_size = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
         train_dataset = COCODetectionDatasetYolox(data_dir="/data/coco",
                                                   json_file="instances_train2017.json",
-                                                  img_size=train_input_size,
+                                                  img_size=(self.dataset_params.train_image_size, self.dataset_params.train_image_size),
                                                   cache=self.dataset_params.cache_images,
                                                   preproc=TrainTransform(
                                                       max_labels=120,
@@ -933,14 +932,14 @@ class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
                                        worker_init_fn=worker_init_reset_seed,
                                        collate_fn=self.dataset_params.train_collate_fn)
 
-        val_input_size = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
-
         val_dataset = COCODetectionDatasetYolox(
             data_dir='/data/coco',
             json_file="instances_val2017.json",
             name="images/val2017",
-            img_size=val_input_size,
+            img_size=(self.dataset_params.val_image_size, self.dataset_params.val_image_size),
             preproc=ValTransform(),
+            mosaic=False,
+            enable_mixup=False
         )
 
         if distributed_sampler:

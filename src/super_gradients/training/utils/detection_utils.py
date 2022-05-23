@@ -1345,18 +1345,19 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
 
 
 class YoloXCollateFN:
-    def __init__(self, resolution, target_resolution=None, val=True, max_targets=130):
+    def __init__(self, resolution, target_resolution=None, val=True, max_targets=120):
         self.resolution = resolution if isinstance(resolution, tuple) else (resolution, resolution)
         self.target_resolution = target_resolution or self.resolution
         self.val = val
         self.max_targets = max_targets
 
     def _pad_targets(self, data):
-        max_targets = max(max(map(lambda sample: sample[1].shape[0], data)), self.max_targets)
+        # max_targets = max(max(map(lambda sample: sample[1].shape[0], data)), self.max_targets)
+        max_targets = self.max_targets
         for sample_id, sample in enumerate(data):
             if sample[1].shape[0] < max_targets:
                 boxes = np.zeros((max_targets, 5))
-                boxes[:sample[1].shape[0], :] = sample[1].copy()
+                boxes[:sample[1].shape[0], :] = sample[1]
 
                 # MOVE LABEL TO FIRST INDEX
                 boxes = np.roll(boxes, 1, axis=1)
