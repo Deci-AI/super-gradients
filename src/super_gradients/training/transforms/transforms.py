@@ -335,3 +335,11 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
         raise ValueError(f"Fill value must be a value from 0 to 255,"
                          f" found: fill_image = {fill_image}, fill_mask = {fill_mask}")
     return fill_mask, fill_image
+
+
+class DetectionTransform:
+    def __call__(self, sample: Union[dict, list]):
+        raise NotImplementedError
+
+    def __repr__(self):
+        return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')

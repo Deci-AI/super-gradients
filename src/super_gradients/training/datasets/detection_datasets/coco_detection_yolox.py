@@ -91,7 +91,7 @@ class COCODetectionDatasetYolox(Dataset):
             indices = [idx] + [random.randint(0, len(self.ids) - 1) for _ in range(3)]
 
             for i_mosaic, index in enumerate(indices):
-                img, _labels, _labels_seg, _, img_id = self.pull_item(index)
+                img, _labels, _labels_seg, _, img_id = self.load_sample(index)
                 h0, w0 = img.shape[:2]  # orig hw
                 scale = min(1. * input_h / h0, 1. * input_w / w0)
                 img = cv2.resize(
@@ -164,8 +164,7 @@ class COCODetectionDatasetYolox(Dataset):
             return mix_img, padded_labels, img_info, img_id
 
         else:
-            logger.info("MOSAIC DISABLED")
-            img, label, _, img_info, img_id = self.pull_item(idx)
+            img, label, _, img_info, img_id = self.load_sample(idx)
             img, label = self.preproc(img, label, self.input_dim)
             return img, label, img_info, img_id
 
@@ -176,7 +175,7 @@ class COCODetectionDatasetYolox(Dataset):
         while len(cp_labels) == 0:
             cp_index = random.randint(0, self.__len__() - 1)
             cp_labels = self.load_anno(cp_index)
-        img, cp_labels, _, _, _ = self.pull_item(cp_index)
+        img, cp_labels, _, _, _ = self.load_sample(cp_index)
 
         if len(img.shape) == 3:
             cp_img = np.ones((input_dim[0], input_dim[1], 3), dtype=np.uint8) * 114
@@ -359,7 +358,7 @@ class COCODetectionDatasetYolox(Dataset):
         ).astype(np.uint8)
         return resized_img
 
-    def pull_item(self, index):
+    def load_sample(self, index):
         id_ = self.ids[index]
         res, res_seg, img_info, resized_info, _ = self.annotations[index]
         if self.imgs is not None:
