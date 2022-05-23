@@ -1352,10 +1352,11 @@ class YoloXCollateFN:
         self.max_targets = max_targets
 
     def _pad_targets(self, data):
+        max_targets = max(max(map(lambda sample: sample[1].shape[0], data)), self.max_targets)
         for sample_id, sample in enumerate(data):
-            if sample[1].shape[0] < self.max_targets:
-                boxes = np.zeros((self.max_targets, 5))
-                boxes[:sample[1].shape[0], :] = sample[1]
+            if sample[1].shape[0] < max_targets:
+                boxes = np.zeros((max_targets, 5))
+                boxes[:sample[1].shape[0], :] = sample[1].copy()
 
                 # MOVE LABEL TO FIRST INDEX
                 boxes = np.roll(boxes, 1, axis=1)
