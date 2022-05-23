@@ -27,6 +27,7 @@ from super_gradients.training.utils.utils import download_and_unzip_from_url
 from super_gradients.training.utils import get_param
 import torchvision.transforms as transforms
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
+from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
 LIBRARY_DATASETS = {
@@ -69,6 +70,12 @@ class DatasetInterface:
             - `s3_link` : str (default=None)
 
                 remote s3 link to download the data (optional).
+
+            - `aug_repeat_count` : int (default=0)
+
+                amount of repetitions (each repetition of an example is augmented differently) for each
+                 example for the trainset.
+
         """
 
         self.dataset_params = core_utils.HpmStruct(**default_dataset_params)
@@ -104,12 +111,17 @@ class DatasetInterface:
         :param distributed_sampler: boolean flag for distributed training mode
         :return: train_loader, val_loader, classes: list of classes
         """
-        # CHANGE THE BATCH SIZE ACCORDING TO THE NUMBER OF DEVICES - ONLY IN NON-DISTRIBUED TRAINING MODE
+        # CHANGE THE BATCH SIZE ACCORDING TO THE NUMBER OF DEVICES - ONLY IN NON-DISTRIBUTED TRAINING MODE
         # IN DISTRIBUTED MODE WE NEED DISTRIBUTED SAMPLERS
         # NO SHUFFLE IN DISTRIBUTED TRAINING
+
+        aug_repeat_count = get_param(self.dataset_params, "aug_repeat_count", 0)
+        if aug_repeat_count > 0 and not distributed_sampler:
+            raise IllegalDatasetParameterException("repeated augmentation is only supported with DDP.")
+
         if distributed_sampler:
             self.batch_size_factor = 1
-            train_sampler = DistributedSampler(self.trainset)
+            train_sampler = RepeatAugSampler(self.trainset, num_repeats=aug_repeat_count) if aug_repeat_count > 0 else DistributedSampler(self.trainset)
             val_sampler = DistributedSampler(self.valset)
             test_sampler = DistributedSampler(self.testset) if self.testset is not None else None
             train_shuffle = False
