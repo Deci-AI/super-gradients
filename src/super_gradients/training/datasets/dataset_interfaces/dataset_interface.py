@@ -900,25 +900,23 @@ class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
 
-        local_rank = get_local_rank()
         train_input_size = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
-        with wait_for_the_master(local_rank):
-            train_dataset = COCODetectionDatasetYolox(data_dir="/data/coco",
-                                                      json_file="instances_train2017.json",
-                                                      img_size=train_input_size,
-                                                      cache=self.dataset_params.cache_images,
-                                                      preproc=TrainTransform(
-                                                          max_labels=120,
-                                                          flip_prob=self.dataset_params.flip_prob,
-                                                          hsv_prob=self.dataset_params.hsv_prob),
-                                                      degrees=self.dataset_params.degrees,
-                                                      translate=self.dataset_params.translate,
-                                                      mosaic_scale=self.dataset_params.mosaic_scale,
-                                                      mixup_scale=self.dataset_params.mixup_scale,
-                                                      shear=self.dataset_params.shear,
-                                                      mosaic_prob=self.dataset_params.mosaic_prob,
-                                                      mixup_prob=self.dataset_params.mixup_prob,
-                                                      )
+        train_dataset = COCODetectionDatasetYolox(data_dir="/data/coco",
+                                                  json_file="instances_train2017.json",
+                                                  img_size=train_input_size,
+                                                  cache=self.dataset_params.cache_images,
+                                                  preproc=TrainTransform(
+                                                      max_labels=120,
+                                                      flip_prob=self.dataset_params.flip_prob,
+                                                      hsv_prob=self.dataset_params.hsv_prob),
+                                                  degrees=self.dataset_params.degrees,
+                                                  translate=self.dataset_params.translate,
+                                                  mosaic_scale=self.dataset_params.mosaic_scale,
+                                                  mixup_scale=self.dataset_params.mixup_scale,
+                                                  shear=self.dataset_params.shear,
+                                                  mosaic_prob=self.dataset_params.mosaic_prob,
+                                                  mixup_prob=self.dataset_params.mixup_prob,
+                                                  )
 
         sampler = InfiniteSampler(len(train_dataset), seed=0)
 

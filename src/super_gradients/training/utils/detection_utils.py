@@ -758,7 +758,8 @@ def calc_batch_prediction_accuracy(output: torch.Tensor, targets: torch.Tensor, 
         if pred is None:
             if labels_num:
                 batch_metrics.append(
-                    (np.zeros((0, num_ious), dtype=np.bool), np.array([], dtype=np.float32), np.array([], dtype=np.float32), target_class))
+                    (np.zeros((0, num_ious), dtype=np.bool), np.array([], dtype=np.float32),
+                     np.array([], dtype=np.float32), target_class))
             continue
 
         # CHANGE bboxes TO FIT THE IMAGE SIZE
@@ -945,7 +946,8 @@ def plot_coco_datasaet_images_with_detections(data_loader, num_images_to_plot=1)
         ns = np.ceil(batch_size ** 0.5)
 
         for i in range(batch_size):
-            boxes = convert_xywh_bbox_to_xyxy(torch.from_numpy(targets[targets[:, 0] == i, 2:6])).cpu().detach().numpy().T
+            boxes = convert_xywh_bbox_to_xyxy(
+                torch.from_numpy(targets[targets[:, 0] == i, 2:6])).cpu().detach().numpy().T
             boxes[[0, 2]] *= w
             boxes[[1, 3]] *= h
             plt.subplot(ns, ns, i + 1).imshow(imgs[i].transpose(1, 2, 0))
@@ -1097,7 +1099,9 @@ class DetectionVisualization:
             targets_cur = targets[targets[:, 0] == i]
 
             image_name = '_'.join([str(batch_name), str(i)])
-            res_image = DetectionVisualization._visualize_image(image_np[i], preds, targets_cur, class_names, box_thickness, gt_alpha, image_scale, checkpoint_dir, image_name)
+            res_image = DetectionVisualization._visualize_image(image_np[i], preds, targets_cur, class_names,
+                                                                box_thickness, gt_alpha, image_scale, checkpoint_dir,
+                                                                image_name)
             if res_image is not None:
                 out_images.append(res_image)
 
@@ -1238,6 +1242,7 @@ def get_affine_matrix(
 
     return M, scale
 
+
 def apply_affine_to_bboxes(targets, targets_seg, target_size, M, scale):
     num_gts = len(targets)
     twidth, theight = target_size
@@ -1259,7 +1264,7 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M, scale):
         new_bboxes = (np.concatenate(
             (np.min(corner_xs, 1), np.min(corner_ys, 1),
              np.max(corner_xs, 1), np.max(corner_ys, 1))
-            ).reshape(4, -1).T)
+        ).reshape(4, -1).T)
     else:
         new_bboxes = np.ones((0, 4), dtype=np.float)
 
@@ -1277,7 +1282,7 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M, scale):
         new_tight_bboxes = (np.concatenate(
             (np.nanmin(seg_points_xs, 1), np.nanmin(seg_points_ys, 1),
              np.nanmax(seg_points_xs, 1), np.nanmax(seg_points_ys, 1))
-            ).reshape(4, -1).T)
+        ).reshape(4, -1).T)
     else:
         new_tight_bboxes = np.ones((0, 4), dtype=np.float)
 
@@ -1292,14 +1297,14 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M, scale):
 
 
 def random_affine(
-    img,
-    targets=(),
-    targets_seg=(),
-    target_size=(640, 640),
-    degrees=10,
-    translate=0.1,
-    scales=0.1,
-    shear=10,
+        img,
+        targets=(),
+        targets_seg=(),
+        target_size=(640, 640),
+        degrees=10,
+        translate=0.1,
+        scales=0.1,
+        shear=10,
 ):
     M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
 
@@ -1310,6 +1315,7 @@ def random_affine(
         targets = apply_affine_to_bboxes(targets, targets_seg, target_size, M, scale)
 
     return img, targets
+
 
 def get_mosaic_coordinate(mosaic_image, mosaic_index, xc, yc, w, h, input_h, input_w):
     # TODO update doc
@@ -1339,7 +1345,7 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
 
 
 class YoloXCollateFN:
-    def __init__(self, resolution, target_resolution=None, val=True, max_targets=120):
+    def __init__(self, resolution, target_resolution=None, val=True, max_targets=130):
         self.resolution = resolution if isinstance(resolution, tuple) else (resolution, resolution)
         self.target_resolution = target_resolution or self.resolution
         self.val = val

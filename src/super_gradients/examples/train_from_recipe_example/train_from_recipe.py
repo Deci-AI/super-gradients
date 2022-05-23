@@ -10,9 +10,10 @@ from omegaconf import DictConfig
 import hydra
 import pkg_resources
 from super_gradients.training.trainer import Trainer
-
+from loguru import logger
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""))
+@logger.catch
 def main(cfg: DictConfig) -> None:
     Trainer.train(cfg)
 
