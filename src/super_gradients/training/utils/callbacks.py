@@ -13,7 +13,6 @@ import signal
 from typing import List
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.utils import get_filename_suffix_by_framework
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 import cv2
@@ -428,8 +427,9 @@ class StepLRCallback(LRCallbackBase):
                 if warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs
             ]
         elif self.training_params.lr_cooldown_epochs > 0:
-            logger.warning("Specific lr_updates were passed along with cooldown_epochs > 0,"
-                           " cooldown will have no effect.")
+            logger.warning(
+                "Specific lr_updates were passed along with cooldown_epochs > 0," " cooldown will have no effect."
+            )
         self.lr_updates = lr_updates
         self.lr_decay_factor = lr_decay_factor
 
@@ -458,7 +458,11 @@ class ExponentialLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return (
+            self.training_params.lr_warmup_epochs
+            <= context.epoch
+            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        )
 
 
 class PolyLRCallback(LRCallbackBase):
@@ -472,14 +476,22 @@ class PolyLRCallback(LRCallbackBase):
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        current_iter = (self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
+        effective_max_epochs = (
+            self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        )
+        current_iter = (
+            self.train_loader_len * effective_epoch + context.batch_idx
+        ) / self.training_params.batch_accumulate
         max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
         self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return (
+            self.training_params.lr_warmup_epochs
+            <= context.epoch
+            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        )
 
 
 class CosineLRCallback(LRCallbackBase):
@@ -494,7 +506,9 @@ class CosineLRCallback(LRCallbackBase):
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        effective_max_epochs = (
+            self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        )
         current_iter = self.train_loader_len * effective_epoch + context.batch_idx
         max_iter = self.train_loader_len * effective_max_epochs
         lr = 0.5 * self.initial_lr * (1.0 + math.cos(current_iter / (max_iter + 1) * math.pi))
@@ -503,7 +517,11 @@ class CosineLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return (
+            self.training_params.lr_warmup_epochs
+            <= context.epoch
+            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        )
 
 
 class FunctionLRCallback(LRCallbackBase):
@@ -518,11 +536,17 @@ class FunctionLRCallback(LRCallbackBase):
         self.max_epochs = max_epochs
 
     def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return (
+            self.training_params.lr_warmup_epochs
+            <= context.epoch
+            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        )
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        effective_max_epochs = (
+            self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        )
         self.lr = self.lr_schedule_function(
             initial_lr=self.initial_lr,
             epoch=effective_epoch,
@@ -726,4 +750,4 @@ class TestLRCallback(PhaseCallback):
         self.lr_placeholder = lr_placeholder
 
     def __call__(self, context: PhaseContext):
-        self.lr_placeholder.append(context.optimizer.param_groups[0]['lr'])
+        self.lr_placeholder.append(context.optimizer.param_groups[0]["lr"])
