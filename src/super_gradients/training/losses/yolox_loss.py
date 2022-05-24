@@ -357,10 +357,6 @@ class YoloXDetectionLoss(_Loss):
             fg_mask = fg_mask.cuda()
             pred_ious_this_matching = pred_ious_this_matching.cuda()
             matched_gt_inds = matched_gt_inds.cuda()
-            # gt_matched_classes = gt_matched_classes
-            # fg_mask = fg_mask
-            # pred_ious_this_matching = pred_ious_this_matching
-            # matched_gt_inds = matched_gt_inds
 
         return gt_matched_classes, fg_mask, pred_ious_this_matching, matched_gt_inds, num_fg
 

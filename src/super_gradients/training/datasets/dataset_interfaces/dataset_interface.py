@@ -937,7 +937,6 @@ class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
 
-
         train_sampler = InfiniteSampler(len(self.trainset), seed=0)
 
         train_batch_sampler = BatchSampler(
@@ -952,7 +951,6 @@ class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
                                        pin_memory=True,
                                        worker_init_fn=worker_init_reset_seed,
                                        collate_fn=self.dataset_params.train_collate_fn)
-
 
         if distributed_sampler:
             sampler = torch.utils.data.distributed.DistributedSampler(self.valset, shuffle=False)

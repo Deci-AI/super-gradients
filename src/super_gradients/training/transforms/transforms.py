@@ -623,10 +623,13 @@ class ValPreprocessFN(DetectionTransform):
         self.input_dim = input_dim
 
     # assume input is cv2 img for now
-    def __call__(self, img, res, input_size):
-        label = res.copy()
+    def __call__(self, sample):
+        img, target = sample["image"], sample["target"]
+        label = target.copy()
         boxes = label[:, :4]
-        img, r = rescale_and_pad_to_size(img, input_size, self.swap)
+        img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap)
         boxes = xyxy2cxcywh(boxes)
         boxes *= r
-        return img, label
+        sample["image"] = img
+        sample["target"] = label
+        return sample
