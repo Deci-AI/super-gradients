@@ -186,7 +186,7 @@ Get started with our quick start notebook for semantic segmentation tasks on Goo
 
 ### Quick Start Notebook - Model Upload to Deci Lab
 
-Get Started with an example of how to define upload to Deci Lab a freshly trained model
+Get Started with an example of how to upload to Deci Lab a freshly trained model
 <table class="tfo-notebook-buttons" align="left">
   <tbody>
     <tr>
