@@ -17,7 +17,7 @@ from super_gradients.training.datasets.segmentation_datasets import PascalVOC201
 from super_gradients.training import utils as core_utils
 from super_gradients.common import DatasetDataInterface
 from super_gradients.common.environment import AWS_ENV_NAME
-from super_gradients.training.transforms.yolox_transforms import TrainTransform, ValTransform
+from super_gradients.training.transforms.transforms import TrainPreprocessFN, ValPreprocessFN
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
@@ -893,61 +893,73 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
         self.classes = self.trainset.classes
 
 
+from super_gradients.training.transforms.transforms import Mosaic, Mixup, RandomAffine, TrainPreprocessFN, \
+    ValPreprocessFN
+
+
 class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
     def __init__(self, dataset_params={}):
         super(CocoDetectionDatasetInterfaceYolox, self).__init__(dataset_params=dataset_params)
+        train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
+        train_transforms = [Mosaic(input_dim=train_input_dim, prob=self.dataset_params.mosaic_prob),
+                            RandomAffine(degrees=self.dataset_params.degrees,
+                                         translate=self.dataset_params.translate,
+                                         scales=self.dataset_params.mosaic_scale,
+                                         shear=self.dataset_params.shear,
+                                         target_size=train_input_dim
+                                         ),
+                            Mixup(input_dim=train_input_dim,
+                                  mixup_scale=self.dataset_params.mixup_scale,
+                                  prob=self.dataset_params.mixup_prob),
+                            TrainPreprocessFN(
+                                max_labels=120,
+                                flip_prob=self.dataset_params.flip_prob,
+                                hsv_prob=self.dataset_params.hsv_prob)
+                            ]
+
+        self.trainset = COCODetectionDatasetYolox(data_dir="/data/coco",
+                                                  json_file="instances_train2017.json",
+                                                  img_size=(self.dataset_params.train_image_size,
+                                                            self.dataset_params.train_image_size),
+                                                  cache=self.dataset_params.cache_images,
+                                                  transforms=train_transforms
+                                                  )
+
+        val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
+        self.valset = COCODetectionDatasetYolox(
+            data_dir='/data/coco',
+            json_file="instances_val2017.json",
+            name="images/val2017",
+            img_size=(self.dataset_params.val_image_size, self.dataset_params.val_image_size),
+            transforms=[ValPreprocessFN(input_dim=val_input_dim)]
+        )
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
 
-        train_dataset = COCODetectionDatasetYolox(data_dir="/data/coco",
-                                                  json_file="instances_train2017.json",
-                                                  img_size=(self.dataset_params.train_image_size, self.dataset_params.train_image_size),
-                                                  cache=self.dataset_params.cache_images,
-                                                  preproc=TrainTransform(
-                                                      max_labels=120,
-                                                      flip_prob=self.dataset_params.flip_prob,
-                                                      hsv_prob=self.dataset_params.hsv_prob),
-                                                  degrees=self.dataset_params.degrees,
-                                                  translate=self.dataset_params.translate,
-                                                  mosaic_scale=self.dataset_params.mosaic_scale,
-                                                  mixup_scale=self.dataset_params.mixup_scale,
-                                                  shear=self.dataset_params.shear,
-                                                  mosaic_prob=self.dataset_params.mosaic_prob,
-                                                  mixup_prob=self.dataset_params.mixup_prob,
-                                                  )
 
-        sampler = InfiniteSampler(len(train_dataset), seed=0)
+        train_sampler = InfiniteSampler(len(self.trainset), seed=0)
 
-        batch_sampler = BatchSampler(
-            sampler=sampler,
+        train_batch_sampler = BatchSampler(
+            sampler=train_sampler,
             batch_size=self.dataset_params.batch_size,
             drop_last=False,
         )
 
-        self.train_loader = DataLoader(train_dataset,
-                                       batch_sampler=batch_sampler,
+        self.train_loader = DataLoader(self.trainset,
+                                       batch_sampler=train_batch_sampler,
                                        num_workers=num_workers,
                                        pin_memory=True,
                                        worker_init_fn=worker_init_reset_seed,
                                        collate_fn=self.dataset_params.train_collate_fn)
 
-        val_dataset = COCODetectionDatasetYolox(
-            data_dir='/data/coco',
-            json_file="instances_val2017.json",
-            name="images/val2017",
-            img_size=(self.dataset_params.val_image_size, self.dataset_params.val_image_size),
-            preproc=ValTransform(),
-            mosaic=False,
-            enable_mixup=False
-        )
 
         if distributed_sampler:
-            sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False)
+            sampler = torch.utils.data.distributed.DistributedSampler(self.valset, shuffle=False)
         else:
-            sampler = torch.utils.data.SequentialSampler(val_dataset)
+            sampler = torch.utils.data.SequentialSampler(self.valset)
 
-        val_loader = torch.utils.data.DataLoader(val_dataset,
+        val_loader = torch.utils.data.DataLoader(self.valset,
                                                  num_workers=num_workers,
                                                  pin_memory=True,
                                                  sampler=sampler,
