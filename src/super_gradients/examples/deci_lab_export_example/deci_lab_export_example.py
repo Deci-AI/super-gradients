@@ -38,7 +38,7 @@ def main(architecture_name: str):
         primary_batch_size=1,
         architecture=architecture_name.title(),
         framework=FrameworkType.PYTORCH,
-        dl_task="object_detection",
+        dl_task="classification",
         input_dimensions=(3, 320, 320),
         primary_hardware=HardwareType.K80,
         dataset_name="ImageNet",

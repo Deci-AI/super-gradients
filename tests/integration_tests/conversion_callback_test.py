@@ -1,5 +1,6 @@
 import unittest
 from enum import Enum
+import re
 
 from super_gradients import (
     SgModel,
@@ -13,6 +14,7 @@ from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPr
 from super_gradients.training.metrics import Accuracy, Top5, IoU
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.losses.stdc_loss import STDCLoss
+from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 
 from deci_lab_client.models import ModelMetadata, HardwareType, FrameworkType
 
@@ -44,9 +46,7 @@ def generate_model_metadata(architecture: str, task: Task):
 
 CLASSIFICATION = ["efficientnet_b0", "regnetY200", "regnetY400", "regnetY600", "regnetY800", "mobilenet_v3_large"]
 OBJECT_DETECTION = ["yolo_v5n", "yolo_v5s", "yolo_v5m", "yolo_v5l"]
-SEMANTIC_SEGMENTATION = ["ddrnet_23"]
-# SEMANTIC_SEGMENTATION = ["stdc1_seg", "stdc2_seg", "regseg48"]
-# SEMANTIC_SEGMENTATION = ["ddrnet_23", "stdc1_seg", "stdc2_seg", "regseg48"]
+SEMANTIC_SEGMENTATION = ["ddrnet_23", "stdc1_seg", "stdc2_seg", "regseg48"]
 
 
 class ConversionCallbackTest(unittest.TestCase):
@@ -140,6 +140,25 @@ class ConversionCallbackTest(unittest.TestCase):
                 self.assertTrue(True)
 
     def test_segmentation_architectures(self):
+        def get_architecture_custom_config(architecture_name: str):
+            if re.search(r"ddrnet", architecture_name):
+                return {
+                    "loss_logging_items_names": ["main_loss", "aux_loss", "Loss"],
+                    "loss": DDRNetLoss(num_pixels_exclude_ignored=False),
+                }
+            elif re.search(r"stdc", architecture_name):
+                return {
+                    "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
+                    "loss": STDCLoss(num_classes=5),
+                }
+            elif re.search(r"regseg", architecture_name):
+                return {
+                    "loss_logging_items_names": ["Loss"],
+                    "loss": "cross_entropy",
+                }
+            else:
+                raise Exception("You tried to run a conversion test on an unknown architecture")
+
         for architecture in SEMANTIC_SEGMENTATION:
             model_meta_data = generate_model_metadata(architecture=architecture, task=Task.SEMANTIC_SEGMENTATION)
             dataset = SegmentationTestDatasetInterface(dataset_params={"batch_size": 10})
@@ -154,7 +173,6 @@ class ConversionCallbackTest(unittest.TestCase):
             train_params = {
                 "max_epochs": 3,
                 "initial_lr": 1e-2,
-                "loss": STDCLoss(num_classes=5),
                 "lr_mode": "poly",
                 "ema": True,  # unlike the paper (not specified in paper)
                 "optimizer": "SGD",
@@ -162,11 +180,12 @@ class ConversionCallbackTest(unittest.TestCase):
                 "load_opt_params": False,
                 "train_metrics_list": [IoU(5)],
                 "valid_metrics_list": [IoU(5)],
-                "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
                 "metric_to_watch": "IoU",
                 "greater_metric_to_watch_is_better": True,
                 "phase_callbacks": phase_callbacks,
             }
+            custom_config = get_architecture_custom_config(architecture_name=architecture)
+            train_params.update(custom_config)
 
             try:
                 model.train(train_params)

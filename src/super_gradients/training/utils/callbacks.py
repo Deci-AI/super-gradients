@@ -229,7 +229,6 @@ class DeciLabUploadCallback(PhaseCallback):
         self.optimization_request_form = optimization_request_form
         self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
-        self.platform_client = DeciPlatformClient('api.deci.ai', 443, https=True)
 
         password = password or getpass.getpass()
         self.platform_client.login(email, password)
