@@ -137,7 +137,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         super(ModelConversionCheckCallback, self).__init__(phase=Phase.PRE_TRAINING)
         self.model_meta_data = model_meta_data
 
-        self.opset_version = kwargs.get("opset_version") or 10
+        self.opset_version = kwargs.get("opset_version", 10)
         self.do_constant_folding = (
             kwargs.get("do_constant_folding", None) if kwargs.get("do_constant_folding", None) else True
         )
@@ -229,6 +229,7 @@ class DeciLabUploadCallback(PhaseCallback):
         self.optimization_request_form = optimization_request_form
         self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
+        self.platform_client = DeciPlatformClient("api.deci.ai", 443, https=True)
 
         password = password or getpass.getpass()
         self.platform_client.login(email, password)
@@ -248,7 +249,6 @@ class DeciLabUploadCallback(PhaseCallback):
             add_model_request=self.model_meta_data,
             optimization_request=self.optimization_request_form,
             local_loaded_model=model,
-            **self.conversion_kwargs,
         )
 
     def get_optimization_status(self, optimized_model_name: str):

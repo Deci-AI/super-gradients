@@ -61,7 +61,7 @@ def main(architecture_name: str):
     phase_callbacks = [
         ModelConversionCheckCallback(model_meta_data=model_meta_data, opset_version=11),
         DeciLabUploadCallback(
-            email="trainer-tester@testcase.ai",
+            email="trainer@company.com",
             password="TRAINER_PASSWORD",
             model_meta_data=model_meta_data,
             optimization_request_form=optimization_request_form,
