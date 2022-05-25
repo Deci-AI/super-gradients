@@ -901,7 +901,8 @@ class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
     def __init__(self, dataset_params={}):
         super(CocoDetectionDatasetInterfaceYolox, self).__init__(dataset_params=dataset_params)
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
-        train_transforms = [Mosaic(input_dim=train_input_dim, prob=self.dataset_params.mosaic_prob),
+        train_transforms = [Mosaic(input_dim=train_input_dim,
+                                   prob=self.dataset_params.mosaic_prob),
                             RandomAffine(degrees=self.dataset_params.degrees,
                                          translate=self.dataset_params.translate,
                                          scales=self.dataset_params.mosaic_scale,
