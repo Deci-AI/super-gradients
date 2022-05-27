@@ -16,7 +16,7 @@ from super_gradients.training.utils.detection_utils import DetectionVisualizatio
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 import cv2
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
-
+from super_gradients.training.transforms.transforms import Mosaic, Mixup, RandomAffine
 logger = get_logger(__name__)
 
 try:
@@ -609,7 +609,7 @@ class TrainingStageSwitchCallbackBase(PhaseCallback):
         """
         raise NotImplementedError
 
-from torch.utils.data import DataLoader
+
 class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
     """
     YoloXTrainingStageSwitchCallback
@@ -623,8 +623,9 @@ class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
         super(YoloXTrainingStageSwitchCallback, self).__init__(next_stage_start_epoch=next_stage_start_epoch)
 
     def apply_stage_change(self, context: PhaseContext):
-        context.train_loader.dataset.enable_mosaic = False
-        context.train_loader.dataset.enable_mixup = False
+        for transform in context.train_loader.dataset.transforms:
+            if hasattr(transform, "close"):
+                transform.close()
         iter(context.train_loader)
         context.criterion.use_l1 = True
 

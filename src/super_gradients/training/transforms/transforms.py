@@ -7,14 +7,14 @@ from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 import numpy as np
 import cv2
-
-from super_gradients.training.utils.detection_utils import get_yolox_datadir, random_affine, get_mosaic_coordinate, \
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.detection_utils import random_affine, get_mosaic_coordinate, \
     adjust_box_anns, xyxy2cxcywh, _mirror, augment_hsv, rescale_and_pad_to_size
 
 image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
 
-
+logger = get_logger(__name__)
 class SegmentationTransform:
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
@@ -437,20 +437,27 @@ class RandomAffine(DetectionTransform):
         self.scale = scales
         self.shear = shear
         self.target_size = target_size
+        self.enable = True
+
+    def close(self):
+        self.enable = False
 
     def __call__(self, sample: dict):
-        img, target = random_affine(
-            sample["image"],
-            sample["target"],
-            sample["target_seg"],
-            target_size=self.target_size,
-            degrees=self.degrees,
-            translate=self.translate,
-            scales=self.scale,
-            shear=self.shear,
-        )
-        sample["image"] = img
-        sample["target"] = target
+        if self.enable:
+            img, target = random_affine(
+                sample["image"],
+                sample["target"],
+                sample["target_seg"],
+                target_size=self.target_size,
+                degrees=self.degrees,
+                translate=self.translate,
+                scales=self.scale,
+                shear=self.shear,
+            )
+            sample["image"] = img
+            sample["target"] = target
+        else:
+            logger.info("TRANSFORM DISABLED")
 
         return sample
 
