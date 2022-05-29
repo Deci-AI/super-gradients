@@ -3,6 +3,7 @@ import sys
 from copy import deepcopy
 from enum import Enum
 from typing import Union, Tuple, Mapping, List, Any
+from dataclasses import dataclass
 
 import numpy as np
 import pkg_resources
@@ -15,6 +16,8 @@ from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
+from treelib import Node, Tree
+from termcolor import colored
 
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -100,6 +103,17 @@ class EvaluationType(str, Enum):
     """
     TEST = 'TEST'
     VALIDATION = 'VALIDATION'
+
+
+@dataclass
+class EpochStats:
+    current: float = None
+    previous: float = None
+    best: float = None
+    change_from_previous: float = None
+    change_from_best: float = None
+    is_better_than_previous: bool = None
+    is_best_epoch: bool = None
 
 
 class SgModel:
@@ -401,6 +415,7 @@ class SgModel:
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
 
+        self._update_train_epoch_stats(loss=pbar_message_dict["Loss"])
         return logging_values
 
     def _get_losses(self, outputs: torch.Tensor, targets: torch.Tensor) -> Tuple[torch.Tensor, tuple]:
@@ -449,6 +464,106 @@ class SgModel:
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
+
+    def _get_metric(self, validation_results_tuple: tuple) -> float:
+        """Compute the current metric
+        IF idx IS A LIST - SUM ALL THE VALUES STORED IN THE LIST'S INDICES"""
+        metric = validation_results_tuple[self.metric_idx_in_results_tuple] if isinstance(
+            self.metric_idx_in_results_tuple, int) else \
+            sum([validation_results_tuple[idx] for idx in self.metric_idx_in_results_tuple])
+        return metric
+
+    def _update_epoch_stats(self, previous_epoch_stats: dict, new_value: float, greater_is_better: bool) -> dict:
+        """Update the given stats dictionary (could be a loss or a metric) with the new value."""
+        previous_value, previous_best_value = previous_epoch_stats["current"], previous_epoch_stats["best"]
+
+        if previous_best_value is None:
+            previous_best_value = previous_value
+        elif greater_is_better:
+            previous_best_value = max(previous_value, previous_best_value)
+        else:
+            previous_best_value = min(previous_value, previous_best_value)
+
+        if previous_value is None:
+            change_from_previous = None
+            change_from_best = None
+            is_better_than_previous = None
+            is_best_epoch = None
+        else:
+            change_from_previous = new_value - previous_value
+            change_from_best = new_value - previous_best_value
+            is_better_than_previous = change_from_previous >= 0 if greater_is_better else change_from_previous <= 0
+            is_best_epoch = change_from_best >= 0 if greater_is_better else change_from_best <= 0
+
+        return {"current": new_value, "previous": previous_value, "best": previous_best_value,
+                "change_from_previous": change_from_previous, "change_from_best": change_from_best,
+                "is_better_than_previous": is_better_than_previous, "is_best_epoch": is_best_epoch}
+
+    def _update_train_epoch_stats(self, loss: float):
+        """Update teh training stats (loss/metric of interest) for the current epochs"""
+        self.train_epoch_stats["loss"] = self._update_epoch_stats(self.train_epoch_stats["loss"],
+                                                                  new_value=loss, greater_is_better=False)
+
+    def _update_valid_epoch_stats(self, loss: float, metric: float):
+        """Update teh validation stats (loss/metric of interest) for the current epochs"""
+        self.valid_epoch_stats["loss"] = self._update_epoch_stats(self.valid_epoch_stats["loss"],
+                                                                  new_value=loss, greater_is_better=False)
+        self.valid_epoch_stats[self.metric_to_watch] = self._update_epoch_stats(
+            self.valid_epoch_stats[self.metric_to_watch],
+            new_value=metric,
+            greater_is_better=self.greater_metric_to_watch_is_better)
+
+    def _display_epoch_summary(self, epoch: int, silent_mode: bool, ndigits: int) -> str:
+        """Display the stats (loss/metric of interest) of train/validation for the current epoch,
+        and compare the values to the best values until now, as well as the previous epoch."""
+
+        def _get_stats_tree(value_name: str, stats: dict):
+            """Helper function to extract create a tree that represents the stats of a given loss/metric."""
+
+            current = str(round(stats['current'], ndigits))
+
+            tree = Tree()
+            root_id = hash(f"{value_name} = {current}")
+            tree.create_node(f"{value_name.capitalize()} = {current}", root_id)
+            if stats["previous"] is not None:
+                previous = str(round(stats['previous'], ndigits))
+                best = str(round(stats['best'], ndigits))
+                change_from_previous = str(round(stats['change_from_previous'], ndigits))
+                change_from_best = str(round(stats['change_from_best'], ndigits))
+
+                is_better_colors = {True: "green", False: "red"}
+                is_greater_symbols = {True: "↗", False: "↘"}
+
+                diff_with_prev_colored = colored(
+                    f"{is_greater_symbols[stats['change_from_previous'] > 0]} {change_from_previous}",
+                    is_better_colors[stats["is_better_than_previous"]])
+                diff_with_best_colored = colored(
+                    f"{is_greater_symbols[stats['change_from_best'] > 0]} {change_from_best}",
+                    is_better_colors[stats["is_best_epoch"]])
+
+                tree.create_node(f"Epoch N-1   = {previous:6} ({diff_with_prev_colored:8})",
+                                 f"0_previous_{root_id}",
+                                 parent=root_id)
+                tree.create_node(f"Best until now = {best:6} ({diff_with_best_colored:8})", f"1_best_{root_id}",
+                                 parent=root_id)
+            return tree
+
+        if not silent_mode:
+            train_tree = Tree()
+            train_tree.create_node("Training", "Training")
+            train_tree.paste('Training', _get_stats_tree('loss', self.train_epoch_stats['loss']))
+
+            valid_tree = Tree()
+            valid_tree.create_node("Validation", "Validation")
+            valid_tree.paste('Validation', _get_stats_tree('loss', self.valid_epoch_stats['loss']))
+            valid_tree.paste('Validation',
+                             _get_stats_tree(self.metric_to_watch, self.valid_epoch_stats[self.metric_to_watch]))
+
+            summary_tree = Tree()
+            summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
+            summary_tree.paste("Summary", train_tree)
+            summary_tree.paste("Summary", valid_tree)
+            summary_tree.show()
 
     def save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None,
                         context: PhaseContext = None):
@@ -774,7 +889,27 @@ class SgModel:
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
-        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+        self.metric_idx_in_results_tuple = (
+            self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+
+        self.train_epoch_stats = {
+            "loss": {
+                "current": None, "previous": None, "best": None, "change_from_previous": None,
+                "change_from_best": None, "is_better_than_previous": None, "is_best_epoch": None
+            }
+        }
+        self.valid_epoch_stats = {
+            "loss": {
+                "current": None, "previous": None, "best": None, "change_from_previous": None,
+                "change_from_best": None, "is_better_than_previous": None, "is_best_epoch": None
+            },
+            self.metric_to_watch: {
+                "current": None, "previous": None, "best": None, "change_from_previous": None,
+                "change_from_best": None, "is_better_than_previous": None, "is_best_epoch": None
+            }
+        }
+        # self.train_epoch_stats = {"loss": EpochStats()}
+        # self.valid_epoch_stats = {"loss": EpochStats(), "metric": EpochStats()}
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -1719,6 +1854,17 @@ class SgModel:
 
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
+
+        logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+        pbar_message_dict = get_train_loop_description_dict(logging_values,
+                                                            metrics,
+                                                            self.loss_logging_items_names)
+        self._update_valid_epoch_stats(loss=pbar_message_dict["Loss"], metric=pbar_message_dict[self.metric_to_watch])
+
+        progress_bar_data_loader.write("===========================================================")
+        self._display_epoch_summary(epoch=context.epoch, silent_mode=silent_mode, ndigits=4)
+        progress_bar_data_loader.write("===========================================================")
+
         return logging_values
 
     def instantiate_net(self, architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict,
