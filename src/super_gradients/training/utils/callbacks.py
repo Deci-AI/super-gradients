@@ -609,7 +609,6 @@ class TrainingStageSwitchCallbackBase(PhaseCallback):
         """
         raise NotImplementedError
 
-from torch.utils.data import DataLoader
 class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
     """
     YoloXTrainingStageSwitchCallback
@@ -629,47 +628,6 @@ class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
         context.criterion.use_l1 = True
 
 
-class YoloXMultiscaleImagesCallback(PhaseCallback):
-    """
-    YoloXMultiscaleImagesCallback
-
-    Enables changing the final rescaling of images during training on the fly.
-    """
-
-    def __init__(self, freq: int = 10, multiscale_range: int = 5):
-        super(YoloXMultiscaleImagesCallback, self).__init__(phase=Phase.TRAIN_BATCH_END)
-        self.freq = freq
-        self.multiscale_range = multiscale_range
-        self.rank = None
-        self.is_distributed = None
-
-    def __call__(self, context: PhaseContext):
-        if self.rank is None:
-            self.rank = get_local_rank()
-        if self.is_distributed is None:
-            self.is_distributed = get_world_size() > 1
-
-        if context.batch_idx % self.freq == 0:
-            tensor = torch.LongTensor(2).cuda()
-            original_res = context.train_loader.collate_fn.resolution
-
-            if self.rank == 0:
-                size_factor = original_res[1] * 1.0 / original_res[0]
-                min_size = int(original_res[0] / 32) - self.multiscale_range
-                max_size = int(original_res[0] / 32) + self.multiscale_range
-                random_size = (min_size, max_size)
-                size = random.randint(*random_size)
-                size = (int(32 * size), 32 * int(size * size_factor))
-                tensor[0] = size[0]
-                tensor[1] = size[1]
-
-            if self.is_distributed:
-                dist.barrier()
-                dist.broadcast(tensor, 0)
-            logger.info("new res in callback "+str((tensor[0].item(), tensor[1].item())))
-            if not hasattr(context.train_loader.collate_fn,"target_resolution"):
-                raise ValueError("TARGET RES NOT HERE")
-            context.train_loader.collate_fn.target_resolution = (tensor[0].item(), tensor[1].item())
 
 
 class CallbackHandler:
