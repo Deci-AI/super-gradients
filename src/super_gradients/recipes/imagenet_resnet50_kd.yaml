@@ -52,7 +52,6 @@ teacher_arch_params:
 dataset_params:
   batch_size: 192
   val_batch_size: 256
-  train_loader_drop_last: True
   random_erase_prob: 0
   random_erase_value: random
   train_interpolation: random
