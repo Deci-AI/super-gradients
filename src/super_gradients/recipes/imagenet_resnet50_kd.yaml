@@ -1,7 +1,7 @@
 #  ResNet50 Imagenet classification training:
-#  This example trains with batch_size = 256 * 8 GPUs, total 2048.
+#  This example trains with batch_size = 192 * 8 GPUs, total 1536.
 #  Training time on 8 x GeForce RTX A5000 is 21min / epoch.
-#  Reach => 79.47 Top1 accuracy.  TODO
+#  Reach => 79.47 Top1 accuracy.
 #
 #  Log and tensorboard at s3://deci-pretrained-models/ResNet50_ImageNet/average_model.pth
 
@@ -24,7 +24,6 @@ training_hyperparams:
     task_loss_fn:
       _target_: super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss
 
-# TODO delete
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
     project_name: decinets_sg
@@ -51,7 +50,7 @@ teacher_arch_params:
   patch_size: [16, 16]
 
 dataset_params:
-  batch_size: 256
+  batch_size: 192
   val_batch_size: 256
   train_loader_drop_last: True
   random_erase_prob: 0
@@ -85,7 +84,7 @@ ckpt_root_dir:
 
 multi_gpu:
   _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: AUTO
+  value: DDP
 
 sg_model:
   _target_: super_gradients.KDModel
