@@ -16,7 +16,7 @@ from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
-from treelib import Node, Tree
+from treelib import Tree
 from termcolor import colored
 
 from super_gradients.training.models.all_architectures import ARCHITECTURES
