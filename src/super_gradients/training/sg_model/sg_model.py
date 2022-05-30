@@ -541,7 +541,7 @@ class SgModel:
                     f"{is_greater_symbols[stats['change_from_best'] > 0]} {change_from_best}",
                     is_better_colors[stats["is_best_epoch"]])
 
-                tree.create_node(f"Epoch N-1   = {previous:6} ({diff_with_prev_colored:8})",
+                tree.create_node(f"Epoch N-1      = {previous:6} ({diff_with_prev_colored:8})",
                                  f"0_previous_{root_id}",
                                  parent=root_id)
                 tree.create_node(f"Best until now = {best:6} ({diff_with_best_colored:8})", f"1_best_{root_id}",
