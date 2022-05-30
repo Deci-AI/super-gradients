@@ -343,6 +343,24 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
 
 
 class DetectionTransform:
+    """
+    Detection transform base class.
+
+    Complex transforms that require extra data loading can use the the additional_samples_count attribute in a
+     similar fashion to what's been done in COCODetectionDatasetYolox:
+
+    self._load_additional_inputs_for_transform(sample, transform)
+
+    # after the above call, sample["additional_samples"] holds a list of additional inputs and targets.
+
+    sample = transform(sample)
+
+
+
+    Attributes:
+        additional_samples_count: (int) additional samples to be loaded.
+        non_empty_targets: (bool) whether the additianl targets can have empty targets or not.
+    """
     def __init__(self, additional_samples_count: int = 0, non_empty_targets: bool = False):
         self.additional_samples_count = additional_samples_count
         self.non_empty_targets = non_empty_targets
@@ -355,6 +373,15 @@ class DetectionTransform:
 
 
 class Mosaic(DetectionTransform):
+    """
+    Mosaic detection transform
+    
+    Attributes:
+        input_dim: (tuple) input dimension.
+        prob: (float) probability of applying mosaic.
+        enable_mosaic: (bool) whether to apply mosaic at all (regardless of prob) (default=True).
+
+    """
     def __init__(self, input_dim, prob=1.):
         super(Mosaic, self).__init__(additional_samples_count=3)
         self.prob = prob
@@ -392,9 +419,7 @@ class Mosaic(DetectionTransform):
                     mosaic_img = np.full((input_h * 2, input_w * 2, c), 114, dtype=np.uint8)
 
                 # suffix l means large image, while s means small image in mosaic aug.
-                (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(
-                    mosaic_img, i_mosaic, xc, yc, w, h, input_h, input_w
-                )
+                (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(i_mosaic, xc, yc, w, h, input_h, input_w)
 
                 mosaic_img[l_y1:l_y2, l_x1:l_x2] = img[s_y1:s_y2, s_x1:s_x2]
                 padw, padh = l_x1 - s_x1, l_y1 - s_y1
@@ -430,6 +455,27 @@ class Mosaic(DetectionTransform):
 
 
 class RandomAffine(DetectionTransform):
+    """
+    RandomAffine detection transform
+
+    Attributes:
+     target_size: (tuple) desired output shape.
+
+     degrees:  (Union[tuple, float]) degrees for random rotation, when float the random values are drawn uniformly
+        from (-degrees, degrees)
+
+     translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
+        are drawn uniformly from (-translate, translate)
+
+     scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
+        from (0.1-scales, 0.1+scales)
+
+     shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
+        from (shear, shear)
+
+    enable: (bool) whether to apply the below transform at all.
+
+    """
     def __init__(self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640)):
         super(RandomAffine, self).__init__()
         self.degrees = degrees
@@ -456,13 +502,19 @@ class RandomAffine(DetectionTransform):
             )
             sample["image"] = img
             sample["target"] = target
-        else:
-            logger.info("TRANSFORM DISABLED")
-
         return sample
 
 
 class Mixup(DetectionTransform):
+    """
+    Mixup detection transform
+
+    Attributes:
+        input_dim: (tuple) input dimension.
+        mixup_scale: (tuple) scale range for the additional loaded image for mixup.
+        prob: (float) probability of applying mixup.
+        enable_mixup: (bool) whether to apply mixup at all (regardless of prob) (default=True).
+    """
     def __init__(self, input_dim, mixup_scale, prob=1.):
         super(Mixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
         self.input_dim = input_dim
@@ -482,7 +534,6 @@ class Mixup(DetectionTransform):
 
             jit_factor = random.uniform(*self.mixup_scale)
             FLIP = random.uniform(0, 1) > 0.5
-
 
             if len(img.shape) == 3:
                 cp_img = np.ones((self.input_dim[0], self.input_dim[1], 3), dtype=np.uint8) * 114
@@ -551,20 +602,32 @@ class Mixup(DetectionTransform):
         return sample
 
 
-class TrainPreprocessFN(DetectionTransform):
-    def __init__(self, max_labels=50, flip_prob=0.5, hsv_prob=1.0):
+class YoloxTrainPreprocessFN(DetectionTransform):
+    """
+    Preprocessing transform to be applied last of all transforms for training.
+
+    Pads image, converts targets to [cx,cy,w,h] format, flips horizontally, performs hsv augmentation, and pads targets
+     to self.max_labels
+
+    Attributes:
+        max_labels: (int) size to pad the targets to (default=50).
+        flip_prob: (float) probability to apply horizontal flip (default=0.5)
+        hsv_prob: (float) probability to apply hsv (default=1.)
+        input_dim: (tuple) final input dimension (default=(640,640))
+    """
+    def __init__(self, max_labels=50, flip_prob=0.5, hsv_prob=1.0, input_dim=(640, 640)):
         self.max_labels = max_labels
         self.flip_prob = flip_prob
         self.hsv_prob = hsv_prob
+        self.input_dim = input_dim
 
     def __call__(self, sample):
         image, targets = sample["image"], sample["target"]
-        input_dim = image.shape
         boxes = targets[:, :4].copy()
         labels = targets[:, 4].copy()
         if len(boxes) == 0:
             targets = np.zeros((self.max_labels, 5), dtype=np.float32)
-            image, r_o = rescale_and_pad_to_size(image, input_dim)
+            image, r_o = rescale_and_pad_to_size(image, self.input_dim)
             sample["image"] = image
             sample["target"] = targets
             return sample
@@ -580,7 +643,7 @@ class TrainPreprocessFN(DetectionTransform):
         if random.random() < self.hsv_prob:
             augment_hsv(image)
         image_t, boxes = _mirror(image, boxes, self.flip_prob)
-        image_t, r_ = rescale_and_pad_to_size(image_t, input_dim)
+        image_t, r_ = rescale_and_pad_to_size(image_t, self.input_dim)
         # boxes [xyxy] 2 [cx,cy,w,h]
         boxes = xyxy2cxcywh(boxes)
         boxes *= r_
@@ -590,7 +653,7 @@ class TrainPreprocessFN(DetectionTransform):
         labels_t = labels[mask_b]
 
         if len(boxes_t) == 0:
-            image_t, r_o = rescale_and_pad_to_size(image_o, input_dim)
+            image_t, r_o = rescale_and_pad_to_size(image_o, self.input_dim)
             boxes_o *= r_o
             boxes_t = boxes_o
             labels_t = labels_o
@@ -607,29 +670,21 @@ class TrainPreprocessFN(DetectionTransform):
         return sample
 
 
-class ValPreprocessFN(DetectionTransform):
+class YoloxValPreprocessFN(DetectionTransform):
     """
-    Defines the transformations that should be applied to test PIL image
-    for input into the network
+    Preprocessing transform to be applied last of all transforms for validation.
 
-    dimension -> tensorize -> color adj
+    Rescales and pads to self.input_dim and swaps image channels with self.swap.
+    Attributes:
+        input_dim: (tuple) final input dimension (default=(640,640))
+        swap: image axis's to be rearranged.
 
-    Arguments:
-        resize (int): input dimension to SSD
-        rgb_means ((int,int,int)): average RGB of the dataset
-            (104,117,123)
-        swap ((int,int,int)): final order of channels
-
-    Returns:
-        transform (transform) : callable transform to be applied to test/val
-        data
     """
 
     def __init__(self, input_dim, swap=(2, 0, 1)):
         self.swap = swap
         self.input_dim = input_dim
 
-    # assume input is cv2 img for now
     def __call__(self, sample):
         img, target = sample["image"], sample["target"]
         label = target.copy()

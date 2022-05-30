@@ -18,14 +18,12 @@ class COCODetectionDatasetYolox(Dataset):
 
     def __init__(
             self, img_size=(640, 640),
-            preproc=None,
             data_dir=None,
             json_file="instances_train2017.json",
             name="images/train2017",
             cache=False,
             tight_box_rotation=False,
             transforms=[],
-            *args
     ):
         """
 
@@ -46,7 +44,6 @@ class COCODetectionDatasetYolox(Dataset):
         self.imgs = None
         self.data_dir = data_dir
         self.input_dim = img_size
-        self.preproc = preproc
         if data_dir is None:
             data_dir = os.path.join(get_yolox_datadir(), "COCO")
         self.data_dir = data_dir

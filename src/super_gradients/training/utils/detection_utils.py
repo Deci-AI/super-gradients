@@ -1214,6 +1214,25 @@ def get_affine_matrix(
         scales=0.1,
         shear=10,
 ):
+    """
+    Returns a random affine transform matrix.
+
+    :param target_size: (tuple) desired output shape.
+
+    :param degrees:  (Union[tuple, float]) degrees for random rotation, when float the random values are drawn uniformly
+     from (-degrees, degrees)
+
+    :param translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
+     are drawn uniformly from (-translate, translate)
+
+    :param scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
+     from (0.1-scales, 0.1+scales)
+
+    :param shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
+     from (shear, shear)
+
+    :return: affine_transform_matrix, drawn_scale
+    """
     twidth, theight = target_size
 
     # Rotation and Scale
@@ -1243,7 +1262,7 @@ def get_affine_matrix(
     return M, scale
 
 
-def apply_affine_to_bboxes(targets, targets_seg, target_size, M, scale):
+def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
     num_gts = len(targets)
     twidth, theight = target_size
     seg_is_present_mask = np.logical_or.reduce(~np.isnan(targets_seg), axis=1)
@@ -1306,19 +1325,56 @@ def random_affine(
         scales=0.1,
         shear=10,
 ):
+    """
+    Performs random affine transform to img, targets
+
+    :param img:
+
+    :param targets:
+    
+    :param targets_seg:
+
+    :param target_size: (tuple) desired output shape.
+
+    :param degrees:  (Union[tuple, float]) degrees for random rotation, when float the random values are drawn uniformly
+     from (-degrees, degrees)
+
+    :param translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
+     are drawn uniformly from (-translate, translate)
+
+    :param scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
+     from (0.1-scales, 0.1+scales)
+
+    :param shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
+     from (shear, shear)
+     
+    :return:
+    """
     M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
 
     img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(114, 114, 114))
 
     # Transform label coordinates
     if len(targets) > 0:
-        targets = apply_affine_to_bboxes(targets, targets_seg, target_size, M, scale)
+        targets = apply_affine_to_bboxes(targets, targets_seg, target_size, M)
 
     return img, targets
 
 
-def get_mosaic_coordinate(mosaic_image, mosaic_index, xc, yc, w, h, input_h, input_w):
-    # TODO update doc
+def get_mosaic_coordinate(mosaic_index, xc, yc, w, h, input_h, input_w):
+    """
+    Returns the mosaic coordinates of final mosaic image according to mosaic image index.
+    
+    :param mosaic_index: (int) mosaic image index
+    :param xc: (int) center x coordinate of the entire mosaic grid.
+    :param yc: (int) center y coordinate of the entire mosaic grid.
+    :param w: (int) width of bbox
+    :param h: (int) height of bbox
+    :param input_h: (int) image input height (should be 1/2 of the final mosaic output image height).
+    :param input_w: (int) image input width (should be 1/2 of the final mosaic output image width).
+    :return: (x1, y1, x2, y2), (x1s, y1s, x2s, y2s) where (x1, y1, x2, y2) are the coordinates in the final mosaic
+        output image, and (x1s, y1s, x2s, y2s) are the coordinates in the placed image.
+    """
     # index0 to top left part of image
     if mosaic_index == 0:
         x1, y1, x2, y2 = max(xc - w, 0), max(yc - h, 0), xc, yc
@@ -1339,6 +1395,17 @@ def get_mosaic_coordinate(mosaic_image, mosaic_index, xc, yc, w, h, input_h, inp
 
 
 def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
+    """
+    Adjusts the bbox annotations of rescaled, padded image.
+
+    @param bbox: (np.array) bbox to modify.
+    @param scale_ratio: (float) scale ratio between rescale output image and original one.
+    @param padw: (int) width padding size.
+    @param padh: (int) height padding size.
+    @param w_max: (int) width border.
+    @param h_max: (int) height border
+    @return: modified bbox (np.array)
+    """
     bbox[:, 0::2] = np.clip(bbox[:, 0::2] * scale_ratio + padw, 0, w_max)
     bbox[:, 1::2] = np.clip(bbox[:, 1::2] * scale_ratio + padh, 0, h_max)
     return bbox
@@ -1387,6 +1454,14 @@ class YoloXCollateFN:
 
 
 def _mirror(image, boxes, prob=0.5):
+    """
+    Horizontal flips image and bboxes with probability prob.
+
+    @param image: (np.array) image to be flipped.
+    @param boxes: (np.array) bboxes to be modified.
+    @param prob: probability to perform flipping.
+    @return: flipped_image, flipped_bboxes
+    """
     _, width, _ = image.shape
     if random.random() < prob:
         image = image[:, ::-1]

@@ -39,7 +39,7 @@ forward_pass_prep_fn:
 
 phase_callbacks:
   - _target_: super_gradients.training.utils.callbacks.YoloXTrainingStageSwitchCallback
-    next_stage_start_epoch: 285
+    next_stage_start_epoch: 26
 
 
 metric_to_watch: 'mAP@0.50:0.95'

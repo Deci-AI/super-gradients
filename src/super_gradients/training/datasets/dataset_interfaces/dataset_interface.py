@@ -17,7 +17,7 @@ from super_gradients.training.datasets.segmentation_datasets import PascalVOC201
 from super_gradients.training import utils as core_utils
 from super_gradients.common import DatasetDataInterface
 from super_gradients.common.environment import AWS_ENV_NAME
-from super_gradients.training.transforms.transforms import TrainPreprocessFN, ValPreprocessFN
+from super_gradients.training.transforms.transforms import YoloxTrainPreprocessFN, YoloxValPreprocessFN
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
@@ -27,7 +27,6 @@ import xml.etree.ElementTree as ET
 from tqdm import tqdm
 from pathlib import Path
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
-from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 from super_gradients.training.utils.utils import download_and_unzip_from_url
 from super_gradients.training.utils import get_param
 import torchvision.transforms as transforms
@@ -35,6 +34,8 @@ from super_gradients.training.datasets.segmentation_datasets.supervisely_persons
     SuperviselyPersonsDataset
 from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+from super_gradients.training.transforms.transforms import Mosaic, Mixup, RandomAffine, YoloxTrainPreprocessFN, \
+    YoloxValPreprocessFN
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -129,9 +130,7 @@ class DatasetInterface:
 
         if distributed_sampler:
             self.batch_size_factor = 1
-            train_sampler = RepeatAugSampler(self.trainset,
-                                             num_repeats=aug_repeat_count) if aug_repeat_count > 0 else DistributedSampler(
-                self.trainset)
+            train_sampler = RepeatAugSampler(self.trainset, num_repeats=aug_repeat_count) if aug_repeat_count > 0 else DistributedSampler(self.trainset)
             val_sampler = DistributedSampler(self.valset)
             test_sampler = DistributedSampler(self.testset) if self.testset is not None else None
             train_shuffle = False
@@ -320,10 +319,8 @@ class LibraryDatasetInterface(DatasetInterface):
             self.lib_dataset_params['mean'], self.lib_dataset_params['std'] = datasets_utils.get_mean_and_std(trainset)
 
         # OVERWRITE MEAN AND STD IF DEFINED IN DATASET PARAMS
-        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean',
-                                                               default_val=self.lib_dataset_params['mean'])
-        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std',
-                                                              default_val=self.lib_dataset_params['std'])
+        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean', default_val=self.lib_dataset_params['mean'])
+        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std', default_val=self.lib_dataset_params['std'])
 
         crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=32)
 
@@ -893,10 +890,6 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
         self.classes = self.trainset.classes
 
 
-from super_gradients.training.transforms.transforms import Mosaic, Mixup, RandomAffine, TrainPreprocessFN, \
-    ValPreprocessFN
-
-
 class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
     def __init__(self, dataset_params={}):
         super(CocoDetectionDatasetInterfaceYolox, self).__init__(dataset_params=dataset_params)
@@ -912,7 +905,7 @@ class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
                             Mixup(input_dim=train_input_dim,
                                   mixup_scale=self.dataset_params.mixup_scale,
                                   prob=self.dataset_params.mixup_prob),
-                            TrainPreprocessFN(
+                            YoloxTrainPreprocessFN(
                                 max_labels=120,
                                 flip_prob=self.dataset_params.flip_prob,
                                 hsv_prob=self.dataset_params.hsv_prob)
@@ -932,7 +925,7 @@ class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
             json_file="instances_val2017.json",
             name="images/val2017",
             img_size=(self.dataset_params.val_image_size, self.dataset_params.val_image_size),
-            transforms=[ValPreprocessFN(input_dim=val_input_dim)]
+            transforms=[YoloxValPreprocessFN(input_dim=val_input_dim)]
         )
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
