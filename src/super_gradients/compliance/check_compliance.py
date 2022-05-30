@@ -3,24 +3,29 @@ A Python script that check's the compliance of Hosts (OS and Hardware) for Deci'
 """
 
 import os
-import platform
-import subprocess
 import sys
-from logging import getLogger, StreamHandler, DEBUG
-from math import e as math_e
-from sys import stdout
-from typing import List, Dict
-
-from pathlib import Path
-import GPUtil
-import psutil
 from pip._internal.operations.freeze import freeze
+from logging import getLogger, DEBUG
+from typing import List, Dict
+from pathlib import Path
 from packaging.version import Version
 
-logger = None
+logger = getLogger('deci-compliance')
+logger.setLevel(DEBUG)
 
 
-def get_requirements() -> List[str]:
+def verify_os() -> List[str]:
+    """Verifying operating system name and platform"""
+    name = os.name
+    platform = sys.platform
+    logger.info(f'OS Name: {name}')
+    logger.info(f'OS Platform: {platform}')
+    if 'linux' not in platform.lower():
+        return ['Deci officially supports only Linux kernels. Some features may not work as expected.']
+    return []
+
+
+def get_libs_requirements() -> List[str]:
     """Read requirement.txt from the root, and split it as a list of libs/version"""
     with open(Path(__file__).parent.parent.parent.parent / "requirements.txt", "r") as f:
         requirements_str = f.read()
@@ -37,14 +42,9 @@ def get_installed_libs_with_version() -> Dict[str, str]:
     return installed_libs_with_version
 
 
-# class VersionMismatchError(Exception):
-#     """Exception to raise when the version of an installed lib does not match requirement"""
-#     __module__ = Exception.__module__
-
-
-def verify_installed_libraries() -> None:
+def verify_installed_libraries() -> List[str]:
     """Check that all installed libs respect the requirement.txt"""
-    requirements = get_requirements()
+    requirements = get_libs_requirements()
     installed_libs_with_version = get_installed_libs_with_version()
 
     errors = []
@@ -62,6 +62,7 @@ def verify_installed_libraries() -> None:
 
         if lib.lower() not in installed_libs_with_version.keys():
             errors.append(f"{lib} required but not found")
+            continue
 
         installed_version_str = installed_libs_with_version[lib.lower()]
         installed_version, required_version = Version(installed_version_str), Version(required_version_str)
@@ -77,68 +78,23 @@ def verify_installed_libraries() -> None:
     return errors
 
 
-def verify_os() -> List[str]:
-    """Verifying operating system name and platform"""
-    name = os.name
-    platform = sys.platform
-    logger.info(f'OS Name: {name}')
-    logger.info(f'OS Platform: {platform}')
-    if 'linux' not in platform.lower():
-        return ['Deci officially supports only Linux kernels. Some features may not work as expected.']
-    return []
-
-
-def print_error(component_name, error):
+def print_error(component_name: str, error: str) -> None:
     error_message = f"Failed to verify {component_name}: {error}"
     logger.error(error_message)
 
 
-def check_host_compliance():
-    #
-
-    # try:
-    #     print(lib)
-    #     module = import_module(lib)
-    #     if isinstance(module.__version__, tuple):
-    #         installed_version = Version(".".join(map(str, module.__version__)))
-    #     else:
-    #         installed_version = Version(module.__version__)
-    #
-    #     required_version = Version(required_version)
-    #
-    #     if constraint == ">=":
-    #         if not installed_version >= required_version:
-    #             raise ImportError(f"{module.__name__} is installed with version {installed_version.version} < {required_version.version}")
-    #
-    #     if constraint == "~=":
-    #         if not (installed_version.major == required_version.major):
-    #             raise ImportError(
-    #                 f"{module.__name__} is installed with major version {installed_version.version.major} != {required_version.major}")
-    #         if not (installed_version.minor >= required_version.minor):
-    #             raise ImportError(
-    #                 f"{module.__name__} is installed with minor version {installed_version.version.minor} < {required_version.minor}")
-    #
-    #     if constraint == "==":
-    #         if not installed_version == required_version:
-    #             raise ImportError(f"{module.__name__} is installed with version {installed_version.version} != {required_version.version}")
-    # except ModuleNotFoundError:
-    #     print(f"{requirement} NOT FOUND")
-
-    # required_libs_grp_by_constraint
+def check_compliance() -> None:
+    """Run all the compliance test and log everything that does not meet requirements"""
 
     requirement_checkers = {
         'operating_system': verify_os,
         'libraries': verify_installed_libraries,
     }
 
-    # Adding a logger
-    logger = getLogger('deci-compliance')
-    logger.addHandler(StreamHandler(stream=stdout))
-    logger.setLevel(DEBUG)
-
     compliance_errors = {}
     logger.info('Deci Compliance Check Started')
     logger.info(f'Checking the following components: {list(requirement_checkers.keys())}')
+    logger.info('_' * 20)
     for test_name, test_function in requirement_checkers.items():
         logger.info(f"Verifying {test_name}...")
         try:
@@ -163,4 +119,4 @@ def check_host_compliance():
 
 
 if __name__ == '__main__':
-    check_host_compliance()
+    check_compliance()
