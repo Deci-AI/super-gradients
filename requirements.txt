@@ -27,4 +27,3 @@ einops==0.3.2
 protobuf~=3.19.0
 deci-lab-client==2.22.1
 packaging>=20.4
-pandas>=1.1.1
