@@ -360,7 +360,6 @@ class SgModel:
                                device=self.device,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
-                               sg_model=self,
                                train_loader=self.train_loader)
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
@@ -908,8 +907,7 @@ class SgModel:
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
                                train_loader=self.train_loader,
-                               valid_loader=self.valid_loader,
-                               sg_model=self)
+                               valid_loader=self.valid_loader)
 
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 

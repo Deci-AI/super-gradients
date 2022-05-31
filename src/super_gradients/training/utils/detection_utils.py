@@ -1099,9 +1099,7 @@ class DetectionVisualization:
             targets_cur = targets[targets[:, 0] == i]
 
             image_name = '_'.join([str(batch_name), str(i)])
-            res_image = DetectionVisualization._visualize_image(image_np[i], preds, targets_cur, class_names,
-                                                                box_thickness, gt_alpha, image_scale, checkpoint_dir,
-                                                                image_name)
+            res_image = DetectionVisualization._visualize_image(image_np[i], preds, targets_cur, class_names, box_thickness, gt_alpha, image_scale, checkpoint_dir, image_name)
             if res_image is not None:
                 out_images.append(res_image)
 
@@ -1186,6 +1184,11 @@ def get_yolox_datadir():
 
 
 def xyxy2cxcywh(bboxes):
+    """
+    Transforms bboxes from xyxy format to centerized xy wh format
+    :param bboxes: array, shaped (nboxes, 4)
+    :return: modified bboxes
+    """
     bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 0]
     bboxes[:, 3] = bboxes[:, 3] - bboxes[:, 1]
     bboxes[:, 0] = bboxes[:, 0] + bboxes[:, 2] * 0.5
@@ -1193,7 +1196,15 @@ def xyxy2cxcywh(bboxes):
     return bboxes
 
 
-def get_aug_params(value, center=0):
+def get_aug_params(value: Union[tuple, float], center: float=0):
+    """
+    Generates a random value for augmentations as described below
+    
+    :param value: Union[tuple, float] defines the range of values for generation. Wen tuple-
+     drawn uniformly between (value[0], value[1]), and (center - value, center + value) when float
+    :param center: float, defines center to subtract when value is float.
+    :return: generated value
+    """
     if isinstance(value, float):
         return random.uniform(center - value, center + value)
     elif len(value) == 2:

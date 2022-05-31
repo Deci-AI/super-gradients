@@ -15,6 +15,8 @@ image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
 
 logger = get_logger(__name__)
+
+
 class SegmentationTransform:
     def __call__(self, *args, **kwargs):
         raise NotImplementedError

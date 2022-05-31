@@ -19,7 +19,6 @@ from super_gradients.training.utils.detection_utils import DetectionVisualizatio
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 import cv2
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
-from super_gradients.training.transforms.transforms import Mosaic, Mixup, RandomAffine
 logger = get_logger(__name__)
 
 try:
@@ -56,7 +55,7 @@ class PhaseContext:
     def __init__(self, epoch=None, batch_idx=None, optimizer=None, metrics_dict=None, inputs=None, preds=None,
                  target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
                  device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None,
-                 train_loader=None, valid_loader=None, sg_model=None):
+                 train_loader=None, valid_loader=None):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -77,7 +76,6 @@ class PhaseContext:
         self.sg_logger = sg_logger
         self.train_loader = train_loader
         self.valid_loader = valid_loader
-        self.sg_model = sg_model
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():
@@ -620,7 +618,16 @@ class DetectionVisualizationCallback(PhaseCallback):
         classes: class list of the dataset.
         last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
     """
-    def __init__(self, phase: Phase, freq: int, post_prediction_callback: DetectionPostPredictionCallback, classes: list, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
+
+    def __init__(
+        self,
+        phase: Phase,
+        freq: int,
+        post_prediction_callback: DetectionPostPredictionCallback,
+        classes: list,
+        batch_idx: int = 0,
+        last_img_idx_in_batch: int = -1,
+    ):
         super(DetectionVisualizationCallback, self).__init__(phase)
         self.freq = freq
         self.post_prediction_callback = post_prediction_callback
@@ -633,11 +640,15 @@ class DetectionVisualizationCallback(PhaseCallback):
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
             preds = (context.preds[0].clone(), None)
             preds = self.post_prediction_callback(preds)
-            batch_imgs = DetectionVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx, self.classes)
+            batch_imgs = DetectionVisualization.visualize_batch(
+                context.inputs, preds, context.target, self.batch_idx, self.classes
+            )
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
-            context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch], global_step=context.epoch, data_format='NHWC')
+            context.sg_logger.add_images(
+                tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch, data_format="NHWC"
+            )
 
 
 class BinarySegmentationVisualizationCallback(PhaseCallback):
@@ -660,7 +671,9 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
                 preds = context.preds[0].clone()
             else:
                 preds = context.preds.clone()
-            batch_imgs = BinarySegmentationVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx)
+            batch_imgs = BinarySegmentationVisualization.visualize_batch(
+                context.inputs, preds, context.target, self.batch_idx
+            )
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
