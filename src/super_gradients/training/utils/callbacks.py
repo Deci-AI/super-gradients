@@ -120,7 +120,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         :param atol (default=1e-05)
     """
 
-    def __init__(self, model_meta_data: ModelMetadata, **kwargs):
+    def __init__(self, model_meta_data, **kwargs):
         super(ModelConversionCheckCallback, self).__init__(phase=Phase.PRE_TRAINING)
         self.model_meta_data = model_meta_data
 
