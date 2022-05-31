@@ -3,7 +3,6 @@ import sys
 from copy import deepcopy
 from enum import Enum
 from typing import Union, Tuple, Mapping, List, Any
-from dataclasses import dataclass
 
 import numpy as np
 import pkg_resources
@@ -103,8 +102,6 @@ class EvaluationType(str, Enum):
     """
     TEST = 'TEST'
     VALIDATION = 'VALIDATION'
-
-
 
 
 class SgModel:
@@ -456,7 +453,6 @@ class SgModel:
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
-
 
     def save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None,
                         context: PhaseContext = None):

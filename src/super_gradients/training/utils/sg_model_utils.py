@@ -52,16 +52,16 @@ def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: 
         change_from_previous = None
         change_from_best = None
         is_better_than_previous = None
-        is_best_epoch = None
+        is_best_value = None
     else:
         change_from_previous = new_value - previous_value
         change_from_best = new_value - previous_best_value
         is_better_than_previous = change_from_previous >= 0 if greater_is_better else change_from_previous <= 0
-        is_best_epoch = change_from_best >= 0 if greater_is_better else change_from_best <= 0
+        is_best_value = change_from_best >= 0 if greater_is_better else change_from_best <= 0
 
     return MonitoredValue(current=new_value, previous=previous_value, best=previous_best_value,
                           change_from_previous=change_from_previous, change_from_best=change_from_best,
-                          is_better_than_previous=is_better_than_previous, is_best_epoch=is_best_epoch)
+                          is_better_than_previous=is_better_than_previous, is_best_value=is_best_value)
 
 
 def display_epoch_summary(epoch: int, silent_mode: bool, n_digits: int,
@@ -70,20 +70,23 @@ def display_epoch_summary(epoch: int, silent_mode: bool, n_digits: int,
     """Display the stats (loss/metric of interest) of train/validation for the current epoch,
     and compare the values to the best values until now, as well as the previous epoch."""
 
-    def _get_value_to_monitor_tree(value_name: str, monitored_value: MonitoredValue) -> Tree:
-        """Helper function to extract create a tree that represents the stats of a given loss/metric."""
-        format_to_str = lambda x: str(round(x, n_digits))
-        current = format_to_str(monitored_value.current)
+    def _format_to_str(val: float) -> str:
+        return str(round(val, n_digits))
+
+    def _generate_tree(value_name: str, monitored_value: MonitoredValue) -> Tree:
+        """Generate a tree that represents the stats of a given loss/metric."""
+
+        current = _format_to_str(monitored_value.current)
         root_id = hash(f"{value_name} = {current}")
 
         tree = Tree()
         tree.create_node(f"{value_name.capitalize()} = {current}", root_id)
 
         if monitored_value.previous is not None:
-            previous = format_to_str(monitored_value.previous)
-            best = format_to_str(monitored_value.best)
-            change_from_previous = format_to_str(monitored_value.change_from_previous)
-            change_from_best = format_to_str(monitored_value.change_from_best)
+            previous = _format_to_str(monitored_value.previous)
+            best = _format_to_str(monitored_value.best)
+            change_from_previous = _format_to_str(monitored_value.change_from_previous)
+            change_from_best = _format_to_str(monitored_value.change_from_best)
 
             diff_with_prev_colored = colored(
                 text=f"{IS_GREATER_SYMBOLS[monitored_value.change_from_previous > 0]} {change_from_previous}",
@@ -105,12 +108,12 @@ def display_epoch_summary(epoch: int, silent_mode: bool, n_digits: int,
         train_tree = Tree()
         train_tree.create_node("Training", "Training")
         for name, value in train_monitored_values.items():
-            train_tree.paste('Training', _get_value_to_monitor_tree(name, value))
+            train_tree.paste('Training', _generate_tree(name, monitored_value=value))
 
         valid_tree = Tree()
         valid_tree.create_node("Validation", "Validation")
         for name, value in valid_monitored_values.items():
-            valid_tree.paste('Validation', _get_value_to_monitor_tree(name, value))
+            valid_tree.paste('Validation', _generate_tree(name, monitored_value=value))
 
         summary_tree = Tree()
         summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
