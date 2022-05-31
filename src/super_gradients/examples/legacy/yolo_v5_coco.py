@@ -14,7 +14,7 @@ import argparse
 import torch
 from super_gradients.training import SgModel, MultiGPUMode
 from super_gradients.training.datasets import CoCoDetectionDatasetInterface, CoCo2014DetectionDatasetInterface
-from super_gradients.training.models.yolov5_base import YoloV5PostPredictionCallback
+from super_gradients.training.models.yolov5 import YoloV5PostPredictionCallback
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.datasets.datasets_utils import ComposedCollateFunction, MultiScaleCollateFunction
 from super_gradients.common.aws_connection.aws_secrets_manager_connector import AWSSecretsManagerConnector
