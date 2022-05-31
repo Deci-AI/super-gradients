@@ -220,6 +220,10 @@ class SgModel:
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
         self.loss_logging_items_names = default_loss_logging_items_names
 
+        self.train_monitored_values = {}
+        self.valid_monitored_values = {}
+
+
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
             raise IllegalDataloaderInitialization()
@@ -403,11 +407,12 @@ class SgModel:
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
 
-        self.train_monitored_values["loss"] = sg_model_utils.update_monitored_value(
-            new_value=pbar_message_dict["Loss"],
-            previous_monitored_value=self.train_monitored_values["loss"],
-            greater_is_better=False
-        )
+        for monitored_value_name in self.train_monitored_values.keys():
+            self.train_monitored_values[monitored_value_name] = sg_model_utils.update_monitored_value(
+                new_value=pbar_message_dict[monitored_value_name],
+                previous_monitored_value=self.train_monitored_values[monitored_value_name],
+                greater_is_better=False
+            )
         return logging_values
 
     def _get_losses(self, outputs: torch.Tensor, targets: torch.Tensor) -> Tuple[torch.Tensor, tuple]:
@@ -785,8 +790,10 @@ class SgModel:
             self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
 
         # Store values to monitor over the epochs
-        self.train_monitored_values = {"loss": MonitoredValue()}
-        self.valid_monitored_values = {"loss": MonitoredValue(), self.metric_to_watch: MonitoredValue()}
+        for loss in self.loss_logging_items_names:
+            self.train_monitored_values[loss] = MonitoredValue()
+            self.valid_monitored_values[loss] = MonitoredValue()
+        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue()
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -1737,16 +1744,17 @@ class SgModel:
                                                             metrics,
                                                             self.loss_logging_items_names)
 
-        self.valid_monitored_values["loss"] = sg_model_utils.update_monitored_value(
-            new_value=pbar_message_dict["Loss"],
-            previous_monitored_value=self.valid_monitored_values["loss"],
-            greater_is_better=False
-        )
-        self.valid_monitored_values[self.metric_to_watch] = sg_model_utils.update_monitored_value(
-            new_value=pbar_message_dict[self.metric_to_watch],
-            previous_monitored_value=self.valid_monitored_values[self.metric_to_watch],
-            greater_is_better=self.greater_metric_to_watch_is_better
-        )
+        for monitored_value_name in self.valid_monitored_values.keys():
+            self.valid_monitored_values[monitored_value_name] = sg_model_utils.update_monitored_value(
+                new_value=pbar_message_dict[monitored_value_name],
+                previous_monitored_value=self.valid_monitored_values[monitored_value_name],
+                greater_is_better=False
+            )
+        # self.valid_monitored_values[self.metric_to_watch] = sg_model_utils.update_monitored_value(
+        #     new_value=pbar_message_dict[self.metric_to_watch],
+        #     previous_monitored_value=self.valid_monitored_values[self.metric_to_watch],
+        #     greater_is_better=self.greater_metric_to_watch_is_better
+        # )
 
         progress_bar_data_loader.write("===========================================================")
         sg_model_utils.display_epoch_summary(epoch=context.epoch, silent_mode=silent_mode, n_digits=4,
