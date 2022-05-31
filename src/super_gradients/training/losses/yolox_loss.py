@@ -163,6 +163,7 @@ class YoloXDetectionLoss(_Loss):
                         self.get_assignments(batch_idx, num_gt, total_num_anchors, gt_bboxes_per_image,
                                              gt_classes, bboxes_preds_per_image,
                                              expanded_strides, x_shifts, y_shifts, cls_preds, obj_preds)
+                #TODO: CHECK IF ERROR IS CUDA OUT OF MEMORY
                 except RuntimeError:
                     logging.error("OOM RuntimeError is raised due to the huge memory cost during label assignment. \
                                    CPU mode is applied in this batch. If you want to avoid this issue, \
@@ -218,11 +219,6 @@ class YoloXDetectionLoss(_Loss):
                                 torch.tensor(loss_l1).unsqueeze(0).cuda(),
                                 torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).cuda(),
                                 loss.unsqueeze(0))).detach()
-
-        # return loss, torch.cat((loss_iou.unsqueeze(0), loss_obj.unsqueeze(0), loss_cls.unsqueeze(0),
-        #                         torch.tensor(loss_l1).unsqueeze(0),
-        #                         torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0),
-        #                         loss.unsqueeze(0))).detach()
 
     def prepare_predictions(self, predictions: List[torch.Tensor]) -> \
             Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
