@@ -223,7 +223,6 @@ class SgModel:
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
 
-
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
             raise IllegalDataloaderInitialization()
@@ -1750,17 +1749,13 @@ class SgModel:
                 previous_monitored_value=self.valid_monitored_values[monitored_value_name],
                 greater_is_better=False
             )
-        # self.valid_monitored_values[self.metric_to_watch] = sg_model_utils.update_monitored_value(
-        #     new_value=pbar_message_dict[self.metric_to_watch],
-        #     previous_monitored_value=self.valid_monitored_values[self.metric_to_watch],
-        #     greater_is_better=self.greater_metric_to_watch_is_better
-        # )
 
-        progress_bar_data_loader.write("===========================================================")
-        sg_model_utils.display_epoch_summary(epoch=context.epoch, silent_mode=silent_mode, n_digits=4,
-                                             train_monitored_values=self.train_monitored_values,
-                                             valid_monitored_values=self.valid_monitored_values)
-        progress_bar_data_loader.write("===========================================================")
+        if not silent_mode:
+            progress_bar_data_loader.write("===========================================================")
+            sg_model_utils.display_epoch_summary(epoch=context.epoch, n_digits=4,
+                                                 train_monitored_values=self.train_monitored_values,
+                                                 valid_monitored_values=self.valid_monitored_values)
+            progress_bar_data_loader.write("===========================================================")
 
         return logging_values
 

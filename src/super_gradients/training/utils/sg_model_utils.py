@@ -65,13 +65,12 @@ def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: 
                           is_better_than_previous=is_better_than_previous, is_best_value=is_best_value)
 
 
-def display_epoch_summary(epoch: int, silent_mode: bool, n_digits: int,
+def display_epoch_summary(epoch: int, n_digits: int,
                           train_monitored_values: Dict[str, MonitoredValue],
                           valid_monitored_values: Dict[str, MonitoredValue]) -> None:
     """Display a summary of loss/metric of interest, for a given epoch.
 
         :param epoch: the number of epoch.
-        :param silent_mode: if True will not display the summary
         :param n_digits: number of digits to display on screen for float values
         :param train_monitored_values: mapping of loss/metric with their stats that will be displayed
         :param valid_monitored_values: mapping of loss/metric with their stats that will be displayed
@@ -117,22 +116,21 @@ def display_epoch_summary(epoch: int, silent_mode: bool, n_digits: int,
             )
         return tree
 
-    if not silent_mode:
-        train_tree = Tree()
-        train_tree.create_node("Training", "Training")
-        for name, value in train_monitored_values.items():
-            train_tree.paste('Training', new_tree=_generate_tree(name, monitored_value=value))
+    train_tree = Tree()
+    train_tree.create_node("Training", "Training")
+    for name, value in train_monitored_values.items():
+        train_tree.paste('Training', new_tree=_generate_tree(name, monitored_value=value))
 
-        valid_tree = Tree()
-        valid_tree.create_node("Validation", "Validation")
-        for name, value in valid_monitored_values.items():
-            valid_tree.paste('Validation', new_tree=_generate_tree(name, monitored_value=value))
+    valid_tree = Tree()
+    valid_tree.create_node("Validation", "Validation")
+    for name, value in valid_monitored_values.items():
+        valid_tree.paste('Validation', new_tree=_generate_tree(name, monitored_value=value))
 
-        summary_tree = Tree()
-        summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
-        summary_tree.paste("Summary", train_tree)
-        summary_tree.paste("Summary", valid_tree)
-        summary_tree.show()
+    summary_tree = Tree()
+    summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
+    summary_tree.paste("Summary", train_tree)
+    summary_tree.paste("Summary", valid_tree)
+    summary_tree.show()
 
 
 def try_port(port):
