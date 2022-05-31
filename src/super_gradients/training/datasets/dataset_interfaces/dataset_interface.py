@@ -36,6 +36,7 @@ from super_gradients.training.datasets.samplers.repeated_augmentation_sampler im
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.transforms.transforms import Mosaic, Mixup, RandomAffine, YoloxTrainPreprocessFN, \
     YoloxValPreprocessFN
+from super_gradients.training.utils.detection_utils import YoloXCollateFN
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -130,7 +131,9 @@ class DatasetInterface:
 
         if distributed_sampler:
             self.batch_size_factor = 1
-            train_sampler = RepeatAugSampler(self.trainset, num_repeats=aug_repeat_count) if aug_repeat_count > 0 else DistributedSampler(self.trainset)
+            train_sampler = RepeatAugSampler(self.trainset,
+                                             num_repeats=aug_repeat_count) if aug_repeat_count > 0 else DistributedSampler(
+                self.trainset)
             val_sampler = DistributedSampler(self.valset)
             test_sampler = DistributedSampler(self.testset) if self.testset is not None else None
             train_shuffle = False
@@ -319,8 +322,10 @@ class LibraryDatasetInterface(DatasetInterface):
             self.lib_dataset_params['mean'], self.lib_dataset_params['std'] = datasets_utils.get_mean_and_std(trainset)
 
         # OVERWRITE MEAN AND STD IF DEFINED IN DATASET PARAMS
-        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean', default_val=self.lib_dataset_params['mean'])
-        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std', default_val=self.lib_dataset_params['std'])
+        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean',
+                                                               default_val=self.lib_dataset_params['mean'])
+        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std',
+                                                              default_val=self.lib_dataset_params['std'])
 
         crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=32)
 
@@ -892,7 +897,27 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
 
 class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
     def __init__(self, dataset_params={}):
-        super(CocoDetectionDatasetInterfaceYolox, self).__init__(dataset_params=dataset_params)
+        super(CocoDetectionDatasetInterfaceYolox, self).__init__()
+        default_coco_dataset_params = {"mixup_prob": 1.0,
+                                       "degrees": 10.,
+                                       "shear": 2.0,
+                                       "flip_prob": 0.5,
+                                       "hsv_prob": 1.0,
+                                       "mosaic_scale": [0.1, 2],
+                                       "mixup_scale": [0.5, 1.5],
+                                       "mosaic_prob": 1.,
+                                       "translate": 0.1,
+
+                                       "batch_size": 16,
+                                       "val_batch_size": 128,
+                                       "train_image_size": 640,
+
+                                       "val_collate_fn": YoloXCollateFN(val=True),
+                                       "train_collate_fn": YoloXCollateFN(val=False)
+                                       }
+        self.dataset_params = core_utils.HpmStruct(**default_coco_dataset_params)
+        self.dataset_params.override(**dataset_params)
+
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
         train_transforms = [Mosaic(input_dim=train_input_dim,
                                    prob=self.dataset_params.mosaic_prob),

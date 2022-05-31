@@ -1423,14 +1423,19 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
 
 
 class YoloXCollateFN:
-    def __init__(self, resolution, target_resolution=None, val=True, max_targets=120):
-        self.resolution = resolution if isinstance(resolution, tuple) else (resolution, resolution)
-        self.target_resolution = target_resolution or self.resolution
+    """
+    Collate function for Yolox training
+
+    Attributes:
+        val: bool: validation mode- when set to true pads targets to self.max_targets, and moves the label to the first
+         index
+        max_targets: int: targets will be paded to max tragets when self.val = True. (default=120)
+    """
+    def __init__(self, val=True, max_targets=120):
         self.val = val
         self.max_targets = max_targets
 
     def _pad_targets(self, data):
-        # max_targets = max(max(map(lambda sample: sample[1].shape[0], data)), self.max_targets)
         max_targets = self.max_targets
         for sample_id, sample in enumerate(data):
             if sample[1].shape[0] < max_targets:
@@ -1451,16 +1456,12 @@ class YoloXCollateFN:
         ims = batch[0]
         targets = batch[1]
         nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of objects
-
-        # TODO: divide coords properly to support non rectangular inputs
-        # targets[:, :, 1:] /= self.resolution[0]
         targets_merged = []
         for i in range(targets.shape[0]):
             targets_im = targets[i, :nlabel[i]]
             batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
             targets_merged.append(torch.cat((batch_column, targets_im), 1))
         targets = torch.cat(targets_merged, 0)
-        # ims, targets = self._final_rescale(ims, targets)
         return ims, targets
 
 
