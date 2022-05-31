@@ -2,28 +2,27 @@ from typing import Union
 
 from torch import nn
 
-from super_gradients.training.utils import HpmStruct
+from super_gradients.training.utils.utils import HpmStruct
 
 
 class SgModule(nn.Module):
-
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
 
         :return: list of dictionaries containing the key 'named_params' with a list of named params
         """
-        return [{'named_params': self.named_parameters()}]
+        return [{"named_params": self.named_parameters()}]
 
-    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
-                            total_batch: int) \
-            -> list:
+    def update_param_groups(
+        self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int
+    ) -> list:
         """
 
         :param param_groups: list of dictionaries containing the params
         :return: list of dictionaries containing the params
         """
         for param_group in param_groups:
-            param_group['lr'] = lr
+            param_group["lr"] = lr
         return param_groups
 
     def get_include_attributes(self) -> list:

@@ -1,6 +1,6 @@
 import copy
-import getpass
 import os
+import time
 from enum import Enum
 import math
 from super_gradients.training.utils.utils import get_param
@@ -8,9 +8,10 @@ import numpy as np
 import onnx
 import onnxruntime
 import torch
+import signal
+from typing import List
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.utils import get_filename_suffix_by_framework
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 import cv2
@@ -20,11 +21,12 @@ logger = get_logger(__name__)
 try:
     from deci_lab_client.client import DeciPlatformClient
     from deci_lab_client.models import ModelBenchmarkState
+    from deci_lab_client.models.model_metadata import ModelMetadata
 
-    _imported_deci_lab_failiure = None
+    _imported_deci_lab_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warn('Failed to import deci_lab_client')
-    _imported_deci_lab_failiure = import_err
+    logger.warn("Failed to import deci_lab_client")
+    _imported_deci_lab_failure = import_err
 
 
 class Phase(Enum):
@@ -47,9 +49,26 @@ class PhaseContext:
 
     """
 
-    def __init__(self, epoch=None, batch_idx=None, optimizer=None, metrics_dict=None, inputs=None, preds=None,
-                 target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
-                 device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None):
+    def __init__(
+        self,
+        epoch=None,
+        batch_idx=None,
+        optimizer=None,
+        metrics_dict=None,
+        inputs=None,
+        preds=None,
+        target=None,
+        metrics_compute_fn=None,
+        loss_avg_meter=None,
+        loss_log_items=None,
+        criterion=None,
+        device=None,
+        experiment_name=None,
+        ckpt_dir=None,
+        net=None,
+        lr_warmup_epochs=None,
+        sg_logger=None,
+    ):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -108,54 +127,70 @@ class ModelConversionCheckCallback(PhaseCallback):
                                         )
         :param input_names (default=["input"])
         :param output_names (default=["output"])
+        :param rtol (default=1e-03)
+        :param atol (default=1e-05)
     """
 
-    def __init__(self, model_meta_data, **kwargs):
+    def __init__(self, model_meta_data: ModelMetadata, **kwargs):
         super(ModelConversionCheckCallback, self).__init__(phase=Phase.PRE_TRAINING)
         self.model_meta_data = model_meta_data
 
-        self.opset_version = kwargs.get('opset_version') or 10
-        self.do_constant_folding = kwargs.get('do_constant_folding', None) if kwargs.get('do_constant_folding',
-                                                                                         None) else True
-        self.input_names = kwargs.get('input_names') or ['input']
-        self.output_names = kwargs.get('output_names') or ['output']
-        self.dynamic_axes = kwargs.get('dynamic_axes') or {'input': {0: 'batch_size'},
-                                                           'output': {0: 'batch_size'}}
+        self.opset_version = kwargs.get("opset_version", 10)
+        self.do_constant_folding = (
+            kwargs.get("do_constant_folding", None) if kwargs.get("do_constant_folding", None) else True
+        )
+        self.input_names = kwargs.get("input_names") or ["input"]
+        self.output_names = kwargs.get("output_names") or ["output"]
+        self.dynamic_axes = kwargs.get("dynamic_axes") or {"input": {0: "batch_size"}, "output": {0: "batch_size"}}
+
+        self.rtol = kwargs.get("rtol", 1e-03)
+        self.atol = kwargs.get("atol", 1e-05)
 
     def __call__(self, context: PhaseContext):
         model = copy.deepcopy(context.net.module)
         model = model.cpu()
-        x = torch.randn(self.model_meta_data.primary_batch_size, *self.model_meta_data.input_dimensions,
-                        requires_grad=False)
-
-        tmp_model_path = os.path.join(context.ckpt_dir, self.model_meta_data.name + '_tmp.onnx')
         model.eval()  # Put model into eval mode
+
+        if hasattr(model, "prep_model_for_conversion"):
+            model.prep_model_for_conversion(input_size=self.model_meta_data.input_dimensions)
+
+        x = torch.randn(
+            self.model_meta_data.primary_batch_size, *self.model_meta_data.input_dimensions, requires_grad=False
+        )
+
+        tmp_model_path = os.path.join(context.ckpt_dir, self.model_meta_data.name + "_tmp.onnx")
 
         with torch.no_grad():
             torch_out = model(x)
 
-        torch.onnx.export(model,  # Model being run
-                          x,  # Model input (or a tuple for multiple inputs)
-                          tmp_model_path,  # Where to save the model (can be a file or file-like object)
-                          export_params=True,  # Store the trained parameter weights inside the model file
-                          opset_version=self.opset_version,
-                          do_constant_folding=self.do_constant_folding,
-                          input_names=self.input_names,
-                          output_names=self.output_names,
-                          dynamic_axes=self.dynamic_axes)
+        torch.onnx.export(
+            model,  # Model being run
+            x,  # Model input (or a tuple for multiple inputs)
+            tmp_model_path,  # Where to save the model (can be a file or file-like object)
+            export_params=True,  # Store the trained parameter weights inside the model file
+            opset_version=self.opset_version,
+            do_constant_folding=self.do_constant_folding,
+            input_names=self.input_names,
+            output_names=self.output_names,
+            dynamic_axes=self.dynamic_axes,
+        )
 
         onnx_model = onnx.load(tmp_model_path)
         onnx.checker.check_model(onnx_model)
 
-        ort_session = onnxruntime.InferenceSession(tmp_model_path,
-                                                   providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+        ort_session = onnxruntime.InferenceSession(
+            tmp_model_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+        )
 
         # compute ONNX Runtime output prediction
         ort_inputs = {ort_session.get_inputs()[0].name: x.cpu().numpy()}
         ort_outs = ort_session.run(None, ort_inputs)
 
+        # TODO: Ideally we don't want to check this but have the certainty of just calling torch_out.cpu()
+        if isinstance(torch_out, List) or isinstance(torch_out, tuple):
+            torch_out = torch_out[0]
         # compare ONNX Runtime and PyTorch results
-        np.testing.assert_allclose(torch_out.cpu().numpy(), ort_outs[0], rtol=1e-03, atol=1e-05)
+        np.testing.assert_allclose(torch_out.cpu().numpy(), ort_outs[0], rtol=self.rtol, atol=self.atol)
 
         os.remove(tmp_model_path)
 
@@ -182,44 +217,94 @@ class DeciLabUploadCallback(PhaseCallback):
         :param output_names
     """
 
-    def __init__(self, email, model_meta_data, optimization_request_form, password=None, ckpt_name="ckpt_best.pth",
-                 **kwargs):
+    def __init__(self, model_meta_data, optimization_request_form, auth_token: str = None, ckpt_name="ckpt_best.pth", **kwargs):
         super().__init__(phase=Phase.POST_TRAINING)
-        if _imported_deci_lab_failiure is not None:
-            raise _imported_deci_lab_failiure
+        if _imported_deci_lab_failure is not None:
+            raise _imported_deci_lab_failure
         self.model_meta_data = model_meta_data
         self.optimization_request_form = optimization_request_form
         self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
-        self.platform_client = DeciPlatformClient('api.deci.ai', 443, https=True)
+        self.platform_client = DeciPlatformClient("api.deci.ai", 443, https=True)
+        self.platform_client.login(token=auth_token)
 
-        password = password or getpass.getpass()
-        self.platform_client.login(email, password)
+    @staticmethod
+    def log_optimization_failed():
+        logger.info(f"We couldn't finish your model optimization. Visit https://console.deci.ai for details")
+
+    def upload_model(self, model):
+        """
+            This function will upload the trained model to the Deci Lab
+
+            Args:
+                model: The resulting model from the training process
+        """
+        self.platform_client.add_model(
+            add_model_request=self.model_meta_data,
+            optimization_request=self.optimization_request_form,
+            local_loaded_model=model,
+        )
+
+    def get_optimization_status(self, optimized_model_name: str):
+        """
+            This function will do fetch the optimized version of the trained model and check on its benchmark status.
+            The status will be checked against the server every 30 seconds and the process will timeout after 30 minutes
+            or log about the successful optimization - whichever happens first.
+            Args:
+                optimized_model_name (str): Optimized model name
+            Returns:
+                bool: whether or not the optimized model has been benchmarked
+        """
+
+        def handler(_signum, _frame):
+            logger.error("Process timed out. Visit https://console.deci.ai for details")
+            return False
+
+        signal.signal(signal.SIGALRM, handler)
+        signal.alarm(1800)
+
+        finished = False
+        while not finished:
+            optimized_model = self.platform_client.get_model_by_name(name=optimized_model_name).data
+            if optimized_model.benchmark_state not in [ModelBenchmarkState.IN_PROGRESS, ModelBenchmarkState.PENDING]:
+                finished = True
+            else:
+                time.sleep(30)
+
+        signal.alarm(0)
+        return True
 
     def __call__(self, context: PhaseContext):
+        """
+            This function will attempt to upload the trained model and schedule an optimization for it.
+            Args:
+                context (PhaseContext): Training phase context
+            Returns:
+                bool: whether or not the optimized model has been benchmarked
+            """
         try:
             model = copy.deepcopy(context.net)
-            model_state_dict_path = os.path.join(context.ckpt_dir, self.ckpt_name)['net']
-            model.load_state_dict(model_state_dict_path)
+            model_state_dict_path = os.path.join(context.ckpt_dir, self.ckpt_name)
+            model_state_dict = torch.load(model_state_dict_path)["net"]
+            model.load_state_dict(state_dict=model_state_dict)
 
-            self.platform_client.add_model(self.model_meta_data,
-                                           local_loaded_model=model.module.cpu(),
-                                           optimization_request=self.optimization_request_form,
-                                           **self.conversion_kwargs)
+            model = model.module.cpu()
+            if hasattr(model, "prep_model_for_conversion"):
+                model.prep_model_for_conversion(input_size=self.model_meta_data.input_dimensions)
 
-            new_model_from_repo_name = self.model_meta_data.name + '_1_1'
-            finished = False
-            while not finished:
-                your_model_from_repo = self.platform_client.get_model_by_name(name=new_model_from_repo_name).data
-                if your_model_from_repo.benchmark_state not in [ModelBenchmarkState.IN_PROGRESS,
-                                                                ModelBenchmarkState.PENDING]:
-                    finished = True
-            logger.info('successfully added ' + str(your_model_from_repo.name) + ' to model repository')
+            self.upload_model(model=model)
+            model_name = self.model_meta_data.name
+            logger.info(f"Successfully added {model_name} to the model repository")
 
-            filename_ext = get_filename_suffix_by_framework(self.model_meta_data.framework)
-            download_path = os.path.join(context.ckpt_dir, new_model_from_repo_name + '_optimized' + filename_ext)
-            self.platform_client.download_model(your_model_from_repo.model_id, download_to_path=download_path)
+            optimized_model_name = f"{model_name}_1_1"
+            logger.info(f"We'll wait for the scheduled optimization to finish. Please don't close this window")
+            success = self.get_optimization_status(optimized_model_name=optimized_model_name)
+            if success:
+                logger.info(f"Successfully finished your model optimization. Visit https://console.deci.ai for details")
+            else:
+                DeciLabUploadCallback.log_optimization_failed()
         except Exception as ex:
+            DeciLabUploadCallback.log_optimization_failed()
             logger.error(ex)
 
 
@@ -260,13 +345,14 @@ class LRCallbackBase(PhaseCallback):
 
     def update_lr(self, optimizer, epoch, batch_idx=None):
         if self.update_param_groups:
-            param_groups = self.net.module.update_param_groups(optimizer.param_groups, self.lr, epoch, batch_idx,
-                                                               self.training_params, self.train_loader_len)
+            param_groups = self.net.module.update_param_groups(
+                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
+            )
             optimizer.param_groups = param_groups
         else:
             # UPDATE THE OPTIMIZERS PARAMETER
             for param_group in optimizer.param_groups:
-                param_group['lr'] = self.lr
+                param_group["lr"] = self.lr
 
 
 class WarmupLRCallback(LRCallbackBase):
@@ -279,7 +365,9 @@ class WarmupLRCallback(LRCallbackBase):
 
     def __init__(self, **kwargs):
         super(WarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
-        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
+        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (
+            self.training_params.lr_warmup_epochs + 1
+        )
         self.warmup_step_size = (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs
 
     def perform_scheduling(self, context):
@@ -300,17 +388,17 @@ class YoloV5WarmupLRCallback(LRCallbackBase):
     def perform_scheduling(self, context):
         # OVERRIDE THE lr FROM DeciModelBase WITH initial_lr, SINCE DeciModelBase MANIPULATE THE ORIGINAL VALUE
         lr = self.training_params.initial_lr
-        momentum = get_param(self.training_params.optimizer_params, 'momentum')
-        warmup_momentum = get_param(self.training_params, 'warmup_momentum', momentum)
-        warmup_bias_lr = get_param(self.training_params, 'warmup_bias_lr', lr)
+        momentum = get_param(self.training_params.optimizer_params, "momentum")
+        warmup_momentum = get_param(self.training_params, "warmup_momentum", momentum)
+        warmup_bias_lr = get_param(self.training_params, "warmup_bias_lr", lr)
         nw = self.training_params.lr_warmup_epochs * self.train_loader_len
         ni = context.epoch * self.train_loader_len + context.batch_idx
         xi = [0, nw]  # x interp
         for x in context.optimizer.param_groups:
             # BIAS LR FALLS FROM 0.1 TO LR0, ALL OTHER LRS RISE FROM 0.0 TO LR0
-            x['lr'] = np.interp(ni, xi, [warmup_bias_lr if x['name'] == 'bias' else 0.0, lr])
-            if 'momentum' in x:
-                x['momentum'] = np.interp(ni, xi, [warmup_momentum, momentum])
+            x["lr"] = np.interp(ni, xi, [warmup_bias_lr if x["name"] == "bias" else 0.0, lr])
+            if "momentum" in x:
+                x["momentum"] = np.interp(ni, xi, [warmup_momentum, momentum])
 
 
 class StepLRCallback(LRCallbackBase):
@@ -321,15 +409,22 @@ class StepLRCallback(LRCallbackBase):
     def __init__(self, lr_updates, lr_decay_factor, step_lr_update_freq=None, **kwargs):
         super(StepLRCallback, self).__init__(Phase.TRAIN_EPOCH_END, **kwargs)
         if step_lr_update_freq and len(lr_updates):
-            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor")
+            raise ValueError(
+                "Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor"
+            )
 
         if step_lr_update_freq:
             max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
             warmup_epochs = self.training_params.lr_warmup_epochs
-            lr_updates = [int(np.ceil(step_lr_update_freq * x)) for x in range(1, max_epochs) if warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs]
+            lr_updates = [
+                int(np.ceil(step_lr_update_freq * x))
+                for x in range(1, max_epochs)
+                if warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs
+            ]
         elif self.training_params.lr_cooldown_epochs > 0:
-            logger.warning("Specific lr_updates were passed along with cooldown_epochs > 0,"
-                           " cooldown will have no effect.")
+            logger.warning(
+                "Specific lr_updates were passed along with cooldown_epochs > 0," " cooldown will have no effect."
+            )
         self.lr_updates = lr_updates
         self.lr_decay_factor = lr_decay_factor
 
@@ -358,7 +453,11 @@ class ExponentialLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return (
+            self.training_params.lr_warmup_epochs
+            <= context.epoch
+            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        )
 
 
 class PolyLRCallback(LRCallbackBase):
@@ -372,14 +471,22 @@ class PolyLRCallback(LRCallbackBase):
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        current_iter = (self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
+        effective_max_epochs = (
+            self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        )
+        current_iter = (
+            self.train_loader_len * effective_epoch + context.batch_idx
+        ) / self.training_params.batch_accumulate
         max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
         self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return (
+            self.training_params.lr_warmup_epochs
+            <= context.epoch
+            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        )
 
 
 class CosineLRCallback(LRCallbackBase):
@@ -394,7 +501,9 @@ class CosineLRCallback(LRCallbackBase):
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        effective_max_epochs = (
+            self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        )
         current_iter = self.train_loader_len * effective_epoch + context.batch_idx
         max_iter = self.train_loader_len * effective_max_epochs
         lr = 0.5 * self.initial_lr * (1.0 + math.cos(current_iter / (max_iter + 1) * math.pi))
@@ -403,7 +512,11 @@ class CosineLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return (
+            self.training_params.lr_warmup_epochs
+            <= context.epoch
+            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        )
 
 
 class FunctionLRCallback(LRCallbackBase):
@@ -413,20 +526,29 @@ class FunctionLRCallback(LRCallbackBase):
 
     def __init__(self, max_epochs, lr_schedule_function, **kwargs):
         super(FunctionLRCallback, self).__init__(Phase.TRAIN_BATCH_STEP, **kwargs)
-        assert callable(self.lr_schedule_function), 'self.lr_function must be callable'
+        assert callable(self.lr_schedule_function), "self.lr_function must be callable"
         self.lr_schedule_function = lr_schedule_function
         self.max_epochs = max_epochs
 
     def is_lr_scheduling_enabled(self, context):
-        return self.training_params.lr_warmup_epochs <= context.epoch < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return (
+            self.training_params.lr_warmup_epochs
+            <= context.epoch
+            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        )
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        self.lr = self.lr_schedule_function(initial_lr=self.initial_lr, epoch=effective_epoch,
-                                            iter=context.batch_idx,
-                                            max_epoch=effective_max_epochs,
-                                            iters_per_epoch=self.train_loader_len)
+        effective_max_epochs = (
+            self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        )
+        self.lr = self.lr_schedule_function(
+            initial_lr=self.initial_lr,
+            epoch=effective_epoch,
+            iter=context.batch_idx,
+            max_epoch=effective_max_epochs,
+            iters_per_epoch=self.train_loader_len,
+        )
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
 
@@ -438,8 +560,9 @@ class IllegalLRSchedulerMetric(Exception):
     """
 
     def __init__(self, metric_name, metrics_dict):
-        self.message = "Illegal metric name: " + metric_name + ". Expected one of metics_dics keys: " + str(
-            metrics_dict.keys())
+        self.message = (
+            "Illegal metric name: " + metric_name + ". Expected one of metics_dics keys: " + str(metrics_dict.keys())
+        )
         super().__init__(self.message)
 
 
@@ -488,8 +611,7 @@ class KDModelMetricsUpdateCallback(MetricsUpdateCallback):
         super().__init__(phase=phase)
 
     def __call__(self, context: PhaseContext):
-        metrics_compute_fn_kwargs = {k: v.student_output if k == 'preds' else v for k, v in
-                                     context.__dict__.items()}
+        metrics_compute_fn_kwargs = {k: v.student_output if k == "preds" else v for k, v in context.__dict__.items()}
         context.metrics_compute_fn.update(**metrics_compute_fn_kwargs)
         if context.criterion is not None:
             context.loss_avg_meter.update(context.loss_log_items, len(context.inputs))
@@ -517,7 +639,16 @@ class DetectionVisualizationCallback(PhaseCallback):
         classes: class list of the dataset.
         last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
     """
-    def __init__(self, phase: Phase, freq: int, post_prediction_callback: DetectionPostPredictionCallback, classes: list, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
+
+    def __init__(
+        self,
+        phase: Phase,
+        freq: int,
+        post_prediction_callback: DetectionPostPredictionCallback,
+        classes: list,
+        batch_idx: int = 0,
+        last_img_idx_in_batch: int = -1,
+    ):
         super(DetectionVisualizationCallback, self).__init__(phase)
         self.freq = freq
         self.post_prediction_callback = post_prediction_callback
@@ -530,11 +661,15 @@ class DetectionVisualizationCallback(PhaseCallback):
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
             preds = (context.preds[0].clone(), None)
             preds = self.post_prediction_callback(preds)
-            batch_imgs = DetectionVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx, self.classes)
+            batch_imgs = DetectionVisualization.visualize_batch(
+                context.inputs, preds, context.target, self.batch_idx, self.classes
+            )
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
-            context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch], global_step=context.epoch, data_format='NHWC')
+            context.sg_logger.add_images(
+                tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch, data_format="NHWC"
+            )
 
 
 class BinarySegmentationVisualizationCallback(PhaseCallback):
@@ -545,6 +680,7 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
         batch_idx: batch index to perform visualization for.
         last_img_idx_in_batch: Last image index to add to log. (default=-1, will take entire batch).
     """
+
     def __init__(self, phase: Phase, freq: int, batch_idx: int = 0, last_img_idx_in_batch: int = -1):
         super(BinarySegmentationVisualizationCallback, self).__init__(phase)
         self.freq = freq
@@ -557,11 +693,15 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
                 preds = context.preds[0].clone()
             else:
                 preds = context.preds.clone()
-            batch_imgs = BinarySegmentationVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx)
+            batch_imgs = BinarySegmentationVisualization.visualize_batch(
+                context.inputs, preds, context.target, self.batch_idx
+            )
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
-            context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch], global_step=context.epoch, data_format='NHWC')
+            context.sg_logger.add_images(
+                tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch, data_format="NHWC"
+            )
 
 
 class CallbackHandler:
@@ -582,15 +722,15 @@ class CallbackHandler:
 
 
 # DICT FOR LEGACY LR HARD-CODED REGIMES, WILL BE DELETED IN THE FUTURE
-LR_SCHEDULERS_CLS_DICT = {"step": StepLRCallback,
-                          "poly": PolyLRCallback,
-                          "cosine": CosineLRCallback,
-                          "exp": ExponentialLRCallback,
-                          "function": FunctionLRCallback
-                          }
+LR_SCHEDULERS_CLS_DICT = {
+    "step": StepLRCallback,
+    "poly": PolyLRCallback,
+    "cosine": CosineLRCallback,
+    "exp": ExponentialLRCallback,
+    "function": FunctionLRCallback,
+}
 
-LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback,
-                      "yolov5_warmup": YoloV5WarmupLRCallback}
+LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback, "yolov5_warmup": YoloV5WarmupLRCallback}
 
 
 class TestLRCallback(PhaseCallback):
@@ -605,4 +745,4 @@ class TestLRCallback(PhaseCallback):
         self.lr_placeholder = lr_placeholder
 
     def __call__(self, context: PhaseContext):
-        self.lr_placeholder.append(context.optimizer.param_groups[0]['lr'])
+        self.lr_placeholder.append(context.optimizer.param_groups[0]["lr"])

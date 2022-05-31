@@ -1,4 +1,4 @@
-'''
+"""
 Repvgg Pytorch Implementation. This model trains a vgg with residual blocks
 but during inference (in deployment mode) will convert the model to vgg model.
 Pretrained models: https://drive.google.com/drive/folders/1Avome4KvNp0Lqh2QwhXO6L5URQjzCjUq
@@ -7,7 +7,7 @@ Refrerences:
     [2] https://arxiv.org/pdf/2101.03697.pdf
 
 Based on https://github.com/DingXiaoH/RepVGG
-'''
+"""
 from typing import Union
 
 import torch.nn as nn
@@ -17,18 +17,21 @@ import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-from super_gradients.training.models import SgModule
+from super_gradients.training.models.sg_module import SgModule
 import torch.nn.functional as F
 from super_gradients.training.utils.module_utils import fuse_repvgg_blocks_residual_branches
 from super_gradients.training.utils.utils import get_param
 
 
 class SEBlock(nn.Module):
-
     def __init__(self, input_channels, internal_neurons):
         super(SEBlock, self).__init__()
-        self.down = nn.Conv2d(in_channels=input_channels, out_channels=internal_neurons, kernel_size=1, stride=1, bias=True)
-        self.up = nn.Conv2d(in_channels=internal_neurons, out_channels=input_channels, kernel_size=1, stride=1, bias=True)
+        self.down = nn.Conv2d(
+            in_channels=input_channels, out_channels=internal_neurons, kernel_size=1, stride=1, bias=True
+        )
+        self.up = nn.Conv2d(
+            in_channels=internal_neurons, out_channels=input_channels, kernel_size=1, stride=1, bias=True
+        )
         self.input_channels = input_channels
 
     def forward(self, inputs):
@@ -43,24 +46,45 @@ class SEBlock(nn.Module):
 
 def conv_bn(in_channels, out_channels, kernel_size, stride, padding, groups=1, dilation=1):
     result = nn.Sequential()
-    result.add_module('conv', nn.Conv2d(in_channels=in_channels, out_channels=out_channels,
-                                        kernel_size=kernel_size, stride=stride, padding=padding, groups=groups,
-                                        bias=False, dilation=dilation))
-    result.add_module('bn', nn.BatchNorm2d(num_features=out_channels))
+    result.add_module(
+        "conv",
+        nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            groups=groups,
+            bias=False,
+            dilation=dilation,
+        ),
+    )
+    result.add_module("bn", nn.BatchNorm2d(num_features=out_channels))
     return result
 
 
 class RepVGGBlock(nn.Module):
-    '''
+    """
     Repvgg block consists of three branches
     3x3: a branch of a 3x3 convolution + batchnorm + relu
     1x1: a branch of a 1x1 convolution + batchnorm + relu
     no_conv_branch: a branch with only batchnorm which will only be used if input channel == output channel
     (usually in all but the first block of each stage)
-    '''
-    def __init__(self, in_channels, out_channels, kernel_size,
-                 stride=1, padding=0, dilation=1, groups=1, build_residual_branches=True, use_relu=True,
-                 use_se=False):
+    """
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        padding=0,
+        dilation=1,
+        groups=1,
+        build_residual_branches=True,
+        use_relu=True,
+        use_se=False,
+    ):
 
         super(RepVGGBlock, self).__init__()
 
@@ -73,12 +97,21 @@ class RepVGGBlock(nn.Module):
         self.nonlinearity = nn.ReLU() if use_relu else nn.Identity()
         self.se = nn.Identity() if not use_se else SEBlock(out_channels, internal_neurons=out_channels // 16)
 
-        self.no_conv_branch = nn.BatchNorm2d(
-            num_features=in_channels) if out_channels == in_channels and stride == 1 else None
-        self.branch_3x3 = conv_bn(in_channels=in_channels, out_channels=out_channels, dilation=dilation,
-                                  kernel_size=kernel_size, stride=stride, padding=padding, groups=groups)
-        self.branch_1x1 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride,
-                                  padding=0, groups=groups)
+        self.no_conv_branch = (
+            nn.BatchNorm2d(num_features=in_channels) if out_channels == in_channels and stride == 1 else None
+        )
+        self.branch_3x3 = conv_bn(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            dilation=dilation,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            groups=groups,
+        )
+        self.branch_1x1 = conv_bn(
+            in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride, padding=0, groups=groups
+        )
 
         if not build_residual_branches:
             self.fuse_block_residual_branches()
@@ -138,7 +171,7 @@ class RepVGGBlock(nn.Module):
             eps = branch.bn.eps
         else:
             assert isinstance(branch, nn.BatchNorm2d)
-            if not hasattr(self, 'id_tensor'):
+            if not hasattr(self, "id_tensor"):
                 input_dim = self.in_channels // self.groups
                 kernel_value = np.zeros((self.in_channels, input_dim, 3, 3), dtype=np.float32)
                 for i in range(self.in_channels):
@@ -163,24 +196,38 @@ class RepVGGBlock(nn.Module):
         if hasattr(self, "build_residual_branches") and not self.build_residual_branches:
             return
         kernel, bias = self._get_equivalent_kernel_bias()
-        self.rbr_reparam = nn.Conv2d(in_channels=self.branch_3x3.conv.in_channels, out_channels=self.branch_3x3.conv.out_channels,
-                                     kernel_size=self.branch_3x3.conv.kernel_size, stride=self.branch_3x3.conv.stride,
-                                     padding=self.branch_3x3.conv.padding, dilation=self.branch_3x3.conv.dilation, groups=self.branch_3x3.conv.groups, bias=True)
+        self.rbr_reparam = nn.Conv2d(
+            in_channels=self.branch_3x3.conv.in_channels,
+            out_channels=self.branch_3x3.conv.out_channels,
+            kernel_size=self.branch_3x3.conv.kernel_size,
+            stride=self.branch_3x3.conv.stride,
+            padding=self.branch_3x3.conv.padding,
+            dilation=self.branch_3x3.conv.dilation,
+            groups=self.branch_3x3.conv.groups,
+            bias=True,
+        )
         self.rbr_reparam.weight.data = kernel
         self.rbr_reparam.bias.data = bias
         for para in self.parameters():
             para.detach_()
-        self.__delattr__('branch_3x3')
-        self.__delattr__('branch_1x1')
-        if hasattr(self, 'no_conv_branch'):
-            self.__delattr__('no_conv_branch')
+        self.__delattr__("branch_3x3")
+        self.__delattr__("branch_1x1")
+        if hasattr(self, "no_conv_branch"):
+            self.__delattr__("no_conv_branch")
         self.build_residual_branches = False
 
 
 class RepVGG(SgModule):
-
-    def __init__(self, struct, num_classes=1000, width_multiplier=None,
-                 build_residual_branches=True, use_se=False, backbone_mode=False, in_channels=3):
+    def __init__(
+        self,
+        struct,
+        num_classes=1000,
+        width_multiplier=None,
+        build_residual_branches=True,
+        use_se=False,
+        backbone_mode=False,
+        in_channels=3,
+    ):
         """
         :param struct: list containing number of blocks per repvgg stage
         :param num_classes: number of classes if nut in backbone mode
@@ -203,8 +250,15 @@ class RepVGG(SgModule):
 
         self.in_planes = int(64 * width_multiplier[0])
 
-        self.stem = RepVGGBlock(in_channels=in_channels, out_channels=self.in_planes, kernel_size=3, stride=2, padding=1,
-                                build_residual_branches=build_residual_branches, use_se=self.use_se)
+        self.stem = RepVGGBlock(
+            in_channels=in_channels,
+            out_channels=self.in_planes,
+            kernel_size=3,
+            stride=2,
+            padding=1,
+            build_residual_branches=build_residual_branches,
+            use_se=self.use_se,
+        )
         self.cur_layer_idx = 1
         self.stage1 = self._make_stage(int(64 * width_multiplier[0]), struct[0], stride=2)
         self.stage2 = self._make_stage(int(128 * width_multiplier[1]), struct[1], stride=2)
@@ -224,9 +278,18 @@ class RepVGG(SgModule):
         strides = [stride] + [1] * (struct - 1)
         blocks = []
         for stride in strides:
-            blocks.append(RepVGGBlock(in_channels=self.in_planes, out_channels=planes, kernel_size=3,
-                                      stride=stride, padding=1, groups=1, build_residual_branches=self.build_residual_branches,
-                                      use_se=self.use_se))
+            blocks.append(
+                RepVGGBlock(
+                    in_channels=self.in_planes,
+                    out_channels=planes,
+                    kernel_size=3,
+                    stride=stride,
+                    padding=1,
+                    groups=1,
+                    build_residual_branches=self.build_residual_branches,
+                    use_se=self.use_se,
+                )
+            )
             self.in_planes = planes
             self.cur_layer_idx += 1
         return nn.Sequential(*blocks)
@@ -249,8 +312,10 @@ class RepVGG(SgModule):
 
     def train(self, mode: bool = True):
 
-        assert not mode or self.build_residual_branches, "Trying to train a model without residual branches, " \
-                                                         "set arch_params.build_residual_branches to True and retrain the model"
+        assert not mode or self.build_residual_branches, (
+            "Trying to train a model without residual branches, "
+            "set arch_params.build_residual_branches to True and retrain the model"
+        )
         super(RepVGG, self).train(mode=mode)
 
     def replace_head(self, new_num_classes=None, new_head=None):
@@ -264,12 +329,15 @@ class RepVGG(SgModule):
 
 class RepVggCustom(RepVGG):
     def __init__(self, arch_params):
-        super().__init__(struct=arch_params.struct, num_classes=arch_params.num_classes,
-                         width_multiplier=arch_params.width_multiplier,
-                         build_residual_branches=arch_params.build_residual_branches,
-                         use_se=get_param(arch_params, 'use_se', False),
-                         backbone_mode=get_param(arch_params, 'backbone_mode', False),
-                         in_channels=get_param(arch_params, 'in_channels', 3))
+        super().__init__(
+            struct=arch_params.struct,
+            num_classes=arch_params.num_classes,
+            width_multiplier=arch_params.width_multiplier,
+            build_residual_branches=arch_params.build_residual_branches,
+            use_se=get_param(arch_params, "use_se", False),
+            backbone_mode=get_param(arch_params, "backbone_mode", False),
+            in_channels=get_param(arch_params, "in_channels", 3),
+        )
 
 
 class RepVggA0(RepVggCustom):
