@@ -36,8 +36,8 @@ class MonitoredValue:
     is_best_value: bool = None
 
 
-def update_epoch_stats(previous_monitored_value: MonitoredValue, new_value: float,
-                       greater_is_better: bool) -> MonitoredValue:
+def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: float,
+                           greater_is_better: bool) -> MonitoredValue:
     """Update the given ValueToMonitor object (could be a loss or a metric) with the new value"""
     previous_value, previous_best_value = previous_monitored_value.current, previous_monitored_value.best
 

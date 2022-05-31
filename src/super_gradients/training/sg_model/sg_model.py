@@ -406,7 +406,7 @@ class SgModel:
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
 
-        self.train_monitored_values["loss"] = sg_model_utils.update_epoch_stats(
+        self.train_monitored_values["loss"] = sg_model_utils.update_monitored_value(
             self.train_monitored_values["loss"], new_value=loss, greater_is_better=False)
         return logging_values
 
@@ -1738,13 +1738,12 @@ class SgModel:
                                                             metrics,
                                                             self.loss_logging_items_names)
 
-        # Update the values of this epoch
-        self.valid_monitored_values["Loss"] = sg_model_utils.update_epoch_stats(
+        self.valid_monitored_values["loss"] = sg_model_utils.update_monitored_value(
             new_value=pbar_message_dict["Loss"],
             previous_monitored_value=self.valid_monitored_values["loss"],
             greater_is_better=False
         )
-        self.valid_monitored_values[self.metric_to_watch] = sg_model_utils.update_epoch_stats(
+        self.valid_monitored_values[self.metric_to_watch] = sg_model_utils.update_monitored_value(
             new_value=pbar_message_dict[self.metric_to_watch],
             previous_monitored_value=self.valid_monitored_values[self.metric_to_watch],
             greater_is_better=self.greater_metric_to_watch_is_better
