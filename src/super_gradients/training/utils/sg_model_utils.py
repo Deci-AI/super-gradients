@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
 from typing import Tuple, Union, Dict
+import random
 
 from treelib import Tree
 from termcolor import colored
@@ -84,7 +85,7 @@ def display_epoch_summary(epoch: int, silent_mode: bool, n_digits: int,
         """Generate a tree that represents the stats of a given loss/metric."""
 
         current = _format_to_str(monitored_value.current)
-        root_id = hash(f"{value_name} = {current}")
+        root_id = str(hash(f"{value_name} = {current}")) + str(random.random())
 
         tree = Tree()
         tree.create_node(tag=f"{value_name.capitalize()} = {current}", identifier=root_id)
