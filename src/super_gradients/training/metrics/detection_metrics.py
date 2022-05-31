@@ -116,7 +116,6 @@ class DetectionMetrics(Metric):
         self.world_size = None
         self.rank = None
         self.add_state("metrics", default=[], dist_reduce_fx=None)
-        logger.info("MAP calculated with NMS with conf=" + str(self.post_prediction_callback.conf) + " and iou_thresh=" + str(self.post_prediction_callback.iou))
 
     def update(self, preds: torch.Tensor, target: torch.Tensor, device, inputs):
         _, _, height, width = inputs.shape
