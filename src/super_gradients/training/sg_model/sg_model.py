@@ -404,7 +404,10 @@ class SgModel:
             self.sg_logger.upload()
 
         self.train_monitored_values["loss"] = sg_model_utils.update_monitored_value(
-            self.train_monitored_values["loss"], new_value=loss, greater_is_better=False)
+            new_value=pbar_message_dict["Loss"],
+            previous_monitored_value=self.train_monitored_values["loss"],
+            greater_is_better=False
+        )
         return logging_values
 
     def _get_losses(self, outputs: torch.Tensor, targets: torch.Tensor) -> Tuple[torch.Tensor, tuple]:
