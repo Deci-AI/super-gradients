@@ -1,9 +1,9 @@
 #  ResNet50 Imagenet classification training:
 #  This example trains with batch_size = 192 * 8 GPUs, total 1536.
-#  Training time on 8 x GeForce RTX A5000 is 21min / epoch.
-#  Reach => 79.47 Top1 accuracy.
+#  Training time on 8 x GeForce RTX A5000 is 9min / epoch.
+#  Reach => 81.14 Top1 accuracy.
 #
-#  Log and tensorboard at s3://deci-pretrained-models/ResNet50_ImageNet/average_model.pth
+#  Log and tensorboard at s3://deci-pretrained-models/KD_ResNet50_Beit_Base_ImageNet/average_model.pth
 
 # Instructions:
 # running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
