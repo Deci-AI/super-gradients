@@ -2,16 +2,121 @@ import os
 import sys
 import socket
 import time
+from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Tuple, Union, Dict
 
+from treelib import Tree
+from termcolor import colored
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
 
+
 # TODO: These utils should move to sg_model package as internal (private) helper functions
+
+IS_BETTER_COLOR = {True: "green", False: "red"}
+IS_GREATER_SYMBOLS = {True: "↗", False: "↘"}
+
+
+@dataclass
+class MonitoredValue:
+    """Store a value and some indicators relative to its past iterations.
+
+    The value can be a metric/loss, and the iteration can be epochs/batch.
+    """
+    current: float = None
+    previous: float = None
+    best: float = None
+    change_from_previous: float = None
+    change_from_best: float = None
+    is_better_than_previous: bool = None
+    is_best_value: bool = None
+
+
+def update_epoch_stats(previous_monitored_value: MonitoredValue, new_value: float,
+                       greater_is_better: bool) -> MonitoredValue:
+    """Update the given ValueToMonitor object (could be a loss or a metric) with the new value"""
+    previous_value, previous_best_value = previous_monitored_value.current, previous_monitored_value.best
+
+    if previous_best_value is None:
+        previous_best_value = previous_value
+    elif greater_is_better:
+        previous_best_value = max(previous_value, previous_best_value)
+    else:
+        previous_best_value = min(previous_value, previous_best_value)
+
+    if previous_value is None:
+        change_from_previous = None
+        change_from_best = None
+        is_better_than_previous = None
+        is_best_epoch = None
+    else:
+        change_from_previous = new_value - previous_value
+        change_from_best = new_value - previous_best_value
+        is_better_than_previous = change_from_previous >= 0 if greater_is_better else change_from_previous <= 0
+        is_best_epoch = change_from_best >= 0 if greater_is_better else change_from_best <= 0
+
+    return MonitoredValue(current=new_value, previous=previous_value, best=previous_best_value,
+                          change_from_previous=change_from_previous, change_from_best=change_from_best,
+                          is_better_than_previous=is_better_than_previous, is_best_epoch=is_best_epoch)
+
+
+def display_epoch_summary(epoch: int, silent_mode: bool, n_digits: int,
+                          train_monitored_values: Dict[str, MonitoredValue],
+                          valid_monitored_values: Dict[str, MonitoredValue]) -> None:
+    """Display the stats (loss/metric of interest) of train/validation for the current epoch,
+    and compare the values to the best values until now, as well as the previous epoch."""
+
+    def _get_value_to_monitor_tree(value_name: str, monitored_value: MonitoredValue) -> Tree:
+        """Helper function to extract create a tree that represents the stats of a given loss/metric."""
+        format_to_str = lambda x: str(round(x, n_digits))
+        current = format_to_str(monitored_value.current)
+        root_id = hash(f"{value_name} = {current}")
+
+        tree = Tree()
+        tree.create_node(f"{value_name.capitalize()} = {current}", root_id)
+
+        if monitored_value.previous is not None:
+            previous = format_to_str(monitored_value.previous)
+            best = format_to_str(monitored_value.best)
+            change_from_previous = format_to_str(monitored_value.change_from_previous)
+            change_from_best = format_to_str(monitored_value.change_from_best)
+
+            diff_with_prev_colored = colored(
+                text=f"{IS_GREATER_SYMBOLS[monitored_value.change_from_previous > 0]} {change_from_previous}",
+                color=IS_BETTER_COLOR[monitored_value.is_better_than_previous]
+            )
+            diff_with_best_colored = colored(
+                text=f"{IS_GREATER_SYMBOLS[monitored_value.change_from_best > 0]} {change_from_best}",
+                color=IS_BETTER_COLOR[monitored_value.is_best_value]
+            )
+
+            tree.create_node(f"Epoch N-1      = {previous:6} ({diff_with_prev_colored:8})",
+                             f"0_previous_{root_id}",
+                             parent=root_id)
+            tree.create_node(f"Best until now = {best:6} ({diff_with_best_colored:8})", f"1_best_{root_id}",
+                             parent=root_id)
+        return tree
+
+    if not silent_mode:
+        train_tree = Tree()
+        train_tree.create_node("Training", "Training")
+        for name, value in train_monitored_values.items():
+            train_tree.paste('Training', _get_value_to_monitor_tree(name, value))
+
+        valid_tree = Tree()
+        valid_tree.create_node("Validation", "Validation")
+        for name, value in valid_monitored_values.items():
+            valid_tree.paste('Validation', _get_value_to_monitor_tree(name, value))
+
+        summary_tree = Tree()
+        summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
+        summary_tree.paste("Summary", train_tree)
+        summary_tree.paste("Summary", valid_tree)
+        summary_tree.show()
 
 
 def try_port(port):
@@ -33,7 +138,8 @@ def try_port(port):
     return is_port_available
 
 
-def launch_tensorboard_process(checkpoints_dir_path: str, sleep_postpone: bool = True, port: int = None) -> Tuple[Process, int]:
+def launch_tensorboard_process(checkpoints_dir_path: str, sleep_postpone: bool = True, port: int = None) -> Tuple[
+    Process, int]:
     """
     launch_tensorboard_process - Default behavior is to scan all free ports from 6006-6016 and try using them
                                  unless port is defined by the user
