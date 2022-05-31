@@ -67,8 +67,15 @@ def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: 
 def display_epoch_summary(epoch: int, silent_mode: bool, n_digits: int,
                           train_monitored_values: Dict[str, MonitoredValue],
                           valid_monitored_values: Dict[str, MonitoredValue]) -> None:
-    """Display the stats (loss/metric of interest) of train/validation for the current epoch,
-    and compare the values to the best values until now, as well as the previous epoch."""
+    """Display a summary of loss/metric of interest, for a given epoch.
+
+        :param epoch: the number of epoch.
+        :param silent_mode: if True will not display the summary
+        :param n_digits: number of digits to display on screen for float values
+        :param train_monitored_values: mapping of loss/metric with their stats that will be displayed
+        :param valid_monitored_values: mapping of loss/metric with their stats that will be displayed
+        :return:
+    """
 
     def _format_to_str(val: float) -> str:
         return str(round(val, n_digits))
@@ -80,7 +87,7 @@ def display_epoch_summary(epoch: int, silent_mode: bool, n_digits: int,
         root_id = hash(f"{value_name} = {current}")
 
         tree = Tree()
-        tree.create_node(f"{value_name.capitalize()} = {current}", root_id)
+        tree.create_node(tag=f"{value_name.capitalize()} = {current}", identifier=root_id)
 
         if monitored_value.previous is not None:
             previous = _format_to_str(monitored_value.previous)
@@ -97,23 +104,28 @@ def display_epoch_summary(epoch: int, silent_mode: bool, n_digits: int,
                 color=IS_BETTER_COLOR[monitored_value.is_best_value]
             )
 
-            tree.create_node(f"Epoch N-1      = {previous:6} ({diff_with_prev_colored:8})",
-                             f"0_previous_{root_id}",
-                             parent=root_id)
-            tree.create_node(f"Best until now = {best:6} ({diff_with_best_colored:8})", f"1_best_{root_id}",
-                             parent=root_id)
+            tree.create_node(
+                tag=f"Epoch N-1      = {previous:6} ({diff_with_prev_colored:8})",
+                identifier=f"0_previous_{root_id}",
+                parent=root_id
+            )
+            tree.create_node(
+                tag=f"Best until now = {best:6} ({diff_with_best_colored:8})",
+                identifier=f"1_best_{root_id}",
+                parent=root_id
+            )
         return tree
 
     if not silent_mode:
         train_tree = Tree()
         train_tree.create_node("Training", "Training")
         for name, value in train_monitored_values.items():
-            train_tree.paste('Training', _generate_tree(name, monitored_value=value))
+            train_tree.paste('Training', new_tree=_generate_tree(name, monitored_value=value))
 
         valid_tree = Tree()
         valid_tree.create_node("Validation", "Validation")
         for name, value in valid_monitored_values.items():
-            valid_tree.paste('Validation', _generate_tree(name, monitored_value=value))
+            valid_tree.paste('Validation', new_tree=_generate_tree(name, monitored_value=value))
 
         summary_tree = Tree()
         summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
