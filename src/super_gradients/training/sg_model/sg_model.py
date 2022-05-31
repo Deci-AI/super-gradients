@@ -788,7 +788,7 @@ class SgModel:
         self.metric_idx_in_results_tuple = (
             self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
 
-        # Store values to monitor over the epochs
+        # Instantiate the values to monitor (loss/metric)
         for loss in self.loss_logging_items_names:
             self.train_monitored_values[loss] = MonitoredValue()
             self.valid_monitored_values[loss] = MonitoredValue()
