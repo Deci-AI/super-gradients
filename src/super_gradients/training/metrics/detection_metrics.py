@@ -94,18 +94,18 @@ class DetectionMetrics(Metric):
     """
     DetectionMetrics
 
-    Metric class for computing F1, Precision, Recall and Mean Average Precision
+    Metric class for computing F1, Precision, Recall and Mean Average Precision.
 
     Attributes:
 
-         num_cls: number of classes
+         num_cls: number of classes.
 
          post_prediction_callback: DetectionPostPredictionCallback to be applied on net's output prior
-            to the metric computation (NMS)
+            to the metric computation (NMS).
 
-         iou_thres: Threshold to compute the mAP (default=IouThreshold.MAP_05_TO_095)
+         iou_thres: Threshold to compute the mAP (default=IouThreshold.MAP_05_TO_095).
 
-         normalize_targets: Whether to normalize bbox coordinates by image size (default=True)
+         normalize_targets: Whether to normalize bbox coordinates by image size (default=True).
 
          dist_sync_on_step: Synchronize metric state across processes at each ``forward()``
             before returning the value at the step. (default=False)
