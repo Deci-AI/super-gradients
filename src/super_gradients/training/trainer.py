@@ -2,7 +2,6 @@ from omegaconf import DictConfig
 import hydra
 from super_gradients.training.sg_model import MultiGPUMode
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training import KDModel
 import torch
 
 
@@ -100,19 +99,11 @@ class Trainer:
         cfg.sg_model.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
         # BUILD NETWORK
-        if isinstance(cfg.sg_model, KDModel):
-            cfg.sg_model.build_model(student_architecture=cfg.student_architecture,
-                                     teacher_architecture=cfg.teacher_architecture,
-                                     arch_params=cfg.arch_params, student_arch_params=cfg.student_arch_params,
-                                     teacher_arch_params=cfg.teacher_arch_params,
-                                     checkpoint_params=cfg.checkpoint_params, run_teacher_on_eval=cfg.run_teacher_on_eval)
+        cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
 
-        else:
-            cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
-
-            # FIXME: REMOVE PARAMETER MANIPULATION SPECIFIC FOR YOLO
-            if str(cfg.architecture).startswith("yolo_v5"):
-                cfg = Trainer.scale_params_for_yolov5(cfg)
+        # FIXME: REMOVE PARAMETER MANIPULATION SPECIFIC FOR YOLO
+        if str(cfg.architecture).startswith("yolo_v5"):
+            cfg = Trainer.scale_params_for_yolov5(cfg)
 
         # TRAIN
         cfg.sg_model.train(training_params=cfg.training_hyperparams)
