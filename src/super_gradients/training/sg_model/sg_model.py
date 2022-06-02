@@ -42,7 +42,7 @@ from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.distributed_training_utils import MultiGPUModeAutocastWrapper, \
     reduce_results_tuple_for_ddp, compute_precise_bn_stats
-from super_gradients.training.utils.ema import ModelEMA
+from super_gradients.training.utils.ema import instantiate_ema_model
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
 from super_gradients.training.metrics import Accuracy, Top5
@@ -802,7 +802,7 @@ class SgModel:
         if self.ema:
             ema_params = self.training_params.ema_params
             logger.info(f'Using EMA with params {ema_params}')
-            self.ema_model = ModelEMA(self.net, **ema_params)
+            self.ema_model = instantiate_ema_model(self.net, **ema_params)
             self.ema_model.updates = self.start_epoch * num_batches // self.batch_accumulate
             if self.load_checkpoint:
                 if 'ema_net' in self.checkpoint.keys():
