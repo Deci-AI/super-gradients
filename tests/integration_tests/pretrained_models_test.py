@@ -35,7 +35,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.imagenet21k_pretrained_ckpt_params = {"pretrained_weights": "imagenet21k"}
 
-        self.imagenet_pretrained_accuracies = {"resnet50": 0.7947,
+        self.imagenet_pretrained_accuracies = {"resnet50": 0.8114,
                                                "resnet34": 0.7413,
                                                "resnet18": 0.706,
                                                "repvgg_a0": 0.7205,
