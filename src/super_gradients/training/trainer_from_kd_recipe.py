@@ -1,7 +1,7 @@
 import hydra
 from omegaconf import DictConfig
 
-from trainer import Trainer
+from super_gradients.training.trainer import Trainer
 
 
 class TrainerKDModel(Trainer):
