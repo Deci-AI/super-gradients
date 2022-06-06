@@ -1,18 +1,11 @@
 import unittest
-import os
 from super_gradients.training.sg_model import SgModel
 from super_gradients.training.kd_model.kd_model import KDModel
 import torch
 from super_gradients.training.utils.utils import check_models_have_same_weights
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy
-from super_gradients.training.exceptions.kd_model_exceptions import ArchitectureKwargsException, \
-    UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, \
-    TeacherKnowledgeException
-from super_gradients.training.models.classification_models.resnet import ResNet50, ResNet18
 from super_gradients.training.losses.kd_losses import KDLogitsLoss
-from copy import deepcopy
-from super_gradients.training.utils.module_utils import NormalizationAdapter
 
 
 class KDModelTest(unittest.TestCase):
@@ -48,10 +41,12 @@ class KDModelTest(unittest.TestCase):
         kd_model.train(self.kd_train_params)
 
         assert kd_model.ema_model.ema.module.teacher is kd_model.net.module.teacher
+        assert kd_model.ema_model.ema.module.student is not kd_model.net.module.student
 
     def test_kd_ckpt_reload_ema(self):
         """Check that the KD model load correctly from checkpoint when "load_ema_as_net=True"."""
 
+        # Create a KD model and train it
         kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         kd_model.build_model(student_architecture='resnet18',
@@ -60,11 +55,11 @@ class KDModelTest(unittest.TestCase):
                              teacher_arch_params={'num_classes': 1000},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"},
                              run_teacher_on_eval=True, )
-
         kd_model.train(self.kd_train_params)
         ema_model = kd_model.ema_model.ema
         net = kd_model.net
 
+        # Load the trained KD model
         kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         kd_model.build_model(student_architecture='resnet18',
@@ -82,13 +77,13 @@ class KDModelTest(unittest.TestCase):
         # trained ema == loaded ema (Should always be true as long as "ema=True" in train_params)
         assert check_models_have_same_weights(ema_model, reloaded_ema_model)
 
-        # trained net != loaded net (since load_ema_as_net = True)
-        assert not check_models_have_same_weights(net, reloaded_net)
+        # loaded net != trained net (since load_ema_as_net = True)
+        assert not check_models_have_same_weights(reloaded_net, net)
 
-        # trained ema != loaded net (since load_ema_as_net = True)
-        assert check_models_have_same_weights(ema_model, reloaded_net)
+        # loaded net == trained ema (since load_ema_as_net = True)
+        assert check_models_have_same_weights(reloaded_net, ema_model)
 
-        # loaded student ema == loaded  student net (since load_ema_as_net = True)
+        # loaded student ema == loaded student net (since load_ema_as_net = True)
         assert check_models_have_same_weights(reloaded_ema_model.module.student, reloaded_net.module.student)
 
         # loaded teacher ema == loaded teacher net (teacher always loads ema)
@@ -99,6 +94,7 @@ class KDModelTest(unittest.TestCase):
     def test_kd_ckpt_reload_net(self):
         """Check that the KD model load correctly from checkpoint when "load_ema_as_net=False"."""
 
+        # Create a KD model and train it
         kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         kd_model.build_model(student_architecture='resnet18',
@@ -107,12 +103,11 @@ class KDModelTest(unittest.TestCase):
                              teacher_arch_params={'num_classes': 1000},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"},
                              run_teacher_on_eval=True, )
-
-
         kd_model.train(self.kd_train_params)
         ema_model = kd_model.ema_model.ema
         net = kd_model.net
 
+        # Load the trained KD model
         kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         kd_model.build_model(student_architecture='resnet18',
@@ -130,11 +125,11 @@ class KDModelTest(unittest.TestCase):
         # trained ema == loaded ema (Should always be true as long as "ema=True" in train_params)
         assert check_models_have_same_weights(ema_model, reloaded_ema_model)
 
-        # trained net == loaded net (since load_ema_as_net = False)
-        assert check_models_have_same_weights(net, reloaded_net)
+        # loaded net == trained net (since load_ema_as_net = False)
+        assert check_models_have_same_weights(reloaded_net, net)
 
-        # trained ema != loaded net (since load_ema_as_net = False)
-        assert not check_models_have_same_weights(ema_model, reloaded_net)
+        # loaded net != trained ema (since load_ema_as_net = False)
+        assert not check_models_have_same_weights(reloaded_net, ema_model)
 
         # loaded student ema == loaded  student net (since load_ema_as_net = False)
         assert not check_models_have_same_weights(reloaded_ema_model.module.student, reloaded_net.module.student)

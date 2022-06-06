@@ -162,6 +162,14 @@ def instantiate_ema_model(model, decay: float = 0.9999, beta: float = 15, exp_ac
     """Build an instance of EMA.
 
     If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.
+    :param model: Union[SgModule, nn.Module], the training model to construct the EMA model by
+                IMPORTANT: WHEN THE APPLICATION OF EMA ONLY ON A SUBSET OF ATTRIBUTES IS DESIRED, WRAP THE NN.MODULE
+                AS SgModule AND OVERWRITE get_include_attributes() AND get_exclude_attributes() AS DESIRED (SEE
+                YoLoV5Base IMPLEMENTATION IN super_gradients.trainer.models.yolov5.py AS AN EXAMPLE).
+    :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value
+                  until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
+    :param beta: the exponent coefficient. The higher the beta, the sooner in the training the decay will saturate to
+                 its final value. beta=15 is ~40% of the training process.
     """
     if isinstance(model.module, KDModule):
         return KDModelEMA(model, decay, beta, exp_activation)
