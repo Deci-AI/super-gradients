@@ -9,7 +9,7 @@ import numpy as np
 import cv2
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.detection_utils import random_affine, get_mosaic_coordinate, \
-    adjust_box_anns, xyxy2cxcywh, _mirror, augment_hsv, rescale_and_pad_to_size
+    adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, _mirror, augment_hsv, rescale_and_pad_to_size, DetectionTargetsFormat
 
 image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
@@ -363,6 +363,7 @@ class DetectionTransform:
         additional_samples_count: (int) additional samples to be loaded.
         non_empty_targets: (bool) whether the additianl targets can have empty targets or not.
     """
+
     def __init__(self, additional_samples_count: int = 0, non_empty_targets: bool = False):
         self.additional_samples_count = additional_samples_count
         self.non_empty_targets = non_empty_targets
@@ -374,9 +375,9 @@ class DetectionTransform:
         return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')
 
 
-class Mosaic(DetectionTransform):
+class DetectionMosaic(DetectionTransform):
     """
-    Mosaic detection transform
+    DetectionMosaic detection transform
     
     Attributes:
         input_dim: (tuple) input dimension.
@@ -384,8 +385,9 @@ class Mosaic(DetectionTransform):
         enable_mosaic: (bool) whether to apply mosaic at all (regardless of prob) (default=True).
 
     """
+
     def __init__(self, input_dim, prob=1.):
-        super(Mosaic, self).__init__(additional_samples_count=3)
+        super(DetectionMosaic, self).__init__(additional_samples_count=3)
         self.prob = prob
         self.input_dim = input_dim
         self.enable_mosaic = True
@@ -421,7 +423,8 @@ class Mosaic(DetectionTransform):
                     mosaic_img = np.full((input_h * 2, input_w * 2, c), 114, dtype=np.uint8)
 
                 # suffix l means large image, while s means small image in mosaic aug.
-                (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(i_mosaic, xc, yc, w, h, input_h, input_w)
+                (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(i_mosaic, xc, yc, w, h,
+                                                                                           input_h, input_w)
 
                 mosaic_img[l_y1:l_y2, l_x1:l_x2] = img[s_y1:s_y2, s_x1:s_x2]
                 padw, padh = l_x1 - s_x1, l_y1 - s_y1
@@ -456,9 +459,9 @@ class Mosaic(DetectionTransform):
         return sample
 
 
-class RandomAffine(DetectionTransform):
+class DetectionRandomAffine(DetectionTransform):
     """
-    RandomAffine detection transform
+    DetectionRandomAffine detection transform
 
     Attributes:
      target_size: (tuple) desired output shape.
@@ -478,8 +481,9 @@ class RandomAffine(DetectionTransform):
     enable: (bool) whether to apply the below transform at all.
 
     """
+
     def __init__(self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640)):
-        super(RandomAffine, self).__init__()
+        super(DetectionRandomAffine, self).__init__()
         self.degrees = degrees
         self.translate = translate
         self.scale = scales
@@ -507,7 +511,7 @@ class RandomAffine(DetectionTransform):
         return sample
 
 
-class Mixup(DetectionTransform):
+class DetectionMixup(DetectionTransform):
     """
     Mixup detection transform
 
@@ -517,8 +521,9 @@ class Mixup(DetectionTransform):
         prob: (float) probability of applying mixup.
         enable_mixup: (bool) whether to apply mixup at all (regardless of prob) (default=True).
     """
+
     def __init__(self, input_dim, mixup_scale, prob=1.):
-        super(Mixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
+        super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
         self.input_dim = input_dim
         self.mixup_scale = mixup_scale
         self.prob = prob
@@ -617,6 +622,7 @@ class YoloxTrainPreprocessFN(DetectionTransform):
         hsv_prob: (float) probability to apply hsv (default=1.)
         input_dim: (tuple) final input dimension (default=(640,640))
     """
+
     def __init__(self, max_labels=50, flip_prob=0.5, hsv_prob=1.0, input_dim=(640, 640)):
         self.max_labels = max_labels
         self.flip_prob = flip_prob
@@ -672,28 +678,170 @@ class YoloxTrainPreprocessFN(DetectionTransform):
         return sample
 
 
-class YoloxValPreprocessFN(DetectionTransform):
+class DetectionPaddedRescale(DetectionTransform):
     """
     Preprocessing transform to be applied last of all transforms for validation.
 
-    Rescales and pads to self.input_dim and swaps image channels with self.swap.
+    Image- Rescales and pads to self.input_dim.
+    Targets- pads targets to max_targets, moves the class label to first index, converts boxes format- xyxy -> cxcywh.
+
     Attributes:
         input_dim: (tuple) final input dimension (default=(640,640))
         swap: image axis's to be rearranged.
 
     """
 
-    def __init__(self, input_dim, swap=(2, 0, 1)):
+    def __init__(self, input_dim, swap=(2, 0, 1), max_targets=50):
         self.swap = swap
         self.input_dim = input_dim
+        self.max_targets = max_targets
 
     def __call__(self, sample):
         img, target = sample["image"], sample["target"]
-        label = target.copy()
-        boxes = label[:, :4]
+        if len(target) == 0:
+            new_target = np.zeros((self.max_targets, 5), dtype=np.float32)
+        else:
+            new_target = target.copy()
+
+        boxes = new_target[:, :4]
+        labels = new_target[:, 4]
         img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap)
         boxes = xyxy2cxcywh(boxes)
         boxes *= r
+        boxes = cxcywh2xyxy(boxes)
+        new_target = np.concatenate((boxes, labels[:, np.newaxis]), 1)
+
         sample["image"] = img
-        sample["target"] = label
+        sample["target"] = new_target
         return sample
+
+
+class DetectionHorizontalFlip(DetectionTransform):
+    """
+    Horizontal Flip for Detection
+
+    Attributes:
+        prob: float: probability of applying HSV transform
+        max_targets: int: max objects in single image, padding target to this size in case of empty image.
+    """
+    def __init__(self, prob, max_targets: int = 120):
+        super(DetectionHorizontalFlip, self).__init__()
+        self.prob = prob
+        self.max_targets = max_targets
+
+    def __call__(self, sample):
+        image, targets = sample["image"], sample["target"]
+        boxes = targets[:, :4]
+        if len(boxes) == 0:
+            targets = np.zeros((self.max_targets, 5), dtype=np.float32)
+            boxes = targets[:, :4]
+        image, boxes = _mirror(image, boxes, self.prob)
+        sample["image"] = image
+        return sample
+
+
+class DetectionHSV(DetectionTransform):
+    """
+    Detection HSV transform.
+    """
+    def __init__(self, prob):
+        super(DetectionHSV, self).__init__()
+        self.prob = prob
+
+    def __call__(self, sample):
+        if random.random() < self.prob:
+            augment_hsv(sample["image"])
+        return sample
+
+
+class DetectionTargetsFormatTransform(DetectionTransform):
+    """
+    Detection targets format transform
+
+    Converts targets in input_format to output_format.
+    Attributes:
+        input_format: DetectionTargetsFormat: input target format
+        output_format: DetectionTargetsFormat: output target format
+        min_bbox_edge_size: int: bboxes with edge size lower then this values will be removed.
+        max_targets: int: max objects in single image, padding target to this size.
+    """
+    def __init__(self, input_format: DetectionTargetsFormat = DetectionTargetsFormat.XYXY_LABEL,
+                 output_format: DetectionTargetsFormat = DetectionTargetsFormat.LABEL_CXCYWH,
+                 min_bbox_edge_size: float = 1, max_targets: int = 120):
+        super(DetectionTargetsFormatTransform, self).__init__()
+        self.input_format = input_format
+        self.output_format = output_format
+        self.min_bbox_edge_size = min_bbox_edge_size
+        self.max_targets = max_targets
+
+    def __call__(self, sample):
+        normalized_input = "NORMALIZED" in self.input_format.value
+        normalized_output = "NORMALIZED" in self.output_format.value
+        normalize = not normalized_input and normalized_output
+        denormalize = normalized_input and not normalized_output
+
+        label_first_in_input = self.input_format.value.split("_")[0] == "LABEL"
+        label_first_in_output = self.output_format.value.split("_")[0] == "LABEL"
+
+        input_xyxy_format = "XYXY" in self.input_format.value
+        output_xyxy_format = "XYXY" in self.output_format.value
+        convert2xyxy = not input_xyxy_format and output_xyxy_format
+        convert2cxcy = input_xyxy_format and not output_xyxy_format
+
+        image, targets = sample["image"], sample["target"]
+
+        if label_first_in_input:
+            boxes = targets[:, 2:]
+            labels = targets[:, 1]
+        else:
+            boxes = targets[:, :4]
+            labels = targets[:, 4]
+
+        if convert2cxcy:
+            boxes = xyxy2cxcywh(boxes)
+        elif convert2xyxy:
+            boxes = cxcywh2xyxy(boxes)
+
+        _, h, w = image.shape
+
+        if normalize:
+            boxes[:, 0] = boxes[:, 0]/w
+            boxes[:, 1] = boxes[:, 1]/h
+            boxes[:, 2] = boxes[:, 2]/w
+            boxes[:, 3] = boxes[:, 3]/h
+        
+        elif denormalize:
+            boxes[:, 0] = boxes[:, 0]*w
+            boxes[:, 1] = boxes[:, 1]*h
+            boxes[:, 2] = boxes[:, 2]*w
+            boxes[:, 3] = boxes[:, 3]*h
+
+        cxcywh_boxes = boxes if not output_xyxy_format else xyxy2cxcywh(boxes.copy())
+
+        mask_b = np.minimum(cxcywh_boxes[:, 2], cxcywh_boxes[:, 3]) > self.min_bbox_edge_size
+        boxes_t = boxes[mask_b]
+        labels_t = labels[mask_b]
+
+        labels_t = np.expand_dims(labels_t, 1)
+        targets_t = np.hstack((labels_t, boxes_t)) if label_first_in_output else np.hstack((boxes_t, labels_t))
+        padded_targets = np.zeros((self.max_targets, 5))
+        padded_targets[range(len(targets_t))[: self.max_targets]] = targets_t[: self.max_targets]
+        padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
+
+        sample["target"] = padded_targets
+        return sample
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

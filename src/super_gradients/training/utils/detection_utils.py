@@ -22,6 +22,27 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from omegaconf import ListConfig
 
 
+class DetectionTargetsFormat(Enum):
+    """
+    Enum class for the different detection output formats
+
+    When NORMALIZED is not specified- the type refers to unnormalized image coordinates (of the bboxes).
+
+    For example:
+    LABEL_NORMALIZED_XYXY means [class_idx,x1,y1,x2,y2]
+    """
+    LABEL_XYXY = "LABEL_XYXY"
+    XYXY_LABEL = "XYXY_LABEL"
+    LABEL_NORMALIZED_XYXY = "LABEL_NORMALIZED_XYXY"
+    NORMALIZED_XYXY_LABEL = "NORMALIZED_XYXY_LABEL"
+    LABEL_CXCYWH = "LABEL_CXCYWH"
+    CXCYWH_LABEL = "CXCYWH_LABEL"
+    LABEL_NORMALIZED_CXCYWH = "LABEL_NORMALIZED_CXCYWH"
+    NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
+    
+
+
+
 def base_detection_collate_fn(batch):
     """
     Batch Processing helper function for detection training/testing.
@@ -1196,6 +1217,19 @@ def xyxy2cxcywh(bboxes):
     return bboxes
 
 
+def cxcywh2xyxy(bboxes):
+    """
+    Transforms bboxes from centerized xy wh format to xyxy format
+    :param bboxes: array, shaped (nboxes, 4)
+    :return: modified bboxes
+    """
+    bboxes[:, 1] = bboxes[:, 1] - bboxes[:, 3] * 0.5
+    bboxes[:, 0] = bboxes[:, 0] - bboxes[:, 2] * 0.5
+    bboxes[:, 3] = bboxes[:, 3] + bboxes[:, 1]
+    bboxes[:, 2] = bboxes[:, 2] + bboxes[:, 0]
+    return bboxes
+
+
 def get_aug_params(value: Union[tuple, float], center: float=0):
     """
     Generates a random value for augmentations as described below
@@ -1425,33 +1459,8 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
 class YoloXCollateFN:
     """
     Collate function for Yolox training
-
-    Attributes:
-        val: bool: validation mode- when set to true pads targets to self.max_targets, and moves the label to the first
-         index
-        max_targets: int: targets will be paded to max tragets when self.val = True. (default=120)
     """
-    def __init__(self, val=True, max_targets=120):
-        self.val = val
-        self.max_targets = max_targets
-
-    def _pad_targets(self, data):
-        max_targets = self.max_targets
-        for sample_id, sample in enumerate(data):
-            if sample[1].shape[0] < max_targets:
-                boxes = np.zeros((max_targets, 5))
-                boxes[:sample[1].shape[0], :] = sample[1]
-
-                # MOVE LABEL TO FIRST INDEX
-                boxes = np.roll(boxes, 1, axis=1)
-                sample = list(sample)
-                sample[1] = boxes
-                sample = tuple(sample)
-                data[sample_id] = sample
-
     def __call__(self, data):
-        if self.val:
-            self._pad_targets(data)
         batch = default_collate(data)
         ims = batch[0]
         targets = batch[1]
