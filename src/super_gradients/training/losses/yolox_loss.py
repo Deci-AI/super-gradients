@@ -472,29 +472,41 @@ class YoloXDetectionLoss(_Loss):
 
 class YoloXFastDetectionLoss(YoloXDetectionLoss):
     """
-    TODO - more explanation?
-    Calculate YOLOX loss faster without nested loops.
+    A completely new implementation of YOLOX loss.
     This is NOT an equivalent implementation to the regular yolox loss.
-    L = L_objectivness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
+
+    * Completely avoids using loops compared to the nested loops in the original implementation.
+        As a result runs much faster (speedup depends on the type of GPUs, their count, the batch size, etc.).
+    * Tensors format is very different the original implementation.
+        Tensors contain image ids, ground truth ids and anchor ids as values to support variable length data.
+    * There are differences in terms of the algorithm itself:
+    1. When computing a dynamic k for a ground truth,
+        in the original implementation they consider the sum of top 10 predictions sorted by ious among the initial
+        foregrounds of any ground truth in the image,
+        while in our implementation we consider only the initial foreground of that particular ground truth.
+        To compensate for that difference we introduce the dynamic_ks_bias hyperparamter which makes the dynamic ks larger.
+    2. When computing the k matched detections for a ground truth,
+        in the original implementation they consider the initial foregrounds of any ground truth in the image as candidates,
+        while in our implementation we consider only the initial foreground of that particular ground truth as candidates.
+        We believe that this difference is minute.
     """
 
     def __init__(self, strides, im_size, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou',
-                 dynamic_ks_bias=1.1, gather_fgs=False, obj_loss_fix=False):
+                 dynamic_ks_bias=1.1, sync_num_fgs=False, obj_loss_fix=False):
         super().__init__(strides, im_size, num_classes, use_l1=use_l1, center_sampling_radius=center_sampling_radius,
                          iou_type=iou_type)
 
         self.dynamic_ks_bias = dynamic_ks_bias
-        self.gather_fgs = gather_fgs        # for DDP training TODO check if DDP
-        self.obj_loss_fix = obj_loss_fix    # TODO
+        self.sync_num_fgs = sync_num_fgs        # sync num fgs for DDP training
+        self.obj_loss_fix = obj_loss_fix        # using for objectness loss. devide by total num anchors vs num matching fgs
 
     def compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        TODO is it the same explanation?
-        L = L_objectivness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
+        L = L_objectness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
         where:
-            * L_boxes, L_classification and L_l1 are calculated only between cells and targets that suit them;
-            * L_objectivness is calculated for all cells.
+            * L_iou, L_classification and L_l1 are calculated only between cells and targets that suit them;
+            * L_objectness is calculated for all cells.
 
         L_classification:
             for cells that have suitable ground truths in their grid locations add BCEs
@@ -542,12 +554,11 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
                                             flattened_gts[matched_gt_ids][:, 1:], expanded_strides[matched_fg_ids],
                                             x_shifts=x_shifts[matched_fg_ids], y_shifts=y_shifts[matched_fg_ids])
 
-        if self.gather_fgs and dist.group.WORLD is not None:
-            # world_size = dist.group.WORLD.size()
-            # gather_array = [None] * world_size
-            # dist.all_gather_object(gather_array, num_fg)  # TODO
-            # num_fg = sum(gather_array) / world_size
-            num_fg = dist.all_reduce(num_fg, op=torch.distributed.ReduceOp.AVG)
+        if self.sync_num_fgs and dist.group.WORLD is not None:
+            world_size = dist.group.WORLD.size()
+            gather_array = [None] * world_size
+            dist.all_gather_object(gather_array, num_fg)
+            num_fg = sum(gather_array) / world_size
 
         loss_iou = self.iou_loss(bbox_preds[matched_img_ids, matched_fg_ids], reg_targets).sum() / num_fg
         loss_obj = self.bcewithlog_loss(obj_preds.squeeze(-1), obj_targets).sum() \
@@ -703,7 +714,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         """
         :param ids:                 ids of GTs, shape: [num_candidates]
         :param ious:                pairwise IoUs, shape: [num_candidates]
-        :param dynamic_ks_bias:     multiply the resulted k to mimic the regular loss
+        :param dynamic_ks_bias:     multiply the resulted k to compensate the regular loss
         """
         assert len(ids.shape) == 1
         assert len(ious.shape) == 1
