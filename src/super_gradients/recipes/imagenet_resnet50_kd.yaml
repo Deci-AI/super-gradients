@@ -24,15 +24,6 @@ training_hyperparams:
     task_loss_fn:
       _target_: super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss
 
-#   sg_logger: "wandb_sg_logger"
-#   sg_logger_params:
-#     project_name: decinets_sg
-#     entity: algo
-#     api_server: "https://wandb.research.deci.ai"
-#     save_checkpoints_remote: True
-#     save_tensorboard_remote: True
-#     save_logs_remote: True
-
 arch_params:
   teacher_input_adapter:
     _target_: super_gradients.training.utils.kd_model_utils.NormalizationAdapter
@@ -92,5 +83,6 @@ sg_model:
   ckpt_root_dir: ${ckpt_root_dir}
   multi_gpu: ${multi_gpu}
 
+architecture: kd_module
 student_architecture: resnet50
 teacher_architecture: beit_base_patch16_224

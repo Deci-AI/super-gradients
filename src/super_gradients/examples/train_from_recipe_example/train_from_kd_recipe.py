@@ -9,12 +9,12 @@ import super_gradients
 from omegaconf import DictConfig
 import hydra
 import pkg_resources
-from super_gradients.training.trainer_from_kd_recipe import TrainerKDModel
+from super_gradients.training.kd_trainer import KDTrainer
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""))
 def main(cfg: DictConfig) -> None:
-    TrainerKDModel.train(cfg)
+    KDTrainer.train(cfg)
 
 
 if __name__ == "__main__":
