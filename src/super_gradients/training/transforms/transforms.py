@@ -378,7 +378,7 @@ class DetectionTransform:
 class DetectionMosaic(DetectionTransform):
     """
     DetectionMosaic detection transform
-    
+
     Attributes:
         input_dim: (tuple) input dimension.
         prob: (float) probability of applying mosaic.
@@ -410,7 +410,7 @@ class DetectionMosaic(DetectionTransform):
             all_samples = [sample] + sample["additional_samples"]
 
             for i_mosaic, mosaic_sample in enumerate(all_samples):
-                img, _labels, _labels_seg, img_id = mosaic_sample["image"], mosaic_sample["target"], mosaic_sample[
+                img, _labels, _labels_seg, _ = mosaic_sample["image"], mosaic_sample["target"], mosaic_sample[
                     "target_seg"], mosaic_sample["id"]
                 h0, w0 = img.shape[:2]  # orig hw
                 scale = min(1. * input_h / h0, 1. * input_w / w0)
@@ -554,9 +554,7 @@ class DetectionMixup(DetectionTransform):
                 interpolation=cv2.INTER_LINEAR,
             )
 
-            cp_img[
-            : int(img.shape[0] * cp_scale_ratio), : int(img.shape[1] * cp_scale_ratio)
-            ] = resized_img
+            cp_img[: int(img.shape[0] * cp_scale_ratio), : int(img.shape[1] * cp_scale_ratio)] = resized_img
 
             cp_img = cv2.resize(
                 cp_img,
@@ -579,17 +577,13 @@ class DetectionMixup(DetectionTransform):
                 y_offset = random.randint(0, padded_img.shape[0] - target_h - 1)
             if padded_img.shape[1] > target_w:
                 x_offset = random.randint(0, padded_img.shape[1] - target_w - 1)
-            padded_cropped_img = padded_img[
-                                 y_offset: y_offset + target_h, x_offset: x_offset + target_w
-                                 ]
+            padded_cropped_img = padded_img[y_offset: y_offset + target_h, x_offset: x_offset + target_w]
 
             cp_bboxes_origin_np = adjust_box_anns(
                 cp_labels[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h
             )
             if FLIP:
-                cp_bboxes_origin_np[:, 0::2] = (
-                        origin_w - cp_bboxes_origin_np[:, 0::2][:, ::-1]
-                )
+                cp_bboxes_origin_np[:, 0::2] = (origin_w - cp_bboxes_origin_np[:, 0::2][:, ::-1])
             cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
             cp_bboxes_transformed_np[:, 0::2] = np.clip(
                 cp_bboxes_transformed_np[:, 0::2] - x_offset, 0, target_w
@@ -670,9 +664,7 @@ class YoloxTrainPreprocessFN(DetectionTransform):
 
         targets_t = np.hstack((labels_t, boxes_t))
         padded_labels = np.zeros((self.max_labels, 5))
-        padded_labels[range(len(targets_t))[: self.max_labels]] = targets_t[
-                                                                  : self.max_labels
-                                                                  ]
+        padded_labels[range(len(targets_t))[: self.max_labels]] = targets_t[: self.max_labels]
         padded_labels = np.ascontiguousarray(padded_labels, dtype=np.float32)
         sample["image"], sample["target"] = image_t, padded_labels
         return sample
@@ -724,6 +716,7 @@ class DetectionHorizontalFlip(DetectionTransform):
         prob: float: probability of applying HSV transform
         max_targets: int: max objects in single image, padding target to this size in case of empty image.
     """
+
     def __init__(self, prob, max_targets: int = 120):
         super(DetectionHorizontalFlip, self).__init__()
         self.prob = prob
@@ -744,6 +737,7 @@ class DetectionHSV(DetectionTransform):
     """
     Detection HSV transform.
     """
+
     def __init__(self, prob):
         super(DetectionHSV, self).__init__()
         self.prob = prob
@@ -765,6 +759,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         min_bbox_edge_size: int: bboxes with edge size lower then this values will be removed.
         max_targets: int: max objects in single image, padding target to this size.
     """
+
     def __init__(self, input_format: DetectionTargetsFormat = DetectionTargetsFormat.XYXY_LABEL,
                  output_format: DetectionTargetsFormat = DetectionTargetsFormat.LABEL_CXCYWH,
                  min_bbox_edge_size: float = 1, max_targets: int = 120):
@@ -805,16 +800,16 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         _, h, w = image.shape
 
         if normalize:
-            boxes[:, 0] = boxes[:, 0]/w
-            boxes[:, 1] = boxes[:, 1]/h
-            boxes[:, 2] = boxes[:, 2]/w
-            boxes[:, 3] = boxes[:, 3]/h
-        
+            boxes[:, 0] = boxes[:, 0] / w
+            boxes[:, 1] = boxes[:, 1] / h
+            boxes[:, 2] = boxes[:, 2] / w
+            boxes[:, 3] = boxes[:, 3] / h
+
         elif denormalize:
-            boxes[:, 0] = boxes[:, 0]*w
-            boxes[:, 1] = boxes[:, 1]*h
-            boxes[:, 2] = boxes[:, 2]*w
-            boxes[:, 3] = boxes[:, 3]*h
+            boxes[:, 0] = boxes[:, 0] * w
+            boxes[:, 1] = boxes[:, 1] * h
+            boxes[:, 2] = boxes[:, 2] * w
+            boxes[:, 3] = boxes[:, 3] * h
 
         cxcywh_boxes = boxes if not output_xyxy_format else xyxy2cxcywh(boxes.copy())
 
@@ -832,7 +827,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         return sample
 
 
-def get_aug_params(value: Union[tuple, float], center: float=0):
+def get_aug_params(value: Union[tuple, float], center: float = 0):
     """
     Generates a random value for augmentations as described below
 

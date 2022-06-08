@@ -38,8 +38,6 @@ class DetectionTargetsFormat(Enum):
     CXCYWH_LABEL = "CXCYWH_LABEL"
     LABEL_NORMALIZED_CXCYWH = "LABEL_NORMALIZED_CXCYWH"
     NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
-    
-
 
 
 def base_detection_collate_fn(batch):
@@ -1219,7 +1217,7 @@ def cxcywh2xyxy(bboxes):
 def get_mosaic_coordinate(mosaic_index, xc, yc, w, h, input_h, input_w):
     """
     Returns the mosaic coordinates of final mosaic image according to mosaic image index.
-    
+
     :param mosaic_index: (int) mosaic image index
     :param xc: (int) center x coordinate of the entire mosaic grid.
     :param yc: (int) center y coordinate of the entire mosaic grid.
@@ -1282,5 +1280,3 @@ class YoloXCollateFN:
             targets_merged.append(torch.cat((batch_column, targets_im), 1))
         targets = torch.cat(targets_merged, 0)
         return ims, targets
-
-
