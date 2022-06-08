@@ -786,7 +786,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         image, targets = sample["image"], sample["target"]
 
         if label_first_in_input:
-            boxes = targets[:, 2:]
+            boxes = targets[:, 1:]
             labels = targets[:, 1]
         else:
             boxes = targets[:, :4]
@@ -811,9 +811,11 @@ class DetectionTargetsFormatTransform(DetectionTransform):
             boxes[:, 2] = boxes[:, 2] * w
             boxes[:, 3] = boxes[:, 3] * h
 
+        min_bbox_edge_size = self.min_bbox_edge_size / max(w, h) if normalize else self.min_bbox_edge_size
+
         cxcywh_boxes = boxes if not output_xyxy_format else xyxy2cxcywh(boxes.copy())
 
-        mask_b = np.minimum(cxcywh_boxes[:, 2], cxcywh_boxes[:, 3]) > self.min_bbox_edge_size
+        mask_b = np.minimum(cxcywh_boxes[:, 2], cxcywh_boxes[:, 3]) > min_bbox_edge_size
         boxes_t = boxes[mask_b]
         labels_t = labels[mask_b]
 
