@@ -8,8 +8,8 @@ from torchvision import transforms as transforms
 import numpy as np
 import cv2
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.detection_utils import random_affine, get_mosaic_coordinate, \
-    adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, _mirror, augment_hsv, rescale_and_pad_to_size, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, \
+    adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
 
 image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
@@ -832,16 +832,234 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         return sample
 
 
+def get_aug_params(value: Union[tuple, float], center: float=0):
+    """
+    Generates a random value for augmentations as described below
+
+    :param value: Union[tuple, float] defines the range of values for generation. Wen tuple-
+     drawn uniformly between (value[0], value[1]), and (center - value, center + value) when float
+    :param center: float, defines center to subtract when value is float.
+    :return: generated value
+    """
+    if isinstance(value, float):
+        return random.uniform(center - value, center + value)
+    elif len(value) == 2:
+        return random.uniform(value[0], value[1])
+    else:
+        raise ValueError(
+            "Affine params should be either a sequence containing two values\
+                          or single float values. Got {}".format(
+                value
+            )
+        )
 
 
+def get_affine_matrix(
+        target_size,
+        degrees=10,
+        translate=0.1,
+        scales=0.1,
+        shear=10,
+):
+    """
+    Returns a random affine transform matrix.
+
+    :param target_size: (tuple) desired output shape.
+
+    :param degrees:  (Union[tuple, float]) degrees for random rotation, when float the random values are drawn uniformly
+     from (-degrees, degrees)
+
+    :param translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
+     are drawn uniformly from (-translate, translate)
+
+    :param scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
+     from (0.1-scales, 0.1+scales)
+
+    :param shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
+     from (shear, shear)
+
+    :return: affine_transform_matrix, drawn_scale
+    """
+    twidth, theight = target_size
+
+    # Rotation and Scale
+    angle = get_aug_params(degrees)
+    scale = get_aug_params(scales, center=1.0)
+
+    if scale <= 0.0:
+        raise ValueError("Argument scale should be positive")
+
+    R = cv2.getRotationMatrix2D(angle=angle, center=(0, 0), scale=scale)
+
+    M = np.ones([2, 3])
+    # Shear
+    shear_x = math.tan(get_aug_params(shear) * math.pi / 180)
+    shear_y = math.tan(get_aug_params(shear) * math.pi / 180)
+
+    M[0] = R[0] + shear_y * R[1]
+    M[1] = R[1] + shear_x * R[0]
+
+    # Translation
+    translation_x = get_aug_params(translate) * twidth  # x translation (pixels)
+    translation_y = get_aug_params(translate) * theight  # y translation (pixels)
+
+    M[0, 2] = translation_x
+    M[1, 2] = translation_y
+
+    return M, scale
 
 
+def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
+    num_gts = len(targets)
+    twidth, theight = target_size
+    seg_is_present_mask = np.logical_or.reduce(~np.isnan(targets_seg), axis=1)
+    num_gts_masks = seg_is_present_mask.sum()
+    num_gts_boxes = num_gts - num_gts_masks
+
+    if num_gts_boxes:
+        # warp corner points
+        corner_points = np.ones((num_gts_boxes * 4, 3))
+        # x1y1, x2y2, x1y2, x2y1
+        corner_points[:, :2] = targets[~seg_is_present_mask][:, [0, 1, 2, 3, 0, 3, 2, 1]].reshape(num_gts_boxes * 4, 2)
+        corner_points = corner_points @ M.T  # apply affine transform
+        corner_points = corner_points.reshape(num_gts_boxes, 8)
+
+        # create new boxes
+        corner_xs = corner_points[:, 0::2]
+        corner_ys = corner_points[:, 1::2]
+        new_bboxes = (np.concatenate(
+            (np.min(corner_xs, 1), np.min(corner_ys, 1),
+             np.max(corner_xs, 1), np.max(corner_ys, 1))
+        ).reshape(4, -1).T)
+    else:
+        new_bboxes = np.ones((0, 4), dtype=np.float)
+
+    if num_gts_masks:
+        # warp segmentation points
+        num_seg_points = targets_seg.shape[1] // 2
+        corner_points_seg = np.ones((num_gts_masks * num_seg_points, 3))
+        corner_points_seg[:, :2] = targets_seg[seg_is_present_mask].reshape(num_gts_masks * num_seg_points, 2)
+        corner_points_seg = corner_points_seg @ M.T
+        corner_points_seg = corner_points_seg.reshape(num_gts_masks, num_seg_points * 2)
+
+        # create new boxes
+        seg_points_xs = corner_points_seg[:, 0::2]
+        seg_points_ys = corner_points_seg[:, 1::2]
+        new_tight_bboxes = (np.concatenate(
+            (np.nanmin(seg_points_xs, 1), np.nanmin(seg_points_ys, 1),
+             np.nanmax(seg_points_xs, 1), np.nanmax(seg_points_ys, 1))
+        ).reshape(4, -1).T)
+    else:
+        new_tight_bboxes = np.ones((0, 4), dtype=np.float)
+
+    targets[~seg_is_present_mask, :4] = new_bboxes
+    targets[seg_is_present_mask, :4] = new_tight_bboxes
+
+    # clip boxes
+    targets[:, [0, 2]] = targets[:, [0, 2]].clip(0, twidth)
+    targets[:, [1, 3]] = targets[:, [1, 3]].clip(0, theight)
+
+    return targets
 
 
+def random_affine(
+        img,
+        targets=(),
+        targets_seg=(),
+        target_size=(640, 640),
+        degrees=10,
+        translate=0.1,
+        scales=0.1,
+        shear=10,
+):
+    """
+    Performs random affine transform to img, targets
+
+    :param img: (array) input image.
+
+    :param targets: (array) input target.
+
+    :param targets_seg: (array) targets derived from segmentation masks.
+
+    :param target_size: (tuple) desired output shape.
+
+    :param degrees:  (Union[tuple, float]) degrees for random rotation, when float the random values are drawn uniformly
+     from (-degrees, degrees)
+
+    :param translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
+     are drawn uniformly from (-translate, translate)
+
+    :param scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
+     from (0.1-scales, 0.1+scales)
+
+    :param shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
+     from (shear, shear)
+
+    :return:
+    """
+    M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
+
+    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(114, 114, 114))
+
+    # Transform label coordinates
+    if len(targets) > 0:
+        targets = apply_affine_to_bboxes(targets, targets_seg, target_size, M)
+
+    return img, targets
 
 
+def _mirror(image, boxes, prob=0.5):
+    """
+    Horizontal flips image and bboxes with probability prob.
+
+    :param image: (np.array) image to be flipped.
+    :param boxes: (np.array) bboxes to be modified.
+    :param prob: probability to perform flipping.
+    :return: flipped_image, flipped_bboxes
+    """
+    _, width, _ = image.shape
+    if random.random() < prob:
+        image = image[:, ::-1]
+        boxes[:, 0::2] = width - boxes[:, 2::-2]
+    return image, boxes
 
 
+def augment_hsv(img, hgain=5, sgain=30, vgain=30):
+    hsv_augs = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain]  # random gains
+    hsv_augs *= np.random.randint(0, 2, 3)  # random selection of h, s, v
+    hsv_augs = hsv_augs.astype(np.int16)
+    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.int16)
+
+    img_hsv[..., 0] = (img_hsv[..., 0] + hsv_augs[0]) % 180
+    img_hsv[..., 1] = np.clip(img_hsv[..., 1] + hsv_augs[1], 0, 255)
+    img_hsv[..., 2] = np.clip(img_hsv[..., 2] + hsv_augs[2], 0, 255)
+
+    cv2.cvtColor(img_hsv.astype(img.dtype), cv2.COLOR_HSV2BGR, dst=img)  # no return needed
 
 
+def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
+    """
+    Rescales image according to minimum ratio between the target height /image height, target width / image width,
+    and pads the image to the target size.
 
+    :param img: Image to be rescaled
+    :param input_size: Target size
+    :param swap: Axis's to be rearranged.
+    :return: rescaled image, ratio
+    """
+    if len(img.shape) == 3:
+        padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * pad_val
+    else:
+        padded_img = np.ones(input_size, dtype=np.uint8) * pad_val
+
+    r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
+    resized_img = cv2.resize(
+        img,
+        (int(img.shape[1] * r), int(img.shape[0] * r)),
+        interpolation=cv2.INTER_LINEAR,
+    ).astype(np.uint8)
+    padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
+
+    padded_img = padded_img.transpose(swap)
+    padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
+    return padded_img, r
