@@ -1,7 +1,7 @@
 """
 Example code for running SuperGradient's recipes.
 
-General use: python train_from_recipe.py --config-name="DESIRED_RECIPE".
+General use: python train_from_kd_recipe.py --config-name="DESIRED_RECIPE".
 For recipe's specific instructions and details refer to the recipe's configuration file in the recipes directory.
 """
 
