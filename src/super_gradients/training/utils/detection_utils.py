@@ -7,6 +7,7 @@ from typing import Callable, List, Union, Tuple
 import cv2
 from deprecated import deprecated
 from scipy.cluster.vq import kmeans
+from torch.utils.data._utils.collate import default_collate
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -1164,3 +1165,21 @@ class Anchors(nn.Module):
 
     def __repr__(self):
         return f"anchors_list: {self.__anchors_list} strides: {self.__strides}"
+
+
+class YoloXCollateFN:
+    """
+    Collate function for Yolox training
+    """
+    def __call__(self, data):
+        batch = default_collate(data)
+        ims = batch[0]
+        targets = batch[1]
+        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of objects
+        targets_merged = []
+        for i in range(targets.shape[0]):
+            targets_im = targets[i, :nlabel[i]]
+            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
+            targets_merged.append(torch.cat((batch_column, targets_im), 1))
+        targets = torch.cat(targets_merged, 0)
+        return ims, targets
