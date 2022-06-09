@@ -406,12 +406,9 @@ class SgModel:
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
 
-        for monitored_value_name in self.train_monitored_values.keys():
-            self.train_monitored_values[monitored_value_name] = sg_model_utils.update_monitored_value(
-                new_value=pbar_message_dict[monitored_value_name],
-                previous_monitored_value=self.train_monitored_values[monitored_value_name],
-                greater_is_better=False
-            )
+        self.train_monitored_values = sg_model_utils.update_monitored_values_dict(
+            monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict)
+
         return logging_values
 
     def _get_losses(self, outputs: torch.Tensor, targets: torch.Tensor) -> Tuple[torch.Tensor, tuple]:
@@ -1738,17 +1735,13 @@ class SgModel:
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
 
-        logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
+        # logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
         pbar_message_dict = get_train_loop_description_dict(logging_values,
                                                             metrics,
                                                             self.loss_logging_items_names)
 
-        for monitored_value_name in self.valid_monitored_values.keys():
-            self.valid_monitored_values[monitored_value_name] = sg_model_utils.update_monitored_value(
-                new_value=pbar_message_dict[monitored_value_name],
-                previous_monitored_value=self.valid_monitored_values[monitored_value_name],
-                greater_is_better=False
-            )
+        self.valid_monitored_values = sg_model_utils.update_monitored_values_dict(
+            monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict)
 
         if not silent_mode:
             progress_bar_data_loader.write("===========================================================")

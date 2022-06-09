@@ -39,7 +39,13 @@ class MonitoredValue:
 
 def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: float,
                            greater_is_better: bool) -> MonitoredValue:
-    """Update the given ValueToMonitor object (could be a loss or a metric) with the new value"""
+    """Update the given ValueToMonitor object (could be a loss or a metric) with the new value
+
+    :param previous_monitored_value: The stats about the value that is monitored throughout epochs.
+    :param new_value: The value of the current epoch that will be used to update previous_monitored_value
+    :param greater_is_better: True when a greater value means better result.
+    :return:
+    """
     previous_value, previous_best_value = previous_monitored_value.current, previous_monitored_value.best
 
     if previous_best_value is None:
@@ -63,6 +69,23 @@ def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: 
     return MonitoredValue(current=new_value, previous=previous_value, best=previous_best_value,
                           change_from_previous=change_from_previous, change_from_best=change_from_best,
                           is_better_than_previous=is_better_than_previous, is_best_value=is_best_value)
+
+
+def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue],
+                                 new_values_dict: Dict[str, float]) -> Dict[str, MonitoredValue]:
+    """Update the given ValueToMonitor object (could be a loss or a metric) with the new value
+
+    :param monitored_values_dict: Dict mapping value names to their stats throughout epochs.
+    :param new_values_dict: Dict mapping value names to their new (i.e. current epoch) value.
+    :return: Updated monitored_values_dict
+    """
+    for monitored_value_name in monitored_values_dict.keys():
+        monitored_values_dict[monitored_value_name] = update_monitored_value(
+            new_value=new_values_dict[monitored_value_name],
+            previous_monitored_value=monitored_values_dict[monitored_value_name],
+            greater_is_better=False
+        )
+    return monitored_values_dict
 
 
 def display_epoch_summary(epoch: int, n_digits: int,
