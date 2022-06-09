@@ -551,14 +551,11 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         reg_targets = flattened_gts[matched_gt_ids][:, 1:]
         if self.use_l1:
             l1_targets = self.get_l1_target(transformed_outputs.new_zeros((num_fg, 4)),
-                                            flattened_gts[matched_gt_ids][:, 1:], expanded_strides[matched_fg_ids],
-                                            x_shifts=x_shifts[matched_fg_ids], y_shifts=y_shifts[matched_fg_ids])
-
+                                            flattened_gts[matched_gt_ids][:, 1:], expanded_strides.squeeze()[matched_fg_ids],
+                                            x_shifts=x_shifts.squeeze()[matched_fg_ids], y_shifts=y_shifts.squeeze()[matched_fg_ids])
         if self.sync_num_fgs and dist.group.WORLD is not None:
-            world_size = dist.group.WORLD.size()
-            gather_array = [None] * world_size
-            dist.all_gather_object(gather_array, num_fg)
-            num_fg = sum(gather_array) / world_size
+            num_fg = torch.scalar_tensor(num_fg).to(matched_gt_ids.device)
+            dist.all_reduce(num_fg, op=torch._C._distributed_c10d.ReduceOp.AVG)
 
         loss_iou = self.iou_loss(bbox_preds[matched_img_ids, matched_fg_ids], reg_targets).sum() / num_fg
         loss_obj = self.bcewithlog_loss(obj_preds.squeeze(-1), obj_targets).sum() \
