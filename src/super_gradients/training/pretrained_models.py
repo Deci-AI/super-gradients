@@ -34,11 +34,13 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "vit_large_imagenet21k": "https://deci-pretrained-models.s3.amazonaws.com/vit_pretrained_imagenet21k/vit_large_16_imagenet21K.pth",
               "vit_base_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/vit_base_imagenet1k/ckpt_best.pth",
               "vit_large_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/vit_large_cutmix_randaug_v2_lr%3D0.03/average_model.pth",
-              "beit_base_patch16_224_imagenet": 'https://deci-pretrained-models.s3.amazonaws.com/beit_base_patch16_224_imagenet.pth'
+              "beit_base_patch16_224_imagenet": 'https://deci-pretrained-models.s3.amazonaws.com/beit_base_patch16_224_imagenet.pth',
+              "beit_base_patch16_224_cifar10": 'https://deci-pretrained-models.s3.amazonaws.com/beit_cifar10.pth'
               }
 
 PRETRAINED_NUM_CLASSES = {"imagenet": 1000,
                           "imagenet21k": 21843,
                           "coco_segmentation_subclass": 21,
                           "cityscapes": 19,
-                          "coco": 80}
+                          "coco": 80,
+                          "cifar10": 10}
