@@ -31,9 +31,7 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
     """
     source_ckpt_folder_name = source_ckpt_folder_name or experiment_name
     if model_checkpoints_location == 'local':
-        default_local_ckpt_path = pkg_resources.resource_filename('checkpoints',
-                                                                  source_ckpt_folder_name + os.path.sep + ckpt_name)
-        ckpt_local_path = external_checkpoint_path or default_local_ckpt_path
+        ckpt_local_path = external_checkpoint_path or pkg_resources.resource_filename('checkpoints', source_ckpt_folder_name + os.path.sep + ckpt_name)
 
     # COPY THE DATA FROM 'S3'/'URL' INTO A LOCAL DIRECTORY
     elif model_checkpoints_location.startswith('s3') or model_checkpoints_location == 'url':
