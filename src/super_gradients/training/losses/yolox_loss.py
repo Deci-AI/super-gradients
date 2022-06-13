@@ -70,7 +70,8 @@ class YoloXDetectionLoss(_Loss):
     L = L_objectivness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
     """
 
-    def __init__(self, strides, im_size, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou'):
+    def __init__(self, strides, im_size, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou',
+                 weight_iou_cost=3.0, weight_not_strong_candidate=100000.0):
         super().__init__()
         self.grids = [torch.zeros(1)] * len(strides)
         self.strides = strides
@@ -81,6 +82,9 @@ class YoloXDetectionLoss(_Loss):
         self.l1_loss = nn.L1Loss(reduction="none")
         self.bcewithlog_loss = nn.BCEWithLogitsLoss(reduction="none")
         self.iou_loss = IOUloss(reduction="none", loss_type=iou_type)
+
+        self.weight_iou_cost = weight_iou_cost
+        self.weight_not_strong_candidate = weight_not_strong_candidate
 
     def forward(self, model_output, targets):
         if isinstance(model_output, tuple) and len(model_output) == 2:
@@ -344,7 +348,7 @@ class YoloXDetectionLoss(_Loss):
             pair_wise_cls_loss = F.binary_cross_entropy(cls_preds_.sqrt_(), gt_cls_per_image, reduction="none").sum(-1)
         del cls_preds_
 
-        cost = pair_wise_cls_loss + 3.0 * pair_wise_ious_loss + 100000.0 * (~is_in_boxes_and_center)
+        cost = pair_wise_cls_loss + self.weight_iou_cost * pair_wise_ious_loss + self.weight_not_strong_candidate * (~is_in_boxes_and_center)
 
         # further filter foregrounds: create pairs between cells and ground truth, based on cost and IoUs
         num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds = \
@@ -488,7 +492,13 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
     2. When computing the k matched detections for a ground truth,
         in the original implementation they consider the initial foregrounds of any ground truth in the image as candidates,
         while in our implementation we consider only the initial foreground of that particular ground truth as candidates.
-        We believe that this difference is minute.
+        We believe that this difference is minor.
+
+    :param dynamic_ks_bias: hyperparameter to compensate for the discrepancies between the regular loss and this loss.
+    :param sync_num_fgs:    sync num of fgs.
+                            Can be used for DDP training.
+    :param obj_loss_fix:    devide by total of num anchors instead num of matching fgs.
+                            Can be used for objectness loss.
     """
 
     def __init__(self, strides, im_size, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou',
@@ -497,8 +507,8 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
                          iou_type=iou_type)
 
         self.dynamic_ks_bias = dynamic_ks_bias
-        self.sync_num_fgs = sync_num_fgs        # sync num fgs for DDP training
-        self.obj_loss_fix = obj_loss_fix        # using for objectness loss. devide by total num anchors vs num matching fgs
+        self.sync_num_fgs = sync_num_fgs
+        self.obj_loss_fix = obj_loss_fix
 
     def compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
@@ -522,7 +532,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
             Coef: 1[no_aug_epoch]
         L_objectness:
             for each cell add BCE with a label of 1 if there is GT assigned to the cell
-            Coef: 1
+            Coef: 5
 
         :param predictions:     output from all Yolo levels, each of shape
                                 [Batch x Num_Anchors x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]
@@ -538,7 +548,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
 
         # assign cells to ground truths, at most one GT per cell
         matched_fg_ids, matched_gt_classes, matched_gt_ids, matched_img_ids, matched_ious, flattened_gts = \
-            self.compute_matching(bbox_preds, cls_preds, obj_preds, expanded_strides, x_shifts, y_shifts, targets)
+            self._compute_matching(bbox_preds, cls_preds, obj_preds, expanded_strides, x_shifts, y_shifts, targets)
 
         num_gts = max(flattened_gts.shape[0], 1)
         num_fg = max(matched_gt_ids.shape[0], 1)
@@ -570,11 +580,11 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         loss = reg_weight * loss_iou + loss_obj + loss_cls + loss_l1
 
         return loss, torch.cat((loss_iou.unsqueeze(0), loss_obj.unsqueeze(0), loss_cls.unsqueeze(0),
-                                torch.tensor(loss_l1).unsqueeze(0).cuda(),
-                                torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).cuda(),
+                                torch.tensor(loss_l1).unsqueeze(0).to(transformed_outputs.device),
+                                torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).to(transformed_outputs.device),
                                 loss.unsqueeze(0))).detach()
 
-    def get_initial_matching(self, gt_bboxes: torch.Tensor, expanded_strides: torch.Tensor,
+    def _get_initial_matching(self, gt_bboxes: torch.Tensor, expanded_strides: torch.Tensor,
                              x_shifts: torch.Tensor, y_shifts: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
@@ -618,7 +628,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         return initial_matching[:, 0], initial_matching[:, 1], strong_candidate_mask
 
     @torch.no_grad()
-    def compute_matching(self, bbox_preds: torch.Tensor, cls_preds: torch.Tensor, obj_preds: torch.Tensor,
+    def _compute_matching(self, bbox_preds: torch.Tensor, cls_preds: torch.Tensor, obj_preds: torch.Tensor,
                          expanded_strides: torch.Tensor, x_shifts: torch.Tensor, y_shifts: torch.Tensor,
                          labels: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -645,21 +655,21 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         flattened_gts, gt_id_to_img_id = labels[:, 1:], labels[:, 0].type(torch.int64)
 
         # COMPUTE CANDIDATES
-        candidate_gt_ids, candidate_fg_ids, strong_candidate_mask = self.get_initial_matching(
+        candidate_gt_ids, candidate_fg_ids, strong_candidate_mask = self._get_initial_matching(
             flattened_gts[:, 1:], expanded_strides, x_shifts, y_shifts)
         candidate_img_ids = gt_id_to_img_id[candidate_gt_ids]
         candidate_gts_bbox = flattened_gts[candidate_gt_ids, 1:]
         candidate_det_bbox = bbox_preds[candidate_img_ids, candidate_fg_ids]
 
         # COMPUTE DYNAMIC KS
-        candidate_ious = self.calculate_pairwise_bbox_iou(candidate_gts_bbox, candidate_det_bbox, xyxy=False)
-        dynamic_ks, matching_index_to_dynamic_k_index = self.compute_dynamic_ks(candidate_gt_ids, candidate_ious,
+        candidate_ious = self._calculate_pairwise_bbox_iou(candidate_gts_bbox, candidate_det_bbox, xyxy=False)
+        dynamic_ks, matching_index_to_dynamic_k_index = self._compute_dynamic_ks(candidate_gt_ids, candidate_ious,
                                                                            self.dynamic_ks_bias)
         del candidate_gts_bbox, candidate_det_bbox
 
         # ORDER CANDIDATES BY COST
         candidate_gt_classes = flattened_gts[candidate_gt_ids, 0]
-        cost_order = self.compute_cost_order(self.num_classes, candidate_img_ids, candidate_gt_classes,
+        cost_order = self._compute_cost_order(self.num_classes, candidate_img_ids, candidate_gt_classes,
                                         candidate_fg_ids, candidate_ious,
                                         cls_preds, obj_preds, strong_candidate_mask)
 
@@ -672,7 +682,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         del cost_order
 
         # FILTER MATCHING TO LOWEST K COST MATCHES PER GT
-        ranks = self.compute_ranks(candidate_gt_ids)
+        ranks = self._compute_ranks(candidate_gt_ids)
         corresponding_dynamic_ks = dynamic_ks[matching_index_to_dynamic_k_index]
         topk_mask = ranks < corresponding_dynamic_ks
 
@@ -684,8 +694,8 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         del ranks, topk_mask, dynamic_ks, matching_index_to_dynamic_k_index, corresponding_dynamic_ks
 
         # FILTER MATCHING TO AT MOST 1 MATCH FOR DET BY TAKING THE LOWEST COST MATCH
-        candidate_img_and_fg_ids_combined = self.combine_candidates_img_id_fg_id(candidate_img_ids, candidate_fg_ids)
-        top1_mask = self.compute_is_first_mask(candidate_img_and_fg_ids_combined)
+        candidate_img_and_fg_ids_combined = self._combine_candidates_img_id_fg_id(candidate_img_ids, candidate_fg_ids)
+        top1_mask = self._compute_is_first_mask(candidate_img_and_fg_ids_combined)
         candidate_gt_ids = candidate_gt_ids[top1_mask]
         candidate_gt_classes = candidate_gt_classes[top1_mask]
         candidate_fg_ids = candidate_fg_ids[top1_mask]
@@ -695,7 +705,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         return candidate_fg_ids, candidate_gt_classes, candidate_gt_ids, candidate_img_ids, candidate_ious, \
                flattened_gts
 
-    def combine_candidates_img_id_fg_id(self, candidate_img_ids, candidate_anchor_ids):
+    def _combine_candidates_img_id_fg_id(self, candidate_img_ids, candidate_anchor_ids):
         """
         Create one dim tensor with unique pairs of img_id and fg_id.
         e.g: candidate_img_ids = [0,1,0,0]
@@ -707,15 +717,15 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
             candidate_anchor_ids), dim=1).unique(dim=0, return_inverse=True)[1]
         return candidate_img_and_fg_ids_combined
 
-    def compute_dynamic_ks(self, ids: torch.Tensor, ious: torch.Tensor, dynamic_ks_bias) -> torch.Tensor:
+    def _compute_dynamic_ks(self, ids: torch.Tensor, ious: torch.Tensor, dynamic_ks_bias) -> torch.Tensor:
         """
         :param ids:                 ids of GTs, shape: [num_candidates]
         :param ious:                pairwise IoUs, shape: [num_candidates]
         :param dynamic_ks_bias:     multiply the resulted k to compensate the regular loss
         """
-        assert len(ids.shape) == 1
-        assert len(ious.shape) == 1
-        assert ids.shape[0] == ious.shape[0]
+        assert len(ids.shape) == 1, "ids must be of shape [num_candidates]"
+        assert len(ious.shape) == 1, "ious must be of shape [num_candidates]"
+        assert ids.shape[0] == ious.shape[0], "num of ids.shape[0] must be the same as num of ious.shape[0]"
         # sort ious and ids by ious
         ious, ious_argsort = ious.sort(descending=True)
         ids = ids[ious_argsort]
@@ -746,7 +756,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
 
         return dynamic_ks, ids_index_to_unique_ids_index[inverse_all_argsort]
 
-    def compute_cost_order(self, num_classes, candidate_gt_img_ids: torch.Tensor, candidate_gt_classes: torch.Tensor,
+    def _compute_cost_order(self, num_classes, candidate_gt_img_ids: torch.Tensor, candidate_gt_classes: torch.Tensor,
                            candidate_anchor_ids: torch.Tensor, candidate_ious: torch.Tensor,
                            cls_preds: torch.Tensor, obj_preds: torch.Tensor, strong_candidate_mask: torch.Tensor) \
             -> torch.Tensor:
@@ -762,10 +772,10 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
                 cls_preds_.sqrt_(), gt_cls_per_image, reduction="none"
             ).sum(-1)
         ious_cost = -torch.log(candidate_ious + 1e-8)
-        cost = pair_wise_cls_cost + 3.0 * ious_cost + 100000.0 * strong_candidate_mask.logical_not()
+        cost = pair_wise_cls_cost + self.weight_iou_cost * ious_cost + self.weight_not_strong_candidate * strong_candidate_mask.logical_not()
         return cost.argsort()
 
-    def calculate_pairwise_bbox_iou(self, bboxes_a: torch.Tensor, bboxes_b: torch.Tensor, xyxy=True) -> torch.Tensor:
+    def _calculate_pairwise_bbox_iou(self, bboxes_a: torch.Tensor, bboxes_b: torch.Tensor, xyxy=True) -> torch.Tensor:
         if bboxes_a.shape[1] != 4 or bboxes_b.shape[1] != 4:
             raise IndexError
 
@@ -790,7 +800,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         area_i = torch.prod(br - tl, 1) * en
         return area_i / (area_a + area_b - area_i)
 
-    def compute_ranks(self, ids: torch.Tensor) -> torch.Tensor:
+    def _compute_ranks(self, ids: torch.Tensor) -> torch.Tensor:
         ids, ids_argsort = ids.sort(stable=True)
 
         if ids.shape[0] > 1:
@@ -810,7 +820,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
 
         return rank[inverse_argsort]
 
-    def compute_is_first_mask(self, ids: torch.Tensor) -> torch.Tensor:
+    def _compute_is_first_mask(self, ids: torch.Tensor) -> torch.Tensor:
         """
         Filter fg that matches two gts.
         """
