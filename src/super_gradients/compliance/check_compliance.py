@@ -121,11 +121,3 @@ def check_compliance() -> None:
 
 if __name__ == '__main__':
     check_compliance()
-    import os
-    ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-    CONFIG_PATH = os.path.join(ROOT_DIR, "requirements.txt")
-    print(ROOT_DIR, CONFIG_PATH)
-
-    print("---")
-    import pkg_resources
-    print(pkg_resources.resource_string("super_gradients", "requirements.txt"))

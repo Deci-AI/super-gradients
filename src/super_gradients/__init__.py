@@ -3,9 +3,9 @@ from super_gradients.training import ARCHITECTURES, losses, utils, datasets_util
 from super_gradients.common import init_trainer, is_distributed
 from super_gradients.examples.train_from_recipe_example import train_from_recipe
 from super_gradients.examples.train_from_kd_recipe_example import train_from_kd_recipe
-from super_gradients.compliance import verify_installed_libraries
+from super_gradients.compliance import check_compliance
 
 __all__ = ['ARCHITECTURES', 'losses', 'utils', 'datasets_utils', 'DataAugmentation',
            'TestDatasetInterface', 'SgModel', 'KDModel', 'SegmentationTestDatasetInterface', 'DetectionTestDatasetInterface',
            'ClassificationTestDatasetInterface', 'init_trainer', 'is_distributed', 'train_from_recipe', 'train_from_kd_recipe',
-           'verify_installed_libraries']
+           'check_compliance']
