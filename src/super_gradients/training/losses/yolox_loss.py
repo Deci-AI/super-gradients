@@ -3,7 +3,7 @@ Based on https://github.com/Megvii-BaseDetection/YOLOX
 """
 
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import torch
 from torch import nn
@@ -18,14 +18,21 @@ logger = get_logger(__name__)
 class IOUloss(nn.Module):
     """
     IoU loss with the following supported loss types:
-        * 'iou' for
-            (1 - iou^2)
-        * 'giou' according to "Generalized Intersection over Union: A Metric and A Loss for Bounding Box Regression"
-            (1 - giou), where giou = iou - (cover_box - union_box)/cover_box
+    Attributes:
+        reduction: str: One of ["mean", "sum", "none"] reduction to apply to the computed loss (Default="none")
+        loss_type: str: One of ["iou", "giou"] where:
+            * 'iou' for
+                (1 - iou^2)
+            * 'giou' according to "Generalized Intersection over Union: A Metric and A Loss for Bounding Box Regression"
+                (1 - giou), where giou = iou - (cover_box - union_box)/cover_box
     """
 
-    def __init__(self, reduction="none", loss_type="iou"):
+    def __init__(self, reduction: str = "none", loss_type: str = "iou"):
         super(IOUloss, self).__init__()
+        if loss_type not in ["iou", "giou"]:
+            raise ValueError("Illegal loss_type value: " + loss_type)
+        if reduction not in ["mean", "sum", "none"]:
+            raise ValueError("Illegal reduction value: " + reduction)
         self.reduction = reduction
         self.loss_type = loss_type
 
@@ -65,42 +72,11 @@ class IOUloss(nn.Module):
 class YoloXDetectionLoss(_Loss):
     """
     Calculate YOLOX loss:
-    L = L_objectivness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
-    """
+    L = L_objectivness + L_iou + L_classification + 1[use_l1]*L_l1
 
-    def __init__(self, strides, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou'):
-        super().__init__()
-        self.grids = [torch.zeros(1)] * len(strides)
-        self.strides = strides
-        self.num_classes = num_classes
-
-        self.center_sampling_radius = center_sampling_radius
-        self.use_l1 = use_l1
-        self.l1_loss = nn.L1Loss(reduction="none")
-        self.bcewithlog_loss = nn.BCEWithLogitsLoss(reduction="none")
-        self.iou_loss = IOUloss(reduction="none", loss_type=iou_type)
-
-    def forward(self, model_output, targets):
-        if isinstance(model_output, tuple) and len(model_output) == 2:
-            # in test/eval mode the Yolo v5 model output a tuple where the second item is the raw predictions
-            _, predictions = model_output
-        else:
-            predictions = model_output
-
-        return self._compute_loss(predictions, targets)
-
-    @staticmethod
-    def _make_grid(nx=20, ny=20):
-        yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
-        return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
-
-    def _compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
-            -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        L = L_objectivness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
-        where:
-            * L_boxes, L_classification and L_l1 are calculated only between cells and targets that suit them;
-            * L_objectivness is calculated for all cells.
+    where:
+        * L_iou, L_classification and L_l1 are calculated only between cells and targets that suit them;
+        * L_objectivness is calculated for all cells.
 
         L_classification:
             for cells that have suitable ground truths in their grid locations add BCEs
@@ -113,13 +89,74 @@ class YoloXDetectionLoss(_Loss):
         L_l1:
             for cells that have suitable ground truths in their grid locations
             l1 distance between the logits and GTs in “logits” format (the inverse of “logits to predictions” ops)
-            Coef: 1[no_aug_epoch]
+            Coef: 1[use_l1]
         L_objectness:
             for each cell add BCE with a label of 1 if there is GT assigned to the cell
             Coef: 1
 
+    Attributes:
+        strides: list: List of Yolo levels output grid sizes (i.e [8, 16, 32]).
+        
+        num_classes: int: Number of classes.
+        
+        use_l1: bool: Controls the L_l1 Coef as discussed above (default=False).
+        
+        center_sampling_radius: float: Sampling radius used for center sampling when creating the fg mask (default=2.5).
+        
+        iou_type: str: Iou loss type, one of ["iou","giou"] (deafult="iou").
+
+
+    """
+
+    def __init__(self, strides: list, num_classes: int, use_l1: bool = False, center_sampling_radius: float = 2.5,
+                 iou_type='iou'):
+        super().__init__()
+        self.grids = [torch.zeros(1)] * len(strides)
+        self.strides = strides
+        self.num_classes = num_classes
+
+        self.center_sampling_radius = center_sampling_radius
+        self.use_l1 = use_l1
+        self.l1_loss = nn.L1Loss(reduction="none")
+        self.bcewithlog_loss = nn.BCEWithLogitsLoss(reduction="none")
+        self.iou_loss = IOUloss(reduction="none", loss_type=iou_type)
+
+    def forward(self, model_output: Union[list, Tuple[torch.Tensor, List]], targets: torch.Tensor):
+        """
+        :param model_output: Union[list, Tuple[torch.Tensor, List]]:
+             When list-
+              output from all Yolo levels, each of shape [Batch x 1 x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]
+             And when tuple- the second item is the described list (first item is discarded)
+
+        :param targets: torch.Tensor: Num_targets x (4 + 2)], values on dim 1 are: image id in a batch, class, box x y w h
+
+        :return: loss, all losses separately in a detached tensor
+        """
+        if isinstance(model_output, tuple) and len(model_output) == 2:
+            # in test/eval mode the Yolo model outputs a tuple where the second item is the raw predictions
+            _, predictions = model_output
+        else:
+            predictions = model_output
+
+        return self._compute_loss(predictions, targets)
+
+    @staticmethod
+    def _make_grid(nx=20, ny=20):
+        """
+        Creates a tensor of xy coordinates of size (1,1,nx,ny,2)
+
+        :param nx: int: cells along x axis (default=20)
+        :param ny: int: cells along the y axis (default=20)
+        :return: torch.tensor of xy coordinates of size (1,1,nx,ny,2)
+        """
+        yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
+        return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
+
+    def _compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
+        """
         :param predictions:     output from all Yolo levels, each of shape
-                                [Batch x Num_Anchors x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]
+                                [Batch x 1 x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]
         :param targets:         [Num_targets x (4 + 2)], values on dim 1 are: image id in a batch, class, box x y w h
 
         :return:                loss, all losses separately in a detached tensor
@@ -163,7 +200,7 @@ class YoloXDetectionLoss(_Loss):
                                              gt_classes, bboxes_preds_per_image,
                                              expanded_strides, x_shifts, y_shifts, cls_preds, obj_preds)
 
-                #TODO: CHECK IF ERROR IS CUDA OUT OF MEMORY
+                # TODO: CHECK IF ERROR IS CUDA OUT OF MEMORY
                 except RuntimeError:
                     logging.error("OOM RuntimeError is raised due to the huge memory cost during label assignment. \
                                    CPU mode is applied in this batch. If you want to avoid this issue, \
@@ -225,16 +262,16 @@ class YoloXDetectionLoss(_Loss):
         """
         Convert raw outputs of the network into a format that merges outputs from all levels
         :return:    5 tensors representing predictions:
-                        * x_shifts: shape [1 x (num_anchors * num_cells) x 1],
+                        * x_shifts: shape [1 x * num_cells x 1],
                           where num_cells = grid1X * grid1Y + grid2X * grid2Y + grid3X * grid3Y,
                           x coordinate on the grid cell the prediction is coming from
-                        * y_shifts: shape [1 x (num_anchors * num_cells) x 1],
+                        * y_shifts: shape [1 x  num_cells x 1],
                           y coordinate on the grid cell the prediction is coming from
-                        * expanded_strides: shape [1 x (num_anchors * num_cells) x 1],
+                        * expanded_strides: shape [1 x num_cells x 1],
                           stride of the output grid the prediction is coming from
-                        * transformed_outputs: shape [batch_size x (num_anchors * num_cells) x (num_classes + 5)],
+                        * transformed_outputs: shape [batch_size x num_cells x (num_classes + 5)],
                           predictions with boxes in real coordinates and logprobabilities
-                        * raw_outputs: shape [batch_size x (num_anchors * num_cells) x (num_classes + 5)],
+                        * raw_outputs: shape [batch_size x num_cells x (num_classes + 5)],
                           raw predictions with boxes and confidences as logits
 
         """
@@ -246,6 +283,7 @@ class YoloXDetectionLoss(_Loss):
         for k, output in enumerate(predictions):
             batch_size, num_anchors, h, w, num_outputs = output.shape
 
+            # IN FIRST PASS CREATE GRIDS ACCORDING TO OUTPUT SHAPE (BATCH,1,IMAGE_H/STRIDE,IMAGE_2/STRIDE,NUM_CLASSES+5)
             if self.grids[k].shape[2:4] != output.shape[2:4]:
                 self.grids[k] = self._make_grid(w, h).type_as(output)
 
@@ -269,10 +307,10 @@ class YoloXDetectionLoss(_Loss):
             x_shifts.append(grid_raveled[:, :, 0])
             # y cell coordinates of all 784 predictions, 0, 1, 2, ..., 0, 1, 2, ...
             y_shifts.append(grid_raveled[:, :, 1])
-            # e.g. [1, 784], stride of this level (one of [8, 16, 32])
+            # e.g. [1, 784, stride of this level (one of [8, 16, 32])]
             expanded_strides.append(torch.zeros(1, grid_raveled.shape[1]).fill_(self.strides[k]).type_as(output))
 
-        # all 4 below have shapes of [batch_size or 1, num_anchors * num_cells, num_values_pre_cell]
+        # all 4 below have shapes of [batch_size , num_cells, num_values_pre_cell]
         # where num_anchors * num_cells is e.g. 1 * (28 * 28 + 14 * 14 + 17 * 17)
         transformed_outputs = torch.cat(transformed_outputs, 1)
         x_shifts = torch.cat(x_shifts, 1)
