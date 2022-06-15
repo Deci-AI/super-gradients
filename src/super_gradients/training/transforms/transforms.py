@@ -386,11 +386,11 @@ class DetectionMosaic(DetectionTransform):
 
     """
 
-    def __init__(self, input_dim, prob=1.):
+    def __init__(self, input_dim: tuple, prob: float = 1., enable_mosaic: bool = True):
         super(DetectionMosaic, self).__init__(additional_samples_count=3)
         self.prob = prob
         self.input_dim = input_dim
-        self.enable_mosaic = True
+        self.enable_mosaic = enable_mosaic
 
     def close(self):
         self.additional_samples_count = 0
