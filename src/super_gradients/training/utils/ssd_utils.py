@@ -1,5 +1,7 @@
 import itertools
 from math import sqrt
+from typing import List
+
 import numpy as np
 import torch
 from torch.nn import functional as F
@@ -13,8 +15,35 @@ class DefaultBoxes(object):
     Default Boxes, (aka: anchor boxes or priors boxes) used by SSD model
     """
 
-    def __init__(self, fig_size, feat_size, steps, scales, aspect_ratios, scale_xy=0.1, scale_wh=0.2):
+    def __init__(self, fig_size: int, feat_size: List[int], steps, scales: List[int], aspect_ratios: List[List[int]],
+                 scale_xy=0.1, scale_wh=0.2):
+        """
+        For each feature map i (each predicting level, grids) the anchors (a.k.a. default boxes) will be:
+        [
+            [s, s], [sqrt(s * s_next), sqrt(s * s_next)],
+            [s * sqrt(alpha1), s / sqrt(alpha1)], [s / sqrt(alpha1), s * sqrt(alpha1)],
+            ...
+            [s * sqrt(alphaN), s / sqrt(alphaN)], [s / sqrt(alphaN), s * sqrt(alphaN)]
+        ] / fig_size
+        where:
+            * s = scale[i] - this level's scale
+            * s_next = scale[i + 1] - next level's scale
+            * alpha1, ... alphaN - this level's alphas, e.g. [2, 3]
+            * fig_size - input image resolution
 
+        Because of division by image resolution, the anchors will be in image coordinates normalized to [0, 1]
+
+        :param fig_size:        input image resolution
+        :param feat_size:       resolution of all feature maps with predictions (grids)
+        :param scales:          anchor sizes in pixels for each feature level;
+                                one value per level will be used to generate anchors based on the formula above
+        :param aspect_ratios:   lists of alpha values for each feature map
+        :param scale_xy:        predicted boxes will be with a factor scale_xy
+                                so will be multiplied by scale_xy during post-prediction processing;
+                                e.g. scale 0.1 means that prediction will be 10 times bigger
+                                (improves predictions quality)
+        :param scale_wh:        same logic as in scale_xy, but for width and height.
+        """
         self.feat_size = feat_size
         self.fig_size = fig_size
 
@@ -118,7 +147,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
 
     def __init__(self, conf: float = 0.1, iou: float = 0.45, classes: list = None, max_predictions: int = 300,
                  nms_type: NMS_Type = NMS_Type.ITERATIVE,
-                 dboxes: DefaultBoxes = DefaultBoxes.dboxes300_coco(), device='cuda'):
+                 dboxes: DefaultBoxes = DefaultBoxes.dboxes300_coco()):  # TODO: this is bad practice
         """
         :param conf: confidence threshold
         :param iou: IoU threshold
@@ -132,7 +161,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         self.classes = classes
         self.max_predictions = max_predictions
 
-        self.dboxes_xywh = dboxes('xywh').to(device)
+        self.dboxes_xywh = dboxes('xywh')
         self.scale_xy = dboxes.scale_xy
         self.scale_wh = dboxes.scale_wh
         self.img_size = dboxes.fig_size
@@ -148,14 +177,20 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         bboxes_in[:, :, 2:] *= self.scale_wh
 
         # CONVERT RELATIVE LOCATIONS INTO ABSOLUTE LOCATION (OUTPUT LOCATIONS ARE RELATIVE TO THE DBOXES)
-        bboxes_in[:, :, :2] = bboxes_in[:, :, :2] * self.dboxes_xywh[:, 2:] + self.dboxes_xywh[:, :2]
-        bboxes_in[:, :, 2:] = bboxes_in[:, :, 2:].exp() * self.dboxes_xywh[:, 2:]
+        dboxes_on_device = self.dboxes_xywh.to(device)
+        bboxes_in[:, :, :2] = bboxes_in[:, :, :2] * dboxes_on_device[:, 2:] + dboxes_on_device[:, :2]
+        bboxes_in[:, :, 2:] = bboxes_in[:, :, 2:].exp() * dboxes_on_device[:, 2:]
 
-        scores_in = F.softmax(scores_in, dim=-1)  # TODO softmax without first item?
+        scores_in = F.softmax(scores_in, dim=-1)
 
         # REPLACE THE CONFIDENCE OF CLASS NONE WITH OBJECT CONFIDENCE
         # SSD DOES NOT OUTPUT OBJECT CONFIDENCE, REQUIRED FOR THE NMS
-        scores_in[:, :, 0] = torch.max(scores_in[:, :, 1:], dim=2)[0]
+        scores_in[:, :, 0] = 1.
+        # the right way to treat foreground (reduces mAP)
+        # background_mask = torch.max(scores_in, dim=2)[1] == 0.
+        # translate foreground class into the objectness prob (filter out foreground)
+        # scores_in[:, :, 0][background_mask] = 0.
+        # scores_in[:, :, 0][~background_mask] = 1.
         bboxes_in *= self.img_size
 
         nms_input = torch.cat((bboxes_in, scores_in), dim=2)

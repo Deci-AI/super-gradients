@@ -19,7 +19,7 @@ DEFAULT_SSD_MOBILENET_V1_ARCH_PARAMS = {
 DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
     "out_channels": [576, 1280, 512, 256, 256, 64],
     "expand_ratios": [0.2, 0.25, 0.5, 0.25],
-    "num_defaults": [6, 6, 6, 6, 6, 6],
+    "num_defaults": [6, 6, 6, 6, 6, 6],  # num anchors per level, defined by scales used when constructing DefaultBoxes
     "lite": True,
     "width_mult": 1.0,
     "output_paths": [[14, 'conv', 2], 18]
