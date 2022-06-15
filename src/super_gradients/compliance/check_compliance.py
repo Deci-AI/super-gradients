@@ -10,7 +10,7 @@ from typing import List, Dict
 from pathlib import Path
 from packaging.version import Version
 
-logger = getLogger('deci-compliance')
+logger = getLogger('sg-compliance')
 logger.setLevel(DEBUG)
 
 
@@ -27,9 +27,10 @@ def verify_os() -> List[str]:
 
 def get_libs_requirements() -> List[str]:
     """Read requirement.txt from the root, and split it as a list of libs/version"""
-    with open(Path(__file__).parent.parent.parent.parent / "requirements.txt", "r") as f:
-        requirements_str = f.read()
-    return requirements_str.split("\n")
+    file_path = Path(__file__)  # super-gradients/src/super_gradients/compliance/check_compliance.py
+    project_root = file_path.parent.parent.parent.parent  # moving to super-gradients, where requirements.txt is
+    with open(project_root / "requirements.txt", "r") as f:
+        return f.readlines()
 
 
 def get_installed_libs_with_version() -> Dict[str, str]:
@@ -92,14 +93,14 @@ def check_compliance() -> None:
     }
 
     compliance_errors = {}
-    logger.info('Deci Compliance Check Started')
+    logger.info('SuperGradients Compliance Check Started')
     logger.info(f'Checking the following components: {list(requirement_checkers.keys())}')
     logger.info('_' * 20)
     for test_name, test_function in requirement_checkers.items():
         logger.info(f"Verifying {test_name}...")
         try:
             errors = test_function()
-            if errors:
+            if len(errors) > 0:
                 compliance_errors[test_name] = errors
                 for e in errors:
                     assert isinstance(e, str), 'Errors should be returned by the functions as str objects.'
@@ -120,3 +121,11 @@ def check_compliance() -> None:
 
 if __name__ == '__main__':
     check_compliance()
+    import os
+    ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+    CONFIG_PATH = os.path.join(ROOT_DIR, "requirements.txt")
+    print(ROOT_DIR, CONFIG_PATH)
+
+    print("---")
+    import pkg_resources
+    print(pkg_resources.resource_string("super_gradients", "requirements.txt"))
