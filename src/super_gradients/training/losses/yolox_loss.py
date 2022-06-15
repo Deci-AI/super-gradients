@@ -64,11 +64,11 @@ class IOUloss(nn.Module):
 
 class YoloXDetectionLoss(_Loss):
     """
-    Calculate YOLO V5 loss:
+    Calculate YOLOX loss:
     L = L_objectivness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
     """
 
-    def __init__(self, strides, im_size, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou'):
+    def __init__(self, strides, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou'):
         super().__init__()
         self.grids = [torch.zeros(1)] * len(strides)
         self.strides = strides
@@ -87,14 +87,14 @@ class YoloXDetectionLoss(_Loss):
         else:
             predictions = model_output
 
-        return self.compute_loss(predictions, targets)
+        return self._compute_loss(predictions, targets)
 
     @staticmethod
     def _make_grid(nx=20, ny=20):
         yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
-    def compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
+    def _compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
             -> Tuple[torch.Tensor, torch.Tensor]:
         """
         L = L_objectivness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
@@ -153,7 +153,6 @@ class YoloXDetectionLoss(_Loss):
             else:
                 # GT boxes to image coordinates
                 gt_bboxes_per_image = labels_im[:, 2:6].clone()
-                # gt_bboxes_per_image = labels_im[:, 2:6] * self.im_size
                 gt_classes = labels_im[:, 1]
                 bboxes_preds_per_image = bbox_preds[batch_idx]
 
@@ -163,6 +162,7 @@ class YoloXDetectionLoss(_Loss):
                         self.get_assignments(batch_idx, num_gt, total_num_anchors, gt_bboxes_per_image,
                                              gt_classes, bboxes_preds_per_image,
                                              expanded_strides, x_shifts, y_shifts, cls_preds, obj_preds)
+
                 #TODO: CHECK IF ERROR IS CUDA OUT OF MEMORY
                 except RuntimeError:
                     logging.error("OOM RuntimeError is raised due to the huge memory cost during label assignment. \
@@ -216,8 +216,8 @@ class YoloXDetectionLoss(_Loss):
         loss = reg_weight * loss_iou + loss_obj + loss_cls + loss_l1
 
         return loss, torch.cat((loss_iou.unsqueeze(0), loss_obj.unsqueeze(0), loss_cls.unsqueeze(0),
-                                torch.tensor(loss_l1).unsqueeze(0).cuda(),
-                                torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).cuda(),
+                                torch.tensor(loss_l1).unsqueeze(0).to(loss.device),
+                                torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).to(loss.device),
                                 loss.unsqueeze(0))).detach()
 
     def prepare_predictions(self, predictions: List[torch.Tensor]) -> \

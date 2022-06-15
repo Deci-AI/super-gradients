@@ -40,7 +40,7 @@ class TestYOLOX(unittest.TestCase):
                 self.assertIsNotNone(output_augment)
 
                 # MODEL IS ANCHORLESS
-                assert yolo_model._head.anchors.num_anchors == 0
+                self.assertTrue(yolo_model._head.anchors.num_anchors == 0)
 
 
 if __name__ == '__main__':
