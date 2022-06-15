@@ -202,9 +202,4 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
             nms_res = matrix_non_max_suppression(nms_input, conf_thres=self.conf,
                                                  max_num_of_detections=self.max_predictions)
 
-        # NMS OUTPUT A 0-BASED CLASS LABEL, BUT SSD WORKS WITH 1-BASED CLASS LABEL
-        for t in nms_res:
-            if t is not None:
-                t[:, 5] += 1
-
         return nms_res
