@@ -1167,7 +1167,7 @@ class Anchors(nn.Module):
         return f"anchors_list: {self.__anchors_list} strides: {self.__strides}"
 
 
-class YoloXCollateFN:
+class DetectionCollateFN:
     """
     Collate function for Yolox training
     """
