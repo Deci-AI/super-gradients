@@ -161,7 +161,8 @@ class SSDLiteMobileNetV2(SSD):
         self.arch_params = HpmStruct(**DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS)
         self.arch_params.override(**arch_params.to_dict())
         self.arch_params.out_channels[0] = int(round(self.arch_params.out_channels[0] * self.arch_params.width_mult))
-        mobilenetv2 = MobileNetV2(num_classes=None, backbone_mode=True, width_mult=self.arch_params.width_mult)
+        mobilenetv2 = MobileNetV2(num_classes=None, dropout=0.,
+                                  backbone_mode=True, width_mult=self.arch_params.width_mult)
         super().__init__(backbone=mobilenetv2.features, arch_params=self.arch_params)
 
     # OVERRIDE THE DEFAULT FUNCTION FROM SSD. ADD THE SDD BLOCKS AFTER THE BACKBONE.
