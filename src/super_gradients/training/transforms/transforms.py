@@ -539,8 +539,8 @@ class DetectionMixup(DetectionTransform):
             cp_sample = sample["additional_samples"][0]
             img, cp_labels = cp_sample["image"], cp_sample["target"]
 
+            img, cp_labels = _mirror(img, cp_labels, 0.5)
             jit_factor = random.uniform(*self.mixup_scale)
-            FLIP = random.uniform(0, 1) > 0.5
 
             if len(img.shape) == 3:
                 cp_img = np.ones((self.input_dim[0], self.input_dim[1], 3), dtype=np.uint8) * 114
@@ -562,8 +562,6 @@ class DetectionMixup(DetectionTransform):
             )
             cp_scale_ratio *= jit_factor
 
-            if FLIP:
-                cp_img = cp_img[:, ::-1, :]
 
             origin_h, origin_w = cp_img.shape[:2]
             target_h, target_w = origin_img.shape[:2]
@@ -582,8 +580,6 @@ class DetectionMixup(DetectionTransform):
             cp_bboxes_origin_np = adjust_box_anns(
                 cp_labels[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h
             )
-            if FLIP:
-                cp_bboxes_origin_np[:, 0::2] = (origin_w - cp_bboxes_origin_np[:, 0::2][:, ::-1])
             cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
             cp_bboxes_transformed_np[:, 0::2] = np.clip(
                 cp_bboxes_transformed_np[:, 0::2] - x_offset, 0, target_w
