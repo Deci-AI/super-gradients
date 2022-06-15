@@ -25,4 +25,4 @@ pip-tools>=6.4.0
 pyparsing==2.4.5
 einops==0.3.2
 protobuf~=3.19.0
-deci-lab-client==2.22.1
+deci-lab-client~=2.23
