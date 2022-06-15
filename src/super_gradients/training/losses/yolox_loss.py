@@ -177,8 +177,8 @@ class YoloXDetectionLoss(_Loss):
 
         num_fg, num_gts = 0., 0.
 
-        for batch_idx in range(transformed_outputs.shape[0]):
-            labels_im = targets[targets[:, 0] == batch_idx]
+        for image_idx in range(transformed_outputs.shape[0]):
+            labels_im = targets[targets[:, 0] == image_idx]
             num_gt = labels_im.shape[0]
             num_gts += num_gt
             if num_gt == 0:
@@ -191,12 +191,12 @@ class YoloXDetectionLoss(_Loss):
                 # GT boxes to image coordinates
                 gt_bboxes_per_image = labels_im[:, 2:6].clone()
                 gt_classes = labels_im[:, 1]
-                bboxes_preds_per_image = bbox_preds[batch_idx]
+                bboxes_preds_per_image = bbox_preds[image_idx]
 
                 try:
                     # assign cells to ground truths, at most one GT per cell
                     gt_matched_classes, fg_mask, pred_ious_this_matching, matched_gt_inds, num_fg_img = \
-                        self.get_assignments(batch_idx, num_gt, total_num_anchors, gt_bboxes_per_image,
+                        self.get_assignments(image_idx, num_gt, total_num_anchors, gt_bboxes_per_image,
                                              gt_classes, bboxes_preds_per_image,
                                              expanded_strides, x_shifts, y_shifts, cls_preds, obj_preds)
 
@@ -207,7 +207,7 @@ class YoloXDetectionLoss(_Loss):
                                    try to reduce the batch size or image size.")
                     torch.cuda.empty_cache()
                     gt_matched_classes, fg_mask, pred_ious_this_matching, matched_gt_inds, num_fg_img = \
-                        self.get_assignments(batch_idx, num_gt, total_num_anchors, gt_bboxes_per_image,
+                        self.get_assignments(image_idx, num_gt, total_num_anchors, gt_bboxes_per_image,
                                              gt_classes, bboxes_preds_per_image,
                                              expanded_strides, x_shifts, y_shifts, cls_preds, obj_preds, 'cpu')
 
@@ -261,6 +261,8 @@ class YoloXDetectionLoss(_Loss):
             Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Convert raw outputs of the network into a format that merges outputs from all levels
+        :param predictions:     output from all Yolo levels, each of shape
+                                [Batch x 1 x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]
         :return:    5 tensors representing predictions:
                         * x_shifts: shape [1 x * num_cells x 1],
                           where num_cells = grid1X * grid1Y + grid2X * grid2Y + grid3X * grid3Y,
@@ -335,13 +337,29 @@ class YoloXDetectionLoss(_Loss):
         return l1_target
 
     @torch.no_grad()
-    def get_assignments(self, batch_idx, num_gt, total_num_anchors, gt_bboxes_per_image, gt_classes,
+    def get_assignments(self, image_idx, num_gt, total_num_anchors, gt_bboxes_per_image, gt_classes,
                         bboxes_preds_per_image, expanded_strides, x_shifts, y_shifts, cls_preds,
                         obj_preds, mode="gpu"):
         """
         Match cells to ground truth:
             * at most 1 GT per cell
             * dynamic number of cells per GT
+
+        
+        :param image_idx: int: Image index in batch.
+        :param num_gt: int: Number of ground trunth targets in the image.
+        :param total_num_anchors: int: Total number of possible bboxes = sum of all grid cells.
+        :param gt_bboxes_per_image: torch.Tensor: Tensor of gt bboxes for  the image, shape: (num_gt, 4).
+        :param gt_classes: torch.Tesnor: Tensor of the classes in the image, shape: (num_preds,4).
+        :param bboxes_preds_per_image: Tensor of the classes in the image, shape: (num_preds).
+        :param expanded_strides: torch.Tensor: Stride of the output grid the prediction is coming from,
+            shape (1 x num_cells x 1).
+        :param x_shifts: torch.Tensor: X's in cell coordinates, shape (1,num_cells,1).
+        :param y_shifts: torch.Tensor: Y's in cell coordinates, shape (1,num_cells,1).
+        :param cls_preds: torch.Tensor: Class predictions in all cells, shape (batch_size, num_cells).
+        :param obj_preds: torch.Tensor: Objectness predictions in all cells, shape (batch_size, num_cells).
+        :param mode: str: One of ["gpu","cpu"], Controls the device the assignment operation should be taken place on (deafult="gpu")
+
         """
         if mode == "cpu":
             print("------------CPU Mode for This Batch-------------")
@@ -357,8 +375,8 @@ class YoloXDetectionLoss(_Loss):
                                                                  x_shifts, y_shifts, total_num_anchors, num_gt)
 
         bboxes_preds_per_image = bboxes_preds_per_image[fg_mask]
-        cls_preds_ = cls_preds[batch_idx][fg_mask]
-        obj_preds_ = obj_preds[batch_idx][fg_mask]
+        cls_preds_ = cls_preds[image_idx][fg_mask]
+        obj_preds_ = obj_preds[image_idx][fg_mask]
         num_in_boxes_anchor = bboxes_preds_per_image.shape[0]
 
         if mode == "cpu":
@@ -402,7 +420,23 @@ class YoloXDetectionLoss(_Loss):
             * withing a GT box;
             OR
             * within a fixed radius around a GT box (center sampling);
+
+        :param num_gt: int: Number of ground trunth targets in the image.
+        :param total_num_anchors: int: Total number of possible bboxes = sum of all grid cells.
+        :param gt_bboxes_per_image: torch.Tensor: Tensor of gt bboxes for  the image, shape: (num_gt, 4).
+        :param expanded_strides: torch.Tensor: Stride of the output grid the prediction is coming from,
+            shape (1 x num_cells x 1).
+        :param x_shifts: torch.Tensor: X's in cell coordinates, shape (1,num_cells,1).
+        :param y_shifts: torch.Tensor: Y's in cell coordinates, shape (1,num_cells,1).
+
+        :return is_in_boxes_anchor, is_in_boxes_and_center
+            where:
+             - is_in_boxes_anchor masks the cells that their cell center is  inside a gt bbox and within
+                self.center_sampling_radius cells away, without reduction (i.e shape=(num_gts, num_fgs))
+             - is_in_boxes_and_center masks the cells that their center is either inside a gt bbox or within
+                self.center_sampling_radius cells away, shape (num_fgs)
         """
+
         expanded_strides_per_image = expanded_strides[0]
 
         # cell coordinates, shape [n_predictions] -> repeated to [n_gts, n_predictions]
@@ -468,6 +502,11 @@ class YoloXDetectionLoss(_Loss):
         :param pair_wise_ious:  pairwise IoUs, [num_FGs x num_GTs]
         :param gt_classes:      class of each GT
         :param num_gt:          number of GTs
+
+        :return num_fg, (number of foregrounds)
+                gt_matched_classes, (the classes that have been matched with fgs)
+                pred_ious_this_matching
+                matched_gt_inds
         """
         # create a matrix with shape [num_GTs x num_FGs]
         matching_matrix = torch.zeros_like(cost, dtype=torch.uint8)
