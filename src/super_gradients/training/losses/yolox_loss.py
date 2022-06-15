@@ -85,7 +85,7 @@ class YoloXDetectionLoss(_Loss):
         L_iou:
             for cells that have suitable ground truths in their grid locations
             add (1 - IoU^2), IoU between a predicted box and each GT box, force maximum IoU
-            Coef: 1.
+            Coef: 5.
         L_l1:
             for cells that have suitable ground truths in their grid locations
             l1 distance between the logits and GTs in “logits” format (the inverse of “logits to predictions” ops)
