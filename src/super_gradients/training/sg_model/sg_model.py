@@ -1735,7 +1735,6 @@ class SgModel:
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
 
-        # logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
         pbar_message_dict = get_train_loop_description_dict(logging_values,
                                                             metrics,
                                                             self.loss_logging_items_names)
