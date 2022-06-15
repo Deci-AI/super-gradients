@@ -425,7 +425,7 @@ class YoloXDetectionLoss(_Loss):
             * within a fixed radius around a GT box (center sampling);
 
         :param num_gt: int: Number of ground trunth targets in the image.
-        :param total_num_anchors: int: Total number of possible bboxes = sum of all grid cells.
+        :param total_num_anchors: int: Sum of all grid cells.
         :param gt_bboxes_per_image: torch.Tensor: Tensor of gt bboxes for  the image, shape: (num_gt, 4).
         :param expanded_strides: torch.Tensor: Stride of the output grid the prediction is coming from,
             shape (1 x num_cells x 1).
