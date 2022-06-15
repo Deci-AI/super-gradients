@@ -339,13 +339,16 @@ class YoloXDetectionLoss(_Loss):
     @torch.no_grad()
     def get_assignments(self, image_idx, num_gt, total_num_anchors, gt_bboxes_per_image, gt_classes,
                         bboxes_preds_per_image, expanded_strides, x_shifts, y_shifts, cls_preds,
-                        obj_preds, mode="gpu"):
+                        obj_preds, mode="gpu", ious_loss_cost_coeff=3.0, outside_boxes_and_center_cost_coeff=100000.0):
         """
         Match cells to ground truth:
             * at most 1 GT per cell
             * dynamic number of cells per GT
 
         
+        :param outside_boxes_and_center_cost_coeff: float: Cost coefficiant of cells the radius and bbox of gts in dynamic
+         matching (default=100000).
+        :param ious_loss_cost_coeff: float: Cost coefficiant for iou loss in dynamic matching (default=3).
         :param image_idx: int: Image index in batch.
         :param num_gt: int: Number of ground trunth targets in the image.
         :param total_num_anchors: int: Total number of possible bboxes = sum of all grid cells.
@@ -398,7 +401,7 @@ class YoloXDetectionLoss(_Loss):
             pair_wise_cls_loss = F.binary_cross_entropy(cls_preds_.sqrt_(), gt_cls_per_image, reduction="none").sum(-1)
         del cls_preds_
 
-        cost = pair_wise_cls_loss + 3.0 * pair_wise_ious_loss + 100000.0 * (~is_in_boxes_and_center)
+        cost = pair_wise_cls_loss + ious_loss_cost_coeff * pair_wise_ious_loss + outside_boxes_and_center_cost_coeff * (~is_in_boxes_and_center)
 
         # further filter foregrounds: create pairs between cells and ground truth, based on cost and IoUs
         num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds = \
