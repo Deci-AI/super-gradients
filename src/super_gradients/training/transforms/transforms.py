@@ -522,12 +522,12 @@ class DetectionMixup(DetectionTransform):
         enable_mixup: (bool) whether to apply mixup at all (regardless of prob) (default=True).
     """
 
-    def __init__(self, input_dim, mixup_scale, prob=1.):
+    def __init__(self, input_dim, mixup_scale, prob=1., enable_mixup=True):
         super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
         self.input_dim = input_dim
         self.mixup_scale = mixup_scale
         self.prob = prob
-        self.enable_mixup = True
+        self.enable_mixup = enable_mixup
 
     def close(self):
         self.additional_samples_count = 0

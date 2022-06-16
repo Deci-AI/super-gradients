@@ -1188,19 +1188,6 @@ class Anchors(nn.Module):
         return f"anchors_list: {self.__anchors_list} strides: {self.__strides}"
 
 
-def get_yolox_datadir():
-    """
-    get dataset dir of YOLOX. If environment variable named `YOLOX_DATADIR` is set,
-    this function will return value of the environment variable. Otherwise, use data
-    """
-    yolox_datadir = os.getenv("YOLOX_DATADIR", None)
-    if yolox_datadir is None:
-        import yolox
-        yolox_path = os.path.dirname(os.path.dirname(yolox.__file__))
-        yolox_datadir = os.path.join(yolox_path, "datasets")
-    return yolox_datadir
-
-
 def xyxy2cxcywh(bboxes):
     """
     Transforms bboxes from xyxy format to centerized xy wh format
@@ -1293,3 +1280,15 @@ class YoloXCollateFN:
             targets_merged.append(torch.cat((batch_column, targets_im), 1))
         targets = torch.cat(targets_merged, 0)
         return ims, targets
+
+def get_yolox_datadir():
+    """
+    get dataset dir of YOLOX. If environment variable named `YOLOX_DATADIR` is set,
+    this function will return value of the environment variable. Otherwise, use data
+    """
+    yolox_datadir = os.getenv("YOLOX_DATADIR", None)
+    if yolox_datadir is None:
+        import yolox
+        yolox_path = os.path.dirname(os.path.dirname(yolox.__file__))
+        yolox_datadir = os.path.join(yolox_path, "datasets")
+    return yolox_datadir
