@@ -66,9 +66,9 @@ class COCODetectionDatasetYolox(Dataset):
         return len(self.ids)
 
     def _load_coco_annotations(self):
-        return [self.load_anno_from_ids(_ids) for _ids in self.ids]
+        return [self._load_anno_from_ids(_ids) for _ids in self.ids]
 
-    def load_anno_from_ids(self, id_):
+    def _load_anno_from_ids(self, id_):
         im_ann = self.coco.loadImgs(id_)[0]
         width = im_ann["width"]
         height = im_ann["height"]
@@ -169,6 +169,12 @@ class COCODetectionDatasetYolox(Dataset):
         )
 
     def load_resized_img(self, index):
+        """
+        Loads image at index, and resizes it to self.input_dim
+
+        :param index: index to load the image from
+        :return: resized_img
+        """
         img = self.load_image(index)
         r = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
         resized_img = cv2.resize(
@@ -179,6 +185,18 @@ class COCODetectionDatasetYolox(Dataset):
         return resized_img
 
     def load_sample(self, index):
+        """
+        Loads sample at self.ids[index] as dictionary that holds:
+            "image": Image resized to self.input_dim
+            "target": Detection ground truth, np.array shaped (num_targets, 5), format is [class,x1,y1,x2,y2] with
+                image coordinates.
+            "target_seg": Segmentation map convex hull derived detection target.
+            "info": Original shape (height,width).
+            "id": COCO image id
+
+        :param index: Sample index
+        :return: sample as described above
+        """
         id_ = self.ids[index]
         res, res_seg, img_info, resized_info, _ = self.annotations[index]
         if self.imgs is not None:
@@ -192,6 +210,11 @@ class COCODetectionDatasetYolox(Dataset):
         return sample
 
     def load_image(self, index):
+        """
+        Loads image at index with its original resolution
+        :param index: index in self.annotations
+        :return: image (np.array)
+        """
         file_name = self.annotations[index][4]
 
         img_file = os.path.join(file_name)
@@ -204,14 +227,14 @@ class COCODetectionDatasetYolox(Dataset):
     def __del__(self):
         del self.imgs
 
-    def load_anno(self, index):
+    def _load_anno(self, index):
         return self.annotations[index][0]
 
     def _get_random_non_empty_target_idx(self):
         target = []
         while len(target) == 0:
             idx = random.randint(0, len(self.ids) - 1)
-            target = self.load_anno(idx)
+            target = self._load_anno(idx)
         return idx
 
     def _load_random_samples(self, count, non_empty_targets_only=False):
@@ -228,6 +251,16 @@ class COCODetectionDatasetYolox(Dataset):
         sample["additional_samples"] = additional_samples
 
     def apply_transforms(self, sample: dict):
+        """
+        Applies self.transforms sequentially to sample
+
+        If a transforms has the attribute 'additional_samples_count', additional samples will be loaded and stored in
+         sample["additional_samples"] prior to applying it. Combining with the attribute "non_empty_targets" will load
+         only additional samples with objects in them.
+
+        :param sample: Sample to apply the transforms on to (loaded with self.load_sample)
+        :return: Transformed sample
+        """
         for transform in self.transforms:
             self._load_additional_inputs_for_transform(sample, transform)
             sample = transform(sample)
