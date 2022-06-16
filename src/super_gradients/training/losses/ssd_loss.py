@@ -22,8 +22,8 @@ class SSDLoss(_Loss):
 
     def __init__(self, dboxes: DefaultBoxes, alpha: float = 1.0, iou_thresh: float = 0.5, neg_pos_ratio: float = 3.):
         super(SSDLoss, self).__init__()
-        self.scale_xy = 1.0 / dboxes.scale_xy
-        self.scale_wh = 1.0 / dboxes.scale_wh
+        self.scale_xy = dboxes.scale_xy
+        self.scale_wh = dboxes.scale_wh
         self.alpha = alpha
         self.sl1_loss = nn.SmoothL1Loss(reduce=False)
         self.dboxes = nn.Parameter(dboxes(order="xywh").transpose(0, 1).unsqueeze(dim=0), requires_grad=False)
@@ -38,8 +38,8 @@ class SSDLoss(_Loss):
 
         :param loc a tensor of shape [batch, 4, num_boxes]
         """
-        gxy = self.scale_xy * (loc[:, :2, :] - self.dboxes[:, :2, :]) / self.dboxes[:, 2:, ]
-        gwh = self.scale_wh * (loc[:, 2:, :] / self.dboxes[:, 2:, :]).log()
+        gxy = ((loc[:, :2, :] - self.dboxes[:, :2, :]) / self.dboxes[:, 2:, ]) / self.scale_xy
+        gwh = (loc[:, 2:, :] / self.dboxes[:, 2:, :]).log() / self.scale_wh
         return torch.cat((gxy, gwh), dim=1).contiguous()
 
     def match_dboxes(self, targets):
