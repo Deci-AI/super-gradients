@@ -4,7 +4,7 @@ from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 
 from super_gradients.training import SgModel
 from super_gradients.training.datasets import CoCoDetectionDatasetInterface
-from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
+from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
 
 
 class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):

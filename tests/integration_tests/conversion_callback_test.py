@@ -10,7 +10,7 @@ from super_gradients import (
 )
 from super_gradients.training.utils.callbacks import ModelConversionCheckCallback
 from super_gradients.training.utils.detection_utils import Anchors
-from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
+from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
 from super_gradients.training.metrics import Accuracy, Top5, IoU
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.losses.stdc_loss import STDCLoss

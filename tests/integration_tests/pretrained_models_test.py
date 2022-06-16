@@ -9,7 +9,7 @@ from super_gradients.training.utils.segmentation_utils import coco_sub_classes_i
 from super_gradients.training.metrics import Accuracy, IoU
 import os
 import shutil
-from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
+from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
 from super_gradients.training.utils.detection_utils import Anchors
 import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
