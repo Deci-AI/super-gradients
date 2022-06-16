@@ -5,6 +5,7 @@ anchors:
   _target_: super_gradients.training.utils.detection_utils.Anchors
   anchors_list: [[10, 13, 16, 30, 33, 23],[30, 61, 62, 45, 59, 119],[116, 90, 156, 198, 373, 326]]
   strides: [8, 16, 32]
+
 num_classes: 80  # Number of classes to predict
 depth_mult_factor: 1.0  # depth multiplier for the entire model, overridden for predefined YoloV5S, YoloV5M, YoloV5L
 width_mult_factor: 1.0  # width multiplier for the entire model, overridden for predefined YoloV5S, YoloV5M, YoloV5L
@@ -22,5 +23,4 @@ nms_iou: 0.45  # When add_nms is True IoU threshold for NMS algorithm
 yolo_type: 'yoloV5'   # Type of yolo to build: 'yoloV5' and 'yoloX' are supported
 yolo_version: 'v6.0'  # Release version of Ultralytics to built a model from: v.6.0 and v3.0 are supported
 stem_type: None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
-depthwise: False  # use depthwise separable convolutions all over the model
 _convert_: all
