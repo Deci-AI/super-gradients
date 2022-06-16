@@ -33,7 +33,7 @@ class COCODetectionDatasetYolox(Dataset):
         :param name: str, sub directory of data_dir containing the data.
         :param cache: bool, whether to cache images
         :param tight_box_rotation: bool
-        :param transforms: 
+        :param transforms: list of transforms to apply sequentially on sample in __getitem__
         """
         super().__init__()
         self.imgs = None
