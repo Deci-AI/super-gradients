@@ -15,7 +15,7 @@ class DefaultBoxes(object):
     Default Boxes, (aka: anchor boxes or priors boxes) used by SSD model
     """
 
-    def __init__(self, fig_size: int, feat_size: List[int], steps, scales: List[int], aspect_ratios: List[List[int]],
+    def __init__(self, fig_size: int, feat_size: List[int], scales: List[int], aspect_ratios: List[List[int]],
                  scale_xy=0.1, scale_wh=0.2):
         """
         For each feature map i (each predicting level, grids) the anchors (a.k.a. default boxes) will be:
@@ -52,18 +52,15 @@ class DefaultBoxes(object):
 
         # According to https://github.com/weiliu89/caffe
         # Calculation method slightly different from paper
-        self.steps = steps
         self.scales = scales
-
-        fk = fig_size / np.array(steps)
         self.aspect_ratios = aspect_ratios
 
         self.default_boxes = []
         # size of feature and number of feature
         for idx, sfeat in enumerate(self.feat_size):
 
-            sk1 = scales[idx] / fig_size
-            sk2 = scales[idx + 1] / fig_size
+            sk1 = scales[idx]
+            sk2 = scales[idx + 1]
             sk3 = sqrt(sk1 * sk2)
             all_sizes = [(sk1, sk1), (sk3, sk3)]
 
@@ -71,9 +68,11 @@ class DefaultBoxes(object):
                 w, h = sk1 * sqrt(alpha), sk1 / sqrt(alpha)
                 all_sizes.append((w, h))
                 all_sizes.append((h, w))
+
+            all_sizes = np.array(all_sizes) / fig_size
             for w, h in all_sizes:
                 for i, j in itertools.product(range(sfeat), repeat=2):
-                    cx, cy = (j + 0.5) / fk[idx], (i + 0.5) / fk[idx]
+                    cx, cy = (j + 0.5) / sfeat, (i + 0.5) / sfeat
                     self.default_boxes.append((cx, cy, w, h))
 
         self.dboxes = torch.tensor(self.default_boxes, dtype=torch.float)
@@ -104,11 +103,10 @@ class DefaultBoxes(object):
     def dboxes300_coco():
         figsize = 300
         feat_size = [38, 19, 10, 5, 3, 1]
-        steps = [8, 16, 32, 64, 100, 300]
         # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
         scales = [21, 45, 99, 153, 207, 261, 315]
         aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
-        return DefaultBoxes(figsize, feat_size, steps, scales, aspect_ratios)
+        return DefaultBoxes(figsize, feat_size, scales, aspect_ratios)
 
     @staticmethod
     def dboxes300_coco_from19():
@@ -123,20 +121,18 @@ class DefaultBoxes(object):
         # https://github.com/qfgaohao/pytorch-ssd/blob/f61ab424d09bf3d4bb3925693579ac0a92541b0d/vision/ssd/config/mobilenetv1_ssd_config.py
         figsize = 300
         feat_size = [19, 10, 5, 3, 2, 1]
-        steps = [16, 32, 64, 100, 150, 300]
         scales = [60, 105, 150, 195, 240, 285, 330]
         aspect_ratios = [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
-        return DefaultBoxes(figsize, feat_size, steps, scales, aspect_ratios)
+        return DefaultBoxes(figsize, feat_size, scales, aspect_ratios)
 
     @staticmethod
     def dboxes256_coco():
         figsize = 256
         feat_size = [32, 16, 8, 4, 2, 1]
-        steps = [8, 16, 32, 64, 128, 256]
         # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
         scales = [18, 38, 84, 131, 1177, 223, 269]
         aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
-        return DefaultBoxes(figsize, feat_size, steps, scales, aspect_ratios)
+        return DefaultBoxes(figsize, feat_size, scales, aspect_ratios)
 
 
 class SSDPostPredictCallback(DetectionPostPredictionCallback):
