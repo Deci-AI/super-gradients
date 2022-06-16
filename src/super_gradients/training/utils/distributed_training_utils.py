@@ -1,7 +1,9 @@
 import torch
+from torch import distributed as dist
 from torch.cuda.amp import autocast
 import torch.nn as nn
 import itertools
+from contextlib import contextmanager
 
 
 def distributed_all_reduce_tensor_average(tensor, n):
@@ -114,3 +116,40 @@ def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoad
         bn.running_mean = running_means[i]
         bn.running_var = running_vars[i]
         bn.momentum = momentums[i]
+
+
+def get_local_rank():
+    """
+    Returns the local rank if running in DDP, and 0 otherwise
+    :return: local rank
+    """
+    return dist.get_rank() if dist.is_initialized() else 0
+
+
+def get_world_size() -> int:
+    """
+    Returns the world size if running in DDP, and 1 otherwise
+    :return: world size
+    """
+    if not dist.is_available():
+        return 1
+    if not dist.is_initialized():
+        return 1
+    return dist.get_world_size()
+
+
+@contextmanager
+def wait_for_the_master(local_rank: int):
+    """
+    Make all processes waiting for the master to do some task.
+    """
+    if local_rank > 0:
+        dist.barrier()
+    yield
+    if local_rank == 0:
+        if not dist.is_available():
+            return
+        if not dist.is_initialized():
+            return
+        else:
+            dist.barrier()
