@@ -17,6 +17,7 @@ from tests.unit_tests.dice_loss_test import DiceLossTest
 from tests.unit_tests.vit_unit_test import TestViT
 from tests.unit_tests.yolox_unit_test import TestYOLOX
 from tests.unit_tests.lr_cooldown_test import LRCooldownTest
+from tests.unit_tests.detection_targets_format_transform_test import DetectionTargetsTransformTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -57,6 +58,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestYOLOX))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(InitializeWithDataloadersTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRCooldownTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DetectionTargetsTransformTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
