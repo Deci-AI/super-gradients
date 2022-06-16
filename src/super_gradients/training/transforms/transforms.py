@@ -5,9 +5,16 @@ from typing import Optional, Union, Tuple, List, Sequence
 
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
+import numpy as np
+import cv2
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, \
+    adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
 
 image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
+
+logger = get_logger(__name__)
 
 
 class SegmentationTransform:
@@ -335,3 +342,650 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
         raise ValueError(f"Fill value must be a value from 0 to 255,"
                          f" found: fill_image = {fill_image}, fill_mask = {fill_mask}")
     return fill_mask, fill_image
+
+
+class DetectionTransform:
+    """
+    Detection transform base class.
+
+    Complex transforms that require extra data loading can use the the additional_samples_count attribute in a
+     similar fashion to what's been done in COCODetectionDatasetYolox:
+
+    self._load_additional_inputs_for_transform(sample, transform)
+
+    # after the above call, sample["additional_samples"] holds a list of additional inputs and targets.
+
+    sample = transform(sample)
+
+
+
+    Attributes:
+        additional_samples_count: (int) additional samples to be loaded.
+        non_empty_targets: (bool) whether the additianl targets can have empty targets or not.
+    """
+
+    def __init__(self, additional_samples_count: int = 0, non_empty_targets: bool = False):
+        self.additional_samples_count = additional_samples_count
+        self.non_empty_targets = non_empty_targets
+
+    def __call__(self, sample: Union[dict, list]):
+        raise NotImplementedError
+
+    def __repr__(self):
+        return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')
+
+
+class DetectionMosaic(DetectionTransform):
+    """
+    DetectionMosaic detection transform
+
+    Attributes:
+        input_dim: (tuple) input dimension.
+        prob: (float) probability of applying mosaic.
+        enable_mosaic: (bool) whether to apply mosaic at all (regardless of prob) (default=True).
+
+    """
+
+    def __init__(self, input_dim: tuple, prob: float = 1., enable_mosaic: bool = True):
+        super(DetectionMosaic, self).__init__(additional_samples_count=3)
+        self.prob = prob
+        self.input_dim = input_dim
+        self.enable_mosaic = enable_mosaic
+
+    def close(self):
+        self.additional_samples_count = 0
+        self.enable_mosaic = False
+
+    def __call__(self, sample: Union[dict, list]):
+        if self.enable_mosaic and random.random() < self.prob:
+            mosaic_labels = []
+            mosaic_labels_seg = []
+            input_h, input_w = self.input_dim[0], self.input_dim[1]
+
+            # yc, xc = s, s  # mosaic center x, y
+            yc = int(random.uniform(0.5 * input_h, 1.5 * input_h))
+            xc = int(random.uniform(0.5 * input_w, 1.5 * input_w))
+
+            # 3 additional samples, total of 4
+            all_samples = [sample] + sample["additional_samples"]
+
+            for i_mosaic, mosaic_sample in enumerate(all_samples):
+                img, _labels, _labels_seg, _ = mosaic_sample["image"], mosaic_sample["target"], mosaic_sample[
+                    "target_seg"], mosaic_sample["id"]
+                h0, w0 = img.shape[:2]  # orig hw
+                scale = min(1. * input_h / h0, 1. * input_w / w0)
+                img = cv2.resize(
+                    img, (int(w0 * scale), int(h0 * scale)), interpolation=cv2.INTER_LINEAR
+                )
+                # generate output mosaic image
+                (h, w, c) = img.shape[:3]
+                if i_mosaic == 0:
+                    mosaic_img = np.full((input_h * 2, input_w * 2, c), 114, dtype=np.uint8)
+
+                # suffix l means large image, while s means small image in mosaic aug.
+                (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(i_mosaic, xc, yc, w, h,
+                                                                                           input_h, input_w)
+
+                mosaic_img[l_y1:l_y2, l_x1:l_x2] = img[s_y1:s_y2, s_x1:s_x2]
+                padw, padh = l_x1 - s_x1, l_y1 - s_y1
+
+                labels = _labels.copy()
+                labels_seg = _labels_seg.copy()
+
+                # Normalized xywh to pixel xyxy format
+                if _labels.size > 0:
+                    labels[:, 0] = scale * _labels[:, 0] + padw
+                    labels[:, 1] = scale * _labels[:, 1] + padh
+                    labels[:, 2] = scale * _labels[:, 2] + padw
+                    labels[:, 3] = scale * _labels[:, 3] + padh
+
+                    labels_seg[:, ::2] = scale * labels_seg[:, ::2] + padw
+                    labels_seg[:, 1::2] = scale * labels_seg[:, 1::2] + padh
+                mosaic_labels_seg.append(labels_seg)
+                mosaic_labels.append(labels)
+
+            if len(mosaic_labels):
+                mosaic_labels = np.concatenate(mosaic_labels, 0)
+                np.clip(mosaic_labels[:, 0], 0, 2 * input_w, out=mosaic_labels[:, 0])
+                np.clip(mosaic_labels[:, 1], 0, 2 * input_h, out=mosaic_labels[:, 1])
+                np.clip(mosaic_labels[:, 2], 0, 2 * input_w, out=mosaic_labels[:, 2])
+                np.clip(mosaic_labels[:, 3], 0, 2 * input_h, out=mosaic_labels[:, 3])
+                mosaic_labels_seg = np.concatenate(mosaic_labels_seg, 0)
+                np.clip(mosaic_labels_seg[:, ::2], 0, 2 * input_w, out=mosaic_labels_seg[:, ::2])
+                np.clip(mosaic_labels_seg[:, 1::2], 0, 2 * input_h, out=mosaic_labels_seg[:, 1::2])
+
+            sample = {"image": mosaic_img, "target": mosaic_labels, "target_seg": mosaic_labels_seg,
+                      "info": (mosaic_img.shape[1], mosaic_img.shape[0]), "id": sample["id"]}
+        return sample
+
+
+class DetectionRandomAffine(DetectionTransform):
+    """
+    DetectionRandomAffine detection transform
+
+    Attributes:
+     target_size: (tuple) desired output shape.
+
+     degrees:  (Union[tuple, float]) degrees for random rotation, when float the random values are drawn uniformly
+        from (-degrees, degrees)
+
+     translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
+        are drawn uniformly from (-translate, translate)
+
+     scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
+        from (0.1-scales, 0.1+scales)
+
+     shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
+        from (shear, shear)
+
+    enable: (bool) whether to apply the below transform at all.
+
+    """
+
+    def __init__(self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640)):
+        super(DetectionRandomAffine, self).__init__()
+        self.degrees = degrees
+        self.translate = translate
+        self.scale = scales
+        self.shear = shear
+        self.target_size = target_size
+        self.enable = True
+
+    def close(self):
+        self.enable = False
+
+    def __call__(self, sample: dict):
+        if self.enable:
+            img, target = random_affine(
+                sample["image"],
+                sample["target"],
+                sample["target_seg"],
+                target_size=self.target_size,
+                degrees=self.degrees,
+                translate=self.translate,
+                scales=self.scale,
+                shear=self.shear,
+            )
+            sample["image"] = img
+            sample["target"] = target
+        return sample
+
+
+class DetectionMixup(DetectionTransform):
+    """
+    Mixup detection transform
+
+    Attributes:
+        input_dim: (tuple) input dimension.
+        mixup_scale: (tuple) scale range for the additional loaded image for mixup.
+        prob: (float) probability of applying mixup.
+        enable_mixup: (bool) whether to apply mixup at all (regardless of prob) (default=True).
+    """
+
+    def __init__(self, input_dim, mixup_scale, prob=1.):
+        super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
+        self.input_dim = input_dim
+        self.mixup_scale = mixup_scale
+        self.prob = prob
+        self.enable_mixup = True
+
+    def close(self):
+        self.additional_samples_count = 0
+        self.enable_mixup = False
+
+    def __call__(self, sample: dict):
+        if self.enable_mixup and random.random() < self.prob:
+            origin_img, origin_labels = sample["image"], sample["target"]
+            cp_sample = sample["additional_samples"][0]
+            img, cp_labels = cp_sample["image"], cp_sample["target"]
+
+            img, cp_labels = _mirror(img, cp_labels, 0.5)
+            jit_factor = random.uniform(*self.mixup_scale)
+
+            if len(img.shape) == 3:
+                cp_img = np.ones((self.input_dim[0], self.input_dim[1], 3), dtype=np.uint8) * 114
+            else:
+                cp_img = np.ones(self.input_dim, dtype=np.uint8) * 114
+
+            cp_scale_ratio = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
+            resized_img = cv2.resize(
+                img,
+                (int(img.shape[1] * cp_scale_ratio), int(img.shape[0] * cp_scale_ratio)),
+                interpolation=cv2.INTER_LINEAR,
+            )
+
+            cp_img[: int(img.shape[0] * cp_scale_ratio), : int(img.shape[1] * cp_scale_ratio)] = resized_img
+
+            cp_img = cv2.resize(
+                cp_img,
+                (int(cp_img.shape[1] * jit_factor), int(cp_img.shape[0] * jit_factor)),
+            )
+            cp_scale_ratio *= jit_factor
+
+
+            origin_h, origin_w = cp_img.shape[:2]
+            target_h, target_w = origin_img.shape[:2]
+            padded_img = np.zeros(
+                (max(origin_h, target_h), max(origin_w, target_w), 3), dtype=np.uint8
+            )
+            padded_img[:origin_h, :origin_w] = cp_img
+
+            x_offset, y_offset = 0, 0
+            if padded_img.shape[0] > target_h:
+                y_offset = random.randint(0, padded_img.shape[0] - target_h - 1)
+            if padded_img.shape[1] > target_w:
+                x_offset = random.randint(0, padded_img.shape[1] - target_w - 1)
+            padded_cropped_img = padded_img[y_offset: y_offset + target_h, x_offset: x_offset + target_w]
+
+            cp_bboxes_origin_np = adjust_box_anns(
+                cp_labels[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h
+            )
+            cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
+            cp_bboxes_transformed_np[:, 0::2] = np.clip(
+                cp_bboxes_transformed_np[:, 0::2] - x_offset, 0, target_w
+            )
+            cp_bboxes_transformed_np[:, 1::2] = np.clip(
+                cp_bboxes_transformed_np[:, 1::2] - y_offset, 0, target_h
+            )
+
+            cls_labels = cp_labels[:, 4:5].copy()
+            box_labels = cp_bboxes_transformed_np
+            labels = np.hstack((box_labels, cls_labels))
+            origin_labels = np.vstack((origin_labels, labels))
+            origin_img = origin_img.astype(np.float32)
+            origin_img = 0.5 * origin_img + 0.5 * padded_cropped_img.astype(np.float32)
+
+            sample["image"], sample["target"] = origin_img.astype(np.uint8), origin_labels
+        return sample
+
+
+class DetectionPaddedRescale(DetectionTransform):
+    """
+    Preprocessing transform to be applied last of all transforms for validation.
+
+    Image- Rescales and pads to self.input_dim.
+    Targets- pads targets to max_targets, moves the class label to first index, converts boxes format- xyxy -> cxcywh.
+
+    Attributes:
+        input_dim: (tuple) final input dimension (default=(640,640))
+        swap: image axis's to be rearranged.
+
+    """
+
+    def __init__(self, input_dim, swap=(2, 0, 1), max_targets=50):
+        self.swap = swap
+        self.input_dim = input_dim
+        self.max_targets = max_targets
+
+    def __call__(self, sample):
+        img, target = sample["image"], sample["target"]
+        if len(target) == 0:
+            new_target = np.zeros((self.max_targets, 5), dtype=np.float32)
+        else:
+            new_target = target.copy()
+
+        boxes = new_target[:, :4]
+        labels = new_target[:, 4]
+        img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap)
+        boxes = xyxy2cxcywh(boxes)
+        boxes *= r
+        boxes = cxcywh2xyxy(boxes)
+        new_target = np.concatenate((boxes, labels[:, np.newaxis]), 1)
+
+        sample["image"] = img
+        sample["target"] = new_target
+        return sample
+
+
+class DetectionHorizontalFlip(DetectionTransform):
+    """
+    Horizontal Flip for Detection
+
+    Attributes:
+        prob: float: probability of applying HSV transform
+        max_targets: int: max objects in single image, padding target to this size in case of empty image.
+    """
+
+    def __init__(self, prob, max_targets: int = 120):
+        super(DetectionHorizontalFlip, self).__init__()
+        self.prob = prob
+        self.max_targets = max_targets
+
+    def __call__(self, sample):
+        image, targets = sample["image"], sample["target"]
+        boxes = targets[:, :4]
+        if len(boxes) == 0:
+            targets = np.zeros((self.max_targets, 5), dtype=np.float32)
+            boxes = targets[:, :4]
+        image, boxes = _mirror(image, boxes, self.prob)
+        sample["image"] = image
+        return sample
+
+
+class DetectionHSV(DetectionTransform):
+    """
+    Detection HSV transform.
+    """
+
+    def __init__(self, prob):
+        super(DetectionHSV, self).__init__()
+        self.prob = prob
+
+    def __call__(self, sample):
+        if random.random() < self.prob:
+            augment_hsv(sample["image"])
+        return sample
+
+
+class DetectionTargetsFormatTransform(DetectionTransform):
+    """
+    Detection targets format transform
+
+    Converts targets in input_format to output_format.
+    Attributes:
+        input_format: DetectionTargetsFormat: input target format
+        output_format: DetectionTargetsFormat: output target format
+        min_bbox_edge_size: int: bboxes with edge size lower then this values will be removed.
+        max_targets: int: max objects in single image, padding target to this size.
+    """
+
+    def __init__(self, input_format: DetectionTargetsFormat = DetectionTargetsFormat.XYXY_LABEL,
+                 output_format: DetectionTargetsFormat = DetectionTargetsFormat.LABEL_CXCYWH,
+                 min_bbox_edge_size: float = 1, max_targets: int = 120):
+        super(DetectionTargetsFormatTransform, self).__init__()
+        self.input_format = input_format
+        self.output_format = output_format
+        self.min_bbox_edge_size = min_bbox_edge_size
+        self.max_targets = max_targets
+
+    def __call__(self, sample):
+        normalized_input = "NORMALIZED" in self.input_format.value
+        normalized_output = "NORMALIZED" in self.output_format.value
+        normalize = not normalized_input and normalized_output
+        denormalize = normalized_input and not normalized_output
+
+        label_first_in_input = self.input_format.value.split("_")[0] == "LABEL"
+        label_first_in_output = self.output_format.value.split("_")[0] == "LABEL"
+
+        input_xyxy_format = "XYXY" in self.input_format.value
+        output_xyxy_format = "XYXY" in self.output_format.value
+        convert2xyxy = not input_xyxy_format and output_xyxy_format
+        convert2cxcy = input_xyxy_format and not output_xyxy_format
+
+        image, targets = sample["image"], sample["target"]
+
+        if label_first_in_input:
+            boxes = targets[:, 1:]
+            labels = targets[:, 0]
+        else:
+            boxes = targets[:, :4]
+            labels = targets[:, 4]
+
+        if convert2cxcy:
+            boxes = xyxy2cxcywh(boxes)
+        elif convert2xyxy:
+            boxes = cxcywh2xyxy(boxes)
+
+        _, h, w = image.shape
+
+        if normalize:
+            boxes[:, 0] = boxes[:, 0] / w
+            boxes[:, 1] = boxes[:, 1] / h
+            boxes[:, 2] = boxes[:, 2] / w
+            boxes[:, 3] = boxes[:, 3] / h
+
+        elif denormalize:
+            boxes[:, 0] = boxes[:, 0] * w
+            boxes[:, 1] = boxes[:, 1] * h
+            boxes[:, 2] = boxes[:, 2] * w
+            boxes[:, 3] = boxes[:, 3] * h
+
+        min_bbox_edge_size = self.min_bbox_edge_size / max(w, h) if normalized_output else self.min_bbox_edge_size
+
+        cxcywh_boxes = boxes if not output_xyxy_format else xyxy2cxcywh(boxes.copy())
+
+        mask_b = np.minimum(cxcywh_boxes[:, 2], cxcywh_boxes[:, 3]) > min_bbox_edge_size
+        boxes_t = boxes[mask_b]
+        labels_t = labels[mask_b]
+
+        labels_t = np.expand_dims(labels_t, 1)
+        targets_t = np.hstack((labels_t, boxes_t)) if label_first_in_output else np.hstack((boxes_t, labels_t))
+        padded_targets = np.zeros((self.max_targets, 5))
+        padded_targets[range(len(targets_t))[: self.max_targets]] = targets_t[: self.max_targets]
+        padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
+
+        sample["target"] = padded_targets
+        return sample
+
+
+def get_aug_params(value: Union[tuple, float], center: float = 0):
+    """
+    Generates a random value for augmentations as described below
+
+    :param value: Union[tuple, float] defines the range of values for generation. Wen tuple-
+     drawn uniformly between (value[0], value[1]), and (center - value, center + value) when float
+    :param center: float, defines center to subtract when value is float.
+    :return: generated value
+    """
+    if isinstance(value, float):
+        return random.uniform(center - value, center + value)
+    elif len(value) == 2:
+        return random.uniform(value[0], value[1])
+    else:
+        raise ValueError(
+            "Affine params should be either a sequence containing two values\
+                          or single float values. Got {}".format(
+                value
+            )
+        )
+
+
+def get_affine_matrix(
+        target_size,
+        degrees=10,
+        translate=0.1,
+        scales=0.1,
+        shear=10,
+):
+    """
+    Returns a random affine transform matrix.
+
+    :param target_size: (tuple) desired output shape.
+
+    :param degrees:  (Union[tuple, float]) degrees for random rotation, when float the random values are drawn uniformly
+     from (-degrees, degrees)
+
+    :param translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
+     are drawn uniformly from (-translate, translate)
+
+    :param scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
+     from (0.1-scales, 0.1+scales)
+
+    :param shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
+     from (shear, shear)
+
+    :return: affine_transform_matrix, drawn_scale
+    """
+    twidth, theight = target_size
+
+    # Rotation and Scale
+    angle = get_aug_params(degrees)
+    scale = get_aug_params(scales, center=1.0)
+
+    if scale <= 0.0:
+        raise ValueError("Argument scale should be positive")
+
+    R = cv2.getRotationMatrix2D(angle=angle, center=(0, 0), scale=scale)
+
+    M = np.ones([2, 3])
+    # Shear
+    shear_x = math.tan(get_aug_params(shear) * math.pi / 180)
+    shear_y = math.tan(get_aug_params(shear) * math.pi / 180)
+
+    M[0] = R[0] + shear_y * R[1]
+    M[1] = R[1] + shear_x * R[0]
+
+    # Translation
+    translation_x = get_aug_params(translate) * twidth  # x translation (pixels)
+    translation_y = get_aug_params(translate) * theight  # y translation (pixels)
+
+    M[0, 2] = translation_x
+    M[1, 2] = translation_y
+
+    return M, scale
+
+
+def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
+    num_gts = len(targets)
+    twidth, theight = target_size
+    seg_is_present_mask = np.logical_or.reduce(~np.isnan(targets_seg), axis=1)
+    num_gts_masks = seg_is_present_mask.sum()
+    num_gts_boxes = num_gts - num_gts_masks
+
+    if num_gts_boxes:
+        # warp corner points
+        corner_points = np.ones((num_gts_boxes * 4, 3))
+        # x1y1, x2y2, x1y2, x2y1
+        corner_points[:, :2] = targets[~seg_is_present_mask][:, [0, 1, 2, 3, 0, 3, 2, 1]].reshape(num_gts_boxes * 4, 2)
+        corner_points = corner_points @ M.T  # apply affine transform
+        corner_points = corner_points.reshape(num_gts_boxes, 8)
+
+        # create new boxes
+        corner_xs = corner_points[:, 0::2]
+        corner_ys = corner_points[:, 1::2]
+        new_bboxes = (np.concatenate(
+            (np.min(corner_xs, 1), np.min(corner_ys, 1),
+             np.max(corner_xs, 1), np.max(corner_ys, 1))
+        ).reshape(4, -1).T)
+    else:
+        new_bboxes = np.ones((0, 4), dtype=np.float)
+
+    if num_gts_masks:
+        # warp segmentation points
+        num_seg_points = targets_seg.shape[1] // 2
+        corner_points_seg = np.ones((num_gts_masks * num_seg_points, 3))
+        corner_points_seg[:, :2] = targets_seg[seg_is_present_mask].reshape(num_gts_masks * num_seg_points, 2)
+        corner_points_seg = corner_points_seg @ M.T
+        corner_points_seg = corner_points_seg.reshape(num_gts_masks, num_seg_points * 2)
+
+        # create new boxes
+        seg_points_xs = corner_points_seg[:, 0::2]
+        seg_points_ys = corner_points_seg[:, 1::2]
+        new_tight_bboxes = (np.concatenate(
+            (np.nanmin(seg_points_xs, 1), np.nanmin(seg_points_ys, 1),
+             np.nanmax(seg_points_xs, 1), np.nanmax(seg_points_ys, 1))
+        ).reshape(4, -1).T)
+    else:
+        new_tight_bboxes = np.ones((0, 4), dtype=np.float)
+
+    targets[~seg_is_present_mask, :4] = new_bboxes
+    targets[seg_is_present_mask, :4] = new_tight_bboxes
+
+    # clip boxes
+    targets[:, [0, 2]] = targets[:, [0, 2]].clip(0, twidth)
+    targets[:, [1, 3]] = targets[:, [1, 3]].clip(0, theight)
+
+    return targets
+
+
+def random_affine(
+        img,
+        targets=(),
+        targets_seg=(),
+        target_size=(640, 640),
+        degrees=10,
+        translate=0.1,
+        scales=0.1,
+        shear=10,
+):
+    """
+    Performs random affine transform to img, targets
+
+    :param img: (array) input image.
+
+    :param targets: (array) input target.
+
+    :param targets_seg: (array) targets derived from segmentation masks.
+
+    :param target_size: (tuple) desired output shape.
+
+    :param degrees:  (Union[tuple, float]) degrees for random rotation, when float the random values are drawn uniformly
+     from (-degrees, degrees)
+
+    :param translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
+     are drawn uniformly from (-translate, translate)
+
+    :param scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
+     from (0.1-scales, 0.1+scales)
+
+    :param shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
+     from (shear, shear)
+
+    :return:
+    """
+    M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
+
+    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(114, 114, 114))
+
+    # Transform label coordinates
+    if len(targets) > 0:
+        targets = apply_affine_to_bboxes(targets, targets_seg, target_size, M)
+
+    return img, targets
+
+
+def _mirror(image, boxes, prob=0.5):
+    """
+    Horizontal flips image and bboxes with probability prob.
+
+    :param image: (np.array) image to be flipped.
+    :param boxes: (np.array) bboxes to be modified.
+    :param prob: probability to perform flipping.
+    :return: flipped_image, flipped_bboxes
+    """
+    _, width, _ = image.shape
+    if random.random() < prob:
+        image = image[:, ::-1]
+        boxes[:, 0::2] = width - boxes[:, 2::-2]
+    return image, boxes
+
+
+def augment_hsv(img, hgain=5, sgain=30, vgain=30):
+    hsv_augs = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain]  # random gains
+    hsv_augs *= np.random.randint(0, 2, 3)  # random selection of h, s, v
+    hsv_augs = hsv_augs.astype(np.int16)
+    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.int16)
+
+    img_hsv[..., 0] = (img_hsv[..., 0] + hsv_augs[0]) % 180
+    img_hsv[..., 1] = np.clip(img_hsv[..., 1] + hsv_augs[1], 0, 255)
+    img_hsv[..., 2] = np.clip(img_hsv[..., 2] + hsv_augs[2], 0, 255)
+
+    cv2.cvtColor(img_hsv.astype(img.dtype), cv2.COLOR_HSV2BGR, dst=img)  # no return needed
+
+
+def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
+    """
+    Rescales image according to minimum ratio between the target height /image height, target width / image width,
+    and pads the image to the target size.
+
+    :param img: Image to be rescaled
+    :param input_size: Target size
+    :param swap: Axis's to be rearranged.
+    :return: rescaled image, ratio
+    """
+    if len(img.shape) == 3:
+        padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * pad_val
+    else:
+        padded_img = np.ones(input_size, dtype=np.uint8) * pad_val
+
+    r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
+    resized_img = cv2.resize(
+        img,
+        (int(img.shape[1] * r), int(img.shape[0] * r)),
+        interpolation=cv2.INTER_LINEAR,
+    ).astype(np.uint8)
+    padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
+
+    padded_img = padded_img.transpose(swap)
+    padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
+    return padded_img, r
