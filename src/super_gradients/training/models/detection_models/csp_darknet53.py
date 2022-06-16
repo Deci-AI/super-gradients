@@ -27,19 +27,29 @@ def width_multiplier(original, factor, divisor: int = None):
         return math.ceil(int(original * factor) / divisor) * divisor
 
 
-def get_yolo_version_params(yolo_version: str, width_mult_factor: float, depth_mult_factor: float):
-    if yolo_version == 'v6.0':
-        struct = (3, 6, 9, 3)
+def get_yolo_version_params(yolo_version: str, yolo_type: str, width_mult_factor: float, depth_mult_factor: float):
+    if yolo_type == 'yoloV5':
+        if yolo_version == 'v6.0':
+            struct = (3, 6, 9, 3)
+            block = C3
+            activation_type = nn.SiLU
+            width_mult = lambda channels: width_multiplier(channels, width_mult_factor, 8)
+        elif yolo_version == 'v3.0':
+            struct = (3, 9, 9, 3)
+            block = BottleneckCSP
+            activation_type = nn.Hardswish
+            width_mult = lambda channels: width_multiplier(channels, width_mult_factor)
+        else:
+            raise NotImplementedError(f'YoloV5 release version {yolo_version} is not supported, use one of: '
+                                      f'"v3.0", "v6.0"')
+    elif yolo_type == 'yoloX':
+        struct = (3, 9, 9, 3)
         block = C3
         activation_type = nn.SiLU
-        width_mult = lambda channels: width_multiplier(channels, width_mult_factor, 8)
-    elif yolo_version == 'v3.0':
-        struct = (3, 9, 9, 3)
-        block = BottleneckCSP
-        activation_type = nn.Hardswish
         width_mult = lambda channels: width_multiplier(channels, width_mult_factor)
     else:
-        raise NotImplementedError(f'YoloV5 release version {yolo_version} is not supported, use "v3.0" or "v6.0"')
+        raise NotImplementedError(f'Yolo yolo_type {yolo_type} is not supported, use one of: '
+                                  f'"yoloV5", "yoloX"')
 
     depth_mult = lambda blocks: max(round(blocks * depth_mult_factor), 1) if blocks > 1 else blocks
     return struct, block, activation_type, width_mult, depth_mult
@@ -189,20 +199,21 @@ class CSPDarknet53(SgModule):
         width_mult_factor = get_param(arch_params, 'width_mult_factor', 1.)
         channels_in = get_param(arch_params, 'channels_in', 3)
         yolo_version = get_param(arch_params, 'yolo_version', 'v6.0')
+        yolo_type = get_param(arch_params, 'yolo_type', 'yoloV5')
 
-        struct, block, activation_type, width_mult, depth_mult = get_yolo_version_params(yolo_version,
+        struct, block, activation_type, width_mult, depth_mult = get_yolo_version_params(yolo_version, yolo_type,
                                                                                          width_mult_factor,
                                                                                          depth_mult_factor)
 
         struct = [depth_mult(s) for s in struct]
         self._modules_list = nn.ModuleList()
 
-        if yolo_version == 'v6.0':
+        if get_param(arch_params, 'stem_type') == 'focus' or yolo_type == 'yoloX' or yolo_version == 'v3.0':
+            self._modules_list.append(Focus(channels_in, width_mult(64), 3, 1, activation_type))  # 0
+        elif get_param(arch_params, 'stem_type') == '6x6' or yolo_version == 'v6.0':
             self._modules_list.append(Conv(channels_in, width_mult(64), 6, 2, activation_type, padding=2))    # 0
-        elif yolo_version == 'v3.0':
-            self._modules_list.append(Focus(channels_in, width_mult(64), 3, 1, activation_type))              # 0
         else:
-            raise NotImplementedError(f'YoloV5 release version {yolo_version} is not supported, use "v3.0" or "v6.0"')
+            raise NotImplementedError(f'One of {yolo_type} yolo type or {yolo_version} yolo version is not supported')
 
         self._modules_list.append(Conv(width_mult(64), width_mult(128), 3, 2, activation_type))                      # 1
         self._modules_list.append(block(width_mult(128), width_mult(128), struct[0], activation_type))               # 2
@@ -211,14 +222,14 @@ class CSPDarknet53(SgModule):
         self._modules_list.append(Conv(width_mult(256), width_mult(512), 3, 2, activation_type))                     # 5
         self._modules_list.append(block(width_mult(512), width_mult(512), struct[2], activation_type))               # 6
         self._modules_list.append(Conv(width_mult(512), width_mult(1024), 3, 2, activation_type))                    # 7
-        if yolo_version == 'v6.0':
-            self._modules_list.append(block(width_mult(1024), width_mult(1024), struct[3], activation_type))         # 8
-            self._modules_list.append(SPPF(width_mult(1024), width_mult(1024), 5, activation_type))                  # 9
-        elif yolo_version == 'v3.0':
+        if yolo_type == 'yoloX' or yolo_version == 'v3.0':
             self._modules_list.append(SPP(width_mult(1024), width_mult(1024), (5, 9, 13), activation_type))          # 8
             self._modules_list.append(block(width_mult(1024), width_mult(1024), struct[3], activation_type, False))  # 9
+        elif yolo_version == 'v6.0':
+            self._modules_list.append(block(width_mult(1024), width_mult(1024), struct[3], activation_type))         # 8
+            self._modules_list.append(SPPF(width_mult(1024), width_mult(1024), 5, activation_type))                  # 9
         else:
-            raise NotImplementedError(f'YoloV5 release version {yolo_version} is not supported, use "v3.0" or "v6.0"')
+            raise NotImplementedError(f'One of {yolo_type} yolo type or {yolo_version} yolo version is not supported')
 
         if not self.backbone_mode:
             # IF NOT USED AS A BACKEND BUT AS A CLASSIFIER WE ADD THE CLASSIFICATION LAYERS
