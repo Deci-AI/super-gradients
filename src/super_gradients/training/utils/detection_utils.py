@@ -1264,23 +1264,6 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     return bbox
 
 
-class YoloXCollateFN:
-    """
-    Collate function for Yolox training
-    """
-    def __call__(self, data):
-        batch = default_collate(data)
-        ims = batch[0]
-        targets = batch[1]
-        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of objects
-        targets_merged = []
-        for i in range(targets.shape[0]):
-            targets_im = targets[i, :nlabel[i]]
-            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
-            targets_merged.append(torch.cat((batch_column, targets_im), 1))
-        targets = torch.cat(targets_merged, 0)
-        return ims, targets
-
 class DetectionCollateFN:
     """
     Collate function for Yolox training
