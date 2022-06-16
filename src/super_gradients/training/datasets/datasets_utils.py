@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torchvision
 from PIL import Image
 import torch
+import torch.distributed as dist
 
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataSet
@@ -23,6 +24,8 @@ from tqdm import tqdm
 
 from super_gradients.training.utils.utils import AverageMeter
 from super_gradients.training.utils.detection_utils import DetectionVisualization
+import uuid
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
 
 import matplotlib.pyplot as plt
 
@@ -187,6 +190,72 @@ class MultiScaleCollateFunction(AbstractCollateFunction):
                 images = F.interpolate(images, size=new_size, mode='bilinear', align_corners=False)
 
             return images, batch[1]
+
+
+class MultiscaleForwardPassPrepFunction:
+    """
+    Mutiscale pre-forward pass function.
+
+    When passed through train_params inputs, targets will be applied by the below transform to support multi scaling
+    on the fly.
+
+    After each self.frequency forward passes, change size randomly from
+     (input_size-self.multiscale_range*self.image_size_steps, input_size-(self.multiscale_range-1)*self.image_size_steps,
+     ...input_size+self.multiscale_range*self.image_size_steps)
+
+
+    Attributes:
+        multiscale_range: (int) Range of values for resize sizes as discussed above (default=5)
+        image_size_steps: (int) Image step sizes as discussed abov (default=32)
+        change_frequency: (int) The frequency to apply change in input size.
+    """
+
+    def __init__(self, multiscale_range: int = 5,
+                 image_size_steps: int = 32,
+                 change_frequency: int = 10):
+
+        self.multiscale_range = multiscale_range
+        self.image_size_steps = image_size_steps
+        self.frequency = change_frequency
+        self.rank = None
+        self.is_distributed = None
+
+    def __call__(self, inputs, targets, batch_idx, context):
+
+        if self.rank is None:
+            self.rank = get_local_rank()
+        if self.is_distributed is None:
+            self.is_distributed = get_world_size() > 1
+
+        if batch_idx % self.frequency == 0:
+            tensor = torch.LongTensor(2).cuda()
+            input_size = inputs.shape[2:]
+
+            if self.rank == 0:
+                size_factor = input_size[1] * 1.0 / input_size[0]
+                min_size = int(input_size[0] / self.image_size_steps) - self.multiscale_range
+                max_size = int(input_size[0] / self.image_size_steps) + self.multiscale_range
+                random_size = (min_size, max_size)
+                size = random.randint(*random_size)
+                size = (int(self.image_size_steps * size), self.image_size_steps * int(size * size_factor))
+                tensor[0] = size[0]
+                tensor[1] = size[1]
+
+            if self.is_distributed:
+                dist.barrier()
+                dist.broadcast(tensor, 0)
+
+            new_input_size = (tensor[0].item(), tensor[1].item())
+
+            scale_y = new_input_size[0] / input_size[0]
+            scale_x = new_input_size[1] / input_size[1]
+            if scale_x != 1 or scale_y != 1:
+                inputs = torch.nn.functional.interpolate(
+                    inputs, size=new_input_size, mode="bilinear", align_corners=False
+                )
+                targets[..., 2::2] = targets[..., 2::2] * scale_x
+                targets[..., 3::2] = targets[..., 3::2] * scale_y
+        return inputs, targets
 
 
 _pil_interpolation_to_str = {
@@ -529,3 +598,10 @@ def get_color_augmentation(rand_augment_config_string: str, color_jitter: tuple,
     else:  # RandAugment includes colorjitter like augmentations, both cannot be applied together.
         color_augmentation = transforms.ColorJitter(*color_jitter)
     return color_augmentation
+
+
+def worker_init_reset_seed(worker_id):
+    seed = uuid.uuid4().int % 2 ** 32
+    random.seed(seed)
+    torch.set_rng_state(torch.manual_seed(seed).get_state())
+    np.random.seed(seed)
