@@ -99,41 +99,6 @@ class DefaultBoxes(object):
         if order == "xywh":
             return self.dboxes
 
-    @staticmethod
-    def dboxes300_coco():
-        figsize = 300
-        feat_size = [38, 19, 10, 5, 3, 1]
-        # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
-        scales = [21, 45, 99, 153, 207, 261, 315]
-        aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
-        return DefaultBoxes(figsize, feat_size, scales, aspect_ratios)
-
-    @staticmethod
-    def dboxes300_coco_from19():
-        """
-        This dbox configuration is a bit different from the original dboxes300_coco
-        It is suitable for a network taking the first skip connection from a 19x19 layer (instead of 38x38 in the
-        original paper).
-        This offers less coverage for small objects but more aspect ratios options to larger objects (the original
-        paper supports object starting from size 21 pixels, while this config support objects starting from 60 pixels)
-        """
-
-        # https://github.com/qfgaohao/pytorch-ssd/blob/f61ab424d09bf3d4bb3925693579ac0a92541b0d/vision/ssd/config/mobilenetv1_ssd_config.py
-        figsize = 300
-        feat_size = [19, 10, 5, 3, 2, 1]
-        scales = [60, 105, 150, 195, 240, 285, 330]
-        aspect_ratios = [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
-        return DefaultBoxes(figsize, feat_size, scales, aspect_ratios)
-
-    @staticmethod
-    def dboxes256_coco():
-        figsize = 256
-        feat_size = [32, 16, 8, 4, 2, 1]
-        # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
-        scales = [18, 38, 84, 131, 1177, 223, 269]
-        aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
-        return DefaultBoxes(figsize, feat_size, scales, aspect_ratios)
-
 
 class SSDPostPredictCallback(DetectionPostPredictionCallback):
     """
@@ -141,9 +106,9 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
     used by all other detection models
     """
 
-    def __init__(self, conf: float = 0.1, iou: float = 0.45, classes: list = None, max_predictions: int = 300,
-                 nms_type: NMS_Type = NMS_Type.ITERATIVE,
-                 dboxes: DefaultBoxes = DefaultBoxes.dboxes300_coco()):  # TODO: this is bad practice
+    def __init__(self, dboxes: DefaultBoxes, conf: float = 0.1, iou: float = 0.45, classes: list = None,
+                 max_predictions: int = 300,
+                 nms_type: NMS_Type = NMS_Type.ITERATIVE):
         """
         :param conf: confidence threshold
         :param iou: IoU threshold
