@@ -96,13 +96,9 @@ class YoloXDetectionLoss(_Loss):
 
     Attributes:
         strides: list: List of Yolo levels output grid sizes (i.e [8, 16, 32]).
-        
         num_classes: int: Number of classes.
-        
         use_l1: bool: Controls the L_l1 Coef as discussed above (default=False).
-        
         center_sampling_radius: float: Sampling radius used for center sampling when creating the fg mask (default=2.5).
-        
         iou_type: str: Iou loss type, one of ["iou","giou"] (deafult="iou").
 
 
@@ -214,8 +210,7 @@ class YoloXDetectionLoss(_Loss):
                 torch.cuda.empty_cache()
                 num_fg += num_fg_img
 
-                cls_target = F.one_hot(gt_matched_classes.to(torch.int64), self.num_classes) * \
-                             pred_ious_this_matching.unsqueeze(-1)
+                cls_target = F.one_hot(gt_matched_classes.to(torch.int64), self.num_classes) * pred_ious_this_matching.unsqueeze(-1)
                 obj_target = fg_mask.unsqueeze(-1)
                 reg_target = gt_bboxes_per_image[matched_gt_inds]
                 if self.use_l1:
@@ -345,7 +340,6 @@ class YoloXDetectionLoss(_Loss):
             * at most 1 GT per cell
             * dynamic number of cells per GT
 
-        
         :param outside_boxes_and_center_cost_coeff: float: Cost coefficiant of cells the radius and bbox of gts in dynamic
          matching (default=100000).
         :param ious_loss_cost_coeff: float: Cost coefficiant for iou loss in dynamic matching (default=3).
@@ -396,12 +390,12 @@ class YoloXDetectionLoss(_Loss):
             cls_preds_, obj_preds_ = cls_preds_.cpu(), obj_preds_.cpu()
 
         with torch.cuda.amp.autocast(enabled=False):
-            cls_preds_ = cls_preds_.float().unsqueeze(0).repeat(num_gt, 1, 1).sigmoid_() * \
-                         obj_preds_.float().unsqueeze(0).repeat(num_gt, 1, 1).sigmoid_()
+            cls_preds_ = cls_preds_.float().unsqueeze(0).repeat(num_gt, 1, 1).sigmoid_() * obj_preds_.float().unsqueeze(0).repeat(num_gt, 1, 1).sigmoid_()
             pair_wise_cls_loss = F.binary_cross_entropy(cls_preds_.sqrt_(), gt_cls_per_image, reduction="none").sum(-1)
         del cls_preds_
 
-        cost = pair_wise_cls_loss + ious_loss_cost_coeff * pair_wise_ious_loss + outside_boxes_and_center_cost_coeff * (~is_in_boxes_and_center)
+        cost = pair_wise_cls_loss + ious_loss_cost_coeff * pair_wise_ious_loss + outside_boxes_and_center_cost_coeff * (
+            ~is_in_boxes_and_center)
 
         # further filter foregrounds: create pairs between cells and ground truth, based on cost and IoUs
         num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds = \
@@ -452,14 +446,10 @@ class YoloXDetectionLoss(_Loss):
 
         # ground truth boxes, shape [n_gts] -> repeated to [n_gts, n_predictions]
         # from (c1, c2, w, h) to left, right, top, bottom
-        gt_bboxes_per_image_l = (gt_bboxes_per_image[:, 0] -
-                                 0.5 * gt_bboxes_per_image[:, 2]).unsqueeze(1).repeat(1, total_num_anchors)
-        gt_bboxes_per_image_r = (gt_bboxes_per_image[:, 0] +
-                                 0.5 * gt_bboxes_per_image[:, 2]).unsqueeze(1).repeat(1, total_num_anchors)
-        gt_bboxes_per_image_t = (gt_bboxes_per_image[:, 1] -
-                                 0.5 * gt_bboxes_per_image[:, 3]).unsqueeze(1).repeat(1, total_num_anchors)
-        gt_bboxes_per_image_b = (gt_bboxes_per_image[:, 1] +
-                                 0.5 * gt_bboxes_per_image[:, 3]).unsqueeze(1).repeat(1, total_num_anchors)
+        gt_bboxes_per_image_l = (gt_bboxes_per_image[:, 0] - 0.5 * gt_bboxes_per_image[:, 2]).unsqueeze(1).repeat(1, total_num_anchors)
+        gt_bboxes_per_image_r = (gt_bboxes_per_image[:, 0] + 0.5 * gt_bboxes_per_image[:, 2]).unsqueeze(1).repeat(1, total_num_anchors)
+        gt_bboxes_per_image_t = (gt_bboxes_per_image[:, 1] - 0.5 * gt_bboxes_per_image[:, 3]).unsqueeze(1).repeat(1, total_num_anchors)
+        gt_bboxes_per_image_b = (gt_bboxes_per_image[:, 1] + 0.5 * gt_bboxes_per_image[:, 3]).unsqueeze(1).repeat(1, total_num_anchors)
 
         # check which cell centers lay within the ground truth boxes
         b_l = x_centers_per_image - gt_bboxes_per_image_l  # x - l > 0 when l is on the lest from x
@@ -475,14 +465,10 @@ class YoloXDetectionLoss(_Loss):
         # FIND CELL CENTERS THAT ARE WITHIN +- self.center_sampling_radius CELLS FROM GROUND TRUTH BOXES CENTERS
 
         # define fake boxes: instead of ground truth boxes step +- self.center_sampling_radius from their centers
-        gt_bboxes_per_image_l = (gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(1, total_num_anchors) - \
-                                self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
-        gt_bboxes_per_image_r = (gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(1, total_num_anchors) + \
-                                self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
-        gt_bboxes_per_image_t = (gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(1, total_num_anchors) - \
-                                self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
-        gt_bboxes_per_image_b = (gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(1, total_num_anchors) + \
-                                self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
+        gt_bboxes_per_image_l = (gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(1, total_num_anchors) - self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
+        gt_bboxes_per_image_r = (gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(1, total_num_anchors) + self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
+        gt_bboxes_per_image_t = (gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(1, total_num_anchors) - self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
+        gt_bboxes_per_image_b = (gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(1, total_num_anchors) + self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
 
         c_l = x_centers_per_image - gt_bboxes_per_image_l
         c_r = gt_bboxes_per_image_r - x_centers_per_image
