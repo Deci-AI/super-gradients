@@ -139,21 +139,25 @@ def display_epoch_summary(epoch: int, n_digits: int,
             )
         return tree
 
-    train_tree = Tree()
-    train_tree.create_node("Training", "Training")
-    for name, value in train_monitored_values.items():
-        train_tree.paste('Training', new_tree=_generate_tree(name, monitored_value=value))
-
-    valid_tree = Tree()
-    valid_tree.create_node("Validation", "Validation")
-    for name, value in valid_monitored_values.items():
-        valid_tree.paste('Validation', new_tree=_generate_tree(name, monitored_value=value))
-
     summary_tree = Tree()
     summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
-    summary_tree.paste("Summary", train_tree)
-    summary_tree.paste("Summary", valid_tree)
-    summary_tree.show()
+
+    if len(train_monitored_values) > 0:
+        train_tree = Tree()
+        train_tree.create_node("Training", "Training")
+        for name, value in train_monitored_values.items():
+            train_tree.paste('Training', new_tree=_generate_tree(name, monitored_value=value))
+        summary_tree.paste("Summary", train_tree)
+
+    if len(valid_monitored_values) > 0:
+        valid_tree = Tree()
+        valid_tree.create_node("Validation", "Validation")
+        for name, value in valid_monitored_values.items():
+            valid_tree.paste('Validation', new_tree=_generate_tree(name, monitored_value=value))
+        summary_tree.paste("Summary", valid_tree)
+
+    if len(train_monitored_values) > 0 or len(valid_monitored_values) > 0:
+        summary_tree.show()
 
 
 def try_port(port):
