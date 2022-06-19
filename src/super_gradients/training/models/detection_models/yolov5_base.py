@@ -9,10 +9,9 @@ import torch.nn as nn
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, CSPDarknet53, get_yolo_version_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
-    check_anchor_order, check_img_size_divisibilty, matrix_non_max_suppression, NMS_Type, \
-    DetectionPostPredictionCallback, Anchors
+    check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.export_utils import ExportableHardswish, ExportableSiLU
-from super_gradients.training.utils.utils import HpmStruct, get_param
+from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibilty, get_param
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [30, 61, 62, 45, 59, 119],
