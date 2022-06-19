@@ -653,32 +653,6 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
     return output
 
 
-def check_img_size_divisibilty(img_size: int, stride: int = 32):
-    """
-    :param img_size: Int, the size of the image (H or W).
-    :param stride: Int, the number to check if img_size is divisible by.
-    :return: (True, None) if img_size is divisble by stride, (False, Suggestions) if it's not.
-        Note: Suggestions are the two closest numbers to img_size that *are* divisible by stride.
-        For example if img_size=321, stride=32, it will return (False,(352, 320)).
-    """
-    new_size = make_divisible(img_size, int(stride))
-    if new_size != img_size:
-        return False, (new_size, make_divisible(img_size, int(stride), ceil=False))
-    else:
-        return True, None
-
-
-def make_divisible(x, divisor, ceil=True):
-    """
-    Returns x evenly divisible by divisor.
-    If ceil=True it will return the closest larger number to the original x, and ceil=False the closest smaller number.
-    """
-    if ceil:
-        return math.ceil(x / divisor) * divisor
-    else:
-        return math.floor(x / divisor) * divisor
-
-
 def matrix_non_max_suppression(pred, conf_thres: float = 0.1, kernel: str = 'gaussian',
                                sigma: float = 3.0, max_num_of_detections: int = 500):
     """Performs Matrix Non-Maximum Suppression (NMS) on inference results
