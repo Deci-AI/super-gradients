@@ -64,7 +64,7 @@ All SuperGradients models’ are production ready in the sense that they are com
     
 ## What's New
 * 【16/06/2022】 YOLOX models (object detection) - recipes and pre-trained checkpoints.
-* 【16/06/2022】 ResNet50  - new pre-trained
+* 【16/06/2022】 ResNet50  - new pre-trained checkpoint and recipe for ImageNet top-1 score of 81.9 💪
 * 【09/06/2022】 ViT models (Vision Transformer) - Training recipes and pre-trained checkpoints (ViT, BEiT).
 * 【09/06/2022】 Knowledge Distillation support.
 * 【06/04/2022】 Integration with professional tools - Weights and Biases and DagsHub.
@@ -72,7 +72,6 @@ All SuperGradients models’ are production ready in the sense that they are com
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
 * 【01/02/2022】 We added issue templates for feature requests and bug reporting.
 * 【20/01/2022】 STDC family - new recipes added with even higher mIoU💪
-* 【17/01/2022】 We have released transfer learning example [notebook](#transfer-learning-with-sg-notebook---object-detection) for object detection (YOLOv5).
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
