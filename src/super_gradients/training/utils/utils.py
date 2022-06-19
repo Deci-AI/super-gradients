@@ -349,7 +349,7 @@ def make_divisible(x: int, divisor: int, ceil: bool = True) -> int:
         return math.floor(x / divisor) * divisor
 
 
-def check_img_size_divisibilty(img_size: int, stride: int = 32) -> Tuple[bool, Optional[Tuple[int, int]]]:
+def check_img_size_divisibility(img_size: int, stride: int = 32) -> Tuple[bool, Optional[Tuple[int, int]]]:
     """
     :param img_size: Int, the size of the image (H or W).
     :param stride: Int, the number to check if img_size is divisible by.
