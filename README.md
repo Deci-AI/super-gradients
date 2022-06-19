@@ -63,6 +63,11 @@ All SuperGradients models’ are production ready in the sense that they are com
 </div>
     
 ## What's New
+* 【16/06/2022】 YOLOX models (object detection) - recipes and pre-trained checkpoints.
+* 【16/06/2022】 ResNet50  - new pre-trained
+* 【09/06/2022】 ViT models (Vision Transformer) - Training recipes and pre-trained checkpoints (ViT, BEiT).
+* 【09/06/2022】 Knowledge Distillation support.
+* 【06/04/2022】 Integration with professional tools - Weights and Biases and DagsHub.
 * 【09/03/2022】 New [quick start](#quick-start-notebook---semantic-segmentation) and [transfer learning](#transfer-learning-with-sg-notebook---semantic-segmentation) example notebooks for Semantic Segmentation.
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
 * 【01/02/2022】 We added issue templates for feature requests and bug reporting.
@@ -71,13 +76,13 @@ All SuperGradients models’ are production ready in the sense that they are com
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
-## Comming soon
-- [ ] ViT models (Vision Transformer).
-- [ ] Knowledge Distillation support.
-- [ ] YOLOX models (recipes, pre-trained checkpoints).
+## Coming soon
+
 - [ ] SSD MobileNet models (recipes, pre-trained checkpoints) for edge devices deployment.
+- [ ] QAT capabilities (Quantization Aware Training).
 - [ ] Dali implementation.
-- [ ] Integration with professional tools.
+- [ ] Integration with more professional tools.
+- [ ] Improved pre-trained checkpoints and recipes (DDRNet, ResNet, RegSeg, etc.)
 
 __________________________________________________________________________________________________________
 ### Table of Content
