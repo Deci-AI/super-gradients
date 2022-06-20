@@ -146,12 +146,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
 
         # REPLACE THE CONFIDENCE OF CLASS NONE WITH OBJECT CONFIDENCE
         # SSD DOES NOT OUTPUT OBJECT CONFIDENCE, REQUIRED FOR THE NMS
-        scores_in[:, :, 0] = 1.
-        # the right way to treat foreground (reduces mAP)
-        # background_mask = torch.max(scores_in, dim=2)[1] == 0.
-        # translate foreground class into the objectness prob (filter out foreground)
-        # scores_in[:, :, 0][background_mask] = 0.
-        # scores_in[:, :, 0][~background_mask] = 1.
+        scores_in[:, :, 0] = torch.max(scores_in[:, :, 1:], dim=2)[0]
         bboxes_in *= self.img_size
 
         nms_input = torch.cat((bboxes_in, scores_in), dim=2)
@@ -162,5 +157,10 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         else:
             nms_res = matrix_non_max_suppression(nms_input, conf_thres=self.conf,
                                                  max_num_of_detections=self.max_predictions)
+
+        # NMS OUTPUT A 0-BASED CLASS LABEL, BUT SSD WORKS WITH 1-BASED CLASS LABEL
+        for t in nms_res:
+            if t is not None:
+                t[:, 5] += 1
 
         return nms_res

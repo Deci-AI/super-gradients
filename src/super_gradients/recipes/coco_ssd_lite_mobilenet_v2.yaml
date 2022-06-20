@@ -76,14 +76,14 @@ sg_model:
 dboxes: # ${anchors.300.stride_8_plus}
   _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes
   fig_size: 320
-  feat_size: [ 20, 10, 5, 3, 2, 1 ]
-  scales: [ 22, 48,  106, 163, 221, 278, 336 ]
-  aspect_ratios: [ [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ] ]
+  feat_size: [ 40, 20, 10, 5, 3, 2 ]
+  scales: [ 22, 48, 106, 163, 221, 278, 336 ]
+  aspect_ratios: [ [ 2 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2 ], [ 2 ] ]
   scale_xy: 0.1
   scale_wh: 0.2
 
 arch_params:
-  num_classes: 81  # 80 + 1 for the background class
+  num_classes: 80  # 80 + 1 for the background class
 
 dataset_interface:
   coco2017_detection:
@@ -110,6 +110,7 @@ training_hyperparams:
   warmup_momentum: 0.8
   warmup_initial_lr: 1e-06
   warmup_bias_lr: 0.1
+#  warmup_mode: yolov5_warmup
 
   valid_metrics_list:
     - _target_: super_gradients.training.metrics.DetectionMetrics

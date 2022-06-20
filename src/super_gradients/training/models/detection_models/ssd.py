@@ -17,12 +17,13 @@ DEFAULT_SSD_MOBILENET_V1_ARCH_PARAMS = {
 }
 
 DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
-    "out_channels": [576, 1280, 512, 256, 256, 64],
+    "out_channels": [192, 576, 1280, 512, 256, 256],
     "expand_ratios": [0.2, 0.25, 0.5, 0.25],
-    "num_defaults": [6, 6, 6, 6, 6, 6],  # num anchors per level, defined by scales used when constructing DefaultBoxes
+    "num_defaults": [4, 6, 6, 6, 4, 4],  # num anchors per level, defined by scales used when constructing DefaultBoxes
     "lite": True,
     "width_mult": 1.0,
-    "output_paths": [[14, 'conv', 2], 18]
+    "output_paths": [[7,'conv',2], [14, 'conv', 2]],
+    # "output_paths": [[14, 'conv', 2], 18],
 }
 
 
@@ -55,6 +56,8 @@ class SSD(SgModule):
             self.backbone = MultiOutputModule(backbone, paths)
         else:
             self.backbone = backbone
+
+        # self.mb = backbone
 
         lite = utils.get_param(arch_params, 'lite', False)
         # NUMBER OF CLASSES + 1 NO_CLASS
@@ -163,6 +166,7 @@ class SSDLiteMobileNetV2(SSD):
         self.arch_params.out_channels[0] = int(round(self.arch_params.out_channels[0] * self.arch_params.width_mult))
         mobilenetv2 = MobileNetV2(num_classes=None, dropout=0.,
                                   backbone_mode=True, width_mult=self.arch_params.width_mult)
+        mobilenetv2 = mobilenetv2
         super().__init__(backbone=mobilenetv2.features, arch_params=self.arch_params)
 
     # OVERRIDE THE DEFAULT FUNCTION FROM SSD. ADD THE SDD BLOCKS AFTER THE BACKBONE.
