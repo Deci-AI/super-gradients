@@ -398,9 +398,6 @@ class SgModel:
 
             progress_bar_train_loader.set_postfix(**pbar_message_dict)
 
-            if batch_idx == 10:
-                break
-
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
 

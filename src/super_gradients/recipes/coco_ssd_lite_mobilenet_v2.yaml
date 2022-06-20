@@ -65,7 +65,7 @@ anchors:
 data_loader_num_workers: 8
 model_checkpoints_location: local
 experiment_suffix: batch${dataset_params.batch_size}_lr${training_hyperparams.initial_lr}_res${dataset_params.val_image_size}
-experiment_name: ${architecture}_coco_${experiment_suffix}
+experiment_name: ${architecture}_coco_${experiment_suffix}_dboxes_fixed_nms_scores_fixed
 
 sg_model:
   _target_: super_gradients.SgModel
