@@ -629,7 +629,8 @@ class PhaseContextTestCallback(PhaseCallback):
     def __call__(self, context: PhaseContext):
         self.context = context
 
-
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+coco_classes_with_bg = ["background"] + COCO_DETECTION_CLASSES_LIST
 class DetectionVisualizationCallback(PhaseCallback):
     """
     A callback that adds a visualization of a batch of detection predictions to context.sg_logger
@@ -642,12 +643,12 @@ class DetectionVisualizationCallback(PhaseCallback):
 
     def __init__(
         self,
-        phase: Phase,
-        freq: int,
         post_prediction_callback: DetectionPostPredictionCallback,
-        classes: list,
+        phase: Phase=Phase.VALIDATION_BATCH_END,
+        freq: int=1,
+        classes: list=coco_classes_with_bg,
         batch_idx: int = 0,
-        last_img_idx_in_batch: int = -1,
+        last_img_idx_in_batch: int = 8,
     ):
         super(DetectionVisualizationCallback, self).__init__(phase)
         self.freq = freq
@@ -659,8 +660,8 @@ class DetectionVisualizationCallback(PhaseCallback):
     def __call__(self, context: PhaseContext):
         if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx:
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
-            preds = (context.preds[0].clone(), None)
-            preds = self.post_prediction_callback(preds)
+            # preds = (context.preds[0].clone(), None)
+            preds = self.post_prediction_callback(context.preds, device=context.preds[0].device)
             batch_imgs = DetectionVisualization.visualize_batch(
                 context.inputs, preds, context.target, self.batch_idx, self.classes
             )

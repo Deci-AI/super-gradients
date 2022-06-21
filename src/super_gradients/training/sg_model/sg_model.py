@@ -398,6 +398,8 @@ class SgModel:
 
             progress_bar_train_loader.set_postfix(**pbar_message_dict)
 
+
+
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
 

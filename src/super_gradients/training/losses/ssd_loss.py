@@ -68,7 +68,7 @@ class SSDLoss(_Loss):
             mask = values > self.iou_thresh
 
             target_locations[:, mask] = targets[indices[mask], 2:].T
-            target_labels[mask] = targets[indices[mask], 1] + 1
+            target_labels[mask] = targets[indices[mask], 1]
 
         return target_locations, target_labels
 

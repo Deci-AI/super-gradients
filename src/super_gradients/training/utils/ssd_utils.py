@@ -142,11 +142,17 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         bboxes_in[:, :, :2] = bboxes_in[:, :, :2] * dboxes_on_device[:, 2:] + dboxes_on_device[:, :2]
         bboxes_in[:, :, 2:] = bboxes_in[:, :, 2:].exp() * dboxes_on_device[:, 2:]
 
+        # obj = 1 - F.softmax(scores_in, dim=-1)[:, :, 0]
+        # scores_in[:, :, 1:] = F.softmax(scores_in, dim=-1)
+        # scores_in[:,:, 0] = obj
+
+
         scores_in = F.softmax(scores_in, dim=-1)
 
         # REPLACE THE CONFIDENCE OF CLASS NONE WITH OBJECT CONFIDENCE
         # SSD DOES NOT OUTPUT OBJECT CONFIDENCE, REQUIRED FOR THE NMS
         scores_in[:, :, 0] = torch.max(scores_in[:, :, 1:], dim=2)[0]
+        # scores_in[:, :, 0] = 1 - scores_in[:, :, 0]
         bboxes_in *= self.img_size
 
         nms_input = torch.cat((bboxes_in, scores_in), dim=2)

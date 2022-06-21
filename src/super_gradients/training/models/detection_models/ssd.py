@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from super_gradients.training.models import MobileNet, SgModule, MobileNetV2, InvertedResidual
 
-from super_gradients.training.utils import HpmStruct, utils
+from super_gradients.training.utils import HpmStruct, utils, get_param
 from super_gradients.training.utils.module_utils import MultiOutputModule
 
 DEFAULT_SSD_ARCH_PARAMS = {
@@ -26,6 +26,14 @@ DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
     # "output_paths": [[14, 'conv', 2], 18],
 }
 
+# DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
+#     "out_channels": [576, 1280, 512, 256, 256, 64],
+#     "expand_ratios": [0.2, 0.25, 0.5, 0.25],
+#     "num_defaults": [6, 6, 6, 6, 6, 6],  # num anchors per level, defined by scales used when constructing DefaultBoxes
+#     "lite": True,
+#     "width_mult": 1.0,
+#     "output_paths": [[14, 'conv', 2], 18]
+# }
 
 def SeperableConv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=True):
     """Replace Conv2d with a depthwise Conv2d and Pointwise Conv2d.
@@ -146,6 +154,53 @@ class SSD(SgModule):
         # FOR 300X300 INPUT - RETURN N_BATCH X 8732 X {N_LABELS, N_LOCS} RESULTS
         return locs, confs
 
+    def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
+        """
+        initialize_optimizer_for_model_param_groups - Initializes the weights of the optimizer
+                                                      adds weight decay  *Only* to the Conv2D layers
+            :param optimizer_cls:   The nn.optim (optimizer class) to initialize
+            :param lr:              lr to set for the optimizer
+            :param training_params:
+            :return: The optimizer, initialized with the relevant param groups
+        """
+        optimizer_params = get_param(training_params, 'optimizer_params')
+        # OPTIMIZER PARAMETER GROUPS
+        default_param_group, weight_decay_param_group, biases_param_group = [], [], []
+        deprecated_params_total = 0
+
+        for name, m in self.named_modules():
+            if hasattr(m, 'bias') and isinstance(m.bias, nn.Parameter):  # bias
+                biases_param_group.append((name, m.bias))
+            if isinstance(m, nn.BatchNorm2d):  # weight (no decay)
+                default_param_group.append((name, m.weight))
+            elif hasattr(m, 'weight') and isinstance(m.weight, nn.Parameter):  # weight (with decay)
+                weight_decay_param_group.append((name, m.weight))
+            elif name == '_head.anchors':
+                deprecated_params_total += m.stride.numel() + m._anchors.numel() + m._anchor_grid.numel()
+
+        # EXTRACT weight_decay FROM THE optimizer_params IN ORDER TO ASSIGN THEM MANUALLY
+        weight_decay = optimizer_params.pop('weight_decay') if 'weight_decay' in optimizer_params.keys() else 0
+        param_groups = [{'named_params': default_param_group, 'lr': lr, **optimizer_params, 'name': 'default'},
+                        {'named_params': weight_decay_param_group, 'weight_decay': weight_decay, 'name': 'wd'},
+                        {'named_params': biases_param_group, 'name': 'bias'}]
+
+        # Assert that all parameters were added to optimizer param groups
+        params_total = sum(p.numel() for p in self.parameters())
+        optimizer_params_total = sum(p.numel() for g in param_groups for _, p in g['named_params'])
+        assert params_total == optimizer_params_total + deprecated_params_total, \
+            f"Parameters {[n for n, _ in self.named_parameters() if 'weight' not in n and 'bias' not in n]} " \
+            f"weren't added to optimizer param groups"
+
+        return param_groups
+
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int,
+                            training_params: HpmStruct, total_batch: int) -> list:
+
+        lr_warmup_epochs = get_param(training_params, 'lr_warmup_epochs', 0)
+        if epoch >= lr_warmup_epochs:
+            return super().update_param_groups(param_groups, lr, epoch, iter, training_params, total_batch)
+        else:
+            return param_groups
 
 class SSDMobileNetV1(SSD):
     """

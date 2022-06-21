@@ -4,6 +4,9 @@ defaults:
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
 
+#checkpoint_params:
+#  load_checkpoint: true
+
 architecture: ssd_lite_mobilenet_v2
 project_name: SSD_Mobile
 
@@ -12,6 +15,7 @@ dataset_params:
   val_batch_size: 60
   val_image_size: 320
   train_image_size: 320
+  labels_offset: 1
 
 # stride_N_plus is for models where the first skip begins from the feature map with output stride N and higher
 # grids of [input_size / N x input_size / N] and smaller
@@ -65,7 +69,7 @@ anchors:
 data_loader_num_workers: 8
 model_checkpoints_location: local
 experiment_suffix: batch${dataset_params.batch_size}_lr${training_hyperparams.initial_lr}_res${dataset_params.val_image_size}
-experiment_name: ${architecture}_coco_${experiment_suffix}_dboxes_fixed_nms_scores_fixed
+experiment_name: ${architecture}_coco_${experiment_suffix}_dboxes_and_warmup_fixed_4gpus
 
 sg_model:
   _target_: super_gradients.SgModel
@@ -83,7 +87,7 @@ dboxes: # ${anchors.300.stride_8_plus}
   scale_wh: 0.2
 
 arch_params:
-  num_classes: 80  # 80 + 1 for the background class
+  num_classes: 81  # 80 + 1 for the background class
 
 dataset_interface:
   coco2017_detection:
@@ -110,7 +114,14 @@ training_hyperparams:
   warmup_momentum: 0.8
   warmup_initial_lr: 1e-06
   warmup_bias_lr: 0.1
-#  warmup_mode: yolov5_warmup
+  warmup_mode: yolov5_warmup
+#  phase_callbacks:
+#    - _target_: super_gradients.training.utils.callbacks.DetectionVisualizationCallback
+#      post_prediction_callback:
+#        _target_: super_gradients.training.utils.ssd_utils.SSDPostPredictCallback
+#        dboxes: ${dboxes}
+#        conf: 0.25
+#        iou: 0.45
 
   valid_metrics_list:
     - _target_: super_gradients.training.metrics.DetectionMetrics
@@ -123,3 +134,4 @@ training_hyperparams:
 
   metric_to_watch: 'mAP@0.50:0.95'
   greater_metric_to_watch_is_better: True
+
