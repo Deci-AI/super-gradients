@@ -1742,7 +1742,7 @@ class SgModel:
         self.valid_monitored_values = sg_model_utils.update_monitored_values_dict(
             monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict)
 
-        if not silent_mode:
+        if not silent_mode and evaluation_type==EvaluationType.VALIDATION:
             progress_bar_data_loader.write("===========================================================")
             sg_model_utils.display_epoch_summary(epoch=context.epoch, n_digits=4,
                                                  train_monitored_values=self.train_monitored_values,
