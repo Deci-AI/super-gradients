@@ -1,5 +1,6 @@
 """
-Based on https://github.com/Megvii-BaseDetection/YOLOX
+Based on https://github.com/Megvii-BaseDetection/YOLOX (Apache-2.0 license)
+
 """
 
 import logging
@@ -29,12 +30,19 @@ class IOUloss(nn.Module):
 
     def __init__(self, reduction: str = "none", loss_type: str = "iou"):
         super(IOUloss, self).__init__()
-        if loss_type not in ["iou", "giou"]:
-            raise ValueError("Illegal loss_type value: " + loss_type)
-        if reduction not in ["mean", "sum", "none"]:
-            raise ValueError("Illegal reduction value: " + reduction)
+        self._validate_args(loss_type, reduction)
         self.reduction = reduction
         self.loss_type = loss_type
+
+    @staticmethod
+    def _validate_args(loss_type, reduction):
+        supported_losses = ["iou", "giou"]
+        supported_reductions = ["mean", "sum", "none"]
+        if loss_type not in supported_losses:
+            raise ValueError("Illegal loss_type value: " + loss_type + ', expected one of: ' + str(supported_losses))
+        if reduction not in supported_reductions:
+            raise ValueError(
+                "Illegal reduction value: " + reduction + ', expected one of: ' + str(supported_reductions))
 
     def forward(self, pred, target):
         assert pred.shape[0] == target.shape[0]
