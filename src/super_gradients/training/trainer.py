@@ -1,3 +1,4 @@
+import onnx
 from omegaconf import DictConfig
 import hydra
 from super_gradients.training.sg_model import MultiGPUMode
@@ -10,6 +11,7 @@ class Trainer:
     Class for running SuperGradient's recipes.
     See train_from_recipe example in the examples directory to demonstrate it's usage.
     """
+
     # FIXME: REMOVE PARAMETER MANIPULATION SPECIFIC FOR YOLO
 
     @staticmethod
@@ -47,7 +49,8 @@ class Trainer:
         cfg.training_hyperparams.optimizer_params.weight_decay *= effective_batch_size / 64.
 
         # Scale EMA beta to match Ultralytics update
-        cfg.training_hyperparams.ema_params.beta = cfg.training_hyperparams.max_epochs * len(cfg.sg_model.train_loader) / 2000.
+        cfg.training_hyperparams.ema_params.beta = cfg.training_hyperparams.max_epochs * len(
+            cfg.sg_model.train_loader) / 2000.
 
         log_msg = \
             f"""
@@ -96,7 +99,8 @@ class Trainer:
         cfg = hydra.utils.instantiate(cfg)
 
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
-        cfg.sg_model.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
+        cfg.sg_model.connect_dataset_interface(cfg.dataset_interface,
+                                               data_loader_num_workers=cfg.data_loader_num_workers)
 
         # BUILD NETWORK
         cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
@@ -104,6 +108,13 @@ class Trainer:
         # FIXME: REMOVE PARAMETER MANIPULATION SPECIFIC FOR YOLO
         if str(cfg.architecture).startswith("yolo_v5"):
             cfg = Trainer.scale_params_for_yolov5(cfg)
-
+        onnx_path = '/home/natan.bagrov/ssd/ssd_sg_model.onnx'
+        torch.onnx.export(cfg.sg_model.net.module,
+                          torch.unsqueeze(cfg.sg_model.dataset_interface.trainset[0][0].to('cuda:0'), dim=0),
+                          onnx_path,
+                          opset_version=8)
+        from onnx import shape_inference
+        onnx.save(onnx.shape_inference.infer_shapes(onnx.load(onnx_path)), onnx_path)
+        exit()
         # TRAIN
         cfg.sg_model.train(training_params=cfg.training_hyperparams)
