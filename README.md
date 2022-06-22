@@ -63,7 +63,6 @@ All SuperGradients models’ are production ready in the sense that they are com
 </div>
     
 ## What's New
-* 【16/06/2022】 YOLOX models (object detection) - recipes and pre-trained checkpoints.
 * 【16/06/2022】 ResNet50  - new pre-trained checkpoint and recipe for ImageNet top-1 score of 81.9 💪
 * 【09/06/2022】 ViT models (Vision Transformer) - Training recipes and pre-trained checkpoints (ViT, BEiT).
 * 【09/06/2022】 Knowledge Distillation support.
@@ -76,7 +75,7 @@ All SuperGradients models’ are production ready in the sense that they are com
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Coming soon
-
+- [ ] YOLOX models (object detection) - recipes and pre-trained checkpoints.
 - [ ] SSD MobileNet models (recipes, pre-trained checkpoints) for edge devices deployment.
 - [ ] QAT capabilities (Quantization Aware Training).
 - [ ] Dali implementation.
@@ -331,7 +330,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 | RegNet Y800  | ImageNet |224x224 |  77.07  |  93.26 |**0.74ms** | **1.19ms** |**2.77ms** |**3.04ms** |**2.81ms** |
 | ResNet 18   | ImageNet  |224x224   |  70.6   |   89.64 |**0.52ms** | **0.95ms** |**2.01ms**|**2.30ms** |**4.56ms** |
 | ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.92ms**  |**1.34ms** |**3.57ms**|**3.87ms** | **7.64ms** |
-| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**1.03ms** | **1.44ms** | **4.78ms**|**5.10ms** |**9.25ms** |
+| ResNet 50  | ImageNet  |224x224   |  81.91  |   93.0  |**1.03ms** | **1.44ms** | **4.78ms**|**5.10ms** |**9.25ms** |
 | MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.67ms** | **1.11ms** |**2.42ms** |**2.71ms** |**1.76ms** |
 | MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.67ms** | **1.11ms** |**2.42ms** |**2.71ms** |**1.76ms** |
 | MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.55ms** | **0.96ms** |**2.01ms** *|**2.35ms** |**1.06ms** |
