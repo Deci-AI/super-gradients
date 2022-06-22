@@ -278,7 +278,7 @@ Learn more about SuperGradients knowledge distillation training with our pre-tra
    <a target="_blank" href="https://bit.ly/3HQvbsg"><img src="./docs/assets/SG_img/colab_logo.png" />KD Training in Google Colab</a>
  </td>
   <td>
-   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_KD_training_quickstart.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_knowledge_distillation_quickstart.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
