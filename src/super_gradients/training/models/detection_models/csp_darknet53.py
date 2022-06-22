@@ -229,20 +229,18 @@ class CSPDarknet53(SgModule):
         if get_param(arch_params, 'stem_type') == 'focus' or yolo_type == 'yoloX' or yolo_version == 'v3.0':
             self._modules_list.append(Focus(channels_in, width_mult(64), 3, 1, activation_type))  # 0
         elif get_param(arch_params, 'stem_type') == '6x6' or yolo_version == 'v6.0':
-            self._modules_list.append(Conv(channels_in, width_mult(64), 6, 2, activation_type, padding=2))    # 0
+            self._modules_list.append(Conv(channels_in, width_mult(64), 6, 2, activation_type, padding=2))  # 0
         else:
             raise NotImplementedError(f'One of {yolo_type} yolo type or {yolo_version} yolo version is not supported')
 
-        self._modules_list.append(ConvBlock(width_mult(64), width_mult(128), 3, 2, activation_type))                 # 1
-        self._modules_list.append(
-            block(width_mult(128), width_mult(128), struct[0], activation_type, depthwise=depthwise))                # 2
-        self._modules_list.append(ConvBlock(width_mult(128), width_mult(256), 3, 2, activation_type))                # 3
-        self._modules_list.append(
-            block(width_mult(256), width_mult(256), struct[1], activation_type, depthwise=depthwise))                # 4
-        self._modules_list.append(ConvBlock(width_mult(256), width_mult(512), 3, 2, activation_type))                # 5
-        self._modules_list.append(
-            block(width_mult(512), width_mult(512), struct[2], activation_type, depthwise=depthwise))                # 6
-        self._modules_list.append(ConvBlock(width_mult(512), width_mult(1024), 3, 2, activation_type))               # 7
+        for i, layer_in_ch in enumerate([64, 128, 256, 512]):
+            self._modules_list.append(
+                ConvBlock(width_mult(layer_in_ch), width_mult(layer_in_ch * 2), 3, 2, activation_type))  # 1,3,5,7
+            if i < 3:
+                self._modules_list.append(
+                    block(width_mult(layer_in_ch * 2), width_mult(layer_in_ch * 2), struct[i], activation_type,
+                          depthwise=depthwise))  # 2,4,6
+
         if yolo_type == 'yoloX' or yolo_version == 'v3.0':
             self._modules_list.append(SPP(width_mult(1024), width_mult(1024), (5, 9, 13), activation_type))          # 8
             self._modules_list.append(
