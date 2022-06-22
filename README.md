@@ -65,8 +65,8 @@ All SuperGradients models’ are production ready in the sense that they are com
 ## What's New
 * 【16/06/2022】 ResNet50  - new pre-trained checkpoint and [recipe](https://github.com/Deci-AI/super-gradients/blob/SG/readme_update/src/super_gradients/recipes/imagenet_resnet50_kd.yaml) for ImageNet top-1 score of 81.9 💪
 * 【09/06/2022】 ViT models (Vision Transformer) - Training [recipes](https://github.com/Deci-AI/super-gradients/tree/SG/readme_update/src/super_gradients/recipes) and pre-trained checkpoints (ViT, BEiT).
-* 【09/06/2022】 [Knowledge Distillation](https://github.com/Deci-AI/super-gradients/blob/SG/readme_update/src/super_gradients/training/kd_model/kd_model.py) support.
-* 【06/04/2022】 Integration with professional tools - Weights and Biases and DagsHub.
+* 【09/06/2022】 Knowledge Distillation support - [training module](https://github.com/Deci-AI/super-gradients/blob/SG/readme_update/src/super_gradients/training/kd_model/kd_model.py) and [notebook](https://bit.ly/3HQvbsg).
+* 【06/04/2022】 Integration with professional tools - [Weights and Biases](https://deci-ai.github.io/super-gradients/user_guide.html?highlight=wandb#professional-tools-integration) and DagsHub.
 * 【09/03/2022】 New [quick start](#quick-start-notebook---semantic-segmentation) and [transfer learning](#transfer-learning-with-sg-notebook---semantic-segmentation) example notebooks for Semantic Segmentation.
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
 * 【01/02/2022】 We added issue templates for feature requests and bug reporting.
@@ -96,6 +96,8 @@ ________________________________________________________________________________
 - [Transfer Learning](#transfer-learning)  
     - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
     - [Transfer Learning with SG Notebook - Semantic segmentation example](#transfer-learning-with-sg-notebook---semantic-segmentation)
+- [Knowledge Distillation Training](#knowledge-distillation-training)  
+    - [Knowledge Distillation Training Quick Start with SG Notebook - ResNet18 example](#knowledge-distillation-training-quick-start-with-sg-notebook---resnet18-example)
 - [Installation Methods](#installation-methods)
     - [Prerequisites](#prerequisites)
     - [Quick Installation](#quick-installation)
@@ -259,6 +261,24 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
  </td>
   <td>
    <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_transfer_learning_semantic_segmentation.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+
+## Knowledge Distillation Training
+### Knowledge Distillation Training Quick Start with SG Notebook - ResNet18 example
+Knowledge Distillation is a training technique that uses a large model, teacher model, to improve the performance of a smaller model, the student model.
+Learn more about SuperGradients knowledge distillation training with our pre-trained BEiT base teacher model and Resnet18 student model on CIFAR10 example notebook on Google Colab for an easy to use tutorial using free GPU hardware
+
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://bit.ly/3HQvbsg"><img src="./docs/assets/SG_img/colab_logo.png" />KD Training in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_KD_training_quickstart.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
  </td>
  <td>
    <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
