@@ -63,9 +63,9 @@ All SuperGradients models’ are production ready in the sense that they are com
 </div>
     
 ## What's New
-* 【16/06/2022】 ResNet50  - new pre-trained checkpoint and recipe for ImageNet top-1 score of 81.9 💪
-* 【09/06/2022】 ViT models (Vision Transformer) - Training recipes and pre-trained checkpoints (ViT, BEiT).
-* 【09/06/2022】 Knowledge Distillation support.
+* 【16/06/2022】 ResNet50  - new pre-trained checkpoint and [recipe](https://github.com/Deci-AI/super-gradients/blob/SG/readme_update/src/super_gradients/recipes/imagenet_resnet50_kd.yaml) for ImageNet top-1 score of 81.9 💪
+* 【09/06/2022】 ViT models (Vision Transformer) - Training [recipes](https://github.com/Deci-AI/super-gradients/tree/SG/readme_update/src/super_gradients/recipes) and pre-trained checkpoints (ViT, BEiT).
+* 【09/06/2022】 [Knowledge Distillation](https://github.com/Deci-AI/super-gradients/blob/SG/readme_update/src/super_gradients/training/kd_model/kd_model.py) support.
 * 【06/04/2022】 Integration with professional tools - Weights and Biases and DagsHub.
 * 【09/03/2022】 New [quick start](#quick-start-notebook---semantic-segmentation) and [transfer learning](#transfer-learning-with-sg-notebook---semantic-segmentation) example notebooks for Semantic Segmentation.
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
