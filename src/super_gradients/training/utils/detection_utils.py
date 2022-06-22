@@ -1238,7 +1238,7 @@ def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
     return bbox
 
 
-class YoloXCollateFN:
+class DetectionCollateFN:
     """
     Collate function for Yolox training
     """
