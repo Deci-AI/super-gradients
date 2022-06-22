@@ -10,10 +10,9 @@ from super_gradients.training.models.detection_models.csp_darknet53 import Conv,
     CSPDarknet53, get_yolo_version_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
-    check_anchor_order, check_img_size_divisibilty, matrix_non_max_suppression, NMS_Type, \
-    DetectionPostPredictionCallback, Anchors
+    check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.export_utils import ExportableHardswish, ExportableSiLU
-from super_gradients.training.utils.utils import HpmStruct, get_param
+from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [30, 61, 62, 45, 59, 119],
@@ -486,7 +485,7 @@ class YoLoV5Base(SgModule):
         # Validate the image size
         image_dims = input_size[-2:]  # assume torch uses channels first layout
         for dim in image_dims:
-            res_flag, suggestion = check_img_size_divisibilty(dim, max_stride)
+            res_flag, suggestion = check_img_size_divisibility(dim, max_stride)
             if not res_flag:
                 raise ValueError(f'Invalid input size: {input_size}. The input size must be multiple of max stride: '
                                  f'{max_stride}. The closest suggestions are: {suggestion[0]}x{suggestion[0]} or '
