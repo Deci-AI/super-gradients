@@ -108,13 +108,13 @@ class Trainer:
         # FIXME: REMOVE PARAMETER MANIPULATION SPECIFIC FOR YOLO
         if str(cfg.architecture).startswith("yolo_v5"):
             cfg = Trainer.scale_params_for_yolov5(cfg)
-        onnx_path = '/home/natan.bagrov/ssd/ssd_sg_model.onnx'
-        torch.onnx.export(cfg.sg_model.net.module,
-                          torch.unsqueeze(cfg.sg_model.dataset_interface.trainset[0][0].to('cuda:0'), dim=0),
-                          onnx_path,
-                          opset_version=8)
-        from onnx import shape_inference
-        onnx.save(onnx.shape_inference.infer_shapes(onnx.load(onnx_path)), onnx_path)
-        exit()
+        # onnx_path = '/home/natan.bagrov/ssd/ssd_sg_model.onnx'
+        # torch.onnx.export(cfg.sg_model.net.module,
+        #                   torch.unsqueeze(cfg.sg_model.dataset_interface.trainset[0][0].to('cuda:0'), dim=0),
+        #                   onnx_path,
+        #                   opset_version=8)
+        # from onnx import shape_inference
+        # onnx.save(onnx.shape_inference.infer_shapes(onnx.load(onnx_path)), onnx_path)
+        # exit()
         # TRAIN
         cfg.sg_model.train(training_params=cfg.training_hyperparams)

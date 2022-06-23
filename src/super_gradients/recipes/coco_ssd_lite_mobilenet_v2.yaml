@@ -25,23 +25,23 @@ anchors:
       aspect_ratios: [ [ 2 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2 ], [ 2 ] ]
       scale_xy: 0.1
       scale_wh: 0.2
-    stride_8_plus: [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
+    stride_8_plus: [ [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ] ]
   300:
     stride_8_plus:
       _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes
       fig_size: 300
-      feat_size: [38, 19, 10, 5, 3, 2]
-      scales: [21, 45, 99, 153, 207, 261, 315]
-      aspect_ratios: [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
+      feat_size: [ 38, 19, 10, 5, 3, 2 ]
+      scales: [ 21, 45, 99, 153, 207, 261, 315 ]
+      aspect_ratios: [ [ 2 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2 ], [ 2 ] ]
       scale_xy: 0.1
       scale_wh: 0.2
     stride_16_plus:
       _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes
       fig_size: 300
-      feat_size: [19, 10, 5, 3, 2, 1]
-      scales: [21, 45, 99, 153, 207, 261, 315]
+      feat_size: [ 19, 10, 5, 3, 2, 1 ]
+      scales: [ 21, 45, 99, 153, 207, 261, 315 ]
       # scales: [60, 105, 150, 195, 240, 285, 330]
-      aspect_ratios: [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
+      aspect_ratios: [ [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ] ]
       scale_xy: 0.1
       scale_wh: 0.2
   320:
@@ -100,6 +100,8 @@ training_hyperparams:
   criterion_params:
     alpha: 1.0
     dboxes: ${dboxes}
+    focal_gamma: 2.
+    focal_alpha: 0.25
 
   optimizer: SGD
   optimizer_params:
@@ -116,7 +118,7 @@ training_hyperparams:
       post_prediction_callback:
         _target_: super_gradients.training.utils.ssd_utils.SSDPostPredictCallback
         dboxes: ${dboxes}
-        conf: 0.001
+        conf: 0.2
         iou: 0.6
       num_cls: 80
 

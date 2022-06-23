@@ -2,8 +2,10 @@ from typing import Tuple
 
 import torch
 from torch import nn
+from torch.nn.functional import one_hot
 from torch.nn.modules.loss import _Loss
 
+from super_gradients.training.losses import FocalLoss
 from super_gradients.training.utils.detection_utils import calculate_bbox_iou_matrix
 from super_gradients.training.utils.ssd_utils import DefaultBoxes
 
@@ -20,7 +22,8 @@ class SSDLoss(_Loss):
         * L_l1 = [SmoothL1Loss for all positives]
     """
 
-    def __init__(self, dboxes: DefaultBoxes, alpha: float = 1.0, iou_thresh: float = 0.5, neg_pos_ratio: float = 3.):
+    def __init__(self, dboxes: DefaultBoxes, alpha: float = 1.0, iou_thresh: float = 0.5, focal_gamma: float = 0.,
+                 focal_alpha: float = 0.):
         super(SSDLoss, self).__init__()
         self.scale_xy = dboxes.scale_xy
         self.scale_wh = dboxes.scale_wh
@@ -28,9 +31,15 @@ class SSDLoss(_Loss):
         self.sl1_loss = nn.SmoothL1Loss(reduce=False)
         self.dboxes = nn.Parameter(dboxes(order="xywh").transpose(0, 1).unsqueeze(dim=0), requires_grad=False)
 
-        self.con_loss = nn.CrossEntropyLoss(reduce=False)
+        if focal_gamma > 0:
+            self.con_loss = nn.BCEWithLogitsLoss(reduce=True)
+            self.con_loss = FocalLoss(self.con_loss, gamma=focal_gamma, alpha=focal_alpha)
+        else:
+            self.con_loss = nn.CrossEntropyLoss(reduce=False)
+
         self.iou_thresh = iou_thresh
-        self.neg_pos_ratio = neg_pos_ratio
+        self.focal_gamma = focal_gamma
+        self.focal_alpha = focal_alpha
 
     def _norm_relative_bbox(self, loc):
         """
@@ -100,24 +109,29 @@ class SSDLoss(_Loss):
         sl1 = self.sl1_loss(ploc, vec_gd).sum(dim=1)
         sl1 = (mask.float() * sl1).sum(dim=1)
 
-        # HARD NEGATIVE MINING
-        con = self.con_loss(plabel, batch_target_labels)
+        if self.focal_gamma < 1e-3:
+            # HARD NEGATIVE MINING
+            con = self.con_loss(plabel, batch_target_labels)
 
-        # POSITIVE MASK WILL NOT BE SELECTED
-        # set 0. loss for all positive objects, leave the loss where the object is background
-        con_neg = con.clone()
-        con_neg[mask] = 0
-        # sort background cells by CE loss value (bigger_first)
-        _, con_idx = con_neg.sort(dim=1, descending=True)
-        # restore cells order, get each cell's order (rank) in CE loss sorting
-        _, con_rank = con_idx.sort(dim=1)
+            # POSITIVE MASK WILL NOT BE SELECTED
+            # set 0. loss for all positive objects, leave the loss where the object is background
+            con_neg = con.clone()
+            con_neg[mask] = 0
+            # sort background cells by CE loss value (bigger_first)
+            _, con_idx = con_neg.sort(dim=1, descending=True)
+            # restore cells order, get each cell's order (rank) in CE loss sorting
+            _, con_rank = con_idx.sort(dim=1)
 
-        # NUMBER OF NEGATIVE THREE TIMES POSITIVE
-        neg_num = torch.clamp(self.neg_pos_ratio * pos_num, max=mask.size(1)).unsqueeze(-1)
-        # for each image into neg mask we'll take (3 * positive pairs) background objects with the highest CE
-        neg_mask = con_rank < neg_num
+            # NUMBER OF NEGATIVE THREE TIMES POSITIVE
+            neg_num = torch.clamp(self.neg_pos_ratio * pos_num, max=mask.size(1)).unsqueeze(-1)
+            # for each image into neg mask we'll take (3 * positive pairs) background objects with the highest CE
+            neg_mask = con_rank < neg_num
 
-        closs = (con * (mask.float() + neg_mask.float())).sum(dim=1)
+            closs = (con * (mask.float() + neg_mask.float())).sum(dim=1)
+        else:  # focal loss
+            batch_target_labels = one_hot(batch_target_labels, num_classes=plabel.size(1))
+            batch_target_labels = torch.swapaxes(batch_target_labels, 1, 2).float()
+            closs = self.con_loss(plabel, batch_target_labels)
 
         # AVOID NO OBJECT DETECTED
         total_loss = (2 - self.alpha) * sl1 + self.alpha * closs

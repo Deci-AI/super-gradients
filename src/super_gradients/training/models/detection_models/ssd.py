@@ -22,7 +22,8 @@ DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
     "num_defaults": [6, 6, 6, 6, 6, 6],  # num anchors per level, defined by scales used when constructing DefaultBoxes
     "lite": True,
     "width_mult": 1.0,
-    "output_paths": [[14, 'conv', 2], 18]
+    "output_paths": [[14, 'conv', 2], 18],
+    # "output_paths": [[7, 'conv', 2], [14, 'conv', 2]],
 }
 
 
