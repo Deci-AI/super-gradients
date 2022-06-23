@@ -16,6 +16,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
@@ -31,6 +32,7 @@ from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
+from super_gradients.training.utils.sg_model_utils import MonitoredValue
 from super_gradients.training import metrics
 from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, IllegalDataloaderInitialization
 from super_gradients.training.datasets import DatasetInterface
@@ -219,6 +221,9 @@ class SgModel:
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
         self.loss_logging_items_names = default_loss_logging_items_names
 
+        self.train_monitored_values = {}
+        self.valid_monitored_values = {}
+
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
             raise IllegalDataloaderInitialization()
@@ -406,6 +411,9 @@ class SgModel:
 
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
+
+        self.train_monitored_values = sg_model_utils.update_monitored_values_dict(
+            monitored_values_dict=self.train_monitored_values, new_values_dict=pbar_message_dict)
 
         return logging_values
 
@@ -780,7 +788,14 @@ class SgModel:
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
-        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+        self.metric_idx_in_results_tuple = (
+            self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+
+        # Instantiate the values to monitor (loss/metric)
+        for loss in self.loss_logging_items_names:
+            self.train_monitored_values[loss] = MonitoredValue()
+            self.valid_monitored_values[loss] = MonitoredValue()
+        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue()
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -1725,6 +1740,21 @@ class SgModel:
 
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
+
+        pbar_message_dict = get_train_loop_description_dict(logging_values,
+                                                            metrics,
+                                                            self.loss_logging_items_names)
+
+        self.valid_monitored_values = sg_model_utils.update_monitored_values_dict(
+            monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict)
+
+        if not silent_mode and evaluation_type==EvaluationType.VALIDATION:
+            progress_bar_data_loader.write("===========================================================")
+            sg_model_utils.display_epoch_summary(epoch=context.epoch, n_digits=4,
+                                                 train_monitored_values=self.train_monitored_values,
+                                                 valid_monitored_values=self.valid_monitored_values)
+            progress_bar_data_loader.write("===========================================================")
+
         return logging_values
 
     def instantiate_net(self, architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict,
