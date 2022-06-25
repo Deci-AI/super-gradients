@@ -59,17 +59,27 @@ class SSDLoss(_Loss):
         target_labels = torch.zeros((self.dboxes.data.shape[2])).to(self.dboxes.device)
 
         if len(targets) > 0:
-            boxes = targets[:, 2:]
-            ious = calculate_bbox_iou_matrix(boxes, self.dboxes.data.squeeze().T, x1y1x2y2=False)
-
+            gt_boxes = targets[:, 2:]
+            gt_labels = targets[:, 1]
+            ious = calculate_bbox_iou_matrix(gt_boxes, self.dboxes.data.squeeze().T, x1y1x2y2=False)
             # one best GT > self.iou_thresh for EACH cell,
             # but it's a problem that not all GTs are guaranteed to get a cell pair
-            values, indices = torch.max(ious, dim=0)
-            mask = values > self.iou_thresh
+            # values, indices = torch.max(ious, dim=0)
 
-            target_locations[:, mask] = targets[indices[mask], 2:].T
-            target_labels[mask] = targets[indices[mask], 1] + 1
+            # size: num_priors
+            best_target_per_prior, best_target_per_prior_index = ious.max(0)
+            # size: num_targets
+            best_prior_per_target, best_prior_per_target_index = ious.max(1)
 
+            for target_index, prior_index in enumerate(best_prior_per_target_index):
+                best_target_per_prior_index[prior_index] = target_index
+            # 2.0 > 1.0 is used to make sure every target has a prior assigned
+            best_target_per_prior.index_fill_(0, best_prior_per_target_index, 2)
+
+            labels = gt_labels[best_target_per_prior_index] + 1  # BACKGROUND IS ZERO!
+            labels[best_target_per_prior < self.iou_thresh] = 0  # LOW IOU -> BACKGROUND
+            boxes = gt_boxes[best_target_per_prior_index]
+            return boxes.T, labels
         return target_locations, target_labels
 
     def forward(self, predictions: Tuple, targets):
@@ -91,7 +101,7 @@ class SSDLoss(_Loss):
         batch_target_locations = torch.stack(batch_target_locations)
         batch_target_labels = torch.stack(batch_target_labels).type(torch.long)
 
-        mask = batch_target_labels > 0
+        mask = batch_target_labels > 0  # NOT BACKGROUND
         pos_num = mask.sum(dim=1)
 
         vec_gd = self._norm_relative_bbox(batch_target_locations)
