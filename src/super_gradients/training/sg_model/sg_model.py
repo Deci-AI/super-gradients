@@ -3,6 +3,7 @@ import sys
 from copy import deepcopy
 from enum import Enum
 from typing import Union, Tuple, Mapping, List, Any
+import logging
 
 import numpy as np
 import pkg_resources
@@ -16,6 +17,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients.compliance import check_compliance
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
@@ -747,6 +749,9 @@ class SgModel:
         :return:
         """
         global logger
+
+        if logger.isEnabledFor('INFO'):
+            check_compliance()
 
         if self.net is None:
             raise Exception('Model', 'No model found')
