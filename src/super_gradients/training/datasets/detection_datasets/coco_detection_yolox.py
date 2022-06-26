@@ -27,7 +27,7 @@ class COCODetectionDatasetV2(Dataset):
         
         :param img_size: tuple, Image size (when loaded, before transforms)
         :param data_dir: str, root path to coco data.
-        :param json_file: str, path to coco json file.
+        :param json_file: str, path to coco json file, that resides in data_dir/annotations/json_file.
         :param name: str, sub directory of data_dir containing the data.
         :param cache: bool, whether to cache images
         :param tight_box_rotation: bool, whether to use of segmentation maps convex hull
@@ -41,7 +41,10 @@ class COCODetectionDatasetV2(Dataset):
         self.data_dir = data_dir
         self.json_file = json_file
         self.name = name
-        self.coco = COCO(os.path.join(self.data_dir, "annotations", self.json_file))  # duplicate
+        annotation_file_path = os.path.join(self.data_dir, "annotations", self.json_file)
+        if not os.path.exists(annotation_file_path):
+            raise ValueError("Could not find annotation file under " + str(annotation_file_path))
+        self.coco = COCO(annotation_file_path)  # duplicate
         self.tight_box_rotation = tight_box_rotation
         remove_useless_info(self.coco, self.tight_box_rotation)
         self.ids = self.coco.getImgIds()
