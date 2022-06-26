@@ -8,12 +8,10 @@ import random
 import cv2
 import numpy as np
 
-from super_gradients.training.utils.detection_utils import get_yolox_datadir
-
 logger = get_logger(__name__)
 
 
-class COCODetectionDatasetYolox(Dataset):
+class COCODetectionDatasetV2(Dataset):
     """Detection dataset COCO implementation"""
 
     def __init__(
@@ -40,8 +38,6 @@ class COCODetectionDatasetYolox(Dataset):
         self.imgs = None
         self.data_dir = data_dir
         self.input_dim = img_size
-        if data_dir is None:
-            data_dir = os.path.join(get_yolox_datadir(), "COCO")
         self.data_dir = data_dir
         self.json_file = json_file
         self.name = name
