@@ -1,0 +1,25 @@
+batch_size: 16 # batch size for trainset in CoCoDetectionDatasetInterface
+val_batch_size: 128 # batch size for valset in CoCoDetectionDatasetInterface
+val_image_size: 640 # image size for valset in CoCoDetectionDatasetInterface
+train_image_size: 640 # image size for trainset in CoCoDetectionDatasetInterface
+
+mixup_prob: 1.0
+degrees: 10.
+shear: 2.0
+flip_prob: 0.5
+hsv_prob: 1.0
+mosaic_scale: [0.1, 2]
+mixup_scale: [0.5, 1.5]
+mosaic_prob: 1.
+translate: 0.1
+
+val_collate_fn: # collate function for valset in CoCoDetectionDatasetInterface
+  _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+
+
+train_collate_fn: # collate function for trainset in CoCoDetectionDatasetInterface
+  _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+
+cache_images: False
+
+_convert_: all

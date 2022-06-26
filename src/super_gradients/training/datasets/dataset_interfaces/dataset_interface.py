@@ -35,7 +35,7 @@ from super_gradients.training.datasets.samplers.repeated_augmentation_sampler im
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine, DetectionTargetsFormatTransform, \
     DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
-from super_gradients.training.utils.detection_utils import YoloXCollateFN
+from super_gradients.training.utils.detection_utils import DetectionCollateFN
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -894,9 +894,9 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
         self.classes = self.trainset.classes
 
 
-class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
+class CocoDetectionDatasetInterfaceV2(DatasetInterface):
     def __init__(self, dataset_params={}):
-        super(CocoDetectionDatasetInterfaceYolox, self).__init__()
+        super(CocoDetectionDatasetInterfaceV2, self).__init__()
         default_coco_dataset_params = {"mixup_prob": 1.0,
                                        "degrees": 10.,
                                        "shear": 2.0,
@@ -906,13 +906,11 @@ class CocoDetectionDatasetInterfaceYolox(DatasetInterface):
                                        "mixup_scale": [0.5, 1.5],
                                        "mosaic_prob": 1.,
                                        "translate": 0.1,
-
                                        "batch_size": 16,
                                        "val_batch_size": 128,
                                        "train_image_size": 640,
-
-                                       "val_collate_fn": YoloXCollateFN(),
-                                       "train_collate_fn": YoloXCollateFN()
+                                       "val_collate_fn": DetectionCollateFN(),
+                                       "train_collate_fn": DetectionCollateFN()
                                        }
         self.dataset_params = core_utils.HpmStruct(**default_coco_dataset_params)
         self.dataset_params.override(**dataset_params)
