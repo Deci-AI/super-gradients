@@ -63,21 +63,24 @@ All SuperGradients models’ are production ready in the sense that they are com
 </div>
     
 ## What's New
+* 【16/06/2022】 ResNet50  - new pre-trained checkpoint and [recipe](https://github.com/Deci-AI/super-gradients/blob/SG/master/src/super_gradients/recipes/imagenet_resnet50_kd.yaml) for ImageNet top-1 score of 81.9 💪
+* 【09/06/2022】 ViT models (Vision Transformer) - Training [recipes](https://github.com/Deci-AI/super-gradients/tree/SG/master/src/super_gradients/recipes) and pre-trained checkpoints (ViT, BEiT).
+* 【09/06/2022】 Knowledge Distillation support - [training module](https://github.com/Deci-AI/super-gradients/blob/SG/master/src/super_gradients/training/kd_model/kd_model.py) and [notebook](https://bit.ly/3HQvbsg).
+* 【06/04/2022】 Integration with professional tools - [Weights and Biases](https://deci-ai.github.io/super-gradients/user_guide.html?highlight=wandb#professional-tools-integration) and DagsHub.
 * 【09/03/2022】 New [quick start](#quick-start-notebook---semantic-segmentation) and [transfer learning](#transfer-learning-with-sg-notebook---semantic-segmentation) example notebooks for Semantic Segmentation.
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
 * 【01/02/2022】 We added issue templates for feature requests and bug reporting.
 * 【20/01/2022】 STDC family - new recipes added with even higher mIoU💪
-* 【17/01/2022】 We have released transfer learning example [notebook](#transfer-learning-with-sg-notebook---object-detection) for object detection (YOLOv5).
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
-## Comming soon
-- [ ] ViT models (Vision Transformer).
-- [ ] Knowledge Distillation support.
-- [ ] YOLOX models (recipes, pre-trained checkpoints).
+## Coming soon
+- [ ] YOLOX models (object detection) - recipes and pre-trained checkpoints.
 - [ ] SSD MobileNet models (recipes, pre-trained checkpoints) for edge devices deployment.
+- [ ] QAT capabilities (Quantization Aware Training).
 - [ ] Dali implementation.
-- [ ] Integration with professional tools.
+- [ ] Integration with more professional tools.
+- [ ] Improved pre-trained checkpoints and recipes (DDRNet, ResNet, RegSeg, etc.)
 
 __________________________________________________________________________________________________________
 ### Table of Content
@@ -93,6 +96,8 @@ ________________________________________________________________________________
 - [Transfer Learning](#transfer-learning)  
     - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
     - [Transfer Learning with SG Notebook - Semantic segmentation example](#transfer-learning-with-sg-notebook---semantic-segmentation)
+- [Knowledge Distillation Training](#knowledge-distillation-training)  
+    - [Knowledge Distillation Training Quick Start with SG Notebook - ResNet18 example](#knowledge-distillation-training-quick-start-with-sg-notebook---resnet18-example)
 - [Installation Methods](#installation-methods)
     - [Prerequisites](#prerequisites)
     - [Quick Installation](#quick-installation)
@@ -263,6 +268,24 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
 </table>
  </br></br>
 
+## Knowledge Distillation Training
+### Knowledge Distillation Training Quick Start with SG Notebook - ResNet18 example
+Knowledge Distillation is a training technique that uses a large model, teacher model, to improve the performance of a smaller model, the student model.
+Learn more about SuperGradients knowledge distillation training with our pre-trained BEiT base teacher model and Resnet18 student model on CIFAR10 example notebook on Google Colab for an easy to use tutorial using free GPU hardware
+
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://bit.ly/3HQvbsg"><img src="./docs/assets/SG_img/colab_logo.png" />KD Training in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_knowledge_distillation_quickstart.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+
 ## Installation Methods
 ### Prerequisites
 <details>
@@ -327,7 +350,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 | RegNet Y800  | ImageNet |224x224 |  77.07  |  93.26 |**0.74ms** | **1.19ms** |**2.77ms** |**3.04ms** |**2.81ms** |
 | ResNet 18   | ImageNet  |224x224   |  70.6   |   89.64 |**0.52ms** | **0.95ms** |**2.01ms**|**2.30ms** |**4.56ms** |
 | ResNet 34  | ImageNet  |224x224   |  74.13   |   91.7  |**0.92ms**  |**1.34ms** |**3.57ms**|**3.87ms** | **7.64ms** |
-| ResNet 50  | ImageNet  |224x224   |  79.47  |   93.0  |**1.03ms** | **1.44ms** | **4.78ms**|**5.10ms** |**9.25ms** |
+| ResNet 50  | ImageNet  |224x224   |  81.91  |   93.0  |**1.03ms** | **1.44ms** | **4.78ms**|**5.10ms** |**9.25ms** |
 | MobileNet V3_large-150 epochs | ImageNet  |224x224   |  73.79    |   91.54  |**0.67ms** | **1.11ms** |**2.42ms** |**2.71ms** |**1.76ms** |
 | MobileNet V3_large-300 epochs  | ImageNet  |224x224   |  74.52    |  91.92 |**0.67ms** | **1.11ms** |**2.42ms** |**2.71ms** |**1.76ms** |
 | MobileNet V3_small | ImageNet  |224x224   |67.45    |  87.47   |**0.55ms** | **0.96ms** |**2.01ms** *|**2.35ms** |**1.06ms** |

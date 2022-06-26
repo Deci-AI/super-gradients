@@ -4,7 +4,7 @@ import unittest
 from super_gradients.training import SgModel, utils as core_utils
 from super_gradients.training.datasets import CoCoDetectionDatasetInterface
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
-from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
+from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn, DetectionVisualization
 
 
