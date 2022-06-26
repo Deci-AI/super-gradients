@@ -920,7 +920,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                                                name=self.dataset_params.train_subdir,
                                                json_file=self.dataset_params.train_json_file,
                                                img_size=train_input_dim,
-                                               cache=self.dataset_params.cache_images,
+                                               cache=self.dataset_params.cache_train_images,
                                                transforms=train_transforms
                                                )
 
@@ -931,7 +931,9 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
             name=self.dataset_params.val_subdir,
             img_size=val_input_dim,
             transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
-                        DetectionTargetsFormatTransform(max_targets=50)]
+                        DetectionTargetsFormatTransform(max_targets=50)],
+            cache=self.dataset_params.cache_val_images,
+
         )
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,

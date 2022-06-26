@@ -26,6 +26,7 @@ val_collate_fn: # collate function for valset in CoCoDetectionDatasetInterface
 train_collate_fn: # collate function for trainset in CoCoDetectionDatasetInterface
   _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
 
-cache_images: False
+cache_train_images: True
+cache_val_images: True
 
 _convert_: all
