@@ -898,6 +898,11 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
     def __init__(self, dataset_params={}):
         super(CocoDetectionDatasetInterfaceV2, self).__init__()
         default_coco_dataset_params = {"data_dir": "/data/coco",
+                                       "train_subdir": "images/train2017",
+                                       "val_subdir": "images/val2017",
+                                       "train_json_file": "instances_train2017.json",
+                                       "val_json_file": "instances_val2017.json",
+
                                        "mixup_prob": 1.0,
                                        "degrees": 10.,
                                        "shear": 2.0,
@@ -907,11 +912,15 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                                        "mixup_scale": [0.5, 1.5],
                                        "mosaic_prob": 1.,
                                        "translate": 0.1,
+
                                        "batch_size": 16,
                                        "val_batch_size": 128,
                                        "train_image_size": 640,
+                                       "val_image_size": 640,
                                        "val_collate_fn": DetectionCollateFN(),
-                                       "train_collate_fn": DetectionCollateFN()
+                                       "train_collate_fn": DetectionCollateFN(),
+
+                                       "cache_images": False
                                        }
         self.dataset_params = core_utils.HpmStruct(**default_coco_dataset_params)
         self.dataset_params.override(**dataset_params)
@@ -936,9 +945,8 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                             ]
 
         self.trainset = COCODetectionDatasetYolox(data_dir=self.dataset_params.data_dir,
-                                                  json_file="instances_train2017.json",
-                                                  img_size=(self.dataset_params.train_image_size,
-                                                            self.dataset_params.train_image_size),
+                                                  json_file=self.dataset_params.train_json_file,
+                                                  img_size=train_input_dim,
                                                   cache=self.dataset_params.cache_images,
                                                   transforms=train_transforms
                                                   )
@@ -946,9 +954,9 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
         self.valset = COCODetectionDatasetYolox(
             data_dir=self.dataset_params.data_dir,
-            json_file="instances_val2017.json",
-            name="images/val2017",
-            img_size=(self.dataset_params.val_image_size, self.dataset_params.val_image_size),
+            json_file=self.dataset_params.val_json_file,
+            name=self.dataset_params.val_subdir,
+            img_size=val_input_dim,
             transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
                         DetectionTargetsFormatTransform(max_targets=50)]
         )

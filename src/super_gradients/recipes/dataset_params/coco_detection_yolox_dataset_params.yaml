@@ -1,4 +1,8 @@
 data_dir: /data/coco
+train_subdir: images/train2017
+val_subdir: images/val2017
+train_json_file: instances_train2017.json
+val_json_file: instances_val2017.json
 
 batch_size: 16 # batch size for trainset in CoCoDetectionDatasetInterface
 val_batch_size: 128 # batch size for valset in CoCoDetectionDatasetInterface
