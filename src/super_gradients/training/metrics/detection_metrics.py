@@ -113,7 +113,7 @@ class DetectionMetrics(Metric):
     def __init__(self, num_cls: int,
                  post_prediction_callback: DetectionPostPredictionCallback = None,
                  iou_thres: IouThreshold = IouThreshold.MAP_05_TO_095,
-                 normalize_targets: bool = True,
+                 normalize_targets: bool = False,
                  dist_sync_on_step=False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.num_cls = num_cls
