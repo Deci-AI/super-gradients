@@ -1,12 +1,12 @@
 import os
-
 from pycocotools.coco import COCO
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from torch.utils.data import Dataset
 import random
-
 import cv2
 import numpy as np
+from tqdm import tqdm
+from multiprocessing.pool import ThreadPool
 
 logger = get_logger(__name__)
 
@@ -145,8 +145,6 @@ class COCODetectionDatasetV2(Dataset):
                 dtype=np.uint8,
                 mode="w+",
             )
-            from tqdm import tqdm
-            from multiprocessing.pool import ThreadPool
 
             NUM_THREADs = min(8, os.cpu_count())
             loaded_images = ThreadPool(NUM_THREADs).imap(
