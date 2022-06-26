@@ -26,6 +26,7 @@ import xml.etree.ElementTree as ET
 from tqdm import tqdm
 from pathlib import Path
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 from super_gradients.training.utils.utils import download_and_unzip_from_url
 from super_gradients.training.utils import get_param
 import torchvision.transforms as transforms
@@ -916,25 +917,31 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                             DetectionTargetsFormatTransform()
                             ]
 
-        self.trainset = COCODetectionDatasetV2(data_dir=self.dataset_params.data_dir,
-                                               name=self.dataset_params.train_subdir,
-                                               json_file=self.dataset_params.train_json_file,
-                                               img_size=train_input_dim,
-                                               cache=self.dataset_params.cache_train_images,
-                                               transforms=train_transforms
-                                               )
+        # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
+        local_rank = get_local_rank()
+        with wait_for_the_master(local_rank):
+            self.trainset = COCODetectionDatasetV2(data_dir=self.dataset_params.data_dir,
+                                                   name=self.dataset_params.train_subdir,
+                                                   json_file=self.dataset_params.train_json_file,
+                                                   img_size=train_input_dim,
+                                                   cache=self.dataset_params.cache_train_images,
+                                                   transforms=train_transforms
+                                                   )
 
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
-        self.valset = COCODetectionDatasetV2(
-            data_dir=self.dataset_params.data_dir,
-            json_file=self.dataset_params.val_json_file,
-            name=self.dataset_params.val_subdir,
-            img_size=val_input_dim,
-            transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
-                        DetectionTargetsFormatTransform(max_targets=50)],
-            cache=self.dataset_params.cache_val_images,
 
-        )
+        # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
+        with wait_for_the_master(local_rank):
+            self.valset = COCODetectionDatasetV2(
+                data_dir=self.dataset_params.data_dir,
+                json_file=self.dataset_params.val_json_file,
+                name=self.dataset_params.val_subdir,
+                img_size=val_input_dim,
+                transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
+                            DetectionTargetsFormatTransform(max_targets=50)],
+                cache=self.dataset_params.cache_val_images,
+
+            )
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):

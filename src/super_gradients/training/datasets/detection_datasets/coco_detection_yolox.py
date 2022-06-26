@@ -20,6 +20,7 @@ class COCODetectionDatasetV2(Dataset):
             json_file: str = "instances_train2017.json",
             name: str = "images/train2017",
             cache: bool = False,
+            cache_dir_path: str = None,
             tight_box_rotation: bool = False,
             transforms: list = [],
     ):
@@ -30,6 +31,7 @@ class COCODetectionDatasetV2(Dataset):
         :param json_file: str, path to coco json file, that resides in data_dir/annotations/json_file.
         :param name: str, sub directory of data_dir containing the data.
         :param cache: bool, whether to cache images
+        :param cache_dir_path: str, path to a directory that will be used for caching (with memmap).
         :param tight_box_rotation: bool, whether to use of segmentation maps convex hull
          as target_seg (see load_sample docs).
         :param transforms: list of transforms to apply sequentially on sample in __getitem__
@@ -53,6 +55,9 @@ class COCODetectionDatasetV2(Dataset):
         self._classes = tuple([c["name"] for c in cats])
         self.annotations = self._load_coco_annotations()
         if cache:  # cache after merged
+            if cache_dir_path is None or not os.path.exists(cache_dir_path):
+                raise ValueError("Must pass valid path through cache_dir_path when caching. Got " + str(cache_dir_path))
+            self.cache_dir_path = cache_dir_path
             self._cache_images()
 
         self.transforms = transforms
@@ -129,7 +134,7 @@ class COCODetectionDatasetV2(Dataset):
         )
         max_h = self.input_dim[0]
         max_w = self.input_dim[1]
-        cache_file = os.path.join(self.data_dir, f"img_resized_cache_{self.name}.array")
+        cache_file = os.path.join(self.cache_dir_path, f"img_resized_cache_{self.name.replace('/', '_')}.array")
         if not os.path.exists(cache_file):
             logger.info(
                 "Caching images for the first time. This might take about 20 minutes for COCO"
