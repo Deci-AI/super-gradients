@@ -587,7 +587,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
     # Settings
     # min_box_width_and_height = 2
     max_box_width_and_height = 4096
-    max_num_of_detections = 300
+    max_num_of_detections = 100
     require_redundant_detections = True
     multi_label_per_box = number_of_classes > 1  # (adds 0.5ms/img)
     output = [None] * prediction.shape[0]

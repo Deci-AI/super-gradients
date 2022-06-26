@@ -223,14 +223,15 @@ class MissingPretrainedWeightsException(Exception):
         super().__init__(self.message)
 
 
-def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretrained_weights: str):
+def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretrained_weights: str, backbone: bool = False):
 
     """
     Loads pretrained weights from the MODEL_URLS dictionary to model
-    @param architecture: name of the model's architecture
-    @param model: model to load pretrinaed weights for
-    @param pretrained_weights: name for the pretrianed weights (i.e imagenet)
-    @return: None
+    :param architecture: name of the model's architecture
+    :param model: model to load pretrinaed weights for
+    :param pretrained_weights: name for the pretrianed weights (i.e imagenet)
+    :param backbone: whether pretrained weights should be loaded to backbone.
+    :return: None
     """
     model_url_key = architecture + '_' + str(pretrained_weights)
     if model_url_key not in MODEL_URLS.keys():
@@ -242,5 +243,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
     if 'ema_net' in pretrained_state_dict.keys():
         pretrained_state_dict['net'] = pretrained_state_dict['ema_net']
+    if backbone:
+        model = model.backbone
     adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(model_state_dict=model.state_dict(), source_ckpt=pretrained_state_dict)
     model.load_state_dict(adapted_pretrained_state_dict['net'], strict=False)

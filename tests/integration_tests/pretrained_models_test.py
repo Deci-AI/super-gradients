@@ -62,12 +62,12 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.transfer_classification_dataset = ClassificationTestDatasetInterface(image_size=224)
 
-        self.transfer_classification_train_params = {"max_epochs": 3,
-                                                     "lr_updates": [1],
-                                                     "lr_decay_factor": 0.1,
-                                                     "initial_lr": 0.6,
+        self.transfer_classification_train_params = {"max_epochs": 660,
+                                                     "lr_decay_factor": 0.95,
+                                                     "initial_lr": 0.02,
                                                      "loss": "cross_entropy",
-                                                     "lr_mode": "step",
+                                                     "lr_mode": "exp",
+                                                     "lr_warmup_epochs":6,
                                                      "optimizer_params": {"weight_decay": 0.000,
                                                                           "momentum": 0.9},
                                                      "train_metrics_list": [Accuracy()],
@@ -77,7 +77,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                      "greater_metric_to_watch_is_better": True}
         self.coco_pretrained_arch_params = {"yolo_v5": {}}
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
-        self.coco_dataset = CoCoDetectionDatasetInterface(dataset_params={"batch_size": 8,
+        self.coco_dataset = CoCoDetectionDatasetInterface(dataset_params={"batch_size": 24,
                                                                           "val_batch_size": 8,
                                                                           "train_image_size": 640,
                                                                           "val_image_size": 640,
@@ -506,7 +506,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v3_large"], delta=0.001)
 
     def test_transfer_learning_mobilenet_v3_small_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_mobilenet_v3_small_transfer_learning',
+        trainer = SgModel('exp_lr_viz_162_tf_ratio',
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)

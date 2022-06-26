@@ -10,6 +10,7 @@ from PIL import Image, ExifTags
 from super_gradients.training.datasets.sg_dataset import ListDataset
 from super_gradients.training.utils.detection_utils import convert_xyxy_bbox_to_xywh
 from super_gradients.training.utils.utils import get_param
+import torchvision.transforms.functional as F
 # PREVENTS THE cv2 DEADLOCK
 cv2.setNumThreads(0)
 
@@ -156,7 +157,8 @@ class DetectionDataSet(ListDataset):
         image = np.ascontiguousarray(image)
 
         # 0 - 255 TO 0.0 - 1.0
-        return torch.from_numpy(image) / 255.0
+        image = torch.from_numpy(image) / 255.0
+        return F.normalize(image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
     def _generate_samples_and_targets(self):
         """

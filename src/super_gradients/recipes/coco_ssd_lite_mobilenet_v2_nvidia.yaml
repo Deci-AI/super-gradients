@@ -17,7 +17,7 @@ dataset_params:
   val_image_size: 320
   train_image_size: 320
   labels_offset: 1
-  train_sample_loading_method: "default"
+#  train_sample_loading_method: "default"
   dataset_hyper_param:
     hsv_h: 0.015  # IMAGE HSV-Hue AUGMENTATION (fraction)
     hsv_s: 0.7  # IMAGE HSV-Saturation AUGMENTATION (fraction)
@@ -26,7 +26,7 @@ dataset_params:
     translate: 0.1  # IMAGE TRANSLATION (+/- fraction)
     scale: 0.5  # IMAGE SCALE (+/- gain)
     shear: 0.0  # IMAGE SHEAR (+/- deg)
-    mixup: 0.0  # IMAGE MIXUP AUGMENTATION (fraction)
+    mixup: 0.3  # IMAGE MIXUP AUGMENTATION (fraction)
 
 # stride_N_plus is for models where the first skip begins from the feature map with output stride N and higher
 # grids of [input_size / N x input_size / N] and smaller
@@ -80,7 +80,7 @@ anchors:
 data_loader_num_workers: 8
 model_checkpoints_location: local
 experiment_suffix: batch${dataset_params.batch_size}_lr${training_hyperparams.initial_lr}_res${dataset_params.val_image_size}
-experiment_name: ${architecture}_coco_${experiment_suffix}_pretrained_bb
+experiment_name: ${architecture}_coco_${experiment_suffix}_pretrained_bb_imagenet_norm_mosaic_mixup_zwd_bn_bias_fixed_800_epochs_lr0416_ratio001_tzag8
 
 sg_model:
   _target_: super_gradients.SgModel
@@ -105,14 +105,22 @@ dataset_interface:
     dataset_params: ${dataset_params}
 
 training_hyperparams:
-  max_epochs: 660
+#  max_epochs: 65
+#  lr_mode: step
+#  lr_updates: [43, 54]
+  max_epochs: 1400
+  lr_cooldown_epochs: 600
   lr_mode: cosine
-  cosine_final_lr_ratio: 0.1
+  cosine_final_lr_ratio: 0.01
+#  lr_decay_factor: 0.1
   batch_accumulate: 1
+#  initial_lr: 0.06
   initial_lr: 0.0416
   loss: ssd_loss
   loss_logging_items_names: [ smooth_l1, closs, Loss ]
   criterion_params:
+#    focal_gamma: 2
+#    focal_alpha: 0.25
     alpha: 1.0
     dboxes: ${dboxes}
 
@@ -121,13 +129,13 @@ training_hyperparams:
     momentum: 0.9
     weight_decay: 0.0005
     nesterov: True
-  lr_warmup_epochs: 3
+  lr_warmup_epochs: 1
   warmup_momentum: 0.8
   warmup_initial_lr: 1e-06
   warmup_bias_lr: 0.1
   warmup_mode: yolov5_warmup
   ema: True
-  zero_weight_decay_on_bias_and_bn: False
+#  zero_weight_decay_on_bias_and_bn: True
 #  phase_callbacks:
 #    - _target_: super_gradients.training.utils.callbacks.DetectionVisualizationCallback
 #      post_prediction_callback:
@@ -148,13 +156,13 @@ training_hyperparams:
   metric_to_watch: 'mAP@0.50:0.95'
   greater_metric_to_watch_is_better: True
 
-  sg_logger: wandb_sg_logger
-  sg_logger_params:
-    project_name: mobilenet_v2_ssdlite_sg
-    entity: algo
-    api_server: https://wandb.research.deci.ai
-    save_checkpoints_remote: True  # upload checkpoint files to s3
-    save_tensorboard_remote: True  # upload tensorboard files to s3
-    save_logs_remote: True  # upload log files to s3
+#  sg_logger: wandb_sg_logger
+#  sg_logger_params:
+#    project_name: mobilenet_v2_ssdlite_sg
+#    entity: algo
+#    api_server: https://wandb.research.deci.ai
+#    save_checkpoints_remote: True  # upload checkpoint files to s3
+#    save_tensorboard_remote: True  # upload tensorboard files to s3
+#    save_logs_remote: True  # upload log files to s3
 
   _convert_: all

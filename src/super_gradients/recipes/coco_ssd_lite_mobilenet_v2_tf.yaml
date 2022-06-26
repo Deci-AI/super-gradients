@@ -6,7 +6,6 @@ defaults:
 
 checkpoint_params:
   backbone_pretrained_weights: imagenet
-  load_checkpoint: true
 
 architecture: ssd_lite_mobilenet_v2
 project_name: SSD_Mobile
@@ -17,16 +16,6 @@ dataset_params:
   val_image_size: 320
   train_image_size: 320
   labels_offset: 1
-  train_sample_loading_method: "default"
-  dataset_hyper_param:
-    hsv_h: 0.015  # IMAGE HSV-Hue AUGMENTATION (fraction)
-    hsv_s: 0.7  # IMAGE HSV-Saturation AUGMENTATION (fraction)
-    hsv_v: 0.4  # IMAGE HSV-Value AUGMENTATION (fraction)
-    degrees: 0.0  # IMAGE ROTATION (+/- deg)
-    translate: 0.1  # IMAGE TRANSLATION (+/- fraction)
-    scale: 0.5  # IMAGE SCALE (+/- gain)
-    shear: 0.0  # IMAGE SHEAR (+/- deg)
-    mixup: 0.0  # IMAGE MIXUP AUGMENTATION (fraction)
 
 # stride_N_plus is for models where the first skip begins from the feature map with output stride N and higher
 # grids of [input_size / N x input_size / N] and smaller
@@ -80,7 +69,7 @@ anchors:
 data_loader_num_workers: 8
 model_checkpoints_location: local
 experiment_suffix: batch${dataset_params.batch_size}_lr${training_hyperparams.initial_lr}_res${dataset_params.val_image_size}
-experiment_name: ${architecture}_coco_${experiment_suffix}_pretrained_bb
+experiment_name: ${architecture}_coco_${experiment_suffix}_pretrained_bb_tf_config
 
 sg_model:
   _target_: super_gradients.SgModel
@@ -106,28 +95,21 @@ dataset_interface:
 
 training_hyperparams:
   max_epochs: 660
-  lr_mode: cosine
-  cosine_final_lr_ratio: 0.1
-  batch_accumulate: 1
-  initial_lr: 0.0416
+  lr_mode: exp
+  lr_decay_factor: 0.95
+  initial_lr: 0.086
   loss: ssd_loss
   loss_logging_items_names: [ smooth_l1, closs, Loss ]
   criterion_params:
     alpha: 1.0
     dboxes: ${dboxes}
 
-  optimizer: SGD
+  optimizer: RMSpropTF
   optimizer_params:
-    momentum: 0.9
     weight_decay: 0.0005
-    nesterov: True
-  lr_warmup_epochs: 3
-  warmup_momentum: 0.8
-  warmup_initial_lr: 1e-06
-  warmup_bias_lr: 0.1
-  warmup_mode: yolov5_warmup
+  lr_warmup_epochs: 0
+
   ema: True
-  zero_weight_decay_on_bias_and_bn: False
 #  phase_callbacks:
 #    - _target_: super_gradients.training.utils.callbacks.DetectionVisualizationCallback
 #      post_prediction_callback:

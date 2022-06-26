@@ -122,3 +122,7 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
 KD_ARCHITECTURES = {
     "kd_module": KDModule
 }
+
+MODEL_BACKBONES = {
+    "ssd_lite_mobilenet_v2": "mobilenet_v2"
+}

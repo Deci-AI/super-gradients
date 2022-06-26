@@ -16,7 +16,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
-from super_gradients.training.models.all_architectures import ARCHITECTURES
+from super_gradients.training.models.all_architectures import ARCHITECTURES, MODEL_BACKBONES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -1738,6 +1738,7 @@ class SgModel:
 
         """
         pretrained_weights = core_utils.get_param(checkpoint_params, 'pretrained_weights', default_val=None)
+        backbone_pretrained_weights = core_utils.get_param(checkpoint_params, 'backbone_pretrained_weights', default_val=None)
 
         if pretrained_weights is not None:
             num_classes_new_head = arch_params.num_classes
@@ -1756,5 +1757,8 @@ class SgModel:
             if num_classes_new_head != arch_params.num_classes:
                 net.replace_head(new_num_classes=num_classes_new_head)
                 arch_params.num_classes = num_classes_new_head
+
+        if backbone_pretrained_weights:
+            load_pretrained_weights(net, MODEL_BACKBONES[architecture], backbone_pretrained_weights, backbone=True)
 
         return net
