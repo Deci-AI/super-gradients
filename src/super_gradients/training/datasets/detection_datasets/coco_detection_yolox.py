@@ -15,7 +15,7 @@ class COCODetectionDatasetV2(Dataset):
     """Detection dataset COCO implementation"""
 
     def __init__(
-            self, img_size: tuple = (640, 640),
+            self, img_size: tuple,
             data_dir: str = None,
             json_file: str = "instances_train2017.json",
             name: str = "images/train2017",
