@@ -40,8 +40,8 @@ class KDModelTest(unittest.TestCase):
 
         kd_model.train(self.kd_train_params)
 
-        assert kd_model.ema_model.ema.module.teacher is kd_model.net.module.teacher
-        assert kd_model.ema_model.ema.module.student is not kd_model.net.module.student
+        self.assertTrue(kd_model.ema_model.ema.module.teacher is kd_model.net.module.teacher)
+        self.assertTrue(kd_model.ema_model.ema.module.student is not kd_model.net.module.student)
 
     def test_kd_ckpt_reload_ema(self):
         """Check that the KD model load correctly from checkpoint when "load_ema_as_net=True"."""
@@ -75,19 +75,19 @@ class KDModelTest(unittest.TestCase):
         reloaded_net = kd_model.net
 
         # trained ema == loaded ema (Should always be true as long as "ema=True" in train_params)
-        assert check_models_have_same_weights(ema_model, reloaded_ema_model)
+        self.assertTrue(check_models_have_same_weights(ema_model, reloaded_ema_model))
 
         # loaded net != trained net (since load_ema_as_net = True)
-        assert not check_models_have_same_weights(reloaded_net, net)
+        self.assertTrue(not check_models_have_same_weights(reloaded_net, net))
 
         # loaded net == trained ema (since load_ema_as_net = True)
-        assert check_models_have_same_weights(reloaded_net, ema_model)
+        self.assertTrue(check_models_have_same_weights(reloaded_net, ema_model))
 
         # loaded student ema == loaded student net (since load_ema_as_net = True)
-        assert check_models_have_same_weights(reloaded_ema_model.module.student, reloaded_net.module.student)
+        self.assertTrue(check_models_have_same_weights(reloaded_ema_model.module.student, reloaded_net.module.student))
 
         # loaded teacher ema == loaded teacher net (teacher always loads ema)
-        assert check_models_have_same_weights(reloaded_ema_model.module.teacher, reloaded_net.module.teacher)
+        self.assertTrue(check_models_have_same_weights(reloaded_ema_model.module.teacher, reloaded_net.module.teacher))
 
 
 
@@ -123,19 +123,19 @@ class KDModelTest(unittest.TestCase):
         reloaded_net = kd_model.net
 
         # trained ema == loaded ema (Should always be true as long as "ema=True" in train_params)
-        assert check_models_have_same_weights(ema_model, reloaded_ema_model)
+        self.assertTrue(check_models_have_same_weights(ema_model, reloaded_ema_model))
 
         # loaded net == trained net (since load_ema_as_net = False)
-        assert check_models_have_same_weights(reloaded_net, net)
+        self.assertTrue(check_models_have_same_weights(reloaded_net, net))
 
         # loaded net != trained ema (since load_ema_as_net = False)
-        assert not check_models_have_same_weights(reloaded_net, ema_model)
+        self.assertTrue(not check_models_have_same_weights(reloaded_net, ema_model))
 
         # loaded student ema == loaded  student net (since load_ema_as_net = False)
-        assert not check_models_have_same_weights(reloaded_ema_model.module.student, reloaded_net.module.student)
+        self.assertTrue(not check_models_have_same_weights(reloaded_ema_model.module.student, reloaded_net.module.student))
 
         # loaded teacher ema == loaded teacher net (teacher always loads ema)
-        assert check_models_have_same_weights(reloaded_ema_model.module.teacher, reloaded_net.module.teacher)
+        self.assertTrue(check_models_have_same_weights(reloaded_ema_model.module.teacher, reloaded_net.module.teacher))
 
 
 if __name__ == '__main__':
