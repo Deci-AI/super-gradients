@@ -18,7 +18,7 @@ from super_gradients.training import utils as core_utils
 from super_gradients.common import DatasetDataInterface
 from super_gradients.common.environment import AWS_ENV_NAME
 from super_gradients.training.transforms.transforms import YoloxTrainPreprocessFN, YoloxValPreprocessFN
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn
+from super_gradients.training.utils.detection_utils import base_detection_collate_fn, base_detection_collate_fn_with_crowd
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
@@ -597,7 +597,7 @@ class CoCoDataSetInterfaceBase(DatasetInterface):
 
 class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
     def __init__(self, dataset_params=None, cache_labels=False, cache_images=False, train_list_file='train2017.txt',
-                 val_list_file='val2017.txt'):
+                 val_list_file='val2017.txt', with_crowd=False):
         super().__init__(dataset_params=dataset_params)
 
         default_hyper_params = {
@@ -616,8 +616,10 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
                                                    default_val='mosaic')
         val_sample_method = core_utils.get_param(self.dataset_params, 'val_sample_loading_method',
                                                  default_val='rectangular')
-        train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn', base_detection_collate_fn)
-        val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn', base_detection_collate_fn)
+
+        default_collate_fn = base_detection_collate_fn_with_crowd if with_crowd else base_detection_collate_fn
+        train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn', default_collate_fn)
+        val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn', default_collate_fn)
 
         image_size = core_utils.get_param(self.dataset_params, 'image_size')
         train_image_size = core_utils.get_param(self.dataset_params, 'train_image_size')
@@ -644,7 +646,8 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
                                              cache_labels=cache_labels,
                                              cache_images=cache_images,
                                              labels_offset=labels_offset,
-                                             class_inclusion_list=class_inclusion_list)
+                                             class_inclusion_list=class_inclusion_list,
+                                             with_crowd=with_crowd)
 
         self.valset = COCODetectionDataSet(root=self.root_dir, list_file=val_list_file,
                                            dataset_hyper_params=self.coco_dataset_hyper_params,
@@ -655,7 +658,8 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
                                            cache_labels=cache_labels,
                                            cache_images=cache_images,
                                            labels_offset=labels_offset,
-                                           class_inclusion_list=class_inclusion_list)
+                                           class_inclusion_list=class_inclusion_list,
+                                           with_crowd=with_crowd)
 
         self.coco_classes = self.trainset.classes
 
