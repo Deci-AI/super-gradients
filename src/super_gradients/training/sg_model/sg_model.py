@@ -758,9 +758,6 @@ class SgModel:
         """
         global logger
 
-        if logger.isEnabledFor('INFO'):
-            check_compliance()
-
         if self.net is None:
             raise Exception('Model', 'No model found')
         if self.dataset_interface is None and self.train_loader is None:
