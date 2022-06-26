@@ -897,7 +897,8 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
 class CocoDetectionDatasetInterfaceV2(DatasetInterface):
     def __init__(self, dataset_params={}):
         super(CocoDetectionDatasetInterfaceV2, self).__init__()
-        default_coco_dataset_params = {"mixup_prob": 1.0,
+        default_coco_dataset_params = {"data_dir": "/data/coco",
+                                       "mixup_prob": 1.0,
                                        "degrees": 10.,
                                        "shear": 2.0,
                                        "flip_prob": 0.5,
@@ -934,7 +935,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                             DetectionTargetsFormatTransform()
                             ]
 
-        self.trainset = COCODetectionDatasetYolox(data_dir="/data/coco",
+        self.trainset = COCODetectionDatasetYolox(data_dir=self.dataset_params.data_dir,
                                                   json_file="instances_train2017.json",
                                                   img_size=(self.dataset_params.train_image_size,
                                                             self.dataset_params.train_image_size),
@@ -944,7 +945,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
 
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
         self.valset = COCODetectionDatasetYolox(
-            data_dir='/data/coco',
+            data_dir=self.dataset_params.data_dir,
             json_file="instances_val2017.json",
             name="images/val2017",
             img_size=(self.dataset_params.val_image_size, self.dataset_params.val_image_size),
