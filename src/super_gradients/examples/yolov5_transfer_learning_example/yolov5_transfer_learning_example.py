@@ -6,7 +6,7 @@ import super_gradients
 from super_gradients.training import SgModel
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import \
     PascalVOCUnifiedDetectionDataSetInterface
-from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
+from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.utils.detection_utils import Anchors

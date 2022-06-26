@@ -4,7 +4,7 @@ parameters:
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
-    default: "3.1.0"
+    default: "4.1.3"
 #    default: "dev:alpha"
 
 orbs:
@@ -152,6 +152,8 @@ jobs:
 workflows:
   release:
     jobs:
+      - deci-common/persist_version_info:
+          <<: *release_tag_filter
       - deci-common/codeartifact_login:
           name: "login_to_codeartifact_release"
           repo_name: "deci-packages"
@@ -161,6 +163,7 @@ workflows:
           py_version: "3.7"
           package_name: "super-gradients"
           requires:
+            - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
       - release_version:
