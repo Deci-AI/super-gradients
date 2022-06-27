@@ -1,6 +1,6 @@
 import math
 import warnings
-from copy import copy, deepcopy
+from copy import deepcopy
 from typing import Union
 
 import torch
@@ -51,8 +51,8 @@ class ModelEMA:
             self.decay_function = lambda x: decay  # always return the same decay factor
 
         """"
-        we hold a list of model attributes (not wights and biases) which we would like to include in each 
-        attribute update or exclude from each update. a SgModule declare these attribute using 
+        we hold a list of model attributes (not wights and biases) which we would like to include in each
+        attribute update or exclude from each update. a SgModule declare these attribute using
         get_include_attributes and get_exclude_attributes functions. for a nn.Module which is not a SgModule
         all non-private (not starting with '_') attributes will be updated (and only them).
         """

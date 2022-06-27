@@ -89,8 +89,6 @@ class KDModelTest(unittest.TestCase):
         # loaded teacher ema == loaded teacher net (teacher always loads ema)
         self.assertTrue(check_models_have_same_weights(reloaded_ema_model.module.teacher, reloaded_net.module.teacher))
 
-
-
     def test_kd_ckpt_reload_net(self):
         """Check that the KD model load correctly from checkpoint when "load_ema_as_net=False"."""
 
