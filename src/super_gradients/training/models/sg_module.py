@@ -49,6 +49,9 @@ class SgModule(nn.Module):
         """
         return []
 
+    def get_exclude_ema_modules(self):
+        return self.state_dict()
+
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
         Prepare the model to be converted to ONNX or other frameworks.

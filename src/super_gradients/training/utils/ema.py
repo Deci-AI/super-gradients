@@ -6,8 +6,10 @@ from typing import Union
 import torch
 from torch import nn
 
+from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.kd_modules.kd_module import KDModule
+
 
 def copy_attr(a: nn.Module, b: nn.Module, include: Union[list, tuple] = (), exclude: Union[list, tuple] = ()):
     # Copy attributes from b to a, options to only include [...] and to exclude [...]
@@ -113,53 +115,22 @@ class KDModelEMA(ModelEMA):
         :param beta: the exponent coefficient. The higher the beta, the sooner in the training the decay will saturate to
                      its final value. beta=15 is ~40% of the training process.
         """
-        # Create EMA
-        self.ema = deepcopy(kd_model)
-        self.ema.module.teacher = kd_model.module.teacher
+        # Only work on the student (we don't want to update and to have a duplicate of the teacher)
+        super().__init__(model=core_utils.WrappedModel(kd_model.module.student),
+                         decay=decay,
+                         beta=beta,
+                         exp_activation=exp_activation)
 
-        # We don't freeze the teacher because we only have a shallow copy of it
-        self.ema.module.student.eval()
-
-        if exp_activation:
-            self.decay_function = lambda x: decay * (1 - math.exp(-x * beta))  # decay exponential ramp (to help early epochs)
-        else:
-            self.decay_function = lambda x: decay  # always return the same decay factor
-
-        """"
-        we hold a list of model attributes (not wights and biases) which we would like to include in each 
-        attribute update or exclude from each update. a SgModule declare these attribute using 
-        get_include_attributes and get_exclude_attributes functions. for a nn.Module which is not a SgModule
-        all non-private (not starting with '_') attributes will be updated (and only them).
-        """
-        self.include_attributes = kd_model.module.get_include_attributes()
-        self.exclude_attributes = kd_model.module.get_exclude_attributes()
-
-        # We don't freeze the teacher because we work with a reference of it and not a deepcopy, and we don't want to
-        # freeze the original
-        for p in self.ema.module.student.parameters():
-            p.requires_grad_(False)
-
-    def update(self, kd_model: KDModule, training_percent: float):
-        """
-        Update the state of the EMA model.
-        :param kd_model: current training model
-        :param training_percent: the percentage of the training process [0,1]. i.e 0.4 means 40% of the training have passed
-        """
-        # Update EMA parameters
-        with torch.no_grad():
-            decay = self.decay_function(training_percent)
-
-            # Only the student is updated
-            for ema_v, model_v in zip(self.ema.module.student.state_dict().values(), kd_model.module.student.state_dict().values()):
-                if ema_v.dtype.is_floating_point:
-                    ema_v.copy_(ema_v * decay + (1. - decay) * model_v.detach())
-
-    def update_attr(self, kd_model: KDModule):
-        copy_attr(self.ema.module.student, kd_model.module.student, self.include_attributes, self.exclude_attributes)
+        # Overwrite current ema attribute with combination of the student model EMA (current self.ema)
+        # with already the instantiated teacher, to have the final KD EMA
+        self.ema = core_utils.WrappedModel(KDModule(arch_params=kd_model.module.arch_params,
+                                                    student=self.ema.module,
+                                                    teacher=kd_model.module.teacher,
+                                                    run_teacher_on_eval=kd_model.module.run_teacher_on_eval))
 
 
 def instantiate_ema_model(model, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> ModelEMA:
-    """Build an instance of EMA.
+    """Factory function for EMA, depending on the type of Model (Knowledge Distillation vs regular model).
 
     If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.
     :param model: Union[SgModule, nn.Module], the training model to construct the EMA model by
