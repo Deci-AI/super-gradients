@@ -56,6 +56,7 @@ from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
+from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 
 logger = get_logger(__name__)
 
@@ -402,6 +403,11 @@ class SgModel:
                                                                 gpu_mem=gpu_memory_utilization)
 
             progress_bar_train_loader.set_postfix(**pbar_message_dict)
+
+            # TODO: ITERATE BY MAX ITERS
+            # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
+            if hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler) and batch_idx == len(self.train_loader)-1:
+                break
 
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
@@ -926,7 +932,7 @@ class SgModel:
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
-                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader, "sampler") and hasattr(self.train_loader.sampler, "set_epoch"):
                     self.train_loader.sampler.set_epoch(epoch)
 
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
