@@ -25,9 +25,9 @@ from omegaconf import ListConfig
 
 def base_detection_collate_fn_with_crowd(batch):
     """
-    Batch Processing helper function for detection training/testing.
-    stacks the lists of images and targets into tensors and adds the image index to each target (so the targets could
-    later be associated to the correct images)
+    Batch Processing helper function for detection training/testing, with crowd.
+    stacks the lists of images and targets into tensors and adds the image index to each target and crowd target
+    (so the targets could later be associated to the correct images)
          :param batch:   Input batch from the Dataset __get_item__ method
          :return:        batch with the transformed values
      """
@@ -826,9 +826,9 @@ def compute_detection_matching(
 
     :return:                list of the following tensors, for every image:
         :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
-                            True when prediction (i) is matched with a target for the (j)th IoU threshold
+                            True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
         :preds_to_ignore:   Tensor of shape (num_img_predictions, n_iou_thresholds)
-                            True when prediction (i) is matched with a crowd target for the (j)th IoU threshold
+                            True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
         :preds_scores:      Tensor of shape (num_img_predictions), confidence score for every prediction
         :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
@@ -876,6 +876,7 @@ def compute_img_detection_matching(
         iou_thresholds: torch.Tensor,
         device: str,
         crowd_targets: torch.Tensor = None,
+        top_k: int = 100,
 ) -> Tuple:
     """
     Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score
@@ -890,20 +891,20 @@ def compute_img_detection_matching(
     :param device:
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-    TODO: Add option to only keep top k predicitions (either top k overall or top k per cls)
+    :param top_k:           Number of predictions to keep per class, ordered by confidence score
 
     :return:
         :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
-                                True when prediction (i) is matched with a target for the (j)th IoU threshold
+                                True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
         :preds_to_ignore:   Tensor of shape (num_img_predictions, n_iou_thresholds)
-                                True when prediction (i) is matched with a crowd target for the (j)th IoU threshold
+                                True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
         :preds_scores:      Tensor of shape (num_img_predictions), confidence score for every prediction
         :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
     """
     num_iou_thresholds = len(iou_thresholds)
 
-    if preds is None:
+    if preds is None or len(preds) == 0:
         preds_matched = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
         preds_to_ignore = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
         preds_scores = torch.tensor([], dtype=torch.float32, device=device)
@@ -919,6 +920,10 @@ def compute_img_detection_matching(
     targets_cls, targets_box = targets[:, 0], targets[:, 1:5]
     crowd_targets_cls, crowd_target_box = crowd_targets[:, 0], crowd_targets[:, 1:5]
 
+    # Ignore all but the predictions that were top_k for their class
+    preds_idx_to_use = get_top_k_idx_per_cls(preds_scores, preds_cls, top_k)
+    preds_to_ignore[:, :] = True
+    preds_to_ignore[preds_idx_to_use] = False
 
 
     if len(targets) > 0 or len(crowd_targets) > 0:
@@ -938,24 +943,10 @@ def compute_img_detection_matching(
 
     if len(targets) > 0:
 
-        top_k = 100
-
-        def get_top_k_idx_per_cls(preds_scores, preds_cls, top_k):
-            n_unique_cls = torch.max(preds_cls)
-
-            mask = (preds_cls.view(-1, 1) == torch.arange(n_unique_cls+1, device=device).view(1, -1))
-            preds_scores_per_cls = preds_scores.view(-1, 1) * mask
-
-            sorted_scores_per_cls, sorting_idx = preds_scores_per_cls.sort(0, descending=True)
-            satisfying_scores_idx = sorted_scores_per_cls[:top_k, :].nonzero(as_tuple=False)
-            top_k_idx = sorting_idx[satisfying_scores_idx.split(1, dim=1)]
-            return top_k_idx.view(-1)
-
-        preds_idx_to_use = get_top_k_idx_per_cls(preds_scores, preds_cls, top_k)
-
         # Ignore all but the predictions that were top_k for their class
-        preds_to_ignore[:, :] = True
-        preds_to_ignore[preds_idx_to_use] = False
+        # preds_idx_to_use = get_top_k_idx_per_cls(preds_scores, preds_cls, top_k)
+        # preds_to_ignore[:, :] = True
+        # preds_to_ignore[preds_idx_to_use] = False
 
         # shape = (n_preds x n_targets)
         iou = box_iou(preds_box[preds_idx_to_use], targets_box)
@@ -966,7 +957,7 @@ def compute_img_detection_matching(
         iou[cls_mismatch] = 0
 
         # The matching priority is first detection confidence and then IoU value.
-        # The detection is already sorted by confidence through NMS, so here for each prediction we order bt target.
+        # The detection is already sorted by confidence through NMS, so here for each prediction we order the targets by iou.
         sorted_iou, target_sorted = iou.sort(descending=True, stable=True)
 
         # Only iterate over IoU values higher than min threshold to speed up the process
@@ -997,12 +988,56 @@ def compute_img_detection_matching(
     # Crowd targets can be matched with many predictions.
     # Therefore, for every prediction we just need to check if it has IoA large enough with any crowd target.
     if len(crowd_targets) > 0:
-        preds_to_targets_ioa, _ = crowd_ioa(preds_box, crowd_target_box).max(1)
-        is_matching_with_crowd = preds_to_targets_ioa.view(-1, 1) > iou_thresholds.view(1, -1)
-        preds_to_ignore = torch.logical_or(preds_to_ignore, is_matching_with_crowd)
+
+        # shape = (n_preds_to_use x n_crowd_targets)
+        ioa = crowd_ioa(preds_box[preds_idx_to_use], crowd_target_box)
+
+        # Fill IoA values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
+        # Filling with 0 is equivalent to ignore these values since with want IoA > threshold > 0
+        cls_mismatch = (preds_cls[preds_idx_to_use].view(-1, 1) != crowd_targets_cls.view(1, -1))
+        ioa[cls_mismatch] = 0
+
+        # For each prediction, we keep it's highest score with any crowd target (of same class)
+        # shape = (n_preds_to_use)
+        best_ioa, _ = ioa.max(1)
+
+        # If a prediction has IoA higher than threshold (with any target of same class), then there is a match
+        # shape = (n_preds_to_use x iou_thresholds)
+        is_matching_with_crowd = (best_ioa.view(-1, 1) > iou_thresholds.view(1, -1))
+
+        preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
 
     return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
 
+
+def get_top_k_idx_per_cls(preds_scores: torch.Tensor, preds_cls: torch.Tensor, top_k: int):
+    """Get the indexes of all the top k predictions for every class
+    :param preds_scores:   The confidence scores, vector of shape (n_pred)
+    :param preds_cls:      The predicted class, vector of shape (n_pred)
+    :param top_k:          Number of predictions to keep per class, ordered by confidence score
+
+    :return:
+        :top_k_idx:       Indexes of the top k predictions. length <= (k * n_uniaue_class)
+    """
+    try:
+        n_unique_cls = torch.max(preds_cls)
+    except:
+        print("wait")
+    mask = (preds_cls.view(-1, 1) == torch.arange(n_unique_cls + 1, device=preds_scores.device).view(1, -1))
+    preds_scores_per_cls = preds_scores.view(-1, 1) * mask
+
+    sorted_scores_per_cls, sorting_idx = preds_scores_per_cls.sort(0, descending=True)
+    idx_with_satisfying_scores = sorted_scores_per_cls[:top_k, :].nonzero(as_tuple=False)
+    top_k_idx = sorting_idx[idx_with_satisfying_scores.split(1, dim=1)]
+    return top_k_idx.view(-1)
+
+
+preds_scores = torch.tensor([1, 0.1, 0.8, 0.7, 1, 0.9, 0.6, 0.2, 0.4, 0, 0, 0, 0.1, 0])
+preds_cls = torch.tensor(   [0, 0,   0,   0,   0, 0,   0,   1,   1,   1, 1, 1, 2,   3])
+top_k_idx = get_top_k_idx_per_cls(preds_scores, preds_cls, 3)
+print(top_k_idx)
+print(preds_scores[top_k_idx])
+print(preds_cls[top_k_idx])
 
 def compute_detection_metrics(
     preds_matched: torch.Tensor,
@@ -1018,9 +1053,9 @@ def compute_detection_metrics(
     Compute the list of precision, recall, MaP and f1 for every recall IoU threshold and for every class.
 
     :param preds_matched:      Tensor of shape (num_predictions, n_iou_thresholds)
-                                    True when prediction (i) is matched with a target for the (j)th IoU threshold
+                                    True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
     :param preds_to_ignore     Tensor of shape (num_predictions, n_iou_thresholds)
-                                    True when prediction (i) is matched with a crowd target for the (j)th IoU threshold
+                                    True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
     :param preds_scores:       Tensor of shape (num_predictions), confidence score for every prediction
     :param preds_cls:          Tensor of shape (num_predictions), predicted class for every prediction
     :param targets_cls:        Tensor of shape (num_targets), ground truth class for every target box to be detected
@@ -1040,10 +1075,11 @@ def compute_detection_metrics(
     precision = torch.zeros((n_class, nb_iou_thrs), device=device)
     recall = torch.zeros((n_class, nb_iou_thrs), device=device)
     ap = torch.zeros((n_class, nb_iou_thrs), device=device)
+    _ap = torch.zeros((n_class, nb_iou_thrs), device=device)
 
     for cls_i, cls in enumerate(unique_classes):
         cls_preds_idx, cls_targets_idx = (preds_cls == cls), (targets_cls == cls)
-        cls_precision, cls_recall, cls_ap = compute_detection_metrics_per_cls(
+        cls_precision, cls_recall, cls_ap, _cls_ap = compute_detection_metrics_per_cls(
             preds_matched=preds_matched[cls_preds_idx],
             preds_to_ignore=preds_to_ignore[cls_preds_idx],
             preds_scores=preds_scores[cls_preds_idx],
@@ -1055,10 +1091,10 @@ def compute_detection_metrics(
         precision[cls_i, :] = cls_precision
         recall[cls_i, :] = cls_recall
         ap[cls_i, :] = cls_ap
+        _ap[cls_i, :] = _cls_ap
     f1 = 2 * precision * recall / (precision + recall + 1e-16)
 
-    return precision, recall, ap, f1, unique_classes
-
+    return precision, recall, ap, _ap, unique_classes
 
 def compute_detection_metrics_per_cls(
         preds_matched: torch.Tensor,
@@ -1073,9 +1109,9 @@ def compute_detection_metrics_per_cls(
     Compute the list of precision, recall and MaP of a given class for every recall IoU threshold.
 
     :param preds_matched:      Tensor of shape (num_predictions, n_iou_thresholds)
-                                    True when prediction (i) is matched with a target for the (j)th IoU threshold
+                                    True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
     :param preds_to_ignore     Tensor of shape (num_predictions, n_iou_thresholds)
-                                    True when prediction (i) is matched with a crowd target for the (j)th IoU threshold
+                                    True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
     :param preds_scores:       Tensor of shape (num_predictions), confidence score for every prediction
     :param n_targets:          Number of target boxes of this class
     :param recall_thresholds:  Tensor of shape (max_n_rec_thresh) list of recall thresholds used to compute MaP
@@ -1086,8 +1122,9 @@ def compute_detection_metrics_per_cls(
     :return:
         :precision, recall, ap: Tensors of shape (nb_iou_thrs)
     """
-
-    nb_iou_thrs, max_n_rec_thresh = preds_matched.shape[-1], len(recall_thresholds)
+    import time
+    start = time.time()
+    nb_iou_thrs, max_n_rec_thresh, n_preds = preds_matched.shape[-1], len(recall_thresholds), len(preds_scores)
 
     tps = preds_matched
     fps = torch.logical_and(torch.logical_not(preds_matched), torch.logical_not(preds_to_ignore))
@@ -1110,30 +1147,99 @@ def compute_detection_metrics_per_cls(
     rolling_recalls = rolling_tps / n_targets
     rolling_precisions = rolling_tps / (rolling_tps + rolling_fps + torch.finfo(torch.float64).eps)
 
-    #TODO: implement this in pytorch
-    np_scores = preds_scores.cpu().numpy()
-    np_recalls, np_precisions = rolling_precisions[:, 0].cpu().numpy(), rolling_recalls[:, 0].cpu().numpy()
-    recall = torch.tensor(np.interp(-score_threshold, -np_scores, np_recalls), device=device)
-    precision = torch.tensor(np.interp(-score_threshold, -np_scores, np_precisions), device=device)
-
-    # Reversed cummax to only have decreasing values
     rolling_precisions = rolling_precisions.flip(0).cummax(0).values.flip(0)
 
-    for iou_thresh_i in range(nb_iou_thrs):
+    # r = torch.cat(
+    #     (torch.zeros(1, nb_iou_thrs, device=device), rolling_recalls)
+    # )
+    # p = torch.cat(
+    #     (rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device))
+    # )
 
+    # Reversed cummax to only have decreasing values
+
+    start, prev = time.time(), start
+    # print("BEFORE LOOP", start - prev)
+    for iou_thresh_i in range(nb_iou_thrs):
         # For any (i), we want to find the index (j) so that the (j)th value of our rolling_recall will be as close
         # as possible to the (i)th recall_threshold.
         # => rolling_recall[recall_thresh_idx[i]] ~= recall_thresholds[i]
-        recall_thresh_idx = torch.searchsorted(rolling_recalls[:, iou_thresh_i], recall_thresholds, right=True)
+        recall_thresh_idx = torch.searchsorted(rolling_recalls[:, iou_thresh_i], recall_thresholds, right=False)
         n_rec_thresh = recall_thresh_idx.argmax() if (recall_thresh_idx.max() >= len(preds_matched)) else max_n_rec_thresh
 
         iou_thresh_precision = torch.zeros(max_n_rec_thresh, device=device)
         iou_thresh_precision[:n_rec_thresh] = rolling_precisions[recall_thresh_idx[:n_rec_thresh], iou_thresh_i]
         ap[iou_thresh_i] = iou_thresh_precision.mean()
 
-    return precision, recall, ap
+    start, prev = time.time(), start
+    # print("AFTER LOOP", start - prev)
+    # is_greater = rolling_recalls.unsqueeze(-1) >= recall_thresholds.view(1, 1, -1)
+    # idx = torch.arange(n_preds, device=device).view(-1, 1, 1).repeat(1, 10, 101)
+    # i = (is_greater * idx).max(0)
+    # x = torch.gather(rolling_precisions, dim=0, index=i.values.transpose(1, 0))
 
 
+    # r = torch.cat(
+    #     (torch.zeros(1, nb_iou_thrs, device=device), rolling_recalls)
+    # )
+    # p = torch.cat(
+    #     (rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device))
+    # )
+    r = torch.cat(
+        (torch.zeros(1, nb_iou_thrs, device=device), rolling_recalls, torch.ones(1, nb_iou_thrs, device=device))
+    )
+    p = torch.cat(
+        (torch.ones(1, nb_iou_thrs, device=device), rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device))
+    )
+    # Recall and precision are computed when score ~= score_threshold
+    # r = [0.0000, 0.0455, 0.0909, 0.1364, 0.1818, 0.2273, 0.2727, 0.2727, 0.3182, 0.3636, 0.4091, 0.9, 1]
+    # threshold = 0.2
+    # m = [0,       1         2        3      4       0        0       0        0     0        0     0 0]
+    # max_i = 4
+    # max_r = 0.18
+    # recalls_t_thresh = r.unsqueeze(-1).repeat(1, 1, len(recall_thresholds))
+    is_recall_below_threshold = r.unsqueeze(-1) < recall_thresholds.view(1, 1, -1)
+    # is_recall_below_threshold
+    idx = torch.arange(len(is_recall_below_threshold), device=device).view(-1, 1, 1)
+    best_recall_idx_below_threshold = (idx * is_recall_below_threshold).max(0).values  # shape = (n_iou_thresh , n_recall_thresh)
+
+    # shape = (n_iou_thresh, n_recall_thresh)
+    selected_p = torch.gather(p.transpose(1, 0), index=best_recall_idx_below_threshold, dim=1)
+
+    _ap = selected_p.mean(1)
+
+    start, prev = time.time(), start
+    # print("WITHOUT LOOP", start - prev)
+    # is_greater = r.unsqueeze(-1) < recall_thresholds.view(1, 1, -1)
+    # idx_to_mask = is_greater.nonzero(as_tuple=False)
+    # idx = torch.arange(n_preds, device=device).view(-1, 1, 1).repeat(1, 10, 101)
+    # idx[idx_to_mask.split(1, dim=1)] = -1
+    # smallest_score_idx_above_thresh = idx.max(0).values.transpose(1, 0)
+    #
+    # no_res = (smallest_score_idx_above_thresh == -1).nonzero(as_tuple=False)
+    # smallest_score_idx_above_thresh[no_res.split(1, dim=1)] = len(rolling_recalls)
+    # x = torch.gather(p, dim=0, index=smallest_score_idx_above_thresh)
+
+    # print("================")
+    # idx_with_satisfying_scores = sorted_scores_per_cls[:top_k, :].nonzero(as_tuple=False)
+    # top_k_idx = sorting_idx[idx_with_satisfying_scores.split(1, dim=1)]
+
+
+    # recall = rolling_recalls[smallest_score_idx_above_thresh, 0]
+    # precision = rolling_precisions[smallest_score_idx_above_thresh, 0]
+
+    return 0, 0, ap, _ap
+
+# preds_matched = (torch.rand(123, 3) > 0.8)
+# compute_detection_metrics_per_cls(
+#     preds_matched=preds_matched,
+#     preds_to_ignore=torch.zeros(123, 3),
+#     preds_scores=torch.arange(123),
+#     n_targets=preds_matched.sum(0).max().values + 2,
+#     recall_thresholds=torch.linspace(0, 1, 101),
+#     score_threshold=0.1,
+#     device="cpu"
+# )
 class AnchorGenerator:
     logger = get_logger(__name__)
 

@@ -34,7 +34,7 @@ class DetectionMetrics(Metric):
 
         self.world_size = None
         self.rank = None
-        self.add_state("matching", default=[], dist_reduce_fx=None)
+        self.add_state("matching_info", default=[], dist_reduce_fx=None)
 
         self.iou_thresholds = iou_thres
 
@@ -55,22 +55,22 @@ class DetectionMetrics(Metric):
         preds = self.post_prediction_callback(preds, device=device)
 
         _, _, height, width = inputs.shape
-        new_matching = compute_detection_matching(
+        new_matching_info = compute_detection_matching(
             preds, target, height, width, self.iou_thresholds, crowd_targets=crowd_gts)
 
-        accumulated_matching = getattr(self, "matching")
-        setattr(self, "matching", accumulated_matching + new_matching)
+        accumulated_matching_info = getattr(self, "matching_info")
+        setattr(self, "matching_info", accumulated_matching_info + new_matching_info)
 
     def compute(self):
-        accumulated_matching = getattr(self, "matching")
         precision, recall, mean_ap, f1 = -1, -1, -1, -1
+        accumulated_matching_info = getattr(self, "matching_info")
 
-        if len(accumulated_matching):
-            matching_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching))]
+        if len(accumulated_matching_info):
+            matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
 
             # shape (n_class, nb_iou_thrs)
-            device = matching_tensors[0].device
-            precision, recall, ap, f1, unique_classes = compute_detection_metrics(*matching_tensors, device=device)
+            device = matching_info_tensors[0].device
+            precision, recall, ap, f1, unique_classes = compute_detection_metrics(*matching_info_tensors, device=device)
 
             precision, recall, f1 = precision[:, 0].mean(), recall[:, 0].mean(), f1[:, 0].mean()
             mean_ap = ap.mean()
@@ -97,9 +97,9 @@ class DetectionMetrics(Metric):
             torch.distributed.all_gather_object(gathered_state_dicts, local_state_dict)
             metrics = []
             for state_dict in gathered_state_dicts:
-                metrics += state_dict["matching"]
+                metrics += state_dict["matching_info"]
 
-            setattr(self, "matching", metrics)
+            setattr(self, "matching_info", metrics)
 
 
 # def compute_detection_metrics_from_accumulated_matching(
