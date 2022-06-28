@@ -833,10 +833,7 @@ def compute_detection_matching(
         :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
     """
-    batch_metrics = []
-    device = targets.device
-
-
+    batch_metrics, device = [], targets.device
 
     if not iou_thresholds.is_range():
         num_ious = 1
@@ -943,11 +940,6 @@ def compute_img_detection_matching(
 
     if len(targets) > 0:
 
-        # Ignore all but the predictions that were top_k for their class
-        # preds_idx_to_use = get_top_k_idx_per_cls(preds_scores, preds_cls, top_k)
-        # preds_to_ignore[:, :] = True
-        # preds_to_ignore[preds_idx_to_use] = False
-
         # shape = (n_preds x n_targets)
         iou = box_iou(preds_box[preds_idx_to_use], targets_box)
 
@@ -1017,12 +1009,16 @@ def get_top_k_idx_per_cls(preds_scores: torch.Tensor, preds_cls: torch.Tensor, t
     :param top_k:          Number of predictions to keep per class, ordered by confidence score
 
     :return:
-        :top_k_idx:       Indexes of the top k predictions. length <= (k * n_uniaue_class)
+        :top_k_idx:       Indexes of the top k predictions. length <= (k * n_unique_class)
+
+    preds_scores = torch.tensor([1, 0.1, 0.8, 0.7, 1, 0.9, 0.6, 0.2, 0.4, 0, 0, 0, 0.1, 0])
+    preds_cls = torch.tensor(   [0, 0,   0,   0,   0, 0,   0,   1,   1,   1, 1, 1, 2,   3])
+    top_k_idx = get_top_k_idx_per_cls(preds_scores, preds_cls, 3)
+    print(top_k_idx)
+    print(preds_scores[top_k_idx])
+    print(preds_cls[top_k_idx])
     """
-    try:
-        n_unique_cls = torch.max(preds_cls)
-    except:
-        print("wait")
+    n_unique_cls = torch.max(preds_cls)
     mask = (preds_cls.view(-1, 1) == torch.arange(n_unique_cls + 1, device=preds_scores.device).view(1, -1))
     preds_scores_per_cls = preds_scores.view(-1, 1) * mask
 
@@ -1032,12 +1028,6 @@ def get_top_k_idx_per_cls(preds_scores: torch.Tensor, preds_cls: torch.Tensor, t
     return top_k_idx.view(-1)
 
 
-preds_scores = torch.tensor([1, 0.1, 0.8, 0.7, 1, 0.9, 0.6, 0.2, 0.4, 0, 0, 0, 0.1, 0])
-preds_cls = torch.tensor(   [0, 0,   0,   0,   0, 0,   0,   1,   1,   1, 1, 1, 2,   3])
-top_k_idx = get_top_k_idx_per_cls(preds_scores, preds_cls, 3)
-print(top_k_idx)
-print(preds_scores[top_k_idx])
-print(preds_cls[top_k_idx])
 
 def compute_detection_metrics(
     preds_matched: torch.Tensor,
@@ -1075,11 +1065,10 @@ def compute_detection_metrics(
     precision = torch.zeros((n_class, nb_iou_thrs), device=device)
     recall = torch.zeros((n_class, nb_iou_thrs), device=device)
     ap = torch.zeros((n_class, nb_iou_thrs), device=device)
-    _ap = torch.zeros((n_class, nb_iou_thrs), device=device)
 
     for cls_i, cls in enumerate(unique_classes):
         cls_preds_idx, cls_targets_idx = (preds_cls == cls), (targets_cls == cls)
-        cls_precision, cls_recall, cls_ap, _cls_ap = compute_detection_metrics_per_cls(
+        cls_precision, cls_recall, cls_ap = compute_detection_metrics_per_cls(
             preds_matched=preds_matched[cls_preds_idx],
             preds_to_ignore=preds_to_ignore[cls_preds_idx],
             preds_scores=preds_scores[cls_preds_idx],
@@ -1091,10 +1080,10 @@ def compute_detection_metrics(
         precision[cls_i, :] = cls_precision
         recall[cls_i, :] = cls_recall
         ap[cls_i, :] = cls_ap
-        _ap[cls_i, :] = _cls_ap
+
     f1 = 2 * precision * recall / (precision + recall + 1e-16)
 
-    return precision, recall, ap, _ap, unique_classes
+    return precision, recall, ap, f1, unique_classes
 
 def compute_detection_metrics_per_cls(
         preds_matched: torch.Tensor,
@@ -1122,18 +1111,15 @@ def compute_detection_metrics_per_cls(
     :return:
         :precision, recall, ap: Tensors of shape (nb_iou_thrs)
     """
-    import time
-    start = time.time()
-    nb_iou_thrs, max_n_rec_thresh, n_preds = preds_matched.shape[-1], len(recall_thresholds), len(preds_scores)
+    nb_iou_thrs = preds_matched.shape[-1]
 
     tps = preds_matched
     fps = torch.logical_and(torch.logical_not(preds_matched), torch.logical_not(preds_to_ignore))
 
-    ap = -torch.zeros(nb_iou_thrs, device=device)
-
     if len(tps) == 0:
-        return 0, 0, ap
+        return 0, 0, torch.zeros(nb_iou_thrs, device=device)
 
+    # Sort by decreasing score
     dtype = torch.uint8 if preds_scores.is_cuda and preds_scores.dtype is torch.bool else preds_scores.dtype
     sort_ind = torch.argsort(preds_scores.to(dtype), descending=True)
     tps = tps[sort_ind, :]
@@ -1147,99 +1133,35 @@ def compute_detection_metrics_per_cls(
     rolling_recalls = rolling_tps / n_targets
     rolling_precisions = rolling_tps / (rolling_tps + rolling_fps + torch.finfo(torch.float64).eps)
 
+    # Reversed cummax to only have decreasing values
     rolling_precisions = rolling_precisions.flip(0).cummax(0).values.flip(0)
 
-    # r = torch.cat(
-    #     (torch.zeros(1, nb_iou_thrs, device=device), rolling_recalls)
-    # )
-    # p = torch.cat(
-    #     (rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device))
-    # )
+    # shape = (nb_iou_thrs, n_recall_thresholds)
+    recall_thresholds = recall_thresholds.view(1, -1).repeat(nb_iou_thrs, 1)
 
-    # Reversed cummax to only have decreasing values
+    # We want the index i so that: rolling_recalls[i-1] < recall_thresholds[k] <= rolling_recalls[i]
+    # Note:  when recall_thresholds[k] > max(rolling_recalls), i = len(rolling_recalls)
+    # Note2: we work with transpose (.T) to apply torch.searchsorted on first dim instead of the last one
+    recall_threshold_idx = torch.searchsorted(rolling_recalls.T, recall_thresholds, right=False).T
 
-    start, prev = time.time(), start
-    # print("BEFORE LOOP", start - prev)
-    for iou_thresh_i in range(nb_iou_thrs):
-        # For any (i), we want to find the index (j) so that the (j)th value of our rolling_recall will be as close
-        # as possible to the (i)th recall_threshold.
-        # => rolling_recall[recall_thresh_idx[i]] ~= recall_thresholds[i]
-        recall_thresh_idx = torch.searchsorted(rolling_recalls[:, iou_thresh_i], recall_thresholds, right=False)
-        n_rec_thresh = recall_thresh_idx.argmax() if (recall_thresh_idx.max() >= len(preds_matched)) else max_n_rec_thresh
+    # When recall_thresholds[k] > max(rolling_recalls), rolling_precisions[i] is not defined, and we want precision = 0
+    rolling_precisions = torch.cat((rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device)), dim=0)
 
-        iou_thresh_precision = torch.zeros(max_n_rec_thresh, device=device)
-        iou_thresh_precision[:n_rec_thresh] = rolling_precisions[recall_thresh_idx[:n_rec_thresh], iou_thresh_i]
-        ap[iou_thresh_i] = iou_thresh_precision.mean()
+    # shape = (n_recall_thresholds, nb_iou_thrs)
+    sampled_precision_points = torch.gather(rolling_precisions, index=recall_threshold_idx, dim=0)
 
-    start, prev = time.time(), start
-    # print("AFTER LOOP", start - prev)
-    # is_greater = rolling_recalls.unsqueeze(-1) >= recall_thresholds.view(1, 1, -1)
-    # idx = torch.arange(n_preds, device=device).view(-1, 1, 1).repeat(1, 10, 101)
-    # i = (is_greater * idx).max(0)
-    # x = torch.gather(rolling_precisions, dim=0, index=i.values.transpose(1, 0))
+    # Average over the recall_thresholds
+    ap = sampled_precision_points.mean(0)
+
+    # We want the rolling precision/recall at index i so that: preds_scores[i-1] < score_threshold <= preds_scores[i]
+    # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
+    smallest_score_idx_above_thresh = torch.searchsorted(-preds_scores, -score_threshold, right=False)
+    recall = rolling_recalls[smallest_score_idx_above_thresh]
+    precision = rolling_precisions[smallest_score_idx_above_thresh]
+
+    return precision, recall, ap
 
 
-    # r = torch.cat(
-    #     (torch.zeros(1, nb_iou_thrs, device=device), rolling_recalls)
-    # )
-    # p = torch.cat(
-    #     (rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device))
-    # )
-    r = torch.cat(
-        (torch.zeros(1, nb_iou_thrs, device=device), rolling_recalls, torch.ones(1, nb_iou_thrs, device=device))
-    )
-    p = torch.cat(
-        (torch.ones(1, nb_iou_thrs, device=device), rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device))
-    )
-    # Recall and precision are computed when score ~= score_threshold
-    # r = [0.0000, 0.0455, 0.0909, 0.1364, 0.1818, 0.2273, 0.2727, 0.2727, 0.3182, 0.3636, 0.4091, 0.9, 1]
-    # threshold = 0.2
-    # m = [0,       1         2        3      4       0        0       0        0     0        0     0 0]
-    # max_i = 4
-    # max_r = 0.18
-    # recalls_t_thresh = r.unsqueeze(-1).repeat(1, 1, len(recall_thresholds))
-    is_recall_below_threshold = r.unsqueeze(-1) < recall_thresholds.view(1, 1, -1)
-    # is_recall_below_threshold
-    idx = torch.arange(len(is_recall_below_threshold), device=device).view(-1, 1, 1)
-    best_recall_idx_below_threshold = (idx * is_recall_below_threshold).max(0).values  # shape = (n_iou_thresh , n_recall_thresh)
-
-    # shape = (n_iou_thresh, n_recall_thresh)
-    selected_p = torch.gather(p.transpose(1, 0), index=best_recall_idx_below_threshold, dim=1)
-
-    _ap = selected_p.mean(1)
-
-    start, prev = time.time(), start
-    # print("WITHOUT LOOP", start - prev)
-    # is_greater = r.unsqueeze(-1) < recall_thresholds.view(1, 1, -1)
-    # idx_to_mask = is_greater.nonzero(as_tuple=False)
-    # idx = torch.arange(n_preds, device=device).view(-1, 1, 1).repeat(1, 10, 101)
-    # idx[idx_to_mask.split(1, dim=1)] = -1
-    # smallest_score_idx_above_thresh = idx.max(0).values.transpose(1, 0)
-    #
-    # no_res = (smallest_score_idx_above_thresh == -1).nonzero(as_tuple=False)
-    # smallest_score_idx_above_thresh[no_res.split(1, dim=1)] = len(rolling_recalls)
-    # x = torch.gather(p, dim=0, index=smallest_score_idx_above_thresh)
-
-    # print("================")
-    # idx_with_satisfying_scores = sorted_scores_per_cls[:top_k, :].nonzero(as_tuple=False)
-    # top_k_idx = sorting_idx[idx_with_satisfying_scores.split(1, dim=1)]
-
-
-    # recall = rolling_recalls[smallest_score_idx_above_thresh, 0]
-    # precision = rolling_precisions[smallest_score_idx_above_thresh, 0]
-
-    return 0, 0, ap, _ap
-
-# preds_matched = (torch.rand(123, 3) > 0.8)
-# compute_detection_metrics_per_cls(
-#     preds_matched=preds_matched,
-#     preds_to_ignore=torch.zeros(123, 3),
-#     preds_scores=torch.arange(123),
-#     n_targets=preds_matched.sum(0).max().values + 2,
-#     recall_thresholds=torch.linspace(0, 1, 101),
-#     score_threshold=0.1,
-#     device="cpu"
-# )
 class AnchorGenerator:
     logger = get_logger(__name__)
 

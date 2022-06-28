@@ -67,15 +67,18 @@ class DetectionMetrics(Metric):
 
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
+            device = matching_info_tensors[0].device
 
             # shape (n_class, nb_iou_thrs)
-            device = matching_info_tensors[0].device
             precision, recall, ap, f1, unique_classes = compute_detection_metrics(*matching_info_tensors, device=device)
 
-            precision, recall, f1 = precision[:, 0].mean(), recall[:, 0].mean(), f1[:, 0].mean()
+            # Precision, recall and f1 are computed for smallest IoU threshold (usually 0.5), averaged over classes
+            mean_precision, mean_recall, mean_f1 = precision[:, 0].mean(), recall[:, 0].mean(), f1[:, 0].mean()
+
+            # MaP is averaged over IoU thresholds and over classes
             mean_ap = ap.mean()
 
-        return {"Precision": precision, "Recall": recall, self.map_str: mean_ap, "F1": f1}
+        return {"Precision": mean_precision, "Recall": mean_recall, self.map_str: mean_ap, "F1": mean_f1}
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
         """
