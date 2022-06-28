@@ -69,7 +69,7 @@ class DetectionMetrics(Metric):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
             device = matching_info_tensors[0].device
 
-            # shape (n_class, nb_iou_thrs)
+            # shape (n_class, nb_iou_thresh)
             precision, recall, ap, f1, unique_classes = compute_detection_metrics(*matching_info_tensors, device=device)
 
             # Precision, recall and f1 are computed for smallest IoU threshold (usually 0.5), averaged over classes
@@ -98,11 +98,11 @@ class DetectionMetrics(Metric):
             gathered_state_dicts = [None] * self.world_size
             torch.distributed.barrier()
             torch.distributed.all_gather_object(gathered_state_dicts, local_state_dict)
-            metrics = []
+            matching_info = []
             for state_dict in gathered_state_dicts:
-                metrics += state_dict["matching_info"]
+                matching_info += state_dict["matching_info"]
 
-            setattr(self, "matching_info", metrics)
+            setattr(self, "matching_info", matching_info)
 
 
 # def compute_detection_metrics_from_accumulated_matching(
