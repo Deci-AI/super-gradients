@@ -1,22 +1,24 @@
 import numpy as np
 import torch
 from torchmetrics import MetricCollection
-from super_gradients.training.metrics.detection_metrics import ap_per_class
+from super_gradients.training.metrics.detection_metrics import compute_detection_metrics
 from super_gradients.training.utils.utils import AverageMeter
 
 
-def calc_batch_prediction_detection_metrics_per_class(metrics, dataset_interface, iou_thres, silent_mode, images_counter,
+def calc_batch_prediction_detection_metrics_per_class(matching, dataset_interface, iou_thres, silent_mode,
                                                       per_class_verbosity, class_names, test_loss):
+    images_counter = len(matching)
+    if len(matching):
+        matching_tensors = [torch.cat(x, 0) for x in list(zip(*matching))]
+        device = matching_tensors[0].device
 
-    metrics = [np.concatenate(x, 0) for x in list(zip(*metrics))]
-    if len(metrics):
-        precision, recall, average_precision, f1, ap_class = ap_per_class(*metrics)
+        precision, recall, ap, f1, unique_classes = compute_detection_metrics(*matching_tensors, device=device)
+        precision, recall, ap, f1 = precision.cpu().numpy(), recall.cpu().numpy(), ap.cpu().numpy(), f1.cpu().numpy()
+        target_cls, unique_classes = matching_tensors[-1].cpu().numpy(), unique_classes.cpu().numpy().astype(np.int64)
+
         if iou_thres.is_range():
-            precision, recall, average_precision, f1 = precision[:, 0], recall[:, 0], average_precision.mean(
-                1), average_precision[:, 0]
-        mean_precision, mean_recall, map, mf1 = precision.mean(), recall.mean(), average_precision.mean(), f1.mean()
-        targets_per_class = np.bincount(metrics[3].astype(np.int64),
-                                        minlength=len(dataset_interface.testset.classes))
+            precision, recall, f1 = precision[:, 0], recall[:, 0], f1[:, 0]
+        mean_precision, mean_recall, mean_ap, mean_f1 = precision.mean(), recall.mean(), ap.mean(), f1.mean()
     else:
         targets_per_class = torch.zeros(1)
 
@@ -25,17 +27,15 @@ def calc_batch_prediction_detection_metrics_per_class(metrics, dataset_interface
         map_str = 'mAP@%.1f' % iou_thres[0] if not iou_thres.is_range() else 'mAP@%.2f:%.2f' % iou_thres
         print(('%15s' * 7) % ('Class', 'Images', 'Targets', 'Precision', 'Recall', map_str, 'F1'))
         pf = '%15s' + '%15.3g' * 6  # print format
-        print(pf % ('all', images_counter, targets_per_class.sum(), mean_precision, mean_recall, map, mf1))
+        print(pf % ('all', images_counter, targets_per_class.sum(), mean_precision, mean_recall, mean_ap, mean_f1))
 
         # PRINT RESULTS PER CLASS
-        if len(dataset_interface.testset.classes) > 1 and len(metrics) and per_class_verbosity:
-            for i, c in enumerate(ap_class):
+        if len(dataset_interface.testset.classes) > 1 and len(matching) and per_class_verbosity:
+            for i, c in enumerate(unique_classes):
                 print(pf % (
-                    class_names[c], images_counter, targets_per_class[c], precision[i], recall[i],
-                    average_precision[i],
-                    f1[i]))
+                    class_names[c], images_counter, targets_per_class[c], precision[i], recall[i], ap[i, 0], f1[i]))
 
-    results_tuple = (mean_precision, mean_recall, map, mf1, *test_loss.average)
+    results_tuple = (mean_precision, mean_recall, mean_ap, mean_f1, *test_loss.average)
     return results_tuple
 
 

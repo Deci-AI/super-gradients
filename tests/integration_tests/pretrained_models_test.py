@@ -13,8 +13,8 @@ from super_gradients.training.models.detection_models.yolov5_base import YoloV5P
 from super_gradients.training.utils.detection_utils import Anchors
 import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn
-from super_gradients.training.metrics import DetectionMetrics
+from super_gradients.training.utils.detection_utils import base_detection_collate_fn, base_detection_collate_fn_with_crowd
+from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.transforms.transforms import Rescale
 from super_gradients.training.losses.stdc_loss import STDCLoss
 
@@ -81,8 +81,8 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                           "val_batch_size": 8,
                                                                           "train_image_size": 640,
                                                                           "val_image_size": 640,
-                                                                          "val_collate_fn": base_detection_collate_fn,
-                                                                          "val_collate_fn": base_detection_collate_fn,
+                                                                          "val_collate_fn": base_detection_collate_fn_with_crowd,
+                                                                          "val_collate_fn": base_detection_collate_fn_with_crowd,
                                                                           "val_sample_loading_method": "rectangular",
                                                                           "dataset_hyper_param": {
                                                                               "hsv_h": 0.015,
@@ -92,8 +92,13 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                               "translate": 0.1,
                                                                               "scale": 0.5,  # IMAGE SCALE (+/- gain)
                                                                               "shear": 0.0}  # IMAGE SHEAR (+/- deg)
-                                                                          })
-        self.coco_pretrained_maps = {"yolo_v5s": 0.362, "yolo_v5m": 0.441, "yolo_v5l": 0.471, "yolo_v5n": 0.267}
+                                                                          }, with_crowd=True)
+
+        self.coco_pretrained_maps_with_crowd = {
+            "yolo_v5s": 0.3695, "yolo_v5m": 0.4474, "yolo_v5l": 0.4760, "yolo_v5n": 0.2732}
+        self.coco_pretrained_maps = {
+            "yolo_v5s": 0.3674, "yolo_v5m": 0.4455, "yolo_v5l": 0.4795, "yolo_v5n": 0.2776}
+
         self.transfer_detection_dataset = DetectionTestDatasetInterface(image_size=640)
         self.transfer_detection_train_params = {"max_epochs": 3,
                                                 "lr_mode": "cosine",
@@ -208,7 +213,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                             {"weight_decay": 5e-4,
                                                              "momentum": 0.9},
                                                         "load_opt_params": False,
-                                                        "train_metrics_list": [IoU(5)],
+                                                        "trainsww_metrics_list": [IoU(5)],
                                                         "valid_metrics_list": [IoU(5)],
                                                         "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
                                                         "metric_to_watch": "IoU",
@@ -449,8 +454,8 @@ class PretrainedModelsTest(unittest.TestCase):
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
                                                                    self.coco_dataset.coco_classes))],
-                           metrics_progress_verbose=True)[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5s"], delta=0.001)
+                           metrics_progress_verbose=False)[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps_with_crowd["yolo_v5s"], delta=0.001)
 
     def test_pretrained_yolov5m_coco(self):
         trainer = SgModel('coco_pretrained_yolov5m', model_checkpoints_location='local',
@@ -462,7 +467,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                num_cls=len(
                                                                    self.coco_dataset.coco_classes))],
                            metrics_progress_verbose=True)[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5m"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps_with_crowd["yolo_v5m"], delta=0.001)
 
     def test_pretrained_yolov5l_coco(self):
         trainer = SgModel('coco_pretrained_yolov5l', model_checkpoints_location='local',
@@ -474,7 +479,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                num_cls=len(
                                                                    self.coco_dataset.coco_classes))],
                            metrics_progress_verbose=True)[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5l"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps_with_crowd["yolo_v5l"], delta=0.001)
 
     def test_pretrained_yolov5n_coco(self):
         trainer = SgModel('coco_pretrained_yolov5n', model_checkpoints_location='local',
@@ -486,7 +491,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                num_cls=len(
                                                                    self.coco_dataset.coco_classes))],
                            metrics_progress_verbose=True)[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5n"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps_with_crowd["yolo_v5n"], delta=0.001)
 
     def test_transfer_learning_mobilenet_v3_large_imagenet(self):
         trainer = SgModel('imagenet_pretrained_mobilenet_v3_large_transfer_learning',
