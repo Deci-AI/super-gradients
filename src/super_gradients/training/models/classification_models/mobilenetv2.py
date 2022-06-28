@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 import math
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.utils import get_param
+from super_gradients.training.utils.utils import get_param
 
 
 class MobileNetBase(SgModule):
@@ -30,24 +30,17 @@ class MobileNetBase(SgModule):
 
 
 def conv_bn(inp, oup, stride):
-    return nn.Sequential(
-        nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
-        nn.BatchNorm2d(oup),
-        nn.ReLU6(inplace=True)
-    )
+    return nn.Sequential(nn.Conv2d(inp, oup, 3, stride, 1, bias=False), nn.BatchNorm2d(oup), nn.ReLU6(inplace=True))
 
 
 def conv_1x1_bn(inp, oup):
-    return nn.Sequential(
-        nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
-        nn.BatchNorm2d(oup),
-        nn.ReLU6(inplace=True)
-    )
+    return nn.Sequential(nn.Conv2d(inp, oup, 1, 1, 0, bias=False), nn.BatchNorm2d(oup), nn.ReLU6(inplace=True))
 
 
 def make_divisible(x, divisible_by=8):
     import numpy as np
-    return int(np.ceil(x * 1. / divisible_by) * divisible_by)
+
+    return int(np.ceil(x * 1.0 / divisible_by) * divisible_by)
 
 
 class InvertedResidual(nn.Module):
@@ -100,21 +93,31 @@ class InvertedResidual(nn.Module):
 
 
 class MobileNetV2(MobileNetBase):
-    def __init__(self, num_classes, dropout: float, width_mult=1., structure=None, backbone_mode: bool = False,
-                 grouped_conv_size=1, in_channels=3) -> object:
+    def __init__(
+        self,
+        num_classes,
+        dropout: float,
+        width_mult=1.0,
+        structure=None,
+        backbone_mode: bool = False,
+        grouped_conv_size=1,
+        in_channels=3,
+    ) -> object:
         super(MobileNetV2, self).__init__()
         self.in_channels = in_channels
         block = InvertedResidual
         last_channel = 1280
         # IF STRUCTURE IS NONE - USE THE DEFAULT STRUCTURE NOTED
         #                                                  t, c,  n, s    stage-0 is the first conv_bn layer
-        self.interverted_residual_setting = structure or [[1, 16, 1, 1],  # stage-1
-                                                          [6, 24, 2, 2],  # stage-2
-                                                          [6, 32, 3, 2],  # stage-3
-                                                          [6, 64, 4, 2],  # stage-4
-                                                          [6, 96, 3, 1],  # stage-5
-                                                          [6, 160, 3, 2],  # stage-6
-                                                          [6, 320, 1, 1]]  # stage-7
+        self.interverted_residual_setting = structure or [
+            [1, 16, 1, 1],  # stage-1
+            [6, 24, 2, 2],  # stage-2
+            [6, 32, 3, 2],  # stage-3
+            [6, 64, 4, 2],  # stage-4
+            [6, 96, 3, 1],  # stage-5
+            [6, 160, 3, 2],  # stage-6
+            [6, 320, 1, 1],
+        ]  # stage-7
         #                                                                   stage-8  is the last_layer
         self.last_channel = make_divisible(last_channel * width_mult) if width_mult > 1.0 else last_channel
 
@@ -126,10 +129,12 @@ class MobileNetV2(MobileNetBase):
             for i in range(n):
                 if i == 0:
                     self.features.append(
-                        block(curr_channels, output_channel, s, expand_ratio=t, grouped_conv_size=grouped_conv_size))
+                        block(curr_channels, output_channel, s, expand_ratio=t, grouped_conv_size=grouped_conv_size)
+                    )
                 else:
                     self.features.append(
-                        block(curr_channels, output_channel, 1, expand_ratio=t, grouped_conv_size=grouped_conv_size))
+                        block(curr_channels, output_channel, 1, expand_ratio=t, grouped_conv_size=grouped_conv_size)
+                    )
                 curr_channels = output_channel
         # building last several layers
         self.features.append(conv_1x1_bn(curr_channels, self.last_channel))
@@ -141,10 +146,7 @@ class MobileNetV2(MobileNetBase):
             self.connection_layers_input_channel_size = self._extract_connection_layers_input_channel_size()
         else:
             # building classifier
-            self.classifier = nn.Sequential(
-                nn.Dropout(dropout),
-                nn.Linear(self.last_channel, num_classes)
-            )
+            self.classifier = nn.Sequential(nn.Dropout(dropout), nn.Linear(self.last_channel, num_classes))
         self._initialize_weights()
 
     def forward(self, x):
@@ -157,8 +159,9 @@ class MobileNetV2(MobileNetBase):
         """
         Extracts the number of channels out when using mobilenetV2 as yolo backbone
         """
-        curr_layer_input = torch.rand(1, self.in_channels, 320,
-                                      320)  # input dims are used to extract number of channels
+        curr_layer_input = torch.rand(
+            1, self.in_channels, 320, 320
+        )  # input dims are used to extract number of channels
         layers_num_to_extract = [np.array(self.interverted_residual_setting)[:stage, 2].sum() for stage in [3, 5]]
         connection_layers_input_channel_size = []
         for layer_idx, feature in enumerate(self.features):
@@ -173,7 +176,7 @@ class MobileNetV2(MobileNetBase):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
+                m.weight.data.normal_(0, math.sqrt(2.0 / n))
                 if m.bias is not None:
                     m.bias.data.zero_()
             elif isinstance(m, nn.BatchNorm2d):
@@ -191,9 +194,13 @@ def mobile_net_v2(arch_params):
         must contain: 'num_classes': int
     :return: MobileNetV2: nn.Module
     """
-    return MobileNetV2(num_classes=arch_params.num_classes, width_mult=1., structure=None,
-                       dropout=get_param(arch_params, "dropout", 0.),
-                       in_channels=get_param(arch_params, "in_channels", 3))
+    return MobileNetV2(
+        num_classes=arch_params.num_classes,
+        width_mult=1.0,
+        structure=None,
+        dropout=get_param(arch_params, "dropout", 0.0),
+        in_channels=get_param(arch_params, "in_channels", 3),
+    )
 
 
 def mobile_net_v2_135(arch_params):
@@ -204,9 +211,13 @@ def mobile_net_v2_135(arch_params):
     :return: MobileNetV2: nn.Module
     """
 
-    return MobileNetV2(num_classes=arch_params.num_classes, width_mult=1.35, structure=None,
-                       dropout=get_param(arch_params, "dropout", 0.),
-                       in_channels=get_param(arch_params, "in_channels", 3))
+    return MobileNetV2(
+        num_classes=arch_params.num_classes,
+        width_mult=1.35,
+        structure=None,
+        dropout=get_param(arch_params, "dropout", 0.0),
+        in_channels=get_param(arch_params, "in_channels", 3),
+    )
 
 
 def custom_mobile_net_v2(arch_params):
@@ -219,6 +230,10 @@ def custom_mobile_net_v2(arch_params):
     :return: MobileNetV2: nn.Module
     """
 
-    return MobileNetV2(num_classes=arch_params.num_classes, width_mult=arch_params.width_mult,
-                       structure=arch_params.structure, dropout=get_param(arch_params, "dropout", 0.),
-                       in_channels=get_param(arch_params, "in_channels", 3))
+    return MobileNetV2(
+        num_classes=arch_params.num_classes,
+        width_mult=arch_params.width_mult,
+        structure=arch_params.structure,
+        dropout=get_param(arch_params, "dropout", 0.0),
+        in_channels=get_param(arch_params, "in_channels", 3),
+    )

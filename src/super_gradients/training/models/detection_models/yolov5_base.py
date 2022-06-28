@@ -6,13 +6,13 @@ from typing import Union, Type, List
 
 import torch
 import torch.nn as nn
-from super_gradients.training.models.detection_models.csp_darknet53 import Conv, CSPDarknet53, get_yolo_version_params
+from super_gradients.training.models.detection_models.csp_darknet53 import Conv, DepthWiseConv, \
+    CSPDarknet53, get_yolo_version_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
-    check_anchor_order, check_img_size_divisibilty, matrix_non_max_suppression, NMS_Type, \
-    DetectionPostPredictionCallback, Anchors
+    check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.export_utils import ExportableHardswish, ExportableSiLU
-from super_gradients.training.utils.utils import HpmStruct, get_param
+from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [30, 61, 62, 45, 59, 119],
@@ -41,6 +41,7 @@ DEFAULT_YOLO_ARCH_PARAMS = {
     'yolo_version': 'v6.0',  # Release version of Ultralytics yoloV5 to build a model from: v6.0 and v3.0 are supported
                              # (has an impact only if yolo_type is yoloV5)
     'stem_type': None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
+    'depthwise': False,  # use depthwise separable convolutions all over the model
 }
 
 
@@ -96,12 +97,12 @@ class Detect(nn.Module):
         self.register_buffer('anchors', anchors.anchors)
         self.register_buffer('anchor_grid', anchors.anchor_grid)
 
-        self.m = nn.ModuleList(nn.Conv2d(x, self.num_outputs * self.num_anchors, 1) for x in channels)  # output conv
+        self.output_convs = nn.ModuleList(nn.Conv2d(x, self.num_outputs * self.num_anchors, 1) for x in channels)
 
     def forward(self, x):
         z = []  # inference output
         for i in range(self.detection_layers_num):
-            x[i] = self.m[i](x[i])  # conv
+            x[i] = self.output_convs[i](x[i])  # conv
             bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             x[i] = x[i].view(bs, self.num_anchors, self.num_outputs, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
 
@@ -125,7 +126,8 @@ class Detect(nn.Module):
 
 class DetectX(nn.Module):
 
-    def __init__(self, num_classes: int, stride: torch.Tensor, activation_func_type: type, channels: list):
+    def __init__(self, num_classes: int, stride: torch.Tensor, activation_func_type: type, channels: list,
+                 depthwise=False):
         super().__init__()
 
         self.num_classes = num_classes
@@ -141,17 +143,18 @@ class DetectX(nn.Module):
         self.reg_preds = nn.ModuleList()
         self.obj_preds = nn.ModuleList()
         self.stems = nn.ModuleList()
+        ConvBlock = DepthWiseConv if depthwise else Conv
 
         inter_channels = channels[0]
         for i in range(self.detection_layers_num):
             self.stems.append(Conv(channels[i], inter_channels, 1, 1, activation_func_type))
 
             self.cls_convs.append(
-                nn.Sequential(*[Conv(inter_channels, inter_channels, 3, 1, activation_func_type),
-                                Conv(inter_channels, inter_channels, 3, 1, activation_func_type)]))
+                nn.Sequential(*[ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type),
+                                ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type)]))
             self.reg_convs.append(
-                nn.Sequential(*[Conv(inter_channels, inter_channels, 3, 1, activation_func_type),
-                                Conv(inter_channels, inter_channels, 3, 1, activation_func_type)]))
+                nn.Sequential(*[ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type),
+                                ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type)]))
 
             self.cls_preds.append(nn.Conv2d(inter_channels, self.n_anchors * self.num_classes, 1, 1, 0))
             self.reg_preds.append(nn.Conv2d(inter_channels, 4, 1, 1, 0))
@@ -231,6 +234,7 @@ class YoLoV5Head(nn.Module):
         # PARSE arch_params
         num_classes = arch_params.num_classes
         anchors = arch_params.anchors
+        depthwise = arch_params.depthwise
         self._skip_connections_dict = arch_params.skip_connections_dict
         # FLATTEN THE SOURCE LIST INTO A LIST OF INDICES
         self._layer_idx_to_extract = [idx for sub_l in self._skip_connections_dict.values() for idx in sub_l]
@@ -243,27 +247,30 @@ class YoLoV5Head(nn.Module):
                                                                                     arch_params.width_mult_factor,
                                                                                     arch_params.depth_mult_factor)
 
+        DownConv = DepthWiseConv if depthwise else Conv
+
         self._modules_list = nn.ModuleList()
         self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1, activation_type))  # 10
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 11
         self._modules_list.append(Concat(1))  # 12
         self._modules_list.append(
-            block(width_mult(connector[1]), width_mult(512), depth_mult(3), activation_type, False))  # 13
+            block(width_mult(connector[1]), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 13
 
         self._modules_list.append(Conv(width_mult(512), width_mult(256), 1, 1, activation_type))  # 14
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 15
         self._modules_list.append(Concat(1))  # 16
         self._modules_list.append(
-            block(width_mult(connector[2]), width_mult(256), depth_mult(3), activation_type, False))  # 17
+            block(width_mult(connector[2]), width_mult(256), depth_mult(3), activation_type, False, depthwise))  # 17
 
-        self._modules_list.append(Conv(width_mult(256), width_mult(256), 3, 2, activation_type))  # 18
+        self._modules_list.append(DownConv(width_mult(256), width_mult(256), 3, 2, activation_type))  # 18
         self._modules_list.append(Concat(1))  # 19
-        self._modules_list.append(block(width_mult(512), width_mult(512), depth_mult(3), activation_type, False))  # 20
+        self._modules_list.append(
+            block(width_mult(512), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 20
 
-        self._modules_list.append(Conv(width_mult(512), width_mult(512), 3, 2, activation_type))  # 21
+        self._modules_list.append(DownConv(width_mult(512), width_mult(512), 3, 2, activation_type))  # 21
         self._modules_list.append(Concat(1))  # 22
         self._modules_list.append(
-            block(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False))  # 23
+            block(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False, depthwise))  # 23
 
         if arch_params.yolo_type != 'yoloX':
             self._modules_list.append(
@@ -271,7 +278,8 @@ class YoLoV5Head(nn.Module):
         else:
             strides = anchors.stride
             self._modules_list.append(
-                DetectX(num_classes, strides, activation_type, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
+                DetectX(num_classes, strides, activation_type, channels=[width_mult(v) for v in (256, 512, 1024)],
+                        depthwise=depthwise))  # 24
 
         self.anchors = anchors
         self.width_mult = width_mult
@@ -396,25 +404,32 @@ class YoLoV5Base(SgModule):
 
     def _initialize_biases(self, cf=None):
         """initialize biases into Detect(), cf is class frequency"""
-        m = self._head._modules_list[-1]  # Detect() module
-        if not isinstance(m, Detect):
-            return
-        for mi, s in zip(m.m, m.stride):  # from
-            b = mi.bias.view(m.num_anchors, -1)  # conv.bias(255) to (3,85)
-            with torch.no_grad():
-                b[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
-                b[:, 5:] += math.log(0.6 / (m.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
-            mi.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
+        detect_module = self._head._modules_list[-1]  # Detect() module
+        if isinstance(detect_module, Detect):
+            for pred_conv, s in zip(detect_module.output_convs, detect_module.stride):  # from
+                bias = pred_conv.bias.view(detect_module.num_anchors, -1)  # conv.bias(255) to (3,85)
+                with torch.no_grad():
+                    bias[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
+                    bias[:, 5:] += math.log(0.6 / (detect_module.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
+                pred_conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
+        elif isinstance(detect_module, DetectX):
+            prior_prob = 1e-2
+            for conv in detect_module.cls_preds:
+                bias = conv.bias.view(detect_module.n_anchors, -1)
+                bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+                conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
+
+            for conv in detect_module.obj_preds:
+                bias = conv.bias.view(detect_module.n_anchors, -1)
+                bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+                conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
 
     def _initialize_weights(self):
         for m in self.modules():
-            t = type(m)
-            if t is nn.Conv2d:
-                pass  # nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif t is nn.BatchNorm2d:
+            if isinstance(m, nn.BatchNorm2d):
                 m.eps = 1e-3
                 m.momentum = 0.03
-            elif t in [nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.Hardswish]:
+            elif isinstance(m, (nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.Hardswish, nn.SiLU)):
                 m.inplace = True
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
@@ -470,7 +485,7 @@ class YoLoV5Base(SgModule):
         # Validate the image size
         image_dims = input_size[-2:]  # assume torch uses channels first layout
         for dim in image_dims:
-            res_flag, suggestion = check_img_size_divisibilty(dim, max_stride)
+            res_flag, suggestion = check_img_size_divisibility(dim, max_stride)
             if not res_flag:
                 raise ValueError(f'Invalid input size: {input_size}. The input size must be multiple of max stride: '
                                  f'{max_stride}. The closest suggestions are: {suggestion[0]}x{suggestion[0]} or '

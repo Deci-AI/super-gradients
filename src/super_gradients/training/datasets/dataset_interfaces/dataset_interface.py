@@ -5,10 +5,13 @@ import torchvision
 import torchvision.datasets as datasets
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from torch.utils.data.distributed import DistributedSampler
+
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
-from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation
+from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataSet, PascalVOCDetectionDataSet
+from super_gradients.training.datasets.detection_datasets.coco_detection_yolox import COCODetectionDatasetV2
+from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.datasets.segmentation_datasets import PascalVOC2012SegmentationDataSet, \
     PascalAUG2012SegmentationDataSet, CoCoSegmentationDataSet
 from super_gradients.training import utils as core_utils
@@ -18,16 +21,22 @@ from super_gradients.training.utils.detection_utils import base_detection_collat
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
-from torch.utils.data import ConcatDataset
+from torch.utils.data import ConcatDataset, BatchSampler, DataLoader
 import xml.etree.ElementTree as ET
 from tqdm import tqdm
 from pathlib import Path
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 from super_gradients.training.utils.utils import download_and_unzip_from_url
 from super_gradients.training.utils import get_param
 import torchvision.transforms as transforms
-from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
+from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import \
+    SuperviselyPersonsDataset
 from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine, DetectionTargetsFormatTransform, \
+    DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
+
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
 LIBRARY_DATASETS = {
@@ -121,7 +130,9 @@ class DatasetInterface:
 
         if distributed_sampler:
             self.batch_size_factor = 1
-            train_sampler = RepeatAugSampler(self.trainset, num_repeats=aug_repeat_count) if aug_repeat_count > 0 else DistributedSampler(self.trainset)
+            train_sampler = RepeatAugSampler(self.trainset,
+                                             num_repeats=aug_repeat_count) if aug_repeat_count > 0 else DistributedSampler(
+                self.trainset)
             val_sampler = DistributedSampler(self.valset)
             test_sampler = DistributedSampler(self.testset) if self.testset is not None else None
             train_shuffle = False
@@ -310,8 +321,10 @@ class LibraryDatasetInterface(DatasetInterface):
             self.lib_dataset_params['mean'], self.lib_dataset_params['std'] = datasets_utils.get_mean_and_std(trainset)
 
         # OVERWRITE MEAN AND STD IF DEFINED IN DATASET PARAMS
-        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean', default_val=self.lib_dataset_params['mean'])
-        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std', default_val=self.lib_dataset_params['std'])
+        self.lib_dataset_params['mean'] = core_utils.get_param(self.dataset_params, 'img_mean',
+                                                               default_val=self.lib_dataset_params['mean'])
+        self.lib_dataset_params['std'] = core_utils.get_param(self.dataset_params, 'img_std',
+                                                              default_val=self.lib_dataset_params['std'])
 
         crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=32)
 
@@ -879,3 +892,86 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
         )
 
         self.classes = self.trainset.classes
+
+
+class CocoDetectionDatasetInterfaceV2(DatasetInterface):
+    def __init__(self, dataset_params={}):
+        super(CocoDetectionDatasetInterfaceV2, self).__init__(dataset_params=dataset_params)
+
+        train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
+
+        train_transforms = [DetectionMosaic(input_dim=train_input_dim,
+                                            prob=self.dataset_params.mosaic_prob),
+                            DetectionRandomAffine(degrees=self.dataset_params.degrees,
+                                                  translate=self.dataset_params.translate,
+                                                  scales=self.dataset_params.mosaic_scale,
+                                                  shear=self.dataset_params.shear,
+                                                  target_size=train_input_dim
+                                                  ),
+                            DetectionMixup(input_dim=train_input_dim,
+                                           mixup_scale=self.dataset_params.mixup_scale,
+                                           prob=self.dataset_params.mixup_prob),
+                            DetectionHSV(prob=self.dataset_params.hsv_prob),
+                            DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
+                            DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
+                            DetectionTargetsFormatTransform()
+                            ]
+
+        # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
+        local_rank = get_local_rank()
+        with wait_for_the_master(local_rank):
+            self.trainset = COCODetectionDatasetV2(data_dir=self.dataset_params.data_dir,
+                                                   name=self.dataset_params.train_subdir,
+                                                   json_file=self.dataset_params.train_json_file,
+                                                   img_size=train_input_dim,
+                                                   cache=self.dataset_params.cache_train_images,
+                                                   transforms=train_transforms
+                                                   )
+
+        val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
+
+        # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
+        with wait_for_the_master(local_rank):
+            self.valset = COCODetectionDatasetV2(
+                data_dir=self.dataset_params.data_dir,
+                json_file=self.dataset_params.val_json_file,
+                name=self.dataset_params.val_subdir,
+                img_size=val_input_dim,
+                transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
+                            DetectionTargetsFormatTransform(max_targets=50)],
+                cache=self.dataset_params.cache_val_images,
+
+            )
+
+    def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
+                           test_batch_size=None, distributed_sampler: bool = False):
+
+        train_sampler = InfiniteSampler(len(self.trainset), seed=0)
+
+        train_batch_sampler = BatchSampler(
+            sampler=train_sampler,
+            batch_size=self.dataset_params.batch_size,
+            drop_last=False,
+        )
+
+        self.train_loader = DataLoader(self.trainset,
+                                       batch_sampler=train_batch_sampler,
+                                       num_workers=num_workers,
+                                       pin_memory=True,
+                                       worker_init_fn=worker_init_reset_seed,
+                                       collate_fn=self.dataset_params.train_collate_fn)
+
+        if distributed_sampler:
+            sampler = torch.utils.data.distributed.DistributedSampler(self.valset, shuffle=False)
+        else:
+            sampler = torch.utils.data.SequentialSampler(self.valset)
+
+        val_loader = torch.utils.data.DataLoader(self.valset,
+                                                 num_workers=num_workers,
+                                                 pin_memory=True,
+                                                 sampler=sampler,
+                                                 batch_size=self.dataset_params.val_batch_size,
+                                                 collate_fn=self.dataset_params.val_collate_fn)
+
+        self.val_loader = val_loader
+        self.classes = COCO_DETECTION_CLASSES_LIST
