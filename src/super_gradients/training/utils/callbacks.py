@@ -53,7 +53,7 @@ class PhaseContext:
                  target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
                  device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None,
                  train_loader=None, valid_loader=None, quant_modules_calib_method=None, checkpoints_dir_path=None,
-                 training_params=None):
+                 training_params=None, ddp_silent_mode=None):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -77,6 +77,7 @@ class PhaseContext:
         self.quant_modules_calib_method = quant_modules_calib_method
         self.checkpoints_dir_path = checkpoints_dir_path
         self.training_params = training_params
+        self.ddp_silent_mode = ddp_silent_mode
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():

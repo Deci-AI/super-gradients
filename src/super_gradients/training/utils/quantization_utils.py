@@ -1,6 +1,14 @@
+"""
+Quantization utilities
+
+Methods are based on:
+ https://github.com/NVIDIA/TensorRT/blob/51a4297753d3e12d0eed864be52400f429a6a94c/tools/pytorch-quantization/examples/torchvision/classification_flow.py#L385
+
+(Licensed under the Apache License, Version 2.0)
+"""
+
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
 import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.callbacks import Phase, PhaseCallback, PhaseContext
@@ -10,11 +18,13 @@ import sys
 from enum import Enum
 
 from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
+from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 
 logger = get_logger(__name__)
 
 try:
     import tensorrt as trt
+
     _imported_trt_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warning("Failed to import pytorch_quantization")
@@ -28,6 +38,7 @@ try:
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warning("Failed to import pytorch_quantization")
     _imported_pytorch_quantization_failure = import_err
+
 
 class QuantizationLevel(str, Enum):
     FP32 = 'FP32'
@@ -50,7 +61,14 @@ class QuantizationLevel(str, Enum):
             raise NotImplementedError(f'Quantization Level: "{quantization_level}" is not supported')
 
 
-def export_qat_onnx(model, onnx_filename, input_shape):
+def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple):
+    """
+    Method for exporting onnx after QAT.
+
+    :param model: torch.nn.Module, model to export
+    :param onnx_filename: str, target path for the onnx file,
+    :param input_shape: tuple, input shape (usually BCHW)
+    """
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
     else:
@@ -63,26 +81,37 @@ def export_qat_onnx(model, onnx_filename, input_shape):
                           do_constant_folding=True)
 
 
-def calibrate_model(model, calib_data_loader, method="percentile", num_calib_batches=2, percentile=99.99):
+def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.DataLoader, method:str="percentile", num_calib_batches: int=2, percentile:float=99.99):
+    """
+    Calibrates torch model with quantized modules.
+
+    :param model: torch.nn.Module, model to perfrom the calibration on.
+    :param calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset.
+    :param method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
+                 computation of the quantized modules (default=percentile).
+    :param num_calib_batches: int, number of batches to collect the statistics from.
+    :param percentile: float, percentile value to use when SgModel,quant_modules_calib_method='percentile'. Discarded when other methods are used (Default=99.99).
+
+    """
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
     elif method in ["percentile", "mse", "entropy", "max"]:
         with torch.no_grad():
-            collect_stats(model, calib_data_loader, num_batches=num_calib_batches)
+            _collect_stats(model, calib_data_loader, num_batches=num_calib_batches)
 
             # FOR PERCENTILE WE MUST PASS PERCENTILE VALUE THROUGH KWARGS,
             # SO IT WOULD BE PASSED TO module.load_calib_amax(**kwargs), AND IN OTHER METHODS WE MUST NOT PASS IT.
             if method == "precentile":
-                compute_amax(model, method="percentile", percentile=percentile)
+                _compute_amax(model, method="percentile", percentile=percentile)
             else:
-                compute_amax(model, method=method)
+                _compute_amax(model, method=method)
     else:
         raise ValueError(
             "Unsupported quantization calibration method, expected one of: percentile, mse, entropy, max, got " + str(
                 method) + ".")
 
 
-def collect_stats(model, data_loader, num_batches):
+def _collect_stats(model, data_loader, num_batches):
     """Feed data to the network and collect statistics"""
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
@@ -112,7 +141,7 @@ def collect_stats(model, data_loader, num_batches):
                     module.enable()
 
 
-def compute_amax(model, **kwargs):
+def _compute_amax(model, **kwargs):
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
     else:
@@ -204,7 +233,8 @@ def build_trt_engine_from_onnx_ckpt(onnx_ckpt_path: str,
             return engine
 
 
-def save_trt_engine_from_onnx_ckpt(onnx_ckpt_path, output_engine_path, quantization_level=QuantizationLevel.INT8, max_batch_size=1):
+def save_trt_engine_from_onnx_ckpt(onnx_ckpt_path, output_engine_path, quantization_level=QuantizationLevel.INT8,
+                                   max_batch_size=1):
     if os.path.exists(onnx_ckpt_path):
         print("Building engine from file {}".format(onnx_ckpt_path))
         trt_engine = build_trt_engine_from_onnx_ckpt(onnx_ckpt_path=onnx_ckpt_path,
@@ -253,7 +283,8 @@ class Int8CalibrationPreTrainingCallback(PhaseCallback):
 
         method_desc = context.quant_modules_calib_method + '_' + str(
             self.percentile) if context.quant_modules_calib_method == 'percentile' else context.quant_modules_calib_method
-        context.sg_logger.add_checkpoint(tag='ckpt_calibrated_' + method_desc + '.pth', state_dict={"net": context.net})
+        if not context.ddp_silent_mode:
+            context.sg_logger.add_checkpoint(tag='ckpt_calibrated_' + method_desc + '.pth', state_dict={"net": context.net})
 
 
 class PostQATConversionCallback(PhaseCallback):
@@ -262,25 +293,23 @@ class PostQATConversionCallback(PhaseCallback):
         self.dummy_input_size = dummy_input_size
 
     def __call__(self, context: PhaseContext):
-        best_ckpt_path = os.path.join(context.checkpoints_dir_path, "ckpt_best.pth")
-        onnx_path = os.path.join(context.checkpoints_dir_path, "ckpt_best.onnx")
-        trt_path = os.path.join(context.checkpoints_dir_path, "ckpt_best.engine")
+        local_rank = get_local_rank()
+        with wait_for_the_master(local_rank):
+            if local_rank == 0:
+                best_ckpt_path = os.path.join(context.checkpoints_dir_path, "ckpt_best.pth")
+                onnx_path = os.path.join(context.checkpoints_dir_path, "ckpt_best.onnx")
+                trt_path = os.path.join(context.checkpoints_dir_path, "ckpt_best.engine")
 
-        load_checkpoint_to_model(ckpt_local_path=best_ckpt_path,
-                                 net=context.net,
-                                 load_weights_only=True,
-                                 load_ema_as_net=context.training_params.ema,
-                                 strict=True,
-                                 load_backbone=False
-                                 )
+                load_checkpoint_to_model(ckpt_local_path=best_ckpt_path,
+                                         net=context.net,
+                                         load_weights_only=True,
+                                         load_ema_as_net=context.training_params.ema,
+                                         strict=True,
+                                         load_backbone=False
+                                         )
 
-        export_qat_onnx(context.net, onnx_path, self.dummy_input_size)
-        save_trt_engine_from_onnx_ckpt(onnx_path, trt_path)
+                export_qat_onnx(context.net, onnx_path, self.dummy_input_size)
+                save_trt_engine_from_onnx_ckpt(onnx_path, trt_path)
 
-        context.sg_logger.add_file("ckpt_best.onnx")
-        context.sg_logger.add_file("ckpt_best.engine")
-
-
-
-
-
+                context.sg_logger.add_file("ckpt_best.onnx")
+                context.sg_logger.add_file("ckpt_best.engine")

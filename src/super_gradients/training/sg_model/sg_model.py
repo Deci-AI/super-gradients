@@ -64,7 +64,6 @@ try:
     from pytorch_quantization import nn as quant_nn
     from pytorch_quantization.tensor_quant import QuantDescriptor
     from pytorch_quantization import quant_modules
-    from super_gradients.training.utils.quantization_utils import collect_stats, compute_amax
     _imported_pytorch_quantization_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warning("Failed to import pytorch_quantization")
@@ -287,6 +286,14 @@ class SgModel:
             external_checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
                                                (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
                                                load the checkpoint even if the load_checkpoint flag is not provided.
+
+        Additional key:values that can be passed through arch_params:
+
+         use_quant_modules: bool, When set, conv and linear layers will be wrapped with Q/DQ pytorch_quantization
+                 modules (use for QAT, default=False)
+
+         quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
+                 computation of the quantized modules (default=percentile).
 
         """
         if 'num_classes' not in arch_params.keys():
@@ -946,7 +953,8 @@ class SgModel:
                                valid_loader=self.valid_loader, train_loader=self.train_loader,
                                quant_modules_calib_method=self.quant_modules_calib_method,
                                checkpoints_dir_path=self.checkpoints_dir_path,
-                               training_params=self.training_params)
+                               training_params=self.training_params,
+                               ddp_silent_mode=self.ddp_silent_mode)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
         try:
