@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torchvision
 from PIL import Image
 import torch
+import torch.distributed as dist
 
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataSet
@@ -23,6 +24,7 @@ from tqdm import tqdm
 
 from super_gradients.training.utils.utils import AverageMeter
 from super_gradients.training.utils.detection_utils import DetectionVisualization
+import uuid
 
 import matplotlib.pyplot as plt
 
@@ -529,3 +531,16 @@ def get_color_augmentation(rand_augment_config_string: str, color_jitter: tuple,
     else:  # RandAugment includes colorjitter like augmentations, both cannot be applied together.
         color_augmentation = transforms.ColorJitter(*color_jitter)
     return color_augmentation
+
+
+def worker_init_reset_seed(worker_id):
+    """
+    Make sure each process has different random seed, especially for 'fork' method.
+    Check https://github.com/pytorch/pytorch/issues/63311 for more details.
+
+    :param worker_id: placeholder (needs to be passed to DataLoader init).
+    """
+    seed = uuid.uuid4().int % 2 ** 32
+    random.seed(seed)
+    torch.set_rng_state(torch.manual_seed(seed).get_state())
+    np.random.seed(seed)

@@ -1,0 +1,88 @@
+#  ResNet50 Imagenet classification training:
+#  This example trains with batch_size = 192 * 8 GPUs, total 1536.
+#  Training time on 8 x GeForce RTX A5000 is 9min / epoch.
+#  Reach => 81.91 Top1 accuracy.
+#
+#  Log and tensorboard at s3://deci-pretrained-models/KD_ResNet50_Beit_Base_ImageNet/average_model.pth
+
+# Instructions:
+# running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
+#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/:"YOUR_LOCAL_PATH"/super_gradients/src/
+# Then:
+#   python train_from_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
+
+defaults:
+  - training_hyperparams: imagenet_resnet50_kd_train_params
+  - dataset_params: imagenet_dataset_params
+  - arch_params: default_arch_params
+  - checkpoint_params: default_checkpoint_params
+
+training_hyperparams:
+  loss: kd_loss
+  criterion_params:
+    distillation_loss_coeff: 0.8
+    task_loss_fn:
+      _target_: super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss
+
+arch_params:
+  teacher_input_adapter:
+    _target_: super_gradients.training.utils.kd_model_utils.NormalizationAdapter
+    mean_original: [0.485, 0.456, 0.406]
+    std_original: [0.229, 0.224, 0.225]
+    mean_required: [0.5, 0.5, 0.5]
+    std_required: [0.5, 0.5, 0.5]
+
+student_arch_params:
+  num_classes: 1000
+
+teacher_arch_params:
+  num_classes: 1000
+  image_size: [224, 224]
+  patch_size: [16, 16]
+
+dataset_params:
+  batch_size: 192
+  val_batch_size: 256
+  random_erase_prob: 0
+  random_erase_value: random
+  train_interpolation: random
+  rand_augment_config_string: rand-m7-mstd0.5
+  cutmix: True
+  cutmix_params:
+    mixup_alpha: 0.2
+    cutmix_alpha: 1.0
+    label_smoothing: 0.1
+  aug_repeat_count: 3
+
+dataset_interface:
+  imagenet:
+    dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+
+model_checkpoints_location: local
+load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
+  teacher_pretrained_weights: imagenet
+
+run_teacher_on_eval: True
+
+experiment_name: resnet50_imagenet_KD_Model
+
+ckpt_root_dir:
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: DDP
+
+sg_model:
+  _target_: super_gradients.KDModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  ckpt_root_dir: ${ckpt_root_dir}
+  multi_gpu: ${multi_gpu}
+
+architecture: kd_module
+student_architecture: resnet50
+teacher_architecture: beit_base_patch16_224

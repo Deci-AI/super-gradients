@@ -2,16 +2,158 @@ import os
 import sys
 import socket
 import time
+from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Tuple, Union, Dict
+import random
 
+from treelib import Tree
+from termcolor import colored
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
 
+
 # TODO: These utils should move to sg_model package as internal (private) helper functions
+
+IS_BETTER_COLOR = {True: "green", False: "red"}
+IS_GREATER_SYMBOLS = {True: "↗", False: "↘"}
+
+
+@dataclass
+class MonitoredValue:
+    """Store a value and some indicators relative to its past iterations.
+
+    The value can be a metric/loss, and the iteration can be epochs/batch.
+    """
+    current: float = None
+    previous: float = None
+    best: float = None
+    change_from_previous: float = None
+    change_from_best: float = None
+    is_better_than_previous: bool = None
+    is_best_value: bool = None
+
+
+def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: float,
+                           greater_is_better: bool) -> MonitoredValue:
+    """Update the given ValueToMonitor object (could be a loss or a metric) with the new value
+
+    :param previous_monitored_value: The stats about the value that is monitored throughout epochs.
+    :param new_value: The value of the current epoch that will be used to update previous_monitored_value
+    :param greater_is_better: True when a greater value means better result.
+    :return:
+    """
+    previous_value, previous_best_value = previous_monitored_value.current, previous_monitored_value.best
+
+    if previous_best_value is None:
+        previous_best_value = previous_value
+    elif greater_is_better:
+        previous_best_value = max(previous_value, previous_best_value)
+    else:
+        previous_best_value = min(previous_value, previous_best_value)
+
+    if previous_value is None:
+        change_from_previous = None
+        change_from_best = None
+        is_better_than_previous = None
+        is_best_value = None
+    else:
+        change_from_previous = new_value - previous_value
+        change_from_best = new_value - previous_best_value
+        is_better_than_previous = change_from_previous >= 0 if greater_is_better else change_from_previous <= 0
+        is_best_value = change_from_best >= 0 if greater_is_better else change_from_best <= 0
+
+    return MonitoredValue(current=new_value, previous=previous_value, best=previous_best_value,
+                          change_from_previous=change_from_previous, change_from_best=change_from_best,
+                          is_better_than_previous=is_better_than_previous, is_best_value=is_best_value)
+
+
+def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue],
+                                 new_values_dict: Dict[str, float]) -> Dict[str, MonitoredValue]:
+    """Update the given ValueToMonitor object (could be a loss or a metric) with the new value
+
+    :param monitored_values_dict: Dict mapping value names to their stats throughout epochs.
+    :param new_values_dict: Dict mapping value names to their new (i.e. current epoch) value.
+    :return: Updated monitored_values_dict
+    """
+    for monitored_value_name in monitored_values_dict.keys():
+        monitored_values_dict[monitored_value_name] = update_monitored_value(
+            new_value=new_values_dict[monitored_value_name],
+            previous_monitored_value=monitored_values_dict[monitored_value_name],
+            greater_is_better=False
+        )
+    return monitored_values_dict
+
+
+def display_epoch_summary(epoch: int, n_digits: int,
+                          train_monitored_values: Dict[str, MonitoredValue],
+                          valid_monitored_values: Dict[str, MonitoredValue]) -> None:
+    """Display a summary of loss/metric of interest, for a given epoch.
+
+        :param epoch: the number of epoch.
+        :param n_digits: number of digits to display on screen for float values
+        :param train_monitored_values: mapping of loss/metric with their stats that will be displayed
+        :param valid_monitored_values: mapping of loss/metric with their stats that will be displayed
+        :return:
+    """
+
+    def _format_to_str(val: float) -> str:
+        return str(round(val, n_digits))
+
+    def _generate_tree(value_name: str, monitored_value: MonitoredValue) -> Tree:
+        """Generate a tree that represents the stats of a given loss/metric."""
+
+        current = _format_to_str(monitored_value.current)
+        root_id = str(hash(f"{value_name} = {current}")) + str(random.random())
+
+        tree = Tree()
+        tree.create_node(tag=f"{value_name.capitalize()} = {current}", identifier=root_id)
+
+        if monitored_value.previous is not None:
+            previous = _format_to_str(monitored_value.previous)
+            best = _format_to_str(monitored_value.best)
+            change_from_previous = _format_to_str(monitored_value.change_from_previous)
+            change_from_best = _format_to_str(monitored_value.change_from_best)
+
+            diff_with_prev_colored = colored(
+                text=f"{IS_GREATER_SYMBOLS[monitored_value.change_from_previous > 0]} {change_from_previous}",
+                color=IS_BETTER_COLOR[monitored_value.is_better_than_previous]
+            )
+            diff_with_best_colored = colored(
+                text=f"{IS_GREATER_SYMBOLS[monitored_value.change_from_best > 0]} {change_from_best}",
+                color=IS_BETTER_COLOR[monitored_value.is_best_value]
+            )
+
+            tree.create_node(
+                tag=f"Epoch N-1      = {previous:6} ({diff_with_prev_colored:8})",
+                identifier=f"0_previous_{root_id}",
+                parent=root_id
+            )
+            tree.create_node(
+                tag=f"Best until now = {best:6} ({diff_with_best_colored:8})",
+                identifier=f"1_best_{root_id}",
+                parent=root_id
+            )
+        return tree
+
+    train_tree = Tree()
+    train_tree.create_node("Training", "Training")
+    for name, value in train_monitored_values.items():
+        train_tree.paste('Training', new_tree=_generate_tree(name, monitored_value=value))
+
+    valid_tree = Tree()
+    valid_tree.create_node("Validation", "Validation")
+    for name, value in valid_monitored_values.items():
+        valid_tree.paste('Validation', new_tree=_generate_tree(name, monitored_value=value))
+
+    summary_tree = Tree()
+    summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
+    summary_tree.paste("Summary", train_tree)
+    summary_tree.paste("Summary", valid_tree)
+    summary_tree.show()
 
 
 def try_port(port):
