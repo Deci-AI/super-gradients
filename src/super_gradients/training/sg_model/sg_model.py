@@ -34,8 +34,7 @@ from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
 from super_gradients.training.utils.sg_model_utils import MonitoredValue
 from super_gradients.training import metrics
-from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, \
-    IllegalDataloaderInitialization
+from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, IllegalDataloaderInitialization
 from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
@@ -58,7 +57,6 @@ from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
-
 
 logger = get_logger(__name__)
 
@@ -946,7 +944,9 @@ class SgModel:
                                ckpt_dir=self.checkpoints_dir_path, criterion=self.criterion,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger,
                                valid_loader=self.valid_loader, train_loader=self.train_loader,
-                               quant_modules_calib_method=self.quant_modules_calib_method)
+                               quant_modules_calib_method=self.quant_modules_calib_method,
+                               checkpoints_dir_path=self.checkpoints_dir_path,
+                               training_params=self.training_params)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
         try:

@@ -52,7 +52,8 @@ class PhaseContext:
     def __init__(self, epoch=None, batch_idx=None, optimizer=None, metrics_dict=None, inputs=None, preds=None,
                  target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
                  device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None,
-                 train_loader=None, valid_loader=None, quant_modules_calib_method=None):
+                 train_loader=None, valid_loader=None, quant_modules_calib_method=None, checkpoints_dir_path=None,
+                 training_params=None):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -74,6 +75,8 @@ class PhaseContext:
         self.train_loader = train_loader
         self.valid_loader = valid_loader
         self.quant_modules_calib_method = quant_modules_calib_method
+        self.checkpoints_dir_path = checkpoints_dir_path
+        self.training_params = training_params
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():
