@@ -34,7 +34,8 @@ from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
 from super_gradients.training.utils.sg_model_utils import MonitoredValue
 from super_gradients.training import metrics
-from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, IllegalDataloaderInitialization
+from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, \
+    IllegalDataloaderInitialization
 from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
@@ -58,7 +59,18 @@ from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 
+
 logger = get_logger(__name__)
+
+try:
+    from pytorch_quantization import nn as quant_nn
+    from pytorch_quantization.tensor_quant import QuantDescriptor
+    from pytorch_quantization import quant_modules
+    from super_gradients.training.utils.quantization_utils import collect_stats, compute_amax
+    _imported_pytorch_quantization_failure = None
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    logger.warning("Failed to import pytorch_quantization")
+    _imported_pytorch_quantization_failure = import_err
 
 
 class StrictLoad(Enum):
@@ -288,6 +300,7 @@ class SgModel:
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
 
+        self._initialize_quant_modules()
         self.net = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args, **kwargs)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
@@ -297,6 +310,25 @@ class SgModel:
         self._net_to_device()
 
         self._load_checkpoint_to_model()
+
+    def _initialize_quant_modules(self):
+        self.use_quant_modules = core_utils.get_param(self.arch_params, "use_quant_modules", False)
+        self.quant_modules_calib_method = core_utils.get_param(self.arch_params, "quant_modules_calib_method", "percentile")
+        if self.use_quant_modules:
+            if _imported_pytorch_quantization_failure is not None:
+                raise _imported_pytorch_quantization_failure
+            else:
+                quant_modules.initialize()
+                if self.quant_modules_calib_method in ["percentile", "mse", "entropy"]:
+                    quant_desc = QuantDescriptor(calib_method='histogram')
+                elif self.quant_modules_calib_method == "max":
+                    quant_desc = QuantDescriptor(calib_method='max')
+                else:
+                    raise ValueError("Unsupported quantization calibration method, expected one of: percentile, mse, entropy, max, got " + str(self.quant_modules_calib_method) + ".")
+
+                # TODO: ADD PER CHANNEL QAT SUPPORT
+                quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc)
+                quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc)
 
     def _set_ckpt_loading_attributes(self):
         """
@@ -912,7 +944,9 @@ class SgModel:
 
         context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name,
                                ckpt_dir=self.checkpoints_dir_path, criterion=self.criterion,
-                               lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger)
+                               lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger,
+                               valid_loader=self.valid_loader, train_loader=self.train_loader,
+                               quant_modules_calib_method=self.quant_modules_calib_method)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
         try:

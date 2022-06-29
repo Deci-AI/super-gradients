@@ -1,10 +1,9 @@
 import torch.utils.data
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface
-import torchvision
 from pytorch_quantization import nn as quant_nn
 from pytorch_quantization.tensor_quant import QuantDescriptor
-
 from pytorch_quantization import quant_modules
+
 from super_gradients.training import SgModel, MultiGPUMode
 from super_gradients.training.metrics.classification_metrics import Accuracy
 from super_gradients.training.utils.quantization_utils import collect_stats, compute_amax
@@ -18,7 +17,7 @@ quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc)
 quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc)
 
 
-dataset_params = {"batch_size": 16}
+dataset_params = {"batch_size": 32}
 dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params=dataset_params)
 
 
@@ -28,12 +27,14 @@ model = SgModel("resnet18_qat_imagenet",
 
 model.connect_dataset_interface(dataset)
 
-model.build_model("resnet18", checkpoint_params={"checkpoint":})
-data_loader = model.valid_loader
+model.build_model("resnet18", checkpoint_params={"pretrained_weights": "imagenet"})
+test_data_loader = model.valid_loader
 
 with torch.no_grad():
-    collect_stats(model.net, data_loader, num_batches=2)
+    collect_stats(model.net, test_data_loader, num_batches=2)
     compute_amax(model.net, method="percentile", percentile=99.99)
+
+print("Testing pretrained resnet18 after calibration and before QAT, original model accuracy is 0.706")
 
 train_params = {"max_epochs": 2,
                 "lr_mode": "step",
