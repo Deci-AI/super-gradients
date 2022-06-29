@@ -14,7 +14,7 @@ def calc_batch_prediction_detection_metrics_per_class(matching, dataset_interfac
 
         precision, recall, ap, f1, unique_classes = compute_detection_metrics(*matching_tensors, device=device)
         precision, recall, ap, f1 = precision.cpu().numpy(), recall.cpu().numpy(), ap.cpu().numpy(), f1.cpu().numpy()
-        target_cls, unique_classes = matching_tensors[-1].cpu().numpy(), unique_classes.cpu().numpy().astype(np.int64)
+        _, unique_classes = unique_classes.cpu().numpy().astype(np.int64)
 
         if iou_thres.is_range():
             precision, recall, f1 = precision[:, 0], recall[:, 0], f1[:, 0]

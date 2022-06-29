@@ -191,7 +191,7 @@ class DetectionDataSet(ListDataset):
 
         if self.with_crowd:
             return img, labels_out, {'crowd_gts': crowd_labels_out}
-        return img, labels_out #TODO: Check if not better to return (img, labels_out, {}), to have consistance shape
+        return img, labels_out  # TODO: Check if not better to return (img, labels_out, {}), to have consistance shape
 
     @staticmethod
     def mixup(im, labels, im2, labels2):

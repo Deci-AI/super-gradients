@@ -769,7 +769,6 @@ def crowd_ioa(det_box: torch.Tensor, crowd_box: torch.Tensor) -> torch.Tensor:
     return inter / det_area[:, None]  # crowd_ioa = inter / det_area
 
 
-
 def compute_detection_matching(
     output: torch.Tensor,
     targets: torch.Tensor,
@@ -1036,6 +1035,7 @@ def compute_detection_metrics(
     f1 = 2 * precision * recall / (precision + recall + 1e-16)
 
     return precision, recall, ap, f1, unique_classes
+
 
 def compute_detection_metrics_per_cls(
         preds_matched: torch.Tensor,
