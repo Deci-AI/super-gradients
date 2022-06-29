@@ -120,7 +120,7 @@ training_hyperparams:
       post_prediction_callback:
         _target_: super_gradients.training.utils.ssd_utils.SSDPostPredictCallback
         dboxes: ${dboxes}
-        conf: 0.001
+        conf: 0.05
         iou: 0.6
       num_cls: 80
 
