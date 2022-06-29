@@ -29,9 +29,22 @@ _COCO_91_INDEX = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19,
 _COCO_91_INVERTED_INDEX = {coco_id: index for index, coco_id in enumerate(_COCO_91_INDEX)}
 
 
-def convert_bbox_to_ul_style(bbox, width, height):
-    result = [(bbox[0] + bbox[2] / 2) / width, (bbox[1] + bbox[3] / 2) / height,
-              bbox[2] / width, bbox[3] / height]
+def format_bbox(bbox, img_width: float, img_height: float):
+    """
+    :param bbox: Bounding box in format (x_left, y_top, width, height)
+                    0 < (width, x_left) < img_width
+                    0 < (height, y_top) < img_height
+
+    :return: normalized bbox in centered and noramalized format (x_center, y_center, width, height)
+                    0 < (width, x_center)  < 1
+                    0 < (height, y_center) < 1
+    """
+    result = [
+        (bbox[0] + bbox[2] / 2) / img_width,
+        (bbox[1] + bbox[3] / 2) / img_height,
+        (bbox[2]) / img_width,
+        (bbox[3]) / img_height,
+    ]
     return [round(coordinate, 6) for coordinate in result]
 
 
@@ -39,15 +52,15 @@ def load_crowd_gts(annotations_json_path: str) -> dict:
     with open(annotations_json_path) as file:
         anno_json = json.load(file)
 
-    id_to_images = {img['id']: img for img in anno_json['images']}
-    crowd_annos = [anno for anno in anno_json['annotations'] if anno['iscrowd'] == 1]
+    id_to_img = {img['id']: img for img in anno_json['images']}
+    crowd_annotations = [annotation for annotation in anno_json['annotations'] if annotation['iscrowd'] == 1]
 
-    img_id_to_crowd_gts = {anno['image_id']: [] for anno in crowd_annos}
-    for anno in crowd_annos:
-        img = id_to_images[anno['image_id']]
-        img_id_to_crowd_gts[anno['image_id']].append({
-            'bbox': convert_bbox_to_ul_style(anno['bbox'], img['width'], img['height']),
-            'category_id': _COCO_91_INVERTED_INDEX[anno['category_id']]
+    img_id_to_crowd_gts = {annotation['image_id']: [] for annotation in crowd_annotations}
+    for annotation in crowd_annotations:
+        img = id_to_img[annotation['image_id']]
+        img_id_to_crowd_gts[annotation['image_id']].append({
+            'bbox': format_bbox(annotation['bbox'], img['width'], img['height']),
+            'category_id': _COCO_91_INVERTED_INDEX[annotation['category_id']]
         })
     return img_id_to_crowd_gts
 
