@@ -5,27 +5,40 @@ from torchmetrics import Metric
 
 import super_gradients
 from super_gradients.training.utils.detection_utils import compute_detection_matching, compute_detection_metrics
+from super_gradients.common.abstractions.abstract_logger import get_logger
+logger = get_logger(__name__)
 
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
 
 
 class DetectionMetrics(Metric):
-    def __init__(self, num_cls,
+    """
+    DetectionMetrics
+
+    Metric class for computing F1, Precision, Recall and Mean Average Precision.
+
+    Attributes:
+
+         num_cls: number of classes.
+
+         post_prediction_callback: DetectionPostPredictionCallback to be applied on net's output prior
+            to the metric computation (NMS).
+
+         iou_thres: Threshold to compute the mAP (default=IouThreshold.MAP_05_TO_095).
+
+         normalize_targets: Whether to normalize bbox coordinates by image size (default=True).
+
+         dist_sync_on_step: Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. (default=False)
+    """
+    def __init__(self, num_cls: int,
                  post_prediction_callback: DetectionPostPredictionCallback = None,
                  iou_thres: IouThreshold = IouThreshold.MAP_05_TO_095,
                  recall_thres: Optional[torch.Tensor] = None,
                  score_thres: float = 0.1,
                  top_k_predictions: int = 100,
+                 normalize_targets: bool = False,
                  dist_sync_on_step: bool = False):
-        """
-
-
-        @param post_prediction_callback:
-        @param iou_thres:
-        @param dist_sync_on_step:
-
-
-        """
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.num_cls = num_cls
         self.iou_thres = iou_thres
@@ -34,7 +47,7 @@ class DetectionMetrics(Metric):
         self.components = len(self.component_names)
         self.post_prediction_callback = post_prediction_callback
         self.is_distributed = super_gradients.is_distributed()
-
+        self.normalize_targets = normalize_targets
         self.world_size = None
         self.rank = None
         self.add_state("matching_info", default=[], dist_reduce_fx=None)
@@ -64,6 +77,11 @@ class DetectionMetrics(Metric):
         preds = self.post_prediction_callback(preds, device=device)
 
         _, _, height, width = inputs.shape
+        targets = target.clone()
+        if self.normalize_targets:
+            targets[:, 2:] /= max(height, width)
+        preds = self.post_prediction_callback(preds, device=device)
+
         new_matching_info = compute_detection_matching(
             preds, target, height, width, self.iou_thresholds, crowd_targets=crowd_gts, top_k=self.top_k_predictions)
 

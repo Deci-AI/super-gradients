@@ -349,7 +349,7 @@ class DetectionTransform:
     Detection transform base class.
 
     Complex transforms that require extra data loading can use the the additional_samples_count attribute in a
-     similar fashion to what's been done in COCODetectionDatasetYolox:
+     similar fashion to what's been done in COCODetectionDatasetV2:
 
     self._load_additional_inputs_for_transform(sample, transform)
 
