@@ -74,8 +74,6 @@ class DetectionMetrics(Metric):
         """
         self.iou_thresholds = self.iou_thresholds.to(device)
 
-        preds = self.post_prediction_callback(preds, device=device)
-
         _, _, height, width = inputs.shape
         targets = target.clone()
         if self.normalize_targets:
