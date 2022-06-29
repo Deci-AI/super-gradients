@@ -1,8 +1,9 @@
 import os
 import math
 import random
+from typing import Dict, Tuple
 from pathlib import Path
-import json
+
 import cv2
 import numpy as np
 import torch
@@ -21,55 +22,12 @@ for orientation in ExifTags.TAGS.keys():
         break
 
 
-_COCO_91_INDEX = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 31, 32,
-                  33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
-                  59, 60, 61, 62, 63, 64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84, 85, 86, 87, 88,
-                  89, 90]
-
-_COCO_91_INVERTED_INDEX = {coco_id: index for index, coco_id in enumerate(_COCO_91_INDEX)}
-
-
-def format_bbox(bbox, img_width: float, img_height: float):
-    """
-    :param bbox: Bounding box in format (x_left, y_top, width, height)
-                    0 < (width, x_left) < img_width
-                    0 < (height, y_top) < img_height
-
-    :return: normalized bbox in centered and noramalized format (x_center, y_center, width, height)
-                    0 < (width, x_center)  < 1
-                    0 < (height, y_center) < 1
-    """
-    result = [
-        (bbox[0] + bbox[2] / 2) / img_width,
-        (bbox[1] + bbox[3] / 2) / img_height,
-        (bbox[2]) / img_width,
-        (bbox[3]) / img_height,
-    ]
-    return [round(coordinate, 6) for coordinate in result]
-
-
-def load_crowd_gts(annotations_json_path: str) -> dict:
-    with open(annotations_json_path) as file:
-        anno_json = json.load(file)
-
-    id_to_img = {img['id']: img for img in anno_json['images']}
-    crowd_annotations = [annotation for annotation in anno_json['annotations'] if annotation['iscrowd'] == 1]
-
-    img_id_to_crowd_gts = {annotation['image_id']: [] for annotation in crowd_annotations}
-    for annotation in crowd_annotations:
-        img = id_to_img[annotation['image_id']]
-        img_id_to_crowd_gts[annotation['image_id']].append({
-            'bbox': format_bbox(annotation['bbox'], img['width'], img['height']),
-            'category_id': _COCO_91_INVERTED_INDEX[annotation['category_id']]
-        })
-    return img_id_to_crowd_gts
-
-
 class DetectionDataSet(ListDataset):
     def __init__(self, root: str, list_file: str, img_size: int = 416, batch_size: int = 16, augment: bool = False,
                  dataset_hyper_params: dict = None, cache_labels: bool = False, cache_images: bool = False,
                  sample_loading_method: str = 'default', collate_fn: Callable = None, target_extension: str = '.txt',
-                 labels_offset: int = 0, class_inclusion_list=None, all_classes_list=None, with_crowd=False):
+                 labels_offset: int = 0, class_inclusion_list=None, all_classes_list=None,
+                 with_additional_labels: bool = False, additional_labels_path: str = ""):
         """
         DetectionDataSet
             :param root:                    Root folder of the Data Set
@@ -107,7 +65,8 @@ class DetectionDataSet(ListDataset):
         self.all_classes_list = all_classes_list
         self.mixup_prob = get_param(self.dataset_hyperparams, "mixup", 0)
 
-        self.with_crowd = with_crowd
+        self.with_additional_labels = with_additional_labels
+        self.additional_labels_path = additional_labels_path
 
         super(DetectionDataSet, self).__init__(root=root, file=list_file, target_extension=target_extension,
                                                collate_fn=collate_fn, sample_loader=self.sample_loader,
@@ -123,7 +82,6 @@ class DetectionDataSet(ListDataset):
         if self.sample_loading_method == 'mosaic' and self.augment:
             # LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)
             img, labels = self.load_mosaic(index)
-            crowd_labels = []
 
             # MixUp augmentation
             if random.random() < self.mixup_prob:
@@ -134,7 +92,6 @@ class DetectionDataSet(ListDataset):
             img_path = self.img_files[index]
             img = self.sample_loader(img_path)
             img = self.sample_transform(img)
-            img_id = self.img_ids[index]
 
             # LETTERBOX
             h, w = img.shape[:2]
@@ -149,12 +106,6 @@ class DetectionDataSet(ListDataset):
                 labels = self.target_loader(label_path, self.class_inclusion_list, self.all_classes_list)
 
             labels = self.target_transform(labels, ratio, w, h, pad)
-
-            crowd_gts = self.img_id_to_crowd_gts.get(img_id, [])
-            crowd_labels = None
-            if len(crowd_gts) > 0:
-                crowd_labels = np.array([(gt['category_id'], *gt['bbox']) for gt in crowd_gts])
-            crowd_labels = self.target_transform(crowd_labels, ratio, w, h, pad)
 
         if self.augment:
             # AUGMENT IMAGESPACE
@@ -171,40 +122,45 @@ class DetectionDataSet(ListDataset):
                                    vgain=self.dataset_hyperparams['hsv_v'])
 
         if len(labels):
-            # CONVERT XYXY TO XYWH - CHANGE THE BBOXES PARAMS
-            labels[:, 1:5] = convert_xyxy_bbox_to_xywh(labels[:, 1:5])
-
-            # NORMALIZE COORDINATES 0 - 1
-            labels[:, [2, 4]] /= img.shape[0]  # HEIGHT
-            labels[:, [1, 3]] /= img.shape[1]  # WIDTH
-
-        if len(crowd_labels):
-            # CONVERT XYXY TO XYWH - CHANGE THE BBOXES PARAMS
-            crowd_labels[:, 1:5] = convert_xyxy_bbox_to_xywh(crowd_labels[:, 1:5])
-
-            # NORMALIZE COORDINATES 0 - 1
-            crowd_labels[:, [2, 4]] /= img.shape[0]  # HEIGHT
-            crowd_labels[:, [1, 3]] /= img.shape[1]  # WIDTH
+            labels = self.convert_xyxy_bbox_to_normalized_xywh(labels, img_width=img.shape[1], img_height=img.shape[0])
 
         if self.augment:
             # AUGMENT RANDOM UP-DOWN FLIP
             img, labels = self._augment_random_flip(img, labels)
 
+        labels_out = self._convert_label_to_torch(labels)
+        img = self.sample_post_process(img)
+
+        if self.with_additional_labels:
+            if self.augment or self.sample_loading_method == 'mosaic':
+                raise NotImplementedError("Using additional labels is not supported when using data augmentation")
+            return img, labels_out, self._get_additional_labels(ratio=ratio, pad=pad, index=index,
+                                                                preprocess_shape=(h, w),
+                                                                postprocess_shape=img.shape[1:])
+        return img, labels_out
+
+    def _get_additional_labels(self, ratio, pad, index, preprocess_shape, postprocess_shape) -> Dict[str, torch.Tensor]:
+        raise NotImplementedError("This functionality was not implemented on this dataset")
+        #  return {} # This could be another option, depending on if we want to be able to run this on every dataset
+
+    def _load_additional_labels(self):
+        raise NotImplementedError("This functionality was not implemented on this dataset")
+        #  pass # This could be another option, depending on if we want to be able to run this on every dataset
+
+    def _convert_label_to_torch(self, labels: np.array) -> torch.Tensor:
         labels_out = torch.zeros((len(labels), 6))
         labels[:, 0] += self.labels_offset
         if len(labels):
             labels_out[:, 1:] = torch.from_numpy(labels)
+        return labels_out
 
-        crowd_labels_out = torch.zeros((len(crowd_labels), 6))
-        crowd_labels_out[:, 0] += self.labels_offset
-        if len(crowd_labels):
-            crowd_labels_out[:, 1:] = torch.from_numpy(crowd_labels)
-
-        img = self.sample_post_process(img)
-
-        if self.with_crowd:
-            return img, labels_out, {'crowd_gts': crowd_labels_out}
-        return img, labels_out  # TODO: Check if not better to return (img, labels_out, {}), to have consistance shape
+    @staticmethod
+    def convert_xyxy_bbox_to_normalized_xywh(labels, img_width, img_height):
+        """CONVERT XYXY TO XYWH - CHANGE THE BBOXES PARAMS AND NORMALIZE COORDINATES 0 - 1"""
+        labels[:, 1:5] = convert_xyxy_bbox_to_xywh(labels[:, 1:5])
+        labels[:, [1, 3]] /= img_width
+        labels[:, [2, 4]] /= img_height
+        return labels
 
     @staticmethod
     def mixup(im, labels, im2, labels2):
@@ -243,7 +199,10 @@ class DetectionDataSet(ListDataset):
             self.label_files = [x.replace('images', 'labels').replace(os.path.splitext(x)[-1], self.target_extension)
                                 for x in self.img_files]
             self.img_ids = [int(Path(p).stem) for p in self.img_files]
-            self.img_id_to_crowd_gts = load_crowd_gts(os.path.join(self.root, 'annotations/instances_val2017.json'))
+
+            if self.with_additional_labels:
+                self._load_additional_labels()
+
         else:
             self.img_files, self.label_files = map(list, zip(*self.samples_targets_tuples_list))
 

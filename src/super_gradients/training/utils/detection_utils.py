@@ -41,9 +41,7 @@ class DetectionTargetsFormat(Enum):
     NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
 
 
-def base_detection_collate_fn(
-    batch: Iterable, with_crowd: Optional[bool] = False
-) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+def base_detection_collate_fn(batch: Iterable, with_crowd: Optional[bool] = False) -> Tuple:
     """
     Batch Processing helper function for detection training/testing.
     stacks the lists of images and targets into tensors and adds the image index to each target (so the targets could
@@ -51,32 +49,31 @@ def base_detection_collate_fn(
          :param batch:      Input batch from the Dataset __get_item__ method
          :param with_crowd: If yes, add crowd labels in the additional_items_batch
 
-         :return:  Batch images, labels and a dict with 'crowd_gts' if with_crowd==True
+         :return:  Batch images, labels and a dict with 'crowd_target' if with_crowd==True
      """
-    additional_batch_items = {}
+
+    def _add_labels_index(labels_batch):
+        for i, labels in enumerate(labels_batch):
+            labels[:, 0] = i
 
     if not with_crowd:
-        images_batch, labels_batch = list(zip(*batch))
+        images_batch, labels_batch = zip(*batch)
+        _add_labels_index(labels_batch)
+        return torch.stack(images_batch, 0), torch.cat(labels_batch, 0)
     else:
         images_batch, labels_batch, additional_items_batch = zip(*batch)
-
-        # ADD CROWD TARGET IMAGE INDEX
-        for i, additional_items in enumerate(additional_items_batch):
-            additional_items['crowd_gts'][:, 0] = i
-        additional_batch_items['crowd_gts'] = torch.cat([item['crowd_gts'] for item in additional_items_batch], dim=0)
-
-    # ADD TARGET IMAGE INDEX
-    for i, labels in enumerate(labels_batch):
-        labels[:, 0] = i
-
-    return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), additional_batch_items
+        crowd_labels_batch = [item['crowd_labels'] for item in additional_items_batch]
+        _add_labels_index(labels_batch)
+        _add_labels_index(crowd_labels_batch)
+        return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), {"crowd_target": torch.cat(crowd_labels_batch, 0)}
 
 
 def convert_xyxy_bbox_to_xywh(input_bbox):
     """
-    convert_xyxy_bbox_to_xywh - Converts bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
-        :param input_bbox:  input bbox
-        :return:            Converted bbox
+    Converts bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
+
+        :param input_bbox:           Input bbox
+        :return:                     Converted bbox
     """
     converted_bbox = torch.zeros_like(input_bbox) if isinstance(input_bbox, torch.Tensor) else np.zeros_like(input_bbox)
     converted_bbox[:, 0] = (input_bbox[:, 0] + input_bbox[:, 2]) / 2

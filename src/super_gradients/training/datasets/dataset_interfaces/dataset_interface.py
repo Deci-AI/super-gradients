@@ -648,7 +648,7 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
                                              cache_images=cache_images,
                                              labels_offset=labels_offset,
                                              class_inclusion_list=class_inclusion_list,
-                                             with_crowd=with_crowd)
+                                             with_additional_labels=False)
 
         self.valset = COCODetectionDataSet(root=self.root_dir, list_file=val_list_file,
                                            dataset_hyper_params=self.coco_dataset_hyper_params,
@@ -660,7 +660,8 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
                                            cache_images=cache_images,
                                            labels_offset=labels_offset,
                                            class_inclusion_list=class_inclusion_list,
-                                           with_crowd=with_crowd)
+                                           with_additional_labels=with_crowd,
+                                           additional_labels_path='annotations/instances_val2017.json')
 
         self.coco_classes = self.trainset.classes
 

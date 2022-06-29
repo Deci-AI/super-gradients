@@ -58,19 +58,18 @@ class DetectionMetrics(Metric):
         self.top_k_predictions = top_k_predictions
 
     def update(self, preds: List[torch.Tensor], target: torch.Tensor, device: str,
-               inputs: torch.tensor, crowd_gts: Optional[torch.Tensor] = None):
+               inputs: torch.tensor, crowd_target: Optional[torch.Tensor] = None):
         """
         Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
 
-        :param preds :    list (of length batch_size) of Tensors of shape (num_detections, 6)
-                            format:  (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 non normalized
-        :param target:    targets for all images of shape (total_num_targets, 6)
-                            format:  (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-        :param device:    Device to run on
-        :param inputs:    Input image tensor of shape (batch_size, n_img, height, width)
-        :param crowd_gts: crowd targets for all images of shape (total_num_targets, 6)
-                          format:  (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-        :return:
+        :param preds :        list (of length batch_size) of Tensors of shape (num_detections, 6)
+                                format:  (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 non normalized
+        :param target:        targets for all images of shape (total_num_targets, 6)
+                                format:  (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+        :param device:        Device to run on
+        :param inputs:        Input image tensor of shape (batch_size, n_img, height, width)
+        :param crowd_target:  crowd targets for all images of shape (total_num_targets, 6)
+                                 format:  (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
         """
         self.iou_thresholds = self.iou_thresholds.to(device)
 
@@ -81,7 +80,7 @@ class DetectionMetrics(Metric):
         preds = self.post_prediction_callback(preds, device=device)
 
         new_matching_info = compute_detection_matching(
-            preds, target, height, width, self.iou_thresholds, crowd_targets=crowd_gts, top_k=self.top_k_predictions)
+            preds, target, height, width, self.iou_thresholds, crowd_targets=crowd_target, top_k=self.top_k_predictions)
 
         accumulated_matching_info = getattr(self, "matching_info")
         setattr(self, "matching_info", accumulated_matching_info + new_matching_info)
