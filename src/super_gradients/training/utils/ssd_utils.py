@@ -49,7 +49,6 @@ class DefaultBoxes(object):
 
         self.scale_xy_ = scale_xy
         self.scale_wh_ = scale_wh
-
         # According to https://github.com/weiliu89/caffe
         # Calculation method slightly different from paper
         self.scales = scales
@@ -108,7 +107,8 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
 
     def __init__(self, dboxes: DefaultBoxes, conf: float = 0.1, iou: float = 0.45, classes: list = None,
                  max_predictions: int = 300,
-                 nms_type: NMS_Type = NMS_Type.ITERATIVE):
+                 nms_type: NMS_Type = NMS_Type.ITERATIVE,
+                 sigmoid: bool = False):
         """
         :param conf: confidence threshold
         :param iou: IoU threshold
@@ -126,6 +126,9 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         self.scale_xy = dboxes.scale_xy
         self.scale_wh = dboxes.scale_wh
         self.img_size = dboxes.fig_size
+        self.sigmoid = sigmoid
+        print('sigmoid_mode', self.sigmoid)
+        print('boxes', dboxes.scales)
 
     def forward(self, x, device=None):
         bboxes_in = x[0]
@@ -142,18 +145,24 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         bboxes_in[:, :, :2] = bboxes_in[:, :, :2] * dboxes_on_device[:, 2:] + dboxes_on_device[:, :2]
         bboxes_in[:, :, 2:] = bboxes_in[:, :, 2:].exp() * dboxes_on_device[:, 2:]
 
-        scores_in = F.softmax(scores_in, dim=-1)
+        if not self.sigmoid:
+            # obj = 1 - F.softmax(scores_in, dim=-1)[:, :, 0]
+            # scores_in[:, :, 1:] = F.softmax(scores_in[:, :, 1:], dim=-1)
+            # scores_in[:, :, 0] = obj
 
-        # REPLACE THE CONFIDENCE OF CLASS NONE WITH OBJECT CONFIDENCE
-        # SSD DOES NOT OUTPUT OBJECT CONFIDENCE, REQUIRED FOR THE NMS
-        scores_in[:, :, 0] = 1.
-        # the right way to treat foreground (reduces mAP)
-        # background_mask = torch.max(scores_in, dim=2)[1] == 0.
-        # translate foreground class into the objectness prob (filter out foreground)
-        # scores_in[:, :, 0][background_mask] = 0.
-        # scores_in[:, :, 0][~background_mask] = 1.
+            # REPLACE THE CONFIDENCE OF CLASS NONE WITH OBJECT CONFIDENCE
+            # SSD DOES NOT OUTPUT OBJECT CONFIDENCE, REQUIRED FOR THE NMS
+            scores_in = F.softmax(scores_in, dim=-1)
+            scores_in[:, :, 0] = 1.  # torch.max(scores_in[:, :, 1:], dim=2)[0]
+            # the right way to treat foreground (reduces mAP)
+            # background_mask = torch.max(scores_in, dim=2)[1] == 0.
+            # translate foreground class into the objectness prob (filter out foreground)
+            # scores_in[:, :, 0][background_mask] = 0.
+            # scores_in[:, :, 0][~background_mask] = 1.
+        else:
+            scores_in = torch.sigmoid(scores_in)
+
         bboxes_in *= self.img_size
-
         nms_input = torch.cat((bboxes_in, scores_in), dim=2)
 
         if self.nms_type == NMS_Type.ITERATIVE:
