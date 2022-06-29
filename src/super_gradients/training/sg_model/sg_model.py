@@ -446,6 +446,9 @@ class SgModel:
             if hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler) and batch_idx == len(self.train_loader)-1:
                 break
 
+            if batch_idx == 5:
+                break
+
         if not self.ddp_silent_mode:
             self.sg_logger.upload()
 
