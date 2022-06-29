@@ -8,7 +8,7 @@ from super_gradients.training.metrics import Accuracy
 from super_gradients.training.losses.kd_losses import KDLogitsLoss
 
 
-class KDModelTest(unittest.TestCase):
+class KDEMATest(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls.sg_trained_teacher = SgModel("sg_trained_teacher", device='cpu')
