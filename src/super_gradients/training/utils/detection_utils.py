@@ -495,6 +495,14 @@ class IouThreshold(tuple, Enum):
     def is_range(self):
         return self[0] != self[1]
 
+    def to_tensor(self):
+        if self.is_range():
+            n_iou_thresh = int(round((self[1] - self[0]) / 0.05)) + 1
+            return torch.linspace(self[0], self[1], n_iou_thresh)
+        else:
+            n_iou_thresh = 1
+            return torch.tensor([self[0]])
+
 
 def scale_img(img, ratio=1.0, pad_to_original_img_size=False):
     """
@@ -732,12 +740,17 @@ class NMS_Type(str, Enum):
     MATRIX = 'matrix'
 
 
-def _box_area(box):
+def compute_box_area(box: torch.Tensor) -> torch.Tensor:
+    """Compute the area of one or many boxes.
+         :param box: One or many boxes, shape = (4, ?), each box in format (x1, y1, x2, y2)
+    Returns:
+        Area of every box, shape = (1, ?)
+     """
     # box = 4xn
     return (box[2] - box[0]) * (box[3] - box[1])
 
 
-def crowd_ioa(det_box, crowd_box):
+def crowd_ioa(det_box: torch.Tensor, crowd_box: torch.Tensor) -> torch.Tensor:
     """
     Return intersection-over-detection_area of boxes, used for crowd ground truths.
     Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
@@ -748,7 +761,7 @@ def crowd_ioa(det_box, crowd_box):
         crowd_ioa (Tensor[N, M]): the NxM matrix containing the pairwise
             IoA values for every element in det_box and crowd_box
     """
-    det_area = _box_area(det_box.T)
+    det_area = compute_box_area(det_box.T)
 
     # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
     inter = (torch.min(det_box[:, None, 2:], crowd_box[:, 2:]) - torch.max(det_box[:, None, :2], crowd_box[:, :2])) \
@@ -762,8 +775,9 @@ def compute_detection_matching(
     targets: torch.Tensor,
     height: int,
     width: int,
-    iou_thresholds: IouThreshold,
-    crowd_targets: Optional[torch.Tensor] = None
+    iou_thresholds: torch.Tensor,
+    crowd_targets: Optional[torch.Tensor] = None,
+    top_k: int = 100,
 ) -> List[Tuple]:
     """
     Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score.
@@ -776,7 +790,7 @@ def compute_detection_matching(
     :param iou_thresholds:  Threshold to compute the mAP
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-    TODO: Add option to only keep top k predicitions (either top k overall or top k per cls)
+    :param top_k:           Number of predictions to keep per class, ordered by confidence score
 
     :return:                list of the following tensors, for every image:
         :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
@@ -788,13 +802,6 @@ def compute_detection_matching(
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
     """
     batch_metrics, device = [], targets.device
-
-    if not iou_thresholds.is_range():
-        num_ious = 1
-        iou_thresholds = torch.tensor([iou_thresholds[0]]).to(device)
-    else:
-        num_ious = int(round((iou_thresholds[1] - iou_thresholds[0]) / 0.05)) + 1
-        iou_thresholds = torch.linspace(iou_thresholds[0], iou_thresholds[1], num_ious).to(device)
 
     # If crowd_targets is not provided, we patch it with an empty tensor
     crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets
@@ -812,7 +819,8 @@ def compute_detection_matching(
             height=height,
             width=width,
             device=device,
-            iou_thresholds=iou_thresholds
+            iou_thresholds=iou_thresholds,
+            top_k=top_k
         )
         batch_metrics.append(img_matching_tensors)
 
@@ -822,11 +830,11 @@ def compute_detection_matching(
 def compute_img_detection_matching(
         preds: torch.Tensor,
         targets: torch.Tensor,
+        crowd_targets: torch.Tensor,
         height: int,
         width: int,
         iou_thresholds: torch.Tensor,
         device: str,
-        crowd_targets: torch.Tensor = None,
         top_k: int = 100,
 ) -> Tuple:
     """
@@ -876,14 +884,12 @@ def compute_img_detection_matching(
     preds_to_ignore[:, :] = True
     preds_to_ignore[preds_idx_to_use] = False
 
-
     if len(targets) > 0 or len(crowd_targets) > 0:
 
         # TODO: Check if possible to not have these functions here
         # CHANGE bboxes TO FIT THE IMAGE SIZE
         change_bbox_bounds_for_image_size(preds, (height, width))
 
-        # TODO: run this on yolo data
         targets_box = convert_xywh_bbox_to_xyxy(targets_box)
         crowd_target_box = convert_xywh_bbox_to_xyxy(crowd_target_box)
 
@@ -903,7 +909,7 @@ def compute_img_detection_matching(
         iou[cls_mismatch] = 0
 
         # The matching priority is first detection confidence and then IoU value.
-        # The detection is already sorted by confidence through NMS, so here for each prediction we order the targets by iou.
+        # The detection is already sorted by confidence in NMS, so here for each prediction we order the targets by iou.
         sorted_iou, target_sorted = iou.sort(descending=True, stable=True)
 
         # Only iterate over IoU values higher than min threshold to speed up the process
@@ -958,19 +964,12 @@ def compute_img_detection_matching(
 
 def get_top_k_idx_per_cls(preds_scores: torch.Tensor, preds_cls: torch.Tensor, top_k: int):
     """Get the indexes of all the top k predictions for every class
+
     :param preds_scores:   The confidence scores, vector of shape (n_pred)
     :param preds_cls:      The predicted class, vector of shape (n_pred)
     :param top_k:          Number of predictions to keep per class, ordered by confidence score
 
-    :return:
-        :top_k_idx:       Indexes of the top k predictions. length <= (k * n_unique_class)
-
-    preds_scores = torch.tensor([1, 0.1, 0.8, 0.7, 1, 0.9, 0.6, 0.2, 0.4, 0, 0, 0, 0.1, 0])
-    preds_cls = torch.tensor(   [0, 0,   0,   0,   0, 0,   0,   1,   1,   1, 1, 1, 2,   3])
-    top_k_idx = get_top_k_idx_per_cls(preds_scores, preds_cls, 3)
-    print(top_k_idx)
-    print(preds_scores[top_k_idx])
-    print(preds_cls[top_k_idx])
+    :return top_k_idx:     Indexes of the top k predictions. length <= (k * n_unique_class)
     """
     n_unique_cls = torch.max(preds_cls)
     mask = (preds_cls.view(-1, 1) == torch.arange(n_unique_cls + 1, device=preds_scores.device).view(1, -1))
@@ -980,7 +979,6 @@ def get_top_k_idx_per_cls(preds_scores: torch.Tensor, preds_cls: torch.Tensor, t
     idx_with_satisfying_scores = sorted_scores_per_cls[:top_k, :].nonzero(as_tuple=False)
     top_k_idx = sorting_idx[idx_with_satisfying_scores.split(1, dim=1)]
     return top_k_idx.view(-1)
-
 
 
 def compute_detection_metrics(

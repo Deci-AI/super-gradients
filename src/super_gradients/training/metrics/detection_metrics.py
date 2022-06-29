@@ -13,7 +13,10 @@ class DetectionMetrics(Metric):
     def __init__(self, num_cls,
                  post_prediction_callback: DetectionPostPredictionCallback = None,
                  iou_thres: IouThreshold = IouThreshold.MAP_05_TO_095,
-                 dist_sync_on_step=False):
+                 recall_thres: Optional[torch.Tensor] = None,
+                 score_thres: float = 0.1,
+                 top_k_predictions: int = 100,
+                 dist_sync_on_step: bool = False):
         """
 
 
@@ -36,9 +39,13 @@ class DetectionMetrics(Metric):
         self.rank = None
         self.add_state("matching_info", default=[], dist_reduce_fx=None)
 
-        self.iou_thresholds = iou_thres
+        self.iou_thresholds = iou_thres.to_tensor()
+        self.recall_thresholds = torch.linspace(0, 1, 101) if recall_thres is None else recall_thres
+        self.score_threshold = score_thres
+        self.top_k_predictions = top_k_predictions
 
-    def update(self, preds: List[torch.Tensor], target: torch.Tensor, device: str, inputs: torch.tensor, crowd_gts=None):
+    def update(self, preds: List[torch.Tensor], target: torch.Tensor, device: str,
+               inputs: torch.tensor, crowd_gts: Optional[torch.Tensor] = None):
         """
         Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
 
@@ -52,11 +59,13 @@ class DetectionMetrics(Metric):
                           format:  (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
         :return:
         """
+        self.iou_thresholds = self.iou_thresholds.to(device)
+
         preds = self.post_prediction_callback(preds, device=device)
 
         _, _, height, width = inputs.shape
         new_matching_info = compute_detection_matching(
-            preds, target, height, width, self.iou_thresholds, crowd_targets=crowd_gts)
+            preds, target, height, width, self.iou_thresholds, crowd_targets=crowd_gts, top_k=self.top_k_predictions)
 
         accumulated_matching_info = getattr(self, "matching_info")
         setattr(self, "matching_info", accumulated_matching_info + new_matching_info)
@@ -68,9 +77,12 @@ class DetectionMetrics(Metric):
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
             device = matching_info_tensors[0].device
+            self.recall_thresholds = self.recall_thresholds.to(device)
 
             # shape (n_class, nb_iou_thresh)
-            precision, recall, ap, f1, unique_classes = compute_detection_metrics(*matching_info_tensors, device=device)
+            precision, recall, ap, f1, unique_classes = compute_detection_metrics(
+                *matching_info_tensors, device=device, recall_thresholds=self.recall_thresholds,
+                score_threshold=self.score_threshold)
 
             # Precision, recall and f1 are computed for smallest IoU threshold (usually 0.5), averaged over classes
             mean_precision, mean_recall, mean_f1 = precision[:, 0].mean(), recall[:, 0].mean(), f1[:, 0].mean()
@@ -103,23 +115,3 @@ class DetectionMetrics(Metric):
                 matching_info += state_dict["matching_info"]
 
             setattr(self, "matching_info", matching_info)
-
-
-# def compute_detection_metrics_from_accumulated_matching(
-#         accumulated_matching: List[Tuple[torch.Tensor]]
-# ) -> Tuple[float, float, float, float]:
-#     """Compute precision, recall, mean_ap and f1 using the matching accumulated through the "update" method.
-#     When no matching, return -1 for every metric.
-#
-#     :param accumulated_matching: List of length (m_images) with Tuples of:
-#                                     preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
-#
-#     :return:
-#         :precision:      Average over classes, computed for the smallest IoU threshold
-#         :recall:         Average over classes, computed for the smallest IoU threshold
-#         :mean_ap:        Average over classes and IuO thresholds
-#         :f1:             Average over classes, computed for the smallest IoU threshold
-#         :unique_classes: All unique classes present in the input
-#     """
-
-    # return precision, recall, mean_ap, f1, unique_classes
