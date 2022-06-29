@@ -828,7 +828,7 @@ class SgModel:
         if self.ema:
             ema_params = self.training_params.ema_params
             logger.info(f'Using EMA with params {ema_params}')
-            self.ema_model = ModelEMA(self.net, **ema_params)
+            self.ema_model = self.instantiate_ema_model(**ema_params)
             self.ema_model.updates = self.start_epoch * num_batches // self.batch_accumulate
             if self.load_checkpoint:
                 if 'ema_net' in self.checkpoint.keys():
@@ -1806,3 +1806,12 @@ class SgModel:
                 arch_params.num_classes = num_classes_new_head
 
         return net
+
+    def instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> ModelEMA:
+        """Instantiate ema model for standard SgModule.
+        :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value
+                      until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
+        :param beta: the exponent coefficient. The higher the beta, the sooner in the training the decay will saturate to
+                     its final value. beta=15 is ~40% of the training process.
+        """
+        return ModelEMA(self.net, decay, beta, exp_activation)
