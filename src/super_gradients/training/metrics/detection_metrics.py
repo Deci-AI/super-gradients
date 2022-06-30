@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 import torch
 from torchmetrics import Metric
@@ -19,26 +19,28 @@ class DetectionMetrics(Metric):
 
     Attributes:
 
-         num_cls: number of classes.
-
+         num_cls:                  Number of classes.
          post_prediction_callback: DetectionPostPredictionCallback to be applied on net's output prior
-            to the metric computation (NMS).
+                                   to the metric computation (NMS).
+         normalize_targets:        Whether to normalize bbox coordinates by image size (default=True).
 
-         iou_thres: Threshold to compute the mAP (default=IouThreshold.MAP_05_TO_095).
-
-         normalize_targets: Whether to normalize bbox coordinates by image size (default=True).
+         iou_thresholds:    IoU threshold to compute the mAP (default=torch.linspace(0.5, 0.95, 10)).
+         recall_thresholds: Recall threshold to compute the mAP (default=torch.linspace(0, 1, 101)).
+         score_threshold:   Score threshold to compute Recall, Precision and F1 (default=0.1)
+         top_k_predictions: Number of predictions per class used to compute metrics, ordered by confidence score
+                            (default=100)
 
          dist_sync_on_step: Synchronize metric state across processes at each ``forward()``
-            before returning the value at the step. (default=False)
+                            before returning the value at the step. (default=False)
     """
     def __init__(self, num_cls: int,
                  post_prediction_callback: DetectionPostPredictionCallback = None,
+                 normalize_targets: bool = False,
                  iou_thres: IouThreshold = IouThreshold.MAP_05_TO_095,
-                 recall_thres: Optional[torch.Tensor] = None,
+                 recall_thres: torch.Tensor = None,
                  score_thres: float = 0.1,
                  top_k_predictions: int = 100,
-                 normalize_targets: bool = False,
-                 dist_sync_on_step: bool = False):
+                 dist_sync_on_step: bool = False,):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.num_cls = num_cls
         self.iou_thres = iou_thres
@@ -85,8 +87,11 @@ class DetectionMetrics(Metric):
         accumulated_matching_info = getattr(self, "matching_info")
         setattr(self, "matching_info", accumulated_matching_info + new_matching_info)
 
-    def compute(self):
-        precision, recall, mean_ap, f1 = -1, -1, -1, -1
+    def compute(self) -> Dict[str, Union[float, torch.Tensor[float]]]:
+        """Compute the metrics for all the accumulated results.
+            :return: Metrics of interest
+        """
+        mean_ap, mean_precision, mean_recall, mean_f1 = -1., -1., -1., -1.
         accumulated_matching_info = getattr(self, "matching_info")
 
         if len(accumulated_matching_info):
@@ -95,7 +100,7 @@ class DetectionMetrics(Metric):
             self.recall_thresholds = self.recall_thresholds.to(device)
 
             # shape (n_class, nb_iou_thresh)
-            precision, recall, ap, f1, unique_classes = compute_detection_metrics(
+            ap, precision, recall, f1, unique_classes = compute_detection_metrics(
                 *matching_info_tensors, device=device, recall_thresholds=self.recall_thresholds,
                 score_threshold=self.score_threshold)
 

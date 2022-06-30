@@ -12,13 +12,13 @@ def calc_batch_prediction_detection_metrics_per_class(matching, dataset_interfac
         matching_tensors = [torch.cat(x, 0) for x in list(zip(*matching))]
         device = matching_tensors[0].device
 
-        precision, recall, ap, f1, unique_classes = compute_detection_metrics(*matching_tensors, device=device)
-        precision, recall, ap, f1 = precision.cpu().numpy(), recall.cpu().numpy(), ap.cpu().numpy(), f1.cpu().numpy()
+        ap, precision, recall, f1, unique_classes = compute_detection_metrics(*matching_tensors, device=device)
+        ap, precision, recall, f1 = ap.cpu().numpy(), precision.cpu().numpy(), recall.cpu().numpy(), f1.cpu().numpy()
         _, unique_classes = unique_classes.cpu().numpy().astype(np.int64)
 
         if iou_thres.is_range():
             precision, recall, f1 = precision[:, 0], recall[:, 0], f1[:, 0]
-        mean_precision, mean_recall, mean_ap, mean_f1 = precision.mean(), recall.mean(), ap.mean(), f1.mean()
+        mean_ap, mean_precision, mean_recall, mean_f1 = ap.mean(), precision.mean(), recall.mean(), f1.mean()
     else:
         targets_per_class = torch.zeros(1)
 
