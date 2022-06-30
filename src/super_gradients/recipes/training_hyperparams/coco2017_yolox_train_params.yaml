@@ -32,6 +32,7 @@ mixed_precision: True
 
 valid_metrics_list:
   - _target_: super_gradients.training.metrics.DetectionMetrics
+    normalize_targets: True
     post_prediction_callback:
       _target_: super_gradients.training.models.detection_models.yolov5_base.YoloV5PostPredictionCallback
       iou: 0.65

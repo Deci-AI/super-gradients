@@ -176,6 +176,7 @@ class SgModel:
         self.external_checkpoint_path = None
         self.strict_load = StrictLoad.ON
         self.load_ema_as_net = False
+        self._infinite_train_loader = False
 
         # DETERMINE THE LOCATION OF THE LOSS AND ACCURACY IN THE RESULTS TUPLE OUTPUTED BY THE TEST
         self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = None, None
@@ -411,7 +412,7 @@ class SgModel:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler) and batch_idx == len(self.train_loader)-1:
+            if self._infinite_train_loader and batch_idx == len(self.train_loader)-1:
                 break
 
         if not self.ddp_silent_mode:
@@ -916,6 +917,10 @@ class SgModel:
         self.forward_pass_prep_fn = self.training_params.forward_pass_prep_fn
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
+
+        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or \
+                                      (hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler))
+
 
         context = PhaseContext(optimizer=self.optimizer,
                                net=self.net,
