@@ -192,7 +192,19 @@ class MultiScaleCollateFunction(AbstractCollateFunction):
             return images, batch[1]
 
 
-class MultiscaleForwardPassPrepFunction:
+class AbstractForwardPassPrepFunction(ABC):
+    """
+    Abstract class for forward pass preprocessing function, to be used by passing its inheritors through training_params
+     forward_pass_prep_fn keyword arg.
+
+    Should implement __call__ and return inputs, targets after applying the desired preprocessing.
+    """
+    @abstractmethod
+    def __call__(self, inputs, targets, batch_idx):
+        pass
+
+
+class MultiscaleForwardPassPrepFunction(AbstractForwardPassPrepFunction):
     """
     Mutiscale pre-forward pass function.
 
@@ -220,13 +232,13 @@ class MultiscaleForwardPassPrepFunction:
         self.rank = None
         self.is_distributed = None
 
-    def __call__(self, inputs, targets, batch_idx, context):
-
+    def __call__(self, inputs, targets, batch_idx):
         if self.rank is None:
             self.rank = get_local_rank()
         if self.is_distributed is None:
             self.is_distributed = get_world_size() > 1
 
+        # GENERATE A NEW SIZE AND BROADCAST IT TO THE THE OTHER RANKS SO THEY HAVE THE SAME SCALE
         if batch_idx % self.frequency == 0:
             tensor = torch.LongTensor(2).cuda()
             input_size = inputs.shape[2:]
@@ -250,11 +262,50 @@ class MultiscaleForwardPassPrepFunction:
             scale_y = new_input_size[0] / input_size[0]
             scale_x = new_input_size[1] / input_size[1]
             if scale_x != 1 or scale_y != 1:
-                inputs = torch.nn.functional.interpolate(
-                    inputs, size=new_input_size, mode="bilinear", align_corners=False
-                )
-                targets[..., 2::2] = targets[..., 2::2] * scale_x
-                targets[..., 3::2] = targets[..., 3::2] * scale_y
+                inputs = torch.nn.functional.interpolate(inputs, size=new_input_size, mode="bilinear", align_corners=False)
+        return inputs, targets
+
+
+class DetectionMultiscaleForwardPassPrepFunction(MultiscaleForwardPassPrepFunction):
+    """
+    Mutiscale pre-forward pass function for object detection.
+
+    When passed through train_params inputs, targets will be applied by the below transform to support multi scaling
+    on the fly.
+
+    After each self.frequency forward passes, change size randomly from
+     (input_size-self.multiscale_range*self.image_size_steps, input_size-(self.multiscale_range-1)*self.image_size_steps,
+     ...input_size+self.multiscale_range*self.image_size_steps) and apply the same rescaling to the box coordinates.
+
+
+
+    Attributes:
+        multiscale_range: (int) Range of values for resize sizes as discussed above (default=5)
+        image_size_steps: (int) Image step sizes as discussed abov (default=32)
+        change_frequency: (int) The frequency to apply change in input size.
+
+    """
+
+    def __init__(self, multiscale_range: int = 5,
+                 image_size_steps: int = 32,
+                 change_frequency: int = 10):
+
+        self.multiscale_range = multiscale_range
+        self.image_size_steps = image_size_steps
+        self.frequency = change_frequency
+        self.rank = None
+        self.is_distributed = None
+
+    def __call__(self, inputs, targets, batch_idx):
+        # RESCALE THE IMAGE FIRST WITH SUPER(), AND IF RESCALING HAS ACTUALLY BEEN DONE APPLY TO BOXES AS WELL
+        input_size = inputs.shape[2:]
+        inputs, targets = super(DetectionMultiscaleForwardPassPrepFunction, self).__call__(inputs, targets, batch_idx)
+        new_input_size = inputs.shape[2:]
+        scale_y = new_input_size[0] / input_size[0]
+        scale_x = new_input_size[1] / input_size[1]
+        if scale_x != 1 or scale_y != 1:
+            targets[..., 2::2] = targets[..., 2::2] * scale_x
+            targets[..., 3::2] = targets[..., 3::2] * scale_y
         return inputs, targets
 
 

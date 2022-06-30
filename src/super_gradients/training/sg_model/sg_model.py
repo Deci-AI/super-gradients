@@ -373,7 +373,7 @@ class SgModel:
             inputs, targets, additional_batch_items = sg_model_utils.unpack_batch_items(batch_items)
 
             if self.forward_pass_prep_fn is not None:
-                inputs, targets = self.forward_pass_prep_fn(inputs, targets, batch_idx, context)
+                inputs, targets = self.forward_pass_prep_fn(inputs, targets, batch_idx)
             # AUTOCAST IS ENABLED ONLY IF self.training_params.mixed_precision - IF enabled=False AUTOCAST HAS NO EFFECT
             with autocast(enabled=self.training_params.mixed_precision):
                 # FORWARD PASS TO GET NETWORK'S PREDICTIONS
