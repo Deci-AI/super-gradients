@@ -74,20 +74,22 @@ class DetectionMetrics(Metric):
                                  format:  (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
         """
         self.iou_thresholds = self.iou_thresholds.to(device)
-
         _, _, height, width = inputs.shape
+
         targets = target.clone()
+        crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_target is None else crowd_target.clone()
+
         if self.normalize_targets:
             targets[:, 2:] /= max(height, width)
         preds = self.post_prediction_callback(preds, device=device)
 
         new_matching_info = compute_detection_matching(
-            preds, target, height, width, self.iou_thresholds, crowd_targets=crowd_target, top_k=self.top_k_predictions)
+            preds, targets, height, width, self.iou_thresholds, crowd_targets=crowd_targets, top_k=self.top_k_predictions)
 
         accumulated_matching_info = getattr(self, "matching_info")
         setattr(self, "matching_info", accumulated_matching_info + new_matching_info)
 
-    def compute(self) -> Dict[str, Union[float, torch.Tensor[float]]]:
+    def compute(self) -> Dict[str, Union[float, torch.Tensor]]:
         """Compute the metrics for all the accumulated results.
             :return: Metrics of interest
         """

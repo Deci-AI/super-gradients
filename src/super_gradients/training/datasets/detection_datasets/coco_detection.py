@@ -1,6 +1,7 @@
 import os
 import json
 from typing import Dict, List, Tuple
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -29,10 +30,6 @@ def format_bbox(bbox: List[int], img_width: float, img_height: float):
         (bbox[3]) / img_height,
     ]
     return [round(coordinate, 6) for coordinate in result]
-
-
-def load_crowd_gts(annotations_json_path: str) -> dict:
-    return img_id_to_crowd_gts
 
 
 class COCODetectionDataSet(DetectionDataSet):

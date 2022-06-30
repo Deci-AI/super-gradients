@@ -449,7 +449,7 @@ class PretrainedModelsTest(unittest.TestCase):
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
                                                                    self.coco_dataset.coco_classes))],
-                           metrics_progress_verbose=False)[2]
+                           metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5s"], delta=0.001)
 
     def test_pretrained_yolov5m_coco(self):
@@ -461,7 +461,7 @@ class PretrainedModelsTest(unittest.TestCase):
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
                                                                    self.coco_dataset.coco_classes))],
-                           metrics_progress_verbose=False)[2]
+                           metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5m"], delta=0.001)
 
     def test_pretrained_yolov5l_coco(self):
@@ -473,7 +473,7 @@ class PretrainedModelsTest(unittest.TestCase):
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
                                                                    self.coco_dataset.coco_classes))],
-                           metrics_progress_verbose=False)[2]
+                           metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5l"], delta=0.001)
 
     def test_pretrained_yolov5n_coco(self):

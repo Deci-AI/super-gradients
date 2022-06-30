@@ -1011,13 +1011,13 @@ def compute_detection_metrics(
     unique_classes = torch.unique(targets_cls)
     n_class, nb_iou_thrs = len(unique_classes), preds_matched.shape[-1]
 
+    ap = torch.zeros((n_class, nb_iou_thrs), device=device)
     precision = torch.zeros((n_class, nb_iou_thrs), device=device)
     recall = torch.zeros((n_class, nb_iou_thrs), device=device)
-    ap = torch.zeros((n_class, nb_iou_thrs), device=device)
 
     for cls_i, cls in enumerate(unique_classes):
         cls_preds_idx, cls_targets_idx = (preds_cls == cls), (targets_cls == cls)
-        cls_precision, cls_recall, cls_ap = compute_detection_metrics_per_cls(
+        cls_ap, cls_precision, cls_recall = compute_detection_metrics_per_cls(
             preds_matched=preds_matched[cls_preds_idx],
             preds_to_ignore=preds_to_ignore[cls_preds_idx],
             preds_scores=preds_scores[cls_preds_idx],
@@ -1026,9 +1026,9 @@ def compute_detection_metrics(
             score_threshold=score_threshold,
             device=device
         )
+        ap[cls_i, :] = cls_ap
         precision[cls_i, :] = cls_precision
         recall[cls_i, :] = cls_recall
-        ap[cls_i, :] = cls_ap
 
     f1 = 2 * precision * recall / (precision + recall + 1e-16)
 
