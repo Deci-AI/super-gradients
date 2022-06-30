@@ -170,7 +170,7 @@ def build_trt_engine_from_onnx_ckpt(onnx_ckpt_path: str,
     if _imported_trt_failure is not None:
         raise _imported_trt_failure
     else:
-        TRT_LOGGER = trt.Logger(trt.Logger.INFO)  # VERBOSE for printing
+        TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE)  # VERBOSE for printing
         EXPLICIT_BATCH = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
 
         with trt.Builder(TRT_LOGGER) as builder, \
