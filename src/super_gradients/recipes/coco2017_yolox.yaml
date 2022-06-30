@@ -1,0 +1,33 @@
+defaults:
+  - training_hyperparams: coco2017_yolox_train_params
+  - dataset_params: coco_detection_yolox_dataset_params
+  - arch_params: yolov5s_arch_params
+  - checkpoint_params: default_checkpoint_params
+
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CocoDetectionDatasetInterfaceV2
+  dataset_params: ${dataset_params}
+
+
+data_loader_num_workers: 8
+
+model_checkpoints_location: local
+
+load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
+
+architecture: yolox_s
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: 'DDP'
+
+experiment_name: ${architecture}_coco2017_640
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: ${multi_gpu}
+

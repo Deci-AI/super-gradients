@@ -538,8 +538,8 @@ class DetectionMixup(DetectionTransform):
             origin_img, origin_labels = sample["image"], sample["target"]
             cp_sample = sample["additional_samples"][0]
             img, cp_labels = cp_sample["image"], cp_sample["target"]
-
-            img, cp_labels = _mirror(img, cp_labels, 0.5)
+            cp_boxes = cp_labels[:, :4]
+            img, cp_boxes = _mirror(img, cp_boxes, 0.5)
             jit_factor = random.uniform(*self.mixup_scale)
 
             if len(img.shape) == 3:

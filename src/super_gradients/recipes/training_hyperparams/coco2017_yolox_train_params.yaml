@@ -1,0 +1,52 @@
+defaults:
+  - default_train_params
+
+max_epochs: 300
+lr_mode: cosine
+cosine_final_lr_ratio: 0.05
+lr_warmup_epochs: 5
+lr_cooldown_epochs: 15
+warmup_bias_lr: 0.0
+warmup_momentum: 0.9
+initial_lr:  0.02
+warmup_mode: yolov5_warmup
+
+save_ckpt_epoch_list: [285]
+
+loss: yolox_loss
+
+criterion_params:
+  strides: [8, 16, 32]  # output strides of all yolo outputs
+  num_classes: 80
+
+loss_logging_items_names: [iou, obj, cls, l1, num_fg, Loss]
+
+optimizer: SGD
+optimizer_params:
+  momentum: 0.9
+  weight_decay: 0.0005  # will be scaled according to effective batch size
+  nesterov: True
+
+ema: True
+mixed_precision: True
+
+valid_metrics_list:
+  - _target_: super_gradients.training.metrics.DetectionMetrics
+    post_prediction_callback:
+      _target_: super_gradients.training.models.detection_models.yolov5_base.YoloV5PostPredictionCallback
+      iou: 0.65
+      conf: 0.01
+    num_cls: 80
+
+forward_pass_prep_fn:
+  _target_: super_gradients.training.datasets.datasets_utils.DetectionMultiscaleForwardPassPrepFunction
+
+phase_callbacks:
+  - _target_: super_gradients.training.utils.callbacks.YoloXTrainingStageSwitchCallback
+    next_stage_start_epoch: 285
+
+
+metric_to_watch: 'mAP@0.50:0.95'
+greater_metric_to_watch_is_better: True
+
+_convert_: all
