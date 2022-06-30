@@ -1003,7 +1003,8 @@ def compute_detection_metrics(
     :param device:             Device
 
     :return:
-        :precision, recall, ap, f1: Tensors of shape (n_class, nb_iou_thrs)
+        :ap, precision, recall, f1: Tensors of shape (n_class, nb_iou_thrs)
+        :unique_classes:            Vector with all unique target classes
     """
     recall_thresholds = torch.linspace(0, 1, 101, device=device) if recall_thresholds is None else recall_thresholds
 
@@ -1031,7 +1032,7 @@ def compute_detection_metrics(
 
     f1 = 2 * precision * recall / (precision + recall + 1e-16)
 
-    return precision, recall, ap, f1, unique_classes
+    return ap, precision, recall, f1, unique_classes
 
 
 def compute_detection_metrics_per_cls(
@@ -1046,19 +1047,20 @@ def compute_detection_metrics_per_cls(
     """
     Compute the list of precision, recall and MaP of a given class for every recall IoU threshold.
 
-    :param preds_matched:      Tensor of shape (num_predictions, n_iou_thresholds)
-                                    True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
-    :param preds_to_ignore     Tensor of shape (num_predictions, n_iou_thresholds)
-                                    True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
-    :param preds_scores:       Tensor of shape (num_predictions), confidence score for every prediction
-    :param n_targets:          Number of target boxes of this class
-    :param recall_thresholds:  Tensor of shape (max_n_rec_thresh) list of recall thresholds used to compute MaP
-    :param score_threshold:    Minimum confidence score to consider a prediction for the computation of
-                                    precision, recall and f1 (not MaP)
-    :param device:             Device
+        :param preds_matched:      Tensor of shape (num_predictions, n_iou_thresholds)
+                                        True when prediction (i) is matched with a target
+                                        with respect to the(j)th IoU threshold
+        :param preds_to_ignore     Tensor of shape (num_predictions, n_iou_thresholds)
+                                        True when prediction (i) is matched with a crowd target
+                                        with respect to the (j)th IoU threshold
+        :param preds_scores:       Tensor of shape (num_predictions), confidence score for every prediction
+        :param n_targets:          Number of target boxes of this class
+        :param recall_thresholds:  Tensor of shape (max_n_rec_thresh) list of recall thresholds used to compute MaP
+        :param score_threshold:    Minimum confidence score to consider a prediction for the computation of
+                                        precision and recall (not MaP)
+        :param device:             Device
 
-    :return:
-        :precision, recall, ap: Tensors of shape (nb_iou_thrs)
+        :return ap, precision, recall:  Tensors of shape (nb_iou_thrs)
     """
     nb_iou_thrs = preds_matched.shape[-1]
 
@@ -1108,7 +1110,7 @@ def compute_detection_metrics_per_cls(
     recall = rolling_recalls[smallest_score_idx_above_thresh]
     precision = rolling_precisions[smallest_score_idx_above_thresh]
 
-    return precision, recall, ap
+    return ap, precision, recall
 
 
 class AnchorGenerator:
