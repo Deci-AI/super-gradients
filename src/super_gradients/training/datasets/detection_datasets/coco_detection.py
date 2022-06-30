@@ -58,6 +58,7 @@ class COCODetectionDataSet(DetectionDataSet):
             })
 
         self.img_id_to_crowd_gts = img_id_to_crowd_gts
+        self.img_ids = [int(Path(p).stem) for p in self.img_files]
 
     def _get_raw_crowd_labels(self, index: int) -> np.array:
         crowd_ground_truths = self.img_id_to_crowd_gts.get(self.img_ids[index], [])
