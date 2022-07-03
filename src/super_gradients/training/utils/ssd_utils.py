@@ -146,7 +146,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         # REPLACE THE CONFIDENCE OF CLASS NONE WITH OBJECT CONFIDENCE
         # SSD DOES NOT OUTPUT OBJECT CONFIDENCE, REQUIRED FOR THE NMS
         scores_in = F.softmax(scores_in, dim=-1)
-        scores_in[:, :, 0] = 1.  # torch.max(scores_in[:, :, 1:], dim=2)[0]
+        scores_in[:, :, 0] = torch.max(scores_in[:, :, 1:], dim=2)[0]
 
         bboxes_in *= self.img_size
         nms_input = torch.cat((bboxes_in, scores_in), dim=2)
