@@ -8,8 +8,8 @@ architecture: ssd_lite_mobilenet_v2
 project_name: SSD_Mobile
 
 dataset_params:
-  batch_size: 60
-  val_batch_size: 60
+  batch_size: 64
+  val_batch_size: 64
   val_image_size: 320
   train_image_size: 320
 
@@ -72,7 +72,7 @@ anchors:
 
 data_loader_num_workers: 8
 model_checkpoints_location: local
-experiment_suffix: batch${dataset_params.batch_size}_lr${training_hyperparams.initial_lr}_res${dataset_params.val_image_size}
+experiment_suffix: res${dataset_params.val_image_size}
 experiment_name: ${architecture}_coco_${experiment_suffix}
 
 sg_model:
@@ -93,12 +93,13 @@ dataset_interface:
     dataset_params: ${dataset_params}
 
 training_hyperparams:
+  ema: True
   anchors_name: ${anchors_name}
-  max_epochs: 300
+  max_epochs: 400
   lr_mode: cosine
-  cosine_final_lr_ratio: 0.1
+  cosine_final_lr_ratio: 0.01
   batch_accumulate: 1
-  initial_lr: 0.01
+  initial_lr: 0.02
   loss: ssd_loss
   loss_logging_items_names: [ smooth_l1, closs, Loss ]
   criterion_params:

@@ -129,8 +129,6 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         self.img_size = dboxes.fig_size
         self.sigmoid = sigmoid
         self.multi_label_per_box = multi_label_per_box
-        print('sigmoid_mode', self.sigmoid)
-        print('boxes', dboxes.scales)
 
     def forward(self, x, device=None):
         bboxes_in = x[0]
