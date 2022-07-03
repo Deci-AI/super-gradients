@@ -270,7 +270,7 @@ class DetectionMultiscaleForwardPassPrepFunction(MultiscaleForwardPassPrepFuncti
     """
     Mutiscale pre-forward pass function for object detection.
 
-    When passed through train_params inputs, targets will be applied by the below transform to support multi scaling
+    When passed through train_params images, targets will be applied by the below transform to support multi scaling
     on the fly.
 
     After each self.frequency forward passes, change size randomly from
