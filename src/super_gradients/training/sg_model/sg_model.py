@@ -319,21 +319,31 @@ class SgModel:
     def _initialize_quant_modules(self):
         self.use_quant_modules = core_utils.get_param(self.arch_params, "use_quant_modules", False)
         self.quant_modules_calib_method = core_utils.get_param(self.arch_params, "quant_modules_calib_method", "percentile")
+
         if self.use_quant_modules:
             if _imported_pytorch_quantization_failure is not None:
                 raise _imported_pytorch_quantization_failure
             else:
-                quant_modules.initialize()
                 if self.quant_modules_calib_method in ["percentile", "mse", "entropy"]:
-                    quant_desc = QuantDescriptor(calib_method='histogram')
+                    quant_desc_input = QuantDescriptor(calib_method='histogram', axis=None)
+                    quant_desc_weight = QuantDescriptor(calib_method='histogram', axis=None)
                 elif self.quant_modules_calib_method == "max":
-                    quant_desc = QuantDescriptor(calib_method='max')
+                    quant_desc_input = QuantDescriptor(calib_method='max', axis=None)
+                    quant_desc_weight = QuantDescriptor(calib_method='max', axis=None)
+
                 else:
                     raise ValueError("Unsupported quantization calibration method, expected one of: percentile, mse, entropy, max, got " + str(self.quant_modules_calib_method) + ".")
 
                 # TODO: ADD PER CHANNEL QAT SUPPORT
-                quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc)
-                quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc)
+                quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
+                quant_nn.QuantConvTranspose2d.set_default_quant_desc_input(quant_desc_input)
+                quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
+
+                quant_nn.QuantConv2d.set_default_quant_desc_weight(quant_desc_weight)
+                quant_nn.QuantConvTranspose2d.set_default_quant_desc_weight(quant_desc_weight)
+                quant_nn.QuantLinear.set_default_quant_desc_weight(quant_desc_weight)
+
+                quant_modules.initialize()
 
     def _set_ckpt_loading_attributes(self):
         """
