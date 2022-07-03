@@ -23,6 +23,7 @@ class COCODetectionDatasetV2(Dataset):
             cache_dir_path: str = None,
             tight_box_rotation: bool = False,
             transforms: list = [],
+            with_crowd: bool = True
     ):
         """
         
@@ -43,6 +44,8 @@ class COCODetectionDatasetV2(Dataset):
         self.data_dir = data_dir
         self.json_file = json_file
         self.name = name
+        self.with_crowd = with_crowd
+
         annotation_file_path = os.path.join(self.data_dir, "annotations", self.json_file)
         if not os.path.exists(annotation_file_path):
             raise ValueError("Could not find annotation file under " + str(annotation_file_path))
@@ -65,43 +68,44 @@ class COCODetectionDatasetV2(Dataset):
     def __getitem__(self, idx):
         sample = self.load_sample(idx)
         sample = self.apply_transforms(sample)
-        return sample["image"], sample["target"], sample["info"], sample["id"]
+
+        return sample["image"], sample["target"], sample["crowd_target"], sample["info"], sample["id"]
 
     def __len__(self):
         return len(self.ids)
 
     def _load_coco_annotations(self):
-        return [self._load_anno_from_ids(_ids) for _ids in self.ids]
+        return [self._load_anno_from_ids(_ids) for _ids in tqdm(self.ids)]
 
     def _load_anno_from_ids(self, id_):
         im_ann = self.coco.loadImgs(id_)[0]
         width = im_ann["width"]
         height = im_ann["height"]
-        anno_ids = self.coco.getAnnIds(imgIds=[int(id_)], iscrowd=False)
+        anno_ids = self.coco.getAnnIds(imgIds=[int(id_)])
         annotations = self.coco.loadAnns(anno_ids)
-        objs = []
-        for obj in annotations:
-            x1 = np.max((0, obj["bbox"][0]))
-            y1 = np.max((0, obj["bbox"][1]))
-            x2 = np.min((width, x1 + np.max((0, obj["bbox"][2]))))
-            y2 = np.min((height, y1 + np.max((0, obj["bbox"][3]))))
-            if obj["area"] > 0 and x2 >= x1 and y2 >= y1:
-                obj["clean_bbox"] = [x1, y1, x2, y2]
-                objs.append(obj)
 
-        num_objs = len(objs)
+        cleaned_annotations = []
+        for annotation in annotations:
+            x1 = np.max((0, annotation["bbox"][0]))
+            y1 = np.max((0, annotation["bbox"][1]))
+            x2 = np.min((width, x1 + np.max((0, annotation["bbox"][2]))))
+            y2 = np.min((height, y1 + np.max((0, annotation["bbox"][3]))))
+            if annotation["area"] > 0 and x2 >= x1 and y2 >= y1:
+                annotation["clean_bbox"] = [x1, y1, x2, y2]
+                cleaned_annotations.append(annotation)
 
-        res = np.zeros((num_objs, 5))
+        regular_annotations = [annotation for annotation in cleaned_annotations if annotation["iscrowd"] == 0]
+
+        res = np.zeros((len(regular_annotations), 5))
         num_seg_values = 98 if self.tight_box_rotation else 0
-        res_seg = np.ones((num_objs, num_seg_values))
+        res_seg = np.ones((len(regular_annotations), num_seg_values))
         res_seg.fill(np.nan)
-
-        for ix, obj in enumerate(objs):
-            cls = self.class_ids.index(obj["category_id"])
-            res[ix, 0:4] = obj["clean_bbox"]
+        for ix, annotation in enumerate(regular_annotations):
+            cls = self.class_ids.index(annotation["category_id"])
+            res[ix, 0:4] = annotation["clean_bbox"]
             res[ix, 4] = cls
             if self.tight_box_rotation:
-                seg_points = [j for i in obj.get("segmentation", []) for j in i]
+                seg_points = [j for i in annotation.get("segmentation", []) for j in i]
                 if seg_points:
                     seg_points_c = np.array(seg_points).reshape((-1, 2)).astype(np.int)
                     seg_points_convex = cv2.convexHull(seg_points_c).ravel()
@@ -109,8 +113,17 @@ class COCODetectionDatasetV2(Dataset):
                     seg_points_convex = []
                 res_seg[ix, :len(seg_points_convex)] = seg_points_convex
 
+        crowd_annotations = [annotation for annotation in cleaned_annotations if annotation["iscrowd"] == 1]
+
+        res_crowd = np.zeros((len(crowd_annotations), 5))
+        for ix, annotation in enumerate(crowd_annotations):
+            cls = self.class_ids.index(annotation["category_id"])
+            res_crowd[ix, 0:4] = annotation["clean_bbox"]
+            res_crowd[ix, 4] = cls
+
         r = min(self.input_dim[0] / height, self.input_dim[1] / width)
         res[:, :4] *= r
+        res_crowd[:, :4] *= r
         res_seg *= r
 
         img_info = (height, width)
@@ -122,7 +135,7 @@ class COCODetectionDatasetV2(Dataset):
             else "{:012}".format(id_) + ".jpg"
         )
 
-        return res, res_seg, img_info, resized_info, os.path.join(self.data_dir, self.name, file_name)
+        return res, res_crowd, res_seg, img_info, resized_info, os.path.join(self.data_dir, self.name, file_name)
 
     def _cache_images(self):
         logger.warning(
@@ -201,7 +214,7 @@ class COCODetectionDatasetV2(Dataset):
         :return: sample as described above
         """
         id_ = self.ids[index]
-        res, res_seg, img_info, resized_info, _ = self.annotations[index]
+        res, res_crowd, res_seg, img_info, resized_info, _ = self.annotations[index]
         if self.imgs is not None:
             pad_img = self.imgs[index]
             img = pad_img[: resized_info[0], : resized_info[1], :].copy()
@@ -209,7 +222,8 @@ class COCODetectionDatasetV2(Dataset):
             img = self.load_resized_img(index)
 
         sample = {"image": img, "target": res.copy(), "target_seg": res_seg, "info": img_info, "id": np.array([id_])}
-
+        if self.with_crowd:
+            sample["crowd_target"] = res_crowd.copy()
         return sample
 
     def load_image(self, index):
@@ -218,7 +232,7 @@ class COCODetectionDatasetV2(Dataset):
         :param index: index in self.annotations
         :return: image (np.array)
         """
-        file_name = self.annotations[index][4]
+        file_name = self.annotations[index][5]
 
         img_file = os.path.join(file_name)
 
@@ -267,6 +281,7 @@ class COCODetectionDatasetV2(Dataset):
         for transform in self.transforms:
             self._load_additional_inputs_for_transform(sample, transform)
             sample = transform(sample)
+
         return sample
 
 
