@@ -9,7 +9,7 @@ from super_gradients.training.utils.segmentation_utils import coco_sub_classes_i
 from super_gradients.training.metrics import Accuracy, IoU
 import os
 import shutil
-from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
+from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
 from super_gradients.training.utils.detection_utils import Anchors
 import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
@@ -35,7 +35,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.imagenet21k_pretrained_ckpt_params = {"pretrained_weights": "imagenet21k"}
 
-        self.imagenet_pretrained_accuracies = {"resnet50": 0.7947,
+        self.imagenet_pretrained_accuracies = {"resnet50": 0.8191,
                                                "resnet34": 0.7413,
                                                "resnet18": 0.706,
                                                "repvgg_a0": 0.7205,
@@ -48,7 +48,8 @@ class PretrainedModelsTest(unittest.TestCase):
                                                "mobilenet_v3_small": 0.6745,
                                                "mobilenet_v2": 0.7308,
                                                "vit_base": 0.8415,
-                                               "vit_large": 0.8564
+                                               "vit_large": 0.8564,
+                                               "beit_base_patch16_224": 0.85
                                                }
         self.imagenet_dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params={"batch_size": 128})
 
@@ -56,7 +57,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                      dataset_params={"batch_size": 128,
                                                                                      "img_mean": [0.5, 0.5, 0.5],
                                                                                      "img_std": [0.5, 0.5, 0.5],
-                                                                                     "resize_size": 249
+                                                                                     "resize_size": 248
                                                                                      })
 
         self.transfer_classification_dataset = ClassificationTestDatasetInterface(image_size=224)
@@ -643,6 +644,25 @@ class PretrainedModelsTest(unittest.TestCase):
         res = trainer.test(test_loader=self.imagenet_dataset_05_mean_std.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_large"], delta=0.001)
+
+    def test_pretrained_beit_base_imagenet(self):
+        trainer = SgModel('imagenet_pretrained_beit_base', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.imagenet_dataset_05_mean_std, data_loader_num_workers=8)
+        trainer.build_model("beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
+                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+        res = trainer.test(test_loader=self.imagenet_dataset_05_mean_std.val_loader, test_metrics_list=[Accuracy()],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["beit_base_patch16_224"], delta=0.001)
+
+    def test_transfer_learning_beit_base_imagenet(self):
+        trainer = SgModel('test_transfer_learning_beit_base_imagenet',
+                          model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
+        trainer.build_model("beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
+                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+        trainer.train(training_params=self.transfer_classification_train_params)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):

@@ -14,6 +14,7 @@ from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1,
 from super_gradients.training.models.detection_models.yolov3 import YoloV3, TinyYoloV3
 from super_gradients.training.models.detection_models.yolov5 import YoLoV5N, YoLoV5S, YoLoV5M, YoLoV5L, YoLoV5X, \
     Custom_YoLoV5
+from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, \
@@ -22,7 +23,7 @@ from super_gradients.training.models.segmentation_models.stdc import STDC1Classi
     STDC1Seg, STDC2Seg
 
 from super_gradients.training.models.kd_modules.kd_module import KDModule
-
+from super_gradients.training.models.classification_models.beit import beit_base_patch16_224, beit_large_patch16_224
 # IF YOU UPDATE THE ARCHITECTURE DICT PLEASE ALSO UPDATE THE ENUM CLASS DOWN BELOW.
 
 
@@ -87,6 +88,12 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "yolo_v5m": YoLoV5M,
                  "yolo_v5l": YoLoV5L,
                  "yolo_v5x": YoLoV5X,
+                 "yolox_n": YoloX_N,
+                 "yolox_t": YoloX_T,
+                 "yolox_s": YoloX_S,
+                 "yolox_m": YoloX_M,
+                 "yolox_l": YoloX_L,
+                 "yolox_x": YoloX_X,
                  "custom_yolov5": Custom_YoLoV5,
                  "ssd_mobilenet_v1": SSDMobileNetV1,
                  "ssd_lite_mobilenet_v2": SSDLiteMobileNetV2,
@@ -115,6 +122,8 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "vit_base": vit_base,
                  "vit_large": vit_large,
                  "vit_huge": vit_huge,
+                 "beit_base_patch16_224": beit_base_patch16_224,
+                 "beit_large_patch16_224": beit_large_patch16_224
                  }
 
 KD_ARCHITECTURES = {

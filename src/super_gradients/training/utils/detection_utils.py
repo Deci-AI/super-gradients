@@ -7,6 +7,7 @@ from typing import Callable, List, Union, Tuple
 import cv2
 from deprecated import deprecated
 from scipy.cluster.vq import kmeans
+from torch.utils.data._utils.collate import default_collate
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -18,6 +19,25 @@ from torch import nn
 from torch.nn import functional as F
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from omegaconf import ListConfig
+
+
+class DetectionTargetsFormat(Enum):
+    """
+    Enum class for the different detection output formats
+
+    When NORMALIZED is not specified- the type refers to unnormalized image coordinates (of the bboxes).
+
+    For example:
+    LABEL_NORMALIZED_XYXY means [class_idx,x1,y1,x2,y2]
+    """
+    LABEL_XYXY = "LABEL_XYXY"
+    XYXY_LABEL = "XYXY_LABEL"
+    LABEL_NORMALIZED_XYXY = "LABEL_NORMALIZED_XYXY"
+    NORMALIZED_XYXY_LABEL = "NORMALIZED_XYXY_LABEL"
+    LABEL_CXCYWH = "LABEL_CXCYWH"
+    CXCYWH_LABEL = "CXCYWH_LABEL"
+    LABEL_NORMALIZED_CXCYWH = "LABEL_NORMALIZED_CXCYWH"
+    NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
 
 
 def base_detection_collate_fn(batch):
@@ -633,32 +653,6 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
     return output
 
 
-def check_img_size_divisibilty(img_size: int, stride: int = 32):
-    """
-    :param img_size: Int, the size of the image (H or W).
-    :param stride: Int, the number to check if img_size is divisible by.
-    :return: (True, None) if img_size is divisble by stride, (False, Suggestions) if it's not.
-        Note: Suggestions are the two closest numbers to img_size that *are* divisible by stride.
-        For example if img_size=321, stride=32, it will return (False,(352, 320)).
-    """
-    new_size = make_divisible(img_size, int(stride))
-    if new_size != img_size:
-        return False, (new_size, make_divisible(img_size, int(stride), ceil=False))
-    else:
-        return True, None
-
-
-def make_divisible(x, divisor, ceil=True):
-    """
-    Returns x evenly divisible by divisor.
-    If ceil=True it will return the closest larger number to the original x, and ceil=False the closest smaller number.
-    """
-    if ceil:
-        return math.ceil(x / divisor) * divisor
-    else:
-        return math.floor(x / divisor) * divisor
-
-
 def matrix_non_max_suppression(pred, conf_thres: float = 0.1, kernel: str = 'gaussian',
                                sigma: float = 3.0, max_num_of_detections: int = 500):
     """Performs Matrix Non-Maximum Suppression (NMS) on inference results
@@ -756,7 +750,8 @@ def calc_batch_prediction_accuracy(output: torch.Tensor, targets: torch.Tensor, 
         if pred is None:
             if labels_num:
                 batch_metrics.append(
-                    (np.zeros((0, num_ious), dtype=np.bool), np.array([], dtype=np.float32), np.array([], dtype=np.float32), target_class))
+                    (np.zeros((0, num_ious), dtype=np.bool), np.array([], dtype=np.float32),
+                     np.array([], dtype=np.float32), target_class))
             continue
 
         # CHANGE bboxes TO FIT THE IMAGE SIZE
@@ -943,7 +938,8 @@ def plot_coco_datasaet_images_with_detections(data_loader, num_images_to_plot=1)
         ns = np.ceil(batch_size ** 0.5)
 
         for i in range(batch_size):
-            boxes = convert_xywh_bbox_to_xyxy(torch.from_numpy(targets[targets[:, 0] == i, 2:6])).cpu().detach().numpy().T
+            boxes = convert_xywh_bbox_to_xyxy(
+                torch.from_numpy(targets[targets[:, 0] == i, 2:6])).cpu().detach().numpy().T
             boxes[[0, 2]] *= w
             boxes[[1, 3]] *= h
             plt.subplot(ns, ns, i + 1).imshow(imgs[i].transpose(1, 2, 0))
@@ -1164,3 +1160,97 @@ class Anchors(nn.Module):
 
     def __repr__(self):
         return f"anchors_list: {self.__anchors_list} strides: {self.__strides}"
+
+
+def xyxy2cxcywh(bboxes):
+    """
+    Transforms bboxes from xyxy format to centerized xy wh format
+    :param bboxes: array, shaped (nboxes, 4)
+    :return: modified bboxes
+    """
+    bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 0]
+    bboxes[:, 3] = bboxes[:, 3] - bboxes[:, 1]
+    bboxes[:, 0] = bboxes[:, 0] + bboxes[:, 2] * 0.5
+    bboxes[:, 1] = bboxes[:, 1] + bboxes[:, 3] * 0.5
+    return bboxes
+
+
+def cxcywh2xyxy(bboxes):
+    """
+    Transforms bboxes from centerized xy wh format to xyxy format
+    :param bboxes: array, shaped (nboxes, 4)
+    :return: modified bboxes
+    """
+    bboxes[:, 1] = bboxes[:, 1] - bboxes[:, 3] * 0.5
+    bboxes[:, 0] = bboxes[:, 0] - bboxes[:, 2] * 0.5
+    bboxes[:, 3] = bboxes[:, 3] + bboxes[:, 1]
+    bboxes[:, 2] = bboxes[:, 2] + bboxes[:, 0]
+    return bboxes
+
+
+def get_mosaic_coordinate(mosaic_index, xc, yc, w, h, input_h, input_w):
+    """
+    Returns the mosaic coordinates of final mosaic image according to mosaic image index.
+
+    :param mosaic_index: (int) mosaic image index
+    :param xc: (int) center x coordinate of the entire mosaic grid.
+    :param yc: (int) center y coordinate of the entire mosaic grid.
+    :param w: (int) width of bbox
+    :param h: (int) height of bbox
+    :param input_h: (int) image input height (should be 1/2 of the final mosaic output image height).
+    :param input_w: (int) image input width (should be 1/2 of the final mosaic output image width).
+    :return: (x1, y1, x2, y2), (x1s, y1s, x2s, y2s) where (x1, y1, x2, y2) are the coordinates in the final mosaic
+        output image, and (x1s, y1s, x2s, y2s) are the coordinates in the placed image.
+    """
+    # index0 to top left part of image
+    if mosaic_index == 0:
+        x1, y1, x2, y2 = max(xc - w, 0), max(yc - h, 0), xc, yc
+        small_coord = w - (x2 - x1), h - (y2 - y1), w, h
+    # index1 to top right part of image
+    elif mosaic_index == 1:
+        x1, y1, x2, y2 = xc, max(yc - h, 0), min(xc + w, input_w * 2), yc
+        small_coord = 0, h - (y2 - y1), min(w, x2 - x1), h
+    # index2 to bottom left part of image
+    elif mosaic_index == 2:
+        x1, y1, x2, y2 = max(xc - w, 0), yc, xc, min(input_h * 2, yc + h)
+        small_coord = w - (x2 - x1), 0, w, min(y2 - y1, h)
+    # index2 to bottom right part of image
+    elif mosaic_index == 3:
+        x1, y1, x2, y2 = xc, yc, min(xc + w, input_w * 2), min(input_h * 2, yc + h)  # noqa
+        small_coord = 0, 0, min(w, x2 - x1), min(y2 - y1, h)
+    return (x1, y1, x2, y2), small_coord
+
+
+def adjust_box_anns(bbox, scale_ratio, padw, padh, w_max, h_max):
+    """
+    Adjusts the bbox annotations of rescaled, padded image.
+
+    :param bbox: (np.array) bbox to modify.
+    :param scale_ratio: (float) scale ratio between rescale output image and original one.
+    :param padw: (int) width padding size.
+    :param padh: (int) height padding size.
+    :param w_max: (int) width border.
+    :param h_max: (int) height border
+    :return: modified bbox (np.array)
+    """
+    bbox[:, 0::2] = np.clip(bbox[:, 0::2] * scale_ratio + padw, 0, w_max)
+    bbox[:, 1::2] = np.clip(bbox[:, 1::2] * scale_ratio + padh, 0, h_max)
+    return bbox
+
+
+class DetectionCollateFN:
+    """
+    Collate function for Yolox training
+    """
+    def __call__(self, data):
+        batch = default_collate(data)
+        ims = batch[0]
+        targets = batch[1]
+        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of objects
+        targets_merged = []
+        for i in range(targets.shape[0]):
+            targets_im = targets[i, :nlabel[i]]
+            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
+            targets_merged.append(torch.cat((batch_column, targets_im), 1))
+        targets = torch.cat(targets_merged, 0)
+        return ims, targets

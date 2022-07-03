@@ -1,6 +1,7 @@
+import math
 import time
 from pathlib import Path
-from typing import Union, Mapping
+from typing import Mapping, Optional, Tuple, Union
 from zipfile import ZipFile
 import os
 from jsonschema import validate
@@ -335,3 +336,29 @@ def download_and_unzip_from_url(url, dir='.', unzip=True, delete=True):
     dir.mkdir(parents=True, exist_ok=True)  # make directory
     for u in [url] if isinstance(url, (str, Path)) else url:
         download_one(u, dir)
+
+
+def make_divisible(x: int, divisor: int, ceil: bool = True) -> int:
+    """
+    Returns x evenly divisible by divisor.
+    If ceil=True it will return the closest larger number to the original x, and ceil=False the closest smaller number.
+    """
+    if ceil:
+        return math.ceil(x / divisor) * divisor
+    else:
+        return math.floor(x / divisor) * divisor
+
+
+def check_img_size_divisibility(img_size: int, stride: int = 32) -> Tuple[bool, Optional[Tuple[int, int]]]:
+    """
+    :param img_size: Int, the size of the image (H or W).
+    :param stride: Int, the number to check if img_size is divisible by.
+    :return: (True, None) if img_size is divisble by stride, (False, Suggestions) if it's not.
+        Note: Suggestions are the two closest numbers to img_size that *are* divisible by stride.
+        For example if img_size=321, stride=32, it will return (False,(352, 320)).
+    """
+    new_size = make_divisible(img_size, int(stride))
+    if new_size != img_size:
+        return False, (new_size, make_divisible(img_size, int(stride), ceil=False))
+    else:
+        return True, None
