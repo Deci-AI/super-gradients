@@ -197,7 +197,7 @@ class AbstractForwardPassPrepFunction(ABC):
     Abstract class for forward pass preprocessing function, to be used by passing its inheritors through training_params
      forward_pass_prep_fn keyword arg.
 
-    Should implement __call__ and return inputs, targets after applying the desired preprocessing.
+    Should implement __call__ and return images, targets after applying the desired preprocessing.
     """
     @abstractmethod
     def __call__(self, inputs, targets, batch_idx):
@@ -208,7 +208,7 @@ class MultiscaleForwardPassPrepFunction(AbstractForwardPassPrepFunction):
     """
     Mutiscale pre-forward pass function.
 
-    When passed through train_params inputs, targets will be applied by the below transform to support multi scaling
+    When passed through train_params images, targets will be applied by the below transform to support multi scaling
     on the fly.
 
     After each self.frequency forward passes, change size randomly from
