@@ -48,7 +48,7 @@ class ForwardpassPrepFNTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks,
-                        "forward_pass_prep_fn": test_forward_pass_prep_fn}
+                        "pre_prediction_callback": test_forward_pass_prep_fn}
         model.train(train_params)
 
         # ALTHOUGH NOT SEEN IN HERE, THE 4TH EPOCH USES LR=1, SO THIS IS THE EXPECTED LIST AS WE COLLECT

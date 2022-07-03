@@ -762,6 +762,12 @@ class SgModel:
 
                     Number of epochs to cooldown LR (i.e the last epoch from scheduling view point=max_epochs-cooldown).
 
+                -   `pre_prediction_callback` : int (default=0)
+
+                     When not None, this callback will be applied to images and targets, and returning them to be used
+                      for the forward pass, and further computations.
+
+
 
         :return:
         """

@@ -192,10 +192,10 @@ class MultiScaleCollateFunction(AbstractCollateFunction):
             return images, batch[1]
 
 
-class AbstractForwardPassPrepFunction(ABC):
+class AbstractPrePredictionCallback(ABC):
     """
     Abstract class for forward pass preprocessing function, to be used by passing its inheritors through training_params
-     forward_pass_prep_fn keyword arg.
+     pre_prediction_callback keyword arg.
 
     Should implement __call__ and return images, targets after applying the desired preprocessing.
     """
@@ -204,9 +204,9 @@ class AbstractForwardPassPrepFunction(ABC):
         pass
 
 
-class MultiscaleForwardPassPrepFunction(AbstractForwardPassPrepFunction):
+class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
     """
-    Mutiscale pre-forward pass function.
+    Mutiscale pre-prediction callback pass function.
 
     When passed through train_params images, targets will be applied by the below transform to support multi scaling
     on the fly.
@@ -266,9 +266,9 @@ class MultiscaleForwardPassPrepFunction(AbstractForwardPassPrepFunction):
         return inputs, targets
 
 
-class DetectionMultiscaleForwardPassPrepFunction(MultiscaleForwardPassPrepFunction):
+class DetectionMultiscalePrePredictionCallback(MultiscalePrePredictionCallback):
     """
-    Mutiscale pre-forward pass function for object detection.
+    Mutiscalepre-prediction callback for object detection.
 
     When passed through train_params images, targets will be applied by the below transform to support multi scaling
     on the fly.
@@ -299,7 +299,7 @@ class DetectionMultiscaleForwardPassPrepFunction(MultiscaleForwardPassPrepFuncti
     def __call__(self, inputs, targets, batch_idx):
         # RESCALE THE IMAGE FIRST WITH SUPER(), AND IF RESCALING HAS ACTUALLY BEEN DONE APPLY TO BOXES AS WELL
         input_size = inputs.shape[2:]
-        inputs, targets = super(DetectionMultiscaleForwardPassPrepFunction, self).__call__(inputs, targets, batch_idx)
+        inputs, targets = super(DetectionMultiscalePrePredictionCallback, self).__call__(inputs, targets, batch_idx)
         new_input_size = inputs.shape[2:]
         scale_y = new_input_size[0] / input_size[0]
         scale_x = new_input_size[1] / input_size[1]
