@@ -9,6 +9,78 @@ from super_gradients.training.utils.detection_utils import calculate_bbox_iou_ma
 from super_gradients.training.utils.ssd_utils import DefaultBoxes
 
 
+class IOUloss(nn.Module):
+    """
+    IoU loss with the following supported loss types:
+    Attributes:
+        reduction: str: One of ["mean", "sum", "none"] reduction to apply to the computed loss (Default="none")
+        loss_type: str: One of ["iou", "giou"] where:
+            * 'iou' for
+                (1 - iou^2)
+            * 'giou' according to "Generalized Intersection over Union: A Metric and A Loss for Bounding Box Regression"
+                (1 - giou), where giou = iou - (cover_box - union_box)/cover_box
+    """
+
+    def __init__(self, dboxes_xywh, reduction: str = "none", loss_type: str = "iou"):
+        super(IOUloss, self).__init__()
+        self._validate_args(loss_type, reduction)
+        self.reduction = reduction
+        self.loss_type = loss_type
+        self.dboxes_xywh = dboxes_xywh
+
+    @staticmethod
+    def _validate_args(loss_type, reduction):
+        supported_losses = ["iou", "giou"]
+        supported_reductions = ["mean", "sum", "none"]
+        if loss_type not in supported_losses:
+            raise ValueError("Illegal loss_type value: " + loss_type + ', expected one of: ' + str(supported_losses))
+        if reduction not in supported_reductions:
+            raise ValueError(
+                "Illegal reduction value: " + reduction + ', expected one of: ' + str(supported_reductions))
+
+    def forward(self, pred, target):
+        assert pred.shape[0] == target.shape[0]
+        batch_size = pred.shape[0]
+        pred = pred.permute(0, 2, 1)
+
+        dboxes_on_device = self.dboxes_xywh.to(target.device).permute(0, 2, 1).contiguous()
+        pred = torch.cat([
+            320. * (pred[:, :, :2] * dboxes_on_device[:, :, 2:] + dboxes_on_device[:, :, 2:]),
+            320. * (pred[:, :, 2:].exp() * dboxes_on_device[:, :, 2:])
+        ], dim=-1)
+        pred = pred.contiguous().view(-1, 4)
+
+        target = target.permute(0, 2, 1).contiguous().view(-1, 4) * 320.
+        tl = torch.max((pred[:, :2] - pred[:, 2:] / 2), (target[:, :2] - target[:, 2:] / 2))
+        br = torch.min((pred[:, :2] + pred[:, 2:] / 2), (target[:, :2] + target[:, 2:] / 2))
+
+        area_p = torch.prod(pred[:, 2:], 1)
+        area_g = torch.prod(target[:, 2:], 1)
+
+        en = (tl < br).type(tl.type()).prod(dim=1)
+        area_i = torch.prod(br - tl, 1) * en
+        area_u = area_p + area_g - area_i
+        iou = (area_i) / (area_u + 1e-16)
+
+        if self.loss_type == "iou":
+            loss = 1 - iou ** 2
+        elif self.loss_type == "giou":
+            c_tl = torch.min((pred[:, :2] - pred[:, 2:] / 2), (target[:, :2] - target[:, 2:] / 2))
+            c_br = torch.max((pred[:, :2] + pred[:, 2:] / 2), (target[:, :2] + target[:, 2:] / 2))
+            area_c = torch.prod(c_br - c_tl, 1)
+            giou = iou - (area_c - area_u) / area_c.clamp(1e-16)
+            loss = 1 - giou.clamp(min=-1.0, max=1.0)
+
+        if self.reduction == "mean":
+            loss = loss.mean()
+        elif self.reduction == "sum":
+            loss = loss.sum()
+        else:
+            loss = loss.view(batch_size, -1)
+
+        return loss
+
+
 class HardMiningCrossEntropyLoss(_Loss):
     """
     L_cls = [CE of all positives] + [CE of the hardest backgrounds]
@@ -100,13 +172,16 @@ class SSDLoss(_Loss):
     """
 
     def __init__(self, dboxes: DefaultBoxes, alpha: float = 1.0, iou_thresh: float = 0.5, neg_pos_ratio: float = 3.,
-                 rebalance=False, hard_sigmoid_focal=False):
+                 rebalance=False, hard_sigmoid_focal=False, iou_loss=False):
         super(SSDLoss, self).__init__()
         self.scale_xy = dboxes.scale_xy
         self.scale_wh = dboxes.scale_wh
         self.alpha = alpha
-        self.sl1_loss = nn.SmoothL1Loss(reduce=False)
         self.dboxes = nn.Parameter(dboxes(order="xywh").transpose(0, 1).unsqueeze(dim=0), requires_grad=False)
+        if iou_loss:
+            self.sl1_loss = IOUloss(self.dboxes, reduction='none')
+        else:
+            self.sl1_loss = nn.SmoothL1Loss(reduce=False)
 
         if hard_sigmoid_focal:
             self.con_loss = HardMiningSigmoidFocalClassificationLoss(0.75, 2., neg_pos_ratio)
@@ -190,8 +265,12 @@ class SSDLoss(_Loss):
         vec_gd = self._norm_relative_bbox(batch_target_locations)
 
         # SUM ON FOUR COORDINATES, AND MASK
-        sl1 = self.sl1_loss(ploc, vec_gd).sum(dim=1)
-        sl1 = (mask.float() * sl1).sum(dim=1)
+        if isinstance(self.sl1_loss, IOUloss):
+            sl1 = self.sl1_loss(ploc, batch_target_locations)
+            sl1 = (mask.float() * sl1).sum(dim=1) * 0.5  # 25. # 4
+        else:
+            sl1 = self.sl1_loss(ploc, vec_gd).sum(dim=1)
+            sl1 = (mask.float() * sl1).sum(dim=1)
 
         closs = self.con_loss(plabel, batch_target_labels)
 
