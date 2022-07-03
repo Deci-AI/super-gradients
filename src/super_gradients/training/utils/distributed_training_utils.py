@@ -126,6 +126,18 @@ def get_local_rank():
     return dist.get_rank() if dist.is_initialized() else 0
 
 
+def get_world_size() -> int:
+    """
+    Returns the world size if running in DDP, and 1 otherwise
+    :return: world size
+    """
+    if not dist.is_available():
+        return 1
+    if not dist.is_initialized():
+        return 1
+    return dist.get_world_size()
+
+
 @contextmanager
 def wait_for_the_master(local_rank: int):
     """
