@@ -108,7 +108,8 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
     def __init__(self, dboxes: DefaultBoxes, conf: float = 0.1, iou: float = 0.45, classes: list = None,
                  max_predictions: int = 300,
                  nms_type: NMS_Type = NMS_Type.ITERATIVE,
-                 sigmoid: bool = False):
+                 sigmoid: bool = False,
+                 multi_label_per_box=True):
         """
         :param conf: confidence threshold
         :param iou: IoU threshold
@@ -127,6 +128,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         self.scale_wh = dboxes.scale_wh
         self.img_size = dboxes.fig_size
         self.sigmoid = sigmoid
+        self.multi_label_per_box = multi_label_per_box
         print('sigmoid_mode', self.sigmoid)
         print('boxes', dboxes.scales)
 
@@ -167,7 +169,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
 
         if self.nms_type == NMS_Type.ITERATIVE:
             nms_res = non_max_suppression(nms_input, conf_thres=self.conf, iou_thres=self.iou,
-                                          classes=self.classes)
+                                          classes=self.classes, multi_label_per_box=self.multi_label_per_box)
         else:
             nms_res = matrix_non_max_suppression(nms_input, conf_thres=self.conf,
                                                  max_num_of_detections=self.max_predictions)
