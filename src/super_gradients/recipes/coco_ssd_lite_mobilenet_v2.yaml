@@ -15,6 +15,8 @@ dataset_params:
 
 # stride_N_plus is for models where the first skip begins from the feature map with output stride N and higher
 # grids of [input_size / N x input_size / N] and smaller
+# NOTE: changing anchors to a different stride requires updating output_paths in model anch params
+# because feat_size are hardcoded and won't automatically change in a model
 anchors:
   256x256:
     stride_16_plus:
