@@ -46,13 +46,14 @@ class HardMiningCrossEntropyLoss(_Loss):
         return closs
 
 
-class SigmoidFocalClassificationLoss(_Loss):
+class HardMiningSigmoidFocalClassificationLoss(_Loss):
 
-    def __init__(self, alpha, gamma):
+    def __init__(self, alpha, gamma, neg_pos_ratio):
         super().__init__()
         self.alpha = alpha
         self.gamma = gamma
         self.bce = nn.BCEWithLogitsLoss(reduction='none')
+        self.neg_pos_ratio = neg_pos_ratio
 
     def forward(self, pred_labels, target_labels):
         pred_labels = pred_labels.permute(0, 2, 1)
@@ -63,8 +64,28 @@ class SigmoidFocalClassificationLoss(_Loss):
         p_t = target_labels_onehot * prediction_probs + (1 - target_labels_onehot) * (1 - prediction_probs)
         modulating_factor = torch.pow(1.0 - p_t, self.gamma)
         alpha_weight_factor = (target_labels_onehot * self.alpha + (1 - target_labels_onehot) * (1 - self.alpha))
+
+        # POSITIVE MASK WILL NOT BE SELECTED
+        # set 0. loss for all positive objects, leave the loss where the object is background
+        mask = target_labels > 0  # not background
+        pos_num = mask.sum(dim=1)
+        con_neg = per_entry_bce.clone()[:, :, 0]
+        con_neg[mask] = 0
+        # sort background cells by ground BCE loss value (bigger_first)
+        _, con_idx = con_neg.sort(dim=1, descending=True)
+        # restore cells order, get each cell's order (rank) in CE loss sorting
+        _, con_rank = con_idx.sort(dim=1)
+
+        # NUMBER OF NEGATIVE THREE TIMES POSITIVE
+        neg_num = torch.clamp(self.neg_pos_ratio * pos_num, max=mask.size(1)).unsqueeze(-1)
+        # for each image into neg mask we'll take (3 * positive pairs) background objects with the highest CE
+        neg_mask = con_rank < neg_num
+
+        # make BCEs focal and mask out easy negatives
         focal_cross_entropy_loss = modulating_factor * alpha_weight_factor * per_entry_bce
-        return focal_cross_entropy_loss.mean(dim=-1).sum(dim=1)
+        focal_cross_entropy_loss = focal_cross_entropy_loss.mean(dim=-1) * (mask.float() + neg_mask.float())
+
+        return focal_cross_entropy_loss.sum(dim=-1) * 500.  # 100.
 
 
 class SSDLoss(_Loss):
@@ -79,7 +100,7 @@ class SSDLoss(_Loss):
     """
 
     def __init__(self, dboxes: DefaultBoxes, alpha: float = 1.0, iou_thresh: float = 0.5, neg_pos_ratio: float = 3.,
-                 rebalance=False, sigmoid_focal=False):
+                 rebalance=False, hard_sigmoid_focal=False):
         super(SSDLoss, self).__init__()
         self.scale_xy = dboxes.scale_xy
         self.scale_wh = dboxes.scale_wh
@@ -87,8 +108,8 @@ class SSDLoss(_Loss):
         self.sl1_loss = nn.SmoothL1Loss(reduce=False)
         self.dboxes = nn.Parameter(dboxes(order="xywh").transpose(0, 1).unsqueeze(dim=0), requires_grad=False)
 
-        if sigmoid_focal:
-            self.con_loss = SigmoidFocalClassificationLoss(0.75, 2.)
+        if hard_sigmoid_focal:
+            self.con_loss = HardMiningSigmoidFocalClassificationLoss(0.75, 2., neg_pos_ratio)
         else:
             self.con_loss = HardMiningCrossEntropyLoss(neg_pos_ratio)
         self.iou_thresh = iou_thresh

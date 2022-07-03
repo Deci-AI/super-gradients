@@ -104,7 +104,7 @@ training_hyperparams:
   criterion_params:
     alpha: 1.0
     dboxes: ${dboxes}
-    sigmoid_focal: False
+    hard_sigmoid_focal: False
 
   optimizer: SGD
   optimizer_params:
@@ -123,7 +123,7 @@ training_hyperparams:
         dboxes: ${dboxes}
         conf: 0.05
         iou: 0.6
-        sigmoid: ${training_hyperparams.criterion_params.sigmoid_focal}
+        sigmoid: ${training_hyperparams.criterion_params.hard_sigmoid_focal}
       num_cls: 80
 
   metric_to_watch: 'mAP@0.50:0.95'
