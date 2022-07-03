@@ -16,7 +16,6 @@ import os
 import pickle
 import sys
 from enum import Enum
-
 from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 
@@ -61,7 +60,7 @@ class QuantizationLevel(str, Enum):
             raise NotImplementedError(f'Quantization Level: "{quantization_level}" is not supported')
 
 
-def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple):
+def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple, per_channel_quantization: bool = False):
     """
     Method for exporting onnx after QAT.
 
@@ -77,7 +76,8 @@ def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tup
         # Export ONNX for multiple batch sizes
         logger.info("Creating ONNX file: " + onnx_filename)
         dummy_input = torch.randn(input_shape, device='cuda')
-        torch.onnx.export(model, dummy_input, onnx_filename, verbose=False, opset_version=13, enable_onnx_checker=False,
+        opset_version = 13 if per_channel_quantization else 12
+        torch.onnx.export(model, dummy_input, onnx_filename, verbose=False, opset_version=opset_version, enable_onnx_checker=False,
                           do_constant_folding=True)
 
 
@@ -235,6 +235,14 @@ def build_trt_engine_from_onnx_ckpt(onnx_ckpt_path: str,
 
 def save_trt_engine_from_onnx_ckpt(onnx_ckpt_path, output_engine_path, quantization_level=QuantizationLevel.INT8,
                                    max_batch_size=1):
+    """
+    Method for creating trt eingine from an exisiting ONNX file
+
+    :param onnx_ckpt_path: str, path to ONNX file
+    :param output_engine_path: str, target path for the trt engine file.
+    :param quantization_level: QuantizationLevel, quantization level for the engine (should be INT8 when QAT)
+    :param max_batch_size: int, trt maximal batch size
+    """
     if os.path.exists(onnx_ckpt_path):
         print("Building engine from file {}".format(onnx_ckpt_path))
         trt_engine = build_trt_engine_from_onnx_ckpt(onnx_ckpt_path=onnx_ckpt_path,
@@ -288,6 +296,12 @@ class Int8CalibrationPreTrainingCallback(PhaseCallback):
 
 
 class PostQATConversionCallback(PhaseCallback):
+    """
+    Post QAT training callback that saves the best checkpoint (i.e ckpt_best.pth) in onnx and trt engine formats.
+
+    Attributes:
+        dummy_input_size: (tuple) dummy input size for the ONNX conversion.
+    """
     def __init__(self, dummy_input_size):
         super().__init__(phase=Phase.POST_TRAINING)
         self.dummy_input_size = dummy_input_size
@@ -308,7 +322,7 @@ class PostQATConversionCallback(PhaseCallback):
                                          load_backbone=False
                                          )
 
-                export_qat_onnx(context.net, onnx_path, self.dummy_input_size)
+                export_qat_onnx(context.net, onnx_path, self.dummy_input_size, context.per_channel_quant_modules)
                 save_trt_engine_from_onnx_ckpt(onnx_path, trt_path)
 
                 context.sg_logger.add_file("ckpt_best.onnx")

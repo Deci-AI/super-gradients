@@ -296,6 +296,8 @@ class SgModel:
          quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
                  computation of the quantized modules (default=percentile).
 
+         per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).
+
         """
         if 'num_classes' not in arch_params.keys():
             if self.classes is None and self.dataset_interface is None:
@@ -308,7 +310,7 @@ class SgModel:
 
         self._initialize_quant_modules()
         self.net = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args, **kwargs)
-
+        self._deactivate_quant_modules_wrapping()
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
 
         self.architecture = self.net.structure if hasattr(self.net, 'structure') else architecture
@@ -317,32 +319,47 @@ class SgModel:
 
         self._load_checkpoint_to_model()
 
+    def _deactivate_quant_modules_wrapping(self):
+        """
+        Deactivates quant modules wrapping, so that further modules won't use Q/DQ layers.
+        """
+        if self.use_quant_modules:
+            quant_modules.deactivate()
+
     def _initialize_quant_modules(self):
+        """
+        Initialize quant modules wrapping.
+        """
         self.use_quant_modules = core_utils.get_param(self.arch_params, "use_quant_modules", False)
         self.quant_modules_calib_method = core_utils.get_param(self.arch_params, "quant_modules_calib_method", "percentile")
+        self.per_channel_quant_modules = core_utils.get_param(self.arch_params, "per_channel_quant_modules", False)
 
         if self.use_quant_modules:
             if _imported_pytorch_quantization_failure is not None:
                 raise _imported_pytorch_quantization_failure
             else:
                 if self.quant_modules_calib_method in ["percentile", "mse", "entropy"]:
-                    quant_desc_input = QuantDescriptor(calib_method='histogram', axis=None)
-                    quant_desc_weight = QuantDescriptor(calib_method='histogram', axis=None)
+                    calib_method_type = 'histogram'
                 elif self.quant_modules_calib_method == "max":
-                    quant_desc_input = QuantDescriptor(calib_method='max', axis=None)
-                    quant_desc_weight = QuantDescriptor(calib_method='max', axis=None)
+                    calib_method_type = 'max'
 
                 else:
                     raise ValueError("Unsupported quantization calibration method, expected one of: percentile, mse, entropy, max, got " + str(self.quant_modules_calib_method) + ".")
 
-                # TODO: ADD PER CHANNEL QAT SUPPORT
-                quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
-                quant_nn.QuantConvTranspose2d.set_default_quant_desc_input(quant_desc_input)
-                quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
+                if self.per_channel_quant_modules:
+                    quant_desc_input = QuantDescriptor(calib_method=calib_method_type)
+                    quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
+                    quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
+                else:
+                    quant_desc_input = QuantDescriptor(calib_method=calib_method_type, axis=None)
+                    quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
+                    quant_nn.QuantConvTranspose2d.set_default_quant_desc_input(quant_desc_input)
+                    quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
 
-                quant_nn.QuantConv2d.set_default_quant_desc_weight(quant_desc_weight)
-                quant_nn.QuantConvTranspose2d.set_default_quant_desc_weight(quant_desc_weight)
-                quant_nn.QuantLinear.set_default_quant_desc_weight(quant_desc_weight)
+                    quant_desc_weight = QuantDescriptor(calib_method=calib_method_type, axis=None)
+                    quant_nn.QuantConv2d.set_default_quant_desc_weight(quant_desc_weight)
+                    quant_nn.QuantConvTranspose2d.set_default_quant_desc_weight(quant_desc_weight)
+                    quant_nn.QuantLinear.set_default_quant_desc_weight(quant_desc_weight)
 
                 quant_modules.initialize()
 
@@ -983,7 +1000,8 @@ class SgModel:
                                quant_modules_calib_method=self.quant_modules_calib_method,
                                checkpoints_dir_path=self.checkpoints_dir_path,
                                training_params=self.training_params,
-                               ddp_silent_mode=self.ddp_silent_mode)
+                               ddp_silent_mode=self.ddp_silent_mode,
+                               per_channel_quant_modules=self.per_channel_quant_modules)
 
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
