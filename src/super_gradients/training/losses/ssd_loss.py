@@ -12,11 +12,16 @@ from super_gradients.training.utils.ssd_utils import DefaultBoxes
 class HardMiningCrossEntropyLoss(_Loss):
     """
     L_cls = [CE of all positives] + [CE of the hardest backgrounds]
-    where the second term is built from [3 * positive pairs] background cells with the highest CE
+    where the second term is built from [neg_pos_ratio * positive pairs] background cells with the highest CE
     (the hardest background cells)
     """
 
-    def __init__(self, neg_pos_ratio):
+    def __init__(self, neg_pos_ratio: float):
+        """
+        :param neg_pos_ratio:   a ratio of negative samples to positive samples in the loss
+                                (unlike positives, not all negatives will be used:
+                                for each positive the [neg_pos_ratio] hardest negatives will be selected)
+        """
         super().__init__()
         self.neg_pos_ratio = neg_pos_ratio
         self.ce = nn.CrossEntropyLoss(reduce=False)
@@ -58,6 +63,13 @@ class SSDLoss(_Loss):
     """
 
     def __init__(self, dboxes: DefaultBoxes, alpha: float = 1.0, iou_thresh: float = 0.5, neg_pos_ratio: float = 3.):
+        """
+        :param dboxes:          model anchors, shape [Num Grid Cells * Num anchors x 4]
+        :param alpha:           a weighting factor between classification and regression loss
+        :param iou_thresh:      a threshold for matching of anchors in each grid cell to GTs
+                                (a match should have IoU > iou_thresh)
+        :param neg_pos_ratio:   a ratio for HardMiningCrossEntropyLoss
+        """
         super(SSDLoss, self).__init__()
         self.scale_xy = dboxes.scale_xy
         self.scale_wh = dboxes.scale_wh
@@ -106,10 +118,13 @@ class SSDLoss(_Loss):
             # one best GT for EACH cell (does not guarantee that all GTs will be used)
             best_target_per_cell, best_target_per_cell_index = ious.max(0)
 
-            # one best grid cell for EACH target
+            # one best grid cell (anchor in it) for EACH target
             best_cell_per_target, best_cell_per_target_index = ious.max(1)
             # make sure EACH target has a grid cell assigned
             best_target_per_cell_index[best_cell_per_target_index] = torch.arange(len(targets)).to(device)
+            # 2. is higher than any IoU, so it is guaranteed to pass any IoU threshold
+            # which ensures that the pairs selected for each target will be included in the mask below
+            # while the threshold will only affect other grid cell anchors that aren't pre-assigned to any target
             best_target_per_cell[best_cell_per_target_index] = 2.
 
             mask = best_target_per_cell > self.iou_thresh
