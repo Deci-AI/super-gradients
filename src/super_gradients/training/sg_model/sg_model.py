@@ -160,7 +160,6 @@ class SgModel:
         self.scaler = None
         self.phase_callbacks = None
         self.checkpoint_params = None
-        self.forward_pass_prep_fn = None
 
         # SET THE DEFAULT PROPERTIES
         self.half_precision = False
@@ -373,8 +372,8 @@ class SgModel:
             batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
             inputs, targets, additional_batch_items = sg_model_utils.unpack_batch_items(batch_items)
 
-            if self.forward_pass_prep_fn is not None:
-                inputs, targets = self.forward_pass_prep_fn(inputs, targets, batch_idx)
+            if self.pre_prediction_callback is not None:
+                inputs, targets = self.pre_prediction_callback(inputs, targets, batch_idx)
             # AUTOCAST IS ENABLED ONLY IF self.training_params.mixed_precision - IF enabled=False AUTOCAST HAS NO EFFECT
             with autocast(enabled=self.training_params.mixed_precision):
                 # FORWARD PASS TO GET NETWORK'S PREDICTIONS
@@ -412,7 +411,7 @@ class SgModel:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if self._infinite_train_loader and batch_idx == len(self.train_loader)-1:
+            if hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler) and batch_idx == len(self.train_loader)-1:
                 break
 
         if not self.ddp_silent_mode:
@@ -763,6 +762,13 @@ class SgModel:
 
                     Number of epochs to cooldown LR (i.e the last epoch from scheduling view point=max_epochs-cooldown).
 
+                -   `pre_prediction_callback` : Callable (default=None)
+
+                     When not None, this callback will be applied to images and targets, and returning them to be used
+                      for the forward pass, and further computations. Args for this callable should be in the order
+                      (inputs, targets, batch_idx) returning modified_inputs, modified_targets
+
+
 
         :return:
         """
@@ -914,13 +920,9 @@ class SgModel:
         if self.load_checkpoint and load_opt_params:
             self.optimizer.load_state_dict(self.checkpoint['optimizer_state_dict'])
 
-        self.forward_pass_prep_fn = self.training_params.forward_pass_prep_fn
+        self.pre_prediction_callback = self.training_params.pre_prediction_callback
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
-
-        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or \
-                                      (hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler))
-
 
         context = PhaseContext(optimizer=self.optimizer,
                                net=self.net,

@@ -48,7 +48,7 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "step_lr_update_freq": None,
                            "lr_updates": [],
                            'clip_grad_norm': None,
-                           'forward_pass_prep_fn': None
+                           'pre_prediction_callback': None
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}
