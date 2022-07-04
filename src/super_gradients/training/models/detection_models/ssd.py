@@ -58,7 +58,8 @@ class SSD(SgModule):
             self.backbone = backbone
 
         lite = utils.get_param(arch_params, 'lite', False)
-        # NUMBER OF CLASSES + 1 NO_CLASS
+        # num classes in a dataset
+        # the model will predict self.num_classes + 1 values to also include background
         self.num_classes = self.arch_params.num_classes
 
         self._build_additional_blocks()
@@ -76,10 +77,10 @@ class SSD(SgModule):
         for i, (nd, oc) in enumerate(zip(self.num_defaults, out_channels)):
             if i < len(self.num_defaults) - 1:
                 self.loc.append(conv_to_use(oc, nd * 4, kernel_size=3, padding=1))
-                self.conf.append(conv_to_use(oc, nd * self.num_classes, kernel_size=3, padding=1))
+                self.conf.append(conv_to_use(oc, nd * (self.num_classes + 1), kernel_size=3, padding=1))
             else:
                 self.loc.append(nn.Conv2d(oc, nd * 4, kernel_size=3, padding=1))
-                self.conf.append(nn.Conv2d(oc, nd * self.num_classes, kernel_size=3, padding=1))
+                self.conf.append(nn.Conv2d(oc, nd * (self.num_classes + 1), kernel_size=3, padding=1))
         self.loc = nn.ModuleList(self.loc)
         self.conf = nn.ModuleList(self.conf)
 
@@ -121,7 +122,7 @@ class SSD(SgModule):
         """ Shape the classifier to the view of bboxes """
         ret = []
         for s, l, c in zip(src, loc, conf):
-            ret.append((l(s).view(s.size(0), 4, -1), c(s).view(s.size(0), self.num_classes, -1)))
+            ret.append((l(s).view(s.size(0), 4, -1), c(s).view(s.size(0),  self.num_classes + 1, -1)))
 
         locs, confs = list(zip(*ret))
         locs, confs = torch.cat(locs, 2).contiguous(), torch.cat(confs, 2).contiguous()

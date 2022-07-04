@@ -110,6 +110,9 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
                  nms_type: NMS_Type = NMS_Type.ITERATIVE,
                  multi_label_per_box=True):
         """
+        Predictions of SSD contain unnormalized probabilities for a background class,
+        together with confidences for all the dataset classes. Background will be utilized and discarded,
+        so this callback will return 0-based classes without background
         :param conf: confidence threshold
         :param iou: IoU threshold
         :param classes: (optional list) filter by class
