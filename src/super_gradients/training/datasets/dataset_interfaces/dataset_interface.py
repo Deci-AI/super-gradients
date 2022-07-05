@@ -19,7 +19,7 @@ from super_gradients.training.datasets.segmentation_datasets import PascalVOC201
 from super_gradients.training import utils as core_utils
 from super_gradients.common import DatasetDataInterface
 from super_gradients.common.environment import AWS_ENV_NAME
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn
+from super_gradients.training.utils.detection_utils import base_detection_collate_fn, crowd_detection_collate_fn
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
@@ -618,9 +618,10 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
         val_sample_method = core_utils.get_param(self.dataset_params, 'val_sample_loading_method',
                                                  default_val='rectangular')
 
-        default_collate_fn = partial(base_detection_collate_fn, with_crowd=with_crowd)
-        train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn', default_collate_fn)
-        val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn', default_collate_fn)
+        train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn',
+                                                base_detection_collate_fn)
+        val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn',
+                                              crowd_detection_collate_fn if with_crowd else base_detection_collate_fn)
 
         image_size = core_utils.get_param(self.dataset_params, 'image_size')
         train_image_size = core_utils.get_param(self.dataset_params, 'train_image_size')

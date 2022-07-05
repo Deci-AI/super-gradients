@@ -1,6 +1,5 @@
 import math
 import os
-import random
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
@@ -41,31 +40,39 @@ class DetectionTargetsFormat(Enum):
     NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
 
 
-def base_detection_collate_fn(batch: Iterable, with_crowd: Optional[bool] = False) -> Tuple:
+def _set_batch_labels_index(labels_batch):
+    for i, labels in enumerate(labels_batch):
+        labels[:, 0] = i
+    return labels_batch
+
+
+def base_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Batch Processing helper function for detection training/testing.
-    stacks the lists of images and targets into tensors and adds the image index to each target (so the targets could
-    later be associated to the correct images)
+    Stacks the lists of images and targets into tensors and adds the image index to each target, so the targets could
+    later be associated to the correct images
          :param batch:      Input batch from the Dataset __get_item__ method
-         :param with_crowd: If yes, add crowd labels in the additional_items_batch
+         :return:           Batch images and labels and a dict with 'crowd_target'
+     """
+    images_batch, labels_batch = zip(*batch)
+    labels_batch = _set_batch_labels_index(labels_batch)
+    return torch.stack(images_batch, 0), torch.cat(labels_batch, 0)
 
-         :return:  Batch images, labels and a dict with 'crowd_target' if with_crowd==True
+
+def crowd_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+    """
+    Batch Processing helper function for detection training/testing.
+    Stacks the lists of images, targets and crowd targets into tensors and adds the image index to each target and
+    crowd targets, so the targets could later be associated to the correct images
+         :param batch:      Input batch from the Dataset __get_item__ method
+         :return:           Batch images and labels and a dict with 'crowd_target'
      """
 
-    def _add_labels_index(labels_batch):
-        for i, labels in enumerate(labels_batch):
-            labels[:, 0] = i
-
-    if not with_crowd:
-        images_batch, labels_batch = zip(*batch)
-        _add_labels_index(labels_batch)
-        return torch.stack(images_batch, 0), torch.cat(labels_batch, 0)
-    else:
-        images_batch, labels_batch, additional_items_batch = zip(*batch)
-        crowd_labels_batch = [item['crowd_target'] for item in additional_items_batch]
-        _add_labels_index(labels_batch)
-        _add_labels_index(crowd_labels_batch)
-        return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), {"crowd_targets": torch.cat(crowd_labels_batch, 0)}
+    images_batch, labels_batch, additional_items_batch = zip(*batch)
+    crowd_labels_batch = [item['crowd_targets'] for item in additional_items_batch]
+    labels_batch = _set_batch_labels_index(labels_batch)
+    crowd_labels_batch = _set_batch_labels_index(crowd_labels_batch)
+    return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), {"crowd_targets": torch.cat(crowd_labels_batch, 0)}
 
 
 def convert_xyxy_bbox_to_xywh(input_bbox):
