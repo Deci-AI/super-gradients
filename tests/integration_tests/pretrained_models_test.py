@@ -562,8 +562,10 @@ class PretrainedModelsTest(unittest.TestCase):
                           model_checkpoints_location='local', multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_detection_dataset['ssd_lite_mobilenet_v2'],
                                           data_loader_num_workers=8)
+        transfer_arch_params = self.coco_pretrained_arch_params['ssd_lite_mobilenet_v2'].copy()
+        transfer_arch_params['num_classes'] = len(self.transfer_detection_dataset['ssd_lite_mobilenet_v2'].classes)
         trainer.build_model("ssd_lite_mobilenet_v2",
-                            arch_params=self.coco_pretrained_arch_params['ssd_lite_mobilenet_v2'],
+                            arch_params=transfer_arch_params,
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         trainer.train(training_params=self.transfer_detection_train_params['ssd_lite_mobilenet_v2'])
 
