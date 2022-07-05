@@ -24,7 +24,7 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "yolo_v5m_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+m/ckpt_best.pth",
               "yolo_v5l_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+l/ckpt_best.pth",
               "yolo_v5n_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+n/ckpt_best.pth",
-              "ssd_lite_mobilenet_v2": "https://deci-pretrained-models.s3.amazonaws.com/ssd_lite_mobilenet_v2/ckpt_best.pth",
+              "ssd_lite_mobilenet_v2_coco": "https://deci-pretrained-models.s3.amazonaws.com/ssd_lite_mobilenet_v2/ckpt_best.pth",
 
               "mobilenet_v3_large_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/mobilenetv3+large+300epoch/average_model.pth",
               "mobilenet_v3_small_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/mobilenetv3+small/ckpt_best.pth",

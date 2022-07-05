@@ -105,7 +105,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
     used by all other detection models
     """
 
-    def __init__(self, dboxes: DefaultBoxes, conf: float = 0.1, iou: float = 0.45, classes: list = None,
+    def __init__(self, dboxes: DefaultBoxes, conf: float = 0.001, iou: float = 0.6, classes: list = None,
                  max_predictions: int = 300,
                  nms_type: NMS_Type = NMS_Type.ITERATIVE,
                  multi_label_per_box=True):
