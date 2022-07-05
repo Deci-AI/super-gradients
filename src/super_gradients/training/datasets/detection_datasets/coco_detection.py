@@ -82,4 +82,4 @@ class COCODetectionDataSet(DetectionDataSet):
             crowd_labels = self.target_transform(crowd_labels, ratio, prep_w, prep_h, pad)
             crowd_labels = self.convert_xyxy_bbox_to_normalized_xywh(crowd_labels, post_w, post_h)
         crowd_labels = self._convert_label_to_torch(crowd_labels)
-        return {'crowd_labels': crowd_labels}
+        return {'crowd_target': crowd_labels}

@@ -932,8 +932,8 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                                                    json_file=self.dataset_params.train_json_file,
                                                    img_size=train_input_dim,
                                                    cache=self.dataset_params.cache_train_images,
-                                                   transforms=train_transforms
-                                                   )
+                                                   transforms=train_transforms,
+                                                   with_crowd=False)
 
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
 
@@ -947,8 +947,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                 transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
                             DetectionTargetsFormatTransform(max_targets=50)],
                 cache=self.dataset_params.cache_val_images,
-
-            )
+                with_crowd=True)
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):

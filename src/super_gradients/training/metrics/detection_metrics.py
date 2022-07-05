@@ -49,7 +49,7 @@ class DetectionMetrics(Metric):
         self.components = len(self.component_names)
         self.post_prediction_callback = post_prediction_callback
         self.is_distributed = super_gradients.is_distributed()
-        self.normalize_targets = normalize_targets
+        self.denormalize_targets = not normalize_targets
         self.world_size = None
         self.rank = None
         self.add_state("matching_info", default=[], dist_reduce_fx=None)
@@ -60,31 +60,29 @@ class DetectionMetrics(Metric):
         self.top_k_predictions = top_k_predictions
 
     def update(self, preds: List[torch.Tensor], target: torch.Tensor, device: str,
-               inputs: torch.tensor, crowd_target: Optional[torch.Tensor] = None):
+               inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None):
         """
         Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
 
-        :param preds :        list (of length batch_size) of Tensors of shape (num_detections, 6)
-                                format:  (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 non normalized
-        :param target:        targets for all images of shape (total_num_targets, 6)
+        :param preds :        Raw output of the model, the format might change from one model to another, but has to fit
+                                the input format of the post_prediction_callback
+        :param target:        Targets for all images of shape (total_num_targets, 6)
                                 format:  (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
         :param device:        Device to run on
         :param inputs:        Input image tensor of shape (batch_size, n_img, height, width)
-        :param crowd_target:  crowd targets for all images of shape (total_num_targets, 6)
+        :param crowd_targets: Crowd targets for all images of shape (total_num_targets, 6)
                                  format:  (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
         """
         self.iou_thresholds = self.iou_thresholds.to(device)
         _, _, height, width = inputs.shape
 
         targets = target.clone()
-        crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_target is None else crowd_target.clone()
+        crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.clone()
 
-        if self.normalize_targets:
-            targets[:, 2:] /= max(height, width)
         preds = self.post_prediction_callback(preds, device=device)
-
         new_matching_info = compute_detection_matching(
-            preds, targets, height, width, self.iou_thresholds, crowd_targets=crowd_targets, top_k=self.top_k_predictions)
+            preds, targets, height, width, self.iou_thresholds, crowd_targets=crowd_targets,
+            top_k=self.top_k_predictions, denormalize_targets=self.denormalize_targets)
 
         accumulated_matching_info = getattr(self, "matching_info")
         setattr(self, "matching_info", accumulated_matching_info + new_matching_info)

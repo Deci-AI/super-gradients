@@ -62,10 +62,10 @@ def base_detection_collate_fn(batch: Iterable, with_crowd: Optional[bool] = Fals
         return torch.stack(images_batch, 0), torch.cat(labels_batch, 0)
     else:
         images_batch, labels_batch, additional_items_batch = zip(*batch)
-        crowd_labels_batch = [item['crowd_labels'] for item in additional_items_batch]
+        crowd_labels_batch = [item['crowd_target'] for item in additional_items_batch]
         _add_labels_index(labels_batch)
         _add_labels_index(crowd_labels_batch)
-        return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), {"crowd_target": torch.cat(crowd_labels_batch, 0)}
+        return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), {"crowd_targets": torch.cat(crowd_labels_batch, 0)}
 
 
 def convert_xyxy_bbox_to_xywh(input_bbox):
@@ -772,6 +772,7 @@ def compute_detection_matching(
     height: int,
     width: int,
     iou_thresholds: torch.Tensor,
+    denormalize_targets: bool,
     crowd_targets: Optional[torch.Tensor] = None,
     top_k: int = 100,
 ) -> List[Tuple]:
@@ -787,6 +788,7 @@ def compute_detection_matching(
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
     :param top_k:           Number of predictions to keep per class, ordered by confidence score
+    :param denormalize_targets: If True, denormalize the targets and crowd_targets
 
     :return:                list of the following tensors, for every image:
         :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
@@ -812,6 +814,7 @@ def compute_detection_matching(
             preds=img_preds,
             targets=img_targets,
             crowd_targets=img_crowd_targets,
+            denormalize_targets=denormalize_targets,
             height=height,
             width=width,
             device=device,
@@ -831,6 +834,7 @@ def compute_img_detection_matching(
         width: int,
         iou_thresholds: torch.Tensor,
         device: str,
+        denormalize_targets: bool,
         top_k: int = 100,
 ) -> Tuple:
     """
@@ -847,6 +851,7 @@ def compute_img_detection_matching(
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
     :param top_k:           Number of predictions to keep per class, ordered by confidence score
+    :param denormalize_targets: If True, denormalize the targets and crowd_targets
 
     :return:
         :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
@@ -882,17 +887,18 @@ def compute_img_detection_matching(
 
     if len(targets) > 0 or len(crowd_targets) > 0:
 
-        # TODO: Check if possible to not have these functions here
         # CHANGE bboxes TO FIT THE IMAGE SIZE
         change_bbox_bounds_for_image_size(preds, (height, width))
 
-        targets_box = convert_xywh_bbox_to_xyxy(targets_box)
-        crowd_target_box = convert_xywh_bbox_to_xyxy(crowd_target_box)
+        # if target_format == "xywh":
+        targets_box = convert_xywh_bbox_to_xyxy(targets_box)  # cxcywh2xyxy
+        crowd_target_box = convert_xywh_bbox_to_xyxy(crowd_target_box)  # convert_xywh_bbox_to_xyxy
 
-        targets_box[:, [0, 2]] *= width
-        targets_box[:, [1, 3]] *= height
-        crowd_target_box[:, [0, 2]] *= width
-        crowd_target_box[:, [1, 3]] *= height
+        if denormalize_targets:
+            targets_box[:, [0, 2]] *= width
+            targets_box[:, [1, 3]] *= height
+            crowd_target_box[:, [0, 2]] *= width
+            crowd_target_box[:, [1, 3]] *= height
 
     if len(targets) > 0:
 
@@ -900,7 +906,7 @@ def compute_img_detection_matching(
         iou = box_iou(preds_box[preds_idx_to_use], targets_box)
 
         # Fill IoU values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
-        # Filling with 0 is equivalent to ignore these values since with want IoU > threshold > 0
+        # Filling with 0 is equivalent to ignore these values since with want IoU > iou_threshold > 0
         cls_mismatch = (preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1))
         iou[cls_mismatch] = 0
 
@@ -1560,15 +1566,26 @@ class DetectionCollateFN:
     """
     Collate function for Yolox training
     """
-    def __call__(self, data):
+    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         batch = default_collate(data)
-        ims = batch[0]
-        targets = batch[1]
-        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of objects
+        ims, targets = batch[0:2]
+        return ims, self._format_targets(targets)
+
+    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
+        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
         targets_merged = []
         for i in range(targets.shape[0]):
             targets_im = targets[i, :nlabel[i]]
             batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
             targets_merged.append(torch.cat((batch_column, targets_im), 1))
-        targets = torch.cat(targets_merged, 0)
-        return ims, targets
+        return torch.cat(targets_merged, 0)
+
+
+class CrowdDetectionCollateFN(DetectionCollateFN):
+    """
+    Collate function for Yolox training with additional_batch_items that includes crowd targets
+    """
+    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+        batch = default_collate(data)
+        ims, targets, crowd_targets = batch[0:3]
+        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}

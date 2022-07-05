@@ -26,6 +26,8 @@ class COCODetectionDatasetV2(Dataset):
             with_crowd: bool = True
     ):
         """
+
+Adding crowd targets to COCODetectionDatasetV2 (yolox) + small update on previous COCODetectionDataset implementation
         
         :param img_size: tuple, Image size (when loaded, before transforms)
         :param data_dir: str, root path to coco data.
@@ -36,6 +38,7 @@ class COCODetectionDatasetV2(Dataset):
         :param tight_box_rotation: bool, whether to use of segmentation maps convex hull
          as target_seg (see load_sample docs).
         :param transforms: list of transforms to apply sequentially on sample in __getitem__
+        :param with_crowd: Add the crowd groundtruths to __getitem__
         """
         super().__init__()
         self.imgs = None
@@ -68,8 +71,10 @@ class COCODetectionDatasetV2(Dataset):
     def __getitem__(self, idx):
         sample = self.load_sample(idx)
         sample = self.apply_transforms(sample)
-
-        return sample["image"], sample["target"], sample["crowd_target"], sample["info"], sample["id"]
+        if self.with_crowd:
+            return sample["image"], sample["target"], sample["crowd_target"], sample["info"], sample["id"]
+        else:
+            return sample["image"], sample["target"], sample["info"], sample["id"]
 
     def __len__(self):
         return len(self.ids)
