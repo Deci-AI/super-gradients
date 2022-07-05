@@ -26,9 +26,7 @@ class COCODetectionDatasetV2(Dataset):
             with_crowd: bool = True
     ):
         """
-
-Adding crowd targets to COCODetectionDatasetV2 (yolox) + small update on previous COCODetectionDataset implementation
-        
+        Adding crowd targets to COCODetectionDatasetV2 (yolox) + small update on previous COCODetectionDataset implementation
         :param img_size: tuple, Image size (when loaded, before transforms)
         :param data_dir: str, root path to coco data.
         :param json_file: str, path to coco json file, that resides in data_dir/annotations/json_file.
@@ -99,13 +97,13 @@ Adding crowd targets to COCODetectionDatasetV2 (yolox) + small update on previou
                 annotation["clean_bbox"] = [x1, y1, x2, y2]
                 cleaned_annotations.append(annotation)
 
-        regular_annotations = [annotation for annotation in cleaned_annotations if annotation["iscrowd"] == 0]
+        non_crowd_annotations = [annotation for annotation in cleaned_annotations if annotation["iscrowd"] == 0]
 
-        res = np.zeros((len(regular_annotations), 5))
+        res = np.zeros((len(non_crowd_annotations), 5))
         num_seg_values = 98 if self.tight_box_rotation else 0
-        res_seg = np.ones((len(regular_annotations), num_seg_values))
+        res_seg = np.ones((len(non_crowd_annotations), num_seg_values))
         res_seg.fill(np.nan)
-        for ix, annotation in enumerate(regular_annotations):
+        for ix, annotation in enumerate(non_crowd_annotations):
             cls = self.class_ids.index(annotation["category_id"])
             res[ix, 0:4] = annotation["clean_bbox"]
             res[ix, 4] = cls

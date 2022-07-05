@@ -5,10 +5,10 @@ from torchmetrics import Metric
 
 import super_gradients
 from super_gradients.training.utils.detection_utils import compute_detection_matching, compute_detection_metrics
-from super_gradients.common.abstractions.abstract_logger import get_logger
-logger = get_logger(__name__)
-
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class DetectionMetrics(Metric):
