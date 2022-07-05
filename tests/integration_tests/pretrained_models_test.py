@@ -109,8 +109,10 @@ class PretrainedModelsTest(unittest.TestCase):
         }
         self.coco_pretrained_maps = {"yolo_v5s": 0.362, "yolo_v5m": 0.441, "yolo_v5l": 0.471, "yolo_v5n": 0.267,
                                      'ssd_lite_mobilenet_v2': 0.209}
-        self.transfer_detection_dataset = {'yolo_v5': DetectionTestDatasetInterface(image_size=640),
-                                           'ssd_lite_mobilenet_v2': DetectionTestDatasetInterface(image_size=320)}
+        self.transfer_detection_dataset = {
+            'yolo_v5': DetectionTestDatasetInterface(image_size=640, classes=['class1', 'class2']),
+            'ssd_lite_mobilenet_v2': DetectionTestDatasetInterface(image_size=320, classes=['class1', 'class2'])
+        }
 
         ssd_dboxes = DefaultBoxes(fig_size=320, feat_size=[20, 10, 5, 3, 2, 1],
                                   scales=[32, 82, 133, 184, 235, 285, 336],
@@ -144,7 +146,7 @@ class PretrainedModelsTest(unittest.TestCase):
                     "valid_metrics_list": [
                         DetectionMetrics(
                             post_prediction_callback=YoloV5PostPredictionCallback(),
-                            num_cls=len(self.coco_dataset['yolo_v5'].coco_classes))],
+                            num_cls=len(self.transfer_detection_dataset['yolo_v5'].classes))],
                     "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],
                     "metric_to_watch": "mAP@0.50:0.95",
                     "greater_metric_to_watch_is_better": True},
@@ -167,7 +169,7 @@ class PretrainedModelsTest(unittest.TestCase):
                     "valid_metrics_list": [
                         DetectionMetrics(
                             post_prediction_callback=SSDPostPredictCallback(dboxes=ssd_dboxes),
-                            num_cls=len(self.coco_dataset['yolo_v5'].coco_classes))],
+                            num_cls=len(self.transfer_detection_dataset['yolo_v5'].classes))],
                     "loss_logging_items_names": ['smooth_l1', 'closs', 'Loss'],
                     "metric_to_watch": "mAP@0.50:0.95",
                     "greater_metric_to_watch_is_better": True
