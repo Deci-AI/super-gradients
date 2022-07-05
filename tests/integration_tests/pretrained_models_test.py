@@ -208,7 +208,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                             {"weight_decay": 5e-4,
                                                              "momentum": 0.9},
                                                         "load_opt_params": False,
-                                                        "trainsww_metrics_list": [IoU(5)],
+                                                        "train_metrics_list": [IoU(5)],
                                                         "valid_metrics_list": [IoU(5)],
                                                         "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
                                                         "metric_to_watch": "IoU",
@@ -485,7 +485,7 @@ class PretrainedModelsTest(unittest.TestCase):
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
                                                                    self.coco_dataset.coco_classes))],
-                           metrics_progress_verbose=False)[2]
+                           metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5n"], delta=0.001)
 
     def test_transfer_learning_mobilenet_v3_large_imagenet(self):
