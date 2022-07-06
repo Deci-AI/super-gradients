@@ -135,3 +135,59 @@ def visualize_batches(dataloader, module, visualization_path, num_batches=1, und
                                                             undo_preprocessing_func=undo_preprocessing_func)
         else:
             BinarySegmentationVisualization.visualize_batch(imgs, pred_mask, targets, batch_i, visualization_path)
+
+
+def one_hot_to_binary_edge(x: torch.Tensor,
+                           kernel_size: int,
+                           flatten_channels: bool = True) -> torch.Tensor:
+    """
+    Utils function to create edge feature maps.
+    :param x: input tensor, must be one_hot tensor with shape [B, C, H, W]
+    :param kernel_size: kernel size of dilation erosion convolutions. The result edge widths depends on this argument as
+        follows: `edge_width = kernel - 1`
+    :param flatten_channels: Whether to apply logical_or across channels dimension, if at least one pixel class is
+        considered as edge pixel flatten value is 1. If set as `False` the output tensor shape is [B, C, H, W], else
+        [B, 1, H, W]. Default is `True`.
+    :return: one_hot edge torch.Tensor.
+    """
+    if kernel_size < 0 or kernel_size % 2 == 0:
+        raise ValueError(f"kernel size must be an odd positive values, such as [1, 3, 5, ..], found: {kernel_size}")
+    _kernel = torch.ones(x.size(1), 1, kernel_size, kernel_size, dtype=torch.float32, device=x.device)
+    padding = (kernel_size - 1) // 2
+    # Use replicate padding to prevent class shifting and edge formation at the image boundaries.
+    padded_x = F.pad(x.float(), mode="replicate", pad=[padding] * 4)
+
+    dilation = torch.clamp(
+        F.conv2d(padded_x, _kernel, groups=x.size(1)),
+        0, 1
+    )
+    erosion = 1 - torch.clamp(
+        F.conv2d(1 - padded_x, _kernel, groups=x.size(1)),
+        0, 1
+    )
+    edge = dilation - erosion
+    if flatten_channels:
+        # use max operator across channels. Equivalent to logical or for input with binary values [0, 1].
+        edge = edge.max(dim=1, keepdim=True)[0]
+    return edge
+
+
+def target_to_binary_edge(target: torch.Tensor,
+                          num_classes: int,
+                          kernel_size: int,
+                          ignore_index: int = None,
+                          flatten_channels: bool = True) -> torch.Tensor:
+    """
+    Utils function to create edge feature maps from target.
+    :param target: Class labels long tensor, with shape [N, H, W]
+    :param num_classes: num of classes in datasets excluding ignore label, this is the output channels of the one hot
+        result.
+    :param kernel_size: kernel size of dilation erosion convolutions. The result edge widths depends on this argument as
+        follows: `edge_width = kernel - 1`
+    :param flatten_channels: Whether to apply logical or across channels dimension, if at least one pixel class is
+        considered as edge pixel flatten value is 1. If set as `False` the output tensor shape is [B, C, H, W], else
+        [B, 1, H, W]. Default is `True`.
+    :return: one_hot edge torch.Tensor.
+    """
+    one_hot = to_one_hot(target, num_classes=num_classes, ignore_index=ignore_index)
+    return one_hot_to_binary_edge(one_hot, kernel_size=kernel_size, flatten_channels=flatten_channels)
