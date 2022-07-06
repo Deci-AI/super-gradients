@@ -21,7 +21,8 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "tensorboard_port": None,
                            "save_ckpt_epoch_list": [],  # indices where the ckpt will save automatically
                            "average_best_models": True,
-                           "dataset_statistics": False,  # add a dataset statistical analysis and sample images to tensorboard
+                           "dataset_statistics": False,
+                           # add a dataset statistical analysis and sample images to tensorboard
                            "save_tensorboard_to_s3": False,
                            "lr_schedule_function": None,
                            "train_metrics_list": [],
@@ -48,7 +49,22 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "step_lr_update_freq": None,
                            "lr_updates": [],
                            'clip_grad_norm': None,
-                           'pre_prediction_callback': None
+                           'pre_prediction_callback': None,
+                           'ckpt_best_name': 'ckpt_best.pth',
+                           'enable_qat': False,
+                           'qat_params': {
+                               "start_epoch": 0,  # int, first epoch to start QAT.
+                               "quant_modules_calib_method": "percentile",
+                               # str, One of [percentile, mse, entropy, max]. Statistics method for amax computation of the quantized modules.
+                               "per_channel_quant_modules": False,  # bool, whether quant modules should be per channel.
+                               "calibrate": True,  # bool, whether to perfrom calibration.
+                               "calibrated_model_path": None,  # str, path to a calibrated checkpoint (default=None).
+                               "calib_data_loader": None,  # torch.utils.data.DataLoader, data loader of the
+                               # calibration dataset. When None, context.train_loader will be used.
+                               "num_calib_batches": 2,  # int, number of batches to collect the statistics from.
+                               "percentile": 99.99  # float, percentile value to use when SgModel,
+                               # quant_modules_calib_method='percentile'. Discarded when other methods are used..
+                           }
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}

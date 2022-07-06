@@ -6,18 +6,17 @@ Methods are based on:
 
 (Licensed under the Apache License, Version 2.0)
 """
-
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.callbacks import Phase, PhaseCallback, PhaseContext
 import os
-import pickle
-import sys
 from enum import Enum
 from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
-from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
+from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank, \
+    get_world_size
+from torch.distributed import all_gather
 
 logger = get_logger(__name__)
 
@@ -30,9 +29,9 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     _imported_trt_failure = import_err
 
 try:
-    from pytorch_quantization import nn as quant_nn
+    from pytorch_quantization import nn as quant_nn, quant_modules
     from pytorch_quantization import calib
-
+    from pytorch_quantization.tensor_quant import QuantDescriptor
     _imported_pytorch_quantization_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warning("Failed to import pytorch_quantization")
@@ -116,29 +115,47 @@ def _collect_stats(model, data_loader, num_batches):
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
     else:
+        local_rank = get_local_rank()
+        world_size = get_world_size()
+
         # Enable calibrators
-        for name, module in model.named_modules():
-            if isinstance(module, quant_nn.TensorQuantizer):
-                if module._calibrator is not None:
-                    module.disable_quant()
-                    module.enable_calib()
-                else:
-                    module.disable()
+        _enable_calibrators(model)
 
         # Feed data to the network for collecting stats
-        for i, (image, _) in tqdm(enumerate(data_loader), total=num_batches):
-            model(image.cuda())
+        for i, (image, _) in tqdm(enumerate(data_loader), total=num_batches, disable=local_rank > 0):
+            if world_size > 1:
+                all_batches = [torch.zeros_like(image, device='cuda') for _ in range(world_size)]
+                all_gather(all_batches, image.cuda())
+            else:
+                all_batches = [image]
+
+            for local_image in all_batches:
+                model(local_image.cuda())
             if i >= num_batches:
                 break
 
         # Disable calibrators
-        for name, module in model.named_modules():
-            if isinstance(module, quant_nn.TensorQuantizer):
-                if module._calibrator is not None:
-                    module.enable_quant()
-                    module.disable_calib()
-                else:
-                    module.enable()
+        _disable_calibrators(model)
+
+
+def _disable_calibrators(model):
+    for name, module in model.named_modules():
+        if isinstance(module, quant_nn.TensorQuantizer):
+            if module._calibrator is not None:
+                module.enable_quant()
+                module.disable_calib()
+            else:
+                module.enable()
+
+
+def _enable_calibrators(model):
+    for name, module in model.named_modules():
+        if isinstance(module, quant_nn.TensorQuantizer):
+            if module._calibrator is not None:
+                module.disable_quant()
+                module.enable_calib()
+            else:
+                module.disable()
 
 
 def _compute_amax(model, **kwargs):
@@ -153,155 +170,192 @@ def _compute_amax(model, **kwargs):
                         module.load_calib_amax()
                     else:
                         module.load_calib_amax(**kwargs)
-                print(F"{name:40}: {module}")
         model.cuda()
 
 
-def build_trt_engine_from_onnx_ckpt(onnx_ckpt_path: str,
-                                    trt_max_batch_size: int,
-                                    quantization_level: QuantizationLevel = QuantizationLevel.FP32):
+def _deactivate_quant_modules_wrapping():
     """
-    A function for building a trt.ICudaEngine graph from an ONNX model.
-    :param onnx_ckpt_path: Path to ONNX model.
-    :param quantization_level: The precision to use. Currently supported FP32 and FP16.
-    :param trt_max_batch_size: The max batch size allowed for inference.
-    :return: An ICudaEngine object (graph of the model).
+    Deactivates quant modules wrapping, so that further modules won't use Q/DQ layers.
     """
-    if _imported_trt_failure is not None:
-        raise _imported_trt_failure
+    if _imported_pytorch_quantization_failure is not None:
+        raise _imported_pytorch_quantization_failure
     else:
-        TRT_LOGGER = trt.Logger(trt.Logger.VERBOSE)  # VERBOSE for printing
-        EXPLICIT_BATCH = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
-
-        with trt.Builder(TRT_LOGGER) as builder, \
-                builder.create_network(EXPLICIT_BATCH) as network, \
-                builder.create_builder_config() as config, \
-                trt.OnnxParser(network, TRT_LOGGER) as parser:
-
-            # Fill network attributes with information by parsing model
-            with open(onnx_ckpt_path, "rb") as f:
-                # Parse model and capture its exit status
-                parse_success = parser.parse(f.read())
-                # Catch any errors thrown while parsing and exit gracefully on failure
-                if not parse_success:
-                    for error in range(parser.num_errors):
-                        print(parser.get_error(error))
-                    sys.exit(1)
-
-            # Query input names and shapes from parsed TensorRT network
-            network_inputs = [network.get_input(i) for i in range(network.num_inputs)]
-            input_names = [_input.name for _input in network_inputs]  # ex: ["actual_input1"]
-            # Note the original model must have dynamic (-1) dimensions for variable min/opt/max values
-            # in the profile dimensions (such as the batch dimension)
-            input_shapes = [_input.shape for _input in network_inputs]  # ex: [(-1, 3, 224, 224)]
-
-            # Create optimization profile for dynamic batch dimension
-            # Note optimal performance is set for max batch size
-            profile0 = builder.create_optimization_profile()
-            for name, shape in zip(input_names, input_shapes):
-                profile0.set_shape(
-                    name, min=(1, *shape[1:]), opt=(trt_max_batch_size, *shape[1:]),
-                    max=(trt_max_batch_size, *shape[1:])
-                )
-            config.add_optimization_profile(profile0)
-
-            # Additional builder_config flags can be set prior to building the engine
-            if quantization_level == QuantizationLevel.FP16:
-                config.set_flag(trt.BuilderFlag.FP16)
-                try:
-                    builder.fp16_mode = True
-                except:
-                    # TRT8 breaking API - supporting older versions
-                    pass
-            elif quantization_level == QuantizationLevel.INT8:
-                config.set_flag(trt.BuilderFlag.INT8)
-                config.set_flag(trt.BuilderFlag.STRICT_TYPES)
-
-            # Compilation parameters
-            config.max_workspace_size = 4 << 30
-            try:
-                builder.max_workspace_size = 4 << 30
-            except:
-                # TRT8 breaking API - supporting older versions
-                pass
-
-            # Set max batch size
-            builder.max_batch_size = trt_max_batch_size
-
-            engine = builder.build_engine(network, config)
-
-            return engine
+        quant_modules.deactivate()
 
 
-def save_trt_engine_from_onnx_ckpt(onnx_ckpt_path, output_engine_path, quantization_level=QuantizationLevel.INT8,
-                                   max_batch_size=1):
+def _activate_quant_modules_wrapping():
     """
-    Method for creating trt eingine from an exisiting ONNX file
-
-    :param onnx_ckpt_path: str, path to ONNX file
-    :param output_engine_path: str, target path for the trt engine file.
-    :param quantization_level: QuantizationLevel, quantization level for the engine (should be INT8 when QAT)
-    :param max_batch_size: int, trt maximal batch size
+    Activates quant modules wrapping, so that further modules use Q/DQ layers.
     """
-    if os.path.exists(onnx_ckpt_path):
-        print("Building engine from file {}".format(onnx_ckpt_path))
-        trt_engine = build_trt_engine_from_onnx_ckpt(onnx_ckpt_path=onnx_ckpt_path,
-                                                     trt_max_batch_size=max_batch_size,
-                                                     quantization_level=quantization_level)
-        serialized_engine = bytes(trt_engine.serialize())
-        engine_dict = {'engine': serialized_engine,
-                       'compiler': 'trt',
-                       'precision': quantization_level.value}
-        with open(output_engine_path, "wb") as f:
-            pickle.dump(engine_dict, f)
-            print(
-                f'Successfully converted {onnx_ckpt_path} to {output_engine_path} with max batch size {max_batch_size} and {quantization_level} quantization.')
+    if _imported_pytorch_quantization_failure is not None:
+        raise _imported_pytorch_quantization_failure
     else:
-        raise ValueError("The input file does not exist.")
+        quant_modules.initialize()
 
 
-class Int8CalibrationPreTrainingCallback(PhaseCallback):
+class QATCallback(PhaseCallback):
     """
-    Pre-training callback for calibrating model with Q/DQ modules.
-    Saves the calibrated model using context.sg_logger.
+    A callback for transitioning training into QAT.
 
-    Note: calibration method is according to quant_modules_calib_method passed in arch_params in SgModel.build_model().
+    Rebuilds the model with QAT layers then either:
+        1. loads the best checkpoint then performs calibration.
+        2. loads an external calibrated model (makes sense when start_epoch=0).
+
+    Additionally, resets SgModel's best_metric and sets ckpt_best_name to 'qat_ckpt_best.pth' so best QAT checkpoints
+     will be saved separately.
+
 
     Attributes:
-        calib_data_loader: DataLoader,  dataloader to apply calibration on. When none, context.valid_loader will be used. (Default=None).
-        num_calib_batches: int, number of batches to collect the statistics from (default=2).
-        percentile: float, percentile value to use when SgModel,quant_modules_calib_method='percentile'. Discarded when other methods are used (Default=99.99).
+        start_epoch: int, first epoch to start QAT.
 
-        TODO: MAKE DDP SAFE
+        quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
+         computation of the quantized modules (default=percentile).
+
+        per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).
+
+        calibrate: bool, whether to perfrom calibration (default=False).
+
+        calibrated_model_path: str, path to a calibrated checkpoint (default=None).
+
+        calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset. When None,
+         context.train_loader will be used (default=None).
+
+        num_calib_batches: int, number of batches to collect the statistics from.
+
+        percentile: float, percentile value to use when SgModel,quant_modules_calib_method='percentile'.
+         Discarded when other methods are used (Default=99.99).
+
+
+
     """
 
-    def __init__(self, calib_data_loader: DataLoader = None, num_calib_batches: int = 2, percentile: float = 99.99):
-        super().__init__(phase=Phase.PRE_TRAINING)
+    def __init__(self, start_epoch: int, quant_modules_calib_method: str = "percentile",
+                 per_channel_quant_modules: bool = False, calibrate: bool = True, calibrated_model_path: str = None,
+                 calib_data_loader: DataLoader = None, num_calib_batches: int = 2, percentile: float = 99.99):
+        super(QATCallback, self).__init__(Phase.TRAIN_EPOCH_START)
+        self._validate_args(start_epoch, quant_modules_calib_method, calibrate, calibrated_model_path)
+        self.start_epoch = start_epoch
+        self.quant_modules_calib_method = quant_modules_calib_method
+        self.per_channel_quant_modules = per_channel_quant_modules
+        self.calibrate = calibrate
+        self.calibrated_model_path = calibrated_model_path
         self.calib_data_loader = calib_data_loader
         self.num_calib_batches = num_calib_batches
         self.percentile = percentile
 
+    def _validate_args(self, start_epoch: int, quant_modules_calib_method: str, calibrate, calibrated_model_path):
+        if start_epoch < 0:
+            raise ValueError("start_epoch must be positive.")
+        if quant_modules_calib_method not in ["percentile", "mse", "entropy", "max"]:
+            raise ValueError(
+                "Unsupported quantization calibration method, expected one of: percentile, mse, entropy, max, got " + str(
+                    self.quant_modules_calib_method) + ".")
+        if not calibrate and calibrated_model_path is None:
+            logger.warning(
+                "calibrate=False and no calibrated_model_path is given. QAT will be on an uncalibrated model.")
+
     def __call__(self, context: PhaseContext):
-        self.calib_data_loader = self.calib_data_loader or context.valid_loader
+        if context.epoch == self.start_epoch:
+            # SET CHECKPOINT PARAMS SO WE LOAD THE BEST CHECKPOINT SO FAR
+            checkpoint_params_qat = context.checkpoint_params.to_dict()
+            checkpoint_params_qat['ckpt_name'] = 'ckpt_best.pth'
+            checkpoint_params_qat['external_checkpoint_path'] = self.calibrated_model_path
+            if self.start_epoch > 0 or self.calibrated_model_path is not None:
+                checkpoint_params_qat['load_checkpoint'] = True
+
+            # REMOVE REFERENCES TO NETWORK AND CLEAN GPU MEMORY BEFORE BUILDING THE NEW NET
+            context.set_net(None)
+            context.net = None
+            torch.cuda.empty_cache()
+
+            # BUILD THE SAME MODEL BUT WITH FAKE QUANTIZED MODULES, AND LOAD BEST CHECKPOINT TO IT
+            self._initialize_quant_modules()
+            context.build_model(architecture=context.architecture,
+                                arch_params=context.arch_params.to_dict(),
+                                checkpoint_params=checkpoint_params_qat)
+            _deactivate_quant_modules_wrapping()
+
+            # UPDATE CONTEXT'S NET REFERENCE
+            context.net = context.get_net()
+
+            if self.calibrate:
+                self._calibrate_model(context)
+
+            # RESET THE BEST METRIC VALUE SO WE SAVE CHECKPOINTS AFTER THE EXPECTED QAT ACCURACY DEGRADATION
+            context.reset_best_metric()
+
+            # SET NEW FILENAME FOR THE BEST CHECKPOINT SO WE DON'T OVERRIDE THE PREVIOUS ONES
+            context.set_ckpt_best_name('qat_ckpt_best.pth')
+
+    def _calibrate_model(self, context: PhaseContext):
+        """
+        Performs model calibration (collecting stats and setting amax for the fake quantized moduls)
+
+        :param context: PhaseContext, current phase context.
+        """
+        self.calib_data_loader = self.calib_data_loader or context.train_loader
         calibrate_model(model=context.net,
                         calib_data_loader=self.calib_data_loader,
-                        method=context.quant_modules_calib_method,
+                        method=self.quant_modules_calib_method,
                         num_calib_batches=self.num_calib_batches,
                         percentile=self.percentile)
+        method_desc = self.quant_modules_calib_method + '_' + str(
+            self.percentile) if self.quant_modules_calib_method == 'percentile' else self.quant_modules_calib_method
 
-        method_desc = context.quant_modules_calib_method + '_' + str(
-            self.percentile) if context.quant_modules_calib_method == 'percentile' else context.quant_modules_calib_method
         if not context.ddp_silent_mode:
-            context.sg_logger.add_checkpoint(tag='ckpt_calibrated_' + method_desc + '.pth', state_dict={"net": context.net})
+            logger.info("Performing additional validation on calibrated model...")
+
+        calibrated_valid_results = context.test(epoch=self.start_epoch, silent_mode=True)
+        calibrated_acc = calibrated_valid_results[context.metric_idx_in_results_tuple]
+
+        if not context.ddp_silent_mode:
+            logger.info("Calibrate model " + context.metric_to_watch + ": " + str(calibrated_acc))
+            context.sg_logger.add_checkpoint(tag='ckpt_calibrated_' + method_desc + '.pth',
+                                             state_dict={"net": context.net.state_dict(), "acc": calibrated_acc})
+            context.sg_logger.add_scalar("Calibrated_Model_"+context.metric_to_watch,
+                                         calibrated_acc,
+                                         global_step=self.start_epoch)
+
+    def _initialize_quant_modules(self):
+        """
+        Initialize quant modules wrapping.
+        """
+
+        if _imported_pytorch_quantization_failure is not None:
+            raise _imported_pytorch_quantization_failure
+        else:
+            if self.quant_modules_calib_method in ["percentile", "mse", "entropy"]:
+                calib_method_type = 'histogram'
+            else:
+                calib_method_type = 'max'
+
+            if self.per_channel_quant_modules:
+                quant_desc_input = QuantDescriptor(calib_method=calib_method_type)
+                quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
+                quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
+            else:
+                quant_desc_input = QuantDescriptor(calib_method=calib_method_type, axis=None)
+                quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
+                quant_nn.QuantConvTranspose2d.set_default_quant_desc_input(quant_desc_input)
+                quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
+
+                quant_desc_weight = QuantDescriptor(calib_method=calib_method_type, axis=None)
+                quant_nn.QuantConv2d.set_default_quant_desc_weight(quant_desc_weight)
+                quant_nn.QuantConvTranspose2d.set_default_quant_desc_weight(quant_desc_weight)
+                quant_nn.QuantLinear.set_default_quant_desc_weight(quant_desc_weight)
+
+            _activate_quant_modules_wrapping()
 
 
 class PostQATConversionCallback(PhaseCallback):
     """
-    Post QAT training callback that saves the best checkpoint (i.e ckpt_best.pth) in onnx and trt engine formats.
+    Post QAT training callback that saves the best checkpoint (i.e ckpt_best.pth) in onnx format.
+    Should be used with QATCallback.
 
     Attributes:
         dummy_input_size: (tuple) dummy input size for the ONNX conversion.
     """
+
     def __init__(self, dummy_input_size):
         super().__init__(phase=Phase.POST_TRAINING)
         self.dummy_input_size = dummy_input_size
@@ -310,9 +364,8 @@ class PostQATConversionCallback(PhaseCallback):
         local_rank = get_local_rank()
         with wait_for_the_master(local_rank):
             if local_rank == 0:
-                best_ckpt_path = os.path.join(context.checkpoints_dir_path, "ckpt_best.pth")
-                onnx_path = os.path.join(context.checkpoints_dir_path, "ckpt_best.onnx")
-                trt_path = os.path.join(context.checkpoints_dir_path, "ckpt_best.engine")
+                best_ckpt_path = os.path.join(context.checkpoints_dir_path, "qat_ckpt_best.pth")
+                onnx_path = os.path.join(context.checkpoints_dir_path, "qat_ckpt_best.onnx")
 
                 load_checkpoint_to_model(ckpt_local_path=best_ckpt_path,
                                          net=context.net,
@@ -323,7 +376,5 @@ class PostQATConversionCallback(PhaseCallback):
                                          )
 
                 export_qat_onnx(context.net, onnx_path, self.dummy_input_size, context.per_channel_quant_modules)
-                save_trt_engine_from_onnx_ckpt(onnx_path, trt_path)
 
-                context.sg_logger.add_file("ckpt_best.onnx")
-                context.sg_logger.add_file("ckpt_best.engine")
+                context.sg_logger.add_file("qat_ckpt_best.onnx")

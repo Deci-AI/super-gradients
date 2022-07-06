@@ -32,6 +32,7 @@ from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
+from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_model_utils import MonitoredValue
 from super_gradients.training import metrics
 from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, IllegalDataloaderInitialization
@@ -59,15 +60,6 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 
 logger = get_logger(__name__)
-
-try:
-    from pytorch_quantization import nn as quant_nn
-    from pytorch_quantization.tensor_quant import QuantDescriptor
-    from pytorch_quantization import quant_modules
-    _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warning("Failed to import pytorch_quantization")
-    _imported_pytorch_quantization_failure = import_err
 
 
 class StrictLoad(Enum):
@@ -185,6 +177,9 @@ class SgModel:
         self.external_checkpoint_path = None
         self.strict_load = StrictLoad.ON
         self.load_ema_as_net = False
+        self.ckpt_best_name = 'ckpt_best.pth'
+        self.enable_qat = False
+        self.qat_params = {}
 
         # DETERMINE THE LOCATION OF THE LOSS AND ACCURACY IN THE RESULTS TUPLE OUTPUTED BY THE TEST
         self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = None, None
@@ -288,16 +283,6 @@ class SgModel:
                                                (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
                                                load the checkpoint even if the load_checkpoint flag is not provided.
 
-        Additional key:values that can be passed through arch_params:
-
-         use_quant_modules: bool, When set, conv and linear layers will be wrapped with Q/DQ pytorch_quantization
-                 modules (use for QAT, default=False)
-
-         quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
-                 computation of the quantized modules (default=percentile).
-
-         per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).
-
         """
         if 'num_classes' not in arch_params.keys():
             if self.classes is None and self.dataset_interface is None:
@@ -308,60 +293,15 @@ class SgModel:
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
 
-        self._initialize_quant_modules()
         self.net = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args, **kwargs)
-        self._deactivate_quant_modules_wrapping()
+
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
 
-        self.architecture = self.net.structure if hasattr(self.net, 'structure') else architecture
+        self.architecture = architecture
 
         self._net_to_device()
 
         self._load_checkpoint_to_model()
-
-    def _deactivate_quant_modules_wrapping(self):
-        """
-        Deactivates quant modules wrapping, so that further modules won't use Q/DQ layers.
-        """
-        if self.use_quant_modules:
-            quant_modules.deactivate()
-
-    def _initialize_quant_modules(self):
-        """
-        Initialize quant modules wrapping.
-        """
-        self.use_quant_modules = core_utils.get_param(self.arch_params, "use_quant_modules", False)
-        self.quant_modules_calib_method = core_utils.get_param(self.arch_params, "quant_modules_calib_method", "percentile")
-        self.per_channel_quant_modules = core_utils.get_param(self.arch_params, "per_channel_quant_modules", False)
-
-        if self.use_quant_modules:
-            if _imported_pytorch_quantization_failure is not None:
-                raise _imported_pytorch_quantization_failure
-            else:
-                if self.quant_modules_calib_method in ["percentile", "mse", "entropy"]:
-                    calib_method_type = 'histogram'
-                elif self.quant_modules_calib_method == "max":
-                    calib_method_type = 'max'
-
-                else:
-                    raise ValueError("Unsupported quantization calibration method, expected one of: percentile, mse, entropy, max, got " + str(self.quant_modules_calib_method) + ".")
-
-                if self.per_channel_quant_modules:
-                    quant_desc_input = QuantDescriptor(calib_method=calib_method_type)
-                    quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
-                    quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
-                else:
-                    quant_desc_input = QuantDescriptor(calib_method=calib_method_type, axis=None)
-                    quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
-                    quant_nn.QuantConvTranspose2d.set_default_quant_desc_input(quant_desc_input)
-                    quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
-
-                    quant_desc_weight = QuantDescriptor(calib_method=calib_method_type, axis=None)
-                    quant_nn.QuantConv2d.set_default_quant_desc_weight(quant_desc_weight)
-                    quant_nn.QuantConvTranspose2d.set_default_quant_desc_weight(quant_desc_weight)
-                    quant_nn.QuantLinear.set_default_quant_desc_weight(quant_desc_weight)
-
-                quant_modules.initialize()
 
     def _set_ckpt_loading_attributes(self):
         """
@@ -377,6 +317,7 @@ class SgModel:
         if self.load_checkpoint or self.external_checkpoint_path:
             self.load_weights_only = core_utils.get_param(self.checkpoint_params, 'load_weights_only',
                                                           default_val=False)
+        self.ckpt_name = core_utils.get_param(self.checkpoint_params, 'ckpt_name', default_val=self.ckpt_name)
 
     def _net_to_device(self):
         """
@@ -573,7 +514,7 @@ class SgModel:
                 metric < self.best_metric and not self.greater_metric_to_watch_is_better):
             # STORE THE CURRENT metric AS BEST
             self.best_metric = metric
-            self.sg_logger.add_checkpoint(tag='ckpt_best.pth', state_dict=state, global_step=epoch)
+            self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.VALIDATION_END_BEST_EPOCH, context)
@@ -832,6 +773,35 @@ class SgModel:
                       for the forward pass, and further computations. Args for this callable should be in the order
                       (inputs, targets, batch_idx) returning modified_inputs, modified_targets
 
+                -   `ckpt_best_name` : str (default='ckpt_best.pth')
+
+                    The best checkpoint (according to metric_to_watch) will be saved under this filename in the checkpoints directory.
+
+                -   `enable_qat`: bool (default=False)
+
+                    Adds a QATCallback to the phase callbacks, that triggers quantization aware training starting from
+                     qat_params["start_epoch"]
+
+                -   `qat_params`: dict-like object with the following key/values:
+
+                        start_epoch: int, first epoch to start QAT.
+
+                        quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
+                         computation of the quantized modules (default=percentile).
+
+                        per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).
+
+                        calibrate: bool, whether to perfrom calibration (default=False).
+
+                        calibrated_model_path: str, path to a calibrated checkpoint (default=None).
+
+                        calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset. When None,
+                         context.train_loader will be used (default=None).
+
+                        num_calib_batches: int, number of batches to collect the statistics from.
+
+                        percentile: float, percentile value to use when SgModel,quant_modules_calib_method='percentile'.
+                         Discarded when other methods are used (Default=99.99).
 
 
         :return:
@@ -938,6 +908,12 @@ class SgModel:
         self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
         self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
 
+        # ADD CALLBACK FOR QAT
+        self.enable_qat = self.training_params.enable_qat
+        if self.enable_qat:
+            self.qat_params = self.training_params.qat_params
+            self.phase_callbacks.append(QATCallback(**self.qat_params))
+
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
         if not self.ddp_silent_mode:
@@ -966,7 +942,7 @@ class SgModel:
         if not self.load_checkpoint or self.load_weights_only:
             # WHEN STARTING TRAINING FROM SCRATCH, DO NOT LOAD OPTIMIZER PARAMS (EVEN IF LOADING BACKBONE)
             self.start_epoch = 0
-            self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
+            self.reset_best_metric()
             load_opt_params = False
 
         if isinstance(self.training_params.optimizer, str):
@@ -988,6 +964,10 @@ class SgModel:
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
+        self.ckpt_best_name = self.training_params.ckpt_best_name
+
+
+
         context = PhaseContext(optimizer=self.optimizer,
                                net=self.net,
                                experiment_name=self.experiment_name,
@@ -997,11 +977,22 @@ class SgModel:
                                sg_logger=self.sg_logger,
                                train_loader=self.train_loader,
                                valid_loader=self.valid_loader,
-                               quant_modules_calib_method=self.quant_modules_calib_method,
                                checkpoints_dir_path=self.checkpoints_dir_path,
                                training_params=self.training_params,
                                ddp_silent_mode=self.ddp_silent_mode,
-                               per_channel_quant_modules=self.per_channel_quant_modules)
+                               build_model=self.build_model,
+                               checkpoint_params=self.checkpoint_params,
+                               architecture=self.architecture,
+                               arch_params=self.arch_params,
+                               get_net=self.get_net,
+                               set_net=self.set_net,
+                               set_ckpt_best_name=self.set_ckpt_best_name,
+                               reset_best_metric=self.reset_best_metric,
+                               test=self._validate_epoch,
+                               metric_idx_in_results_tuple=self.metric_idx_in_results_tuple,
+                               metric_to_watch=self.metric_to_watch,
+                               device=self.device
+                               )
 
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
@@ -1099,6 +1090,9 @@ class SgModel:
                     self.sg_logger.upload()
 
                 self.sg_logger.close()
+
+    def reset_best_metric(self):
+        self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
 
     @resolve_param('train_metrics_list', ListFactory(MetricsFactory()))
     def _set_train_metrics(self, train_metrics_list):
@@ -1891,3 +1885,22 @@ class SgModel:
                      its final value. beta=15 is ~40% of the training process.
         """
         return ModelEMA(self.net, decay, beta, exp_activation)
+
+    def get_net(self):
+        """
+        Getter for network.
+        :return: torch.nn.Module, self.net
+        """
+        return self.net
+
+    def set_net(self, net: torch.nn.Module):
+        """
+        Setter for network.
+        """
+        self.net = net
+
+    def set_ckpt_best_name(self, ckpt_best_name):
+        """
+        Setter for best checkpoint filename.
+        """
+        self.ckpt_best_name = ckpt_best_name

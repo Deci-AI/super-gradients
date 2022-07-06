@@ -1,44 +1,61 @@
 """
 QAT example for Resnet18
 
-The purpose of this example is to demonstrate the usage of QAT in super_gradients through phase callbacks.
+The purpose of this example is to demonstrate the usage of QAT in super_gradients.
+
+Behind the scenes, when passing enable_qat=True, a callback for QAt will be added.
+
+Once triggered, the following will happen:
+- The model will be rebuilt with quantized nn.modules.
+- Our pretrained imagenet weights will be loaded to it.
+- We perform calibration with 2 batches from our training set (1024 samples = 8 gpus X 128 samples_per_batch).
+- We evaluate the calibrated model (accuracy is logged under calibrated_model_accuracy).
+- The calibrated checkpoint prior to QAT is saved under ckpt_calibrated_{calibration_method}.pth.
+- We fine tune the calibrated model for 2 epochs
+
+Finally, once training is over- we trigger a pos-training callback that will export the ONNX files.
+
 """
 
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface
 from super_gradients.training import SgModel, MultiGPUMode
 from super_gradients.training.metrics.classification_metrics import Accuracy
-from super_gradients.training.utils.quantization_utils import Int8CalibrationPreTrainingCallback, \
-    PostQATConversionCallback
 
-dataset_params = {"batch_size": 64,
-                  "random_erase_value": "random",
-                  "train_interpolation": "random",
-                  "rand_augment_config_string": "rand-m7-mstd0.5",
-                  "cutmix": True,
-                  "cutmix_params":
-                      {"mixup_alpha": 0.2,
-                       "cutmix_alpha": 1.0,
-                       "label_smoothing": 0.1}}
+import super_gradients
+from super_gradients.training.utils.quantization_utils import PostQATConversionCallback
 
-dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params=dataset_params)
-model = SgModel("resnet18_qat_tutorial",
+super_gradients.init_trainer()
+
+dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params={"batch_size": 128})
+model = SgModel("resnet18_qat_example",
                 model_checkpoints_location='local',
-                multi_gpu=MultiGPUMode.OFF)
-
+                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
 
 model.connect_dataset_interface(dataset)
-model.build_model("resnet18", checkpoint_params={"pretrained_weights": "imagenet"},
-                  arch_params={"use_quant_modules": True,
-                               "quant_modules_calib_method": "entropy"})
+model.build_model("resnet50", checkpoint_params={"pretrained_weights": "imagenet"})
 
-train_params = {"max_epochs": 15,
-                "lr_mode": "cosine",
-                "cosine_final_lr_ratio": 0.01,
-                "initial_lr": 0.0001, "loss": "cross_entropy", "train_metrics_list": [Accuracy()],
+train_params = {"max_epochs": 3,
+                "lr_mode": "step",
+                "optimizer": "SGD",
+                "lr_updates": [2],
+                "lr_decay_factor": 0.1,
+                "batch_accumulate": 4,
+                "initial_lr": 0.0001, "loss": "cross_entropy",
+                "train_metrics_list": [Accuracy()],
                 "valid_metrics_list": [Accuracy()],
-                "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
-                "greater_metric_to_watch_is_better": True, "average_best_models": False,
-                "phase_callbacks": [Int8CalibrationPreTrainingCallback(num_calib_batches=2),
-                                    PostQATConversionCallback((1, 3, 224, 224))]}
+                "loss_logging_items_names": ["Loss"],
+                "metric_to_watch": "Accuracy",
+                "greater_metric_to_watch_is_better": True,
+                "average_best_models": False,
+                "enable_qat": True,
+                "qat_params": {
+                    "start_epoch": 0,
+                    "quant_modules_calib_method": "percentile",
+                    "calibrate": True,  # whether to perform calibration.
+                    "num_calib_batches": 2,  # number of batches to collect the statistics from.
+                    "percentile": 99.99  # percentile value to use when SgModel,
+                },
+                "phase_callbacks": [PostQATConversionCallback(dummy_input_size=(1, 3, 224, 224))]
+                }
 
 model.train(training_params=train_params)
