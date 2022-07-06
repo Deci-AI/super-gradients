@@ -34,7 +34,7 @@
 
 defaults:
   - cityscapes_stdc_seg50
-  - training_hyperparams: cityscapes_stdc_dice_edge_train_params
+  - override training_hyperparams: cityscapes_stdc_dice_edge_train_params
   - _self_
 
 dataset_params:

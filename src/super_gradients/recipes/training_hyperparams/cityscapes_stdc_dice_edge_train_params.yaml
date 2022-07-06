@@ -1,5 +1,25 @@
+# The only difference with `cityscapes_stdc_train_params` is the loss function.
+# Not able to inherit `cityscapes_stdc_train_params` and override loss, because overriding nested dictionaries isn't possible with hydra yet.
+
 defaults:
-  - cityscapes_stdc_train_params
+  - default_train_params
+
+max_epochs: 800
+lr_mode: poly
+initial_lr: 0.01   # for effective batch_size=32
+lr_warmup_epochs: 10
+multiply_head_lr: 10.
+
+optimizer: SGD
+optimizer_params:
+  momentum: 0.9
+  weight_decay: 5e-4
+
+ema: True
+ema_params:
+  decay: 0.9999
+  beta: 15
+  exp_activation: True
 
 loss:
   dice_ce_edge_loss:
@@ -9,5 +29,28 @@ loss:
     dice_ce_weights: [ 1., 1. ]
     ce_edge_weights: [ .5, .5 ]
     edge_kernel: 3
+
+train_metrics_list:
+  - PixelAccuracy:
+      ignore_label: 19
+  - IoU:
+      num_classes: 20
+      ignore_index: 19
+
+valid_metrics_list:
+  - PixelAccuracy:
+      ignore_label: 19
+  - IoU:
+      num_classes: 20
+      ignore_index: 19
+
+loss_logging_items_names: [main_loss, aux_loss1, aux_loss2, detail_loss, loss]
+
+zero_weight_decay_on_bias_and_bn: True
+average_best_models: True
+mixed_precision: False
+
+metric_to_watch: IoU
+greater_metric_to_watch_is_better: True
 
 _convert_: all
