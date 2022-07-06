@@ -26,7 +26,6 @@ class COCODetectionDatasetV2(Dataset):
             with_crowd: bool = True
     ):
         """
-        Adding crowd targets to COCODetectionDatasetV2 (yolox) + small update on previous COCODetectionDataset implementation
         :param img_size: tuple, Image size (when loaded, before transforms)
         :param data_dir: str, root path to coco data.
         :param json_file: str, path to coco json file, that resides in data_dir/annotations/json_file.
@@ -78,9 +77,20 @@ class COCODetectionDatasetV2(Dataset):
         return len(self.ids)
 
     def _load_coco_annotations(self):
-        return [self._load_anno_from_ids(_ids) for _ids in tqdm(self.ids)]
+        return [self._load_anno_from_ids(_ids) for _ids in tqdm(self.ids, desc="Loading annotations")]
 
     def _load_anno_from_ids(self, id_):
+        """
+        Load relevant information of a specific image
+
+        :param id_: image id
+        :return res:            Target Bboxes (detection)
+        :return res_crowd:      Crowd target Bboxes (detection)
+        :return res_seg:        Segmentation
+        :return img_info:       Image (height, width)
+        :return resized_info:   Resides image (height, width)
+        :return img_path:       Path to the associated image
+        """
         im_ann = self.coco.loadImgs(id_)[0]
         width = im_ann["width"]
         height = im_ann["height"]
@@ -137,8 +147,8 @@ class COCODetectionDatasetV2(Dataset):
             if "file_name" in im_ann
             else "{:012}".format(id_) + ".jpg"
         )
-
-        return res, res_crowd, res_seg, img_info, resized_info, os.path.join(self.data_dir, self.name, file_name)
+        img_path = os.path.join(self.data_dir, self.name, file_name)
+        return res, res_crowd, res_seg, img_info, resized_info, img_path
 
     def _cache_images(self):
         logger.warning(
