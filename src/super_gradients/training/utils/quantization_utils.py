@@ -21,8 +21,6 @@ from torch.distributed import all_gather
 logger = get_logger(__name__)
 
 try:
-    import tensorrt as trt
-
     _imported_trt_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warning("Failed to import pytorch_quantization")
@@ -32,6 +30,7 @@ try:
     from pytorch_quantization import nn as quant_nn, quant_modules
     from pytorch_quantization import calib
     from pytorch_quantization.tensor_quant import QuantDescriptor
+
     _imported_pytorch_quantization_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warning("Failed to import pytorch_quantization")
@@ -59,7 +58,8 @@ class QuantizationLevel(str, Enum):
             raise NotImplementedError(f'Quantization Level: "{quantization_level}" is not supported')
 
 
-def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple, per_channel_quantization: bool = False):
+def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple,
+                    per_channel_quantization: bool = False):
     """
     Method for exporting onnx after QAT.
 
@@ -76,11 +76,13 @@ def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tup
         logger.info("Creating ONNX file: " + onnx_filename)
         dummy_input = torch.randn(input_shape, device='cuda')
         opset_version = 13 if per_channel_quantization else 12
-        torch.onnx.export(model, dummy_input, onnx_filename, verbose=False, opset_version=opset_version, enable_onnx_checker=False,
+        torch.onnx.export(model, dummy_input, onnx_filename, verbose=False, opset_version=opset_version,
+                          enable_onnx_checker=False,
                           do_constant_folding=True)
 
 
-def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.DataLoader, method:str="percentile", num_calib_batches: int=2, percentile:float=99.99):
+def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.DataLoader, method: str = "percentile",
+                    num_calib_batches: int = 2, percentile: float = 99.99):
     """
     Calibrates torch model with quantized modules.
 
@@ -312,7 +314,7 @@ class QATCallback(PhaseCallback):
             logger.info("Calibrate model " + context.metric_to_watch + ": " + str(calibrated_acc))
             context.sg_logger.add_checkpoint(tag='ckpt_calibrated_' + method_desc + '.pth',
                                              state_dict={"net": context.net.state_dict(), "acc": calibrated_acc})
-            context.sg_logger.add_scalar("Calibrated_Model_"+context.metric_to_watch,
+            context.sg_logger.add_scalar("Calibrated_Model_" + context.metric_to_watch,
                                          calibrated_acc,
                                          global_step=self.start_epoch)
 

@@ -966,8 +966,6 @@ class SgModel:
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
-
-
         context = PhaseContext(optimizer=self.optimizer,
                                net=self.net,
                                experiment_name=self.experiment_name,
