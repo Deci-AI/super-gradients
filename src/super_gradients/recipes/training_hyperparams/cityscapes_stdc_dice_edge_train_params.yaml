@@ -1,0 +1,13 @@
+defaults:
+  - cityscapes_stdc_train_params
+
+loss:
+  dice_ce_edge_loss:
+    num_classes: 19
+    ignore_index: 19
+    weights: [ 1., 0.6, 0.4, 1. ]
+    dice_ce_weights: [ 1., 1. ]
+    ce_edge_weights: [ .5, .5 ]
+    edge_kernel: 3
+
+_convert_: all
