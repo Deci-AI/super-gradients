@@ -367,8 +367,8 @@ class PostQATConversionCallback(PhaseCallback):
 
     def __call__(self, context: PhaseContext):
         if not context.ddp_silent_mode:
-            best_ckpt_path = os.path.join(context.checkpoints_dir_path, "qat_ckpt_best.pth")
-            onnx_path = os.path.join(context.checkpoints_dir_path, "qat_ckpt_best.onnx")
+            best_ckpt_path = os.path.join(context.ckpt_dir, "qat_ckpt_best.pth")
+            onnx_path = os.path.join(context.ckpt_dir, "qat_ckpt_best.onnx")
 
             load_checkpoint_to_model(ckpt_local_path=best_ckpt_path,
                                      net=context.net,

@@ -976,7 +976,6 @@ class SgModel:
                                sg_logger=self.sg_logger,
                                train_loader=self.train_loader,
                                valid_loader=self.valid_loader,
-                               checkpoints_dir_path=self.checkpoints_dir_path,
                                training_params=self.training_params,
                                ddp_silent_mode=self.ddp_silent_mode,
                                checkpoint_params=self.checkpoint_params,
