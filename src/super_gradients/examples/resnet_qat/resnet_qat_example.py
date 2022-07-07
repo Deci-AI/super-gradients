@@ -49,7 +49,7 @@ train_params = {"max_epochs": 1,
                 "enable_qat": True,
                 "qat_params": {
                     "start_epoch": 0,
-                    "quant_modules_calib_method": "percentile",
+                    "quant_modules_calib_method": "percentile", # statistics method for amax computation (one of [percentile, mse, entropy, max]).
                     "calibrate": True,  # whether to perform calibration.
                     "num_calib_batches": 2,  # number of batches to collect the statistics from.
                     "percentile": 99.99  # percentile value to use when SgModel,
