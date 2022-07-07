@@ -14,6 +14,7 @@ from super_gradients.training.utils.callbacks import Phase, PhaseCallback, Phase
 import os
 from enum import Enum
 from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
+from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, \
     get_world_size
 from torch.distributed import all_gather
@@ -377,7 +378,7 @@ class PostQATConversionCallback(PhaseCallback):
                                      strict=True,
                                      load_backbone=False
                                      )
-
-            export_qat_onnx(context.net.module, onnx_path, self.dummy_input_size, context.per_channel_quant_modules)
+            per_channel_quant_modules = get_param(context.training_params.qat_params, "per_channel_quant_modules")
+            export_qat_onnx(context.net.module, onnx_path, self.dummy_input_size, per_channel_quant_modules)
 
             context.sg_logger.add_file("qat_ckpt_best.onnx")
