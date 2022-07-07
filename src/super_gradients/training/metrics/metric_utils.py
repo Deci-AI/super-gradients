@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torchmetrics import MetricCollection
-from super_gradients.training.metrics.detection_metrics import ap_per_class
+from super_gradients.training.metrics.detection_metrics import ap_per_class, compute_detection_metrics
 from super_gradients.training.utils.utils import AverageMeter
 
 
@@ -36,6 +36,40 @@ def calc_batch_prediction_detection_metrics_per_class(metrics, dataset_interface
                     f1[i]))
 
     results_tuple = (mean_precision, mean_recall, map, mf1, *test_loss.average)
+    return results_tuple
+
+
+def calc_batch_prediction_detection_metrics_per_classV2(matching, dataset_interface, iou_thres, silent_mode,
+                                                      per_class_verbosity, class_names, test_loss):
+    images_counter = len(matching)
+    if len(matching):
+        matching_tensors = [torch.cat(x, 0) for x in list(zip(*matching))]
+        device = matching_tensors[0].device
+
+        ap, precision, recall, f1, unique_classes = compute_detection_metrics(*matching_tensors, device=device)
+        ap, precision, recall, f1 = ap.cpu().numpy(), precision.cpu().numpy(), recall.cpu().numpy(), f1.cpu().numpy()
+        _, unique_classes = unique_classes.cpu().numpy().astype(np.int64)
+
+        if iou_thres.is_range():
+            precision, recall, f1 = precision[:, 0], recall[:, 0], f1[:, 0]
+        mean_ap, mean_precision, mean_recall, mean_f1 = ap.mean(), precision.mean(), recall.mean(), f1.mean()
+    else:
+        targets_per_class = torch.zeros(1)
+
+    if not silent_mode:
+        # PRINT RESULTS
+        map_str = 'mAP@%.1f' % iou_thres[0] if not iou_thres.is_range() else 'mAP@%.2f:%.2f' % iou_thres
+        print(('%15s' * 7) % ('Class', 'Images', 'Targets', 'Precision', 'Recall', map_str, 'F1'))
+        pf = '%15s' + '%15.3g' * 6  # print format
+        print(pf % ('all', images_counter, targets_per_class.sum(), mean_precision, mean_recall, mean_ap, mean_f1))
+
+        # PRINT RESULTS PER CLASS
+        if len(dataset_interface.testset.classes) > 1 and len(matching) and per_class_verbosity:
+            for i, c in enumerate(unique_classes):
+                print(pf % (
+                    class_names[c], images_counter, targets_per_class[c], precision[i], recall[i], ap[i, 0], f1[i]))
+
+    results_tuple = (mean_precision, mean_recall, mean_ap, mean_f1, *test_loss.average)
     return results_tuple
 
 
