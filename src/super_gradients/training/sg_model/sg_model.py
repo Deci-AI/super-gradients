@@ -372,7 +372,8 @@ class SgModel:
                                device=self.device,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
-                               train_loader=self.train_loader)
+                               train_loader=self.train_loader,
+                               context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END))
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
             batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
@@ -1765,7 +1766,8 @@ class SgModel:
                                criterion=self.criterion,
                                device=self.device,
                                lr_warmup_epochs=lr_warmup_epochs,
-                               sg_logger=self.sg_logger)
+                               sg_logger=self.sg_logger,
+                               context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END))
 
         if not silent_mode:
             # PRINT TITLES
@@ -1913,7 +1915,7 @@ class SgModel:
         :return: ContextSgMethods holding methods from self.
         """
         if phase in [Phase.PRE_TRAINING, Phase.TRAIN_EPOCH_START, Phase.TRAIN_EPOCH_END, Phase.VALIDATION_EPOCH_END,
-                     Phase.VALIDATION_EPOCH_END, Phase.POST_TRAINING]:
+                     Phase.VALIDATION_EPOCH_END, Phase.POST_TRAINING, Phase.VALIDATION_END_BEST_EPOCH]:
             context_methods = ContextSgMethods(get_net=self.get_net,
                                                set_net=self.set_net,
                                                set_ckpt_best_name=self.set_ckpt_best_name,
