@@ -14,6 +14,7 @@ from super_gradients.training.utils.detection_utils import non_max_suppression, 
 from super_gradients.training.utils.export_utils import ExportableHardswish, ExportableSiLU
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 
+
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [30, 61, 62, 45, 59, 119],
                                                   [116, 90, 156, 198, 373, 326]],
@@ -30,7 +31,8 @@ DEFAULT_YOLO_ARCH_PARAMS = {
     'skip_connections_list': [(12, [6]), (16, [4]), (19, [14]), (22, [10]), (24, [17, 20])],
     # A list defining skip connections. format is '[target: [source1, source2, ...]]'. Each item defines a skip
     # connection from all sources to the target according to the layer's index (count starts from the backbone)
-    'connection_layers_input_channel_size': [1024, 1024, 512],
+    'backbone_connection_channels': [1024, 512, 256],
+    'scale_backbone_width': True,
     # default number off channels for the connecting points between the backbone and the head
     'fuse_conv_and_bn': False,  # Fuse sequential Conv + B.N layers into a single one
     'add_nms': False,  # Add the NMS module to the computational graph
@@ -240,45 +242,49 @@ class YoLoV5Head(nn.Module):
         self._layer_idx_to_extract = [idx for sub_l in self._skip_connections_dict.values() for idx in sub_l]
 
         # GET THREE CONNECTING POINTS CHANNEL INPUT SIZE
-        connector = arch_params.connection_layers_input_channel_size
-
         _, block, activation_type, width_mult, depth_mult = get_yolo_version_params(arch_params.yolo_version,
                                                                                     arch_params.yolo_type,
                                                                                     arch_params.width_mult_factor,
                                                                                     arch_params.depth_mult_factor)
 
+        backbone_connector = [width_mult(c) if arch_params.scale_backbone_width else c
+                             for c in arch_params.backbone_connection_channels]
+
         DownConv = DepthWiseConv if depthwise else Conv
 
         self._modules_list = nn.ModuleList()
-        self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1, activation_type))  # 10
+        self._modules_list.append(Conv(backbone_connector[0], width_mult(512), 1, 1, activation_type))  # 10
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 11
         self._modules_list.append(Concat(1))  # 12
         self._modules_list.append(
-            block(width_mult(connector[1]), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 13
+            block(backbone_connector[1] + width_mult(512), width_mult(512), depth_mult(3), activation_type, False,
+                  depthwise))  # 13
 
         self._modules_list.append(Conv(width_mult(512), width_mult(256), 1, 1, activation_type))  # 14
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 15
         self._modules_list.append(Concat(1))  # 16
         self._modules_list.append(
-            block(width_mult(connector[2]), width_mult(256), depth_mult(3), activation_type, False, depthwise))  # 17
+            block(backbone_connector[2] + width_mult(256), width_mult(256), depth_mult(3), activation_type, False,
+                  depthwise))  # 17
 
         self._modules_list.append(DownConv(width_mult(256), width_mult(256), 3, 2, activation_type))  # 18
         self._modules_list.append(Concat(1))  # 19
         self._modules_list.append(
-            block(width_mult(512), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 20
+            block(2 * width_mult(256), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 20
 
         self._modules_list.append(DownConv(width_mult(512), width_mult(512), 3, 2, activation_type))  # 21
         self._modules_list.append(Concat(1))  # 22
         self._modules_list.append(
-            block(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False, depthwise))  # 23
+            block(2 * width_mult(512), width_mult(1024), depth_mult(3), activation_type, False, depthwise))  # 23
 
+        detect_input_channels = [width_mult(v) for v in (256, 512, 1024)]
         if arch_params.yolo_type != 'yoloX':
             self._modules_list.append(
-                Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
+                Detect(num_classes, anchors, channels=detect_input_channels))  # 24
         else:
             strides = anchors.stride
             self._modules_list.append(
-                DetectX(num_classes, strides, activation_type, channels=[width_mult(v) for v in (256, 512, 1024)],
+                DetectX(num_classes, strides, activation_type, channels=detect_input_channels,
                         depthwise=depthwise))  # 24
 
         self.anchors = anchors
