@@ -61,8 +61,8 @@ class PhaseContext:
     def __init__(self, epoch=None, batch_idx=None, optimizer=None, metrics_dict=None, inputs=None, preds=None,
                  target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
                  device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None,
-                 train_loader=None, valid_loader=None, quant_modules_calib_method=None, checkpoints_dir_path=None,
-                 training_params=None, ddp_silent_mode=None, per_channel_quant_modules=None, checkpoint_params=None, architecture=None,
+                 train_loader=None, valid_loader=None, checkpoints_dir_path=None,
+                 training_params=None, ddp_silent_mode=None, checkpoint_params=None, architecture=None,
                  arch_params=None, metric_idx_in_results_tuple=None,
                  metric_to_watch=None, valid_metrics=None, context_methods=None):
         self.epoch = epoch
@@ -85,11 +85,9 @@ class PhaseContext:
         self.sg_logger = sg_logger
         self.train_loader = train_loader
         self.valid_loader = valid_loader
-        self.quant_modules_calib_method = quant_modules_calib_method
         self.checkpoints_dir_path = checkpoints_dir_path
         self.training_params = training_params
         self.ddp_silent_mode = ddp_silent_mode
-        self.per_channel_quant_modules = per_channel_quant_modules
         self.checkpoint_params = checkpoint_params
         self.architecture = architecture
         self.arch_params = arch_params
