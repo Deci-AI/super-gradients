@@ -91,7 +91,7 @@ qat_params:
   calibrated_model_path: # str, path to a calibrated checkpoint (default=None).
   calib_data_loader: # torch.utils.data.DataLoader, data loader of the calibration dataset. When None, context.train_loader will be used (default=None).
   num_calib_batches: 2 # int, number of batches to collect the statistics from.
-  percentile: 99.99 # float, percentile value to use when SgModel,quant_modules_calib_method='percentile'. Discarded when other methods are used (Default=99.99).
+  percentile: 99.99 # float, percentile value to use when quant_modules_calib_method='percentile'. Discarded when other methods are used (Default=99.99).
 
 sg_logger: base_sg_logger
 sg_logger_params:

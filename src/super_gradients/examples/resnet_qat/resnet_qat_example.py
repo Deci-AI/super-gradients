@@ -11,7 +11,7 @@ Once triggered, the following will happen:
 - We perform calibration with 2 batches from our training set (1024 samples = 8 gpus X 128 samples_per_batch).
 - We evaluate the calibrated model (accuracy is logged under calibrated_model_accuracy).
 - The calibrated checkpoint prior to QAT is saved under ckpt_calibrated_{calibration_method}.pth.
-- We fine tune the calibrated model for 2 epochs
+- We fine tune the calibrated model for 1 epoch.
 
 Finally, once training is over- we trigger a pos-training callback that will export the ONNX files.
 
@@ -32,15 +32,14 @@ model = SgModel("resnet18_qat_example",
                 multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
 
 model.connect_dataset_interface(dataset)
-model.build_model("resnet50", checkpoint_params={"pretrained_weights": "imagenet"})
+model.build_model("resnet18", checkpoint_params={"pretrained_weights": "imagenet"})
 
-train_params = {"max_epochs": 3,
+train_params = {"max_epochs": 1,
                 "lr_mode": "step",
                 "optimizer": "SGD",
-                "lr_updates": [2],
+                "lr_updates": [],
                 "lr_decay_factor": 0.1,
-                "batch_accumulate": 4,
-                "initial_lr": 0.0001, "loss": "cross_entropy",
+                "initial_lr": 0.001, "loss": "cross_entropy",
                 "train_metrics_list": [Accuracy()],
                 "valid_metrics_list": [Accuracy()],
                 "loss_logging_items_names": ["Loss"],

@@ -14,7 +14,7 @@ from super_gradients.training.utils.callbacks import Phase, PhaseCallback, Phase
 import os
 from enum import Enum
 from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
-from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank, \
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, \
     get_world_size
 from torch.distributed import all_gather
 
@@ -206,6 +206,9 @@ class QATCallback(PhaseCallback):
     Additionally, resets SgModel's best_metric and sets ckpt_best_name to 'qat_ckpt_best.pth' so best QAT checkpoints
      will be saved separately.
 
+    If performing calibration- the calibrated model is evaluated, and the metric_to_watch is logged under
+     calibrated_model_{metric_to_watch}. The calibrated checkpoint is saved under ckpt_calibrated_{calibration_method}.pth
+
 
     Attributes:
         start_epoch: int, first epoch to start QAT.
@@ -266,28 +269,28 @@ class QATCallback(PhaseCallback):
                 checkpoint_params_qat['load_checkpoint'] = True
 
             # REMOVE REFERENCES TO NETWORK AND CLEAN GPU MEMORY BEFORE BUILDING THE NEW NET
-            context.set_net(None)
+            context.context_methods.set_net(None)
             context.net = None
             torch.cuda.empty_cache()
 
             # BUILD THE SAME MODEL BUT WITH FAKE QUANTIZED MODULES, AND LOAD BEST CHECKPOINT TO IT
             self._initialize_quant_modules()
-            context.build_model(architecture=context.architecture,
-                                arch_params=context.arch_params.to_dict(),
-                                checkpoint_params=checkpoint_params_qat)
+            context.context_methods.build_model(architecture=context.architecture,
+                                                arch_params=context.arch_params.to_dict(),
+                                                checkpoint_params=checkpoint_params_qat)
             _deactivate_quant_modules_wrapping()
 
             # UPDATE CONTEXT'S NET REFERENCE
-            context.net = context.get_net()
+            context.net = context.context_methods.get_net()
 
             if self.calibrate:
                 self._calibrate_model(context)
 
             # RESET THE BEST METRIC VALUE SO WE SAVE CHECKPOINTS AFTER THE EXPECTED QAT ACCURACY DEGRADATION
-            context.reset_best_metric()
+            context.context_methods.reset_best_metric()
 
             # SET NEW FILENAME FOR THE BEST CHECKPOINT SO WE DON'T OVERRIDE THE PREVIOUS ONES
-            context.set_ckpt_best_name('qat_ckpt_best.pth')
+            context.context_methods.set_ckpt_best_name('qat_ckpt_best.pth')
 
     def _calibrate_model(self, context: PhaseContext):
         """
@@ -363,20 +366,18 @@ class PostQATConversionCallback(PhaseCallback):
         self.dummy_input_size = dummy_input_size
 
     def __call__(self, context: PhaseContext):
-        local_rank = get_local_rank()
-        with wait_for_the_master(local_rank):
-            if local_rank == 0:
-                best_ckpt_path = os.path.join(context.checkpoints_dir_path, "qat_ckpt_best.pth")
-                onnx_path = os.path.join(context.checkpoints_dir_path, "qat_ckpt_best.onnx")
+        if not context.ddp_silent_mode:
+            best_ckpt_path = os.path.join(context.checkpoints_dir_path, "qat_ckpt_best.pth")
+            onnx_path = os.path.join(context.checkpoints_dir_path, "qat_ckpt_best.onnx")
 
-                load_checkpoint_to_model(ckpt_local_path=best_ckpt_path,
-                                         net=context.net,
-                                         load_weights_only=True,
-                                         load_ema_as_net=context.training_params.ema,
-                                         strict=True,
-                                         load_backbone=False
-                                         )
+            load_checkpoint_to_model(ckpt_local_path=best_ckpt_path,
+                                     net=context.net,
+                                     load_weights_only=True,
+                                     load_ema_as_net=context.training_params.ema,
+                                     strict=True,
+                                     load_backbone=False
+                                     )
 
-                export_qat_onnx(context.net, onnx_path, self.dummy_input_size, context.per_channel_quant_modules)
+            export_qat_onnx(context.net.module, onnx_path, self.dummy_input_size, context.per_channel_quant_modules)
 
-                context.sg_logger.add_file("qat_ckpt_best.onnx")
+            context.sg_logger.add_file("qat_ckpt_best.onnx")

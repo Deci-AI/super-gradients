@@ -16,7 +16,6 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
-
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
@@ -35,7 +34,8 @@ from super_gradients.training.utils import sg_model_utils
 from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_model_utils import MonitoredValue
 from super_gradients.training import metrics
-from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, IllegalDataloaderInitialization
+from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, \
+    IllegalDataloaderInitialization
 from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
@@ -54,7 +54,7 @@ from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path,
     load_checkpoint_to_model, load_pretrained_weights
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
-    MetricsUpdateCallback, LR_WARMUP_CLS_DICT
+    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
@@ -243,7 +243,8 @@ class SgModel:
             if not all([isinstance(train_loader.sampler, DistributedSampler),
                         isinstance(valid_loader.sampler, DistributedSampler),
                         test_loader is None or isinstance(test_loader.sampler, DistributedSampler)]):
-                logger.warning("DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
+                logger.warning(
+                    "DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
 
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
@@ -416,7 +417,9 @@ class SgModel:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler) and batch_idx == len(self.train_loader)-1:
+            if hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler,
+                                                                    InfiniteSampler) and batch_idx == len(
+                    self.train_loader) - 1:
                 break
 
         if not self.ddp_silent_mode:
@@ -835,7 +838,7 @@ class SgModel:
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
         self.metric_idx_in_results_tuple = (
-            self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+                self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
 
         # Instantiate the values to monitor (loss/metric)
         for loss in self.loss_logging_items_names:
@@ -978,18 +981,13 @@ class SgModel:
                                checkpoints_dir_path=self.checkpoints_dir_path,
                                training_params=self.training_params,
                                ddp_silent_mode=self.ddp_silent_mode,
-                               build_model=self.build_model,
                                checkpoint_params=self.checkpoint_params,
                                architecture=self.architecture,
                                arch_params=self.arch_params,
-                               get_net=self.get_net,
-                               set_net=self.set_net,
-                               set_ckpt_best_name=self.set_ckpt_best_name,
-                               reset_best_metric=self.reset_best_metric,
-                               test=self._validate_epoch,
                                metric_idx_in_results_tuple=self.metric_idx_in_results_tuple,
                                metric_to_watch=self.metric_to_watch,
-                               device=self.device
+                               device=self.device,
+                               context_methods=self._get_context_methods(Phase.PRE_TRAINING)
                                )
 
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
@@ -1011,7 +1009,9 @@ class SgModel:
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
-                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader, "sampler") and hasattr(self.train_loader.sampler, "set_epoch"):
+                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader,
+                                                                                        "sampler") and hasattr(
+                        self.train_loader.sampler, "set_epoch"):
                     self.train_loader.sampler.set_epoch(epoch)
 
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
@@ -1198,7 +1198,8 @@ class SgModel:
         # Create a normalization transformation
         if normalize:
             try:
-                mean, std = self.dataset_interface.lib_dataset_params['mean'], self.dataset_interface.lib_dataset_params['std']
+                mean, std = self.dataset_interface.lib_dataset_params['mean'], \
+                            self.dataset_interface.lib_dataset_params['std']
             except AttributeError:
                 raise AttributeError('In \'predict()\', Normalization is set to True while the dataset has no default '
                                      'mean & std => deactivate normalization or inject it to the datasets library.')
@@ -1830,7 +1831,7 @@ class SgModel:
         self.valid_monitored_values = sg_model_utils.update_monitored_values_dict(
             monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict)
 
-        if not silent_mode and evaluation_type==EvaluationType.VALIDATION:
+        if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
             progress_bar_data_loader.write("===========================================================")
             sg_model_utils.display_epoch_summary(epoch=context.epoch, n_digits=4,
                                                  train_monitored_values=self.train_monitored_values,
@@ -1902,3 +1903,23 @@ class SgModel:
         Setter for best checkpoint filename.
         """
         self.ckpt_best_name = ckpt_best_name
+
+    def _get_context_methods(self, phase: Phase) -> ContextSgMethods:
+        """
+        Returns ContextSgMethods holding the methods that should be accessible through phase callbacks to the user at
+         the specific phase
+
+        :param phase: Phase, controls what methods should be returned.
+        :return: ContextSgMethods holding methods from self.
+        """
+        if phase in [Phase.PRE_TRAINING, Phase.TRAIN_EPOCH_START, Phase.TRAIN_EPOCH_END, Phase.VALIDATION_EPOCH_END,
+                     Phase.VALIDATION_EPOCH_END, Phase.POST_TRAINING]:
+            context_methods = ContextSgMethods(get_net=self.get_net,
+                                               set_net=self.set_net,
+                                               set_ckpt_best_name=self.set_ckpt_best_name,
+                                               reset_best_metric=self.reset_best_metric,
+                                               build_model=self.build_model)
+        else:
+            context_methods = ContextSgMethods()
+
+        return context_methods
