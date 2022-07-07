@@ -1913,7 +1913,8 @@ class SgModel:
                                                set_net=self.set_net,
                                                set_ckpt_best_name=self.set_ckpt_best_name,
                                                reset_best_metric=self.reset_best_metric,
-                                               build_model=self.build_model)
+                                               build_model=self.build_model,
+                                               validate_epoch=self._validate_epoch())
         else:
             context_methods = ContextSgMethods()
 

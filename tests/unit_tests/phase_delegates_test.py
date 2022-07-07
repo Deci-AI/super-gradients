@@ -47,7 +47,8 @@ class ContextMethodsTest(unittest.TestCase):
                                                                                                            "set_net",
                                                                                                            "set_ckpt_best_name",
                                                                                                            "reset_best_metric",
-                                                                                                           "build_model"],
+                                                                                                           "build_model",
+                                                                                                           "validate_epoch"],
                                                                      non_accessible_method_names=[]))
             else:
                 phase_callbacks.append(
@@ -55,7 +56,8 @@ class ContextMethodsTest(unittest.TestCase):
                                                                                             "set_net",
                                                                                             "set_ckpt_best_name",
                                                                                             "reset_best_metric",
-                                                                                            "build_model"],
+                                                                                            "build_model",
+                                                                                            "validate_epoch"],
                                                   accessible_method_names=[]))
 
         train_params = {"max_epochs": 1, "lr_updates": [], "lr_decay_factor": 0.1, "lr_mode": "step",

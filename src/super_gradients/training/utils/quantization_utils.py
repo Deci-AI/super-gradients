@@ -310,7 +310,7 @@ class QATCallback(PhaseCallback):
         if not context.ddp_silent_mode:
             logger.info("Performing additional validation on calibrated model...")
 
-        calibrated_valid_results = context.test(epoch=self.start_epoch, silent_mode=True)
+        calibrated_valid_results = context.context_methods.validate_epoch(epoch=self.start_epoch, silent_mode=True)
         calibrated_acc = calibrated_valid_results[context.metric_idx_in_results_tuple]
 
         if not context.ddp_silent_mode:
