@@ -14,6 +14,7 @@ from super_gradients.training.exceptions.kd_model_exceptions import Architecture
     UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, \
     TeacherKnowledgeException, UndefinedNumClassesException
 from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallback
+from super_gradients.training.utils.ema import KDModelEMA
 logger = get_logger(__name__)
 
 
@@ -247,3 +248,15 @@ class KDModel(SgModel):
                                    "teacher_arch_params": self.teacher_arch_params
                                    })
         return hyper_param_config
+
+    def instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> KDModelEMA:
+        """Instantiate KD ema model for KDModule.
+
+        If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.
+        :param decay:           the maximum decay value. as the training process advances, the decay will climb towards
+                                this value until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
+        :param beta:            the exponent coefficient. The higher the beta, the sooner in the training the decay will
+                                saturate to its final value. beta=15 is ~40% of the training process.
+        :param exp_activation:
+        """
+        return KDModelEMA(self.net, decay, beta, exp_activation)

@@ -10,11 +10,12 @@ from super_gradients.training.metrics import Accuracy, IoU
 import os
 import shutil
 from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
+from super_gradients.training.utils.ssd_utils import SSDPostPredictCallback, DefaultBoxes
 from super_gradients.training.utils.detection_utils import Anchors
 import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn, base_detection_collate_fn_with_crowd
-from super_gradients.training.metrics.detection_metrics import DetectionMetrics
+from super_gradients.training.utils.detection_utils import crowd_detection_collate_fn
+from super_gradients.training.metrics import DetectionMetricsV2
 from super_gradients.training.transforms.transforms import Rescale
 from super_gradients.training.losses.stdc_loss import STDCLoss
 
@@ -75,61 +76,105 @@ class PretrainedModelsTest(unittest.TestCase):
                                                      "loss_logging_items_names": ["Loss"],
                                                      "metric_to_watch": "Accuracy",
                                                      "greater_metric_to_watch_is_better": True}
-        self.coco_pretrained_arch_params = {"yolo_v5": {}}
+        self.coco_pretrained_arch_params = {"yolo_v5": {}, 'ssd_lite_mobilenet_v2': {'num_classes': 80}}
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
-        self.coco_dataset = CoCoDetectionDatasetInterface(dataset_params={"batch_size": 8,
-                                                                          "val_batch_size": 8,
-                                                                          "train_image_size": 640,
-                                                                          "val_image_size": 640,
-                                                                          "val_collate_fn": base_detection_collate_fn_with_crowd,
-                                                                          "val_collate_fn": base_detection_collate_fn_with_crowd,
-                                                                          "val_sample_loading_method": "rectangular",
-                                                                          "dataset_hyper_param": {
-                                                                              "hsv_h": 0.015,
-                                                                              "hsv_s": 0.7,
-                                                                              "hsv_v": 0.4,
-                                                                              "degrees": 0.0,
-                                                                              "translate": 0.1,
-                                                                              "scale": 0.5,  # IMAGE SCALE (+/- gain)
-                                                                              "shear": 0.0}  # IMAGE SHEAR (+/- deg)
-                                                                          }, with_crowd=True)
+        self.coco_dataset = {
+            'yolo_v5': CoCoDetectionDatasetInterface(
+                dataset_params={
+                    "batch_size": 8,
+                    "val_batch_size": 8,
+                    "train_image_size": 640,
+                    "val_image_size": 640,
+                    "val_collate_fn": crowd_detection_collate_fn,
+                    "val_sample_loading_method": "rectangular",
+                    "dataset_hyper_param": {
+                        "hsv_h": 0.015,
+                        "hsv_s": 0.7,
+                        "hsv_v": 0.4,
+                        "degrees": 0.0,
+                        "translate": 0.1,
+                        "scale": 0.5,  # IMAGE SCALE (+/- gain)
+                        "shear": 0.0 # IMAGE SHEAR (+/- deg),
+                    },
+                }, with_crowd=True
+            ),
+            'ssd_lite_mobilenet_v2': CoCoDetectionDatasetInterface(dataset_params={
+                "batch_size": 32,
+                "val_batch_size": 32,
+                "train_image_size": 320,
+                "val_image_size": 320,
+                "val_collate_fn": crowd_detection_collate_fn,
+                "val_sample_loading_method": "default"
+            }, with_crowd=True),
+        }
+        self.coco_pretrained_maps = {"yolo_v5s": 0.3676, "yolo_v5m": 0.4456, "yolo_v5l": 0.4745, "yolo_v5n": 0.2717,
+                                     'ssd_lite_mobilenet_v2': 0.215}
+        self.transfer_detection_dataset = {
+            'yolo_v5': DetectionTestDatasetInterface(image_size=640, classes=['class1', 'class2']),
+            'ssd_lite_mobilenet_v2': DetectionTestDatasetInterface(image_size=320, classes=['class1', 'class2'])
+        }
 
-        self.coco_pretrained_maps_with_crowd = {
-            "yolo_v5s": 0.3695, "yolo_v5m": 0.4474, "yolo_v5l": 0.4760, "yolo_v5n": 0.2732}
-        self.coco_pretrained_maps = {
-            "yolo_v5s": 0.3674, "yolo_v5m": 0.4455, "yolo_v5l": 0.4795, "yolo_v5n": 0.2776}
-
-        self.transfer_detection_dataset = DetectionTestDatasetInterface(image_size=640)
-        self.transfer_detection_train_params = {"max_epochs": 3,
-                                                "lr_mode": "cosine",
-                                                "initial_lr": 0.01,
-                                                "cosine_final_lr_ratio": 0.2,
-                                                "lr_warmup_epochs": 3,
-                                                "batch_accumulate": 1,
-                                                "warmup_bias_lr": 0.1,
-                                                "loss": "yolo_v5_loss",
-                                                "criterion_params": {"anchors": Anchors(
-                                                    anchors_list=[[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119],
-                                                                  [116, 90, 156, 198, 373, 326]],
-                                                    strides=[8, 16, 32]),
-                                                    "obj_loss_gain": 1.0,
-                                                    "box_loss_gain": 0.05,
-                                                    "cls_loss_gain": 0.5,
-                                                },
-                                                "optimizer": "SGD",
-                                                "warmup_momentum": 0.8,
-                                                "optimizer_params": {"momentum": 0.937,
-                                                                     "weight_decay": 0.0005,
-                                                                     "nesterov": True},
-                                                "train_metrics_list": [],
-                                                "valid_metrics_list": [
-                                                    DetectionMetrics(
-                                                        post_prediction_callback=YoloV5PostPredictionCallback(),
-                                                        num_cls=len(
-                                                            self.coco_dataset.coco_classes))],
-                                                "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],
-                                                "metric_to_watch": "mAP@0.50:0.95",
-                                                "greater_metric_to_watch_is_better": True}
+        ssd_dboxes = DefaultBoxes(fig_size=320, feat_size=[20, 10, 5, 3, 2, 1],
+                                  scales=[32, 82, 133, 184, 235, 285, 336],
+                                  aspect_ratios=[[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],
+                                  scale_xy=0.1, scale_wh=0.2)
+        self.transfer_detection_train_params = {
+            'yolo_v5':
+                {
+                    "max_epochs": 3,
+                    "lr_mode": "cosine",
+                    "initial_lr": 0.01,
+                    "cosine_final_lr_ratio": 0.2,
+                    "lr_warmup_epochs": 3,
+                    "batch_accumulate": 1,
+                    "warmup_bias_lr": 0.1,
+                    "loss": "yolo_v5_loss",
+                    "criterion_params": {"anchors": Anchors(
+                        anchors_list=[[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119],
+                                      [116, 90, 156, 198, 373, 326]],
+                        strides=[8, 16, 32]),
+                        "obj_loss_gain": 1.0,
+                        "box_loss_gain": 0.05,
+                        "cls_loss_gain": 0.5,
+                    },
+                    "optimizer": "SGD",
+                    "warmup_momentum": 0.8,
+                    "optimizer_params": {"momentum": 0.937,
+                                         "weight_decay": 0.0005,
+                                         "nesterov": True},
+                    "train_metrics_list": [],
+                    "valid_metrics_list": [
+                        DetectionMetricsV2(
+                            post_prediction_callback=YoloV5PostPredictionCallback(),
+                            num_cls=len(self.transfer_detection_dataset['yolo_v5'].classes))],
+                    "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],
+                    "metric_to_watch": "mAP@0.50:0.95",
+                    "greater_metric_to_watch_is_better": True},
+            'ssd_lite_mobilenet_v2':
+                {
+                    "max_epochs": 3,
+                    "lr_mode": "cosine",
+                    "initial_lr": 0.01,
+                    "cosine_final_lr_ratio": 0.01,
+                    "lr_warmup_epochs": 3,
+                    "batch_accumulate": 1,
+                    "loss": "ssd_loss",
+                    "criterion_params": {"dboxes": ssd_dboxes},
+                    "optimizer": "SGD",
+                    "warmup_momentum": 0.8,
+                    "optimizer_params": {"momentum": 0.937,
+                                         "weight_decay": 0.0005,
+                                         "nesterov": True},
+                    "train_metrics_list": [],
+                    "valid_metrics_list": [
+                        DetectionMetricsV2(
+                            post_prediction_callback=SSDPostPredictCallback(dboxes=ssd_dboxes),
+                            num_cls=len(self.transfer_detection_dataset['yolo_v5'].classes))],
+                    "loss_logging_items_names": ['smooth_l1', 'closs', 'Loss'],
+                    "metric_to_watch": "mAP@0.50:0.95",
+                    "greater_metric_to_watch_is_better": True
+                }
+        }
 
         self.coco_segmentation_subclass_pretrained_arch_params = {
             "shelfnet34_lw": {"num_classes": 21, "image_size": 512}}
@@ -213,7 +258,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                             {"weight_decay": 5e-4,
                                                              "momentum": 0.9},
                                                         "load_opt_params": False,
-                                                        "trainsww_metrics_list": [IoU(5)],
+                                                        "train_metrics_list": [IoU(5)],
                                                         "valid_metrics_list": [IoU(5)],
                                                         "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
                                                         "metric_to_watch": "IoU",
@@ -448,50 +493,81 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_yolov5s_coco(self):
         trainer = SgModel('coco_pretrained_yolov5s', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
-        trainer.connect_dataset_interface(self.coco_dataset, data_loader_num_workers=8)
+        trainer.connect_dataset_interface(self.coco_dataset['yolo_v5'], data_loader_num_workers=8)
         trainer.build_model("yolo_v5s", arch_params=self.coco_pretrained_arch_params["yolo_v5"], checkpoint_params=self.coco_pretrained_ckpt_params)
-        res = trainer.test(test_loader=self.coco_dataset.val_loader,
-                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
+        res = trainer.test(test_loader=self.coco_dataset['yolo_v5'].val_loader,
+                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
-                                                                   self.coco_dataset.coco_classes))],
-                           metrics_progress_verbose=False)[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps_with_crowd["yolo_v5s"], delta=0.001)
+                                                                   self.coco_dataset['yolo_v5'].coco_classes))],
+                           metrics_progress_verbose=True)[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5s"], delta=0.001)
 
     def test_pretrained_yolov5m_coco(self):
         trainer = SgModel('coco_pretrained_yolov5m', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
-        trainer.connect_dataset_interface(self.coco_dataset, data_loader_num_workers=8)
+        trainer.connect_dataset_interface(self.coco_dataset['yolo_v5'], data_loader_num_workers=8)
         trainer.build_model("yolo_v5m", arch_params=self.coco_pretrained_arch_params["yolo_v5"], checkpoint_params=self.coco_pretrained_ckpt_params)
-        res = trainer.test(test_loader=self.coco_dataset.val_loader,
-                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
+        res = trainer.test(test_loader=self.coco_dataset['yolo_v5'].val_loader,
+                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
-                                                                   self.coco_dataset.coco_classes))],
+                                                                   self.coco_dataset['yolo_v5'].coco_classes))],
                            metrics_progress_verbose=True)[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps_with_crowd["yolo_v5m"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5m"], delta=0.001)
 
     def test_pretrained_yolov5l_coco(self):
         trainer = SgModel('coco_pretrained_yolov5l', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
-        trainer.connect_dataset_interface(self.coco_dataset, data_loader_num_workers=8)
+        trainer.connect_dataset_interface(self.coco_dataset['yolo_v5'], data_loader_num_workers=8)
         trainer.build_model("yolo_v5l", arch_params=self.coco_pretrained_arch_params["yolo_v5"], checkpoint_params=self.coco_pretrained_ckpt_params)
-        res = trainer.test(test_loader=self.coco_dataset.val_loader,
-                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
+        res = trainer.test(test_loader=self.coco_dataset['yolo_v5'].val_loader,
+                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
-                                                                   self.coco_dataset.coco_classes))],
+                                                                   self.coco_dataset['yolo_v5'].coco_classes))],
                            metrics_progress_verbose=True)[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps_with_crowd["yolo_v5l"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5l"], delta=0.001)
 
     def test_pretrained_yolov5n_coco(self):
         trainer = SgModel('coco_pretrained_yolov5n', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
-        trainer.connect_dataset_interface(self.coco_dataset, data_loader_num_workers=8)
+        trainer.connect_dataset_interface(self.coco_dataset['yolo_v5'], data_loader_num_workers=8)
         trainer.build_model("yolo_v5n", arch_params=self.coco_pretrained_arch_params["yolo_v5"], checkpoint_params=self.coco_pretrained_ckpt_params)
-        res = trainer.test(test_loader=self.coco_dataset.val_loader,
-                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
+        res = trainer.test(test_loader=self.coco_dataset['yolo_v5'].val_loader,
+                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                num_cls=len(
-                                                                   self.coco_dataset.coco_classes))],
+                                                                   self.coco_dataset['yolo_v5'].coco_classes))],
                            metrics_progress_verbose=True)[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps_with_crowd["yolo_v5n"], delta=0.001)
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5n"], delta=0.001)
+
+    def test_pretrained_ssd_lite_mobilenet_v2_coco(self):
+        trainer = SgModel('coco_ssd_lite_mobilenet_v2', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.coco_dataset['ssd_lite_mobilenet_v2'], data_loader_num_workers=8)
+        trainer.build_model("ssd_lite_mobilenet_v2",
+                            arch_params=self.coco_pretrained_arch_params["ssd_lite_mobilenet_v2"],
+                            checkpoint_params=self.coco_pretrained_ckpt_params)
+        ssd_post_prediction_callback = SSDPostPredictCallback(dboxes=DefaultBoxes(fig_size=320,
+                                                              feat_size=[20, 10, 5, 3, 2, 1],
+                                                              scales=[32, 82, 133, 184, 235, 285, 336],
+                                                              aspect_ratios=[[2, 3], [2, 3], [2, 3],
+                                                                             [2, 3], [2, 3], [2, 3]],
+                                                              scale_xy=0.1, scale_wh=0.2))
+        res = trainer.test(test_loader=self.coco_dataset['ssd_lite_mobilenet_v2'].val_loader,
+                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=ssd_post_prediction_callback,
+                                                               num_cls=len(self.coco_dataset['ssd_lite_mobilenet_v2'].coco_classes))],
+                           metrics_progress_verbose=True)[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
+
+    def test_transfer_learning_ssd_lite_mobilenet_v2_coco(self):
+        trainer = SgModel('coco_ssd_lite_mobilenet_v2_transfer_learning',
+                          model_checkpoints_location='local', multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_detection_dataset['ssd_lite_mobilenet_v2'],
+                                          data_loader_num_workers=8)
+        transfer_arch_params = self.coco_pretrained_arch_params['ssd_lite_mobilenet_v2'].copy()
+        transfer_arch_params['num_classes'] = len(self.transfer_detection_dataset['ssd_lite_mobilenet_v2'].classes)
+        trainer.build_model("ssd_lite_mobilenet_v2",
+                            arch_params=transfer_arch_params,
+                            checkpoint_params=self.coco_pretrained_ckpt_params)
+        trainer.train(training_params=self.transfer_detection_train_params['ssd_lite_mobilenet_v2'])
 
     def test_transfer_learning_mobilenet_v3_large_imagenet(self):
         trainer = SgModel('imagenet_pretrained_mobilenet_v3_large_transfer_learning',
