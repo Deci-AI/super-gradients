@@ -79,8 +79,8 @@ def convert_xyxy_bbox_to_xywh(input_bbox):
     """
     Converts bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
 
-        :param input_bbox:           Input bbox
-        :return:                     Converted bbox
+        :param input_bbox:           Input bbox of shape (n_boxes, 4)
+        :return:                     Converted bbox of shape (n_boxes, 4)
     """
     converted_bbox = torch.zeros_like(input_bbox) if isinstance(input_bbox, torch.Tensor) else np.zeros_like(input_bbox)
     converted_bbox[:, 0] = (input_bbox[:, 0] + input_bbox[:, 2]) / 2

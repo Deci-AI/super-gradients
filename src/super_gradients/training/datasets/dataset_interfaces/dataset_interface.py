@@ -1,6 +1,5 @@
 import os
 import numpy as np
-from functools import partial
 
 import torch
 import torchvision

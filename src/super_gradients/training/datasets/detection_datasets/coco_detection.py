@@ -7,14 +7,7 @@ import numpy as np
 import torch
 
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataSet
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
-
-
-_COCO_91_INDEX = [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 31, 32,
-    33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
-    59, 60, 61, 62, 63, 64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84, 85, 86, 87, 88, 89, 90]
-_CATEGORY_ID_TO_ANNOTATION_ID = {category_id: annotation_id for annotation_id, category_id in enumerate(_COCO_91_INDEX)}
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST, COCO_91_INDEX
 
 
 def convert_xywh_to_cxcywh(bbox: List[int], img_width: float, img_height: float):
@@ -44,6 +37,9 @@ class COCODetectionDataSet(DetectionDataSet):
         """
         Load all the crowd targets and store it in self.img_id_to_crowd_gts for later use.
         """
+        category_id_to_annotation_id = {
+            category_id: annotation_id for annotation_id, category_id in enumerate(COCO_91_INDEX)}
+
         annotations_json_path = os.path.join(self.root, self.additional_labels_path)
         with open(annotations_json_path) as file:
             anno_json = json.load(file)
@@ -56,7 +52,7 @@ class COCODetectionDataSet(DetectionDataSet):
             img = id_to_img[annotation['image_id']]
             img_id_to_crowd_gts[annotation['image_id']].append({
                 'bbox': convert_xywh_to_cxcywh(annotation['bbox'], img['width'], img['height']),
-                'category_id': _CATEGORY_ID_TO_ANNOTATION_ID[annotation['category_id']]
+                'category_id': category_id_to_annotation_id[annotation['category_id']]
             })
 
         self.img_id_to_crowd_gts = img_id_to_crowd_gts

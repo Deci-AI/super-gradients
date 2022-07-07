@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, Optional, Union
 
 import torch
 from torchmetrics import Metric
@@ -59,7 +59,7 @@ class DetectionMetrics(Metric):
         self.score_threshold = score_thres
         self.top_k_predictions = top_k_predictions
 
-    def update(self, preds: List[torch.Tensor], target: torch.Tensor, device: str,
+    def update(self, preds, target: torch.Tensor, device: str,
                inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None):
         """
         Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
