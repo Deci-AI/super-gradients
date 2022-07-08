@@ -27,13 +27,15 @@ DEFAULT_YOLO_ARCH_PARAMS = {
     'num_classes': 80,  # Number of classes to predict
     'depth_mult_factor': 1.0,  # depth multiplier for the entire model
     'width_mult_factor': 1.0,  # width multiplier for the entire model
-    'channels_in': 3,  # # of classes the model predicts
+    'channels_in': 3,  # Number of channels in the input image
     'skip_connections_list': [(12, [6]), (16, [4]), (19, [14]), (22, [10]), (24, [17, 20])],
     # A list defining skip connections. format is '[target: [source1, source2, ...]]'. Each item defines a skip
     # connection from all sources to the target according to the layer's index (count starts from the backbone)
-    'backbone_connection_channels': [1024, 512, 256],
-    'scale_backbone_width': True,
-    # default number off channels for the connecting points between the backbone and the head
+    'backbone_connection_channels': [1024, 512, 256],  # width of backbone channels that are concatenated with the head
+    # True if width_mult_factor is applied to the backbone (is the case with the default backbones)
+    # which means that backbone_connection_channels should be used with a width_mult_factor
+    # False if backbone_connection_channels should be used as is
+    'scaled_backbone_width': True,
     'fuse_conv_and_bn': False,  # Fuse sequential Conv + B.N layers into a single one
     'add_nms': False,  # Add the NMS module to the computational graph
     'nms_conf': 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
@@ -247,7 +249,7 @@ class YoLoV5Head(nn.Module):
                                                                                     arch_params.width_mult_factor,
                                                                                     arch_params.depth_mult_factor)
 
-        backbone_connector = [width_mult(c) if arch_params.scale_backbone_width else c
+        backbone_connector = [width_mult(c) if arch_params.scaled_backbone_width else c
                              for c in arch_params.backbone_connection_channels]
 
         DownConv = DepthWiseConv if depthwise else Conv
