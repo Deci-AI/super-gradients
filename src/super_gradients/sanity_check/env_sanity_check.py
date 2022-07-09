@@ -1,7 +1,3 @@
-"""
-A Python script that check's the compliance of Hosts (OS and Hardware) for Deci's infrastructure.
-"""
-
 import os
 import sys
 from pip._internal.operations.freeze import freeze
@@ -10,7 +6,7 @@ from typing import List, Dict
 from pathlib import Path
 from packaging.version import Version
 
-logger = getLogger('sg-compliance')
+logger = getLogger('sg-sanity-check')
 logger.setLevel(DEBUG)
 
 
@@ -27,7 +23,7 @@ def verify_os() -> List[str]:
 
 def get_libs_requirements() -> List[str]:
     """Read requirement.txt from the root, and split it as a list of libs/version"""
-    file_path = Path(__file__)  # super-gradients/src/super_gradients/compliance/check_compliance.py
+    file_path = Path(__file__)  # super-gradients/src/super_gradients/sanity_check/env_sanity_check.py
     project_root = file_path.parent.parent.parent.parent  # moving to super-gradients, where requirements.txt is
     with open(project_root / "requirements.txt", "r") as f:
         return f.readlines()
@@ -84,8 +80,8 @@ def print_error(component_name: str, error: str) -> None:
     logger.error(error_message)
 
 
-def check_compliance() -> None:
-    """Run all the compliance test and log everything that does not meet requirements"""
+def env_sanity_check() -> None:
+    """Run the sanity check tests and log everything that does not meet requirements"""
 
     requirement_checkers = {
         'operating_system': verify_os,
@@ -109,7 +105,7 @@ def check_compliance() -> None:
                 logger.info(f'{test_name} OK')
             logger.info('_' * 20)
         except Exception as e:
-            logger.fatal(f'Failed to check for compliance: {e}', exc_info=True)
+            logger.fatal(f'Failed to check for sanity_check: {e}', exc_info=True)
             raise
 
     if compliance_errors:
@@ -120,4 +116,4 @@ def check_compliance() -> None:
 
 
 if __name__ == '__main__':
-    check_compliance()
+    env_sanity_check()
