@@ -15,7 +15,7 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     _imported_deci_lab_failure = import_err
 
 TENSORBOARD_EVENTS_PREFIX = 'events.out.tfevents'
-
+LOG_PREFIX = 'log_'
 
 class DeciPlatformSGLogger(BaseSGLogger):
 
@@ -83,10 +83,10 @@ class DeciPlatformSGLogger(BaseSGLogger):
         if not os.path.isdir(self.checkpoints_dir_path):
             raise ValueError('Provided directory does not exist')
 
-        for tb_events_file_name in os.listdir(self.checkpoints_dir_path):
-            if tb_events_file_name.startswith(TENSORBOARD_EVENTS_PREFIX):
+        for file_name in os.listdir(self.checkpoints_dir_path):
+            if file_name.startswith(TENSORBOARD_EVENTS_PREFIX) or file_name.startswith(LOG_PREFIX):
                 upload_success = self.platform_client.save_experiment_file(
-                    file_path=f"{self.checkpoints_dir_path}/{tb_events_file_name}")
+                    file_path=f"{self.checkpoints_dir_path}/{file_name}")
 
                 if not upload_success:
-                    logger.error(f'Failed to upload to platform tb_events_file: "{tb_events_file_name}" ')
+                    logger.error(f'Failed to upload to platform : "{file_name}" ')
