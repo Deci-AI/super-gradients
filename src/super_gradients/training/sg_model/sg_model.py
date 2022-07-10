@@ -1582,15 +1582,9 @@ class SgModel:
         if self.training_params.log_installed_packages:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items['installed_packages'] = pkg_list
-
-        # We don't want to log the auth token!
-        training_params = deepcopy(self.training_params.__dict__)
-        if training_params["sg_logger_params"]["auth_token"]:
-            training_params["sg_logger_params"].pop("auth_token")
-
         hyper_param_config = {"arch_params": self.arch_params.__dict__,
                               "checkpoint_params": self.checkpoint_params.__dict__,
-                              "training_hyperparams": training_params,
+                              "training_hyperparams": self.training_params.__dict__,
                               "dataset_params": self.dataset_params.__dict__,
                               "additional_log_items": additional_log_items}
         return hyper_param_config

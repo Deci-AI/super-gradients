@@ -20,20 +20,7 @@ LOGS_PREFIX = 'log_'
 
 class DeciPlatformSGLogger(BaseSGLogger):
 
-    def __init__(self,
-                 project_name: str,
-                 experiment_name: str,
-                 storage_location: str,
-                 resumed: bool,
-                 training_params: TrainingParams,
-                 checkpoints_dir_path: str,
-                 auth_token: str,
-                 tb_files_user_prompt: bool = False,
-                 launch_tensorboard: bool = False,
-                 tensorboard_port: int = None,
-                 save_checkpoints_remote: bool = True,
-                 save_tensorboard_remote: bool = True,
-                 save_logs_remote: bool = True):
+    def __init__(self, **kwargs):
         """
         Logger responsible to push tensorboard to Deci platform.
 
@@ -55,22 +42,18 @@ class DeciPlatformSGLogger(BaseSGLogger):
         """
         if _imported_deci_lab_failure is not None:
             raise _imported_deci_lab_failure
-        super().__init__(project_name=project_name,
-                         experiment_name=experiment_name,
-                         storage_location=storage_location,
-                         resumed=resumed,
-                         training_params=training_params,
-                         checkpoints_dir_path=checkpoints_dir_path,
-                         tb_files_user_prompt=tb_files_user_prompt,
-                         launch_tensorboard=launch_tensorboard,
-                         tensorboard_port=tensorboard_port,
-                         save_checkpoints_remote=save_checkpoints_remote,
-                         save_tensorboard_remote=save_tensorboard_remote,
-                         save_logs_remote=save_logs_remote)
+
+        auth_token = os.getenv("DECI_PLATFORM_TOKEN")
+        if auth_token is None:
+            raise ValueError('The environment variable "DECI_PLATFORM_TOKEN" is required in order to use '
+                             'DeciPlatformSGLogger. Please set it with your own credentials '
+                             '(available in https://console.deci.ai/settings)')
+
+        super().__init__(**kwargs)
         self.platform_client = DeciPlatformClient()
         self.platform_client.login(token=auth_token)
-        self.platform_client.register_experiment(name=experiment_name)
-        self.checkpoints_dir_path = checkpoints_dir_path
+        self.platform_client.register_experiment(name=kwargs["experiment_name"])
+        self.checkpoints_dir_path = kwargs["experiment_name"]
 
     @multi_process_safe
     def upload(self):
