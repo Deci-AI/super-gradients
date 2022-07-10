@@ -66,6 +66,8 @@ def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tup
         raise _imported_pytorch_quantization_failure
     else:
         model.eval()
+        if hasattr(model, "prep_model_for_conversion"):
+            model.prep_model_for_conversion()
         quant_nn.TensorQuantizer.use_fb_fake_quant = True
         # Export ONNX for multiple batch sizes
         logger.info("Creating ONNX file: " + onnx_filename)
@@ -266,7 +268,6 @@ class QATCallback(PhaseCallback):
                 checkpoint_params_qat['external_checkpoint_path'] = self.calibrated_model_path
             if self.start_epoch > 0 or self.calibrated_model_path is not None:
                 checkpoint_params_qat['load_checkpoint'] = True
-
 
             # REMOVE REFERENCES TO NETWORK AND CLEAN GPU MEMORY BEFORE BUILDING THE NEW NET
             context.context_methods.set_net(None)
