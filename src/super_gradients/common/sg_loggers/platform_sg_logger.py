@@ -1,5 +1,4 @@
 import os
-import sys
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
@@ -82,7 +81,7 @@ class PlatformSGLogger(BaseSGLogger):
 
         # Upload to Deci platform
         if not os.path.isdir(self.checkpoints_dir_path):
-            raise ValueError('[' + sys._getframe().f_code.co_name + '] - Provided directory does not exist')
+            raise ValueError('Provided directory does not exist')
 
         for tb_events_file_name in os.listdir(self.checkpoints_dir_path):
             if tb_events_file_name.startswith(TENSORBOARD_EVENTS_PREFIX):
