@@ -3,7 +3,7 @@ QAT example for Resnet18
 
 The purpose of this example is to demonstrate the usage of QAT in super_gradients.
 
-Behind the scenes, when passing enable_qat=True, a callback for QAt will be added.
+Behind the scenes, when passing enable_qat=True, a callback for QAT will be added.
 
 Once triggered, the following will happen:
 - The model will be rebuilt with quantized nn.modules.
