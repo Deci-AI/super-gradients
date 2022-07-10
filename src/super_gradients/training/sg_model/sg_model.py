@@ -3,7 +3,6 @@ import sys
 from copy import deepcopy
 from enum import Enum
 from typing import Union, Tuple, Mapping, List, Any
-import logging
 
 import numpy as np
 import pkg_resources
