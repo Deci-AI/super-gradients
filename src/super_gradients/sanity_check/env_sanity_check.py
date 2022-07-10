@@ -24,7 +24,7 @@ def verify_os() -> List[str]:
 def get_libs_requirements() -> List[str]:
     """Read requirement.txt from the root, and split it as a list of libs/version"""
     file_path = Path(__file__)  # super-gradients/src/super_gradients/sanity_check/env_sanity_check.py
-    project_root = file_path.parent.parent.parent.parent  # moving to super-gradients, where requirements.txt is
+    project_root = file_path.parent.parent  # moving to super-gradients, where requirements.txt is
     with open(project_root / "requirements.txt", "r") as f:
         return f.readlines()
 
