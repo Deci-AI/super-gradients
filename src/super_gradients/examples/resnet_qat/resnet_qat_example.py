@@ -7,7 +7,7 @@ Behind the scenes, when passing enable_qat=True, a callback for QAT will be adde
 
 Once triggered, the following will happen:
 - The model will be rebuilt with quantized nn.modules.
-- Our pretrained imagenet weights will be loaded to it.
+- The pretrained imagenet weights will be loaded to it.
 - We perform calibration with 2 batches from our training set (1024 samples = 8 gpus X 128 samples_per_batch).
 - We evaluate the calibrated model (accuracy is logged under calibrated_model_accuracy).
 - The calibrated checkpoint prior to QAT is saved under ckpt_calibrated_{calibration_method}.pth.
