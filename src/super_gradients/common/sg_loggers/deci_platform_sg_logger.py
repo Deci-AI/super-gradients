@@ -17,7 +17,7 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
 TENSORBOARD_EVENTS_PREFIX = 'events.out.tfevents'
 
 
-class PlatformSGLogger(BaseSGLogger):
+class DeciPlatformSGLogger(BaseSGLogger):
 
     def __init__(self,
                  project_name: str,
@@ -77,7 +77,7 @@ class PlatformSGLogger(BaseSGLogger):
         Upload both to the destination specified by the user (base behavior), and to Deci platform.
         """
         # Upload to the destination specified by the user
-        super(PlatformSGLogger, self).upload()
+        super(DeciPlatformSGLogger, self).upload()
 
         # Upload to Deci platform
         if not os.path.isdir(self.checkpoints_dir_path):
