@@ -88,8 +88,8 @@ def env_sanity_check() -> None:
         'libraries': verify_installed_libraries,
     }
 
-    compliance_errors = {}
-    logger.info('SuperGradients Compliance Check Started')
+    sanity_check_errors = {}
+    logger.info('SuperGradients Sanity Check Started')
     logger.info(f'Checking the following components: {list(requirement_checkers.keys())}')
     logger.info('_' * 20)
     for test_name, test_function in requirement_checkers.items():
@@ -97,7 +97,7 @@ def env_sanity_check() -> None:
         try:
             errors = test_function()
             if len(errors) > 0:
-                compliance_errors[test_name] = errors
+                sanity_check_errors[test_name] = errors
                 for e in errors:
                     assert isinstance(e, str), 'Errors should be returned by the functions as str objects.'
                     print_error(test_name, e)
@@ -108,9 +108,9 @@ def env_sanity_check() -> None:
             logger.fatal(f'Failed to check for sanity_check: {e}', exc_info=True)
             raise
 
-    if compliance_errors:
+    if sanity_check_errors:
         logger.fatal(
-            f'The current environment does not meet Deci\'s needs, errors found in: {", ".join(list(compliance_errors.keys()))}')
+            f'The current environment does not meet Deci\'s needs, errors found in: {", ".join(list(sanity_check_errors.keys()))}')
     else:
         logger.info('Great, Looks like the current environment meet\'s Deci\'s requirements!')
 
