@@ -568,7 +568,7 @@ def box_iou(box1, box2):
 
 
 def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, classes=None,
-                        agnostic=False):  # noqa: C901
+                        agnostic=False, multi_label_per_box=None):  # noqa: C901
     """Performs Non-Maximum Suppression (NMS) on inference results
         :param prediction: raw model prediction
         :param conf_thres: below the confidence threshold - prediction are discarded
@@ -576,6 +576,9 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
         :param merge: Merge boxes using weighted mean
         :param classes: (optional list) filter by class
         :param agnostic: Determines if is class agnostic. i.e. may display a box with 2 predictions
+        :param multi_label_per_box: whether to use re-use each box with all possible labels
+                                    (instead of the maximum confidence all confidences above threshold
+                                    will be sent to NMS); by default is set to True
         :return:  (x1, y1, x2, y2, object_conf, class_conf, class)
     Returns:
          detections with shape: nx6 (x1, y1, x2, y2, conf, cls)
@@ -589,7 +592,8 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
     max_box_width_and_height = 4096
     max_num_of_detections = 300
     require_redundant_detections = True
-    multi_label_per_box = number_of_classes > 1  # (adds 0.5ms/img)
+    # when set to True (adds 0.5ms/img)
+    multi_label_per_box = multi_label_per_box if multi_label_per_box is not None else number_of_classes > 1
     output = [None] * prediction.shape[0]
     for image_idx, pred in enumerate(prediction):
         # Apply constraints

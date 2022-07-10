@@ -1,5 +1,6 @@
 import unittest
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -59,11 +60,22 @@ class TestYoloV5(unittest.TestCase):
             yolo_model = yolo_cls(self.arch_params)
             yolo_model.train()
 
-            params_total = sum(p.numel() for p in yolo_model.parameters())
+            params_total = sum(p.numel() for p in yolo_model.parameters() if p.requires_grad)
             param_groups = yolo_model.initialize_param_groups(0.1, train_params)
             optimizer_params_total = sum(p.numel() for g in param_groups for _, p in g['named_params'])
 
             self.assertEqual(params_total, optimizer_params_total)
+
+    def test_custom_width_mult(self):
+        """
+        Test that yolo can be created with various width multiplies without rounding issues
+        """
+        dummy_input = torch.randn(1, 3, 320, 320)
+
+        with torch.no_grad():
+            for width in np.arange(0.77, 1.4, 0.07):
+                yolov5_custom = Custom_YoLoV5(arch_params=HpmStruct(num_classes=10, width_mult_factor=width))
+                self.assertIsNotNone(yolov5_custom(dummy_input))
 
 
 if __name__ == '__main__':

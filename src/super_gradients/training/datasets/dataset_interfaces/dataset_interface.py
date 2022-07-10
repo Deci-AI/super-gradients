@@ -402,11 +402,12 @@ class SegmentationTestDatasetInterface(TestDatasetInterface):
 
 
 class DetectionTestDatasetInterface(TestDatasetInterface):
-    def __init__(self, dataset_params={}, image_size=320, batch_size=4):
+    def __init__(self, dataset_params={}, image_size=320, batch_size=4, classes=None):
         trainset = torch.utils.data.TensorDataset(torch.Tensor(np.zeros((batch_size, 3, image_size, image_size))),
                                                   torch.Tensor(np.zeros((batch_size, 6))))
 
-        super(DetectionTestDatasetInterface, self).__init__(trainset=trainset, dataset_params=dataset_params)
+        super(DetectionTestDatasetInterface, self).__init__(trainset=trainset, dataset_params=dataset_params,
+                                                            classes=classes)
 
 
 class TestYoloDetectionDatasetInterface(DatasetInterface):

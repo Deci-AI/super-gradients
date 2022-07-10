@@ -301,6 +301,9 @@ class SgModel:
 
         self._net_to_device()
 
+        # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
+        self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
+
         self._load_checkpoint_to_model()
 
     def _set_ckpt_loading_attributes(self):
