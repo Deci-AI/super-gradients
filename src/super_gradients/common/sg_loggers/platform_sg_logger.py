@@ -67,10 +67,10 @@ class PlatformSGLogger(BaseSGLogger):
                          save_checkpoints_remote=save_checkpoints_remote,
                          save_tensorboard_remote=save_tensorboard_remote,
                          save_logs_remote=save_logs_remote)
-        self.platform_client = DeciPlatformClient("api.deci.ai", 443, https=True)
+        self.platform_client = DeciPlatformClient()
         self.platform_client.login(token=auth_token)
+        self.platform_client.register_experiment(name=experiment_name)
         self.checkpoints_dir_path = checkpoints_dir_path
-        # self.platform_client.create_experiment()
 
     @multi_process_safe
     def upload(self):
@@ -86,8 +86,8 @@ class PlatformSGLogger(BaseSGLogger):
 
         for tb_events_file_name in os.listdir(self.checkpoints_dir_path):
             if tb_events_file_name.startswith(TENSORBOARD_EVENTS_PREFIX):
-                upload_success = FFFF(model_checkpoint_local_dir=self.checkpoints_dir_path,
-                                       checkpoints_file_name=tb_events_file_name)
+                upload_success = self.platform_client.save_experiment_file(
+                    file_path=f"{self.checkpoints_dir_path}/{tb_events_file_name}")
 
                 if not upload_success:
-                    logger.error('Failed to upload tb_events_file: ' + tb_events_file_name)
+                    logger.error(f'Failed to upload to platform tb_events_file: "{tb_events_file_name}" ')
