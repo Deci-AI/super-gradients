@@ -60,7 +60,7 @@ class TestYoloV5(unittest.TestCase):
             yolo_model = yolo_cls(self.arch_params)
             yolo_model.train()
 
-            params_total = sum(p.numel() for p in yolo_model.parameters())
+            params_total = sum(p.numel() for p in yolo_model.parameters() if p.requires_grad)
             param_groups = yolo_model.initialize_param_groups(0.1, train_params)
             optimizer_params_total = sum(p.numel() for g in param_groups for _, p in g['named_params'])
 
