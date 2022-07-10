@@ -22,12 +22,6 @@ from torch.distributed import all_gather
 logger = get_logger(__name__)
 
 try:
-    _imported_trt_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warning("Failed to import pytorch_quantization")
-    _imported_trt_failure = import_err
-
-try:
     from pytorch_quantization import nn as quant_nn, quant_modules
     from pytorch_quantization import calib
     from pytorch_quantization.tensor_quant import QuantDescriptor

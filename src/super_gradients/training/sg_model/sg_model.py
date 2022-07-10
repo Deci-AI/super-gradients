@@ -910,9 +910,11 @@ class SgModel:
         self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
 
         # ADD CALLBACK FOR QAT
-        self.enable_qat = self.training_params.enable_qat
+        self.enable_qat = core_utils.get_param(self.training_params, "enable_qat", False)
         if self.enable_qat:
-            self.qat_params = self.training_params.qat_params
+            self.qat_params = core_utils.get_param(self.training_params, "qat_params")
+            if self.qat_params is None:
+                raise ValueError("Must pass QAT params when enable_qat=True")
             self.phase_callbacks.append(QATCallback(**self.qat_params))
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
