@@ -6,7 +6,7 @@ from typing import Union, Type, List
 
 import torch
 import torch.nn as nn
-from super_gradients.training.models.detection_models.csp_darknet53 import Conv, DepthWiseConv, \
+from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, \
     CSPDarknet53, get_yolo_version_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
@@ -131,7 +131,7 @@ class Detect(nn.Module):
 class DetectX(nn.Module):
 
     def __init__(self, num_classes: int, stride: torch.Tensor, activation_func_type: type, channels: list,
-                 depthwise=False):
+                 depthwise=False, groups: int = None, inter_channels: Union[int, List] = None):
         super().__init__()
 
         self.num_classes = num_classes
@@ -147,22 +147,28 @@ class DetectX(nn.Module):
         self.reg_preds = nn.ModuleList()
         self.obj_preds = nn.ModuleList()
         self.stems = nn.ModuleList()
-        ConvBlock = DepthWiseConv if depthwise else Conv
+        ConvBlock = GroupedConvBlock if depthwise else Conv
 
-        inter_channels = channels[0]
+        inter_channels = inter_channels or channels[0]
+        inter_channels = inter_channels if isinstance(inter_channels, list) \
+            else [inter_channels] * self.detection_layers_num
         for i in range(self.detection_layers_num):
-            self.stems.append(Conv(channels[i], inter_channels, 1, 1, activation_func_type))
+            self.stems.append(Conv(channels[i], inter_channels[i], 1, 1, activation_func_type))
 
             self.cls_convs.append(
-                nn.Sequential(*[ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type),
-                                ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type)]))
+                nn.Sequential(*[ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
+                                          groups=groups),
+                                ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
+                                          groups=groups)]))
             self.reg_convs.append(
-                nn.Sequential(*[ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type),
-                                ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type)]))
+                nn.Sequential(*[ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
+                                          groups=groups),
+                                ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
+                                          groups=groups)]))
 
-            self.cls_preds.append(nn.Conv2d(inter_channels, self.n_anchors * self.num_classes, 1, 1, 0))
-            self.reg_preds.append(nn.Conv2d(inter_channels, 4, 1, 1, 0))
-            self.obj_preds.append(nn.Conv2d(inter_channels, self.n_anchors * 1, 1, 1, 0))
+            self.cls_preds.append(nn.Conv2d(inter_channels[i], self.n_anchors * self.num_classes, 1, 1, 0))
+            self.reg_preds.append(nn.Conv2d(inter_channels[i], 4, 1, 1, 0))
+            self.obj_preds.append(nn.Conv2d(inter_channels[i], self.n_anchors * 1, 1, 1, 0))
 
     def forward(self, inputs):
         outputs = []
@@ -239,11 +245,13 @@ class YoLoV5Head(nn.Module):
         num_classes = arch_params.num_classes
         anchors = arch_params.anchors
         depthwise = arch_params.depthwise
+        xhead_groups = get_param(arch_params, 'xhead_groups', None)
+        xhead_inter_channels = get_param(arch_params, 'xhead_inter_channels', None)
+
         self._skip_connections_dict = arch_params.skip_connections_dict
         # FLATTEN THE SOURCE LIST INTO A LIST OF INDICES
         self._layer_idx_to_extract = [idx for sub_l in self._skip_connections_dict.values() for idx in sub_l]
 
-        # GET THREE CONNECTING POINTS CHANNEL INPUT SIZE
         _, block, activation_type, width_mult, depth_mult = get_yolo_version_params(arch_params.yolo_version,
                                                                                     arch_params.yolo_type,
                                                                                     arch_params.width_mult_factor,
@@ -252,7 +260,7 @@ class YoLoV5Head(nn.Module):
         backbone_connector = [width_mult(c) if arch_params.scaled_backbone_width else c
                              for c in arch_params.backbone_connection_channels]
 
-        DownConv = DepthWiseConv if depthwise else Conv
+        DownConv = GroupedConvBlock if depthwise else Conv
 
         self._modules_list = nn.ModuleList()
         self._modules_list.append(Conv(backbone_connector[0], width_mult(512), 1, 1, activation_type))  # 10
@@ -286,8 +294,8 @@ class YoLoV5Head(nn.Module):
         else:
             strides = anchors.stride
             self._modules_list.append(
-                DetectX(num_classes, strides, activation_type, channels=detect_input_channels,
-                        depthwise=depthwise))  # 24
+                DetectX(num_classes, strides, activation_type, channels=detect_input_channels, depthwise=depthwise,
+                        groups=xhead_groups, inter_channels=xhead_inter_channels))  # 24
 
         self.anchors = anchors
         self.width_mult = width_mult
