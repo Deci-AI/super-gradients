@@ -18,7 +18,6 @@ from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
 
-from super_gradients.compliance import check_compliance
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
