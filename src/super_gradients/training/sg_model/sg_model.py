@@ -1892,14 +1892,27 @@ class SgModel:
     def set_net(self, net: torch.nn.Module):
         """
         Setter for network.
+
+        :param net: torch.nn.Module, value to set net
+        :return:
         """
         self.net = net
 
     def set_ckpt_best_name(self, ckpt_best_name):
         """
         Setter for best checkpoint filename.
+
+        :param ckpt_best_name: str, value to set ckpt_best_name
         """
         self.ckpt_best_name = ckpt_best_name
+
+    def set_ema(self, val: bool):
+        """
+        Setter for self.ema
+
+        :param val: bool, value to set ema
+        """
+        self.ema = val
 
     def _get_context_methods(self, phase: Phase) -> ContextSgMethods:
         """
@@ -1916,7 +1929,8 @@ class SgModel:
                                                set_ckpt_best_name=self.set_ckpt_best_name,
                                                reset_best_metric=self.reset_best_metric,
                                                build_model=self.build_model,
-                                               validate_epoch=self._validate_epoch)
+                                               validate_epoch=self._validate_epoch,
+                                               set_ema=self.set_ema)
         else:
             context_methods = ContextSgMethods()
 

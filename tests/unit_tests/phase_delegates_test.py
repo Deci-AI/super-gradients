@@ -57,7 +57,8 @@ class ContextMethodsTest(unittest.TestCase):
                                                                                             "set_ckpt_best_name",
                                                                                             "reset_best_metric",
                                                                                             "build_model",
-                                                                                            "validate_epoch"],
+                                                                                            "validate_epoch",
+                                                                                            "set_ema"],
                                                   accessible_method_names=[]))
 
         train_params = {"max_epochs": 1, "lr_updates": [], "lr_decay_factor": 0.1, "lr_mode": "step",

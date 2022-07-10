@@ -263,11 +263,17 @@ class QATCallback(PhaseCallback):
             # SET CHECKPOINT PARAMS SO WE LOAD THE BEST CHECKPOINT SO FAR
             checkpoint_params_qat = context.checkpoint_params.to_dict()
             checkpoint_params_qat['ckpt_name'] = 'ckpt_best.pth'
+
             if self.calibrated_model_path is not None:
-                checkpoint_params_qat['load_ema_as_net'] = 'ema_net' in read_ckpt_state_dict(self.calibrated_model_path).keys()
                 checkpoint_params_qat['external_checkpoint_path'] = self.calibrated_model_path
-            if self.start_epoch > 0 or self.calibrated_model_path is not None:
+                checkpoint_params_qat['load_ema_as_net'] = 'ema_net' in read_ckpt_state_dict(self.calibrated_model_path).keys()
                 checkpoint_params_qat['load_checkpoint'] = True
+            elif self.start_epoch > 0:
+                checkpoint_params_qat['load_ema_as_net'] = context.training_params.ema
+                checkpoint_params_qat['load_checkpoint'] = True
+                if checkpoint_params_qat['load_ema_as_net']:
+                    logger.warning("EMA net loaded from best checkpoint, continuing QAT without EMA.")
+                    context.context_methods.set_ema(False)
 
             # REMOVE REFERENCES TO NETWORK AND CLEAN GPU MEMORY BEFORE BUILDING THE NEW NET
             context.context_methods.set_net(None)
