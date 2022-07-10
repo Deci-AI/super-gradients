@@ -1,6 +1,16 @@
 defaults:
   - default_train_params
 
+sg_logger: platform_sg_logger
+sg_logger_params:
+  tb_files_user_prompt: False # Asks User for Tensorboard Deletion Prompt
+  launch_tensorboard: False
+  tensorboard_port:
+  auth_token: # Be carefull to not push credentials,
+  save_checkpoints_remote: False  # upload checkpoint files to s3
+  save_tensorboard_remote: False  # upload tensorboard files to s3
+  save_logs_remote: False  # upload log files to s3
+
 max_epochs: 250
 lr_updates: [100, 150, 200]
 lr_decay_factor: 0.1
