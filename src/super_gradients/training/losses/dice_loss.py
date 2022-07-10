@@ -22,7 +22,7 @@ class DiceLoss(AbstarctStructureLoss):
         :param predict: predictions tensor.                shape: [BS, num_classes, img_width, img_height]
         :return:
             numerator = intersection between predictions and target. shape: [BS, num_classes, img_width, img_height]
-            denominator = sum of predictions and target.             shape: [BS, num_classes, img_width, img_height]
+            denominator = sum of predictions and target areas.       shape: [BS, num_classes, img_width, img_height]
         """
         numerator = labels_one_hot * predict
         denominator = labels_one_hot + predict

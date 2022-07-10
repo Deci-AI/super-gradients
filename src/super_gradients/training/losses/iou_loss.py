@@ -51,7 +51,6 @@ class BinaryIoULoss(IoULoss):
         """
         :param apply_sigmoid: Whether to apply sigmoid to the predictions.
         :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the IoU
-        :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the IoU
             coefficient is to 1, which can be used as a regularization effect.
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
         :param eps: epsilon value to avoid inf.

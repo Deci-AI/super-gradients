@@ -13,8 +13,7 @@ logger = get_logger(__name__)
 
 class AbstarctStructureLoss(_Loss, ABC):
     """
-    Abstract computation of average structure loss between two tensors, It can support both multi-classes and binary tasks.
-    Defined in the paper: "V-Net: Fully Convolutional Neural Networks for Volumetric Medical Image Segmentation"
+    Abstract computation of structure loss between two tensors, It can support both multi-classes and binary tasks.
     """
     def __init__(self,
                  apply_softmax: bool = True,
