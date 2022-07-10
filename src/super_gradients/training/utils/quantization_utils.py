@@ -13,7 +13,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.callbacks import Phase, PhaseCallback, PhaseContext
 import os
 from enum import Enum
-from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model
+from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model, read_ckpt_state_dict
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, \
     get_world_size
@@ -244,6 +244,8 @@ class QATCallback(PhaseCallback):
         self.percentile = percentile
 
     def _validate_args(self, start_epoch: int, quant_modules_calib_method: str, calibrate, calibrated_model_path):
+        if _imported_pytorch_quantization_failure:
+            raise _imported_pytorch_quantization_failure
         if start_epoch < 0:
             raise ValueError("start_epoch must be positive.")
         if quant_modules_calib_method not in ["percentile", "mse", "entropy", "max"]:
@@ -259,9 +261,12 @@ class QATCallback(PhaseCallback):
             # SET CHECKPOINT PARAMS SO WE LOAD THE BEST CHECKPOINT SO FAR
             checkpoint_params_qat = context.checkpoint_params.to_dict()
             checkpoint_params_qat['ckpt_name'] = 'ckpt_best.pth'
-            checkpoint_params_qat['external_checkpoint_path'] = self.calibrated_model_path
+            if self.calibrated_model_path is not None:
+                checkpoint_params_qat['load_ema_as_net'] = 'ema_net' in read_ckpt_state_dict(self.calibrated_model_path).keys()
+                checkpoint_params_qat['external_checkpoint_path'] = self.calibrated_model_path
             if self.start_epoch > 0 or self.calibrated_model_path is not None:
                 checkpoint_params_qat['load_checkpoint'] = True
+
 
             # REMOVE REFERENCES TO NETWORK AND CLEAN GPU MEMORY BEFORE BUILDING THE NEW NET
             context.context_methods.set_net(None)
