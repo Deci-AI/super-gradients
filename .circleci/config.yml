@@ -40,6 +40,10 @@ jobs:
           check_version_file: true
       - deci-common/get_persisted_version_info
       - run:
+          name: add requirements.txt to source code
+          command: |
+            cp requirements.txt src/src/super_gradients/.
+      - run:
           name: install python dependencies
           command: |
             python3 -m venv venv
