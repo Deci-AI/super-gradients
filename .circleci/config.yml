@@ -42,7 +42,7 @@ jobs:
       - run:
           name: add requirements.txt to source code
           command: |
-            cp requirements.txt src/src/super_gradients/.
+            cp requirements.txt src/super_gradients/.
       - run:
           name: install python dependencies
           command: |
