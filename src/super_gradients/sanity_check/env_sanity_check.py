@@ -22,10 +22,24 @@ def verify_os() -> List[str]:
 
 
 def get_libs_requirements() -> List[str]:
-    """Read requirement.txt from the root, and split it as a list of libs/version"""
+    """Read requirement.txt from the root, and split it as a list of libs/version.
+    There is a difference when installed from artefact or locally.
+        - In the first case, requirements.txt is copied to the package during the CI.
+        - In the second case, requirements.txt in the root of the project.
+
+    Note: This is because when installed from artefact only the source code is accessible, so requirements.txt has to be
+          copied to the package root (./src/super_gradients). This is automatically done with the CI to make sure that
+          in the github we only have 1 source of truth for requirements.txt. The consequence being that when the code
+          is copied/cloned from github, the requirements.txt was not copied to the super_gradients package root, so we
+          need to go to the project root (.) to find it.
+    """
     file_path = Path(__file__)  # super-gradients/src/super_gradients/sanity_check/env_sanity_check.py
-    project_root = file_path.parent.parent  # moving to super-gradients, where requirements.txt is
-    with open(project_root / "requirements.txt", "r") as f:
+    package_root = file_path.parent.parent  # moving to super-gradients/src/super_gradients
+    project_root = package_root.parent.parent  # moving to super-gradients
+
+    # If installed from artefact, requirements.txt is in package_root, if installed locally it is in project_root
+    requirements_folder = package_root if (package_root / "requirements.txt").exists() else project_root
+    with open(requirements_folder / "requirements.txt", "r") as f:
         return f.readlines()
 
 
