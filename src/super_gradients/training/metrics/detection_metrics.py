@@ -4,6 +4,8 @@ from torchmetrics import Metric
 from super_gradients.training.utils.detection_utils import calc_batch_prediction_accuracy, DetectionPostPredictionCallback, \
     IouThreshold
 import super_gradients
+from super_gradients.common.abstractions.abstract_logger import get_logger
+logger = get_logger(__name__)
 
 
 def compute_ap(recall, precision, method: str = 'interp'):
@@ -89,19 +91,30 @@ def ap_per_class(tp, conf, pred_cls, target_cls):
 
 
 class DetectionMetrics(Metric):
-    def __init__(self, num_cls,
+    """
+    DetectionMetrics
+
+    Metric class for computing F1, Precision, Recall and Mean Average Precision.
+
+    Attributes:
+
+         num_cls: number of classes.
+
+         post_prediction_callback: DetectionPostPredictionCallback to be applied on net's output prior
+            to the metric computation (NMS).
+
+         iou_thres: Threshold to compute the mAP (default=IouThreshold.MAP_05_TO_095).
+
+         normalize_targets: Whether to normalize bbox coordinates by image size (default=True).
+
+         dist_sync_on_step: Synchronize metric state across processes at each ``forward()``
+            before returning the value at the step. (default=False)
+    """
+    def __init__(self, num_cls: int,
                  post_prediction_callback: DetectionPostPredictionCallback = None,
                  iou_thres: IouThreshold = IouThreshold.MAP_05_TO_095,
+                 normalize_targets: bool = False,
                  dist_sync_on_step=False):
-        """
-
-
-        @param post_prediction_callback:
-        @param iou_thres:
-        @param dist_sync_on_step:
-
-
-        """
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.num_cls = num_cls
         self.iou_thres = iou_thres
@@ -110,17 +123,19 @@ class DetectionMetrics(Metric):
         self.components = len(self.component_names)
         self.post_prediction_callback = post_prediction_callback
         self.is_distributed = super_gradients.is_distributed()
-
+        self.normalize_targets = normalize_targets
         self.world_size = None
         self.rank = None
         self.add_state("metrics", default=[], dist_reduce_fx=None)
 
     def update(self, preds: torch.Tensor, target: torch.Tensor, device, inputs):
+        _, _, height, width = inputs.shape
+        targets = target.clone()
+        if self.normalize_targets:
+            targets[:, 2:] /= max(height, width)
         preds = self.post_prediction_callback(preds, device=device)
 
-        _, _, height, width = inputs.shape
-
-        metrics, batch_images_counter = calc_batch_prediction_accuracy(preds, target, height, width,
+        metrics, batch_images_counter = calc_batch_prediction_accuracy(preds, targets, height, width,
                                                                        self.iou_thres)
         acc_metrics = getattr(self, "metrics")
         setattr(self, "metrics", acc_metrics + metrics)

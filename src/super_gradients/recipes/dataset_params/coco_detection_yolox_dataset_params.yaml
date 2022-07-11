@@ -1,0 +1,33 @@
+data_dir: /data/coco # root path to coco data
+train_subdir: images/train2017 # sub directory path of data_dir containing the train data.
+val_subdir: images/val2017 # sub directory path of data_dir containing the validation data.
+train_json_file: instances_train2017.json # path to coco train json file, data_dir/annotations/train_json_file.
+val_json_file: instances_val2017.json # path to coco validation json file, data_dir/annotations/val_json_file.
+
+batch_size: 16 # batch size for trainset in CoCoDetectionDatasetInterface
+val_batch_size: 128 # batch size for valset in CoCoDetectionDatasetInterface
+val_image_size: 640 # image size for valset in CoCoDetectionDatasetInterface
+train_image_size: 640 # image size for trainset in CoCoDetectionDatasetInterface
+
+mixup_prob: 1.0
+degrees: 10.
+shear: 2.0
+flip_prob: 0.5
+hsv_prob: 1.0
+mosaic_scale: [0.1, 2]
+mixup_scale: [0.5, 1.5]
+mosaic_prob: 1.
+translate: 0.1
+
+val_collate_fn: # collate function for valset in CoCoDetectionDatasetInterface
+  _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+
+
+train_collate_fn: # collate function for trainset in CoCoDetectionDatasetInterface
+  _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+
+cache_dir_path: # path to a directory that will be used for caching (with numpy.memmap).
+cache_train_images: True
+cache_val_images: True
+
+_convert_: all

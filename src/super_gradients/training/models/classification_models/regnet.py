@@ -172,29 +172,36 @@ class AnyNetX(SgModule):
             self.net.head = Head(self.ls_block_width[-1], new_num_classes, self.dropout_prob)
 
 
+def regnet_params_to_blocks(initial_width, slope, quantized_param, network_depth, bottleneck_ratio, group_width):
+    # We need to derive block width and number of blocks from initial parameters.
+    parameterized_width = initial_width + slope * np.arange(network_depth)  # From equation 2
+    parameterized_block = np.log(parameterized_width / initial_width) / np.log(quantized_param)  # From equation 3
+    parameterized_block = np.round(parameterized_block)
+    quantized_width = initial_width * np.power(quantized_param, parameterized_block)
+    # We need to convert quantized_width to make sure that it is divisible by 8
+    quantized_width = 8 * np.round(quantized_width / 8)
+    ls_block_width, ls_num_blocks = np.unique(quantized_width.astype(np.int), return_counts=True)
+    # At this points, for each stage, the above-calculated block width could be incompatible to group width
+    # due to bottleneck ratio. Hence, we need to adjust the formers.
+    # Group width could be swapped to number of groups, since their multiplication is block width
+    ls_group_width = np.array([min(group_width, block_width // bottleneck_ratio) for block_width in ls_block_width])
+    ls_block_width = (np.round(ls_block_width // bottleneck_ratio / group_width) * group_width).astype(np.int).tolist()
+    ls_bottleneck_ratio = [bottleneck_ratio for _ in range(len(ls_block_width))]
+    return ls_num_blocks, ls_block_width, ls_bottleneck_ratio, ls_group_width.tolist()
+
+
 class RegNetX(AnyNetX):
     def __init__(self, initial_width, slope, quantized_param, network_depth, bottleneck_ratio, group_width,
                  stride, arch_params, se_ratio=None, input_channels=3):
-        # We need to derive block width and number of blocks from initial parameters.
-        parameterized_width = initial_width + slope * np.arange(network_depth)  # From equation 2
-        parameterized_block = np.log(parameterized_width / initial_width) / np.log(quantized_param)  # From equation 3
-        parameterized_block = np.round(parameterized_block)
-        quantized_width = initial_width * np.power(quantized_param, parameterized_block)
-        # We need to convert quantized_width to make sure that it is divisible by 8
-        quantized_width = 8 * np.round(quantized_width / 8)
-        ls_block_width, ls_num_blocks = np.unique(quantized_width.astype(np.int), return_counts=True)
-        # At this points, for each stage, the above-calculated block width could be incompatible to group width
-        # due to bottleneck ratio. Hence, we need to adjust the formers.
-        # Group width could be swapped to number of groups, since their multiplication is block width
-        ls_group_width = np.array([min(group_width, block_width // bottleneck_ratio) for block_width in ls_block_width])
-        ls_block_width = np.round(ls_block_width // bottleneck_ratio / group_width) * group_width
-        ls_bottleneck_ratio = [bottleneck_ratio for _ in range(len(ls_block_width))]
+        ls_num_blocks, ls_block_width, ls_bottleneck_ratio, ls_group_width = \
+            regnet_params_to_blocks(initial_width, slope, quantized_param, network_depth, bottleneck_ratio, group_width)
+
         # GET THE BACKBONE MODE FROM arch_params IF EXISTS - O.W. - SET AS FALSE
         backbone_mode = get_param(arch_params, 'backbone_mode', False)
         dropout_prob = get_param(arch_params, 'dropout_prob', 0.)
         droppath_prob = get_param(arch_params, 'droppath_prob', 0.)
-        super(RegNetX, self).__init__(ls_num_blocks, ls_block_width.astype(np.int).tolist(), ls_bottleneck_ratio,
-                                      ls_group_width.tolist(), stride, arch_params.num_classes, se_ratio, backbone_mode,
+        super(RegNetX, self).__init__(ls_num_blocks, ls_block_width, ls_bottleneck_ratio,
+                                      ls_group_width, stride, arch_params.num_classes, se_ratio, backbone_mode,
                                       dropout_prob, droppath_prob, input_channels)
 
 
