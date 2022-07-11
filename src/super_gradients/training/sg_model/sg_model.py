@@ -16,7 +16,6 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
-
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
@@ -32,9 +31,11 @@ from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
+from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_model_utils import MonitoredValue
 from super_gradients.training import metrics
-from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, IllegalDataloaderInitialization
+from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, \
+    IllegalDataloaderInitialization
 from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
@@ -53,7 +54,7 @@ from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path,
     load_checkpoint_to_model, load_pretrained_weights
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
-    MetricsUpdateCallback, LR_WARMUP_CLS_DICT
+    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
@@ -176,6 +177,9 @@ class SgModel:
         self.external_checkpoint_path = None
         self.strict_load = StrictLoad.ON
         self.load_ema_as_net = False
+        self.ckpt_best_name = 'ckpt_best.pth'
+        self.enable_qat = False
+        self.qat_params = {}
 
         # DETERMINE THE LOCATION OF THE LOSS AND ACCURACY IN THE RESULTS TUPLE OUTPUTED BY THE TEST
         self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = None, None
@@ -293,9 +297,12 @@ class SgModel:
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
 
-        self.architecture = self.net.structure if hasattr(self.net, 'structure') else architecture
+        self.architecture = architecture
 
         self._net_to_device()
+
+        # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
+        self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
 
         self._load_checkpoint_to_model()
 
@@ -313,6 +320,7 @@ class SgModel:
         if self.load_checkpoint or self.external_checkpoint_path:
             self.load_weights_only = core_utils.get_param(self.checkpoint_params, 'load_weights_only',
                                                           default_val=False)
+        self.ckpt_name = core_utils.get_param(self.checkpoint_params, 'ckpt_name', default_val=self.ckpt_name)
 
     def _net_to_device(self):
         """
@@ -366,7 +374,8 @@ class SgModel:
                                device=self.device,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
-                               train_loader=self.train_loader)
+                               train_loader=self.train_loader,
+                               context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END))
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
             batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
@@ -509,7 +518,7 @@ class SgModel:
                 metric < self.best_metric and not self.greater_metric_to_watch_is_better):
             # STORE THE CURRENT metric AS BEST
             self.best_metric = metric
-            self.sg_logger.add_checkpoint(tag='ckpt_best.pth', state_dict=state, global_step=epoch)
+            self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.VALIDATION_END_BEST_EPOCH, context)
@@ -768,6 +777,35 @@ class SgModel:
                       for the forward pass, and further computations. Args for this callable should be in the order
                       (inputs, targets, batch_idx) returning modified_inputs, modified_targets
 
+                -   `ckpt_best_name` : str (default='ckpt_best.pth')
+
+                    The best checkpoint (according to metric_to_watch) will be saved under this filename in the checkpoints directory.
+
+                -   `enable_qat`: bool (default=False)
+
+                    Adds a QATCallback to the phase callbacks, that triggers quantization aware training starting from
+                     qat_params["start_epoch"]
+
+                -   `qat_params`: dict-like object with the following key/values:
+
+                        start_epoch: int, first epoch to start QAT.
+
+                        quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
+                         computation of the quantized modules (default=percentile).
+
+                        per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).
+
+                        calibrate: bool, whether to perfrom calibration (default=False).
+
+                        calibrated_model_path: str, path to a calibrated checkpoint (default=None).
+
+                        calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset. When None,
+                         context.train_loader will be used (default=None).
+
+                        num_calib_batches: int, number of batches to collect the statistics from.
+
+                        percentile: float, percentile value to use when SgModel,quant_modules_calib_method='percentile'.
+                         Discarded when other methods are used (Default=99.99).
 
 
         :return:
@@ -874,6 +912,14 @@ class SgModel:
         self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
         self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
 
+        # ADD CALLBACK FOR QAT
+        self.enable_qat = core_utils.get_param(self.training_params, "enable_qat", False)
+        if self.enable_qat:
+            self.qat_params = core_utils.get_param(self.training_params, "qat_params")
+            if self.qat_params is None:
+                raise ValueError("Must pass QAT params when enable_qat=True")
+            self.phase_callbacks.append(QATCallback(**self.qat_params))
+
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
         if not self.ddp_silent_mode:
@@ -902,7 +948,7 @@ class SgModel:
         if not self.load_checkpoint or self.load_weights_only:
             # WHEN STARTING TRAINING FROM SCRATCH, DO NOT LOAD OPTIMIZER PARAMS (EVEN IF LOADING BACKBONE)
             self.start_epoch = 0
-            self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
+            self.reset_best_metric()
             load_opt_params = False
 
         if isinstance(self.training_params.optimizer, str):
@@ -924,6 +970,8 @@ class SgModel:
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
+        self.ckpt_best_name = self.training_params.ckpt_best_name
+
         context = PhaseContext(optimizer=self.optimizer,
                                net=self.net,
                                experiment_name=self.experiment_name,
@@ -932,7 +980,17 @@ class SgModel:
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
                                train_loader=self.train_loader,
-                               valid_loader=self.valid_loader)
+                               valid_loader=self.valid_loader,
+                               training_params=self.training_params,
+                               ddp_silent_mode=self.ddp_silent_mode,
+                               checkpoint_params=self.checkpoint_params,
+                               architecture=self.architecture,
+                               arch_params=self.arch_params,
+                               metric_idx_in_results_tuple=self.metric_idx_in_results_tuple,
+                               metric_to_watch=self.metric_to_watch,
+                               device=self.device,
+                               context_methods=self._get_context_methods(Phase.PRE_TRAINING)
+                               )
 
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
@@ -1030,6 +1088,9 @@ class SgModel:
                     self.sg_logger.upload()
 
                 self.sg_logger.close()
+
+    def reset_best_metric(self):
+        self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
 
     @resolve_param('train_metrics_list', ListFactory(MetricsFactory()))
     def _set_train_metrics(self, train_metrics_list):
@@ -1703,7 +1764,8 @@ class SgModel:
                                criterion=self.criterion,
                                device=self.device,
                                lr_warmup_epochs=lr_warmup_epochs,
-                               sg_logger=self.sg_logger)
+                               sg_logger=self.sg_logger,
+                               context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END))
 
         if not silent_mode:
             # PRINT TITLES
@@ -1822,3 +1884,57 @@ class SgModel:
                      its final value. beta=15 is ~40% of the training process.
         """
         return ModelEMA(self.net, decay, beta, exp_activation)
+
+    def get_net(self):
+        """
+        Getter for network.
+        :return: torch.nn.Module, self.net
+        """
+        return self.net
+
+    def set_net(self, net: torch.nn.Module):
+        """
+        Setter for network.
+
+        :param net: torch.nn.Module, value to set net
+        :return:
+        """
+        self.net = net
+
+    def set_ckpt_best_name(self, ckpt_best_name):
+        """
+        Setter for best checkpoint filename.
+
+        :param ckpt_best_name: str, value to set ckpt_best_name
+        """
+        self.ckpt_best_name = ckpt_best_name
+
+    def set_ema(self, val: bool):
+        """
+        Setter for self.ema
+
+        :param val: bool, value to set ema
+        """
+        self.ema = val
+
+    def _get_context_methods(self, phase: Phase) -> ContextSgMethods:
+        """
+        Returns ContextSgMethods holding the methods that should be accessible through phase callbacks to the user at
+         the specific phase
+
+        :param phase: Phase, controls what methods should be returned.
+        :return: ContextSgMethods holding methods from self.
+        """
+        if phase in [Phase.PRE_TRAINING, Phase.TRAIN_EPOCH_START, Phase.TRAIN_EPOCH_END, Phase.VALIDATION_EPOCH_END,
+                     Phase.VALIDATION_EPOCH_END, Phase.POST_TRAINING, Phase.VALIDATION_END_BEST_EPOCH]:
+            context_methods = ContextSgMethods(get_net=self.get_net,
+                                               set_net=self.set_net,
+                                               set_ckpt_best_name=self.set_ckpt_best_name,
+                                               reset_best_metric=self.reset_best_metric,
+                                               build_model=self.build_model,
+                                               validate_epoch=self._validate_epoch,
+                                               set_ema=self.set_ema)
+        else:
+            context_methods = ContextSgMethods()
+
+        return context_methods
