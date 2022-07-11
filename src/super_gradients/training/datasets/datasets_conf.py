@@ -35,13 +35,3 @@ COCO_DETECTION_CLASSES_LIST = [
     'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors',
     'teddy bear', 'hair drier', 'toothbrush'
 ]
-coco_detection_category_id_list = [
-    category_id
-    for category_id, category_name in COCO_DEFAULT_CLASSES_TUPLES_LIST
-    if category_name in COCO_DETECTION_CLASSES_LIST
-]
-
-category_id_to_annotation_id = {
-    category_id: annotation_id for annotation_id, category_id in enumerate(coco_detection_category_id_list)}
-
-print(category_id_to_annotation_id)
