@@ -45,7 +45,7 @@ def get_libs_requirements() -> List[str]:
         with open(project_root / "requirements.txt", "r") as f:
             return f.readlines()
     else:
-        return None
+        return None  # Could happen when installed through github directly ("pip install git+https://github.com/...")
 
 
 def get_installed_libs_with_version() -> Dict[str, str]:
