@@ -46,6 +46,13 @@ DEFAULT_YOLO_ARCH_PARAMS = {
                              # (has an impact only if yolo_type is yoloV5)
     'stem_type': None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
     'depthwise': False,  # use depthwise separable convolutions all over the model
+    'xhead_inter_channels': None,  # (has an impact only if yolo_type is yoloX)
+    # Channels in classification and regression branches of the detecting blocks;
+    # if is None the first of input channels will be used by default
+    'xhead_groups': None,  # (has an impact only if yolo_type is yoloX)
+    # Num groups in convs in classification and regression branches of the detecting blocks;
+    # if None default groups will be used according to conv type
+    # (1 for Conv and depthwise for GroupedConvBlock)
 }
 
 
@@ -132,6 +139,18 @@ class DetectX(nn.Module):
 
     def __init__(self, num_classes: int, stride: torch.Tensor, activation_func_type: type, channels: list,
                  depthwise=False, groups: int = None, inter_channels: Union[int, List] = None):
+        """
+        :param stride:          strides of each predicting level
+        :param channels:        input channels into all detecting layers
+                                (from all neck layers that will be used for predicting)
+        :param depthwise:       defines conv type in classification and regression branches (Conv or GroupedConvBlock)
+                                depthwise is False by default in favor of a usual Conv
+        :param groups:          num groups in convs in classification and regression branches;
+                                if None default groups will be used according to conv type
+                                (1 for Conv and depthwise for GroupedConvBlock)
+        :param inter_channels:  channels in classification and regression branches;
+                                if None channels[0] will be used by default
+        """
         super().__init__()
 
         self.num_classes = num_classes
@@ -245,8 +264,8 @@ class YoLoV5Head(nn.Module):
         num_classes = arch_params.num_classes
         anchors = arch_params.anchors
         depthwise = arch_params.depthwise
-        xhead_groups = get_param(arch_params, 'xhead_groups', None)
-        xhead_inter_channels = get_param(arch_params, 'xhead_inter_channels', None)
+        xhead_groups = arch_params.xhead_groups
+        xhead_inter_channels = arch_params.xhead_inter_channels
 
         self._skip_connections_dict = arch_params.skip_connections_dict
         # FLATTEN THE SOURCE LIST INTO A LIST OF INDICES
