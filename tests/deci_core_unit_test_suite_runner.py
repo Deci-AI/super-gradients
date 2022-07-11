@@ -18,6 +18,7 @@ from tests.unit_tests.dice_loss_test import DiceLossTest
 from tests.unit_tests.update_param_groups_unit_test import UpdateParamGroupsTest
 from tests.unit_tests.vit_unit_test import TestViT
 from tests.unit_tests.yolox_unit_test import TestYOLOX
+from tests.unit_tests.yolov5_unit_test import TestYoloV5
 from tests.unit_tests.lr_cooldown_test import LRCooldownTest
 from tests.unit_tests.detection_targets_format_transform_test import DetectionTargetsTransformTest
 from tests.unit_tests.forward_pass_prep_fn_test import ForwardpassPrepFNTest
@@ -60,6 +61,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(KDEMATest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(KDModelTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestYOLOX))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestYoloV5))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(InitializeWithDataloadersTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRCooldownTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DetectionTargetsTransformTest))
