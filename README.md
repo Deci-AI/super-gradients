@@ -63,10 +63,12 @@ All SuperGradients models’ are production ready in the sense that they are com
 </div>
     
 ## What's New
+* 【07/07/2022】SSD MobileNet V2 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) for COCO mAP of 21.5. Great for edge devices deployment! 📱
+* 【07/07/2022】 STDC  - new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores 🎯
 * 【16/06/2022】 ResNet50  - new pre-trained checkpoint and [recipe](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/imagenet_resnet50_kd.yaml) for ImageNet top-1 score of 81.9 💪
-* 【09/06/2022】 ViT models (Vision Transformer) - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) and pre-trained checkpoints (ViT, BEiT).
+* 【09/06/2022】 ViT models (Vision Transformer) - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) (ViT, BEiT).
 * 【09/06/2022】 Knowledge Distillation support - [training module](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/kd_model/kd_model.py) and [notebook](https://bit.ly/3HQvbsg).
-* 【06/04/2022】 Integration with professional tools - [Weights and Biases](https://deci-ai.github.io/super-gradients/user_guide.html?highlight=wandb#professional-tools-integration) and DagsHub.
+* 【06/04/2022】 Integration with professional tools - [Weights and Biases](https://deci-ai.github.io/super-gradients/user_guide.html?highlight=wandb#professional-tools-integration) and [DagsHub](https://dagshub.com/Deci-AI).
 * 【09/03/2022】 New [quick start](#quick-start-notebook---semantic-segmentation) and [transfer learning](#transfer-learning-with-sg-notebook---semantic-segmentation) example notebooks for Semantic Segmentation.
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
 * 【01/02/2022】 We added issue templates for feature requests and bug reporting.
@@ -76,7 +78,8 @@ Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/rel
 
 ## Coming soon
 - [ ] YOLOX models (object detection) - recipes and pre-trained checkpoints.
-- [ ] SSD MobileNet models (recipes, pre-trained checkpoints) for edge devices deployment.
+- [ ] Single class detectors (recipes, pre-trained checkpoints) for edge devices deployment.
+- [ ] Single class segmentation (recipes, pre-trained checkpoints) for edge devices deployment.
 - [ ] QAT capabilities (Quantization Aware Training).
 - [ ] Dali implementation.
 - [ ] Integration with more professional tools.
