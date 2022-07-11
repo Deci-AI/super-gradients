@@ -624,18 +624,18 @@ class DetectionPaddedRescale(DetectionTransform):
 
         img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap)
 
-        def _pad_rescale_target(targets_in):
-            boxes, labels = targets_in[:, :4], targets_in[:, 4]
-            boxes = xyxy2cxcywh(boxes)
-            boxes *= r
-            boxes = cxcywh2xyxy(boxes)
-            return np.concatenate((boxes, labels[:, np.newaxis]), 1)
-
         sample["image"] = img
-        sample["target"] = _pad_rescale_target(new_targets)
+        sample["target"] = self._pad_rescale_target(new_targets, r)
         if crowd_targets is not None:
-            sample["crowd_target"] = _pad_rescale_target(new_crowd_targets)
+            sample["crowd_target"] = self._pad_rescale_target(new_crowd_targets, r)
         return sample
+
+    def _pad_rescale_target(self, targets_in, r):
+        boxes, labels = targets_in[:, :4], targets_in[:, 4]
+        boxes = xyxy2cxcywh(boxes)
+        boxes *= r
+        boxes = cxcywh2xyxy(boxes)
+        return np.concatenate((boxes, labels[:, np.newaxis]), 1)
 
 
 class DetectionHorizontalFlip(DetectionTransform):
