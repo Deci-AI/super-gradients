@@ -116,6 +116,21 @@ def convert_xywh_bbox_to_xyxy(input_bbox: torch.Tensor):
     return converted_bbox
 
 
+def convert_xywh_to_cxcywh(bbox: List[float], img_width: float, img_height: float) -> List[float]:
+    """
+    Convert a single bbox from xywh to cxcywh format
+    :param bbox: Bounding box in format (x_left, y_top, width, height) not normalized
+    :return:     Normalized bbox in centered and format (x_center, y_center, width, height) normalized between 0-1
+    """
+    result = [
+        (bbox[0] + bbox[2] / 2) / img_width,
+        (bbox[1] + bbox[3] / 2) / img_height,
+        (bbox[2]) / img_width,
+        (bbox[3]) / img_height,
+    ]
+    return [round(coordinate, 6) for coordinate in result]
+
+
 def calculate_wh_iou(box1, box2) -> float:
     """
     calculate_wh_iou - Gets the Intersection over Union of the w,h values of the bboxes

@@ -1,27 +1,14 @@
 import os
 import json
-from typing import Dict, List
+from typing import Dict
 from pathlib import Path
 
 import numpy as np
 import torch
 
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataSet
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST, COCO_91_INDEX
-
-
-def convert_xywh_to_cxcywh(bbox: List[int], img_width: float, img_height: float):
-    """
-    :param bbox: Bounding box in format (x_left, y_top, width, height) not normalized
-    :return:     Normalized bbox in centered and format (x_center, y_center, width, height) normalized between 0-1
-    """
-    result = [
-        (bbox[0] + bbox[2] / 2) / img_width,
-        (bbox[1] + bbox[3] / 2) / img_height,
-        (bbox[2]) / img_width,
-        (bbox[3]) / img_height,
-    ]
-    return [round(coordinate, 6) for coordinate in result]
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST, COCO_DEFAULT_CLASSES_TUPLES_LIST
+from super_gradients.training.utils.detection_utils import convert_xywh_to_cxcywh
 
 
 class COCODetectionDataSet(DetectionDataSet):
@@ -37,8 +24,15 @@ class COCODetectionDataSet(DetectionDataSet):
         """
         Load all the crowd targets and store it in self.img_id_to_crowd_gts for later use.
         """
+
+        coco_detection_category_id_list = [
+            category_id
+            for category_id, category_name in COCO_DEFAULT_CLASSES_TUPLES_LIST
+            if category_name in COCO_DETECTION_CLASSES_LIST
+        ]
+
         category_id_to_annotation_id = {
-            category_id: annotation_id for annotation_id, category_id in enumerate(COCO_91_INDEX)}
+            category_id: annotation_id for annotation_id, category_id in enumerate(coco_detection_category_id_list)}
 
         annotations_json_path = os.path.join(self.root, self.additional_labels_path)
         with open(annotations_json_path) as file:
