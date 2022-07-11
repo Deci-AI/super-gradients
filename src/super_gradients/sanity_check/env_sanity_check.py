@@ -9,6 +9,8 @@ from packaging.version import Version
 logger = getLogger('sg-sanity-check')
 logger.setLevel(DEBUG)
 
+NO_REQUIREMENTS = "requirements.txt not found, it is impossible to check if the libraries are installed correctly"
+
 
 def verify_os() -> List[str]:
     """Verifying operating system name and platform"""
@@ -63,7 +65,7 @@ def verify_installed_libraries() -> List[str]:
 
     requirements = get_libs_requirements()
     if requirements is None:
-        return ["requirements.txt not found, it is impossible to check if libraries installed correctly"]
+        return NO_REQUIREMENTS
 
     installed_libs_with_version = get_installed_libs_with_version()
 
@@ -119,10 +121,11 @@ def env_sanity_check() -> None:
         logger.info(f"Verifying {test_name}...")
         try:
             errors = test_function()
-            if len(errors) > 0:
+            if errors == NO_REQUIREMENTS:
+                logger.error(NO_REQUIREMENTS)
+            elif len(errors) > 0:
                 sanity_check_errors[test_name] = errors
                 for e in errors:
-                    assert isinstance(e, str), 'Errors should be returned by the functions as str objects.'
                     print_error(test_name, e)
             else:
                 logger.info(f'{test_name} OK')
