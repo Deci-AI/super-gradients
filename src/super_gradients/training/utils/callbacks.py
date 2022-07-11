@@ -43,6 +43,15 @@ class Phase(Enum):
     POST_TRAINING = "POST_TRAINING"
 
 
+class ContextSgMethods:
+    """
+    Class for delegating SgModel's methods, so that only the relevant ones are ("phase wise") are accessible.
+    """
+    def __init__(self, **methods):
+        for attr, attr_val in methods.items():
+            setattr(self, attr, attr_val)
+
+
 class PhaseContext:
     """
     Represents the input for phase callbacks, and is constantly updated after callback calls.
@@ -52,7 +61,10 @@ class PhaseContext:
     def __init__(self, epoch=None, batch_idx=None, optimizer=None, metrics_dict=None, inputs=None, preds=None,
                  target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
                  device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None,
-                 train_loader=None, valid_loader=None):
+                 train_loader=None, valid_loader=None,
+                 training_params=None, ddp_silent_mode=None, checkpoint_params=None, architecture=None,
+                 arch_params=None, metric_idx_in_results_tuple=None,
+                 metric_to_watch=None, valid_metrics=None, context_methods=None):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -73,6 +85,15 @@ class PhaseContext:
         self.sg_logger = sg_logger
         self.train_loader = train_loader
         self.valid_loader = valid_loader
+        self.training_params = training_params
+        self.ddp_silent_mode = ddp_silent_mode
+        self.checkpoint_params = checkpoint_params
+        self.architecture = architecture
+        self.arch_params = arch_params
+        self.metric_idx_in_results_tuple = metric_idx_in_results_tuple
+        self.metric_to_watch = metric_to_watch
+        self.valid_metrics = valid_metrics
+        self.context_methods = context_methods
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():
@@ -736,7 +757,6 @@ class YoloXTrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
                 transform.close()
         iter(context.train_loader)
         context.criterion.use_l1 = True
-
 
 
 class CallbackHandler:
