@@ -36,7 +36,9 @@ def get_libs_requirements() -> List[str]:
     file_path = Path(__file__)  # super-gradients/src/super_gradients/sanity_check/env_sanity_check.py
     package_root = file_path.parent.parent  # moving to super-gradients/src/super_gradients
     project_root = package_root.parent.parent  # moving to super-gradients
-
+    print(package_root)
+    print(package_root / "requirements.txt")
+    print(project_root)
     # If installed from artefact, requirements.txt is in package_root, if installed locally it is in project_root
     requirements_folder = package_root if (package_root / "requirements.txt").exists() else project_root
     with open(requirements_folder / "requirements.txt", "r") as f:
