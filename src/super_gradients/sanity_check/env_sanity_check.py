@@ -36,13 +36,16 @@ def get_libs_requirements() -> List[str]:
     file_path = Path(__file__)  # super-gradients/src/super_gradients/sanity_check/env_sanity_check.py
     package_root = file_path.parent.parent  # moving to super-gradients/src/super_gradients
     project_root = package_root.parent.parent  # moving to super-gradients
-    print(package_root)
-    print(package_root / "requirements.txt")
-    print(project_root)
+
     # If installed from artefact, requirements.txt is in package_root, if installed locally it is in project_root
-    requirements_folder = package_root if (package_root / "requirements.txt").exists() else project_root
-    with open(requirements_folder / "requirements.txt", "r") as f:
-        return f.readlines()
+    if (package_root / "requirements.txt").exists():
+        with open(package_root / "requirements.txt", "r") as f:
+            return f.readlines()
+    elif (project_root / "requirements.txt").exists():
+        with open(project_root / "requirements.txt", "r") as f:
+            return f.readlines()
+    else:
+        return None
 
 
 def get_installed_libs_with_version() -> Dict[str, str]:
@@ -57,7 +60,11 @@ def get_installed_libs_with_version() -> Dict[str, str]:
 
 def verify_installed_libraries() -> List[str]:
     """Check that all installed libs respect the requirement.txt"""
+
     requirements = get_libs_requirements()
+    if requirements is None:
+        return ["requirements.txt not found, it is impossible to check if libraries installed correctly"]
+
     installed_libs_with_version = get_installed_libs_with_version()
 
     errors = []
