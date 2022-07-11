@@ -56,18 +56,16 @@ class MaskAttentionLoss(_Loss):
     def _broadcast_mask(self, mask: torch.Tensor, size: torch.Size):
         """
         Broadcast the mask tensor before elementwise multiplication.
-        # TODO - check if the multiple assertions affect the training speed.
         """
         # Assert that batch size and spatial size are the same.
         if mask.size()[-2:] != size[-2:] or mask.size(0) != size[0]:
             raise AssertionError("Mask broadcast is allowed only in channels dimension, found shape mismatch between"
                                  f"mask shape: {mask.size()}, and target shape: {size}")
         # when mask is [B, 1, H, W] | [B, H, W] and size is [B, H, W]
-        if len(size) == 3:
+        # or when mask is [B, 1, H, W] | [B, H, W] and size is [B, 1, H, W]
+        if len(size) == 3 or (len(size) == 4 and size[1] == 1):
             mask = mask.view(*size)
-        # when mask is [B, 1, H, W] | [B, H, W] and size is [B, 1, H, W]
-        elif len(size) == 4 and size[1] == 1:
-            mask = mask.view(*size)
+
         # when mask is [B, C, H, W] | [B, 1, H, W] | [B, H, W] and size is [B, C, H, W]
         else:
             mask = mask if len(mask.size()) == 4 else mask.unsqueeze(1)
