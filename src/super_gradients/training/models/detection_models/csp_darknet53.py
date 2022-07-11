@@ -62,11 +62,11 @@ class NumClassesMissingException(Exception):
 class Conv(nn.Module):
     # STANDARD CONVOLUTION
     def __init__(self, input_channels, output_channels, kernel, stride, activation_type: Type[nn.Module],
-                 padding: int = None, groups: int = 1):
+                 padding: int = None, groups: int = None):
         super().__init__()
 
-        self.conv = nn.Conv2d(input_channels, output_channels, kernel, stride, autopad(kernel, padding), groups=groups,
-                              bias=False)
+        self.conv = nn.Conv2d(input_channels, output_channels, kernel, stride, autopad(kernel, padding),
+                              groups=groups or 1, bias=False)
         self.bn = nn.BatchNorm2d(output_channels)
         self.act = activation_type()
 
@@ -77,14 +77,20 @@ class Conv(nn.Module):
         return self.act(self.conv(x))
 
 
-class DepthWiseConv(nn.Module):
-    # STANDARD CONVOLUTION
+class GroupedConvBlock(nn.Module):
+    """
+    Grouped Conv KxK -> usual Conv 1x1
+    """
     def __init__(self, input_channels, output_channels, kernel, stride, activation_type: Type[nn.Module],
-                 padding: int = None):
+                 padding: int = None, groups: int = None):
+        """
+        :param groups:  num of groups in the first conv; if None depthwise separable conv will be used
+                        (groups = input channels)
+        """
         super().__init__()
 
         self.dconv = Conv(input_channels, input_channels, kernel, stride, activation_type, padding,
-                          groups=input_channels)
+                          groups=groups or input_channels)
         self.conv = Conv(input_channels, output_channels, 1, 1, activation_type)
 
     def forward(self, x):
@@ -97,7 +103,7 @@ class Bottleneck(nn.Module):
                  depthwise=False):
         super().__init__()
 
-        ConvBlock = DepthWiseConv if depthwise else Conv
+        ConvBlock = GroupedConvBlock if depthwise else Conv
         hidden_channels = output_channels
         self.cv1 = Conv(input_channels, hidden_channels, 1, 1, activation_type)
         self.cv2 = ConvBlock(hidden_channels, output_channels, 3, 1, activation_type)
@@ -221,7 +227,7 @@ class CSPDarknet53(SgModule):
         struct, block, activation_type, width_mult, depth_mult = get_yolo_version_params(yolo_version, yolo_type,
                                                                                          width_mult_factor,
                                                                                          depth_mult_factor)
-        ConvBlock = Conv if not depthwise else DepthWiseConv
+        ConvBlock = Conv if not depthwise else GroupedConvBlock
 
         struct = [depth_mult(s) for s in struct]
         self._modules_list = nn.ModuleList()
