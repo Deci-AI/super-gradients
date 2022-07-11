@@ -58,12 +58,9 @@ All SuperGradients models’ are production ready in the sense that they are com
 <img src="./docs/assets/SG_img/detection-demo.png" width="600px">
 </div>
 
-<div align="center">
-<h3>Missing a Model or a Feature?</h3>
-</div>
     
 ## What's New
-* 【07/07/2022】SSD MobileNet V2 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) for COCO mAP of 21.5. Great for edge devices deployment! 📱
+* 【07/07/2022】SSD Lite MobileNet V2 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) for COCO mAP of 21.5. Great for edge devices deployment! 📱
 * 【07/07/2022】 STDC  - new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores 🎯
 * 【16/06/2022】 ResNet50  - new pre-trained checkpoint and [recipe](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/imagenet_resnet50_kd.yaml) for ImageNet top-1 score of 81.9 💪
 * 【09/06/2022】 ViT models (Vision Transformer) - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) (ViT, BEiT).
@@ -346,6 +343,8 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 | Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
 |------------ | ------ | ---------- |----------- | ----------- | ----------- |---------- |----------- | ----------- | :------: |
+| ViT base | ImageNet21K | 224x224 |  84.15  | 93.49 |**0.93ms** |**1.38ms** | **-** * |**-**|**3.44ms** |
+| ViT large | ImageNet21K | 224x224 |  85.64  | 93.49 |**0.93ms** |**1.38ms** | **-** * |**-**|**3.44ms** |
 | EfficientNet B0 | ImageNet | 224x224 |  77.62  | 93.49 |**0.93ms** |**1.38ms** | **-** * |**-**|**3.44ms** |
 | RegNet Y200 | ImageNet  |224x224 |  70.88   | 89.35 |**0.63ms** | **1.08ms** | **2.16ms** |**2.47ms**|**2.06ms** |
 | RegNet Y400  | ImageNet |224x224 |  74.74   | 91.46 |**0.80ms** | **1.25ms** |**2.62ms** |**2.91ms** |**2.87ms** |
@@ -371,6 +370,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
 |------------- |------ | ---------- |------ | -------- |------ | ---------- |------ | :------: |
+| SSD lite MobileNet v2 | COCO |320x320 |21.5 |**1.48ms** |**5.43ms**|**9.28ms** |**17.44ms** |**21.71ms**|
 | YOLOv5 nano | COCO |640x640 |27.7  |**1.48ms** |**5.43ms**|**9.28ms** |**17.44ms** |**21.71ms**|
 | YOLOv5 small | COCO |640x640 |37.3 |**2.29ms** |**6.14ms**|**14.31ms** |**22.50ms** |**34.10ms**|
 | YOLOv5 medium| COCO |640x640 |45.2 |**4.60ms** |**8.10ms**|**26.76ms** |**34.95ms** |**65.86ms**|
@@ -390,9 +390,9 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
 | DDRNet 23   | Cityscapes |1024x2048   |78.65  |**7.62ms** |**25.94ms**|
 | DDRNet 23 slim   | Cityscapes |1024x2048 |76.6  |**3.56ms** |**22.80ms**|
-| STDC 1-Seg50   | Cityscapes | 512x1024 |74.36 |**2.83ms** |**12.57ms**|
-| STDC 1-Seg75   | Cityscapes | 768x1536 |76.87  |**5.71ms** |**26.70ms**|
-| STDC 2-Seg50   | Cityscapes | 512x1024 |75.27 |**3.74ms** |**13.89ms**
+| STDC 1-Seg50   | Cityscapes | 512x1024 |75.07 |**2.83ms** |**12.57ms**|
+| STDC 1-Seg75   | Cityscapes | 768x1536 |77.8  |**5.71ms** |**26.70ms**|
+| STDC 2-Seg50   | Cityscapes | 512x1024 |75.79 |**3.74ms** |**13.89ms**
 | STDC 2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**28.18ms**|
 | RegSeg (exp48)   | Cityscapes | 1024x2048 |78.15 |**13.09ms** |**41.88ms**|
 | Larger RegSeg (exp53)   | Cityscapes | 1024x2048 |79.2|**24.82ms** |**51.87ms**|
