@@ -9,7 +9,7 @@ from packaging.version import Version
 logger = getLogger('sg-sanity-check')
 logger.setLevel(DEBUG)
 
-NO_REQUIREMENTS = "requirements.txt not found, it is impossible to check if the libraries are installed correctly"
+NOT_SUPPORTED_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
 
 def verify_os() -> List[str]:
@@ -65,7 +65,7 @@ def verify_installed_libraries() -> List[str]:
 
     requirements = get_libs_requirements()
     if requirements is None:
-        return NO_REQUIREMENTS
+        return NOT_SUPPORTED_MSG
 
     installed_libs_with_version = get_installed_libs_with_version()
 
@@ -113,16 +113,19 @@ def env_sanity_check() -> None:
         'libraries': verify_installed_libraries,
     }
 
-    sanity_check_errors = {}
     logger.info('SuperGradients Sanity Check Started')
     logger.info(f'Checking the following components: {list(requirement_checkers.keys())}')
     logger.info('_' * 20)
+
+    is_impossible_to_validate = False
+    sanity_check_errors = {}
     for test_name, test_function in requirement_checkers.items():
         logger.info(f"Verifying {test_name}...")
         try:
             errors = test_function()
-            if errors == NO_REQUIREMENTS:
-                logger.error(NO_REQUIREMENTS)
+            if errors == NOT_SUPPORTED_MSG:
+                is_impossible_to_validate = True
+                logger.error(NOT_SUPPORTED_MSG)
             elif len(errors) > 0:
                 sanity_check_errors[test_name] = errors
                 for e in errors:
@@ -134,7 +137,9 @@ def env_sanity_check() -> None:
             logger.fatal(f'Failed to check for sanity_check: {e}', exc_info=True)
             raise
 
-    if sanity_check_errors:
+    if is_impossible_to_validate:
+        logger.warning(NOT_SUPPORTED_MSG)
+    elif sanity_check_errors:
         logger.fatal(
             f'The current environment does not meet Deci\'s needs, errors found in: {", ".join(list(sanity_check_errors.keys()))}')
     else:
