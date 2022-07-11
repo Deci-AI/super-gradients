@@ -343,9 +343,9 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 | Model | Dataset |  Resolution |    Top-1    |    Top-5   | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
 |------------ | ------ | ---------- |----------- | ----------- | ----------- |---------- |----------- | ----------- | :------: |
-| ViT base | ImageNet21K | 224x224 |  84.15  | 93.49 |**4.46ms** |**4.60ms** | **-** * |**-**|**6.44ms** |
-| ViT large | ImageNet21K | 224x224 |  85.64  | 93.49 |**5.63ms** |**5.78ms** | **-** * |**-**|**6.44ms** |
-| BEiT | ImageNet21K | 224x224 |  85.64  | 93.49 |**-ms** |**-ms** | **-** * |**-**|**-ms** |
+| ViT base | ImageNet21K | 224x224 |  84.15  | - |**4.46ms** |**4.60ms** | **-** * |**-**|**57.22ms** |
+| ViT large | ImageNet21K | 224x224 |  85.64  | - |**12.81ms** |**13.19ms** | **-** * |**-**|**187.22ms** |
+| BEiT | ImageNet21K | 224x224 |  -  | - |**-ms** |**-ms** | **-** * |**-**|**-ms** |
 | EfficientNet B0 | ImageNet | 224x224 |  77.62  | 93.49 |**0.93ms** |**1.38ms** | **-** * |**-**|**3.44ms** |
 | RegNet Y200 | ImageNet  |224x224 |  70.88   | 89.35 |**0.63ms** | **1.08ms** | **2.16ms** |**2.47ms**|**2.06ms** |
 | RegNet Y400  | ImageNet |224x224 |  74.74   | 91.46 |**0.80ms** | **1.25ms** |**2.62ms** |**2.91ms** |**2.87ms** |
