@@ -19,9 +19,10 @@ DEFAULT_SSD_MOBILENET_V1_ARCH_PARAMS = {
 DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
     "out_channels": [576, 1280, 512, 256, 256, 64],
     "expand_ratios": [0.2, 0.25, 0.5, 0.25],
-    "num_defaults": [6, 6, 6, 6, 6, 6],
+    "num_defaults": [6, 6, 6, 6, 6, 6],  # num anchors per level, defined by scales used when constructing DefaultBoxes
     "lite": True,
     "width_mult": 1.0,
+    # "output_paths": [[7,'conv',2], [14, 'conv', 2]], output paths for a model with output levels of stride 8 plus
     "output_paths": [[14, 'conv', 2], 18]
 }
 
@@ -56,30 +57,38 @@ class SSD(SgModule):
         else:
             self.backbone = backbone
 
-        lite = utils.get_param(arch_params, 'lite', False)
-        # NUMBER OF CLASSES + 1 NO_CLASS
+        # num classes in a dataset
+        # the model will predict self.num_classes + 1 values to also include background
         self.num_classes = self.arch_params.num_classes
 
         self._build_additional_blocks()
 
-        self._build_location_and_conf_branches(self.arch_params.out_channels, lite)
+        self._build_detecting_branches()
 
         self._init_weights()
 
-    def _build_location_and_conf_branches(self, out_channels, lite: bool):
-        """Add the sdd blocks after the backbone"""
+    def _build_detecting_branches(self, build_loc=True):
+        """Add localization and classification branches
+
+        :param build_loc: whether to build localization branch;
+                          called with False in replace_head(...), in such case only classification branch is rebuilt
+        """
         self.num_defaults = self.arch_params.num_defaults
-        self.loc = []
+
+        if build_loc:
+            self.loc = []
         self.conf = []
-        conv_to_use = SeperableConv2d if lite else nn.Conv2d
+
+        out_channels = self.arch_params.out_channels
+        lite = utils.get_param(self.arch_params, 'lite', False)
         for i, (nd, oc) in enumerate(zip(self.num_defaults, out_channels)):
-            if i < len(self.num_defaults) - 1:
-                self.loc.append(conv_to_use(oc, nd * 4, kernel_size=3, padding=1))
-                self.conf.append(conv_to_use(oc, nd * self.num_classes, kernel_size=3, padding=1))
-            else:
-                self.loc.append(nn.Conv2d(oc, nd * 4, kernel_size=3, padding=1))
-                self.conf.append(nn.Conv2d(oc, nd * self.num_classes, kernel_size=3, padding=1))
-        self.loc = nn.ModuleList(self.loc)
+            conv = SeperableConv2d if lite and i < len(self.num_defaults) - 1 else nn.Conv2d
+            if build_loc:
+                self.loc.append(conv(oc, nd * 4, kernel_size=3, padding=1))
+            self.conf.append(conv(oc, nd * (self.num_classes + 1), kernel_size=3, padding=1))
+
+        if build_loc:
+            self.loc = nn.ModuleList(self.loc)
         self.conf = nn.ModuleList(self.conf)
 
     def _build_additional_blocks(self):
@@ -116,11 +125,13 @@ class SSD(SgModule):
                 if param.dim() > 1:
                     nn.init.xavier_uniform_(param)
 
-    def bbox_view(self, src, loc, conf):
+    def bbox_view(self, feature_maps):
         """ Shape the classifier to the view of bboxes """
         ret = []
-        for s, l, c in zip(src, loc, conf):
-            ret.append((l(s).view(s.size(0), 4, -1), c(s).view(s.size(0), self.num_classes, -1)))
+        for features, loc, conf in zip(feature_maps, self.loc, self.conf):
+            boxes_preds = loc(features).view(features.size(0), 4, -1)
+            class_preds = conf(features).view(features.size(0), self.num_classes + 1, -1)
+            ret.append((boxes_preds, class_preds))
 
         locs, confs = list(zip(*ret))
         locs, confs = torch.cat(locs, 2).contiguous(), torch.cat(confs, 2).contiguous()
@@ -138,10 +149,16 @@ class SSD(SgModule):
             detection_feed.append(x)
 
         # FEATURE MAPS: i.e. FOR 300X300 INPUT - 38X38X4, 19X19X6, 10X10X6, 5X5X6, 3X3X4, 1X1X4
-        locs, confs = self.bbox_view(detection_feed, self.loc, self.conf)
+        locs, confs = self.bbox_view(detection_feed)
 
         # FOR 300X300 INPUT - RETURN N_BATCH X 8732 X {N_LABELS, N_LOCS} RESULTS
         return locs, confs
+
+    def replace_head(self, new_num_classes):
+        del self.conf
+        self.arch_params.num_classes = new_num_classes
+        self.num_classes = new_num_classes
+        self._build_detecting_branches(build_loc=False)
 
 
 class SSDMobileNetV1(SSD):
@@ -161,7 +178,8 @@ class SSDLiteMobileNetV2(SSD):
         self.arch_params = HpmStruct(**DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS)
         self.arch_params.override(**arch_params.to_dict())
         self.arch_params.out_channels[0] = int(round(self.arch_params.out_channels[0] * self.arch_params.width_mult))
-        mobilenetv2 = MobileNetV2(num_classes=None, backbone_mode=True, width_mult=self.arch_params.width_mult)
+        mobilenetv2 = MobileNetV2(num_classes=None, dropout=0.,
+                                  backbone_mode=True, width_mult=self.arch_params.width_mult)
         super().__init__(backbone=mobilenetv2.features, arch_params=self.arch_params)
 
     # OVERRIDE THE DEFAULT FUNCTION FROM SSD. ADD THE SDD BLOCKS AFTER THE BACKBONE.

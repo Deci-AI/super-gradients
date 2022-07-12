@@ -48,7 +48,19 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "step_lr_update_freq": None,
                            "lr_updates": [],
                            'clip_grad_norm': None,
-                           'pre_prediction_callback': None
+                           'pre_prediction_callback': None,
+                           'ckpt_best_name': 'ckpt_best.pth',
+                           'enable_qat': False,
+                           'qat_params': {
+                               "start_epoch": 0,
+                               "quant_modules_calib_method": "percentile",
+                               "per_channel_quant_modules": False,
+                               "calibrate": True,
+                               "calibrated_model_path": None,
+                               "calib_data_loader": None,
+                               "num_calib_batches": 2,
+                               "percentile": 99.99
+                           }
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}

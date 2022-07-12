@@ -6,13 +6,14 @@ from typing import Union, Type, List
 
 import torch
 import torch.nn as nn
-from super_gradients.training.models.detection_models.csp_darknet53 import Conv, DepthWiseConv, \
+from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, \
     CSPDarknet53, get_yolo_version_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
     check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.export_utils import ExportableHardswish, ExportableSiLU
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
+
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [30, 61, 62, 45, 59, 119],
@@ -26,12 +27,15 @@ DEFAULT_YOLO_ARCH_PARAMS = {
     'num_classes': 80,  # Number of classes to predict
     'depth_mult_factor': 1.0,  # depth multiplier for the entire model
     'width_mult_factor': 1.0,  # width multiplier for the entire model
-    'channels_in': 3,  # # of classes the model predicts
+    'channels_in': 3,  # Number of channels in the input image
     'skip_connections_list': [(12, [6]), (16, [4]), (19, [14]), (22, [10]), (24, [17, 20])],
     # A list defining skip connections. format is '[target: [source1, source2, ...]]'. Each item defines a skip
     # connection from all sources to the target according to the layer's index (count starts from the backbone)
-    'connection_layers_input_channel_size': [1024, 1024, 512],
-    # default number off channels for the connecting points between the backbone and the head
+    'backbone_connection_channels': [1024, 512, 256],  # width of backbone channels that are concatenated with the head
+    # True if width_mult_factor is applied to the backbone (is the case with the default backbones)
+    # which means that backbone_connection_channels should be used with a width_mult_factor
+    # False if backbone_connection_channels should be used as is
+    'scaled_backbone_width': True,
     'fuse_conv_and_bn': False,  # Fuse sequential Conv + B.N layers into a single one
     'add_nms': False,  # Add the NMS module to the computational graph
     'nms_conf': 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
@@ -42,6 +46,13 @@ DEFAULT_YOLO_ARCH_PARAMS = {
                              # (has an impact only if yolo_type is yoloV5)
     'stem_type': None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
     'depthwise': False,  # use depthwise separable convolutions all over the model
+    'xhead_inter_channels': None,  # (has an impact only if yolo_type is yoloX)
+    # Channels in classification and regression branches of the detecting blocks;
+    # if is None the first of input channels will be used by default
+    'xhead_groups': None,  # (has an impact only if yolo_type is yoloX)
+    # Num groups in convs in classification and regression branches of the detecting blocks;
+    # if None default groups will be used according to conv type
+    # (1 for Conv and depthwise for GroupedConvBlock)
 }
 
 
@@ -127,7 +138,19 @@ class Detect(nn.Module):
 class DetectX(nn.Module):
 
     def __init__(self, num_classes: int, stride: torch.Tensor, activation_func_type: type, channels: list,
-                 depthwise=False):
+                 depthwise=False, groups: int = None, inter_channels: Union[int, List] = None):
+        """
+        :param stride:          strides of each predicting level
+        :param channels:        input channels into all detecting layers
+                                (from all neck layers that will be used for predicting)
+        :param depthwise:       defines conv type in classification and regression branches (Conv or GroupedConvBlock)
+                                depthwise is False by default in favor of a usual Conv
+        :param groups:          num groups in convs in classification and regression branches;
+                                if None default groups will be used according to conv type
+                                (1 for Conv and depthwise for GroupedConvBlock)
+        :param inter_channels:  channels in classification and regression branches;
+                                if None channels[0] will be used by default
+        """
         super().__init__()
 
         self.num_classes = num_classes
@@ -143,22 +166,28 @@ class DetectX(nn.Module):
         self.reg_preds = nn.ModuleList()
         self.obj_preds = nn.ModuleList()
         self.stems = nn.ModuleList()
-        ConvBlock = DepthWiseConv if depthwise else Conv
+        ConvBlock = GroupedConvBlock if depthwise else Conv
 
-        inter_channels = channels[0]
+        inter_channels = inter_channels or channels[0]
+        inter_channels = inter_channels if isinstance(inter_channels, list) \
+            else [inter_channels] * self.detection_layers_num
         for i in range(self.detection_layers_num):
-            self.stems.append(Conv(channels[i], inter_channels, 1, 1, activation_func_type))
+            self.stems.append(Conv(channels[i], inter_channels[i], 1, 1, activation_func_type))
 
             self.cls_convs.append(
-                nn.Sequential(*[ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type),
-                                ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type)]))
+                nn.Sequential(*[ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
+                                          groups=groups),
+                                ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
+                                          groups=groups)]))
             self.reg_convs.append(
-                nn.Sequential(*[ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type),
-                                ConvBlock(inter_channels, inter_channels, 3, 1, activation_func_type)]))
+                nn.Sequential(*[ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
+                                          groups=groups),
+                                ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
+                                          groups=groups)]))
 
-            self.cls_preds.append(nn.Conv2d(inter_channels, self.n_anchors * self.num_classes, 1, 1, 0))
-            self.reg_preds.append(nn.Conv2d(inter_channels, 4, 1, 1, 0))
-            self.obj_preds.append(nn.Conv2d(inter_channels, self.n_anchors * 1, 1, 1, 0))
+            self.cls_preds.append(nn.Conv2d(inter_channels[i], self.n_anchors * self.num_classes, 1, 1, 0))
+            self.reg_preds.append(nn.Conv2d(inter_channels[i], 4, 1, 1, 0))
+            self.obj_preds.append(nn.Conv2d(inter_channels[i], self.n_anchors * 1, 1, 1, 0))
 
     def forward(self, inputs):
         outputs = []
@@ -235,51 +264,57 @@ class YoLoV5Head(nn.Module):
         num_classes = arch_params.num_classes
         anchors = arch_params.anchors
         depthwise = arch_params.depthwise
+        xhead_groups = arch_params.xhead_groups
+        xhead_inter_channels = arch_params.xhead_inter_channels
+
         self._skip_connections_dict = arch_params.skip_connections_dict
         # FLATTEN THE SOURCE LIST INTO A LIST OF INDICES
         self._layer_idx_to_extract = [idx for sub_l in self._skip_connections_dict.values() for idx in sub_l]
-
-        # GET THREE CONNECTING POINTS CHANNEL INPUT SIZE
-        connector = arch_params.connection_layers_input_channel_size
 
         _, block, activation_type, width_mult, depth_mult = get_yolo_version_params(arch_params.yolo_version,
                                                                                     arch_params.yolo_type,
                                                                                     arch_params.width_mult_factor,
                                                                                     arch_params.depth_mult_factor)
 
-        DownConv = DepthWiseConv if depthwise else Conv
+        backbone_connector = [width_mult(c) if arch_params.scaled_backbone_width else c
+                             for c in arch_params.backbone_connection_channels]
+
+        DownConv = GroupedConvBlock if depthwise else Conv
 
         self._modules_list = nn.ModuleList()
-        self._modules_list.append(Conv(width_mult(connector[0]), width_mult(512), 1, 1, activation_type))  # 10
+        self._modules_list.append(Conv(backbone_connector[0], width_mult(512), 1, 1, activation_type))  # 10
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 11
         self._modules_list.append(Concat(1))  # 12
         self._modules_list.append(
-            block(width_mult(connector[1]), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 13
+            block(backbone_connector[1] + width_mult(512), width_mult(512), depth_mult(3), activation_type, False,
+                  depthwise))  # 13
 
         self._modules_list.append(Conv(width_mult(512), width_mult(256), 1, 1, activation_type))  # 14
         self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 15
         self._modules_list.append(Concat(1))  # 16
         self._modules_list.append(
-            block(width_mult(connector[2]), width_mult(256), depth_mult(3), activation_type, False, depthwise))  # 17
+            block(backbone_connector[2] + width_mult(256), width_mult(256), depth_mult(3), activation_type, False,
+                  depthwise))  # 17
 
         self._modules_list.append(DownConv(width_mult(256), width_mult(256), 3, 2, activation_type))  # 18
         self._modules_list.append(Concat(1))  # 19
         self._modules_list.append(
-            block(width_mult(512), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 20
+            block(2 * width_mult(256), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 20
 
         self._modules_list.append(DownConv(width_mult(512), width_mult(512), 3, 2, activation_type))  # 21
         self._modules_list.append(Concat(1))  # 22
         self._modules_list.append(
-            block(width_mult(1024), width_mult(1024), depth_mult(3), activation_type, False, depthwise))  # 23
+            block(2 * width_mult(512), width_mult(1024), depth_mult(3), activation_type, False, depthwise))  # 23
 
+        detect_input_channels = [width_mult(v) for v in (256, 512, 1024)]
         if arch_params.yolo_type != 'yoloX':
             self._modules_list.append(
-                Detect(num_classes, anchors, channels=[width_mult(v) for v in (256, 512, 1024)]))  # 24
+                Detect(num_classes, anchors, channels=detect_input_channels))  # 24
         else:
             strides = anchors.stride
             self._modules_list.append(
-                DetectX(num_classes, strides, activation_type, channels=[width_mult(v) for v in (256, 512, 1024)],
-                        depthwise=depthwise))  # 24
+                DetectX(num_classes, strides, activation_type, channels=detect_input_channels, depthwise=depthwise,
+                        groups=xhead_groups, inter_channels=xhead_inter_channels))  # 24
 
         self.anchors = anchors
         self.width_mult = width_mult

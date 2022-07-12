@@ -143,7 +143,7 @@ class MobileNetV2(MobileNetBase):
 
         if backbone_mode:
             self.classifier = nn.Identity()
-            self.connection_layers_input_channel_size = self._extract_connection_layers_input_channel_size()
+            self.backbone_connection_channels = self._extract_connection_layers_input_channel_size()
         else:
             # building classifier
             self.classifier = nn.Sequential(nn.Dropout(dropout), nn.Linear(self.last_channel, num_classes))
