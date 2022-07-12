@@ -53,6 +53,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         self._upload_latest_file_starting_with(start_with=TENSORBOARD_EVENTS_PREFIX)
         self._upload_latest_file_starting_with(start_with=LOGS_PREFIX)
 
+    @multi_process_safe
     def _upload_latest_file_starting_with(self, start_with: str):
         """
         Upload the most recent file starting with a specific prefix to the Deci platform.
