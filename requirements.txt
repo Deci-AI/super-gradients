@@ -30,3 +30,6 @@ deci-lab-client==2.35.2
 treelib==1.6.1
 termcolor==1.1.0
 checkpoints
+PyJWT==1.6.1
+cryptography
+pydantic
