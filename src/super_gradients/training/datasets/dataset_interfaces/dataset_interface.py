@@ -17,7 +17,7 @@ from super_gradients.training.datasets.segmentation_datasets import PascalVOC201
 from super_gradients.training import utils as core_utils
 from super_gradients.common import DatasetDataInterface
 from super_gradients.common.environment import AWS_ENV_NAME
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn
+from super_gradients.training.utils.detection_utils import base_detection_collate_fn, DetectionTargetsFormat
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
@@ -915,7 +915,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                             DetectionHSV(prob=self.dataset_params.hsv_prob),
                             DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
                             DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
-                            DetectionTargetsFormatTransform()
+                            DetectionTargetsFormatTransform(output_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH)
                             ]
 
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
@@ -939,7 +939,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                 name=self.dataset_params.val_subdir,
                 img_size=val_input_dim,
                 transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
-                            DetectionTargetsFormatTransform(max_targets=50)],
+                            DetectionTargetsFormatTransform(max_targets=50, output_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH)],
                 cache=self.dataset_params.cache_val_images,
 
             )

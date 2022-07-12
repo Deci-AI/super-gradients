@@ -10,8 +10,7 @@
 #   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
 
 # Run with:
-# python3 -m torch.distributed.launch --nproc_per_node=4 train_from_recipe_example/train_from_recipe.py \
-# --config-name=coco_ssd_lite_mobilenet_v2.yaml
+# python3 -m torch.distributed.launch --nproc_per_node=4 train_from_recipe_example/train_from_recipe.py --config-name=coco_ssd_lite_mobilenet_v2.yaml
 
 
 # NOTE:
@@ -24,7 +23,7 @@
 
 defaults:
   - training_hyperparams: default_train_params
-  - dataset_params: coco_detection_dataset_params
+  - dataset_params: coco_detection_yolox_dataset_params
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
 
@@ -36,6 +35,8 @@ dataset_params:
   val_batch_size: 64
   val_image_size: 320
   train_image_size: 320
+  mixup_prob: 0.
+
 
 # stride_N_plus is for models where the first skip begins from the feature map with output stride N and higher
 # grids of [input_size / N x input_size / N] and smaller
@@ -96,16 +97,16 @@ anchors:
       scale_xy: 0.1
       scale_wh: 0.2
 
-data_loader_num_workers: 8
+data_loader_num_workers: 0
 model_checkpoints_location: local
 experiment_suffix: res${dataset_params.val_image_size}
-experiment_name: ${architecture}_coco_${experiment_suffix}
+experiment_name: ${architecture}_coco_${experiment_suffix}_new_coco
 
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}
   model_checkpoints_location: ${model_checkpoints_location}
-  multi_gpu: AUTO
+  multi_gpu: DDP
 
 anchors_resolution: ${dataset_params.val_image_size}x${dataset_params.val_image_size}
 anchors_name: stride_16_plus_big
@@ -115,7 +116,7 @@ arch_params:
   num_classes: 80
 
 dataset_interface:
-  coco2017_detection:
+  coco2017_detection_v2:
     dataset_params: ${dataset_params}
 
 training_hyperparams:
