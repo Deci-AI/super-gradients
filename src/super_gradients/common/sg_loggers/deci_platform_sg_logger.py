@@ -50,10 +50,24 @@ class DeciPlatformSGLogger(BaseSGLogger):
         if not os.path.isdir(self.checkpoints_dir_path):
             raise ValueError('Provided directory does not exist')
 
-        for file_name in os.listdir(self.checkpoints_dir_path):
-            if file_name.startswith(TENSORBOARD_EVENTS_PREFIX) or file_name.startswith(LOGS_PREFIX):
-                upload_success = self.platform_client.save_experiment_file(
-                    file_path=f"{self.checkpoints_dir_path}/{file_name}")
+        self._upload_latest_file_starting_with(start_with=TENSORBOARD_EVENTS_PREFIX)
+        self._upload_latest_file_starting_with(start_with=LOGS_PREFIX)
 
-                if not upload_success:
-                    logger.error(f'Failed to upload to platform : "{file_name}" ')
+    def _upload_latest_file_starting_with(self, start_with: str):
+        """
+        Upload the most recent file starting with a specific prefix to the Deci platform.
+
+        :param start_with: prefix of the file to upload
+        """
+
+        files_path = (
+            os.path.join(self.checkpoints_dir_path, file_name)
+            for file_name in os.listdir(self.checkpoints_dir_path)
+            if file_name.startswith(start_with)
+        )
+
+        most_recent_file_path = max(files_path, key=os.path.getctime)
+        upload_success = self.platform_client.save_experiment_file(file_path=most_recent_file_path)
+
+        if not upload_success:
+            logger.error(f'Failed to upload to platform : "{most_recent_file_path}" ')
