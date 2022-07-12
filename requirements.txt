@@ -26,6 +26,6 @@ pyparsing==2.4.5
 einops==0.3.2
 pycocotools==2.0.4
 protobuf~=3.19.0
-deci-lab-client~=2.35
+deci-lab-client~=2.35.2
 treelib==1.6.1
 termcolor==1.1.0
