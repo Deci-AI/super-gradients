@@ -947,6 +947,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
 
+        torch.multiprocessing.set_sharing_strategy("file_system")
         train_sampler = InfiniteSampler(len(self.trainset), seed=0)
 
         train_batch_sampler = BatchSampler(

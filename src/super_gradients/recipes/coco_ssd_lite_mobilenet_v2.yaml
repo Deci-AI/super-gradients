@@ -35,7 +35,6 @@ dataset_params:
   val_batch_size: 64
   val_image_size: 320
   train_image_size: 320
-  mixup_prob: 0.
 
 
 # stride_N_plus is for models where the first skip begins from the feature map with output stride N and higher
@@ -97,7 +96,7 @@ anchors:
       scale_xy: 0.1
       scale_wh: 0.2
 
-data_loader_num_workers: 0
+data_loader_num_workers: 8
 model_checkpoints_location: local
 experiment_suffix: res${dataset_params.val_image_size}
 experiment_name: ${architecture}_coco_${experiment_suffix}_new_coco
@@ -116,8 +115,8 @@ arch_params:
   num_classes: 80
 
 dataset_interface:
-  coco2017_detection_v2:
-    dataset_params: ${dataset_params}
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CocoDetectionDatasetInterfaceV2
+  dataset_params: ${dataset_params}
 
 training_hyperparams:
   ema: True
