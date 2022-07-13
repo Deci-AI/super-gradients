@@ -139,9 +139,9 @@ class CSPLayer(nn.Module):
         in_channels,
         out_channels,
         n=1,
+        act=nn.SiLU,
         shortcut=True,
         depthwise=False,
-        act=nn.SiLU,
         expansion=0.5,
 
     ):
