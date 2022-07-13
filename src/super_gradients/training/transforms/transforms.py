@@ -1,7 +1,7 @@
 import collections
 import math
 import random
-from typing import Optional, Union, Tuple, List, Sequence
+from typing import Optional, Union, Tuple, List, Sequence, Dict
 
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
@@ -617,7 +617,7 @@ class DetectionPaddedRescale(DetectionTransform):
         self.input_dim = input_dim
         self.max_targets = max_targets
 
-    def __call__(self, sample):
+    def __call__(self, sample: Dict[str, np.array]):
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target", [])
         new_targets = np.zeros((self.max_targets, 5), dtype=np.float32) if len(targets) == 0 else targets.copy()
         new_crowd_targets = np.zeros((self.max_targets, 5), dtype=np.float32) if len(crowd_targets) == 0 else crowd_targets.copy()
@@ -630,8 +630,16 @@ class DetectionPaddedRescale(DetectionTransform):
             sample["crowd_target"] = self._pad_rescale_target(new_crowd_targets, r)
         return sample
 
-    def _pad_rescale_target(self, targets_in, r):
-        boxes, labels = targets_in[:, :4], targets_in[:, 4]
+    def _rescale_target(self, targets: np.array, r: float) -> np.array:
+        """Rescale the target according to a coefficient used to rescale the image.
+        This is done to have images and targets at the same scale.
+
+        :param targets:  Targets to rescale, shape (batch_size, 6)
+        :param r:        Rescale coefficient that was applied to the image
+
+        :return:         Rescaled targets, shape (batch_size, 6)
+        """
+        boxes, labels = targets[:, :4], targets[:, 4]
         boxes = xyxy2cxcywh(boxes)
         boxes *= r
         boxes = cxcywh2xyxy(boxes)
