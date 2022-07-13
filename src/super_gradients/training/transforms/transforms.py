@@ -667,13 +667,16 @@ class DetectionHSV(DetectionTransform):
     Detection HSV transform.
     """
 
-    def __init__(self, prob):
+    def __init__(self, prob, hgain=5, sgain=30, vgain=30):
         super(DetectionHSV, self).__init__()
         self.prob = prob
+        self.hgain = hgain
+        self.sgain = sgain
+        self.vgain = vgain
 
     def __call__(self, sample):
         if random.random() < self.prob:
-            augment_hsv(sample["image"])
+            augment_hsv(sample["image"], self.hgain, self.sgain, self.vgain)
         return sample
 
 

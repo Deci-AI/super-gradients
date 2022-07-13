@@ -44,7 +44,7 @@ def get_yolo_version_params(yolo_version: str, yolo_type: str, width_mult_factor
                                       f'"v3.0", "v6.0"')
     elif yolo_type == 'yoloX':
         struct = (3, 9, 9, 3)
-        block = C3
+        block = CSPLayer
         activation_type = nn.SiLU
         width_mult = lambda channels: width_multiplier(channels, width_mult_factor)
     else:
@@ -129,6 +129,48 @@ class C3(nn.Module):
 
     def forward(self, x):
         return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
+
+
+class CSPLayer(nn.Module):
+    """C3 in yolov5, CSP Bottleneck with 3 convolutions"""
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        n=1,
+        act=nn.SiLU,
+        shortcut=True,
+        depthwise=False,
+        expansion=0.5,
+
+    ):
+        """
+        Args:
+            in_channels (int): input channels.
+            out_channels (int): output channels.
+            n (int): number of Bottlenecks. Default value: 1.
+        """
+        # ch_in, ch_out, number, shortcut, groups, expansion
+        super().__init__()
+        hidden_channels = int(out_channels * expansion)  # hidden channels
+        self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=act)
+        self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=act)
+        self.conv3 = Conv(2 * hidden_channels, out_channels, 1, stride=1, activation_type=act)
+        module_list = [
+            Bottleneck(
+                hidden_channels, hidden_channels, shortcut, act, depthwise
+            )
+            for _ in range(n)
+        ]
+        self.m = nn.Sequential(*module_list)
+
+    def forward(self, x):
+        x_1 = self.conv1(x)
+        x_2 = self.conv2(x)
+        x_1 = self.m(x_1)
+        x = torch.cat((x_1, x_2), dim=1)
+        return self.conv3(x)
 
 
 class BottleneckCSP(nn.Module):
@@ -232,9 +274,9 @@ class CSPDarknet53(SgModule):
         struct = [depth_mult(s) for s in struct]
         self._modules_list = nn.ModuleList()
 
-        if get_param(arch_params, 'stem_type') == 'focus' or yolo_type == 'yoloX' or yolo_version == 'v3.0':
+        if get_param(arch_params, 'stem_type') == 'focus' or yolo_version == 'v3.0':
             self._modules_list.append(Focus(channels_in, width_mult(64), 3, 1, activation_type))  # 0
-        elif get_param(arch_params, 'stem_type') == '6x6' or yolo_version == 'v6.0':
+        elif get_param(arch_params, 'stem_type') == '6x6' or yolo_type == 'yoloX' or yolo_version == 'v6.0':
             self._modules_list.append(Conv(channels_in, width_mult(64), 6, 2, activation_type, padding=2))  # 0
         else:
             raise NotImplementedError(f'One of {yolo_type} yolo type or {yolo_version} yolo version is not supported')

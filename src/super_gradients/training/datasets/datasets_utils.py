@@ -662,4 +662,3 @@ def worker_init_reset_seed(worker_id):
     random.seed(seed)
     torch.set_rng_state(torch.manual_seed(seed).get_state())
     np.random.seed(seed)
-    torch.multiprocessing.set_sharing_strategy("file_system")

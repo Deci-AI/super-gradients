@@ -912,7 +912,11 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                             DetectionMixup(input_dim=train_input_dim,
                                            mixup_scale=self.dataset_params.mixup_scale,
                                            prob=self.dataset_params.mixup_prob),
-                            DetectionHSV(prob=self.dataset_params.hsv_prob),
+                            DetectionHSV(prob=self.dataset_params.hsv_prob,
+                                         hgain=self.dataset_params.hgain,
+                                         sgain=self.dataset_params.sgain,
+                                         vgain=self.dataset_params.vgain
+                                         ),
                             DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
                             DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
                             DetectionTargetsFormatTransform(output_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH)
@@ -926,6 +930,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                                                    json_file=self.dataset_params.train_json_file,
                                                    img_size=train_input_dim,
                                                    cache=self.dataset_params.cache_train_images,
+                                                   cache_dir_path=self.dataset_params.cache_dir_path,
                                                    transforms=train_transforms
                                                    )
 
@@ -940,6 +945,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                 img_size=val_input_dim,
                 transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
                             DetectionTargetsFormatTransform(max_targets=50, output_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH)],
+                cache_dir_path=self.dataset_params.cache_dir_path,
                 cache=self.dataset_params.cache_val_images,
 
             )
@@ -947,7 +953,6 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
 
-        torch.multiprocessing.set_sharing_strategy("file_system")
         train_sampler = InfiniteSampler(len(self.trainset), seed=0)
 
         train_batch_sampler = BatchSampler(
