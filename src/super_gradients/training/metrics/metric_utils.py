@@ -1,42 +1,6 @@
-import numpy as np
 import torch
 from torchmetrics import MetricCollection
-from super_gradients.training.metrics.detection_metrics import ap_per_class
 from super_gradients.training.utils.utils import AverageMeter
-
-
-def calc_batch_prediction_detection_metrics_per_class(metrics, dataset_interface, iou_thres, silent_mode, images_counter,
-                                                      per_class_verbosity, class_names, test_loss):
-
-    metrics = [np.concatenate(x, 0) for x in list(zip(*metrics))]
-    if len(metrics):
-        precision, recall, average_precision, f1, ap_class = ap_per_class(*metrics)
-        if iou_thres.is_range():
-            precision, recall, average_precision, f1 = precision[:, 0], recall[:, 0], average_precision.mean(
-                1), average_precision[:, 0]
-        mean_precision, mean_recall, map, mf1 = precision.mean(), recall.mean(), average_precision.mean(), f1.mean()
-        targets_per_class = np.bincount(metrics[3].astype(np.int64),
-                                        minlength=len(dataset_interface.testset.classes))
-    else:
-        targets_per_class = torch.zeros(1)
-
-    if not silent_mode:
-        # PRINT RESULTS
-        map_str = 'mAP@%.1f' % iou_thres[0] if not iou_thres.is_range() else 'mAP@%.2f:%.2f' % iou_thres
-        print(('%15s' * 7) % ('Class', 'Images', 'Targets', 'Precision', 'Recall', map_str, 'F1'))
-        pf = '%15s' + '%15.3g' * 6  # print format
-        print(pf % ('all', images_counter, targets_per_class.sum(), mean_precision, mean_recall, map, mf1))
-
-        # PRINT RESULTS PER CLASS
-        if len(dataset_interface.testset.classes) > 1 and len(metrics) and per_class_verbosity:
-            for i, c in enumerate(ap_class):
-                print(pf % (
-                    class_names[c], images_counter, targets_per_class[c], precision[i], recall[i],
-                    average_precision[i],
-                    f1[i]))
-
-    results_tuple = (mean_precision, mean_recall, map, mf1, *test_loss.average)
-    return results_tuple
 
 
 def get_logging_values(loss_loggings: AverageMeter, metrics: MetricCollection, criterion=None):
