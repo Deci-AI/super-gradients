@@ -2,14 +2,14 @@ import os
 import sys
 from pip._internal.operations.freeze import freeze
 from logging import getLogger, DEBUG
-from typing import List, Dict
+from typing import List, Dict, Union, Tuple
 from pathlib import Path
 from packaging.version import Version
 
 logger = getLogger('sg-sanity-check')
 logger.setLevel(DEBUG)
 
-NOT_SUPPORTED_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
+LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
 
 def verify_os() -> List[str]:
@@ -23,13 +23,18 @@ def verify_os() -> List[str]:
     return []
 
 
-def get_libs_requirements() -> List[str]:
-    """Read requirement.txt from the root, and split it as a list of libs/version.
-    There is a difference when installed from artefact or locally.
+PACKAGE_REQUIREMENT = "package_requirement"
+PROJECT_REQUIREMENT = "project_requirement"
+NO_REQUIREMENT = "no_requirement"
+
+
+def get_requirements_path() -> Union[None, Path]:
+    """Get the path of requirement.txt from the root if exist.
+    There is a difference when installed from artifact or locally.
         - In the first case, requirements.txt is copied to the package during the CI.
         - In the second case, requirements.txt in the root of the project.
 
-    Note: This is because when installed from artefact only the source code is accessible, so requirements.txt has to be
+    Note: This is because when installed from artifact only the source code is accessible, so requirements.txt has to be
           copied to the package root (./src/super_gradients). This is automatically done with the CI to make sure that
           in the github we only have 1 source of truth for requirements.txt. The consequence being that when the code
           is copied/cloned from github, the requirements.txt was not copied to the super_gradients package root, so we
@@ -39,13 +44,13 @@ def get_libs_requirements() -> List[str]:
     package_root = file_path.parent.parent  # moving to super-gradients/src/super_gradients
     project_root = package_root.parent.parent  # moving to super-gradients
 
-    # If installed from artefact, requirements.txt is in package_root, if installed locally it is in project_root
+    # If installed from artifact, requirements.txt is in package_root, if installed locally it is in project_root
     if (package_root / "requirements.txt").exists():
-        with open(package_root / "requirements.txt", "r") as f:
-            return f.readlines()
+        print("pack")
+        return package_root / "requirements.txt"
     elif (project_root / "requirements.txt").exists():
-        with open(project_root / "requirements.txt", "r") as f:
-            return f.readlines()
+        print("project")
+        return project_root / "requirements.txt"
     else:
         return None  # Could happen when installed through github directly ("pip install git+https://github.com/...")
 
@@ -63,9 +68,12 @@ def get_installed_libs_with_version() -> Dict[str, str]:
 def verify_installed_libraries() -> List[str]:
     """Check that all installed libs respect the requirement.txt"""
 
-    requirements = get_libs_requirements()
-    if requirements is None:
-        return NOT_SUPPORTED_MSG
+    requirements_path = get_requirements_path()
+    if requirements_path is None:
+        return [LIB_CHECK_IMPOSSIBLE_MSG]
+
+    with open(requirements_path, "r") as f:
+        requirements = f.readlines()
 
     installed_libs_with_version = get_installed_libs_with_version()
 
@@ -96,13 +104,13 @@ def verify_installed_libraries() -> List[str]:
         }
         if not is_constraint_respected[constraint]:
             errors.append(
-                f"{lib} is installed with version {installed_version} which does not satisfy {requirement}")
+                f"{lib} is installed with version {installed_version} which does not satisfy {requirement} (based on {requirements_path})")
     return errors
 
 
 def print_error(component_name: str, error: str) -> None:
     error_message = f"Failed to verify {component_name}: {error}"
-    logger.error(error_message)
+    logger.warning(error_message)
 
 
 def env_sanity_check() -> None:
@@ -117,31 +125,28 @@ def env_sanity_check() -> None:
     logger.info(f'Checking the following components: {list(requirement_checkers.keys())}')
     logger.info('_' * 20)
 
-    is_impossible_to_validate = False
+    lib_check_is_impossible = False
     sanity_check_errors = {}
     for test_name, test_function in requirement_checkers.items():
         logger.info(f"Verifying {test_name}...")
-        try:
-            errors = test_function()
-            if errors == NOT_SUPPORTED_MSG:
-                is_impossible_to_validate = True
-                logger.error(NOT_SUPPORTED_MSG)
-            elif len(errors) > 0:
-                sanity_check_errors[test_name] = errors
-                for e in errors:
-                    print_error(test_name, e)
-            else:
-                logger.info(f'{test_name} OK')
-            logger.info('_' * 20)
-        except Exception as e:
-            logger.fatal(f'Failed to check for sanity_check: {e}', exc_info=True)
-            raise
 
-    if is_impossible_to_validate:
-        logger.warning(NOT_SUPPORTED_MSG)
-    elif sanity_check_errors:
-        logger.fatal(
+        errors = test_function()
+        if errors == [LIB_CHECK_IMPOSSIBLE_MSG]:
+            lib_check_is_impossible = True
+            logger.warning(LIB_CHECK_IMPOSSIBLE_MSG)
+        elif len(errors) > 0:
+            sanity_check_errors[test_name] = errors
+            for error in errors:
+                print_error(test_name, error)
+        else:
+            logger.info(f'{test_name} OK')
+        logger.info('_' * 20)
+
+    if sanity_check_errors:
+        logger.warning(
             f'The current environment does not meet Deci\'s needs, errors found in: {", ".join(list(sanity_check_errors.keys()))}')
+    elif lib_check_is_impossible:
+        logger.warning(LIB_CHECK_IMPOSSIBLE_MSG)
     else:
         logger.info('Great, Looks like the current environment meet\'s Deci\'s requirements!')
 
