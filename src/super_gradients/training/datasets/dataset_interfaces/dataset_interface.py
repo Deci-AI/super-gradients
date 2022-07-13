@@ -628,6 +628,7 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
         val_image_size = core_utils.get_param(self.dataset_params, 'val_image_size')
         labels_offset = core_utils.get_param(self.dataset_params, 'labels_offset', default_val=0)
         class_inclusion_list = core_utils.get_param(self.dataset_params, 'class_inclusion_list')
+        with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=True)
 
         if image_size is None:
             assert train_image_size is not None and val_image_size is not None, 'Please provide either only image_size or ' \
@@ -937,6 +938,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                                                    with_crowd=False)
 
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
+        with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=True)
 
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
         with wait_for_the_master(local_rank):
@@ -948,7 +950,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                 transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
                             DetectionTargetsFormatTransform(max_targets=50)],
                 cache=self.dataset_params.cache_val_images,
-                with_crowd=True)
+                with_crowd=with_crowd)
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):

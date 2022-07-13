@@ -96,16 +96,20 @@ class PretrainedModelsTest(unittest.TestCase):
                         "scale": 0.5,  # IMAGE SCALE (+/- gain)
                         "shear": 0.0 # IMAGE SHEAR (+/- deg),
                     },
-                }, with_crowd=True
+                    "with_crowd": True
+                },
             ),
-            'ssd_lite_mobilenet_v2': CoCoDetectionDatasetInterface(dataset_params={
-                "batch_size": 32,
-                "val_batch_size": 32,
-                "train_image_size": 320,
-                "val_image_size": 320,
-                "val_collate_fn": crowd_detection_collate_fn,
-                "val_sample_loading_method": "default"
-            }, with_crowd=True),
+            'ssd_lite_mobilenet_v2': CoCoDetectionDatasetInterface(
+                dataset_params={
+                    "batch_size": 32,
+                    "val_batch_size": 32,
+                    "train_image_size": 320,
+                    "val_image_size": 320,
+                    "val_collate_fn": crowd_detection_collate_fn,
+                    "val_sample_loading_method": "default",
+                    "with_crowd": True
+                }
+            ),
         }
         self.coco_pretrained_maps = {"yolo_v5s": 0.3676, "yolo_v5m": 0.4456, "yolo_v5l": 0.4745, "yolo_v5n": 0.2717,
                                      'ssd_lite_mobilenet_v2': 0.215}
