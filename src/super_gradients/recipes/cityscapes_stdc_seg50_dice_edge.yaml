@@ -41,3 +41,13 @@ dataset_params:
   _convert_: all
   batch_size: 16
   val_batch_size: 16
+
+training_hyperparams:
+  sg_logger: wandb_sg_logger
+  sg_logger_params:
+    project_name: Edge_Loss
+    entity: algo
+    api_server: https://wandb.research.deci.ai
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True

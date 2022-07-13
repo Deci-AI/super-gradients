@@ -45,24 +45,25 @@ dataset_params:
   _convert_: all
   batch_size: 8
   val_batch_size: 8
+  color_jitter: 0.5
   crop_size:
     - 1024
     - 512
   eval_scale: 0.5
+  random_scales: [0.125, 1.5]
+
   image_mask_transforms_aug:
     Compose:
       transforms:
         - ColorJitterSeg:
-            brightness: 0.5
-            contrast: 0.5
-            saturation: 0.5
+            brightness: ${dataset_params.color_jitter}
+            contrast: ${dataset_params.color_jitter}
+            saturation: ${dataset_params.color_jitter}
 
         - RandomFlipSeg
 
         - RandomRescaleSeg:
-            scales:
-              - 0.125
-              - 1.5
+            scales: ${dataset_params.random_scales}
 
         - PadShortToCropSizeSeg:
             crop_size: ${dataset_params.crop_size}
