@@ -347,9 +347,6 @@ class SgModel:
         else:
             self.net = core_utils.WrappedModel(self.net)
 
-        # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
-        self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
-
     def _train_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
         """
         train_epoch - A single epoch training procedure
