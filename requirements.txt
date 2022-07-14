@@ -29,3 +29,4 @@ protobuf~=3.19.0
 deci-lab-client==2.37.0
 treelib==1.6.1
 termcolor==1.1.0
+checkpoints==0.0.1
