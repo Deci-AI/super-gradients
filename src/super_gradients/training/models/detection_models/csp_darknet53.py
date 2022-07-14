@@ -132,28 +132,31 @@ class C3(nn.Module):
 
 
 class CSPLayer(nn.Module):
-    """C3 in yolov5, CSP Bottleneck with 3 convolutions"""
+    """
+    C3 in yolov5, CSP Bottleneck with 3 convolutions
 
+    Args:
+        in_channels: int, input channels.
+        out_channels: int, output channels.
+        num_bottlenecks: int, number of bottleneck conv layers.
+        act: Type[nn.module], activation type.
+        shortcut: bool, whether to apply shortcut (i.e add input to result) in bottlenecks (default=True).
+        depthwise: bool, whether to use GroupedConvBlock in last conv in bottlenecks (default=False).
+        expansion: float, determines the number of hidden channels (default=0.5).
+    """
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        n=1,
-        act=nn.SiLU,
-        shortcut=True,
-        depthwise=False,
-        expansion=0.5,
+        in_channels: int,
+        out_channels: int,
+        num_bottlenecks: int,
+        act: Type[nn.Module],
+        shortcut: bool = True,
+        depthwise: bool = False,
+        expansion: float = 0.5,
 
     ):
-        """
-        Args:
-            in_channels (int): input channels.
-            out_channels (int): output channels.
-            n (int): number of Bottlenecks. Default value: 1.
-        """
-        # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
-        hidden_channels = int(out_channels * expansion)  # hidden channels
+        hidden_channels = int(out_channels * expansion)
         self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=act)
         self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=act)
         self.conv3 = Conv(2 * hidden_channels, out_channels, 1, stride=1, activation_type=act)
@@ -161,14 +164,14 @@ class CSPLayer(nn.Module):
             Bottleneck(
                 hidden_channels, hidden_channels, shortcut, act, depthwise
             )
-            for _ in range(n)
+            for _ in range(num_bottlenecks)
         ]
-        self.m = nn.Sequential(*module_list)
+        self.bottlenecks = nn.Sequential(*module_list)
 
     def forward(self, x):
         x_1 = self.conv1(x)
+        x_1 = self.bottlenecks(x_1)
         x_2 = self.conv2(x)
-        x_1 = self.m(x_1)
         x = torch.cat((x_1, x_2), dim=1)
         return self.conv3(x)
 
