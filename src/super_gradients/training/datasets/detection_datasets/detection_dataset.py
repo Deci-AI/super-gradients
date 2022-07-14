@@ -1,6 +1,8 @@
 import os
 import math
 import random
+from typing import Dict
+
 import cv2
 import numpy as np
 import torch
@@ -23,7 +25,8 @@ class DetectionDataSet(ListDataset):
     def __init__(self, root: str, list_file: str, img_size: int = 416, batch_size: int = 16, augment: bool = False,
                  dataset_hyper_params: dict = None, cache_labels: bool = False, cache_images: bool = False,
                  sample_loading_method: str = 'default', collate_fn: Callable = None, target_extension: str = '.txt',
-                 labels_offset: int = 0, class_inclusion_list=None, all_classes_list=None):
+                 labels_offset: int = 0, class_inclusion_list=None, all_classes_list=None,
+                 with_additional_labels: bool = False, additional_labels_path: str = ""):
         """
         DetectionDataSet
             :param root:                    Root folder of the Data Set
@@ -61,6 +64,9 @@ class DetectionDataSet(ListDataset):
         self.all_classes_list = all_classes_list
         self.mixup_prob = get_param(self.dataset_hyperparams, "mixup", 0)
 
+        self.with_additional_labels = with_additional_labels
+        self.additional_labels_path = additional_labels_path
+
         super(DetectionDataSet, self).__init__(root=root, file=list_file, target_extension=target_extension,
                                                collate_fn=collate_fn, sample_loader=self.sample_loader,
                                                sample_transform=self.sample_transform, target_loader=self.target_loader,
@@ -75,6 +81,7 @@ class DetectionDataSet(ListDataset):
         if self.sample_loading_method == 'mosaic' and self.augment:
             # LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)
             img, labels = self.load_mosaic(index)
+
             # MixUp augmentation
             if random.random() < self.mixup_prob:
                 img, labels = self.mixup(img, labels, *self.load_mosaic(random.randint(0, len(self.img_files) - 1)))
@@ -114,26 +121,62 @@ class DetectionDataSet(ListDataset):
                                    vgain=self.dataset_hyperparams['hsv_v'])
 
         if len(labels):
-            # CONVERT XYXY TO XYWH - CHANGE THE BBOXES PARAMS
-            labels[:, 1:5] = convert_xyxy_bbox_to_xywh(labels[:, 1:5])
-
-            # NORMALIZE COORDINATES 0 - 1
-            labels[:, [2, 4]] /= img.shape[0]  # HEIGHT
-            labels[:, [1, 3]] /= img.shape[1]  # WIDTH
+            labels = self.convert_xyxy_bbox_to_normalized_xywh(labels, img_width=img.shape[1], img_height=img.shape[0])
 
         if self.augment:
             # AUGMENT RANDOM UP-DOWN FLIP
             img, labels = self._augment_random_flip(img, labels)
 
-        labels_out = torch.zeros((len(labels), 6))
+        labels_out = self._convert_label_to_torch(labels)
+        img = self.sample_post_process(img)
 
+        if self.with_additional_labels:
+            if self.augment or self.sample_loading_method == 'mosaic':
+                raise NotImplementedError("Using additional labels is not supported when using data augmentation")
+            return img, labels_out, self._get_additional_labels(ratio=ratio, pad=pad, index=index,
+                                                                preprocess_shape=(h, w),
+                                                                postprocess_shape=img.shape[1:])
+        return img, labels_out
+
+    def _get_additional_labels(self, ratio, pad, index, preprocess_shape, postprocess_shape) -> Dict[str, torch.Tensor]:
+        """
+        Get additional labels, such as "crowd targets", that are not used for the computation of the loss but that can
+        be used to compute any metric.
+            :param ratio:             Image ratio
+            :param pad:               Image padding
+            :param index:             Image index
+            :param preprocess_shape:  Image shape before preprocessing in format (height, weight)
+            :param postprocess_shape: Image shape after preprocessing in format (height, weight)
+            :return:                  Dict with the additional labels for this image
+        """
+        raise NotImplementedError("This functionality was not implemented on this dataset")
+
+    def _load_additional_labels(self):
+        """
+        Load all the additional labels and store them for later use.
+        """
+        raise NotImplementedError("This functionality was not implemented on this dataset")
+
+    def _convert_label_to_torch(self, labels: np.array) -> torch.Tensor:
+        """
+        Utils function to convert numpy labels to torch in an appropriate format
+            :param labels:    Processed labels in numpy format (label, x, y, w, h)
+            :return:          Torch tensor in format (0, label, x, y, w, h)
+                                - Note: The 0 will be filled later on with the image id within the batch
+        """
+        labels_out = torch.zeros((len(labels), 6))
         labels[:, 0] += self.labels_offset
         if len(labels):
             labels_out[:, 1:] = torch.from_numpy(labels)
+        return labels_out
 
-        img = self.sample_post_process(img)
-
-        return img, labels_out
+    @staticmethod
+    def convert_xyxy_bbox_to_normalized_xywh(labels, img_width, img_height):
+        """CONVERT XYXY TO XYWH - CHANGE THE BBOXES PARAMS AND NORMALIZE COORDINATES 0 - 1"""
+        labels[:, 1:5] = convert_xyxy_bbox_to_xywh(labels[:, 1:5])
+        labels[:, [1, 3]] /= img_width
+        labels[:, [2, 4]] /= img_height
+        return labels
 
     @staticmethod
     def mixup(im, labels, im2, labels2):
@@ -171,6 +214,10 @@ class DetectionDataSet(ListDataset):
                               if os.path.splitext(x)[-1].lower() in self.extensions]
             self.label_files = [x.replace('images', 'labels').replace(os.path.splitext(x)[-1], self.target_extension)
                                 for x in self.img_files]
+
+            if self.with_additional_labels:
+                self._load_additional_labels()
+
         else:
             self.img_files, self.label_files = map(list, zip(*self.samples_targets_tuples_list))
 
@@ -358,7 +405,7 @@ class DetectionDataSet(ListDataset):
     @staticmethod
     def target_transform(target, ratio, w, h, pad=None):
         """
-        target_transform
+        Convert targets from normalized xywh (0-1) to unnormalized xyxy (img_size)
             :param target:
             :param ratio:
             :param w:
