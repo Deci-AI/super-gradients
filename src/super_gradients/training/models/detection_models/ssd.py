@@ -5,6 +5,7 @@ from super_gradients.training.models import MobileNet, SgModule, MobileNetV2, In
 
 from super_gradients.training.utils import HpmStruct, utils
 from super_gradients.training.utils.module_utils import MultiOutputModule
+from super_gradients.training.utils.ssd_utils import DefaultBoxes
 
 DEFAULT_SSD_ARCH_PARAMS = {
     "num_defaults": [4, 6, 6, 6, 4, 4],
@@ -23,7 +24,9 @@ DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
     "lite": True,
     "width_mult": 1.0,
     # "output_paths": [[7,'conv',2], [14, 'conv', 2]], output paths for a model with output levels of stride 8 plus
-    "output_paths": [[14, 'conv', 2], 18]
+    "output_paths": [[14, 'conv', 2], 18],
+    "anchors": DefaultBoxes(fig_size=320, feat_size=[20, 10, 5, 3, 2, 1], scales=[32, 82, 133, 184, 235, 285, 336],
+                            aspect_ratios=[[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]], scale_xy=0.1, scale_wh=0.2)
 }
 
 
@@ -66,6 +69,14 @@ class SSD(SgModule):
         self._build_detecting_branches()
 
         self._init_weights()
+
+        self.dboxes_xy = nn.Parameter(self.arch_params.anchors('xywh')[:, :2], requires_grad=False)
+        self.dboxes_wh = nn.Parameter(self.arch_params.anchors('xywh')[:, 2:], requires_grad=False)
+        scale_xy = self.arch_params.anchors.scale_xy
+        scale_wh = self.arch_params.anchors.scale_wh
+        scales = torch.tensor([scale_xy, scale_xy, scale_wh, scale_wh])
+        self.scales = nn.Parameter(scales, requires_grad=False)
+        self.img_size = nn.Parameter(torch.tensor([self.arch_params.anchors.fig_size]), requires_grad=False)
 
     def _build_detecting_branches(self, build_loc=True):
         """Add localization and classification branches
@@ -150,9 +161,28 @@ class SSD(SgModule):
 
         # FEATURE MAPS: i.e. FOR 300X300 INPUT - 38X38X4, 19X19X6, 10X10X6, 5X5X6, 3X3X4, 1X1X4
         locs, confs = self.bbox_view(detection_feed)
+        # return locs, confs
 
-        # FOR 300X300 INPUT - RETURN N_BATCH X 8732 X {N_LABELS, N_LOCS} RESULTS
-        return locs, confs
+        if self.training:
+            # FOR 300X300 INPUT - RETURN N_BATCH X 8732 X {N_LABELS, N_LOCS} RESULTS
+            return locs, confs
+        else:
+            bboxes_in = locs.permute(0, 2, 1)
+            scores_in = confs.permute(0, 2, 1)
+
+            bboxes_in *= self.scales
+
+            # CONVERT RELATIVE LOCATIONS INTO ABSOLUTE LOCATION (OUTPUT LOCATIONS ARE RELATIVE TO THE DBOXES)
+            xy = (bboxes_in[:, :, :2] * self.dboxes_wh + self.dboxes_xy) * self.img_size
+            wh = (bboxes_in[:, :, 2:].exp() * self.dboxes_wh) * self.img_size
+
+            # REPLACE THE CONFIDENCE OF CLASS NONE WITH OBJECT CONFIDENCE
+            # SSD DOES NOT OUTPUT OBJECT CONFIDENCE, REQUIRED FOR THE NMS
+            scores_in = torch.softmax(scores_in, dim=-1)
+            classes_conf = scores_in[:, :, 1:]
+            obj_conf = torch.max(classes_conf, dim=2)[0].unsqueeze(dim=-1)
+
+            return torch.cat((xy, wh, obj_conf, classes_conf), dim=2)
 
     def replace_head(self, new_num_classes):
         del self.conf

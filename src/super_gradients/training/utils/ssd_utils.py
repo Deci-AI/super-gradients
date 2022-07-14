@@ -105,7 +105,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
     used by all other detection models
     """
 
-    def __init__(self, dboxes: DefaultBoxes, conf: float = 0.001, iou: float = 0.6, classes: list = None,
+    def __init__(self, conf: float = 0.001, iou: float = 0.6, classes: list = None,
                  max_predictions: int = 300,
                  nms_type: NMS_Type = NMS_Type.ITERATIVE,
                  multi_label_per_box=True):
@@ -128,35 +128,9 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         self.classes = classes
         self.max_predictions = max_predictions
 
-        self.dboxes_xywh = dboxes('xywh')
-        self.scale_xy = dboxes.scale_xy
-        self.scale_wh = dboxes.scale_wh
-        self.img_size = dboxes.fig_size
         self.multi_label_per_box = multi_label_per_box
 
-    def forward(self, x, device=None):
-        bboxes_in = x[0]
-        scores_in = x[1]
-
-        bboxes_in = bboxes_in.permute(0, 2, 1)
-        scores_in = scores_in.permute(0, 2, 1)
-
-        bboxes_in[:, :, :2] *= self.scale_xy
-        bboxes_in[:, :, 2:] *= self.scale_wh
-
-        # CONVERT RELATIVE LOCATIONS INTO ABSOLUTE LOCATION (OUTPUT LOCATIONS ARE RELATIVE TO THE DBOXES)
-        dboxes_on_device = self.dboxes_xywh.to(device)
-        bboxes_in[:, :, :2] = bboxes_in[:, :, :2] * dboxes_on_device[:, 2:] + dboxes_on_device[:, :2]
-        bboxes_in[:, :, 2:] = bboxes_in[:, :, 2:].exp() * dboxes_on_device[:, 2:]
-
-        # REPLACE THE CONFIDENCE OF CLASS NONE WITH OBJECT CONFIDENCE
-        # SSD DOES NOT OUTPUT OBJECT CONFIDENCE, REQUIRED FOR THE NMS
-        scores_in = F.softmax(scores_in, dim=-1)
-        scores_in[:, :, 0] = torch.max(scores_in[:, :, 1:], dim=2)[0]
-
-        bboxes_in *= self.img_size
-        nms_input = torch.cat((bboxes_in, scores_in), dim=2)
-
+    def forward(self, nms_input, device=None):
         if self.nms_type == NMS_Type.ITERATIVE:
             nms_res = non_max_suppression(nms_input, conf_thres=self.conf, iou_thres=self.iou,
                                           classes=self.classes, multi_label_per_box=self.multi_label_per_box)
