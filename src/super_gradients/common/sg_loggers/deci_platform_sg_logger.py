@@ -68,7 +68,4 @@ class DeciPlatformSGLogger(BaseSGLogger):
         )
 
         most_recent_file_path = max(files_path, key=os.path.getctime)
-        upload_success = self.platform_client.save_experiment_file(file_path=most_recent_file_path)
-
-        if not upload_success:
-            logger.error(f'Failed to upload to platform : "{most_recent_file_path}" ')
+        self.platform_client.save_experiment_file(file_path=most_recent_file_path)
