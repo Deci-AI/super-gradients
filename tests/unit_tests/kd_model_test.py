@@ -231,12 +231,17 @@ class KDModelTest(unittest.TestCase):
                              teacher_architecture='resnet50',
                              checkpoint_params={"teacher_checkpoint_path": teacher_path}
                              )
-        sg_model.train(self.kd_train_params)
+        train_params = self.kd_train_params.copy()
+        train_params["max_epochs"] = 1
+        sg_model.train(train_params)
         best_student_ckpt = os.path.join(sg_model.checkpoints_dir_path, "ckpt_best.pth")
 
         student_sg_model = SgModel("studnet_sg_model")
         student_sg_model.build_model("resnet18", arch_params={'num_classes': 5},
                                      checkpoint_params={"load_checkpoint": True, "external_checkpoint_path": best_student_ckpt})
+
+        self.assertTrue(
+            check_models_have_same_weights(student_sg_model.net.module, sg_model.net.module.student))
 
     def test_load_ckpt_best_for_student_with_ema(self):
         sg_model = KDModel("test_load_ckpt_best_for_student_with_ema", device='cpu')
@@ -252,13 +257,16 @@ class KDModelTest(unittest.TestCase):
                              checkpoint_params={"teacher_checkpoint_path": teacher_path}
                              )
         train_params = self.kd_train_params.copy()
+        train_params["max_epochs"] = 1
         train_params["ema"] = True
-        sg_model.train(self.kd_train_params)
+        sg_model.train(train_params)
         best_student_ckpt = os.path.join(sg_model.checkpoints_dir_path, "ckpt_best.pth")
 
         student_sg_model = SgModel("studnet_sg_model")
         student_sg_model.build_model("resnet18", arch_params={'num_classes': 5},
                                      checkpoint_params={"load_checkpoint": True, "external_checkpoint_path": best_student_ckpt})
+        self.assertTrue(
+            check_models_have_same_weights(student_sg_model.net.module, sg_model.ema_model.ema.module.student))
 
 
 if __name__ == '__main__':
