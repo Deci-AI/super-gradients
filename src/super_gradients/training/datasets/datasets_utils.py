@@ -411,25 +411,29 @@ class DatasetStatisticsTensorboardLogger:
         self.sg_logger = sg_logger
         self.summary_params = {**DatasetStatisticsTensorboardLogger.DEFAULT_SUMMARY_PARAMS, **summary_params}
 
-    def analyze(self, data_loader: torch.utils.data.DataLoader, dataset_params: dict, title: str, anchors: list = None):
+    def analyze(self, data_loader: torch.utils.data.DataLoader, dataset_params: dict, title: str,
+                all_classes: List[str], anchors: list = None):
         """
         :param data_loader: the dataset data loader
         :param dataset_params: the dataset parameters
         :param title: the title for this dataset (i.e. Coco 2017 test set)
         :param anchors: the list of anchors used by the model. applicable only for detection datasets
+        :param all_classes: the list of all classes names
         """
         if isinstance(data_loader.dataset, DetectionDataSet):
-            self._analyze_detection(data_loader=data_loader, dataset_params=dataset_params, title=title, anchors=anchors)
+            self._analyze_detection(data_loader=data_loader, dataset_params=dataset_params, title=title,
+                                    all_classes=all_classes, anchors=anchors)
         else:
             DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
 
-    def _analyze_detection(self, data_loader, dataset_params, title, anchors=None):
+    def _analyze_detection(self, data_loader, title, all_classes, anchors=None):
         """
         Analyze a detection dataset
 
         :param data_loader: the dataset data loader
         :param dataset_params: the dataset parameters
         :param title: the title for this dataset (i.e. Coco 2017 test set)
+        :param all_classes: the list of all classes names
         :param anchors: the list of anchors used by the model. if not provided, anchors coverage will not be analyzed
         """
         try:
