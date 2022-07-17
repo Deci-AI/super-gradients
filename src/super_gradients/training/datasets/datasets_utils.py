@@ -3,6 +3,8 @@ import os
 from abc import ABC, abstractmethod
 from multiprocessing import Value, Lock
 import random
+from typing import List
+
 import numpy as np
 import torch.nn.functional as F
 import torchvision
@@ -431,7 +433,6 @@ class DatasetStatisticsTensorboardLogger:
         Analyze a detection dataset
 
         :param data_loader: the dataset data loader
-        :param dataset_params: the dataset parameters
         :param title: the title for this dataset (i.e. Coco 2017 test set)
         :param all_classes: the list of all classes names
         :param anchors: the list of anchors used by the model. if not provided, anchors coverage will not be analyzed
@@ -440,13 +441,14 @@ class DatasetStatisticsTensorboardLogger:
             color_mean = AverageMeter()
             color_std = AverageMeter()
             all_labels = []
-
+            image_size = 0
             for i, (images, labels) in enumerate(tqdm(data_loader)):
 
                 if i >= self.summary_params['max_batches'] > 0:
                     break
 
                 if i == 0:
+                    image_size = max(images[0].shape[1], images[0].shape[2])
                     if images.shape[0] > self.summary_params['sample_images']:
                         samples = images[:self.summary_params['sample_images']]
                     else:
