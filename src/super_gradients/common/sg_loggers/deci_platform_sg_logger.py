@@ -61,11 +61,12 @@ class DeciPlatformSGLogger(BaseSGLogger):
         :param start_with: prefix of the file to upload
         """
 
-        files_path = (
+        files_path = [
             os.path.join(self.checkpoints_dir_path, file_name)
             for file_name in os.listdir(self.checkpoints_dir_path)
             if file_name.startswith(start_with)
-        )
+        ]
 
         most_recent_file_path = max(files_path, key=os.path.getctime)
         self.platform_client.save_experiment_file(file_path=most_recent_file_path)
+        logger.info(f"File saved to Deci platform: {most_recent_file_path}")
