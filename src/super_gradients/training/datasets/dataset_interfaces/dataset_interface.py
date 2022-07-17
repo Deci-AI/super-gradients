@@ -206,7 +206,7 @@ class DatasetInterface:
 
     def get_data_loaders(self, **kwargs):
         """
-        Get self.train_loader, self.test_loader, self.classes.
+        Get self.train_loader, self.val_loader, self.test_loader, self.classes.
 
         If the data loaders haven't been initialized yet, build them first.
 
