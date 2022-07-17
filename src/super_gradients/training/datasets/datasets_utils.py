@@ -25,7 +25,7 @@ from torchvision.transforms import transforms, InterpolationMode, RandomResizedC
 from tqdm import tqdm
 
 from super_gradients.training.utils.utils import AverageMeter
-from super_gradients.training.utils.detection_utils import DetectionVisualization
+from super_gradients.training.utils.detection_utils import DetectionVisualization, Anchors
 import uuid
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
 
@@ -577,7 +577,7 @@ class DatasetStatisticsTensorboardLogger:
         to_closest_anchor[to_closest_anchor > 0.75] = 2
         return to_closest_anchor.reshape(image_size - 1, -1)
 
-    def _analyze_anchors_coverage(self, anchors: list, image_size: int, labels: list, title: str):
+    def _analyze_anchors_coverage(self, anchors: Anchors, image_size: int, labels: list, title: str):
         """
         This function will add anchors coverage plots to the tensorboard.
         :param anchors: a list of anchors
@@ -596,9 +596,13 @@ class DatasetStatisticsTensorboardLogger:
         ax.set_xlim([0, image_size])
         ax.set_ylim([0, image_size])
 
-        anchors = np.array(anchors).reshape(-1, 2)
-        for i in range(len(anchors)):
-            rect = self._get_rect(anchors[i][0], anchors[i][1])
+        anchors_boxes = anchors.anchors.cpu().numpy()
+        anchors_len = anchors.num_anchors
+
+        anchors_boxes = anchors_boxes.reshape(-1, 2)
+
+        for i in range(anchors_len):
+            rect = self._get_rect(anchors_boxes[i][0], anchors_boxes[i][1])
             rect.set_alpha(0.3)
             rect.set_facecolor([random.random(), random.random(), random.random(), 0.3])
             ax.add_patch(rect)
@@ -613,7 +617,7 @@ class DatasetStatisticsTensorboardLogger:
         xx, yy = np.meshgrid(x, y, sparse=False)
         points = np.concatenate([xx.reshape(1, -1), yy.reshape(1, -1)])
 
-        color = self._get_score(anchors, points, image_size)
+        color = self._get_score(anchors_boxes, points, image_size)
 
         ax.set_xlabel('W', fontsize=STAT_LOGGER_FONT_SIZE)
         ax.set_ylabel('H', fontsize=STAT_LOGGER_FONT_SIZE)
@@ -622,11 +626,11 @@ class DatasetStatisticsTensorboardLogger:
 
         # calculate the coverage for the dataset labels
         cover_masks = []
-        for i in range(len(anchors)):
-            w_max = (anchors[i][0] / image_size) * 4
-            w_min = (anchors[i][0] / image_size) * 0.25
-            h_max = (anchors[i][1] / image_size) * 4
-            h_min = (anchors[i][1] / image_size) * 0.25
+        for i in range(anchors_len):
+            w_max = (anchors_boxes[i][0] / image_size) * 4
+            w_min = (anchors_boxes[i][0] / image_size) * 0.25
+            h_max = (anchors_boxes[i][1] / image_size) * 4
+            h_min = (anchors_boxes[i][1] / image_size) * 0.25
             cover_masks.append(np.logical_and(
                 np.logical_and(np.logical_and(labels[:, 3] < w_max, labels[:, 3] > w_min), labels[:, 4] < h_max),
                 labels[:, 4] > h_min))
