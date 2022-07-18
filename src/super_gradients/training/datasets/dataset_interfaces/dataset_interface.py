@@ -618,7 +618,7 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
         val_sample_method = core_utils.get_param(self.dataset_params, 'val_sample_loading_method',
                                                  default_val='rectangular')
 
-        with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=True)
+        with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=False)
         train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn',
                                                 base_detection_collate_fn)
         val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn',
