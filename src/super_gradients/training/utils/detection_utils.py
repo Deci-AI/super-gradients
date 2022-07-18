@@ -699,12 +699,25 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
     return output
 
 
-
-def new_non_max_suppression(prediction: torch.Tensor, conf_thres: float = 0.1,
-                            iou_thres: float = 0.6, merge: bool = False, classes=None,
-                            agnostic: bool = False, multi_label_per_box: bool = None,
-                            max_detections: int = 300):
-
+def batched_non_max_suppression(prediction: torch.Tensor, conf_thres: float = 0.1,
+                                iou_thres: float = 0.6, merge: bool = False, classes=None,
+                                agnostic: bool = False, multi_label_per_box: bool = None,
+                                max_detections: int = 300):
+    """Performs Batched-Non-Maximum Suppression (BNMS) on inference results
+            :param prediction: raw model prediction
+            :param conf_thres: below the confidence threshold - prediction are discarded
+            :param iou_thres: IoU threshold for the nms algorithm
+            :param merge: Merge boxes using weighted mean
+            :param classes: (optional list) filter by class
+            :param agnostic: Determines if is class agnostic. i.e. may display a box with 2 predictions
+            :param multi_label_per_box: whether to use re-use each box with all possible labels
+                                        (instead of the maximum confidence all confidences above threshold
+                                        will be sent to NMS); by default is set to True
+            :param max_detections: limit number of detections
+            :return:  (x1, y1, x2, y2, object_conf, class_conf, class)
+        Returns:
+             detections with shape: nx6 (x1, y1, x2, y2, conf, cls)
+        """
     output = [None] * prediction.shape[0]
     number_of_classes = prediction[0].shape[1] - 5
     multi_label_per_box = multi_label_per_box if multi_label_per_box is not None else number_of_classes > 1
