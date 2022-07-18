@@ -8,7 +8,6 @@ from super_gradients.training.utils.module_utils import MultiOutputModule
 from super_gradients.training.utils.ssd_utils import DefaultBoxes
 
 DEFAULT_SSD_ARCH_PARAMS = {
-    "num_defaults": [4, 6, 6, 6, 4, 4],
     "additional_blocks_bottleneck_channels": [256, 256, 128, 128, 128]
 }
 
@@ -20,7 +19,6 @@ DEFAULT_SSD_MOBILENET_V1_ARCH_PARAMS = {
 DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
     "out_channels": [576, 1280, 512, 256, 256, 64],
     "expand_ratios": [0.2, 0.25, 0.5, 0.25],
-    "num_defaults": [6, 6, 6, 6, 6, 6],  # num anchors per level, defined by scales used when constructing DefaultBoxes
     "lite": True,
     "width_mult": 1.0,
     # "output_paths": [[7,'conv',2], [14, 'conv', 2]], output paths for a model with output levels of stride 8 plus
@@ -63,13 +61,6 @@ class SSD(SgModule):
         # num classes in a dataset
         # the model will predict self.num_classes + 1 values to also include background
         self.num_classes = self.arch_params.num_classes
-
-        self._build_additional_blocks()
-
-        self._build_detecting_branches()
-
-        self._init_weights()
-
         self.dboxes_xy = nn.Parameter(self.arch_params.anchors('xywh')[:, :2], requires_grad=False)
         self.dboxes_wh = nn.Parameter(self.arch_params.anchors('xywh')[:, 2:], requires_grad=False)
         scale_xy = self.arch_params.anchors.scale_xy
@@ -77,6 +68,11 @@ class SSD(SgModule):
         scales = torch.tensor([scale_xy, scale_xy, scale_wh, scale_wh])
         self.scales = nn.Parameter(scales, requires_grad=False)
         self.img_size = nn.Parameter(torch.tensor([self.arch_params.anchors.fig_size]), requires_grad=False)
+        self.num_anchors = self.arch_params.anchors.num_anchors
+
+        self._build_additional_blocks()
+        self._build_detecting_branches()
+        self._init_weights()
 
     def _build_detecting_branches(self, build_loc=True):
         """Add localization and classification branches
@@ -84,16 +80,14 @@ class SSD(SgModule):
         :param build_loc: whether to build localization branch;
                           called with False in replace_head(...), in such case only classification branch is rebuilt
         """
-        self.num_defaults = self.arch_params.num_defaults
-
         if build_loc:
             self.loc = []
         self.conf = []
 
         out_channels = self.arch_params.out_channels
         lite = utils.get_param(self.arch_params, 'lite', False)
-        for i, (nd, oc) in enumerate(zip(self.num_defaults, out_channels)):
-            conv = SeperableConv2d if lite and i < len(self.num_defaults) - 1 else nn.Conv2d
+        for i, (nd, oc) in enumerate(zip(self.num_anchors, out_channels)):
+            conv = SeperableConv2d if lite and i < len(self.num_anchors) - 1 else nn.Conv2d
             if build_loc:
                 self.loc.append(conv(oc, nd * 4, kernel_size=3, padding=1))
             self.conf.append(conv(oc, nd * (self.num_classes + 1), kernel_size=3, padding=1))

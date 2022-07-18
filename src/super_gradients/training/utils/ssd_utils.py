@@ -55,6 +55,7 @@ class DefaultBoxes(object):
         self.aspect_ratios = aspect_ratios
 
         self.default_boxes = []
+        self.num_anchors = []
         # size of feature and number of feature
         for idx, sfeat in enumerate(self.feat_size):
 
@@ -69,6 +70,7 @@ class DefaultBoxes(object):
                 all_sizes.append((h, w))
 
             all_sizes = np.array(all_sizes) / fig_size
+            self.num_anchors.append(len(all_sizes))
             for w, h in all_sizes:
                 for i, j in itertools.product(range(sfeat), repeat=2):
                     cx, cy = (j + 0.5) / sfeat, (i + 0.5) / sfeat
