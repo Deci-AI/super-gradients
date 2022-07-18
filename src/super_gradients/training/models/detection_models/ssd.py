@@ -159,9 +159,8 @@ class SSD(SgModule):
             x = block(x)
             detection_feed.append(x)
 
-        # FEATURE MAPS: i.e. FOR 300X300 INPUT - 38X38X4, 19X19X6, 10X10X6, 5X5X6, 3X3X4, 1X1X4
+        # detection_feed are FEATURE MAPS: i.e. FOR 300X300 INPUT - 38X38X4, 19X19X6, 10X10X6, 5X5X6, 3X3X4, 1X1X4
         locs, confs = self.bbox_view(detection_feed)
-        # return locs, confs
 
         if self.training:
             # FOR 300X300 INPUT - RETURN N_BATCH X 8732 X {N_LABELS, N_LOCS} RESULTS
