@@ -184,7 +184,7 @@ class DetectionMetrics(Metric):
             metrics = []
             for state_dict in gathered_state_dicts:
                 metrics += state_dict["metrics"]
-
+            setattr(self, "metrics", metrics)
 
 class DetectionMetricsV2(Metric):
     """
