@@ -133,7 +133,7 @@ class C3(nn.Module):
 
 class CSPLayer(nn.Module):
     """
-    C3 in yolov5, CSP Bottleneck with 3 convolutions
+    CSP Bottleneck with 3 convolutions
 
     Args:
         in_channels: int, input channels.
