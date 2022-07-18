@@ -70,7 +70,7 @@ def crowd_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Ten
     images_batch, labels_batch, *additional_items_batch = zip(*batch)
 
     assert len(additional_items_batch) == 1, \
-        f"{len(additional_items_batch) + 2} elements were provided by the Dataloader when 3 were expected."
+        f"{len(additional_items_batch) + 2} elements were provided by the Dataloader but 3 were expected by crowd_detection_collate_fn."
     additional_item_batch = additional_items_batch[0]
 
     crowd_labels_batch = [item['crowd_targets'] for item in additional_item_batch]
