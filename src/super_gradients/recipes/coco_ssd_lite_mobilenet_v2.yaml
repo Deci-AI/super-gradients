@@ -44,7 +44,7 @@ dataset_params:
   hgain: 5
   sgain: 30
   vgain: 30
-  mosaic_scale: [0.125, 2.]
+  mosaic_scale: [0.5, 1.5]
   mosaic_prob: 0.
   translate: 0.1
 
@@ -165,3 +165,11 @@ training_hyperparams:
 
   metric_to_watch: 'mAP@0.50:0.95'
   greater_metric_to_watch_is_better: True
+
+  phase_callbacks:
+    - _target_: super_gradients.training.utils.callbacks.DetectionVisualizationCallback
+      post_prediction_callback:
+        _target_: super_gradients.training.utils.ssd_utils.SSDPostPredictCallback
+        dboxes: ${dboxes}
+        conf: 0.25
+        iou: 0.45
