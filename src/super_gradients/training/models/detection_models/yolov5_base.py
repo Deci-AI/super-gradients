@@ -10,7 +10,7 @@ from super_gradients.training.models.detection_models.csp_darknet53 import Conv,
     CSPDarknet53, get_yolo_version_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
-    check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
+    check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors, new_non_max_suppression
 from super_gradients.training.utils.export_utils import ExportableHardswish, ExportableSiLU
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 
@@ -77,6 +77,13 @@ class YoloV5PostPredictionCallback(DetectionPostPredictionCallback):
 
     def forward(self, x, device: str = None):
         if self.nms_type == NMS_Type.ITERATIVE:
+            # old test -
+            # time 469 seconds - F1 0.564 precision 0.376 recall 0.649 map 0.363
+            # new test -
+            # time 512 seconds - F1 0.564 precision 0.376 recall 0.649 map 0.363
+            # time differences - +9%
+
+            return new_non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, classes=self.classes)
             return non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, classes=self.classes)
         else:
             return matrix_non_max_suppression(x[0], conf_thres=self.conf, max_num_of_detections=self.max_predictions)

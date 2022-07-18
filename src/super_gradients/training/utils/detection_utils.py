@@ -699,6 +699,63 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
     return output
 
 
+
+def new_non_max_suppression(prediction: torch.Tensor, conf_thres: float = 0.1,
+                            iou_thres: float = 0.6, merge: bool = False, classes=None,
+                            agnostic: bool = False, multi_label_per_box: bool = None,
+                            max_detections: int = 300):
+
+    output = [None] * prediction.shape[0]
+    number_of_classes = prediction[0].shape[1] - 5
+    multi_label_per_box = multi_label_per_box if multi_label_per_box is not None else number_of_classes > 1
+
+    candidates_above_thres = prediction[..., 4] > conf_thres
+
+    for image_idx, pred in enumerate(prediction):
+        pred = pred[candidates_above_thres[image_idx]]
+
+        if not pred.shape[0]: # number of boxes is 0
+            continue
+
+        pred[:, 5:] *= pred[:, 4:5]
+
+        box = convert_xywh_bbox_to_xyxy(pred[:, :4])
+
+        if multi_label_per_box:
+            i, j = (pred[:, 5:] > conf_thres).nonzero(as_tuple=False).T
+            pred = torch.cat((box[i], pred[i, j + 5, None], j[:, None].float()), 1)
+        else:  # best class only
+            conf, j = pred[:, 5:].max(1, keepdim=True)
+            pred = torch.cat((box, conf, j.float()), 1)[conf.view(-1) > conf_thres]
+
+        if classes:
+            pred = pred[(pred[:, 5:6] == torch.tensor(classes, device=pred.device)).any(1)]
+
+        if not pred.shape[0]:  # number of boxes is 0
+            continue
+
+        idxs = pred[:, 5] * 0 if agnostic else pred[:, 5]
+        boxes, scores = pred[:, :4].clone(), pred[:, 4]
+        idxs_to_keep = torchvision.ops.boxes.batched_nms(boxes, scores, idxs, iou_thres)
+        if idxs_to_keep.shape[0] > max_detections:
+            idxs_to_keep = idxs_to_keep[:max_detections]
+
+        if merge and (1 < pred.shape[0] < 3000):
+            try:  # update boxes as boxes(i,4) = weights(i,n) * boxes(n,4)
+                iou = box_iou(boxes[idxs_to_keep], boxes) > iou_thres  # iou matrix
+                box_weights = iou * scores[None]
+                # MERGED BOXES
+                pred[idxs_to_keep, :4] = torch.mm(box_weights, pred[:, :4]).float() / box_weights.sum(1, keepdim=True)
+                if True:
+                    idxs_to_keep = idxs_to_keep[iou.sum(1) > 1]
+            except RuntimeError:  # possible CUDA error https://github.com/ultralytics/yolov3/issues/1139
+                print(pred, idxs_to_keep, pred.shape, idxs_to_keep.shape)
+                pass
+
+        output[image_idx] = pred[idxs_to_keep]
+
+    return output
+
 def matrix_non_max_suppression(pred, conf_thres: float = 0.1, kernel: str = 'gaussian',
                                sigma: float = 3.0, max_num_of_detections: int = 500):
     """Performs Matrix Non-Maximum Suppression (NMS) on inference results
