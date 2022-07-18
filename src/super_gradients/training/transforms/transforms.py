@@ -391,6 +391,8 @@ class DetectionMosaic(DetectionTransform):
         self.prob = prob
         self.input_dim = input_dim
         self.enable_mosaic = enable_mosaic
+        if self.prob == 0:
+            self.close()
 
     def close(self):
         self.additional_samples_count = 0
@@ -528,6 +530,8 @@ class DetectionMixup(DetectionTransform):
         self.mixup_scale = mixup_scale
         self.prob = prob
         self.enable_mixup = enable_mixup
+        if self.prob == 0:
+            self.close()
 
     def close(self):
         self.additional_samples_count = 0
@@ -732,16 +736,16 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         _, h, w = image.shape
 
         if normalize:
-            boxes[:, 0] = boxes[:, 0] / w
-            boxes[:, 1] = boxes[:, 1] / h
-            boxes[:, 2] = boxes[:, 2] / w
-            boxes[:, 3] = boxes[:, 3] / h
+            boxes[:, 0] = boxes[:, 0] / h
+            boxes[:, 1] = boxes[:, 1] / w
+            boxes[:, 2] = boxes[:, 2] / h
+            boxes[:, 3] = boxes[:, 3] / w
 
         elif denormalize:
-            boxes[:, 0] = boxes[:, 0] * w
-            boxes[:, 1] = boxes[:, 1] * h
-            boxes[:, 2] = boxes[:, 2] * w
-            boxes[:, 3] = boxes[:, 3] * h
+            boxes[:, 0] = boxes[:, 0] * h
+            boxes[:, 1] = boxes[:, 1] * w
+            boxes[:, 2] = boxes[:, 2] * h
+            boxes[:, 3] = boxes[:, 3] * w
 
         min_bbox_edge_size = self.min_bbox_edge_size / max(w, h) if normalized_output else self.min_bbox_edge_size
 

@@ -30,7 +30,7 @@ train_collate_fn: # collate function for trainset in CoCoDetectionDatasetInterfa
   _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
 
 cache_dir_path: /home/shay.aharon/data/ # path to a directory that will be used for caching (with numpy.memmap).
-cache_train_images: True
-cache_val_images: True
+cache_train_images: False
+cache_val_images: False
 
 _convert_: all

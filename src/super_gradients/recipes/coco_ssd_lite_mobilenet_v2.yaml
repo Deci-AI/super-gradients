@@ -31,7 +31,7 @@ architecture: ssd_lite_mobilenet_v2
 project_name: SSD_Mobile
 
 dataset_params:
-  batch_size: 16
+  batch_size: 32
   val_batch_size: 64
   val_image_size: 320
   train_image_size: 320
@@ -41,11 +41,11 @@ dataset_params:
   shear: 0.
   flip_prob: 0.5
   hsv_prob: 1.0
-  hgain: 2.7
-  sgain: 178.5
-  vgain: 102
-  mosaic_scale: [ 0.5, 1.5 ]
-  mosaic_prob: 1.
+  hgain: 5
+  sgain: 30
+  vgain: 30
+  mosaic_scale: [0.125, 2.]
+  mosaic_prob: 0.
   translate: 0.1
 
 
@@ -136,7 +136,7 @@ training_hyperparams:
   max_epochs: 400
   lr_mode: cosine
   cosine_final_lr_ratio: 0.01
-  batch_accumulate: 4
+  batch_accumulate: 1
   initial_lr: 0.02
   loss: ssd_loss
   loss_logging_items_names: [ smooth_l1, closs, Loss ]
