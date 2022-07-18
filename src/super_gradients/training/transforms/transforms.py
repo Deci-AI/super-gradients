@@ -625,9 +625,9 @@ class DetectionPaddedRescale(DetectionTransform):
         img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap)
 
         sample["image"] = img
-        sample["target"] = self._pad_rescale_target(new_targets, r)
+        sample["target"] = self._rescale_target(new_targets, r)
         if crowd_targets is not None:
-            sample["crowd_target"] = self._pad_rescale_target(new_crowd_targets, r)
+            sample["crowd_target"] = self._rescale_target(new_crowd_targets, r)
         return sample
 
     def _rescale_target(self, targets: np.array, r: float) -> np.array:
