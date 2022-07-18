@@ -520,7 +520,7 @@ class SgModel:
                 metric < self.best_metric and not self.greater_metric_to_watch_is_better):
             # STORE THE CURRENT metric AS BEST
             self.best_metric = metric
-            self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
+            self._save_best_checkpoint(epoch, state)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.VALIDATION_END_BEST_EPOCH, context)
@@ -535,6 +535,9 @@ class SgModel:
                                                                               validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename,
                                           state_dict={'net': averaged_model_sd}, global_step=epoch)
+
+    def _save_best_checkpoint(self, epoch, state):
+        self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def train(self, training_params: dict = dict()):  # noqa: C901
