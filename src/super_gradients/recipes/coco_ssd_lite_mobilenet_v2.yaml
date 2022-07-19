@@ -44,8 +44,8 @@ dataset_params:
   hgain: 5
   sgain: 30
   vgain: 30
-  mosaic_scale: [0.5, 2]
-  mosaic_prob: 0.
+  mosaic_scale: [0.5, 1.5]
+  mosaic_prob: 1.
   translate: 0.1
   targets_format:
     _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat
@@ -114,7 +114,7 @@ anchors:
 data_loader_num_workers: 8
 model_checkpoints_location: local
 experiment_suffix: res${dataset_params.val_image_size}
-experiment_name: ${architecture}_coco_${experiment_suffix}_new_coco_scale_05_2
+experiment_name: ${architecture}_coco_${experiment_suffix}_new_coco_scale_05_15_mosaic_normalized_image
 
 sg_model:
   _target_: super_gradients.SgModel
