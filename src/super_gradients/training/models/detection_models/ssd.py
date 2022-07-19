@@ -175,7 +175,7 @@ class SSD(SgModule):
             classes_conf = scores_in[:, :, 1:]
             obj_conf = torch.max(classes_conf, dim=2)[0].unsqueeze(dim=-1)
 
-            return torch.cat((xy, wh, obj_conf, classes_conf), dim=2)
+            return (torch.cat((xy, wh, obj_conf, classes_conf), dim=2), (locs, confs))
 
     def replace_head(self, new_num_classes):
         del self.conf

@@ -132,7 +132,8 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
 
         self.multi_label_per_box = multi_label_per_box
 
-    def forward(self, nms_input, device=None):
+    def forward(self, predictions, device=None):
+        nms_input = predictions[0]
         if self.nms_type == NMS_Type.ITERATIVE:
             nms_res = non_max_suppression(nms_input, conf_thres=self.conf, iou_thres=self.iou,
                                           classes=self.classes, multi_label_per_box=self.multi_label_per_box)
