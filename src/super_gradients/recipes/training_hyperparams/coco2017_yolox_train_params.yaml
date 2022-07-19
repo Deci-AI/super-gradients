@@ -31,7 +31,7 @@ ema: True
 mixed_precision: True
 
 valid_metrics_list:
-  - _target_: super_gradients.training.metrics.DetectionMetrics
+  - _target_: super_gradients.training.metrics.DetectionMetricsV2
     normalize_targets: True
     post_prediction_callback:
       _target_: super_gradients.training.models.detection_models.yolov5_base.YoloV5PostPredictionCallback
@@ -50,13 +50,5 @@ phase_callbacks:
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True
 
-sg_logger: wandb_sg_logger
-sg_logger_params:
-    project_name: yolox_sg
-    entity: algo
-    api_server: https://wandb.research.deci.ai
-    save_checkpoints_remote: True
-    save_tensorboard_remote: True
-    save_logs_remote: True
 
 _convert_: all
