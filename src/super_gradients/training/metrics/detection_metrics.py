@@ -132,7 +132,11 @@ class DetectionMetrics(Metric):
         self.rank = None
         self.add_state("metrics", default=[], dist_reduce_fx=None)
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor, device, inputs):
+    def update(self, preds: torch.Tensor, target: torch.Tensor, device, inputs, crowd_targets=None):
+        if crowd_targets is not None:
+            logger.warning('The DatasetInterface was setup to use crowd, but this DetectionMetrics does not handel it.'
+                           'If you meant to use crowd, please use DetectionMetricsV2.'
+                           'Otherwise set "with_crowd=False" in dataset_params')
         _, _, height, width = inputs.shape
         targets = target.clone()
         if self.normalize_targets:
@@ -180,7 +184,7 @@ class DetectionMetrics(Metric):
             metrics = []
             for state_dict in gathered_state_dicts:
                 metrics += state_dict["metrics"]
-
+            setattr(self, "metrics", metrics)
 
 class DetectionMetricsV2(Metric):
     """
