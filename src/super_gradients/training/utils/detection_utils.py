@@ -54,7 +54,7 @@ def base_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Tens
          :param batch:      Input batch from the Dataset __get_item__ method
          :return:           Batch images and labels and a dict with 'crowd_target'
      """
-    images_batch, labels_batch = zip(*batch)
+    images_batch, labels_batch, *_additional_items_batch = zip(*batch)
     labels_batch = _set_batch_labels_index(labels_batch)
     return torch.stack(images_batch, 0), torch.cat(labels_batch, 0)
 
@@ -67,9 +67,13 @@ def crowd_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Ten
          :param batch:      Input batch from the Dataset __get_item__ method
          :return:           Batch images and labels and a dict with 'crowd_target'
      """
+    images_batch, labels_batch, *additional_items_batch = zip(*batch)
 
-    images_batch, labels_batch, additional_items_batch = zip(*batch)
-    crowd_labels_batch = [item['crowd_targets'] for item in additional_items_batch]
+    assert len(additional_items_batch) == 1, \
+        f"{len(additional_items_batch) + 2} elements were provided by the Dataloader but 3 were expected by crowd_detection_collate_fn."
+    additional_item_batch = additional_items_batch[0]
+
+    crowd_labels_batch = [item['crowd_targets'] for item in additional_item_batch]
     labels_batch = _set_batch_labels_index(labels_batch)
     crowd_labels_batch = _set_batch_labels_index(crowd_labels_batch)
     return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), {"crowd_targets": torch.cat(crowd_labels_batch, 0)}

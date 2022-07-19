@@ -260,3 +260,18 @@ class KDModel(SgModel):
         :param exp_activation:
         """
         return KDModelEMA(self.net, decay, beta, exp_activation)
+
+    def _save_best_checkpoint(self, epoch, state):
+        """
+        Overrides parent best_ckpt saving to modify the state dict so that we only save the student.
+        """
+        if self.ema:
+            best_net = core_utils.WrappedModel(self.ema_model.ema.module.student)
+            state.pop("ema_net")
+        else:
+            best_net = core_utils.WrappedModel(self.net.module.student)
+
+        state["net"] = best_net.state_dict()
+        self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
+
+

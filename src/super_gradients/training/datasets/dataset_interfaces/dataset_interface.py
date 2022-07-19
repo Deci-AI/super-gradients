@@ -598,7 +598,7 @@ class CoCoDataSetInterfaceBase(DatasetInterface):
 
 class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
     def __init__(self, dataset_params=None, cache_labels=False, cache_images=False, train_list_file='train2017.txt',
-                 val_list_file='val2017.txt', with_crowd=False):
+                 val_list_file='val2017.txt'):
         super().__init__(dataset_params=dataset_params)
 
         default_hyper_params = {
@@ -618,6 +618,7 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
         val_sample_method = core_utils.get_param(self.dataset_params, 'val_sample_loading_method',
                                                  default_val='rectangular')
 
+        with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=False)
         train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn',
                                                 base_detection_collate_fn)
         val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn',
@@ -628,7 +629,6 @@ class CoCoDetectionDatasetInterface(CoCoDataSetInterfaceBase):
         val_image_size = core_utils.get_param(self.dataset_params, 'val_image_size')
         labels_offset = core_utils.get_param(self.dataset_params, 'labels_offset', default_val=0)
         class_inclusion_list = core_utils.get_param(self.dataset_params, 'class_inclusion_list')
-        with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=True)
 
         if image_size is None:
             assert train_image_size is not None and val_image_size is not None, 'Please provide either only image_size or ' \
