@@ -21,15 +21,20 @@ mosaic_scale: [0.1, 2]
 mixup_scale: [0.5, 1.5]
 mosaic_prob: 1.
 translate: 0.1
+targets_format:
+  _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat
+  value: LABEL_CXCYWH
+
+with_crowd: True
 
 val_collate_fn: # collate function for valset in CoCoDetectionDatasetInterface
-  _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  _target_: super_gradients.training.utils.detection_utils.CrowdDetectionCollateFN
 
 
 train_collate_fn: # collate function for trainset in CoCoDetectionDatasetInterface
   _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
 
-cache_dir_path: /home/shay.aharon/data/ # path to a directory that will be used for caching (with numpy.memmap).
+cache_dir_path: # path to a directory that will be used for caching (with numpy.memmap).
 cache_train_images: False
 cache_val_images: False
 

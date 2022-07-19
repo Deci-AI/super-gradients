@@ -44,9 +44,12 @@ dataset_params:
   hgain: 5
   sgain: 30
   vgain: 30
-  mosaic_scale: [0.5, 1.5]
+  mosaic_scale: [0.125, 1.5]
   mosaic_prob: 0.
   translate: 0.1
+  targets_format:
+    _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat
+    value: LABEL_NORMALIZED_CXCYWH
 
 
 # stride_N_plus is for models where the first skip begins from the feature map with output stride N and higher
@@ -111,7 +114,7 @@ anchors:
 data_loader_num_workers: 8
 model_checkpoints_location: local
 experiment_suffix: res${dataset_params.val_image_size}
-experiment_name: ${architecture}_coco_${experiment_suffix}_new_coco_cached_batch_accumulate
+experiment_name: ${architecture}_coco_${experiment_suffix}_new_coco_scale_0125_15
 
 sg_model:
   _target_: super_gradients.SgModel
@@ -166,10 +169,3 @@ training_hyperparams:
   metric_to_watch: 'mAP@0.50:0.95'
   greater_metric_to_watch_is_better: True
 
-  phase_callbacks:
-    - _target_: super_gradients.training.utils.callbacks.DetectionVisualizationCallback
-      post_prediction_callback:
-        _target_: super_gradients.training.utils.ssd_utils.SSDPostPredictCallback
-        dboxes: ${dboxes}
-        conf: 0.25
-        iou: 0.45

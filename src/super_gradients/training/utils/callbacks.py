@@ -3,8 +3,6 @@ import os
 import time
 from enum import Enum
 import math
-
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.utils.utils import get_param
 import numpy as np
 import onnx
@@ -651,12 +649,12 @@ class DetectionVisualizationCallback(PhaseCallback):
 
     def __init__(
         self,
+        phase: Phase,
+        freq: int,
         post_prediction_callback: DetectionPostPredictionCallback,
-        phase: Phase=Phase.TRAIN_BATCH_END,
-        freq: int = 1,
-        classes: list = COCO_DETECTION_CLASSES_LIST,
+        classes: list,
         batch_idx: int = 0,
-        last_img_idx_in_batch: int = 8,
+        last_img_idx_in_batch: int = -1,
     ):
         super(DetectionVisualizationCallback, self).__init__(phase)
         self.freq = freq
@@ -666,10 +664,9 @@ class DetectionVisualizationCallback(PhaseCallback):
         self.last_img_idx_in_batch = last_img_idx_in_batch
 
     def __call__(self, context: PhaseContext):
-        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx and not context.ddp_silent_mode:
+        if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx:
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
-            # preds = (context.preds[0].clone(), None)
-            preds = (context.preds[0].clone().cpu().detach(), context.preds[1].clone().cpu().detach())
+            preds = (context.preds[0].clone(), None)
             preds = self.post_prediction_callback(preds)
             batch_imgs = DetectionVisualization.visualize_batch(
                 context.inputs, preds, context.target, self.batch_idx, self.classes

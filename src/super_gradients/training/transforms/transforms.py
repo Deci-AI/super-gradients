@@ -676,13 +676,16 @@ class DetectionHSV(DetectionTransform):
     Detection HSV transform.
     """
 
-    def __init__(self, prob):
+    def __init__(self, prob, hgain=5, sgain=30, vgain=30):
         super(DetectionHSV, self).__init__()
         self.prob = prob
+        self.hgain = hgain
+        self.sgain = sgain
+        self.vgain = vgain
 
     def __call__(self, sample):
         if random.random() < self.prob:
-            augment_hsv(sample["image"])
+            augment_hsv(sample["image"], self.hgain, self.sgain, self.vgain)
         return sample
 
 
@@ -737,16 +740,16 @@ class DetectionTargetsFormatTransform(DetectionTransform):
                 boxes = cxcywh2xyxy(boxes)
 
             if normalize:
-                boxes[:, 0] = boxes[:, 0] / h
-                boxes[:, 1] = boxes[:, 1] / w
-                boxes[:, 2] = boxes[:, 2] / h
-                boxes[:, 3] = boxes[:, 3] / w
+                boxes[:, 0] = boxes[:, 0] / w
+                boxes[:, 1] = boxes[:, 1] / h
+                boxes[:, 2] = boxes[:, 2] / w
+                boxes[:, 3] = boxes[:, 3] / h
 
             elif denormalize:
-                boxes[:, 0] = boxes[:, 0] * h
-                boxes[:, 1] = boxes[:, 1] * w
-                boxes[:, 2] = boxes[:, 2] * h
-                boxes[:, 3] = boxes[:, 3] * w
+                boxes[:, 0] = boxes[:, 0] * w
+                boxes[:, 1] = boxes[:, 1] * h
+                boxes[:, 2] = boxes[:, 2] * w
+                boxes[:, 3] = boxes[:, 3] * h
 
             min_bbox_edge_size = self.min_bbox_edge_size / max(w, h) if normalized_output else self.min_bbox_edge_size
 

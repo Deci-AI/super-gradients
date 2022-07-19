@@ -908,6 +908,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
         super(CocoDetectionDatasetInterfaceV2, self).__init__(dataset_params=dataset_params)
 
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
+        targets_format = get_param(self.dataset_params, "targets_format", DetectionTargetsFormat.LABEL_CXCYWH)
 
         train_transforms = [DetectionMosaic(input_dim=train_input_dim,
                                             prob=self.dataset_params.mosaic_prob),
@@ -927,7 +928,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                                          ),
                             DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
                             DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
-                            DetectionTargetsFormatTransform()
+                            DetectionTargetsFormatTransform(output_format=targets_format)
                             ]
 
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
@@ -953,7 +954,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                 name=self.dataset_params.val_subdir,
                 img_size=val_input_dim,
                 transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
-                            DetectionTargetsFormatTransform(max_targets=50)],
+                            DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)],
                 cache=self.dataset_params.cache_val_images,
                 cache_dir_path=self.dataset_params.cache_dir_path,
                 with_crowd=with_crowd)
