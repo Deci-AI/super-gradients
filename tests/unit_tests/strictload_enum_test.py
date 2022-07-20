@@ -58,7 +58,7 @@ class StrictLoadEnumTest(unittest.TestCase):
         cls.sg_model.sg_logger = BaseSGLogger('project_name', 'load_checkpoint_test', 'local', resumed=False,
                                               training_params=HpmStruct(max_epochs=10),
                                               checkpoints_dir_path=cls.sg_model.checkpoints_dir_path)
-        cls.sg_model.save_checkpoint()
+        cls.sg_model._save_checkpoint()
 
     @classmethod
     def tearDownClass(cls):
