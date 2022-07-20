@@ -45,7 +45,7 @@ class Phase(Enum):
 
 class ContextSgMethods:
     """
-    Class for delegating SgModel's methods, so that only the relevant ones are ("phase wise") are accessible.
+    Class for delegating Trainer's methods, so that only the relevant ones are ("phase wise") are accessible.
     """
     def __init__(self, **methods):
         for attr, attr_val in methods.items():

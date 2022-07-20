@@ -25,8 +25,8 @@ checkpoint_params:
 model_checkpoints_location: local
 ckpt_root_dir:
 
-sg_model:
-  _target_: super_gradients.SgModel
+trainer:
+  _target_: super_gradients.Trainer
   experiment_name: ${experiment_name}
   model_checkpoints_location: ${model_checkpoints_location}
   multi_gpu: Off

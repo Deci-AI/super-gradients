@@ -3,7 +3,7 @@ from enum import Enum
 import re
 
 from super_gradients import (
-    SgModel,
+    Trainer,
     ClassificationTestDatasetInterface,
     DetectionTestDatasetInterface,
     SegmentationTestDatasetInterface,
@@ -72,13 +72,13 @@ class ConversionCallbackTest(unittest.TestCase):
                 "phase_callbacks": phase_callbacks,
             }
 
-            model = SgModel(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
+            trainer = Trainer(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
             dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 10})
 
-            model.connect_dataset_interface(dataset, data_loader_num_workers=0)
-            model.build_model(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
+            trainer.connect_dataset_interface(dataset, data_loader_num_workers=0)
+            trainer.build_model(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
             try:
-                model.train(train_params)
+                trainer.train(train_params)
             except Exception as e:
                 self.fail(f"Model training didn't succeed due to {e}")
             else:
@@ -88,9 +88,9 @@ class ConversionCallbackTest(unittest.TestCase):
         for architecture in OBJECT_DETECTION:
             model_meta_data = generate_model_metadata(architecture=architecture, task=Task.OBJECT_DETECTION)
             dataset = DetectionTestDatasetInterface(dataset_params={"batch_size": 10})
-            model = SgModel(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
-            model.connect_dataset_interface(dataset, data_loader_num_workers=0)
-            model.build_model(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
+            trainer = Trainer(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
+            trainer.connect_dataset_interface(dataset, data_loader_num_workers=0)
+            trainer.build_model(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
             phase_callbacks = [ModelConversionCheckCallback(model_meta_data=model_meta_data, opset_version=11)]
             coco2017_quickstart_anchors = Anchors(
                 anchors_list=[[5, 6, 8, 15, 21, 13], [15, 36, 32, 32, 36, 80], [71, 55, 89, 137, 213, 167]],
@@ -133,7 +133,7 @@ class ConversionCallbackTest(unittest.TestCase):
                 "phase_callbacks": phase_callbacks,
             }
             try:
-                model.train(train_params)
+                trainer.train(train_params)
             except Exception as e:
                 self.fail(f"Model training didn't succeed due to {e}")
             else:
@@ -162,9 +162,9 @@ class ConversionCallbackTest(unittest.TestCase):
         for architecture in SEMANTIC_SEGMENTATION:
             model_meta_data = generate_model_metadata(architecture=architecture, task=Task.SEMANTIC_SEGMENTATION)
             dataset = SegmentationTestDatasetInterface(dataset_params={"batch_size": 10})
-            model = SgModel(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
-            model.connect_dataset_interface(dataset, data_loader_num_workers=0)
-            model.build_model(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
+            trainer = Trainer(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
+            trainer.connect_dataset_interface(dataset, data_loader_num_workers=0)
+            trainer.build_model(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
 
             phase_callbacks = [
                 ModelConversionCheckCallback(model_meta_data=model_meta_data, opset_version=11, rtol=1, atol=1),
@@ -188,7 +188,7 @@ class ConversionCallbackTest(unittest.TestCase):
             train_params.update(custom_config)
 
             try:
-                model.train(train_params)
+                trainer.train(train_params)
             except Exception as e:
                 self.fail(f"Model training didn't succeed for {architecture} due to {e}")
             else:

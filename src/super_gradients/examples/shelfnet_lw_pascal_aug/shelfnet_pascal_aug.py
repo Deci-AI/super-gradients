@@ -2,8 +2,8 @@
 import super_gradients
 import torch
 from super_gradients.training.datasets import PascalAUG2012SegmentationDataSetInterface
-from super_gradients.training import SgModel, MultiGPUMode
-from super_gradients.training.sg_model.sg_model import StrictLoad
+from super_gradients.training import Trainer, MultiGPUMode
+from super_gradients.training.sg_trainer.sg_trainer import StrictLoad
 from super_gradients.training.metrics.segmentation_metrics import PixelAccuracy, IoU
 
 super_gradients.init_trainer()
@@ -44,13 +44,13 @@ model_size_str = '34'
 experiment_name_prefix = 'shelfnet_lw_'
 experiment_name_dataset_suffix = '_pascal_aug_encoding_dataset_train_250_epochs_no_batchnorm_decoder'
 experiment_name = experiment_name_prefix + model_size_str + experiment_name_dataset_suffix
-model = SgModel(experiment_name, model_checkpoints_location='local', multi_gpu=True,
+trainer = Trainer(experiment_name, model_checkpoints_location='local', multi_gpu=True,
                 ckpt_name='resnet' + model_size_str + '.pth')
 
 pascal_aug_datasaet_interface = PascalAUG2012SegmentationDataSetInterface(
     dataset_params=pascal_aug_dataset_params,
     cache_labels=False)
-model.connect_dataset_interface(pascal_aug_datasaet_interface, data_loader_num_workers=data_loader_num_workers)
-model.build_model('shelfnet' + model_size_str, arch_params=shelfnet_lw_arch_params, checkpoint_params=checkpoint_params)
+trainer.connect_dataset_interface(pascal_aug_datasaet_interface, data_loader_num_workers=data_loader_num_workers)
+trainer.build_model('shelfnet' + model_size_str, arch_params=shelfnet_lw_arch_params, checkpoint_params=checkpoint_params)
 print('Training ShelfNet-LW model: ' + experiment_name)
-model.train(training_params=shelfnet_lw_pascal_aug_training_params)
+trainer.train(training_params=shelfnet_lw_pascal_aug_training_params)

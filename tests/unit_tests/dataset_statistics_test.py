@@ -2,7 +2,7 @@ import unittest
 
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.datasets import CoCoDetectionDatasetInterface
 from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
 
@@ -30,11 +30,11 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
 
         dataset = CoCoDetectionDatasetInterface(dataset_params)
 
-        model = SgModel('dataset_statistics_visual_test',
+        trainer = Trainer('dataset_statistics_visual_test',
                         model_checkpoints_location='local',
                         post_prediction_callback=YoloV5PostPredictionCallback())
-        model.connect_dataset_interface(dataset, data_loader_num_workers=8)
-        model.build_model("yolo_v5s")
+        trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
+        trainer.build_model("yolo_v5s")
 
         training_params = {"max_epochs": 1,  # we dont really need the actual training to run
                            "lr_mode": "cosine",
@@ -42,14 +42,14 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                            "loss": "yolo_v5_loss",
                            "dataset_statistics": True,
                            "launch_tensorboard": True,
-                           "criterion_params": {"model": model},
+                           "criterion_params": {"model": trainer},
                            "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
                                                                    num_cls=80)],
 
                            "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],
                            "metric_to_watch": "mAP@0.50:0.95",
                            }
-        model.train(training_params=training_params)
+        trainer.train(training_params=training_params)
 
 
 if __name__ == '__main__':

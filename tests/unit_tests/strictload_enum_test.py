@@ -4,12 +4,12 @@ import unittest
 import os
 
 from super_gradients.common.sg_loggers import BaseSGLogger
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from super_gradients.training.sg_model.sg_model import StrictLoad
+from super_gradients.training.sg_trainer.sg_trainer import StrictLoad
 from super_gradients.training.utils import HpmStruct
 
 
@@ -51,14 +51,14 @@ class StrictLoadEnumTest(unittest.TestCase):
         # Save the model's state_dict checkpoint with different keys
         torch.save(cls.change_state_dict_keys(cls.original_torch_net.state_dict()), cls.checkpoint_diff_keys_path)
 
-        # Save the model's state_dict checkpoint in SgModel format
-        cls.sg_model = SgModel("load_checkpoint_test", model_checkpoints_location='local')  # Saves in /checkpoints
-        cls.sg_model.build_model(cls.original_torch_net, arch_params={'num_classes': 10})
+        # Save the model's state_dict checkpoint in Trainer format
+        cls.trainer = Trainer("load_checkpoint_test", model_checkpoints_location='local')  # Saves in /checkpoints
+        cls.trainer.build_model(cls.original_torch_net, arch_params={'num_classes': 10})
         # FIXME: after uniting init and build_model we should remove this
-        cls.sg_model.sg_logger = BaseSGLogger('project_name', 'load_checkpoint_test', 'local', resumed=False,
+        cls.trainer.sg_logger = BaseSGLogger('project_name', 'load_checkpoint_test', 'local', resumed=False,
                                               training_params=HpmStruct(max_epochs=10),
-                                              checkpoints_dir_path=cls.sg_model.checkpoints_dir_path)
-        cls.sg_model._save_checkpoint()
+                                              checkpoints_dir_path=cls.trainer.checkpoints_dir_path)
+        cls.trainer._save_checkpoint()
 
     @classmethod
     def tearDownClass(cls):
@@ -96,15 +96,15 @@ class StrictLoadEnumTest(unittest.TestCase):
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(new_torch_net, self.original_torch_net)
 
-        # Build the SgModel and load the checkpoint
-        model = SgModel(self.experiment_name, model_checkpoints_location='local',
+        # Build the Trainer and load the checkpoint
+        trainer = Trainer(self.experiment_name, model_checkpoints_location='local',
                         ckpt_name='ckpt_latest_weights_only.pth')
-        model.build_model(new_torch_net, arch_params={'num_classes': 10},
+        trainer.build_model(new_torch_net, arch_params={'num_classes': 10},
                           checkpoint_params={'strict_load': StrictLoad.ON,
                                              'load_checkpoint': True})
 
         # Assert the weights were loaded correctly
-        assert self.check_models_have_same_weights(model.net, self.original_torch_net)
+        assert self.check_models_have_same_weights(trainer.net, self.original_torch_net)
 
     def test_strict_load_off(self):
         # Define Model
@@ -113,15 +113,15 @@ class StrictLoadEnumTest(unittest.TestCase):
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(new_torch_net, self.original_torch_net)
 
-        # Build the SgModel and load the checkpoint
-        model = SgModel(self.experiment_name, model_checkpoints_location='local',
+        # Build the Trainer and load the checkpoint
+        trainer = Trainer(self.experiment_name, model_checkpoints_location='local',
                         ckpt_name='ckpt_latest_weights_only.pth')
-        model.build_model(new_torch_net, arch_params={'num_classes': 10},
+        trainer.build_model(new_torch_net, arch_params={'num_classes': 10},
                           checkpoint_params={'strict_load': StrictLoad.OFF,
                                              'load_checkpoint': True})
 
         # Assert the weights were loaded correctly
-        assert self.check_models_have_same_weights(model.net, self.original_torch_net)
+        assert self.check_models_have_same_weights(trainer.net, self.original_torch_net)
 
     def test_strict_load_no_key_matching_external_checkpoint(self):
         # Define Model
@@ -130,15 +130,15 @@ class StrictLoadEnumTest(unittest.TestCase):
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(new_torch_net, self.original_torch_net)
 
-        # Build the SgModel and load the checkpoint
-        model = SgModel(self.experiment_name, model_checkpoints_location='local')
-        model.build_model(new_torch_net, arch_params={'num_classes': 10},
+        # Build the Trainer and load the checkpoint
+        trainer = Trainer(self.experiment_name, model_checkpoints_location='local')
+        trainer.build_model(new_torch_net, arch_params={'num_classes': 10},
                           checkpoint_params={'strict_load': StrictLoad.NO_KEY_MATCHING,
                                              'external_checkpoint_path': self.checkpoint_diff_keys_path,
                                              'load_checkpoint': True})
 
         # Assert the weights were loaded correctly
-        assert self.check_models_have_same_weights(model.net, self.original_torch_net)
+        assert self.check_models_have_same_weights(trainer.net, self.original_torch_net)
 
     def test_strict_load_no_key_matching_sg_checkpoint(self):
         # Define Model
@@ -147,15 +147,15 @@ class StrictLoadEnumTest(unittest.TestCase):
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(new_torch_net, self.original_torch_net)
 
-        # Build the SgModel and load the checkpoint
-        model = SgModel(self.experiment_name, model_checkpoints_location='local',
+        # Build the Trainer and load the checkpoint
+        trainer = Trainer(self.experiment_name, model_checkpoints_location='local',
                         ckpt_name='ckpt_latest_weights_only.pth')
-        model.build_model(new_torch_net, arch_params={'num_classes': 10},
+        trainer.build_model(new_torch_net, arch_params={'num_classes': 10},
                           checkpoint_params={'strict_load': StrictLoad.NO_KEY_MATCHING,
                                              'load_checkpoint': True})
 
         # Assert the weights were loaded correctly
-        assert self.check_models_have_same_weights(model.net, self.original_torch_net)
+        assert self.check_models_have_same_weights(trainer.net, self.original_torch_net)
 
 
 if __name__ == '__main__':

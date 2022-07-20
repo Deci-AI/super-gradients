@@ -88,7 +88,7 @@ def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.
     :param method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
                  computation of the quantized modules (default=percentile).
     :param num_calib_batches: int, number of batches to collect the statistics from.
-    :param percentile: float, percentile value to use when SgModel,quant_modules_calib_method='percentile'. Discarded when other methods are used (Default=99.99).
+    :param percentile: float, percentile value to use when Trainer,quant_modules_calib_method='percentile'. Discarded when other methods are used (Default=99.99).
 
     """
     if _imported_pytorch_quantization_failure is not None:
@@ -200,7 +200,7 @@ class QATCallback(PhaseCallback):
         1. loads the best checkpoint then performs calibration.
         2. loads an external calibrated model (makes sense when start_epoch=0).
 
-    Additionally, resets SgModel's best_metric and sets ckpt_best_name to 'qat_ckpt_best.pth' so best QAT checkpoints
+    Additionally, resets Trainer's best_metric and sets ckpt_best_name to 'qat_ckpt_best.pth' so best QAT checkpoints
      will be saved separately.
 
     If performing calibration- the calibrated model is evaluated, and the metric_to_watch is logged under
@@ -224,7 +224,7 @@ class QATCallback(PhaseCallback):
 
         num_calib_batches: int, number of batches to collect the statistics from.
 
-        percentile: float, percentile value to use when SgModel,quant_modules_calib_method='percentile'.
+        percentile: float, percentile value to use when Trainer,quant_modules_calib_method='percentile'.
          Discarded when other methods are used (Default=99.99).
 
 

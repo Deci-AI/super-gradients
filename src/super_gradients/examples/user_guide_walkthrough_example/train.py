@@ -1,4 +1,4 @@
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training import MultiGPUMode
 from dataset import UserDataset
 from model import ResNet, BasicBlock
@@ -11,17 +11,17 @@ def main():
     arch_params = {'num_classes': 10}
     model = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=arch_params['num_classes'])
 
-    deci_classification_model = SgModel('client_model_training',
+    trainer = Trainer('client_model_training',
                                         model_checkpoints_location='local',
                                         multi_gpu=MultiGPUMode.OFF)
 
     # if a torch.nn.Module is provided when building the model, the model will be integrated into deci model class
-    deci_classification_model.build_model(model, arch_params=arch_params)
+    trainer.build_model(model, arch_params=arch_params)
 
     # ------------------ Loading The Dataset From Dataset.py----------------
     dataset_params = {"batch_size": 256}
     dataset = UserDataset(dataset_params)
-    deci_classification_model.connect_dataset_interface(dataset)
+    trainer.connect_dataset_interface(dataset)
 
     # ------------------ Loading The Loss From Loss.py -----------------
     loss = LabelSmoothingCrossEntropyLoss()
@@ -48,7 +48,7 @@ def main():
                     "metric_to_watch": "Accuracy",
                     "greater_metric_to_watch_is_better": True}
 
-    deci_classification_model.train(train_params)
+    trainer.train(train_params)
 
 
 if __name__ == '__main__':

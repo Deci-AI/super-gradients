@@ -1,5 +1,5 @@
 import unittest
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils.utils import check_models_have_same_weights
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
@@ -20,24 +20,24 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
     def test_ema_ckpt_reload(self):
         # Define Model
         net = LeNet()
-        model = SgModel("ema_ckpt_test", model_checkpoints_location='local')
+        trainer = Trainer("ema_ckpt_test", model_checkpoints_location='local')
 
-        model.connect_dataset_interface(self.dataset)
-        model.build_model(net, arch_params={'num_classes': 10})
+        trainer.connect_dataset_interface(self.dataset)
+        trainer.build_model(net, arch_params={'num_classes': 10})
 
-        model.train(self.train_params)
+        trainer.train(self.train_params)
 
-        ema_model = model.ema_model.ema
+        ema_model = trainer.ema_model.ema
 
         net = LeNet()
-        model = SgModel("ema_ckpt_test", model_checkpoints_location='local')
-        model.build_model(net, arch_params={'num_classes': 10}, checkpoint_params={'load_checkpoint': True})
-        model.connect_dataset_interface(self.dataset)
+        model = Trainer("ema_ckpt_test", model_checkpoints_location='local')
+        trainer.build_model(net, arch_params={'num_classes': 10}, checkpoint_params={'load_checkpoint': True})
+        trainer.connect_dataset_interface(self.dataset)
 
         # TRAIN FOR 0 EPOCHS JUST TO SEE THAT WHEN CONTINUING TRAINING EMA MODEL HAS BEEN SAVED CORRECTLY
-        model.train(self.train_params)
+        trainer.train(self.train_params)
 
-        reloaded_ema_model = model.ema_model.ema
+        reloaded_ema_model = trainer.ema_model.ema
 
         # ASSERT RELOADED EMA MODEL HAS THE SAME WEIGHTS AS THE EMA MODEL SAVED IN FIRST PART OF TRAINING
         assert check_models_have_same_weights(ema_model, reloaded_ema_model)

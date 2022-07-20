@@ -12,7 +12,7 @@
 import super_gradients
 import argparse
 import torch
-from super_gradients.training import SgModel, MultiGPUMode
+from super_gradients.training import Trainer, MultiGPUMode
 from super_gradients.training.datasets import CoCoDetectionDatasetInterface, CoCo2014DetectionDatasetInterface
 from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
@@ -84,7 +84,7 @@ dataset_string = 'coco2017' if not args.coco2014 else 'coco2014'
 model_repo_bucket_name = AWSSecretsManagerConnector.get_secret_value_for_secret_key(aws_env='research',
                                                                                     secret_name='training_secrets',
                                                                                     secret_key='S3.MODEL_REPOSITORY_BUCKET_NAME')
-model = SgModel(args.model + '____' + dataset_string,
+trainer = Trainer(args.model + '____' + dataset_string,
                 model_checkpoints_location="s3://" + model_repo_bucket_name,
                 multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
                 post_prediction_callback=YoloV5PostPredictionCallback())
@@ -93,8 +93,8 @@ devices = torch.cuda.device_count() if not distributed else 1
 
 dataset_interface_class = CoCoDetectionDatasetInterface if not args.coco2014 else CoCo2014DetectionDatasetInterface
 dataset_interface = dataset_interface_class(dataset_params=dataset_params)
-model.connect_dataset_interface(dataset_interface, data_loader_num_workers=20)
-model.build_model(args.model, arch_params=arch_params, load_checkpoint=args.reload)
+trainer.connect_dataset_interface(dataset_interface, data_loader_num_workers=20)
+trainer.build_model(args.model, arch_params=arch_params, load_checkpoint=args.reload)
 
 post_prediction_callback = YoloV5PostPredictionCallback()
 training_params = {"max_epochs": args.max_epochs,
@@ -105,7 +105,7 @@ training_params = {"max_epochs": args.max_epochs,
                    "batch_accumulate": 1,
                    "warmup_bias_lr": 0.1,
                    "loss": "yolo_v5_loss",
-                   "criterion_params": {"model": model},
+                   "criterion_params": {"model": trainer},
                    "optimizer": "SGD",
                    "warmup_momentum": 0.8,
                    "optimizer_params": {"momentum": 0.937,
@@ -123,4 +123,4 @@ training_params = {"max_epochs": args.max_epochs,
 
 print(f"Training Yolo v5 {args.model} on {dataset_string.upper()}:\n width-mult={args.width}, depth-mult={args.depth}, "
       f"train-img-size={args.train_img_size}, test-img-size={args.test_img_size} ")
-model.train(training_params=training_params)
+trainer.train(training_params=training_params)

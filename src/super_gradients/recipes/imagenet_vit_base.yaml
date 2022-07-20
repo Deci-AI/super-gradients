@@ -47,8 +47,8 @@ load_weights_only: True
 
 experiment_name: vit_base_imagenet1k
 
-sg_model:
-  _target_: super_gradients.SgModel
+trainer:
+  _target_: super_gradients.Trainer
   experiment_name: ${experiment_name}
   model_checkpoints_location: ${model_checkpoints_location}
   multi_gpu: AUTO

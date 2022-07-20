@@ -1,6 +1,6 @@
 import unittest
-from super_gradients.training.sg_model import SgModel
-from super_gradients.training.kd_model.kd_model import KDModel
+from super_gradients.training.sg_trainer import Trainer
+from super_gradients.training.kd_model.kd_model import KDTrainer
 import torch
 from super_gradients.training.utils.utils import check_models_have_same_weights
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
@@ -11,7 +11,7 @@ from super_gradients.training.losses.kd_losses import KDLogitsLoss
 class KDEMATest(unittest.TestCase):
     @classmethod
     def setUp(cls):
-        cls.sg_trained_teacher = SgModel("sg_trained_teacher", device='cpu')
+        cls.sg_trained_teacher = Trainer("sg_trained_teacher", device='cpu')
         cls.dataset_params = {"batch_size": 5}
         cls.dataset = ClassificationTestDatasetInterface(dataset_params=cls.dataset_params)
 
@@ -29,7 +29,7 @@ class KDEMATest(unittest.TestCase):
     def test_teacher_ema_not_duplicated(self):
         """Check that the teacher EMA is a reference to the teacher net (not a copy)."""
 
-        kd_model = KDModel("test_teacher_ema_not_duplicated", device='cpu')
+        kd_model = KDTrainer("test_teacher_ema_not_duplicated", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         kd_model.build_model(student_architecture='resnet18',
                              teacher_architecture='resnet50',
@@ -47,7 +47,7 @@ class KDEMATest(unittest.TestCase):
         """Check that the KD model load correctly from checkpoint when "load_ema_as_net=True"."""
 
         # Create a KD model and train it
-        kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
+        kd_model = KDTrainer("test_kd_ema_ckpt_reload", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         kd_model.build_model(student_architecture='resnet18',
                              teacher_architecture='resnet50',
@@ -60,7 +60,7 @@ class KDEMATest(unittest.TestCase):
         net = kd_model.net
 
         # Load the trained KD model
-        kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
+        kd_model = KDTrainer("test_kd_ema_ckpt_reload", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         kd_model.build_model(student_architecture='resnet18',
                              teacher_architecture='resnet50',
@@ -93,7 +93,7 @@ class KDEMATest(unittest.TestCase):
         """Check that the KD model load correctly from checkpoint when "load_ema_as_net=False"."""
 
         # Create a KD model and train it
-        kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
+        kd_model = KDTrainer("test_kd_ema_ckpt_reload", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         kd_model.build_model(student_architecture='resnet18',
                              teacher_architecture='resnet50',
@@ -106,7 +106,7 @@ class KDEMATest(unittest.TestCase):
         net = kd_model.net
 
         # Load the trained KD model
-        kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
+        kd_model = KDTrainer("test_kd_ema_ckpt_reload", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         kd_model.build_model(student_architecture='resnet18',
                              teacher_architecture='resnet50',

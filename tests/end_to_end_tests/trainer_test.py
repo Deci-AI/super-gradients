@@ -4,7 +4,7 @@ import unittest
 import super_gradients
 import torch
 import os
-from super_gradients import SgModel, ClassificationTestDatasetInterface
+from super_gradients import Trainer, ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 
 
@@ -35,72 +35,72 @@ class TestTrainer(unittest.TestCase):
 
     @staticmethod
     def get_classification_trainer(name=''):
-        model = SgModel(name, model_checkpoints_location='local')
+        trainer = Trainer(name, model_checkpoints_location='local')
         dataset_params = {"batch_size": 4}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
-        model.build_model("resnet18_cifar")
-        return model
+        trainer.connect_dataset_interface(dataset)
+        trainer.build_model("resnet18_cifar")
+        return trainer
 
     def test_train(self):
-        model = self.get_classification_trainer(self.folder_names[0])
-        model.train(training_params=self.training_params)
+        trainer = self.get_classification_trainer(self.folder_names[0])
+        trainer.train(training_params=self.training_params)
 
     def test_save_load(self):
-        model = self.get_classification_trainer(self.folder_names[1])
-        model.train(training_params=self.training_params)
-        model.build_model("resnet18_cifar", checkpoint_params={'load_checkpoint': True})
+        trainer = self.get_classification_trainer(self.folder_names[1])
+        trainer.train(training_params=self.training_params)
+        trainer.build_model("resnet18_cifar", checkpoint_params={'load_checkpoint': True})
 
     def test_load_only_weights_from_ckpt(self):
         # Create a checkpoint with 100% accuracy
-        model = self.get_classification_trainer(self.folder_names[2])
+        trainer = self.get_classification_trainer(self.folder_names[2])
         params = self.training_params.copy()
 
         params['max_epochs'] = 3
-        model.train(training_params=params)
+        trainer.train(training_params=params)
         # Build a model that continues the training
-        model = self.get_classification_trainer(self.folder_names[3])
-        model.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": False,
+        trainer = self.get_classification_trainer(self.folder_names[3])
+        trainer.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": False,
                                                                "source_ckpt_folder_name": self.folder_names[2]}
                           )
-        self.assertTrue(model.best_metric > -1)
-        self.assertTrue(model.start_epoch != 0)
+        self.assertTrue(trainer.best_metric > -1)
+        self.assertTrue(trainer.start_epoch != 0)
         # start_epoch is not initialized, adding to max_epochs
         self.training_params['max_epochs'] += 3
-        model.train(training_params=self.training_params)
+        trainer.train(training_params=self.training_params)
         # Build a model that loads the weights and starts from scratch
-        model = self.get_classification_trainer(self.folder_names[4])
-        model.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": True,
+        trainer = self.get_classification_trainer(self.folder_names[4])
+        trainer.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": True,
                                                                "source_ckpt_folder_name": self.folder_names[2]}
                           )
-        self.assertTrue(model.best_metric == -1)
-        self.assertTrue(model.start_epoch == 0)
+        self.assertTrue(trainer.best_metric == -1)
+        self.assertTrue(trainer.start_epoch == 0)
         self.training_params['max_epochs'] += 3
-        model.train(training_params=self.training_params)
+        trainer.train(training_params=self.training_params)
 
     def test_checkpoint_content(self):
         """VERIFY THAT ALL CHECKPOINTS ARE SAVED AND CONTAIN ALL THE EXPECTED KEYS"""
-        model = self.get_classification_trainer(self.folder_names[5])
+        trainer = self.get_classification_trainer(self.folder_names[5])
         params = self.training_params.copy()
         params["save_ckpt_epoch_list"] = [1]
-        model.train(training_params=params)
+        trainer.train(training_params=params)
         ckpt_filename = ['ckpt_best.pth', 'ckpt_latest.pth', 'ckpt_epoch_1.pth']
-        ckpt_paths = [os.path.join(model.checkpoints_dir_path, suf) for suf in ckpt_filename]
+        ckpt_paths = [os.path.join(trainer.checkpoints_dir_path, suf) for suf in ckpt_filename]
         for ckpt_path in ckpt_paths:
             ckpt = torch.load(ckpt_path)
             self.assertListEqual(['net', 'acc', 'epoch', 'optimizer_state_dict', 'scaler_state_dict'],
                                  list(ckpt.keys()))
-        model._save_checkpoint()
-        weights_only = torch.load(os.path.join(model.checkpoints_dir_path, 'ckpt_latest_weights_only.pth'))
+        trainer._save_checkpoint()
+        weights_only = torch.load(os.path.join(trainer.checkpoints_dir_path, 'ckpt_latest_weights_only.pth'))
         self.assertListEqual(['net'], list(weights_only.keys()))
 
     def test_predict(self):
-        model = self.get_classification_trainer(self.folder_names[6])
+        trainer = self.get_classification_trainer(self.folder_names[6])
         inputs = torch.randn((5, 3, 32, 32))
         targets = torch.randint(0, 5, (5, 1))
-        model.predict(inputs=inputs, targets=targets)
-        model.predict(inputs=inputs, targets=targets, half=True)
-        model.predict(inputs=inputs, targets=targets, half=False, verbose=True)
+        trainer.predict(inputs=inputs, targets=targets)
+        trainer.predict(inputs=inputs, targets=targets, half=True)
+        trainer.predict(inputs=inputs, targets=targets, half=False, verbose=True)
 
 
 if __name__ == '__main__':

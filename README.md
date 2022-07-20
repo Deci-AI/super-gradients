@@ -123,16 +123,16 @@ The most simple and straightforward way to start training SOTA performance model
 python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
-Want to try our pre-trained models on your machine? Import SuperGradients, initialize your SgModel, and load your desired architecture and pre-trained weights from our [SOTA model zoo](#computer-vision-models---pretrained-checkpoints)
-    
+Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](#computer-vision-models---pretrained-checkpoints)
+
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
 # This is an example of loading COCO-2017 pre-trained weights for a YOLOv5 Nano object detection model
-    
-import super_gradients
-from super_gradients.training import SgModel
 
-trainer = SgModel(experiment_name="yolov5n_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
+import super_gradients
+from super_gradients.training import Trainer
+
+trainer = Trainer(experiment_name="yolov5n_coco_experiment", ckpt_root_dir= < CHECKPOINT_DIRECTORY >)
 trainer.build_model(architecture="yolo_v5n", arch_params={"pretrained_weights": "coco", num_classes": 80})
 ```   
     

@@ -39,7 +39,7 @@ import torch
 from super_gradients.training.metrics.segmentation_metrics import IoU, PixelAccuracy
 
 import super_gradients
-from super_gradients.training import SgModel, MultiGPUMode
+from super_gradients.training import Trainer, MultiGPUMode
 import argparse
 import torchvision.transforms as transforms
 
@@ -113,16 +113,16 @@ checkpoint_params = {"load_checkpoint": args.reload,
                      "load_backbone": args.pretrained_bb_path is not None,
                      "external_checkpoint_path": args.pretrained_bb_path}
 
-model = SgModel(args.experiment_name,
+trainer = Trainer(args.experiment_name,
                 multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
                 device='cuda')
 
 dataset_interface = CityscapesDatasetInterface(dataset_params=dataset_params, cache_labels=False)
 
-model.connect_dataset_interface(dataset_interface, data_loader_num_workers=8 * devices)
+trainer.connect_dataset_interface(dataset_interface, data_loader_num_workers=8 * devices)
 
-model.build_model(architecture="ddrnet_23_slim" if args.slim else "ddrnet_23",
+trainer.build_model(architecture="ddrnet_23_slim" if args.slim else "ddrnet_23",
                   arch_params=arch_params,
                   checkpoint_params=checkpoint_params)
 
-model.train(training_params=train_params)
+trainer.train(training_params=train_params)

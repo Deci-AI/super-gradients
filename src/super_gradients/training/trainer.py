@@ -1,6 +1,6 @@
 from omegaconf import DictConfig
 import hydra
-from super_gradients.training.sg_model import MultiGPUMode
+from super_gradients.training.sg_trainer import MultiGPUMode
 from super_gradients.common.abstractions.abstract_logger import get_logger
 import torch
 
@@ -31,7 +31,7 @@ class Trainer:
         logger = get_logger(__name__)
 
         # Scale LR and weight decay
-        is_ddp = cfg.sg_model.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and torch.distributed.is_initialized()
+        is_ddp = cfg.trainer .multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and torch.distributed.is_initialized()
         world_size = torch.distributed.get_world_size() if is_ddp else 1
 
         # Scale LR and WD for DDP due to gradients being averaged between devices
@@ -42,12 +42,12 @@ class Trainer:
 
         # Scale WD with a factor of [effective batch size]/64.
         batch_size, batch_accumulate = cfg.dataset_params.batch_size, cfg.training_hyperparams.batch_accumulate
-        batch_size_factor = cfg.sg_model.num_devices if is_ddp else cfg.sg_model.dataset_interface.batch_size_factor
+        batch_size_factor = cfg.trainer .num_devices if is_ddp else cfg.trainer .dataset_interface.batch_size_factor
         effective_batch_size = batch_size * batch_size_factor * batch_accumulate
         cfg.training_hyperparams.optimizer_params.weight_decay *= effective_batch_size / 64.
 
         # Scale EMA beta to match Ultralytics update
-        cfg.training_hyperparams.ema_params.beta = cfg.training_hyperparams.max_epochs * len(cfg.sg_model.train_loader) / 2000.
+        cfg.training_hyperparams.ema_params.beta = cfg.training_hyperparams.max_epochs * len(cfg.trainer .train_loader) / 2000.
 
         log_msg = \
             f"""
@@ -62,13 +62,13 @@ class Trainer:
 
         if cfg.training_hyperparams.loss == 'yolo_v5_loss':
             # Scale loss gains
-            model = cfg.sg_model.net
+            model = cfg.trainer .net
             model = model.module if hasattr(model, 'module') else model
             num_levels = model._head._modules_list[-1].detection_layers_num
             train_image_size = cfg.dataset_params.train_image_size
 
             num_branches_norm = 3. / num_levels
-            num_classes_norm = len(cfg.sg_model.classes) / 80.
+            num_classes_norm = len(cfg.trainer .classes) / 80.
             image_size_norm = train_image_size / 640.
             cfg.training_hyperparams.criterion_params.box_loss_gain *= num_branches_norm
             cfg.training_hyperparams.criterion_params.cls_loss_gain *= num_classes_norm * num_branches_norm
@@ -96,7 +96,7 @@ class Trainer:
         cfg = hydra.utils.instantiate(cfg)
 
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
-        cfg.sg_model.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
+        cfg.trainer .connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
         # BUILD NETWORK
         cls.build_model(cfg)
@@ -106,8 +106,8 @@ class Trainer:
             cfg = Trainer.scale_params_for_yolov5(cfg)
 
         # TRAIN
-        cfg.sg_model.train(training_params=cfg.training_hyperparams)
+        cfg.trainer .train(training_params=cfg.training_hyperparams)
 
     @classmethod
     def build_model(cls, cfg):
-        cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
+        cfg.trainer .build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)

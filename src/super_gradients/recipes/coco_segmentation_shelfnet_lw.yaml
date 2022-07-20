@@ -32,13 +32,13 @@ checkpoint_params:
 experiment_name: coco_segmentation_21_subclass_shelfnet34
 
 multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
+  _target_: super_gradients.training.sg_trainer.MultiGPUMode
   value: 'DDP'
 
 ckpt_root_dir:
 
-sg_model:
-  _target_: super_gradients.SgModel
+trainer:
+  _target_: super_gradients.Trainer
   experiment_name: ${experiment_name}
   model_checkpoints_location: ${model_checkpoints_location}
   ckpt_root_dir: ${ckpt_root_dir}

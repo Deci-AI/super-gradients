@@ -1,7 +1,7 @@
 # Cifar10 Classification Training:
 # Reaches ~94.9 Accuracy after 250 Epochs
 import super_gradients
-from super_gradients import SgModel
+from super_gradients import Trainer
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import Cifar10DatasetInterface
 from super_gradients.training.metrics.classification_metrics import Accuracy, Top5
 from super_gradients.training.utils.early_stopping import EarlyStop
@@ -20,12 +20,12 @@ train_params = {"max_epochs": 250, "lr_updates": [100, 150, 200], "lr_decay_fact
                 "greater_metric_to_watch_is_better": True, "phase_callbacks": [early_stop_acc, early_stop_val_loss]}
 
 # Define Model
-model = SgModel("Callback_Example")
+trainer = Trainer("Callback_Example")
 
 # Connect Dataset
 dataset = Cifar10DatasetInterface()
-model.connect_dataset_interface(dataset, data_loader_num_workers=8)
+trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
 
 # Build Model
-model.build_model("resnet18_cifar")
-model.train(training_params=train_params)
+trainer.build_model("resnet18_cifar")
+trainer.train(training_params=train_params)

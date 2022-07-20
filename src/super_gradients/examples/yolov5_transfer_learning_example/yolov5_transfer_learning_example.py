@@ -3,7 +3,7 @@ Transfer learning example- from our pretrained YoloV5m (on coco) on Pascal VOC. 
 """
 
 import super_gradients
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import \
     PascalVOCUnifiedDetectionDataSetInterface
 from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
@@ -37,17 +37,17 @@ dataset_params = {"batch_size": 48,
                   }
 
 # INITIALIZE SG MODEL INSTANCE, AND A PASCAL VOC DATASET INTERFACE
-model = SgModel("yolov5m_pascal_finetune_augment_fix")
+trainer = Trainer("yolov5m_pascal_finetune_augment_fix")
 dataset_interface = PascalVOCUnifiedDetectionDataSetInterface(dataset_params=dataset_params, cache_labels=True,
                                                               cache_images=True)
 
 # CONNECTING THE DATASET INTERFACE WILL SET SGMODEL'S CLASSES ATTRIBUTE ACCORDING TO PASCAL VOC
-model.connect_dataset_interface(dataset_interface, data_loader_num_workers=8)
+trainer.connect_dataset_interface(dataset_interface, data_loader_num_workers=8)
 
 # THIS IS WHERE THE MAGIC HAPPENS- SINCE SGMODEL'S CLASSES ATTRIBUTE WAS SET TO BE DIFFERENT FROM COCO'S, AFTER
 # LOADING THE PRETRAINED YOLO_V5M, IT WILL CALL IT'S REPLACE_HEAD METHOD AND CHANGE IT'S DETECT LAYER ACCORDING
 # TO PASCAL VOC CLASSES
-model.build_model("yolo_v5m", arch_params={"pretrained_weights": "coco"})
+trainer.build_model("yolo_v5m", arch_params={"pretrained_weights": "coco"})
 
 # WE NOW TUNE THE 3 NORMALIZERS ACCORDING TO THE NEW DATASET ATTRIBUTES,
 network = model.net
@@ -99,4 +99,4 @@ training_params = {"max_epochs": 50,
                    "warmup_mode": "yolov5_warmup"}
 
 # FINALLY, CALL TRAIN
-model.train(training_params=training_params)
+trainer.train(training_params=training_params)

@@ -9,7 +9,7 @@ class KDTrainer(Trainer):
 
     @classmethod
     def build_model(cls, cfg):
-        cfg.sg_model.build_model(student_architecture=cfg.student_architecture,
+        cfg.trainer .build_model(student_architecture=cfg.student_architecture,
                                  teacher_architecture=cfg.teacher_architecture,
                                  arch_params=cfg.arch_params, student_arch_params=cfg.student_arch_params,
                                  teacher_arch_params=cfg.teacher_arch_params,

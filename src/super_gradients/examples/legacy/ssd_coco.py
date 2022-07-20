@@ -3,7 +3,7 @@
 import argparse
 import torch
 
-from super_gradients.training import SgModel, MultiGPUMode
+from super_gradients.training import Trainer, MultiGPUMode
 from super_gradients.training.datasets import CoCoDetectionDatasetInterface
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn
 from super_gradients.training.utils.ssd_utils import DefaultBoxes, SSDPostPredictCallback
@@ -54,7 +54,7 @@ epoch_metrics_headers = {"Epoch": 0, "gpu_mem": 0.0, "sl1": 0.0, "closs": 0.0, "
 results_titles = ['sl1', 'c-loss', 'Train loss',
                   'Precision', 'Recall', 'mAP@0.5:0.95', 'F1', 'val sl1', 'val c-loss',
                   'val loss']
-model = SgModel(f'ssd_mobilenet_alpha{args.alpha:.1f}_decay{args.ema_decay:.4E}_beta{args.ema_beta:.2E}',
+trainer = Trainer(f'ssd_mobilenet_alpha{args.alpha:.1f}_decay{args.ema_decay:.4E}_beta{args.ema_beta:.2E}',
                 model_checkpoints_location="local",
                 multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
                 post_prediction_callback=SSDPostPredictCallback(dboxes=dboxes),
@@ -65,9 +65,9 @@ model = SgModel(f'ssd_mobilenet_alpha{args.alpha:.1f}_decay{args.ema_decay:.4E}_
 devices = torch.cuda.device_count() if not distributed else 1
 
 coco_dataset_interface = CoCoDetectionDatasetInterface(dataset_params=dataset_params)
-model.connect_dataset_interface(coco_dataset_interface, data_loader_num_workers=32)
+trainer.connect_dataset_interface(coco_dataset_interface, data_loader_num_workers=32)
 
-model.build_model("ssd_mobilenet_v1", arch_params=arch_params, load_checkpoint=args.reload)
+trainer.build_model("ssd_mobilenet_v1", arch_params=arch_params, load_checkpoint=args.reload)
 training_params = {"max_epochs": args.max_epochs,
                    "lr_mode": "cosine",
                    "initial_lr": 0.01,
@@ -87,4 +87,4 @@ training_params = {"max_epochs": args.max_epochs,
                                   "beta": args.ema_beta}
                    }
 
-model.train(training_params=training_params)
+trainer.train(training_params=training_params)
