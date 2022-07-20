@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Tuple, Union, Dict
 import random
 
-from deci_trainer.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from deprecate import deprecated
 from treelib import Tree
 from termcolor import colored
