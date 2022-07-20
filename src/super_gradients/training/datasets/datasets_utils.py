@@ -471,8 +471,6 @@ class DatasetStatisticsTensorboardLogger:
                 all_labels.append(labels)
                 color_mean.update(torch.mean(images, dim=[0, 2, 3]), 1)
                 color_std.update(torch.std(images, dim=[0, 2, 3]), 1)
-            # labels = torch.cat(all_classes)
-            # all_labels = torch.cat(all_labels, dim=0)[:, 1:].numpy()
 
             all_labels = torch.cat(all_labels, dim=0)[1:].numpy()
 
