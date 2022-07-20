@@ -322,7 +322,7 @@ def log_uncaught_exceptions(logger):
 
     sys.excepthook = handle_exception
 
-@deprecated(deprecated_in='2.1.0', remove_in='2.3.0')
+@deprecated(target=None, deprecated_in='2.1.0', remove_in='2.3.0')
 def scale_params_for_yolov5(cfg):
     """
     Scale:
