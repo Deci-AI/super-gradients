@@ -1672,6 +1672,24 @@ def compute_detection_metrics_per_cls(
     # Reversed cummax to only have decreasing values
     rolling_precisions = rolling_precisions.flip(0).cummax(0).values.flip(0)
 
+    # ==================
+    # RECALL & PRECISION
+
+    # We want the rolling precision/recall at index i so that: preds_scores[i-1] < score_threshold <= preds_scores[i]
+    # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
+    highest_score_idx_below_thresh = torch.searchsorted(-preds_scores, -score_threshold, right=False)
+
+    # If all predictions are above the threshold, the is no i so that score_threshold <= preds_scores[i],
+    # So we need to take the last prediction
+    if highest_score_idx_below_thresh == len(rolling_recalls):
+        highest_score_idx_below_thresh -= 1
+
+    recall = rolling_recalls[highest_score_idx_below_thresh]
+    precision = rolling_precisions[highest_score_idx_below_thresh]
+
+    # ==================
+    # AVERAGE PRECISION
+
     # shape = (nb_iou_thrs, n_recall_thresholds)
     recall_thresholds = recall_thresholds.view(1, -1).repeat(nb_iou_thrs, 1)
 
@@ -1684,15 +1702,13 @@ def compute_detection_metrics_per_cls(
     rolling_precisions = torch.cat((rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device)), dim=0)
 
     # shape = (n_recall_thresholds, nb_iou_thrs)
-    sampled_precision_points = torch.gather(rolling_precisions, index=recall_threshold_idx, dim=0)
+    sampled_precision_points = torch.gather(
+        input=torch.cat((rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device)), dim=0),
+        index=recall_threshold_idx,
+        dim=0)
 
     # Average over the recall_thresholds
     ap = sampled_precision_points.mean(0)
 
-    # We want the rolling precision/recall at index i so that: preds_scores[i-1] < score_threshold <= preds_scores[i]
-    # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
-    smallest_score_idx_above_thresh = torch.searchsorted(-preds_scores, -score_threshold, right=False)
-    recall = rolling_recalls[smallest_score_idx_above_thresh]
-    precision = rolling_precisions[smallest_score_idx_above_thresh]
 
     return ap, precision, recall
