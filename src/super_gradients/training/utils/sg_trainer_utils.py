@@ -8,11 +8,14 @@ from pathlib import Path
 from typing import Tuple, Union, Dict
 import random
 
+from deci_trainer.common.abstractions.abstract_logger import get_logger
+from deprecate import deprecated
 from treelib import Tree
 from termcolor import colored
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
+from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
 
 
@@ -21,6 +24,7 @@ from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBa
 IS_BETTER_COLOR = {True: "green", False: "red"}
 IS_GREATER_SYMBOLS = {True: "↗", False: "↘"}
 
+logger = get_logger(__name__)
 
 @dataclass
 class MonitoredValue:
@@ -317,3 +321,74 @@ def log_uncaught_exceptions(logger):
         logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     sys.excepthook = handle_exception
+
+@deprecated(deprecated_in='2.1.0', remove_in='2.3.0')
+def scale_params_for_yolov5(cfg):
+    """
+    Scale:
+        * learning rate,
+        * weight decay,
+        * box_loss_gain,
+        * cls_loss_gain,
+        * obj_loss_gain
+    according to:
+        * effective batch size
+        * DDP world size
+        * image size
+        * num YOLO output layers
+        * num classes
+    """
+
+    # Scale LR and weight decay
+    is_ddp = cfg.trainer .multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and torch.distributed.is_initialized()
+    world_size = torch.distributed.get_world_size() if is_ddp else 1
+
+    # Scale LR and WD for DDP due to gradients being averaged between devices
+    # Equivalent to loss * WORLD_SIZE in ultralytics
+    cfg.training_hyperparams.initial_lr *= world_size
+    cfg.training_hyperparams.warmup_bias_lr *= world_size
+    cfg.training_hyperparams.optimizer_params.weight_decay /= world_size
+
+    # Scale WD with a factor of [effective batch size]/64.
+    batch_size, batch_accumulate = cfg.dataset_params.batch_size, cfg.training_hyperparams.batch_accumulate
+    batch_size_factor = cfg.trainer .num_devices if is_ddp else cfg.trainer .dataset_interface.batch_size_factor
+    effective_batch_size = batch_size * batch_size_factor * batch_accumulate
+    cfg.training_hyperparams.optimizer_params.weight_decay *= effective_batch_size / 64.
+
+    # Scale EMA beta to match Ultralytics update
+    cfg.training_hyperparams.ema_params.beta = cfg.training_hyperparams.max_epochs * len(cfg.trainer .train_loader) / 2000.
+
+    log_msg = \
+        f"""
+        IMPORTANT:\n
+        Training with world size of {world_size}, {'DDP' if is_ddp else 'no DDP'}, effective batch size of {effective_batch_size},
+        scaled:
+            * initial_lr to {cfg.training_hyperparams.initial_lr};
+            * warmup_bias_lr to {cfg.training_hyperparams.warmup_bias_lr};
+            * weight_decay to {cfg.training_hyperparams.optimizer_params.weight_decay};
+            * EMA beta to {cfg.training_hyperparams.ema_params.beta};
+        """
+
+    if cfg.training_hyperparams.loss == 'yolo_v5_loss':
+        # Scale loss gains
+        model = cfg.trainer .net
+        model = model.module if hasattr(model, 'module') else model
+        num_levels = model._head._modules_list[-1].detection_layers_num
+        train_image_size = cfg.dataset_params.train_image_size
+
+        num_branches_norm = 3. / num_levels
+        num_classes_norm = len(cfg.trainer .classes) / 80.
+        image_size_norm = train_image_size / 640.
+        cfg.training_hyperparams.criterion_params.box_loss_gain *= num_branches_norm
+        cfg.training_hyperparams.criterion_params.cls_loss_gain *= num_classes_norm * num_branches_norm
+        cfg.training_hyperparams.criterion_params.obj_loss_gain *= image_size_norm ** 2 * num_branches_norm
+
+        log_msg += \
+            f"""
+            * box_loss_gain to {cfg.training_hyperparams.criterion_params.box_loss_gain};
+            * cls_loss_gain to {cfg.training_hyperparams.criterion_params.cls_loss_gain};
+            * obj_loss_gain to {cfg.training_hyperparams.criterion_params.obj_loss_gain};
+            """
+
+    logger.info(log_msg)
+    return cfg

@@ -36,7 +36,7 @@ trainer.build_model('yolo_v3', arch_params=yolo_v3_arch_params)
 
 yolo_v3_training_params = {"max_epochs": 273, 'lr_mode': "step", "lr_updates": [219, 246], "lr_decay_factor": 0.1,
                            "initial_lr": 0.00579, "batch_accumulate": 4,
-                           "loss": "detection_loss", "criterion_params": {"model": model}, "optimizer": "SGD",
+                           "loss": "detection_loss", "criterion_params": {"model": trainer}, "optimizer": "SGD",
                            "optimizer_params": {"momentum": 0.937, "weight_decay": 0.000484, "nesterov": True},
                            "mixed_precision": True,
                            "train_metrics_list": [],

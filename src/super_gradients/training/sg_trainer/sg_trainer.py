@@ -1,14 +1,15 @@
 import os
 import sys
 from copy import deepcopy
-from enum import Enum
 from typing import Union, Tuple, Mapping, List, Any
 
+import hydra
 import numpy as np
 import pkg_resources
 import torch
 import torchvision.transforms as transforms
 from deprecated import deprecated
+from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler
 from torch.cuda.amp import GradScaler, autocast
@@ -16,6 +17,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
@@ -32,7 +34,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.training.utils.quantization_utils import QATCallback
-from super_gradients.training.utils.sg_trainer_utils import MonitoredValue
+from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, scale_params_for_yolov5
 from super_gradients.training import metrics
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, \
     IllegalDataloaderInitialization
@@ -60,51 +62,6 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 
 logger = get_logger(__name__)
-
-
-class StrictLoad(Enum):
-    """
-    Wrapper for adding more functionality to torch's strict_load parameter in load_state_dict().
-        Attributes:
-            OFF              - Native torch "strict_load = off" behaviour. See nn.Module.load_state_dict() documentation for more details.
-            ON               - Native torch "strict_load = on" behaviour. See nn.Module.load_state_dict() documentation for more details.
-            NO_KEY_MATCHING  - Allows the usage of SuperGradient's adapt_checkpoint function, which loads a checkpoint by matching each
-                               layer's shapes (and bypasses the strict matching of the names of each layer (ie: disregards the state_dict key matching)).
-    """
-    OFF = False
-    ON = True
-    NO_KEY_MATCHING = 'no_key_matching'
-
-
-class MultiGPUMode(str, Enum):
-    """
-    MultiGPUMode
-
-        Attributes:
-            OFF                       - Single GPU Mode / CPU Mode
-            DATA_PARALLEL             - Multiple GPUs, Synchronous
-            DISTRIBUTED_DATA_PARALLEL - Multiple GPUs, Asynchronous
-    """
-    OFF = 'Off'
-    DATA_PARALLEL = 'DP'
-    DISTRIBUTED_DATA_PARALLEL = 'DDP'
-    AUTO = "AUTO"
-
-
-class EvaluationType(str, Enum):
-    """
-    EvaluationType
-
-    Passed to Trainer.evaluate(..), and controls which phase callbacks should be triggered (if at all).
-
-        Attributes:
-            TEST
-            VALIDATION
-
-    """
-    TEST = 'TEST'
-    VALIDATION = 'VALIDATION'
-
 
 class Trainer:
     """
@@ -228,6 +185,31 @@ class Trainer:
 
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
+
+    @classmethod
+    def train_from_config(cls, cfg: DictConfig) -> None:
+        """
+        Trains according to cfg recipe configuration.
+
+        @param cfg: The parsed DictConfig from yaml recipe files
+        @return: output of sg_model.train(...) (i.e results tuple)
+        """
+        # INSTANTIATE ALL OBJECTS IN CFG
+        cfg = hydra.utils.instantiate(cfg)
+
+        # CONNECT THE DATASET INTERFACE WITH DECI MODEL
+        cfg.trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
+
+        # BUILD NETWORK
+        cfg.trainer.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
+
+        # FIXME: REMOVE PARAMETER MANIPULATION SPECIFIC FOR YOLO
+        if str(cfg.architecture).startswith("yolo_v5"):
+            cfg = scale_params_for_yolov5(cfg)
+
+        # TRAIN
+        cfg.trainer .train(training_params=cfg.training_hyperparams)
+
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):

@@ -50,13 +50,13 @@ trainer.connect_dataset_interface(dataset_interface, data_loader_num_workers=8)
 trainer.build_model("yolo_v5m", arch_params={"pretrained_weights": "coco"})
 
 # WE NOW TUNE THE 3 NORMALIZERS ACCORDING TO THE NEW DATASET ATTRIBUTES,
-network = model.net
+network = trainer.net
 network = network.module if hasattr(network, 'module') else network
 num_levels = network._head._modules_list[-1].detection_layers_num
 train_image_size = dataset_params["train_image_size"]
 
 num_branches_norm = 3. / num_levels
-num_classes_norm = len(model.classes) / 80.
+num_classes_norm = len(trainer.classes) / 80.
 image_size_norm = train_image_size / 640.
 
 # DEFINE TRAINING PARAMS. SEE DOCS FOR THE FULL LIST.

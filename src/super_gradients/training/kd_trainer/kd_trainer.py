@@ -1,4 +1,6 @@
+import hydra
 import torch.nn
+from omegaconf import DictConfig
 
 from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
@@ -10,11 +12,13 @@ from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, \
     load_checkpoint_to_model
-from super_gradients.training.exceptions.kd_model_exceptions import ArchitectureKwargsException, \
+from super_gradients.training.exceptions.kd_trainer_exceptions import ArchitectureKwargsException, \
     UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, \
     TeacherKnowledgeException, UndefinedNumClassesException
 from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallback
 from super_gradients.training.utils.ema import KDModelEMA
+from super_gradients.training.utils.sg_trainer_utils import scale_params_for_yolov5
+
 logger = get_logger(__name__)
 
 
@@ -25,6 +29,34 @@ class KDTrainer(Trainer):
         self.teacher_architecture = None
         self.student_arch_params = None
         self.teacher_arch_params = None
+
+    @classmethod
+    def train_from_config(cls, cfg: DictConfig) -> None:
+        """
+        Trains according to cfg recipe configuration.
+
+        @param cfg: The parsed DictConfig from yaml recipe files
+        @return: output of sg_model.train(...) (i.e results tuple)
+        """
+        # INSTANTIATE ALL OBJECTS IN CFG
+        cfg = hydra.utils.instantiate(cfg)
+
+        # CONNECT THE DATASET INTERFACE WITH DECI MODEL
+        cfg.trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
+
+        # BUILD NETWORK
+        cfg.trainer.build_model(student_architecture=cfg.student_architecture,
+                                teacher_architecture=cfg.teacher_architecture,
+                                arch_params=cfg.arch_params, student_arch_params=cfg.student_arch_params,
+                                teacher_arch_params=cfg.teacher_arch_params,
+                                checkpoint_params=cfg.checkpoint_params, run_teacher_on_eval=cfg.run_teacher_on_eval)
+
+        # FIXME: REMOVE PARAMETER MANIPULATION SPECIFIC FOR YOLO
+        if str(cfg.architecture).startswith("yolo_v5"):
+            cfg = scale_params_for_yolov5(cfg)
+
+        # TRAIN
+        cfg.trainer .train(training_params=cfg.training_hyperparams)
 
     def build_model(self,
                     # noqa: C901 - too complex
