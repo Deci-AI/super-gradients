@@ -32,7 +32,7 @@ project_name: SSD_Mobile
 
 dataset_params:
   batch_size: 32
-  val_batch_size: 64
+  val_batch_size: 16
   val_image_size: 320
   train_image_size: 320
 
@@ -45,7 +45,7 @@ dataset_params:
   sgain: 30
   vgain: 30
   mosaic_scale: [0.5, 1.5]
-  mosaic_prob: 1.
+  mosaic_prob: 0.
   translate: 0.1
   targets_format:
     _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat
@@ -162,7 +162,7 @@ training_hyperparams:
       post_prediction_callback:
         _target_: super_gradients.training.utils.ssd_utils.SSDPostPredictCallback
         dboxes: ${dboxes}
-        conf: 0.001
+        conf: 0.01
         iou: 0.6
       num_cls: ${arch_params.num_classes}
 
