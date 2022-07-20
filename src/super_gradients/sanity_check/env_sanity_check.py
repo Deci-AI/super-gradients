@@ -1,13 +1,13 @@
 import os
 import sys
 from pip._internal.operations.freeze import freeze
-from logging import getLogger, DEBUG
 from typing import List, Dict, Union, Tuple
 from pathlib import Path
 from packaging.version import Version
 
-logger = getLogger('sg-sanity-check')
-logger.setLevel(DEBUG)
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
@@ -46,10 +46,8 @@ def get_requirements_path() -> Union[None, Path]:
 
     # If installed from artifact, requirements.txt is in package_root, if installed locally it is in project_root
     if (package_root / "requirements.txt").exists():
-        print("pack")
         return package_root / "requirements.txt"
     elif (project_root / "requirements.txt").exists():
-        print("project")
         return project_root / "requirements.txt"
     else:
         return None  # Could happen when installed through github directly ("pip install git+https://github.com/...")
@@ -110,7 +108,7 @@ def verify_installed_libraries() -> List[str]:
 
 def print_error(component_name: str, error: str) -> None:
     error_message = f"Failed to verify {component_name}: {error}"
-    logger.warning(error_message)
+    logger.info(error_message)
 
 
 def env_sanity_check() -> None:
@@ -133,7 +131,7 @@ def env_sanity_check() -> None:
         errors = test_function()
         if errors == [LIB_CHECK_IMPOSSIBLE_MSG]:
             lib_check_is_impossible = True
-            logger.warning(LIB_CHECK_IMPOSSIBLE_MSG)
+            logger.info(LIB_CHECK_IMPOSSIBLE_MSG)
         elif len(errors) > 0:
             sanity_check_errors[test_name] = errors
             for error in errors:
@@ -143,10 +141,10 @@ def env_sanity_check() -> None:
         logger.info('_' * 20)
 
     if sanity_check_errors:
-        logger.warning(
+        logger.info(
             f'The current environment does not meet Deci\'s needs, errors found in: {", ".join(list(sanity_check_errors.keys()))}')
     elif lib_check_is_impossible:
-        logger.warning(LIB_CHECK_IMPOSSIBLE_MSG)
+        logger.info(LIB_CHECK_IMPOSSIBLE_MSG)
     else:
         logger.info('Great, Looks like the current environment meet\'s Deci\'s requirements!')
 
