@@ -1702,10 +1702,7 @@ def compute_detection_metrics_per_cls(
     rolling_precisions = torch.cat((rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device)), dim=0)
 
     # shape = (n_recall_thresholds, nb_iou_thrs)
-    sampled_precision_points = torch.gather(
-        input=torch.cat((rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device)), dim=0),
-        index=recall_threshold_idx,
-        dim=0)
+    sampled_precision_points = torch.gather(input=rolling_precisions, index=recall_threshold_idx, dim=0)
 
     # Average over the recall_thresholds
     ap = sampled_precision_points.mean(0)
