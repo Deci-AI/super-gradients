@@ -236,12 +236,12 @@ class KDTrainerTest(unittest.TestCase):
         kd_trainer.train(train_params)
         best_student_ckpt = os.path.join(kd_trainer.checkpoints_dir_path, "ckpt_best.pth")
 
-        student_sg_model = Trainer("studnet_sg_model")
-        student_sg_model.build_model("resnet18", arch_params={'num_classes': 5},
+        student_trainer = Trainer("studnet_trainer")
+        student_trainer.build_model("resnet18", arch_params={'num_classes': 5},
                                      checkpoint_params={"load_checkpoint": True, "external_checkpoint_path": best_student_ckpt})
 
         self.assertTrue(
-            check_models_have_same_weights(student_sg_model.net.module, kd_trainer.net.module.student))
+            check_models_have_same_weights(student_trainer.net.module, kd_trainer.net.module.student))
 
     def test_load_ckpt_best_for_student_with_ema(self):
         kd_trainer = KDTrainer("test_load_ckpt_best_for_student_with_ema", device='cpu')
@@ -262,7 +262,7 @@ class KDTrainerTest(unittest.TestCase):
         kd_trainer.train(train_params)
         best_student_ckpt = os.path.join(kd_trainer.checkpoints_dir_path, "ckpt_best.pth")
 
-        student_trainer = Trainer("studnet_sg_model")
+        student_trainer = Trainer("studnet_trainer")
         student_trainer.build_model("resnet18", arch_params={'num_classes': 5},
                                      checkpoint_params={"load_checkpoint": True, "external_checkpoint_path": best_student_ckpt})
         self.assertTrue(
