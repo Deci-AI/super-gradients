@@ -930,9 +930,9 @@ class SgModel:
 
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
-                dataset_statistics_logger.analyze(self.train_loader, dataset_params=self.dataset_params,
+                dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes,
                                                   title="Train-set", anchors=self.net.module.arch_params.anchors)
-                dataset_statistics_logger.analyze(self.valid_loader, dataset_params=self.dataset_params,
+                dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes,
                                                   title="val-set")
             # AVERAGE BEST 10 MODELS PARAMS
             if self.training_params.average_best_models:
