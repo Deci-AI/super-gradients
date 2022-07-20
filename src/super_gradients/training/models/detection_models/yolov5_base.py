@@ -73,13 +73,23 @@ class YoloV5PostPredictionCallback(DetectionPostPredictionCallback):
         self.iou = iou
         self.classes = classes
         self.nms_type = nms_type
-        self.max_predictions = max_predictions
+        self.max_pred = max_predictions
+        self._first_run = True
 
     def forward(self, x, device: str = None):
+
         if self.nms_type == NMS_Type.ITERATIVE:
-            return non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, classes=self.classes)
+            nms_result = non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou)
         else:
-            return matrix_non_max_suppression(x[0], conf_thres=self.conf, max_num_of_detections=self.max_predictions)
+            nms_result = matrix_non_max_suppression(x[0], conf_thres=self.conf,
+                                                    max_num_of_detections=self.max_pred)
+
+        return self._filter_max_predictions(nms_result)
+
+    def _filter_max_predictions(self, res: List) -> List:
+        res[:] = [im[:self.max_pred] if (im is not None and im.shape[0] > self.max_pred) else im for im in res]
+
+        return res
 
 
 class Concat(nn.Module):
