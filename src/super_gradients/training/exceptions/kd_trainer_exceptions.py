@@ -68,7 +68,7 @@ class TeacherKnowledgeException(KDModelException):
 
     def __init__(self):
         super().__init__(
-            "Expected: at least one of: teacher_pretrained_weights, teacher_checkpoint_path or load_kd_model_checkpoint=True")
+            "Expected: at least one of: teacher_pretrained_weights, teacher_checkpoint_path or load_kd_trainer_checkpoint=True")
 
 
 class UndefinedNumClassesException(KDModelException):

@@ -1,12 +1,12 @@
 import unittest
 import os
 from super_gradients.training.sg_trainer import Trainer
-from super_gradients.training.kd_model.kd_model import KDTrainer
+from super_gradients.training.kd_trainer.kd_trainer import KDTrainer
 import torch
 from super_gradients.training.utils.utils import check_models_have_same_weights
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy
-from super_gradients.training.exceptions.kd_model_exceptions import ArchitectureKwargsException, \
+from super_gradients.training.exceptions.kd_trainer_exceptions import ArchitectureKwargsException, \
     UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, \
     TeacherKnowledgeException
 from super_gradients.training.models.classification_models.resnet import ResNet50, ResNet18
@@ -44,8 +44,8 @@ class KDTrainerTest(unittest.TestCase):
                                "greater_metric_to_watch_is_better": True, "average_best_models": False}
 
     def test_build_kd_module_with_pretrained_teacher(self):
-        kd_model = KDTrainer("build_kd_module_with_pretrained_teacher", device='cpu')
-        kd_model.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
+        kd_trainer = KDTrainer("build_kd_module_with_pretrained_teacher", device='cpu')
+        kd_trainer.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
                              student_arch_params={'num_classes': 1000}, teacher_arch_params={'num_classes': 1000},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"}
                              )
@@ -53,7 +53,7 @@ class KDTrainerTest(unittest.TestCase):
         imagenet_resnet50_trainer.build_model('resnet50', arch_params={'num_classes': 1000},
                                                checkpoint_params={'pretrained_weights': "imagenet"})
 
-        self.assertTrue(check_models_have_same_weights(kd_model.net.module.teacher,
+        self.assertTrue(check_models_have_same_weights(kd_trainer.net.module.teacher,
                                                        imagenet_resnet50_trainer.net.module))
 
     def test_build_kd_module_with_pretrained_student(self):
@@ -207,8 +207,8 @@ class KDTrainerTest(unittest.TestCase):
         kd_trainer.train(self.kd_train_params)
 
     def test_build_model_with_input_adapter(self):
-        kd_model = KDTrainer("build_kd_module_with_with_input_adapter", device='cpu')
-        kd_model.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
+        kd_trainer = KDTrainer("build_kd_module_with_with_input_adapter", device='cpu')
+        kd_trainer.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
                              student_arch_params={'num_classes': 1000}, teacher_arch_params={'num_classes': 1000},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"},
                              arch_params={
@@ -216,7 +216,7 @@ class KDTrainerTest(unittest.TestCase):
                                                                                std_original=[0.229, 0.224, 0.225],
                                                                                mean_required=[0.5, 0.5, 0.5],
                                                                                std_required=[0.5, 0.5, 0.5])})
-        self.assertTrue(isinstance(kd_model.net.module.teacher[0], NormalizationAdapter))
+        self.assertTrue(isinstance(kd_trainer.net.module.teacher[0], NormalizationAdapter))
 
     def test_load_ckpt_best_for_student(self):
         kd_trainer = KDTrainer("test_load_ckpt_best", device='cpu')

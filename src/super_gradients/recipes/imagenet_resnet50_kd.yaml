@@ -26,7 +26,7 @@ training_hyperparams:
 
 arch_params:
   teacher_input_adapter:
-    _target_: super_gradients.training.utils.kd_model_utils.NormalizationAdapter
+    _target_: super_gradients.training.utils.kd_trainer_utils.NormalizationAdapter
     mean_original: [0.485, 0.456, 0.406]
     std_original: [0.229, 0.224, 0.225]
     mean_required: [0.5, 0.5, 0.5]
