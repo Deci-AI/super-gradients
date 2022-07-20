@@ -1,7 +1,7 @@
 import collections
 import math
 import random
-from typing import Optional, Union, Tuple, List, Sequence
+from typing import Optional, Union, Tuple, List, Sequence, Dict
 
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
@@ -617,24 +617,33 @@ class DetectionPaddedRescale(DetectionTransform):
         self.input_dim = input_dim
         self.max_targets = max_targets
 
-    def __call__(self, sample):
-        img, target = sample["image"], sample["target"]
-        if len(target) == 0:
-            new_target = np.zeros((self.max_targets, 5), dtype=np.float32)
-        else:
-            new_target = target.copy()
+    def __call__(self, sample: Dict[str, np.array]):
+        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target", [])
+        new_targets = np.zeros((self.max_targets, 5), dtype=np.float32) if len(targets) == 0 else targets.copy()
+        new_crowd_targets = np.zeros((self.max_targets, 5), dtype=np.float32) if len(crowd_targets) == 0 else crowd_targets.copy()
 
-        boxes = new_target[:, :4]
-        labels = new_target[:, 4]
         img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap)
+
+        sample["image"] = img
+        sample["target"] = self._rescale_target(new_targets, r)
+        if crowd_targets is not None:
+            sample["crowd_target"] = self._rescale_target(new_crowd_targets, r)
+        return sample
+
+    def _rescale_target(self, targets: np.array, r: float) -> np.array:
+        """Rescale the target according to a coefficient used to rescale the image.
+        This is done to have images and targets at the same scale.
+
+        :param targets:  Targets to rescale, shape (batch_size, 6)
+        :param r:        Rescale coefficient that was applied to the image
+
+        :return:         Rescaled targets, shape (batch_size, 6)
+        """
+        boxes, labels = targets[:, :4], targets[:, 4]
         boxes = xyxy2cxcywh(boxes)
         boxes *= r
         boxes = cxcywh2xyxy(boxes)
-        new_target = np.concatenate((boxes, labels[:, np.newaxis]), 1)
-
-        sample["image"] = img
-        sample["target"] = new_target
-        return sample
+        return np.concatenate((boxes, labels[:, np.newaxis]), 1)
 
 
 class DetectionHorizontalFlip(DetectionTransform):
@@ -712,49 +721,52 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         convert2xyxy = not input_xyxy_format and output_xyxy_format
         convert2cxcy = input_xyxy_format and not output_xyxy_format
 
-        image, targets = sample["image"], sample["target"]
-
-        if label_first_in_input:
-            boxes = targets[:, 1:]
-            labels = targets[:, 0]
-        else:
-            boxes = targets[:, :4]
-            labels = targets[:, 4]
-
-        if convert2cxcy:
-            boxes = xyxy2cxcywh(boxes)
-        elif convert2xyxy:
-            boxes = cxcywh2xyxy(boxes)
+        image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target", [])
 
         _, h, w = image.shape
 
-        if normalize:
-            boxes[:, 0] = boxes[:, 0] / w
-            boxes[:, 1] = boxes[:, 1] / h
-            boxes[:, 2] = boxes[:, 2] / w
-            boxes[:, 3] = boxes[:, 3] / h
+        def _format_target(targets_in):
+            if label_first_in_input:
+                labels, boxes = targets_in[:, 0], targets_in[:, 1:]
+            else:
+                boxes, labels = targets_in[:, :4], targets_in[:, 4]
 
-        elif denormalize:
-            boxes[:, 0] = boxes[:, 0] * w
-            boxes[:, 1] = boxes[:, 1] * h
-            boxes[:, 2] = boxes[:, 2] * w
-            boxes[:, 3] = boxes[:, 3] * h
+            if convert2cxcy:
+                boxes = xyxy2cxcywh(boxes)
+            elif convert2xyxy:
+                boxes = cxcywh2xyxy(boxes)
 
-        min_bbox_edge_size = self.min_bbox_edge_size / max(w, h) if normalized_output else self.min_bbox_edge_size
+            if normalize:
+                boxes[:, 0] = boxes[:, 0] / w
+                boxes[:, 1] = boxes[:, 1] / h
+                boxes[:, 2] = boxes[:, 2] / w
+                boxes[:, 3] = boxes[:, 3] / h
 
-        cxcywh_boxes = boxes if not output_xyxy_format else xyxy2cxcywh(boxes.copy())
+            elif denormalize:
+                boxes[:, 0] = boxes[:, 0] * w
+                boxes[:, 1] = boxes[:, 1] * h
+                boxes[:, 2] = boxes[:, 2] * w
+                boxes[:, 3] = boxes[:, 3] * h
 
-        mask_b = np.minimum(cxcywh_boxes[:, 2], cxcywh_boxes[:, 3]) > min_bbox_edge_size
-        boxes_t = boxes[mask_b]
-        labels_t = labels[mask_b]
+            min_bbox_edge_size = self.min_bbox_edge_size / max(w, h) if normalized_output else self.min_bbox_edge_size
 
-        labels_t = np.expand_dims(labels_t, 1)
-        targets_t = np.hstack((labels_t, boxes_t)) if label_first_in_output else np.hstack((boxes_t, labels_t))
-        padded_targets = np.zeros((self.max_targets, 5))
-        padded_targets[range(len(targets_t))[: self.max_targets]] = targets_t[: self.max_targets]
-        padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
+            cxcywh_boxes = boxes if not output_xyxy_format else xyxy2cxcywh(boxes.copy())
 
-        sample["target"] = padded_targets
+            mask_b = np.minimum(cxcywh_boxes[:, 2], cxcywh_boxes[:, 3]) > min_bbox_edge_size
+            boxes_t = boxes[mask_b]
+            labels_t = labels[mask_b]
+
+            labels_t = np.expand_dims(labels_t, 1)
+            targets_t = np.hstack((labels_t, boxes_t)) if label_first_in_output else np.hstack((boxes_t, labels_t))
+            padded_targets = np.zeros((self.max_targets, 5))
+            padded_targets[range(len(targets_t))[: self.max_targets]] = targets_t[: self.max_targets]
+            padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
+
+            return padded_targets
+
+        sample["target"] = _format_target(targets)
+        if crowd_targets != []:
+            sample["crowd_target"] = _format_target(crowd_targets)
         return sample
 
 
