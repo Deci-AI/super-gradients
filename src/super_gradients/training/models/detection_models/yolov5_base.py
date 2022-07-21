@@ -11,7 +11,6 @@ from super_gradients.training.models.detection_models.csp_darknet53 import Conv,
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
     check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
-from super_gradients.training.utils.export_utils import ExportableHardswish, ExportableSiLU
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 
 
@@ -60,26 +59,40 @@ class YoloV5PostPredictionCallback(DetectionPostPredictionCallback):
     """Non-Maximum Suppression (NMS) module"""
 
     def __init__(self, conf: float = 0.001, iou: float = 0.6, classes: List[int] = None,
-                 nms_type: NMS_Type = NMS_Type.ITERATIVE, max_predictions: int = 300):
+                 nms_type: NMS_Type = NMS_Type.ITERATIVE, max_predictions: int = 300,
+                 with_confidence: bool = True):
         """
         :param conf: confidence threshold
         :param iou: IoU threshold                                       (used in NMS_Type.ITERATIVE)
         :param classes: (optional list) filter by class                 (used in NMS_Type.ITERATIVE)
         :param nms_type: the type of nms to use (iterative or matrix)
         :param max_predictions: maximum number of boxes to output       (used in NMS_Type.MATRIX)
+        :param with_confidence: in NMS, whether to multiply objectness  (used in NMS_Type.ITERATIVE)
+                                score with class score
         """
         super(YoloV5PostPredictionCallback, self).__init__()
         self.conf = conf
         self.iou = iou
         self.classes = classes
         self.nms_type = nms_type
-        self.max_predictions = max_predictions
+        self.max_pred = max_predictions
+        self.with_confidence = with_confidence
 
     def forward(self, x, device: str = None):
+
         if self.nms_type == NMS_Type.ITERATIVE:
-            return non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, classes=self.classes)
+            nms_result = non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou,
+                                             with_confidence=self.with_confidence)
         else:
-            return matrix_non_max_suppression(x[0], conf_thres=self.conf, max_num_of_detections=self.max_predictions)
+            nms_result = matrix_non_max_suppression(x[0], conf_thres=self.conf,
+                                                    max_num_of_detections=self.max_pred)
+
+        return self._filter_max_predictions(nms_result)
+
+    def _filter_max_predictions(self, res: List) -> List:
+        res[:] = [im[:self.max_pred] if (im is not None and im.shape[0] > self.max_pred) else im for im in res]
+
+        return res
 
 
 class Concat(nn.Module):
@@ -525,15 +538,6 @@ class YoLoV5Base(SgModule):
                 raise ValueError(f'Invalid input size: {input_size}. The input size must be multiple of max stride: '
                                  f'{max_stride}. The closest suggestions are: {suggestion[0]}x{suggestion[0]} or '
                                  f'{suggestion[1]}x{suggestion[1]}')
-
-        # Update the model with exportable operators
-        for k, m in self.named_modules():
-            if isinstance(m, Conv):
-                if isinstance(m.act, nn.Hardswish):
-                    m._non_persistent_buffers_set = set()  # pytorch 1.6.0 compatibility
-                    m.act = ExportableHardswish()  # assign activation
-                elif isinstance(m.act, nn.SiLU):
-                    m.act = ExportableSiLU()  # assign activation
 
     def get_include_attributes(self) -> list:
         return ["grid", "anchors", "anchors_grid"]

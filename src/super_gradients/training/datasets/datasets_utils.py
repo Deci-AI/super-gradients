@@ -3,6 +3,7 @@ import os
 from abc import ABC, abstractmethod
 from multiprocessing import Value, Lock
 import random
+from typing import List
 import numpy as np
 import torch.nn.functional as F
 import torchvision
@@ -23,7 +24,7 @@ from torchvision.transforms import transforms, InterpolationMode, RandomResizedC
 from tqdm import tqdm
 
 from super_gradients.training.utils.utils import AverageMeter
-from super_gradients.training.utils.detection_utils import DetectionVisualization
+from super_gradients.training.utils.detection_utils import DetectionVisualization, Anchors
 import uuid
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
 
@@ -411,24 +412,28 @@ class DatasetStatisticsTensorboardLogger:
         self.sg_logger = sg_logger
         self.summary_params = {**DatasetStatisticsTensorboardLogger.DEFAULT_SUMMARY_PARAMS, **summary_params}
 
-    def analyze(self, data_loader: torch.utils.data.DataLoader, dataset_params: dict, title: str, anchors: list = None):
+    def analyze(self, data_loader: torch.utils.data.DataLoader, title: str,
+                all_classes: List[str], anchors: list = None):
         """
         :param data_loader: the dataset data loader
         :param dataset_params: the dataset parameters
         :param title: the title for this dataset (i.e. Coco 2017 test set)
         :param anchors: the list of anchors used by the model. applicable only for detection datasets
+        :param all_classes: the list of all classes names
         """
         if isinstance(data_loader.dataset, DetectionDataSet):
-            self._analyze_detection(data_loader=data_loader, dataset_params=dataset_params, title=title, anchors=anchors)
+            self._analyze_detection(data_loader=data_loader, title=title,
+                                    all_classes=all_classes, anchors=anchors)
         else:
             DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
 
-    def _analyze_detection(self, data_loader, dataset_params, title, anchors=None):
+    def _analyze_detection(self, data_loader, title, all_classes, anchors=None):
         """
         Analyze a detection dataset
 
         :param data_loader: the dataset data loader
         :param dataset_params: the dataset parameters
+        :param all_classes: the list of all classes names
         :param title: the title for this dataset (i.e. Coco 2017 test set)
         :param anchors: the list of anchors used by the model. if not provided, anchors coverage will not be analyzed
         """
@@ -436,57 +441,77 @@ class DatasetStatisticsTensorboardLogger:
             color_mean = AverageMeter()
             color_std = AverageMeter()
             all_labels = []
-
+            image_size = 0
             for i, (images, labels) in enumerate(tqdm(data_loader)):
 
                 if i >= self.summary_params['max_batches'] > 0:
                     break
 
                 if i == 0:
+                    image_size = max(images[0].shape[1], images[0].shape[2])
                     if images.shape[0] > self.summary_params['sample_images']:
                         samples = images[:self.summary_params['sample_images']]
                     else:
                         samples = images
 
                     pred = [torch.zeros(size=(0, 6)) for _ in range(len(samples))]
-                    class_names = data_loader.dataset.all_classes_list
-                    result_images = DetectionVisualization.visualize_batch(image_tensor=samples, pred_boxes=pred,
-                                                                           target_boxes=copy.deepcopy(labels),
-                                                                           batch_name=title, class_names=class_names,
-                                                                           box_thickness=1,
-                                                                           gt_alpha=1.0)
+                    try:
+                        result_images = DetectionVisualization.visualize_batch(image_tensor=samples, pred_boxes=pred,
+                                                                               target_boxes=copy.deepcopy(labels),
+                                                                               batch_name=title,
+                                                                               class_names=all_classes,
+                                                                               box_thickness=1,
+                                                                               gt_alpha=1.0)
 
-                    self.sg_logger.add_images(tag=f'{title} sample images', images=np.stack(result_images)
-                                           .transpose([0, 3, 1, 2])[:, ::-1, :, :])
+                        self.sg_logger.add_images(tag=f'{title} sample images', images=np.stack(result_images)
+                                                  .transpose([0, 3, 1, 2])[:, ::-1, :, :])
+                    except Exception as e:
+                        DatasetStatisticsTensorboardLogger.logger.error(
+                            f'Dataset Statistics failed at adding an example batch:\n{e}')
+                        return
 
                 all_labels.append(labels)
                 color_mean.update(torch.mean(images, dim=[0, 2, 3]), 1)
                 color_std.update(torch.std(images, dim=[0, 2, 3]), 1)
 
-            all_labels = torch.cat(all_labels, dim=0)[:, 1:].numpy()
+            all_labels = torch.cat(all_labels, dim=0)[1:].numpy()
 
-            if self.summary_params['plot_class_distribution']:
-                self._analyze_class_distribution(labels=all_labels, num_classes=dataset_params.num_classes, title=title)
+            try:
+                if self.summary_params['plot_class_distribution']:
+                    self._analyze_class_distribution(labels=all_labels, num_classes=len(all_classes), title=title)
+            except Exception as e:
+                DatasetStatisticsTensorboardLogger.logger.error(f'Dataset Statistics failed at analyzing class distributions.\n{e}')
+                return
 
-            if self.summary_params['plot_box_size_distribution']:
-                self._analyze_object_size_distribution(labels=all_labels, title=title)
+            try:
+                if self.summary_params['plot_box_size_distribution']:
+                    self._analyze_object_size_distribution(labels=all_labels, title=title)
+            except Exception as e:
+                DatasetStatisticsTensorboardLogger.logger.error(f'Dataset Statistics failed at analyzing object size '
+                                                                f'distributions.\n{e}')
+                return
 
             summary = ''
             summary += f'dataset size: {len(data_loader)}  \n'
             summary += f'color mean: {color_mean.average}  \n'
             summary += f'color std: {color_std.average}  \n'
 
-            if anchors is not None:
-                coverage = self._analyze_anchors_coverage(anchors=anchors, image_size=dataset_params.train_image_size,
-                                                          title=title, labels=all_labels)
-                summary += f'anchors: {anchors}  \n'
-                summary += f'anchors coverage: {coverage}  \n'
+            try:
+                if anchors is not None and image_size > 0:
+                    coverage = self._analyze_anchors_coverage(anchors=anchors, image_size=image_size,
+                                                              title=title, labels=all_labels)
+                    summary += f'anchors: {anchors}  \n'
+                    summary += f'anchors coverage: {coverage}  \n'
+            except Exception as e:
+                DatasetStatisticsTensorboardLogger.logger.error(f'Dataset Statistics failed at analyzing anchors '
+                                                                f'coverage.\n{e}')
+                return
 
             self.sg_logger.add_text(tag=f'{title} Statistics', text_string=summary)
             self.sg_logger.flush()
+
         except Exception as e:
-            # any exception is caught here. we dont want the DatasetStatisticsLogger to crash any training
-            DatasetStatisticsTensorboardLogger.logger.error(f'dataset analysis failed: {e}')
+            DatasetStatisticsTensorboardLogger.logger.error(f'dataset analysis failed!\n{e}')
 
     def _analyze_class_distribution(self, labels: list, num_classes: int, title: str):
         hist, edges = np.histogram(labels[:, 0], num_classes)
@@ -571,7 +596,7 @@ class DatasetStatisticsTensorboardLogger:
         to_closest_anchor[to_closest_anchor > 0.75] = 2
         return to_closest_anchor.reshape(image_size - 1, -1)
 
-    def _analyze_anchors_coverage(self, anchors: list, image_size: int, labels: list, title: str):
+    def _analyze_anchors_coverage(self, anchors: Anchors, image_size: int, labels: list, title: str):
         """
         This function will add anchors coverage plots to the tensorboard.
         :param anchors: a list of anchors
@@ -590,9 +615,13 @@ class DatasetStatisticsTensorboardLogger:
         ax.set_xlim([0, image_size])
         ax.set_ylim([0, image_size])
 
-        anchors = np.array(anchors).reshape(-1, 2)
-        for i in range(len(anchors)):
-            rect = self._get_rect(anchors[i][0], anchors[i][1])
+        anchors_boxes = anchors.anchors.cpu().numpy()
+        anchors_len = anchors.num_anchors
+
+        anchors_boxes = anchors_boxes.reshape(-1, 2)
+
+        for i in range(anchors_len):
+            rect = self._get_rect(anchors_boxes[i][0], anchors_boxes[i][1])
             rect.set_alpha(0.3)
             rect.set_facecolor([random.random(), random.random(), random.random(), 0.3])
             ax.add_patch(rect)
@@ -607,7 +636,7 @@ class DatasetStatisticsTensorboardLogger:
         xx, yy = np.meshgrid(x, y, sparse=False)
         points = np.concatenate([xx.reshape(1, -1), yy.reshape(1, -1)])
 
-        color = self._get_score(anchors, points, image_size)
+        color = self._get_score(anchors_boxes, points, image_size)
 
         ax.set_xlabel('W', fontsize=STAT_LOGGER_FONT_SIZE)
         ax.set_ylabel('H', fontsize=STAT_LOGGER_FONT_SIZE)
@@ -616,11 +645,11 @@ class DatasetStatisticsTensorboardLogger:
 
         # calculate the coverage for the dataset labels
         cover_masks = []
-        for i in range(len(anchors)):
-            w_max = (anchors[i][0] / image_size) * 4
-            w_min = (anchors[i][0] / image_size) * 0.25
-            h_max = (anchors[i][1] / image_size) * 4
-            h_min = (anchors[i][1] / image_size) * 0.25
+        for i in range(anchors_len):
+            w_max = (anchors_boxes[i][0] / image_size) * 4
+            w_min = (anchors_boxes[i][0] / image_size) * 0.25
+            h_max = (anchors_boxes[i][1] / image_size) * 4
+            h_min = (anchors_boxes[i][1] / image_size) * 0.25
             cover_masks.append(np.logical_and(
                 np.logical_and(np.logical_and(labels[:, 3] < w_max, labels[:, 3] > w_min), labels[:, 4] < h_max),
                 labels[:, 4] > h_min))
