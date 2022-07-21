@@ -1675,17 +1675,16 @@ def compute_detection_metrics_per_cls(
     # ==================
     # RECALL & PRECISION
 
-    # We want the rolling precision/recall at index i so that: preds_scores[i-1] < score_threshold <= preds_scores[i]
+    # We want the rolling precision/recall at index i so that: preds_scores[i-1] >= score_threshold > preds_scores[i]
     # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
-    highest_score_idx_below_thresh = torch.searchsorted(-preds_scores, -score_threshold, right=False)
+    lowest_score_above_threshold = torch.searchsorted(-preds_scores, -score_threshold, right=False)
 
-    # If all predictions are above the threshold, there is no i so that score_threshold <= preds_scores[i],
-    # So we need to take into account ALL the predictions (i.e. use the last index in the rolling precision/recall)
-    if highest_score_idx_below_thresh == len(rolling_recalls):
-        highest_score_idx_below_thresh -= 1
-
-    recall = rolling_recalls[highest_score_idx_below_thresh]
-    precision = rolling_precisions[highest_score_idx_below_thresh]
+    if lowest_score_above_threshold == 0:  # Here score_threshold > preds_scores[0], so no pred is above the threshold
+        recall = 0
+        precision = 0  # the precision is not really defined when no pred but we need to give it a value
+    else:
+        recall = rolling_recalls[lowest_score_above_threshold - 1]
+        precision = rolling_precisions[lowest_score_above_threshold - 1]
 
     # ==================
     # AVERAGE PRECISION
@@ -1706,6 +1705,5 @@ def compute_detection_metrics_per_cls(
 
     # Average over the recall_thresholds
     ap = sampled_precision_points.mean(0)
-
 
     return ap, precision, recall
