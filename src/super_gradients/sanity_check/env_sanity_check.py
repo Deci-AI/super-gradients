@@ -8,25 +8,17 @@ from packaging.version import Version
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
-logger = get_logger(__name__, log_level=logging.DEBUG)
+logger = get_logger(__name__, log_level=logging.INFO)
 
+HIDE_SANITY_CHECK_VAR = "HIDE_SANITY_CHECK"
 LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
 
-def verify_os() -> List[str]:
-    """Verifying operating system name and platform"""
-    name = os.name
-    platform = sys.platform
-    logger.debug(f'OS Name: {name}')
-    logger.debug(f'OS Platform: {platform}')
-    if 'linux' not in platform.lower():
-        return ['Deci officially supports only Linux kernels. Some features may not work as expected.']
-    return []
-
-
-PACKAGE_REQUIREMENT = "package_requirement"
-PROJECT_REQUIREMENT = "project_requirement"
-NO_REQUIREMENT = "no_requirement"
+def _init_sanity_logger_verbosity():
+    """If the user has the env variable HIDE_SANITY_CHECK, the logs will only be stored in the log files.
+    By default the logs will also be displayed"""
+    hide_sanity_check = os.getenv(HIDE_SANITY_CHECK_VAR)
+    logger.setLevel(logging.WARNING if hide_sanity_check else logging.INFO)
 
 
 def get_requirements_path() -> Union[None, Path]:
@@ -107,48 +99,55 @@ def verify_installed_libraries() -> List[str]:
     return errors
 
 
-def print_error(component_name: str, error: str) -> None:
-    error_message = f"Failed to verify {component_name}: {error}"
-    logger.debug(error_message)
+def verify_os() -> List[str]:
+    """Verifying operating system name and platform"""
+    name = os.name
+    platform = sys.platform
+    logger.info(f'OS Name: {name}')
+    logger.info(f'OS Platform: {platform}')
+    if 'linux' not in platform.lower():
+        return ['Deci officially supports only Linux kernels. Some features may not work as expected.']
+    return []
 
 
-def env_sanity_check() -> None:
+def env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
-    logger.setLevel(logging.DEBUG)  # We force the log level to be debug. Only affects the log files
+    _init_sanity_logger_verbosity()
 
     requirement_checkers = {
         'operating_system': verify_os,
         'libraries': verify_installed_libraries,
     }
 
-    logger.debug('SuperGradients Sanity Check Started')
-    logger.debug(f'Checking the following components: {list(requirement_checkers.keys())}')
-    logger.debug('_' * 20)
+    logger.info('SuperGradients Sanity Check Started')
+    logger.info(f'Checking the following components: {list(requirement_checkers.keys())}')
+    logger.info('_' * 20)
 
     lib_check_is_impossible = False
     sanity_check_errors = {}
     for test_name, test_function in requirement_checkers.items():
-        logger.debug(f"Verifying {test_name}...")
+        logger.info(f"Verifying {test_name}...")
 
         errors = test_function()
         if errors == [LIB_CHECK_IMPOSSIBLE_MSG]:
             lib_check_is_impossible = True
-            logger.debug(LIB_CHECK_IMPOSSIBLE_MSG)
+            logger.info(LIB_CHECK_IMPOSSIBLE_MSG)
         elif len(errors) > 0:
             sanity_check_errors[test_name] = errors
             for error in errors:
-                print_error(test_name, error)
+                logger.info(f"Failed to verify {test_name}: {error}")
         else:
-            logger.debug(f'{test_name} OK')
-        logger.debug('_' * 20)
+            logger.info(f'{test_name} OK')
+        logger.info('_' * 20)
 
     if sanity_check_errors:
-        logger.debug(
+        logger.info(
             f'The current environment does not meet Deci\'s needs, errors found in: {", ".join(list(sanity_check_errors.keys()))}')
     elif lib_check_is_impossible:
-        logger.debug(LIB_CHECK_IMPOSSIBLE_MSG)
+        logger.info(LIB_CHECK_IMPOSSIBLE_MSG)
     else:
-        logger.debug('Great, Looks like the current environment meet\'s Deci\'s requirements!')
+        logger.info('Great, Looks like the current environment meet\'s Deci\'s requirements!')
+    logger.info(f'**This check can be hidden by setting the env variable {HIDE_SANITY_CHECK_VAR}=True prior to import**')
 
 
 if __name__ == '__main__':
