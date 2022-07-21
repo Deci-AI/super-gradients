@@ -1,3 +1,4 @@
+import inspect
 import os
 import sys
 from copy import deepcopy
@@ -930,9 +931,9 @@ class SgModel:
 
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
-                dataset_statistics_logger.analyze(self.train_loader, dataset_params=self.dataset_params,
+                dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes,
                                                   title="Train-set", anchors=self.net.module.arch_params.anchors)
-                dataset_statistics_logger.analyze(self.valid_loader, dataset_params=self.dataset_params,
+                dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes,
                                                   title="val-set")
             # AVERAGE BEST 10 MODELS PARAMS
             if self.training_params.average_best_models:
@@ -954,7 +955,8 @@ class SgModel:
             self._reset_best_metric()
             load_opt_params = False
 
-        if isinstance(self.training_params.optimizer, str):
+        if isinstance(self.training_params.optimizer, str) or \
+                (inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)):
             self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr,
                                              training_params=self.training_params)
         elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
