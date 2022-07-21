@@ -1,5 +1,6 @@
 import math
 import os
+import pathlib
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
@@ -1071,6 +1072,7 @@ class DetectionVisualization:
         if checkpoint_dir is None:
             return image_np
         else:
+            pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
             cv2.imwrite(os.path.join(checkpoint_dir, str(image_name) + '.jpg'), image_np)
 
     @staticmethod
