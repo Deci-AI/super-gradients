@@ -1679,8 +1679,8 @@ def compute_detection_metrics_per_cls(
     # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
     highest_score_idx_below_thresh = torch.searchsorted(-preds_scores, -score_threshold, right=False)
 
-    # If all predictions are above the threshold, the is no i so that score_threshold <= preds_scores[i],
-    # So we need to take the last prediction
+    # If all predictions are above the threshold, there is no i so that score_threshold <= preds_scores[i],
+    # So we need to take into account ALL the predictions (i.e. use the last index in the rolling precision/recall)
     if highest_score_idx_below_thresh == len(rolling_recalls):
         highest_score_idx_below_thresh -= 1
 
