@@ -91,7 +91,7 @@ ________________________________________________________________________________
     - [Quick Start Notebook - Classification example](#quick-start-notebook---classification)
     - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
     - [Quick Start Notebook - Semantic segmentation example](#quick-start-notebook---semantic-segmentation)
-    - [Quick Start Notebook - Upload to Deci Lab example](#quick-start-notebook---model-upload-to-deci-lab)
+    - [Quick Start Notebook - Upload to Deci Platform example](#quick-start-notebook---upload-your-model-to-deci-platform)
     - [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
 - [Transfer Learning](#transfer-learning)  
     - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
@@ -195,7 +195,7 @@ Get Started with an example of how to upload your trained model to Deci Platform
     <tr>
       <td vertical-align="middle">
         <img src="./docs/assets/SG_img/colab_logo.png" />
-        <a target="_blank" href="https://colab.research.google.com/drive/1cNvakn8ttLhD9g8IMbe51PBvk-vJ40Oi?usp=sharing&utm_campaign=SG%20github%20repo&utm_source=Google%20Colab&utm_medium=GitHub%20Repo&utm_content=Quickstart%20trainig%20with20model%20upload%20notebook%20-%20README.md">
+        <a target="_blank" href="https://bit.ly/3cAkoXG">
           Upload to Deci Platform in Google Colab
         </a>
       </td>
@@ -214,7 +214,7 @@ Get Started with an example of how to upload your trained model to Deci Platform
     </tr>
   </tbody>
 </table>
-<br>
+ </br></br>
  
 ### SuperGradients Complete Walkthrough Notebook
 
