@@ -159,8 +159,8 @@ class KDModel(SgModel):
             else:
                 subnet_arch_params['num_classes'] = len(self.classes)
 
-    def instantiate_net(self, architecture: Union[KDModule, KDModule.__class__, str], arch_params: dict,
-                        checkpoint_params: dict, *args, **kwargs) -> tuple:
+    def _instantiate_net(self, architecture: Union[KDModule, KDModule.__class__, str], arch_params: dict,
+                         checkpoint_params: dict, *args, **kwargs) -> tuple:
         """
         Instantiates kd_module according to architecture and arch_params, handles pretrained weights for the student
          and teacher networks, and the required module manipulation (i.e head replacement) for the teacher network.
@@ -182,10 +182,10 @@ class KDModel(SgModel):
         student_pretrained_weights = get_param(checkpoint_params, 'student_pretrained_weights')
         teacher_pretrained_weights = get_param(checkpoint_params, 'teacher_pretrained_weights')
 
-        student = super().instantiate_net(student_architecture, student_arch_params,
-                                          {"pretrained_weights": student_pretrained_weights})
-        teacher = super().instantiate_net(teacher_architecture, teacher_arch_params,
-                                          {"pretrained_weights": teacher_pretrained_weights})
+        student = super()._instantiate_net(student_architecture, student_arch_params,
+                                           {"pretrained_weights": student_pretrained_weights})
+        teacher = super()._instantiate_net(teacher_architecture, teacher_arch_params,
+                                           {"pretrained_weights": teacher_pretrained_weights})
 
         run_teacher_on_eval = get_param(kwargs, "run_teacher_on_eval", default_val=False)
 
@@ -237,11 +237,11 @@ class KDModel(SgModel):
         """
         self.phase_callbacks.append(KDModelMetricsUpdateCallback(phase))
 
-    def get_hyper_param_config(self):
+    def _get_hyper_param_config(self):
         """
         Creates a training hyper param config for logging with additional KD related hyper params.
         """
-        hyper_param_config = super().get_hyper_param_config()
+        hyper_param_config = super()._get_hyper_param_config()
         hyper_param_config.update({"student_architecture": self.student_architecture,
                                    "teacher_architecture": self.teacher_architecture,
                                    "student_arch_params": self.student_arch_params,
@@ -249,7 +249,7 @@ class KDModel(SgModel):
                                    })
         return hyper_param_config
 
-    def instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> KDModelEMA:
+    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> KDModelEMA:
         """Instantiate KD ema model for KDModule.
 
         If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.

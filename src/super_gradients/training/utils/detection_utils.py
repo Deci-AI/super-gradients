@@ -54,7 +54,7 @@ def base_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Tens
          :param batch:      Input batch from the Dataset __get_item__ method
          :return:           Batch images and labels and a dict with 'crowd_target'
      """
-    images_batch, labels_batch = zip(*batch)
+    images_batch, labels_batch, *_additional_items_batch = zip(*batch)
     labels_batch = _set_batch_labels_index(labels_batch)
     return torch.stack(images_batch, 0), torch.cat(labels_batch, 0)
 
@@ -67,9 +67,13 @@ def crowd_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Ten
          :param batch:      Input batch from the Dataset __get_item__ method
          :return:           Batch images and labels and a dict with 'crowd_target'
      """
+    images_batch, labels_batch, *additional_items_batch = zip(*batch)
 
-    images_batch, labels_batch, additional_items_batch = zip(*batch)
-    crowd_labels_batch = [item['crowd_targets'] for item in additional_items_batch]
+    assert len(additional_items_batch) == 1, \
+        f"{len(additional_items_batch) + 2} elements were provided by the Dataloader but 3 were expected by crowd_detection_collate_fn."
+    additional_item_batch = additional_items_batch[0]
+
+    crowd_labels_batch = [item['crowd_targets'] for item in additional_item_batch]
     labels_batch = _set_batch_labels_index(labels_batch)
     crowd_labels_batch = _set_batch_labels_index(crowd_labels_batch)
     return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), {"crowd_targets": torch.cat(crowd_labels_batch, 0)}
@@ -609,91 +613,52 @@ def box_iou(box1, box2):
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
 
 
-def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, classes=None,
-                        agnostic=False, multi_label_per_box=None):  # noqa: C901
-    """Performs Non-Maximum Suppression (NMS) on inference results
+def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6,
+                        multi_label_per_box: bool = True, with_confidence: bool = False):
+    """
+    Performs Non-Maximum Suppression (NMS) on inference results
         :param prediction: raw model prediction
         :param conf_thres: below the confidence threshold - prediction are discarded
         :param iou_thres: IoU threshold for the nms algorithm
-        :param merge: Merge boxes using weighted mean
-        :param classes: (optional list) filter by class
-        :param agnostic: Determines if is class agnostic. i.e. may display a box with 2 predictions
         :param multi_label_per_box: whether to use re-use each box with all possible labels
                                     (instead of the maximum confidence all confidences above threshold
                                     will be sent to NMS); by default is set to True
+        :param with_confidence: whether to multiply objectness score with class score.
+                                usually valid for Yolo models only.
         :return:  (x1, y1, x2, y2, object_conf, class_conf, class)
     Returns:
          detections with shape: nx6 (x1, y1, x2, y2, conf, cls)
     """
-    # TODO: INVESTIGATE THE COMMENTED OUT PARTS AND DECIDE IF TO ERASE OR UNCOMMENT
-    number_of_classes = prediction[0].shape[1] - 5
-    candidates_above_thres = prediction[..., 4] > conf_thres
-
-    # Settings
-    # min_box_width_and_height = 2
-    max_box_width_and_height = 4096
-    max_num_of_detections = 300
-    require_redundant_detections = True
-    # when set to True (adds 0.5ms/img)
-    multi_label_per_box = multi_label_per_box if multi_label_per_box is not None else number_of_classes > 1
+    candidates_above_thres = prediction[..., 4] > conf_thres  # filter by confidence
     output = [None] * prediction.shape[0]
-    for image_idx, pred in enumerate(prediction):
-        # Apply constraints
-        # pred[((pred[..., 2:4] < min_box_width_and_height) | (pred[..., 2:4] > max_box_width_and_height)).any(1), 4] = 0  # width-height
-        pred = pred[candidates_above_thres[image_idx]]  # confidence
 
-        # If none remain process next image
-        if not pred.shape[0]:
+    for image_idx, pred in enumerate(prediction):
+
+        pred = pred[candidates_above_thres[image_idx]]  # confident
+
+        if not pred.shape[0]:  # If none remain process next image
             continue
 
-        # Compute confidence = object_conf * class_conf
-        pred[:, 5:] *= pred[:, 4:5]
-        # Box (center x, center y, width, height) to (x1, y1, x2, y2)
-        box = convert_xywh_bbox_to_xyxy(pred[:, :4])
+        if with_confidence:
+            pred[:, 5:] *= pred[:, 4:5]  # multiply objectness score with class score
+
+        box = convert_xywh_bbox_to_xyxy(pred[:, :4])  # xywh to xyxy
 
         # Detections matrix nx6 (xyxy, conf, cls)
-        if multi_label_per_box:
+        if multi_label_per_box:  # try for all good confidence classes
             i, j = (pred[:, 5:] > conf_thres).nonzero(as_tuple=False).T
             pred = torch.cat((box[i], pred[i, j + 5, None], j[:, None].float()), 1)
+
         else:  # best class only
             conf, j = pred[:, 5:].max(1, keepdim=True)
             pred = torch.cat((box, conf, j.float()), 1)[conf.view(-1) > conf_thres]
 
-        # Filter by class
-        if classes:
-            pred = pred[(pred[:, 5:6] == torch.tensor(classes, device=pred.device)).any(1)]
-
-        # Apply finite constraint
-        # if not torch.isfinite(x).all():
-        #     x = x[torch.isfinite(x).all(1)]
-
-        # If none remain process next image
-        number_of_boxes = pred.shape[0]
-        if not number_of_boxes:
+        if not pred.shape[0]:  # If none remain process next image
             continue
 
-        # Sort by confidence
-        # x = x[x[:, 4].argsort(descending=True)]
-
-        # Batched NMS
-        # CREATE AN OFFSET OF THE PREDICTIVE BOX OF DIFFERENT CLASSES IF not agnostic
-        offset = pred[:, 5:6] * (0 if agnostic else max_box_width_and_height)
-        boxes, scores = pred[:, :4] + offset, pred[:, 4]
-        idx_to_keep = torch.ops.torchvision.nms(boxes, scores, iou_thres)
-        if idx_to_keep.shape[0] > max_num_of_detections:  # limit number of detections
-            idx_to_keep = idx_to_keep[:max_num_of_detections]
-        if merge and (1 < number_of_boxes < 3000):
-            try:  # update boxes as boxes(i,4) = weights(i,n) * boxes(n,4)
-                iou = box_iou(boxes[idx_to_keep], boxes) > iou_thres  # iou matrix
-                box_weights = iou * scores[None]
-                # MERGED BOXES
-                pred[idx_to_keep, :4] = torch.mm(box_weights, pred[:, :4]).float() / box_weights.sum(1, keepdim=True)
-                if require_redundant_detections:
-                    idx_to_keep = idx_to_keep[iou.sum(1) > 1]
-            except RuntimeError:  # possible CUDA error https://github.com/ultralytics/yolov3/issues/1139
-                print(pred, idx_to_keep, pred.shape, idx_to_keep.shape)
-                pass
-
+        # Apply torch batched NMS algorithm
+        boxes, scores, cls_idx = pred[:, :4], pred[:, 4], pred[:, 5]
+        idx_to_keep = torchvision.ops.boxes.batched_nms(boxes, scores, cls_idx, iou_thres)
         output[image_idx] = pred[idx_to_keep]
 
     return output
