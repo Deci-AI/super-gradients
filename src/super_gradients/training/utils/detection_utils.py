@@ -1029,7 +1029,7 @@ class DetectionVisualization:
     @staticmethod
     def _draw_box_title(color_mapping: List[Tuple[int]], class_names: List[str], box_thickness: int,
                         image_np: np.ndarray, x1: int, y1: int, x2: int, y2: int, class_id: int,
-                        pred_conf: float = None):
+                        pred_conf: float = None, is_target: bool = False):
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
@@ -1038,7 +1038,12 @@ class DetectionVisualization:
 
         # Caption with class name and confidence if given
         text_color = (255, 255, 255)  # white
-        title = f'{class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+
+        if is_target:
+            title = f'[GT] {class_name}'
+        if not is_target:
+            title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+
         image_np = cv2.rectangle(image_np, (x1, y1 - 15), (x1 + len(title) * 10, y1), color, cv2.FILLED)
         image_np = cv2.putText(image_np, title, (x1, y1 - box_thickness), 2, .5, text_color, 1, lineType=cv2.LINE_AA)
 
@@ -1063,7 +1068,7 @@ class DetectionVisualization:
         for box in target_boxes:
             target_boxes_image = DetectionVisualization._draw_box_title(color_mapping, class_names, box_thickness,
                                                                         target_boxes_image, *box[2:],
-                                                                        class_id=box[1])
+                                                                        class_id=box[1], is_target=True)
 
         # Transparent overlay of ground truth boxes
         mask = target_boxes_image.astype(bool)
