@@ -232,6 +232,7 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
         self.frequency = change_frequency
         self.rank = None
         self.is_distributed = None
+        self.sampled_imres_once = False
 
     def __call__(self, inputs, targets, batch_idx):
         if self.rank is None:
@@ -249,7 +250,12 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
                 min_size = int(input_size[0] / self.image_size_steps) - self.multiscale_range
                 max_size = int(input_size[0] / self.image_size_steps) + self.multiscale_range
                 random_size = (min_size, max_size)
-                size = random.randint(*random_size)
+                if self.sampled_imres_once:
+                    size = random.randint(*random_size)
+                else:
+                    # sample the biggest resolution first to make sure the run fits into the GPU memory
+                    size = max_size
+                    self.sampled_imres_once = True
                 size = (int(self.image_size_steps * size), self.image_size_steps * int(size * size_factor))
                 tensor[0] = size[0]
                 tensor[1] = size[1]
@@ -286,16 +292,6 @@ class DetectionMultiscalePrePredictionCallback(MultiscalePrePredictionCallback):
         change_frequency: (int) The frequency to apply change in input size.
 
     """
-
-    def __init__(self, multiscale_range: int = 5,
-                 image_size_steps: int = 32,
-                 change_frequency: int = 10):
-
-        self.multiscale_range = multiscale_range
-        self.image_size_steps = image_size_steps
-        self.frequency = change_frequency
-        self.rank = None
-        self.is_distributed = None
 
     def __call__(self, inputs, targets, batch_idx):
         # RESCALE THE IMAGE FIRST WITH SUPER(), AND IF RESCALING HAS ACTUALLY BEEN DONE APPLY TO BOXES AS WELL
