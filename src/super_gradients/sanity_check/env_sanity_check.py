@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from pip._internal.operations.freeze import freeze
@@ -7,7 +8,7 @@ from packaging.version import Version
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, log_level=logging.DEBUG)
 
 LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
@@ -16,8 +17,8 @@ def verify_os() -> List[str]:
     """Verifying operating system name and platform"""
     name = os.name
     platform = sys.platform
-    logger.info(f'OS Name: {name}')
-    logger.info(f'OS Platform: {platform}')
+    logger.debug(f'OS Name: {name}')
+    logger.debug(f'OS Platform: {platform}')
     if 'linux' not in platform.lower():
         return ['Deci officially supports only Linux kernels. Some features may not work as expected.']
     return []
@@ -108,45 +109,46 @@ def verify_installed_libraries() -> List[str]:
 
 def print_error(component_name: str, error: str) -> None:
     error_message = f"Failed to verify {component_name}: {error}"
-    logger.info(error_message)
+    logger.debug(error_message)
 
 
 def env_sanity_check() -> None:
     """Run the sanity check tests and log everything that does not meet requirements"""
+    logger.setLevel(logging.DEBUG)  # We force the log level to be debug. Only affects the log files
 
     requirement_checkers = {
         'operating_system': verify_os,
         'libraries': verify_installed_libraries,
     }
 
-    logger.info('SuperGradients Sanity Check Started')
-    logger.info(f'Checking the following components: {list(requirement_checkers.keys())}')
-    logger.info('_' * 20)
+    logger.debug('SuperGradients Sanity Check Started')
+    logger.debug(f'Checking the following components: {list(requirement_checkers.keys())}')
+    logger.debug('_' * 20)
 
     lib_check_is_impossible = False
     sanity_check_errors = {}
     for test_name, test_function in requirement_checkers.items():
-        logger.info(f"Verifying {test_name}...")
+        logger.debug(f"Verifying {test_name}...")
 
         errors = test_function()
         if errors == [LIB_CHECK_IMPOSSIBLE_MSG]:
             lib_check_is_impossible = True
-            logger.info(LIB_CHECK_IMPOSSIBLE_MSG)
+            logger.debug(LIB_CHECK_IMPOSSIBLE_MSG)
         elif len(errors) > 0:
             sanity_check_errors[test_name] = errors
             for error in errors:
                 print_error(test_name, error)
         else:
-            logger.info(f'{test_name} OK')
-        logger.info('_' * 20)
+            logger.debug(f'{test_name} OK')
+        logger.debug('_' * 20)
 
     if sanity_check_errors:
-        logger.info(
+        logger.debug(
             f'The current environment does not meet Deci\'s needs, errors found in: {", ".join(list(sanity_check_errors.keys()))}')
     elif lib_check_is_impossible:
-        logger.info(LIB_CHECK_IMPOSSIBLE_MSG)
+        logger.debug(LIB_CHECK_IMPOSSIBLE_MSG)
     else:
-        logger.info('Great, Looks like the current environment meet\'s Deci\'s requirements!')
+        logger.debug('Great, Looks like the current environment meet\'s Deci\'s requirements!')
 
 
 if __name__ == '__main__':
