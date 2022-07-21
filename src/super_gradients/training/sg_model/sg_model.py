@@ -1,3 +1,4 @@
+import inspect
 import os
 import sys
 from copy import deepcopy
@@ -954,7 +955,8 @@ class SgModel:
             self._reset_best_metric()
             load_opt_params = False
 
-        if isinstance(self.training_params.optimizer, str):
+        if isinstance(self.training_params.optimizer, str) or \
+                (inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)):
             self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr,
                                              training_params=self.training_params)
         elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
