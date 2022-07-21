@@ -1,5 +1,6 @@
 import math
 import os
+import pathlib
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
@@ -989,7 +990,7 @@ class DetectionVisualization:
     @staticmethod
     def _draw_box_title(color_mapping: List[Tuple[int]], class_names: List[str], box_thickness: int,
                         image_np: np.ndarray, x1: int, y1: int, x2: int, y2: int, class_id: int,
-                        pred_conf: float = None):
+                        pred_conf: float = None, is_target: bool = False):
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
@@ -998,7 +999,12 @@ class DetectionVisualization:
 
         # Caption with class name and confidence if given
         text_color = (255, 255, 255)  # white
-        title = f'{class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+
+        if is_target:
+            title = f'[GT] {class_name}'
+        if not is_target:
+            title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+
         image_np = cv2.rectangle(image_np, (x1, y1 - 15), (x1 + len(title) * 10, y1), color, cv2.FILLED)
         image_np = cv2.putText(image_np, title, (x1, y1 - box_thickness), 2, .5, text_color, 1, lineType=cv2.LINE_AA)
 
@@ -1023,7 +1029,7 @@ class DetectionVisualization:
         for box in target_boxes:
             target_boxes_image = DetectionVisualization._draw_box_title(color_mapping, class_names, box_thickness,
                                                                         target_boxes_image, *box[2:],
-                                                                        class_id=box[1])
+                                                                        class_id=box[1], is_target=True)
 
         # Transparent overlay of ground truth boxes
         mask = target_boxes_image.astype(bool)
@@ -1032,6 +1038,7 @@ class DetectionVisualization:
         if checkpoint_dir is None:
             return image_np
         else:
+            pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
             cv2.imwrite(os.path.join(checkpoint_dir, str(image_name) + '.jpg'), image_np)
 
     @staticmethod
@@ -1633,6 +1640,23 @@ def compute_detection_metrics_per_cls(
     # Reversed cummax to only have decreasing values
     rolling_precisions = rolling_precisions.flip(0).cummax(0).values.flip(0)
 
+    # ==================
+    # RECALL & PRECISION
+
+    # We want the rolling precision/recall at index i so that: preds_scores[i-1] >= score_threshold > preds_scores[i]
+    # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
+    lowest_score_above_threshold = torch.searchsorted(-preds_scores, -score_threshold, right=False)
+
+    if lowest_score_above_threshold == 0:  # Here score_threshold > preds_scores[0], so no pred is above the threshold
+        recall = 0
+        precision = 0  # the precision is not really defined when no pred but we need to give it a value
+    else:
+        recall = rolling_recalls[lowest_score_above_threshold - 1]
+        precision = rolling_precisions[lowest_score_above_threshold - 1]
+
+    # ==================
+    # AVERAGE PRECISION
+
     # shape = (nb_iou_thrs, n_recall_thresholds)
     recall_thresholds = recall_thresholds.view(1, -1).repeat(nb_iou_thrs, 1)
 
@@ -1645,15 +1669,9 @@ def compute_detection_metrics_per_cls(
     rolling_precisions = torch.cat((rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device)), dim=0)
 
     # shape = (n_recall_thresholds, nb_iou_thrs)
-    sampled_precision_points = torch.gather(rolling_precisions, index=recall_threshold_idx, dim=0)
+    sampled_precision_points = torch.gather(input=rolling_precisions, index=recall_threshold_idx, dim=0)
 
     # Average over the recall_thresholds
     ap = sampled_precision_points.mean(0)
-
-    # We want the rolling precision/recall at index i so that: preds_scores[i-1] < score_threshold <= preds_scores[i]
-    # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
-    smallest_score_idx_above_thresh = torch.searchsorted(-preds_scores, -score_threshold, right=False)
-    recall = rolling_recalls[smallest_score_idx_above_thresh]
-    precision = rolling_precisions[smallest_score_idx_above_thresh]
 
     return ap, precision, recall
