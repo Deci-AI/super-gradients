@@ -17,7 +17,7 @@ load_checkpoint: False
 checkpoint_params:
   load_checkpoint: ${load_checkpoint}
 
-architecture: yolox_s
+architecture: yolox_x
 
 multi_gpu:
   _target_: super_gradients.training.sg_model.MultiGPUMode
