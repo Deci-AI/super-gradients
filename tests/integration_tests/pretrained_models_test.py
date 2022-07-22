@@ -10,7 +10,8 @@ from super_gradients.training.metrics import Accuracy, IoU
 import os
 import shutil
 from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
-from super_gradients.training.utils.ssd_utils import SSDPostPredictCallback, DefaultBoxes
+from super_gradients.training.utils.ssd_utils import SSDPostPredictCallback
+from super_gradients.training.models.detection_models.ssd import DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS
 from super_gradients.training.utils.detection_utils import Anchors
 import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
@@ -118,10 +119,7 @@ class PretrainedModelsTest(unittest.TestCase):
             'ssd_lite_mobilenet_v2': DetectionTestDatasetInterface(image_size=320, classes=['class1', 'class2'])
         }
 
-        ssd_dboxes = DefaultBoxes(fig_size=320, feat_size=[20, 10, 5, 3, 2, 1],
-                                  scales=[32, 82, 133, 184, 235, 285, 336],
-                                  aspect_ratios=[[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],
-                                  scale_xy=0.1, scale_wh=0.2)
+        ssd_dboxes = DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS['anchors']
         self.transfer_detection_train_params = {
             'yolo_v5':
                 {
@@ -172,7 +170,7 @@ class PretrainedModelsTest(unittest.TestCase):
                     "train_metrics_list": [],
                     "valid_metrics_list": [
                         DetectionMetricsV2(
-                            post_prediction_callback=SSDPostPredictCallback(dboxes=ssd_dboxes),
+                            post_prediction_callback=SSDPostPredictCallback(),
                             num_cls=len(self.transfer_detection_dataset['yolo_v5'].classes))],
                     "loss_logging_items_names": ['smooth_l1', 'closs', 'Loss'],
                     "metric_to_watch": "mAP@0.50:0.95",
@@ -549,15 +547,10 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("ssd_lite_mobilenet_v2",
                             arch_params=self.coco_pretrained_arch_params["ssd_lite_mobilenet_v2"],
                             checkpoint_params=self.coco_pretrained_ckpt_params)
-        ssd_post_prediction_callback = SSDPostPredictCallback(dboxes=DefaultBoxes(fig_size=320,
-                                                              feat_size=[20, 10, 5, 3, 2, 1],
-                                                              scales=[32, 82, 133, 184, 235, 285, 336],
-                                                              aspect_ratios=[[2, 3], [2, 3], [2, 3],
-                                                                             [2, 3], [2, 3], [2, 3]],
-                                                              scale_xy=0.1, scale_wh=0.2))
+        ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(test_loader=self.coco_dataset['ssd_lite_mobilenet_v2'].val_loader,
                            test_metrics_list=[DetectionMetricsV2(post_prediction_callback=ssd_post_prediction_callback,
-                                                               num_cls=len(self.coco_dataset['ssd_lite_mobilenet_v2'].coco_classes))],
+                                                                 num_cls=len(self.coco_dataset['ssd_lite_mobilenet_v2'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
 
