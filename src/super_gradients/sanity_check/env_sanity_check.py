@@ -143,10 +143,10 @@ def env_sanity_check():
 
     # The last message needs to be displayed independently of DISPLAY_SANITY_CHECK_VAR_NAME
     if display_sanity_check:
-        logger.info(f'**This check can be hidden by setting the env variable {DISPLAY_SANITY_CHECK_VAR_NAME}=False prior to import**')
+        logger.info(f'** This check can be hidden by setting the env variable {DISPLAY_SANITY_CHECK_VAR_NAME}=False prior to import. **')
     else:
-        logger.info(f'**A sanity check is done when importing super_gradients for the first time. '
-                    f'You can see the details by setting the env variable {DISPLAY_SANITY_CHECK_VAR_NAME}=True prior to import**')
+        logger.info(f'** A sanity check is done when importing super_gradients for the first time. **\n'
+                    f'-> You can see the details by setting the env variable {DISPLAY_SANITY_CHECK_VAR_NAME}=True prior to import.')
 
 
 if __name__ == '__main__':
