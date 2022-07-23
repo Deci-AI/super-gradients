@@ -8,16 +8,10 @@ from packaging.version import Version
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
-logger = get_logger(__name__, log_level=logging.INFO)
-
-DISPLAY_SANITY_CHECK_VAR = "HIDE_SANITY_CHECK"
+DISPLAY_SANITY_CHECK_VAR_NAME = "DISPLAY_SANITY_CHECK"
 LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
-
-def _init_sanity_logger_verbosity():
-    """If the user has the env variable HIDE_SANITY_CHECK, the logs will only be stored in the log files.
-    By default the logs will also be displayed"""
-    logger.setLevel(logging.WARNING if display_sanity_check else logging.INFO)
+logger = get_logger(__name__, log_level=logging.DEBUG)
 
 
 def get_requirements_path() -> Union[None, Path]:
@@ -100,11 +94,7 @@ def verify_installed_libraries() -> List[str]:
 
 def verify_os() -> List[str]:
     """Verifying operating system name and platform"""
-    name = os.name
-    platform = sys.platform
-    logger.info(f'OS Name: {name}')
-    logger.info(f'OS Platform: {platform}')
-    if 'linux' not in platform.lower():
+    if 'linux' not in sys.platform.lower():
         return ['Deci officially supports only Linux kernels. Some features may not work as expected.']
     return []
 
@@ -112,53 +102,51 @@ def verify_os() -> List[str]:
 def env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
 
-    keep_log_level = logger.level
+    display_sanity_check = os.getenv(DISPLAY_SANITY_CHECK_VAR_NAME, "False") == "True"
+    stdout_log_level = logging.INFO if display_sanity_check else logging.DEBUG
 
-    # By default we don't deplay sanity logs, unless DISPLAY_SANITY_CHECK_VAR=True
-    display_sanity_check = (os.getenv(DISPLAY_SANITY_CHECK_VAR, "False") == "True")
-    logger.setLevel(logging.INFO if display_sanity_check else logging.WARNING)
+    logger.setLevel(logging.DEBUG)  # We want to log everything regardless of DISPLAY_SANITY_CHECK
 
     requirement_checkers = {
         'operating_system': verify_os,
         'libraries': verify_installed_libraries,
     }
 
-    logger.info('SuperGradients Sanity Check Started')
-    logger.info(f'Checking the following components: {list(requirement_checkers.keys())}')
-    logger.info('_' * 20)
+    logger.log(stdout_log_level, 'SuperGradients Sanity Check Started')
+    logger.log(stdout_log_level, f'Checking the following components: {list(requirement_checkers.keys())}')
+    logger.log(stdout_log_level, '_' * 20)
 
     lib_check_is_impossible = False
     sanity_check_errors = {}
     for test_name, test_function in requirement_checkers.items():
-        logger.info(f"Verifying {test_name}...")
+        logger.log(stdout_log_level, f"Verifying {test_name}...")
 
         errors = test_function()
         if errors == [LIB_CHECK_IMPOSSIBLE_MSG]:
             lib_check_is_impossible = True
-            logger.info(LIB_CHECK_IMPOSSIBLE_MSG)
+            logger.log(stdout_log_level, LIB_CHECK_IMPOSSIBLE_MSG)
         elif len(errors) > 0:
             sanity_check_errors[test_name] = errors
             for error in errors:
-                logger.info(f"Failed to verify {test_name}: {error}")
+                logger.log(stdout_log_level, f"Failed to verify {test_name}: {error}")
         else:
-            logger.info(f'{test_name} OK')
-        logger.info('_' * 20)
+            logger.log(stdout_log_level, f'{test_name} OK')
+        logger.log(stdout_log_level, '_' * 20)
 
     if sanity_check_errors:
-        logger.info(
+        logger.log(stdout_log_level, 
             f'The current environment does not meet Deci\'s needs, errors found in: {", ".join(list(sanity_check_errors.keys()))}')
     elif lib_check_is_impossible:
-        logger.info(LIB_CHECK_IMPOSSIBLE_MSG)
+        logger.log(stdout_log_level, LIB_CHECK_IMPOSSIBLE_MSG)
     else:
-        logger.info('Great, Looks like the current environment meet\'s Deci\'s requirements!')
+        logger.log(stdout_log_level, 'Great, Looks like the current environment meet\'s Deci\'s requirements!')
 
-    # The last message needs to be displayed independently of DISPLAY_SANITY_CHECK_VAR
-    logger.setLevel(keep_log_level)
+    # The last message needs to be displayed independently of DISPLAY_SANITY_CHECK_VAR_NAME
     if display_sanity_check:
-        logger.info(f'**This check can be hidden by setting the env variable {DISPLAY_SANITY_CHECK_VAR}=False prior to import**')
+        logger.info(f'**This check can be hidden by setting the env variable {DISPLAY_SANITY_CHECK_VAR_NAME}=False prior to import**')
     else:
-        logger.info(f'**A sanity check is done when importing super_gradients for the first time.'
-                    f'You can see the details by setting the env variable {DISPLAY_SANITY_CHECK_VAR}=True prior to import**')
+        logger.info(f'**A sanity check is done when importing super_gradients for the first time. '
+                    f'You can see the details by setting the env variable {DISPLAY_SANITY_CHECK_VAR_NAME}=True prior to import**')
 
 
 if __name__ == '__main__':
