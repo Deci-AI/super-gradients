@@ -8,7 +8,6 @@ from packaging.version import Version
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
-DISPLAY_SANITY_CHECK_VAR_NAME = "DISPLAY_SANITY_CHECK"
 LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
 logger = get_logger(__name__, log_level=logging.DEBUG)
@@ -102,7 +101,7 @@ def verify_os() -> List[str]:
 def env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
 
-    display_sanity_check = os.getenv(DISPLAY_SANITY_CHECK_VAR_NAME, "False") == "True"
+    display_sanity_check = os.getenv("DISPLAY_SANITY_CHECK", "False") == "True"
     stdout_log_level = logging.INFO if display_sanity_check else logging.DEBUG
 
     logger.setLevel(logging.DEBUG)  # We want to log everything regardless of DISPLAY_SANITY_CHECK
@@ -141,12 +140,12 @@ def env_sanity_check():
     else:
         logger.log(stdout_log_level, 'Great, Looks like the current environment meet\'s Deci\'s requirements!')
 
-    # The last message needs to be displayed independently of DISPLAY_SANITY_CHECK_VAR_NAME
+    # The last message needs to be displayed independently of DISPLAY_SANITY_CHECK
     if display_sanity_check:
-        logger.info(f'** This check can be hidden by setting the env variable {DISPLAY_SANITY_CHECK_VAR_NAME}=False prior to import. **')
+        logger.info(f'** This check can be hidden by setting the env variable DISPLAY_SANITY_CHECK=False prior to import. **')
     else:
         logger.info(f'** A sanity check is done when importing super_gradients for the first time. **\n'
-                    f'-> You can see the details by setting the env variable {DISPLAY_SANITY_CHECK_VAR_NAME}=True prior to import.')
+                    f'-> You can see the details by setting the env variable DISPLAY_SANITY_CHECK=True prior to import.')
 
 
 if __name__ == '__main__':
