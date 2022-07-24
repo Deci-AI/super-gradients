@@ -363,7 +363,8 @@ class SgModel:
         progress_bar_train_loader.set_description(f"Train epoch {epoch}")
 
         # RESET/INIT THE METRIC LOGGERS
-        self.train_metrics.reset()
+        self._reset_metrics()
+
         self.train_metrics.to(self.device)
         loss_avg_meter = core_utils.utils.AverageMeter()
 
@@ -1097,6 +1098,11 @@ class SgModel:
     def _reset_best_metric(self):
         self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
 
+    def _reset_metrics(self):
+        for metric in ("train_metrics", "valid_metrics", "test_metrics"):
+            if hasattr(self, metric) and getattr(self, metric) is not None:
+                getattr(self, metric).reset()
+
     @resolve_param('train_metrics_list', ListFactory(MetricsFactory()))
     def _set_train_metrics(self, train_metrics_list):
         self.train_metrics = MetricCollection(train_metrics_list)
@@ -1487,7 +1493,7 @@ class SgModel:
                              "with a non empty testset attribute.")
 
         # RESET METRIC RUNNERS
-        self.test_metrics.reset()
+        self._reset_metrics()
         self.test_metrics.to(self.device)
 
     def _add_metrics_update_callback(self, phase: Phase):
@@ -1636,7 +1642,7 @@ class SgModel:
         """
 
         self.net.eval()
-        self.valid_metrics.reset()
+        self._reset_metrics()
         self.valid_metrics.to(self.device)
 
         return self.evaluate(data_loader=self.valid_loader, metrics=self.valid_metrics,
