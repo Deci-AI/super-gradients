@@ -1348,7 +1348,7 @@ def compute_detection_matching(
         :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
     """
-    output = map(lambda tensor: tensor.to(device), output)
+    output = map(lambda tensor: None if tensor is None else tensor.to(device), output)
     targets, iou_thresholds = targets.to(device), iou_thresholds.to(device)
 
     # If crowd_targets is not provided, we patch it with an empty tensor
@@ -1419,11 +1419,13 @@ def compute_img_detection_matching(
     num_iou_thresholds = len(iou_thresholds)
 
     if preds is None or len(preds) == 0:
+        if return_on_cpu:
+            device = "cpu"
         preds_matched = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
         preds_to_ignore = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
         preds_scores = torch.tensor([], dtype=torch.float32, device=device)
         preds_cls = torch.tensor([], dtype=torch.float32, device=device)
-        targets_cls = targets[:, 0]
+        targets_cls = targets[:, 0].to(device=device)
         return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
 
     preds_matched = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
