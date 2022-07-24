@@ -1334,10 +1334,12 @@ def compute_detection_matching(
     :param height:          dimensions of the image
     :param width:           dimensions of the image
     :param iou_thresholds:  Threshold to compute the mAP
+    :param device:          Device
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
     :param top_k:           Number of predictions to keep per class, ordered by confidence score
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
+    :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
 
     :return:                list of the following tensors, for every image:
         :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
@@ -1404,8 +1406,9 @@ def compute_img_detection_matching(
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
     :param top_k:           Number of predictions to keep per class, ordered by confidence score
+    :param device:          Device
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
-    :param return_on_cpu:   If True, the outp
+    :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
 
     :return:
         :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
