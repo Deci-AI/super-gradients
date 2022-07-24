@@ -5,6 +5,7 @@ import torch
 from torchmetrics import Metric
 
 import super_gradients
+from super_gradients.training.utils import tensor_container_to_device
 from super_gradients.training.utils.detection_utils import compute_detection_matching, compute_detection_metrics,\
     calc_batch_prediction_accuracy
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, IouThreshold
@@ -132,7 +133,11 @@ class DetectionMetrics(Metric):
         self.rank = None
         self.add_state("metrics", default=[], dist_reduce_fx=None)
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor, device, inputs):
+    def update(self, preds: torch.Tensor, target: torch.Tensor, device, inputs, crowd_targets=None):
+        if crowd_targets is not None:
+            logger.warning('The DatasetInterface was setup to use crowd, but this DetectionMetrics does not handel it.'
+                           'If you meant to use crowd, please use DetectionMetricsV2.'
+                           'Otherwise set "with_crowd=False" in dataset_params')
         _, _, height, width = inputs.shape
         targets = target.clone()
         if self.normalize_targets:
@@ -180,7 +185,7 @@ class DetectionMetrics(Metric):
             metrics = []
             for state_dict in gathered_state_dicts:
                 metrics += state_dict["metrics"]
-
+            setattr(self, "metrics", metrics)
 
 class DetectionMetricsV2(Metric):
     """
@@ -193,7 +198,7 @@ class DetectionMetricsV2(Metric):
          num_cls:                  Number of classes.
          post_prediction_callback: DetectionPostPredictionCallback to be applied on net's output prior
                                    to the metric computation (NMS).
-         normalize_targets:        Whether to normalize bbox coordinates by image size (default=True).
+         normalize_targets:        Whether to normalize bbox coordinates by image size (default=False).
 
          iou_thresholds:    IoU threshold to compute the mAP (default=torch.linspace(0.5, 0.95, 10)).
          recall_thresholds: Recall threshold to compute the mAP (default=torch.linspace(0, 1, 101)).
@@ -267,12 +272,11 @@ class DetectionMetricsV2(Metric):
 
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
-            device = matching_info_tensors[0].device
-            self.recall_thresholds = self.recall_thresholds.to(device)
+            self.recall_thresholds = self.recall_thresholds.to(self.device)
 
             # shape (n_class, nb_iou_thresh)
             ap, precision, recall, f1, unique_classes = compute_detection_metrics(
-                *matching_info_tensors, device=device, recall_thresholds=self.recall_thresholds,
+                *matching_info_tensors, device=self.device, recall_thresholds=self.recall_thresholds,
                 score_threshold=self.score_threshold)
 
             # Precision, recall and f1 are computed for smallest IoU threshold (usually 0.5), averaged over classes
@@ -305,4 +309,5 @@ class DetectionMetricsV2(Metric):
             for state_dict in gathered_state_dicts:
                 matching_info += state_dict["matching_info"]
 
+            matching_info = tensor_container_to_device(matching_info, device=self.device)
             setattr(self, "matching_info", matching_info)

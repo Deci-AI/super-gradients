@@ -1,5 +1,6 @@
 import math
 import os
+import pathlib
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
@@ -54,7 +55,7 @@ def base_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Tens
          :param batch:      Input batch from the Dataset __get_item__ method
          :return:           Batch images and labels and a dict with 'crowd_target'
      """
-    images_batch, labels_batch = zip(*batch)
+    images_batch, labels_batch, *_additional_items_batch = zip(*batch)
     labels_batch = _set_batch_labels_index(labels_batch)
     return torch.stack(images_batch, 0), torch.cat(labels_batch, 0)
 
@@ -67,9 +68,13 @@ def crowd_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Ten
          :param batch:      Input batch from the Dataset __get_item__ method
          :return:           Batch images and labels and a dict with 'crowd_target'
      """
+    images_batch, labels_batch, *additional_items_batch = zip(*batch)
 
-    images_batch, labels_batch, additional_items_batch = zip(*batch)
-    crowd_labels_batch = [item['crowd_targets'] for item in additional_items_batch]
+    assert len(additional_items_batch) == 1, \
+        f"{len(additional_items_batch) + 2} elements were provided by the Dataloader but 3 were expected by crowd_detection_collate_fn."
+    additional_item_batch = additional_items_batch[0]
+
+    crowd_labels_batch = [item['crowd_targets'] for item in additional_item_batch]
     labels_batch = _set_batch_labels_index(labels_batch)
     crowd_labels_batch = _set_batch_labels_index(crowd_labels_batch)
     return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), {"crowd_targets": torch.cat(crowd_labels_batch, 0)}
@@ -609,91 +614,52 @@ def box_iou(box1, box2):
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
 
 
-def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, classes=None,
-                        agnostic=False, multi_label_per_box=None):  # noqa: C901
-    """Performs Non-Maximum Suppression (NMS) on inference results
+def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6,
+                        multi_label_per_box: bool = True, with_confidence: bool = False):
+    """
+    Performs Non-Maximum Suppression (NMS) on inference results
         :param prediction: raw model prediction
         :param conf_thres: below the confidence threshold - prediction are discarded
         :param iou_thres: IoU threshold for the nms algorithm
-        :param merge: Merge boxes using weighted mean
-        :param classes: (optional list) filter by class
-        :param agnostic: Determines if is class agnostic. i.e. may display a box with 2 predictions
         :param multi_label_per_box: whether to use re-use each box with all possible labels
                                     (instead of the maximum confidence all confidences above threshold
                                     will be sent to NMS); by default is set to True
+        :param with_confidence: whether to multiply objectness score with class score.
+                                usually valid for Yolo models only.
         :return:  (x1, y1, x2, y2, object_conf, class_conf, class)
     Returns:
          detections with shape: nx6 (x1, y1, x2, y2, conf, cls)
     """
-    # TODO: INVESTIGATE THE COMMENTED OUT PARTS AND DECIDE IF TO ERASE OR UNCOMMENT
-    number_of_classes = prediction[0].shape[1] - 5
-    candidates_above_thres = prediction[..., 4] > conf_thres
-
-    # Settings
-    # min_box_width_and_height = 2
-    max_box_width_and_height = 4096
-    max_num_of_detections = 300
-    require_redundant_detections = True
-    # when set to True (adds 0.5ms/img)
-    multi_label_per_box = multi_label_per_box if multi_label_per_box is not None else number_of_classes > 1
+    candidates_above_thres = prediction[..., 4] > conf_thres  # filter by confidence
     output = [None] * prediction.shape[0]
-    for image_idx, pred in enumerate(prediction):
-        # Apply constraints
-        # pred[((pred[..., 2:4] < min_box_width_and_height) | (pred[..., 2:4] > max_box_width_and_height)).any(1), 4] = 0  # width-height
-        pred = pred[candidates_above_thres[image_idx]]  # confidence
 
-        # If none remain process next image
-        if not pred.shape[0]:
+    for image_idx, pred in enumerate(prediction):
+
+        pred = pred[candidates_above_thres[image_idx]]  # confident
+
+        if not pred.shape[0]:  # If none remain process next image
             continue
 
-        # Compute confidence = object_conf * class_conf
-        pred[:, 5:] *= pred[:, 4:5]
-        # Box (center x, center y, width, height) to (x1, y1, x2, y2)
-        box = convert_xywh_bbox_to_xyxy(pred[:, :4])
+        if with_confidence:
+            pred[:, 5:] *= pred[:, 4:5]  # multiply objectness score with class score
+
+        box = convert_xywh_bbox_to_xyxy(pred[:, :4])  # xywh to xyxy
 
         # Detections matrix nx6 (xyxy, conf, cls)
-        if multi_label_per_box:
+        if multi_label_per_box:  # try for all good confidence classes
             i, j = (pred[:, 5:] > conf_thres).nonzero(as_tuple=False).T
             pred = torch.cat((box[i], pred[i, j + 5, None], j[:, None].float()), 1)
+
         else:  # best class only
             conf, j = pred[:, 5:].max(1, keepdim=True)
             pred = torch.cat((box, conf, j.float()), 1)[conf.view(-1) > conf_thres]
 
-        # Filter by class
-        if classes:
-            pred = pred[(pred[:, 5:6] == torch.tensor(classes, device=pred.device)).any(1)]
-
-        # Apply finite constraint
-        # if not torch.isfinite(x).all():
-        #     x = x[torch.isfinite(x).all(1)]
-
-        # If none remain process next image
-        number_of_boxes = pred.shape[0]
-        if not number_of_boxes:
+        if not pred.shape[0]:  # If none remain process next image
             continue
 
-        # Sort by confidence
-        # x = x[x[:, 4].argsort(descending=True)]
-
-        # Batched NMS
-        # CREATE AN OFFSET OF THE PREDICTIVE BOX OF DIFFERENT CLASSES IF not agnostic
-        offset = pred[:, 5:6] * (0 if agnostic else max_box_width_and_height)
-        boxes, scores = pred[:, :4] + offset, pred[:, 4]
-        idx_to_keep = torch.ops.torchvision.nms(boxes, scores, iou_thres)
-        if idx_to_keep.shape[0] > max_num_of_detections:  # limit number of detections
-            idx_to_keep = idx_to_keep[:max_num_of_detections]
-        if merge and (1 < number_of_boxes < 3000):
-            try:  # update boxes as boxes(i,4) = weights(i,n) * boxes(n,4)
-                iou = box_iou(boxes[idx_to_keep], boxes) > iou_thres  # iou matrix
-                box_weights = iou * scores[None]
-                # MERGED BOXES
-                pred[idx_to_keep, :4] = torch.mm(box_weights, pred[:, :4]).float() / box_weights.sum(1, keepdim=True)
-                if require_redundant_detections:
-                    idx_to_keep = idx_to_keep[iou.sum(1) > 1]
-            except RuntimeError:  # possible CUDA error https://github.com/ultralytics/yolov3/issues/1139
-                print(pred, idx_to_keep, pred.shape, idx_to_keep.shape)
-                pass
-
+        # Apply torch batched NMS algorithm
+        boxes, scores, cls_idx = pred[:, :4], pred[:, 4], pred[:, 5]
+        idx_to_keep = torchvision.ops.boxes.batched_nms(boxes, scores, cls_idx, iou_thres)
         output[image_idx] = pred[idx_to_keep]
 
     return output
@@ -1024,7 +990,7 @@ class DetectionVisualization:
     @staticmethod
     def _draw_box_title(color_mapping: List[Tuple[int]], class_names: List[str], box_thickness: int,
                         image_np: np.ndarray, x1: int, y1: int, x2: int, y2: int, class_id: int,
-                        pred_conf: float = None):
+                        pred_conf: float = None, is_target: bool = False):
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
@@ -1033,7 +999,12 @@ class DetectionVisualization:
 
         # Caption with class name and confidence if given
         text_color = (255, 255, 255)  # white
-        title = f'{class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+
+        if is_target:
+            title = f'[GT] {class_name}'
+        if not is_target:
+            title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+
         image_np = cv2.rectangle(image_np, (x1, y1 - 15), (x1 + len(title) * 10, y1), color, cv2.FILLED)
         image_np = cv2.putText(image_np, title, (x1, y1 - box_thickness), 2, .5, text_color, 1, lineType=cv2.LINE_AA)
 
@@ -1058,7 +1029,7 @@ class DetectionVisualization:
         for box in target_boxes:
             target_boxes_image = DetectionVisualization._draw_box_title(color_mapping, class_names, box_thickness,
                                                                         target_boxes_image, *box[2:],
-                                                                        class_id=box[1])
+                                                                        class_id=box[1], is_target=True)
 
         # Transparent overlay of ground truth boxes
         mask = target_boxes_image.astype(bool)
@@ -1067,6 +1038,7 @@ class DetectionVisualization:
         if checkpoint_dir is None:
             return image_np
         else:
+            pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
             cv2.imwrite(os.path.join(checkpoint_dir, str(image_name) + '.jpg'), image_np)
 
     @staticmethod
@@ -1668,6 +1640,23 @@ def compute_detection_metrics_per_cls(
     # Reversed cummax to only have decreasing values
     rolling_precisions = rolling_precisions.flip(0).cummax(0).values.flip(0)
 
+    # ==================
+    # RECALL & PRECISION
+
+    # We want the rolling precision/recall at index i so that: preds_scores[i-1] >= score_threshold > preds_scores[i]
+    # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
+    lowest_score_above_threshold = torch.searchsorted(-preds_scores, -score_threshold, right=False)
+
+    if lowest_score_above_threshold == 0:  # Here score_threshold > preds_scores[0], so no pred is above the threshold
+        recall = 0
+        precision = 0  # the precision is not really defined when no pred but we need to give it a value
+    else:
+        recall = rolling_recalls[lowest_score_above_threshold - 1]
+        precision = rolling_precisions[lowest_score_above_threshold - 1]
+
+    # ==================
+    # AVERAGE PRECISION
+
     # shape = (nb_iou_thrs, n_recall_thresholds)
     recall_thresholds = recall_thresholds.view(1, -1).repeat(nb_iou_thrs, 1)
 
@@ -1680,15 +1669,9 @@ def compute_detection_metrics_per_cls(
     rolling_precisions = torch.cat((rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device)), dim=0)
 
     # shape = (n_recall_thresholds, nb_iou_thrs)
-    sampled_precision_points = torch.gather(rolling_precisions, index=recall_threshold_idx, dim=0)
+    sampled_precision_points = torch.gather(input=rolling_precisions, index=recall_threshold_idx, dim=0)
 
     # Average over the recall_thresholds
     ap = sampled_precision_points.mean(0)
-
-    # We want the rolling precision/recall at index i so that: preds_scores[i-1] < score_threshold <= preds_scores[i]
-    # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
-    smallest_score_idx_above_thresh = torch.searchsorted(-preds_scores, -score_threshold, right=False)
-    recall = rolling_recalls[smallest_score_idx_above_thresh]
-    precision = rolling_precisions[smallest_score_idx_above_thresh]
 
     return ap, precision, recall

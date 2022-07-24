@@ -24,7 +24,7 @@ ______________________________________________________________________
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
   <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
-  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-25-brightgreen" />
+  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-29-brightgreen" />
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
@@ -91,7 +91,7 @@ ________________________________________________________________________________
     - [Quick Start Notebook - Classification example](#quick-start-notebook---classification)
     - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
     - [Quick Start Notebook - Semantic segmentation example](#quick-start-notebook---semantic-segmentation)
-    - [Quick Start Notebook - Upload to Deci Lab example](#quick-start-notebook---model-upload-to-deci-lab)
+    - [Quick Start Notebook - Upload to Deci Platform example](#quick-start-notebook---upload-your-model-to-deci-platform)
     - [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
 - [Transfer Learning](#transfer-learning)  
     - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
@@ -187,16 +187,16 @@ Get started with our quick start notebook for semantic segmentation tasks on Goo
 </table>
  </br></br>
 
-### Quick Start Notebook - Model Upload to Deci Lab
+### Quick Start Notebook - Upload your model to Deci Platform
 
-Get Started with an example of how to upload to Deci Lab a freshly trained model
+Get Started with an example of how to upload your trained model to Deci Platform for runtime optimization and compilation to your target deployment HW.
 <table class="tfo-notebook-buttons" align="left">
   <tbody>
     <tr>
       <td vertical-align="middle">
         <img src="./docs/assets/SG_img/colab_logo.png" />
-        <a target="_blank" href="https://colab.research.google.com/drive/1cNvakn8ttLhD9g8IMbe51PBvk-vJ40Oi?usp=sharing&utm_campaign=SG%20github%20repo&utm_source=Google%20Colab&utm_medium=GitHub%20Repo&utm_content=Quickstart%20trainig%20with20model%20upload%20notebook%20-%20README.md">
-          Classification Quick Start in Google Colab
+        <a target="_blank" href="https://bit.ly/3cAkoXG">
+          Upload to Deci Platform in Google Colab
         </a>
       </td>
       <td vertical-align="middle">
@@ -214,7 +214,7 @@ Get Started with an example of how to upload to Deci Lab a freshly trained model
     </tr>
   </tbody>
 </table>
-<br>
+ </br></br>
  
 ### SuperGradients Complete Walkthrough Notebook
 
