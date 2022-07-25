@@ -115,7 +115,7 @@ class PretrainedModelsTest(unittest.TestCase):
             ),
         }
         self.coco_pretrained_maps = {"yolo_v5s": 0.3676, "yolo_v5m": 0.4456, "yolo_v5l": 0.4745, "yolo_v5n": 0.2717,
-                                     'ssd_lite_mobilenet_v2': 0.215, 'coco_ssd_mobilenet_v1': 0.237}
+                                     'ssd_lite_mobilenet_v2': 0.215, 'coco_ssd_mobilenet_v1': 0.243}
         self.transfer_detection_dataset = {
             'yolo_v5': DetectionTestDatasetInterface(image_size=640, classes=['class1', 'class2']),
             'ssd_lite_mobilenet_v2': DetectionTestDatasetInterface(image_size=320, classes=['class1', 'class2'])
