@@ -294,7 +294,7 @@ class QATCallback(PhaseCallback):
                 self._calibrate_model(context)
 
             # RESET THE BEST METRIC VALUE SO WE SAVE CHECKPOINTS AFTER THE EXPECTED QAT ACCURACY DEGRADATION
-            context.context_methods.reset_best_metric()
+            context.context_methods._reset_best_metric()
 
             # SET NEW FILENAME FOR THE BEST CHECKPOINT SO WE DON'T OVERRIDE THE PREVIOUS ONES
             context.context_methods.set_ckpt_best_name('qat_ckpt_best.pth')

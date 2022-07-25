@@ -141,6 +141,9 @@ class SSDLoss(_Loss):
             were predictions have logprobs for background and other classes
             :param targets - targets for the batch. [num targets, 6] (index in batch, label, x,y,w,h)
         """
+        if isinstance(predictions, tuple) and isinstance(predictions[1], tuple):
+            # Calculate loss in a validation mode
+            predictions = predictions[1]
         batch_target_locations = []
         batch_target_labels = []
         (ploc, plabel) = predictions
