@@ -24,7 +24,7 @@ ______________________________________________________________________
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
   <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
-  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-29-brightgreen" />
+  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-30-brightgreen" />
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
@@ -372,6 +372,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
 |------------- |------ | ---------- |------ | -------- |------ | ---------- |------ | :------: |
 | SSD lite MobileNet v2 | COCO |320x320 |21.5 |**0.77ms** |**1.40ms**|**5.28ms** |**6.44ms** |**4.13ms**|
+| SSD lite MobileNet v1 | COCO |320x320 |24.3 |**1.55ms** |**2.84ms**|**8.07ms** |**9.14ms** |**22.76ms**|
 | YOLOv5 nano | COCO |640x640 |27.7  |**1.48ms** |**5.43ms**|**9.28ms** |**17.44ms** |**21.71ms**|
 | YOLOv5 small | COCO |640x640 |37.3 |**2.29ms** |**6.14ms**|**14.31ms** |**22.50ms** |**34.10ms**|
 | YOLOv5 medium| COCO |640x640 |45.2 |**4.60ms** |**8.10ms**|**26.76ms** |**34.95ms** |**65.86ms**|
