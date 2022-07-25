@@ -38,6 +38,7 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "beit_base_patch16_224_imagenet": 'https://deci-pretrained-models.s3.amazonaws.com/beit_base_patch16_224_imagenet.pth',
               "beit_base_patch16_224_cifar10": 'https://deci-pretrained-models.s3.amazonaws.com/beit_cifar10.pth',
               "yolox_s_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_s_coco/average_model.pth",
+              "yolox_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_m_coco/average_model.pth",
               }
 
 PRETRAINED_NUM_CLASSES = {"imagenet": 1000,
