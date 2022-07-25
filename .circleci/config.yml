@@ -40,6 +40,10 @@ jobs:
           check_version_file: true
       - deci-common/get_persisted_version_info
       - run:
+          name: add requirements.txt to source code
+          command: |
+            cp requirements.txt src/super_gradients/requirements.txt
+      - run:
           name: install python dependencies
           command: |
             python3 -m venv venv
@@ -114,6 +118,10 @@ jobs:
       - deci-common/checkout_and_skip_build:
           check_version_file: true
 
+      - run:
+          name: add requirements.txt to source code
+          command: |
+            cp requirements.txt src/super_gradients/requirements.txt
       - run:
           name: edit package version
           command: |
