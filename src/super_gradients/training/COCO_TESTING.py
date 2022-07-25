@@ -858,117 +858,53 @@ class CocoMAPV2:
 
 
 
-# ==============================
-import argparse
 import os
 import tempfile
 
 import torch
 
-from super_gradients.training.datasets.dataset_interfaces import CoCoDetectionDatasetInterface #CocoDetectionDatasetInterfaceV2
-# from super_gradients.training.models.detection_models.yolov5 import YoloV5PostPredictionCallback
-from super_gradients.training.utils import checkpoint_utils
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn
-from super_gradients import ARCHITECTURES
-from super_gradients.training.utils.utils import HpmStruct
-
-# parser = argparse.ArgumentParser(description="Calculate mAP for a checkpoint using COCO API.")
-# parser.add_argument(
-#     'ckpt_path', default="oo"
-# )
-# parser.add_argument(
-#     '--architecture', '-a',
-#     default='yolo_v5s'
-# )
-# parser.add_argument(
-#     '--batch-size', '-b',
-#     type=int,
-#     default=1
-# )
-# parser.add_argument(
-#     '--image-size', '-i',
-#     default=640
-# )
-# parser.add_argument(
-#     '--nms-conf',
-#     type=float,
-#     default=0.001
-# )
-# parser.add_argument(
-#     '--nms-iou',
-#     type=float,
-#     default=0.65
-# )
-# parser.add_argument(
-#     '--predictions-file', "-f",
-#     help='Optional path for the predictions file. '
-#          'If the file already exists then predictions will be loaded from it. '
-#          'Otherwise, predictions will be written to it.'
-# )
 import super_gradients
 from omegaconf import DictConfig
 import hydra
 import pkg_resources
-from super_gradients.training.sg_model.sg_model import SgModel
 
 super_gradients.init_trainer()
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""))
-def instantiate_dataset(cfg: DictConfig):
+def test_map(cfg: DictConfig):
 
 
     from super_gradients.training.metrics.detection_metrics import DetectionMetrics
     from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
-    post_prediction_callback = YoloV5PostPredictionCallback()#iou=0.65, conf=0.01)
 
-    #
-    # # INSTANTIATE ALL OBJECTS IN CFG
-    # cfg = hydra.utils.instantiate(cfg)
-    # coco_dataset = CocoDetectionDatasetInterfaceV2(dataset_params=dict(cfg["dataset_params"]))
 
     cfg = hydra.utils.instantiate(cfg)
     cfg.sg_model.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
     cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
     trainer = cfg.sg_model
 
-    model = trainer.net
-    model.eval()
-    res = trainer.test(
+    # THIS CALLBACK WILL BE SHARED BETWEEN OUR MAP EVALUATION AND COCO API EVALUATION
+    post_prediction_callback = YoloV5PostPredictionCallback(iou=0.65, conf=0.01)
+
+    mapv2_res = trainer.test(
         test_loader=cfg.dataset_interface.val_loader,
         test_metrics_list=[DetectionMetrics(post_prediction_callback=post_prediction_callback,
                                             num_cls=80, normalize_targets=True)],
         metrics_progress_verbose=False
     )
+    print("res: ", mapv2_res)
 
-
-    # dataset_params = {"train_batch_size": 1, "val_batch_size": 1,
-    #                   "train_image_size": 640,
-    #                   "val_image_size": 640,
-    #                   "val_sample_loading_method": "default"}
-    # coco_dataset = CoCoDetectionDatasetInterface(dataset_params=dataset_params, with_crowd=True)
-    # coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
-    #
-    # trainer = SgModel('yolo_v5m_coco')
-    # trainer.connect_dataset_interface(coco_dataset)
-    # trainer.build_model("yolo_v5m", checkpoint_params=coco_pretrained_ckpt_params)
-    #
-    # res = trainer.test(
-    #     test_loader=coco_dataset.val_loader,
-    #     test_metrics_list=[DetectionMetrics(post_prediction_callback=post_prediction_callback,
-    #                                         num_cls=-1, normalize_targets=False)],
-    #     metrics_progress_verbose=False
-    # )
-
-
-    print("res: ", res)
     model = trainer.net
     model.eval()
 
     anno_json = '/data/coco/annotations/instances_val2017.json'
+
+    # - Use CocoMAP when working on COCODetectionDataset
+    # - Use CocoMAPV2 when working on COCODetectionDatasetV2
     coco_map_tool = CocoMAPV2(model=model,
-                            post_prediction_callback=post_prediction_callback,
-                            dataset_interface=cfg.dataset_interface,
-                            annotations_json_path=anno_json)
+                              post_prediction_callback=post_prediction_callback,
+                              dataset_interface=cfg.dataset_interface,
+                              annotations_json_path=anno_json)
     import random
     predictions_file = f"pred_yolo{random.random()}"
 
@@ -979,41 +915,12 @@ def instantiate_dataset(cfg: DictConfig):
     else:
         tmpdir = None
         pred_json = predictions_file
-
     try:
         map_result = coco_map_tool.calculate_coco_map(output_json_path=pred_json)
         print(f"mAP@0.5:0.95: {map_result.stats[0]}")
     finally:
         if tmpdir is not None:
             tmpdir.cleanup()
-    print("SS")
-#
-#
-# class IouThreshold(tuple, Enum):
-#     MAP_05 = (0.5, 0.5)
-#     MAP_05_TO_095 = (0.5, 0.95)
-#
-# from dataclasses import dataclass
-#
-#
-# class BBoxFormat(Enum):
-#     XYXY = "XYXY"
-#     XYWH = "XYWH"
-#     CXCYWH = "XYXY"
-#
-# class Normalization(Enum):
-#     NONE = "Not normalized (image size)"
-#     NORMALIZED_01 = "Normalized between 0 to 1"
-#
-# @dataclass
-# class BBoxInfo:
-#     format: BBoxFormat
-#     normalization: Normalization
-#
-#
-# BBoxInfo(BBoxFormat.CXCYWH, Normalization.NORMALIZED_01)
-#
-#
-if __name__ == "__main__":
-    instantiate_dataset()
 
+if __name__ == "__main__":
+    test_map()
