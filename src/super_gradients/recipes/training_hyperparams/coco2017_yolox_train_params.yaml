@@ -10,7 +10,7 @@ warmup_bias_lr: 0.0
 warmup_momentum: 0.9
 initial_lr:  0.02
 warmup_mode: yolov5_warmup
-batch_accumulate: 2
+batch_accumulate: 1
 
 save_ckpt_epoch_list: [285]
 
@@ -51,13 +51,5 @@ phase_callbacks:
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True
 
-sg_logger: wandb_sg_logger
-sg_logger_params:
-    project_name: yolox_sg
-    entity: algo
-    api_server: https://wandb.research.deci.ai
-    save_checkpoints_remote: True
-    save_tensorboard_remote: True
-    save_logs_remote: True
 
 _convert_: all

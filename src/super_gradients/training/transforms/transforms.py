@@ -651,7 +651,7 @@ class DetectionHorizontalFlip(DetectionTransform):
     Horizontal Flip for Detection
 
     Attributes:
-        prob: float: probability of applying HSV transform
+        prob: float: probability of applying horizontal flip
         max_targets: int: max objects in single image, padding target to this size in case of empty image.
     """
 
