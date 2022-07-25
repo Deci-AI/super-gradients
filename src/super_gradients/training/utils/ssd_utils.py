@@ -141,4 +141,8 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
             nms_res = matrix_non_max_suppression(nms_input, conf_thres=self.conf,
                                                  max_num_of_detections=self.max_predictions)
 
-        return nms_res
+        return self._filter_max_predictions(nms_res)
+
+    def _filter_max_predictions(self, res: List) -> List:
+        res[:] = [im[:self.max_predictions] if (im is not None and im.shape[0] > self.max_predictions) else im for im in res]
+        return res
