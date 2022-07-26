@@ -91,8 +91,8 @@ ________________________________________________________________________________
     - [Quick Start Notebook - Classification example](#quick-start-notebook---classification)
     - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
     - [Quick Start Notebook - Semantic segmentation example](#quick-start-notebook---semantic-segmentation)
-    - [Quick Start Notebook - Upload to Deci Platform example](#quick-start-notebook---upload-your-model-to-deci-platform)
     - [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
+ <!-- - [Quick Start Notebook - Upload to Deci Platform example](#quick-start-notebook---upload-your-model-to-deci-platform) -->
 - [Transfer Learning](#transfer-learning)  
     - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
     - [Transfer Learning with SG Notebook - Semantic segmentation example](#transfer-learning-with-sg-notebook---semantic-segmentation)
@@ -187,6 +187,7 @@ Get started with our quick start notebook for semantic segmentation tasks on Goo
 </table>
  </br></br>
 
+<!-- 
 ### Quick Start Notebook - Upload your model to Deci Platform
 
 Get Started with an example of how to upload your trained model to Deci Platform for runtime optimization and compilation to your target deployment HW.
@@ -215,7 +216,7 @@ Get Started with an example of how to upload your trained model to Deci Platform
   </tbody>
 </table>
  </br></br>
- 
+-->
 ### SuperGradients Complete Walkthrough Notebook
 
 Learn more about SuperGradients training components with our walkthrough notebook on Google Colab for an easy to use tutorial using free GPU hardware
