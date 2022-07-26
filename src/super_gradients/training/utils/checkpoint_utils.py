@@ -139,7 +139,8 @@ def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckp
         :param model_state_dict:               the model state_dict
         :param source_ckpt:                         checkpoint dict
         :param exclude                  optional list for excluded layers
-        :param solver:                  callable that returns a desired weight for (ckpt_key, ckpt_val, model_key, model_val)
+        :param solver:                  callable with signature (ckpt_key, ckpt_val, model_key, model_val)
+                                        that returns a desired weight for ckpt_val.
         :return: renamed checkpoint dict (if possible)
     """
     if 'net' in source_ckpt.keys():
@@ -229,7 +230,8 @@ def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
     """
     Helper method for reshaping old pretrained checkpoint's focus weights to 6x6 conv weights.
     """
-    if ckpt_key == 'module._backbone._modules_list.0.conv.conv.weight' and model_key == '_backbone._modules_list.0.conv.weight':
+
+    if ckpt_val.shape != model_val.shape and ckpt_key == 'module._backbone._modules_list.0.conv.conv.weight' and model_key == '_backbone._modules_list.0.conv.weight':
         model_val.data[:, :, ::2, ::2] = ckpt_val.data[:, :3]
         model_val.data[:, :, 1::2, ::2] = ckpt_val.data[:, 3:6]
         model_val.data[:, :, ::2, 1::2] = ckpt_val.data[:, 6:9]
