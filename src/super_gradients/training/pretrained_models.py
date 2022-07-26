@@ -20,10 +20,6 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "stdc2_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/stdc2_seg50_cityscapes/ckpt_best.pth",
               "stdc2_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/stdc2_seg75_cityscapes/ckpt_best.pth",
               "efficientnet_b0_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/efficientnet_b0/average_model-3.pth",
-              "yolo_v5s_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolov5_s/ckpt_best.pth",
-              "yolo_v5m_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+m/ckpt_best.pth",
-              "yolo_v5l_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+l/ckpt_best.pth",
-              "yolo_v5n_coco": "https://deci-pretrained-models.s3.amazonaws.com/YOLOv5+n/ckpt_best.pth",
               "ssd_lite_mobilenet_v2_coco": "https://deci-pretrained-models.s3.amazonaws.com/ssd_lite_mobilenet_v2/ckpt_best_anchors.pth",
 
               "mobilenet_v3_large_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/mobilenetv3+large+300epoch/average_model.pth",

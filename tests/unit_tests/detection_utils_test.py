@@ -23,7 +23,7 @@ class TestDetectionUtils(unittest.TestCase):
                         model_checkpoints_location='local',
                         post_prediction_callback=YoloPostPredictionCallback())
         model.connect_dataset_interface(dataset, data_loader_num_workers=8)
-        model.build_model("yolo_v5s")
+        model.build_model("yolox_s")
 
         # Simulate one iteration of validation subset
         valid_loader = model.valid_loader

@@ -354,9 +354,9 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">update_lr</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="YoloV5WarmupLRCallback"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.callbacks.YoloV5WarmupLRCallback">[docs]</a><span class="k">class</span> <span class="nc">YoloV5WarmupLRCallback</span><span class="p">(</span><span class="n">LRCallbackBase</span><span class="p">):</span>
+<div class="viewcode-block" id="YoloV5WarmupLRCallback"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.callbacks.YoloV5WarmupLRCallback">[docs]</a><span class="k">class</span> <span class="nc">YoloWarmupLRCallback</span><span class="p">(</span><span class="n">LRCallbackBase</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">YoloV5WarmupLRCallback</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Phase</span><span class="o">.</span><span class="n">TRAIN_BATCH_END</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">YoloWarmupLRCallback</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Phase</span><span class="o">.</span><span class="n">TRAIN_BATCH_END</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">lr_warmup_epochs</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="p">,</span> <span class="s1">&#39;lr_warmup_epochs&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
@@ -588,7 +588,7 @@
                           <span class="p">}</span>
 
 <span class="n">LR_WARMUP_CLS_DICT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;linear_step&quot;</span><span class="p">:</span> <span class="n">WarmupLRCallback</span><span class="p">,</span>
-                      <span class="s2">&quot;yolov5_warmup&quot;</span><span class="p">:</span> <span class="n">YoloV5WarmupLRCallback</span><span class="p">}</span>
+                      <span class="s2">&quot;yolov5_warmup&quot;</span><span class="p">:</span> <span class="n">YoloWarmupLRCallback</span><span class="p">}</span>
 </pre></div>
 
            </div>

@@ -4,7 +4,7 @@ from typing import Union, Type, List
 import torch
 import torch.nn as nn
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, \
-    CSPDarknet53, get_yolo_version_params
+    CSPDarknet53, get_yolo_type_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
     check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
@@ -38,8 +38,6 @@ DEFAULT_YOLO_ARCH_PARAMS = {
     'nms_iou': 0.45,  # When add_nms is True IoU threshold for NMS algorithm
     # (with smaller value more boxed will be considered "the same" and removed)
     'yolo_type': 'yoloX',  # Type of yolo to build: 'yoloX' is only supported currently
-    'yolo_version': 'v6.0',  # Release version of Ultralytics yoloV5 to build a model from: v6.0 and v3.0 are supported
-                             # (has an impact only if yolo_type is yoloV5)
     'stem_type': None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
     'depthwise': False,  # use depthwise separable convolutions all over the model
     'xhead_inter_channels': None,  # (has an impact only if yolo_type is yoloX)
@@ -281,10 +279,9 @@ class YoLoHead(nn.Module):
         # FLATTEN THE SOURCE LIST INTO A LIST OF INDICES
         self._layer_idx_to_extract = [idx for sub_l in self._skip_connections_dict.values() for idx in sub_l]
 
-        _, block, activation_type, width_mult, depth_mult = get_yolo_version_params(arch_params.yolo_version,
-                                                                                    arch_params.yolo_type,
-                                                                                    arch_params.width_mult_factor,
-                                                                                    arch_params.depth_mult_factor)
+        _, block, activation_type, width_mult, depth_mult = get_yolo_type_params(arch_params.yolo_type,
+                                                                                 arch_params.width_mult_factor,
+                                                                                 arch_params.depth_mult_factor)
 
         backbone_connector = [width_mult(c) if arch_params.scaled_backbone_width else c
                              for c in arch_params.backbone_connection_channels]
@@ -317,14 +314,10 @@ class YoLoHead(nn.Module):
             block(2 * width_mult(512), width_mult(1024), depth_mult(3), activation_type, False, depthwise))  # 23
 
         detect_input_channels = [width_mult(v) for v in (256, 512, 1024)]
-        if arch_params.yolo_type != 'yoloX':
-            self._modules_list.append(
-                Detect(num_classes, anchors, channels=detect_input_channels))  # 24
-        else:
-            strides = anchors.stride
-            self._modules_list.append(
-                DetectX(num_classes, strides, activation_type, channels=detect_input_channels, depthwise=depthwise,
-                        groups=xhead_groups, inter_channels=xhead_inter_channels))  # 24
+        strides = anchors.stride
+        self._modules_list.append(
+            DetectX(num_classes, strides, activation_type, channels=detect_input_channels, depthwise=depthwise,
+                    groups=xhead_groups, inter_channels=xhead_inter_channels))  # 24
 
         self.anchors = anchors
         self.width_mult = width_mult
@@ -360,10 +353,8 @@ class YoLoBase(SgModule):
         super().__init__()
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params
         self.arch_params = HpmStruct(**DEFAULT_YOLO_ARCH_PARAMS)
-        if get_param(arch_params, 'yolo_type', 'yoloV5') != 'yoloX':
-            self.arch_params.anchors = COCO_DETECTION_80_CLASSES_BBOX_ANCHORS
-        else:
-            self.arch_params.anchors = ANCHORSLESS_DUMMY_ANCHORS
+        # FIXME: REMOVE anchors ATTRIBUTE, WHICH HAS NO MEANING OTHER THAN COMPATIBILITY.
+        self.arch_params.anchors = COCO_DETECTION_80_CLASSES_BBOX_ANCHORS
         self.arch_params.override(**arch_params.to_dict())
         self.arch_params.skip_connections_dict = {k: v for k, v in self.arch_params.skip_connections_list}
 
@@ -518,7 +509,7 @@ class YoLoBase(SgModule):
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
-        A method for preparing the YoloV5 model for conversion to other frameworks (ONNX, CoreML etc)
+        A method for preparing the Yolo model for conversion to other frameworks (ONNX, CoreML etc)
         :param input_size: expected input size
         :return:
         """
