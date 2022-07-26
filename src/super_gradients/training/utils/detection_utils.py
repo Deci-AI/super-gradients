@@ -7,18 +7,14 @@ from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
 
 import cv2
 from deprecated import deprecated
-from scipy.cluster.vq import kmeans
 from torch.utils.data._utils.collate import default_collate
-from tqdm import tqdm
 import matplotlib.pyplot as plt
-from PIL import Image
 
 import torch
 import torchvision
 import numpy as np
 from torch import nn
 from torch.nn import functional as F
-from super_gradients.common.abstractions.abstract_logger import get_logger
 from omegaconf import ListConfig
 
 
