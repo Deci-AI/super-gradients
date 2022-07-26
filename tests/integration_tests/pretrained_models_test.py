@@ -79,6 +79,32 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
         self.coco_dataset = {
             'ssd_lite_mobilenet_v2': CoCoDetectionDatasetInterface(
+        self.coco_pretrained_arch_params = {"yolo_v5": {},
+                                            'ssd_lite_mobilenet_v2': {'num_classes': 80},
+                                            'coco_ssd_mobilenet_v1': {'num_classes': 80}}
+        self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
+        self.coco_dataset = {
+            'yolo_v5': CoCoDetectionDatasetInterface(
+                dataset_params={
+                    "batch_size": 8,
+                    "val_batch_size": 8,
+                    "train_image_size": 640,
+                    "val_image_size": 640,
+                    "val_collate_fn": crowd_detection_collate_fn,
+                    "val_sample_loading_method": "rectangular",
+                    "dataset_hyper_param": {
+                        "hsv_h": 0.015,
+                        "hsv_s": 0.7,
+                        "hsv_v": 0.4,
+                        "degrees": 0.0,
+                        "translate": 0.1,
+                        "scale": 0.5,  # IMAGE SCALE (+/- gain)
+                        "shear": 0.0 # IMAGE SHEAR (+/- deg),
+                    },
+                    "with_crowd": True
+                },
+            ),
+            'ssd_mobilenet': CoCoDetectionDatasetInterface(
                 dataset_params={
                     "batch_size": 32,
                     "val_batch_size": 32,
@@ -441,14 +467,14 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_ssd_lite_mobilenet_v2_coco(self):
         trainer = SgModel('coco_ssd_lite_mobilenet_v2', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
-        trainer.connect_dataset_interface(self.coco_dataset['ssd_lite_mobilenet_v2'], data_loader_num_workers=8)
+        trainer.connect_dataset_interface(self.coco_dataset['ssd_mobilenet'], data_loader_num_workers=8)
         trainer.build_model("ssd_lite_mobilenet_v2",
                             arch_params=self.coco_pretrained_arch_params["ssd_lite_mobilenet_v2"],
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
-        res = trainer.test(test_loader=self.coco_dataset['ssd_lite_mobilenet_v2'].val_loader,
+        res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
                            test_metrics_list=[DetectionMetricsV2(post_prediction_callback=ssd_post_prediction_callback,
-                                                                 num_cls=len(self.coco_dataset['ssd_lite_mobilenet_v2'].coco_classes))],
+                                                                 num_cls=len(self.coco_dataset['ssd_mobilenet'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
 
@@ -463,6 +489,20 @@ class PretrainedModelsTest(unittest.TestCase):
                             arch_params=transfer_arch_params,
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         trainer.train(training_params=self.transfer_detection_train_params['ssd_lite_mobilenet_v2'])
+
+    def test_pretrained_ssd_mobilenet_v1_coco(self):
+        trainer = SgModel('coco_ssd_mobilenet_v1', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.coco_dataset['ssd_mobilenet'], data_loader_num_workers=8)
+        trainer.build_model("ssd_mobilenet_v1",
+                            arch_params=self.coco_pretrained_arch_params["coco_ssd_mobilenet_v1"],
+                            checkpoint_params=self.coco_pretrained_ckpt_params)
+        ssd_post_prediction_callback = SSDPostPredictCallback()
+        res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
+                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=ssd_post_prediction_callback,
+                                                                 num_cls=len(self.coco_dataset['ssd_mobilenet'].coco_classes))],
+                           metrics_progress_verbose=True)[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["coco_ssd_mobilenet_v1"], delta=0.001)
 
     def test_transfer_learning_mobilenet_v3_large_imagenet(self):
         trainer = SgModel('imagenet_pretrained_mobilenet_v3_large_transfer_learning',
