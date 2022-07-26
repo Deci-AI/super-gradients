@@ -34,14 +34,16 @@ dataset_params = {"data_dir": "/data/coco",  # root path to coco data
                   "mosaic_prob": 1.,
                   "translate": 0.1,
 
-                  "val_collate_fn": CrowdDetectionCollateFN(),
+                  "val_collate_fn": DetectionCollateFN(),
 
                   "train_collate_fn": DetectionCollateFN(),
 
                   "cache_dir_path": None,
                   "cache_train_images": False,
                   "cache_val_images": False,
-                  "targets_format": DetectionTargetsFormat.LABEL_CXCYWH
+                  "targets_format": DetectionTargetsFormat.LABEL_CXCYWH,
+
+                  "with_crowd": False
                   }
 
 sg_model = SgModel("yoloxs_conversion")
