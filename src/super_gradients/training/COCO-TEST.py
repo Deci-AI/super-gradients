@@ -604,6 +604,7 @@ class CocoMAPV2:
             val_loader.collate_fn, keep_collate_fn = default_collate, val_loader.collate_fn
 
             for batch_i, (imgs, _, _, info_imgs, ids) in enumerate(tqdm(val_loader)):
+                ids = ids.view(-1).cpu().tolist()
                 outputs = self._predict(imgs)
                 outputs = self.post_prediction_callback(outputs, self.device)
                 output_formated = self.convert_to_coco_format(outputs, info_imgs, ids)
@@ -618,7 +619,7 @@ class CocoMAPV2:
         pred = anno.loadRes(output_json_path)  # init predictions api
         eval = COCOeval(anno, pred)#, 'bbox')
         eval.params.imgIds = all_image_ids
-        all_image_ids
+
         eval.evaluate()
         eval.accumulate()
         eval.summarize()
@@ -715,7 +716,7 @@ def test_map():
     sg_model = SgModel("yoloxm_conversion")
     di = CocoDetectionDatasetInterfaceV2(dataset_params=dataset_params)
     sg_model.connect_dataset_interface(di)
-    sg_model.build_model(architecture="yolox_s", checkpoint_params={"pretrained_weights": "coco"})
+    sg_model.build_model(architecture="yolox_m", checkpoint_params={"pretrained_weights": "coco"})
 
     # results = sg_model.test(test_loader=sg_model.valid_loader, test_metrics_list=[
     #     DetectionMetricsV2(normalize_targets=True, post_prediction_callback=YoloV5PostPredictionCallback(),
