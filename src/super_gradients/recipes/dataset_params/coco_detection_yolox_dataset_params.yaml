@@ -29,11 +29,11 @@ targets_format:
 
 with_crowd: False # whether to return "crowd" labels in validation
 
-val_collate_fn: # collate function for valset in CoCoDetectionDatasetInterface
+val_collate_fn: # collate function for valset
   _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
 
 
-train_collate_fn: # collate function for trainset in CoCoDetectionDatasetInterface
+train_collate_fn: # collate function for trainset
   _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
 
 cache_dir_path: # path to a directory that will be used for caching (with numpy.memmap).
