@@ -208,6 +208,8 @@ class DetectionMetricsV2(Metric):
 
          dist_sync_on_step: Synchronize metric state across processes at each ``forward()``
                             before returning the value at the step. (default=False)
+        accumulate_on_cpu:     Run on CPU regardless of device used in other parts.
+                            This is to avoid "CUDA out of memory" that might happen on GPU (default False)
     """
     def __init__(self, num_cls: int,
                  post_prediction_callback: DetectionPostPredictionCallback = None,
@@ -216,7 +218,8 @@ class DetectionMetricsV2(Metric):
                  recall_thres: torch.Tensor = None,
                  score_thres: float = 0.1,
                  top_k_predictions: int = 100,
-                 dist_sync_on_step: bool = False,):
+                 dist_sync_on_step: bool = False,
+                 accumulate_on_cpu: bool = True):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.num_cls = num_cls
         self.iou_thres = iou_thres
@@ -234,6 +237,8 @@ class DetectionMetricsV2(Metric):
         self.recall_thresholds = torch.linspace(0, 1, 101) if recall_thres is None else recall_thres
         self.score_threshold = score_thres
         self.top_k_predictions = top_k_predictions
+
+        self.accumulate_on_cpu = accumulate_on_cpu
 
     def update(self, preds, target: torch.Tensor, device: str,
                inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None):
@@ -256,9 +261,11 @@ class DetectionMetricsV2(Metric):
         crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.clone()
 
         preds = self.post_prediction_callback(preds, device=device)
+
         new_matching_info = compute_detection_matching(
             preds, targets, height, width, self.iou_thresholds, crowd_targets=crowd_targets,
-            top_k=self.top_k_predictions, denormalize_targets=self.denormalize_targets)
+            top_k=self.top_k_predictions, denormalize_targets=self.denormalize_targets,
+            device=self.device, return_on_cpu=self.accumulate_on_cpu)
 
         accumulated_matching_info = getattr(self, "matching_info")
         setattr(self, "matching_info", accumulated_matching_info + new_matching_info)
@@ -272,12 +279,11 @@ class DetectionMetricsV2(Metric):
 
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
-            self.recall_thresholds = self.recall_thresholds.to(self.device)
 
             # shape (n_class, nb_iou_thresh)
             ap, precision, recall, f1, unique_classes = compute_detection_metrics(
-                *matching_info_tensors, device=self.device, recall_thresholds=self.recall_thresholds,
-                score_threshold=self.score_threshold)
+                *matching_info_tensors, recall_thresholds=self.recall_thresholds, score_threshold=self.score_threshold,
+                device="cpu" if self.accumulate_on_cpu else self.device)
 
             # Precision, recall and f1 are computed for smallest IoU threshold (usually 0.5), averaged over classes
             mean_precision, mean_recall, mean_f1 = precision[:, 0].mean(), recall[:, 0].mean(), f1[:, 0].mean()
@@ -308,6 +314,6 @@ class DetectionMetricsV2(Metric):
             matching_info = []
             for state_dict in gathered_state_dicts:
                 matching_info += state_dict["matching_info"]
+            matching_info = tensor_container_to_device(matching_info, device="cpu" if self.accumulate_on_cpu else self.device)
 
-            matching_info = tensor_container_to_device(matching_info, device=self.device)
             setattr(self, "matching_info", matching_info)
