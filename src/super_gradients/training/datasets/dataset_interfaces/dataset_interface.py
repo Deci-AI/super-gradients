@@ -902,7 +902,7 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
 
         self.classes = self.trainset.classes
 
-
+from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 class CocoDetectionDatasetInterfaceV2(DatasetInterface):
     def __init__(self, dataset_params={}):
         super(CocoDetectionDatasetInterfaceV2, self).__init__(dataset_params=dataset_params)
@@ -928,14 +928,14 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
 
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
         local_rank = get_local_rank()
-        with wait_for_the_master(local_rank):
-            self.trainset = COCODetectionDatasetV2(data_dir=self.dataset_params.data_dir,
-                                                   name=self.dataset_params.train_subdir,
-                                                   json_file=self.dataset_params.train_json_file,
-                                                   img_size=train_input_dim,
-                                                   cache=self.dataset_params.cache_train_images,
-                                                   transforms=train_transforms,
-                                                   with_crowd=False)
+        # with wait_for_the_master(local_rank):
+        #     self.trainset = COCODetectionDatasetV2(data_dir=self.dataset_params.data_dir,
+        #                                            name=self.dataset_params.train_subdir,
+        #                                            json_file=self.dataset_params.train_json_file,
+        #                                            img_size=train_input_dim,
+        #                                            cache=self.dataset_params.cache_train_images,
+        #                                            transforms=train_transforms,
+        #                                            with_crowd=False)
 
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
         with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=True)
@@ -951,6 +951,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                             DetectionTargetsFormatTransform(max_targets=50)],
                 cache=self.dataset_params.cache_val_images,
                 with_crowd=with_crowd)
+        self.trainset = self.valset
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):

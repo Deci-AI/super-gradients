@@ -709,13 +709,13 @@ def test_map():
                       "cache_train_images": False,
                       "cache_val_images": False,
                       "with_crowd": True,
-                      "targets_format": DetectionTargetsFormat.XYXY_LABEL
+                      # "targets_format": DetectionTargetsFormat.XYXY_LABEL
                       }
 
     sg_model = SgModel("yoloxm_conversion")
     di = CocoDetectionDatasetInterfaceV2(dataset_params=dataset_params)
     sg_model.connect_dataset_interface(di)
-    sg_model.build_model(architecture="yolox_m", checkpoint_params={"pretrained_weights": "coco"})
+    sg_model.build_model(architecture="yolox_s", checkpoint_params={"pretrained_weights": "coco"})
 
     # results = sg_model.test(test_loader=sg_model.valid_loader, test_metrics_list=[
     #     DetectionMetricsV2(normalize_targets=True, post_prediction_callback=YoloV5PostPredictionCallback(),
