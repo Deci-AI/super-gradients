@@ -10,7 +10,7 @@ from super_gradients import (
 )
 from super_gradients.training.utils.callbacks import ModelConversionCheckCallback
 from super_gradients.training.utils.detection_utils import Anchors
-from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
+from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.metrics import Accuracy, Top5, IoU
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.losses.stdc_loss import STDCLoss
@@ -123,7 +123,7 @@ class ConversionCallbackTest(unittest.TestCase):
                 "train_metrics_list": [],
                 "valid_metrics_list": [
                     DetectionMetrics(
-                        post_prediction_callback=YoloV5PostPredictionCallback(), num_cls=len(dataset.classes)
+                        post_prediction_callback=YoloPostPredictionCallback(), num_cls=len(dataset.classes)
                     )
                 ],
                 "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],

@@ -9,7 +9,7 @@ from super_gradients.training.utils.segmentation_utils import coco_sub_classes_i
 from super_gradients.training.metrics import Accuracy, IoU
 import os
 import shutil
-from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
+from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.ssd_utils import SSDPostPredictCallback
 from super_gradients.training.models.detection_models.ssd import DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS
 from super_gradients.training.utils.detection_utils import Anchors
@@ -147,7 +147,7 @@ class PretrainedModelsTest(unittest.TestCase):
                     "train_metrics_list": [],
                     "valid_metrics_list": [
                         DetectionMetricsV2(
-                            post_prediction_callback=YoloV5PostPredictionCallback(),
+                            post_prediction_callback=YoloPostPredictionCallback(),
                             num_cls=len(self.transfer_detection_dataset['yolo_v5'].classes))],
                     "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],
                     "metric_to_watch": "mAP@0.50:0.95",
@@ -498,8 +498,8 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.coco_dataset['yolo_v5'], data_loader_num_workers=8)
         trainer.build_model("yolo_v5s", arch_params=self.coco_pretrained_arch_params["yolo_v5"], checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(test_loader=self.coco_dataset['yolo_v5'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloV5PostPredictionCallback(),
-                                                               num_cls=len(
+                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloPostPredictionCallback(),
+                                                                 num_cls=len(
                                                                    self.coco_dataset['yolo_v5'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5s"], delta=0.001)
@@ -510,8 +510,8 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.coco_dataset['yolo_v5'], data_loader_num_workers=8)
         trainer.build_model("yolo_v5m", arch_params=self.coco_pretrained_arch_params["yolo_v5"], checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(test_loader=self.coco_dataset['yolo_v5'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloV5PostPredictionCallback(),
-                                                               num_cls=len(
+                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloPostPredictionCallback(),
+                                                                 num_cls=len(
                                                                    self.coco_dataset['yolo_v5'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5m"], delta=0.001)
@@ -522,8 +522,8 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.coco_dataset['yolo_v5'], data_loader_num_workers=8)
         trainer.build_model("yolo_v5l", arch_params=self.coco_pretrained_arch_params["yolo_v5"], checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(test_loader=self.coco_dataset['yolo_v5'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloV5PostPredictionCallback(),
-                                                               num_cls=len(
+                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloPostPredictionCallback(),
+                                                                 num_cls=len(
                                                                    self.coco_dataset['yolo_v5'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5l"], delta=0.001)
@@ -534,8 +534,8 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.coco_dataset['yolo_v5'], data_loader_num_workers=8)
         trainer.build_model("yolo_v5n", arch_params=self.coco_pretrained_arch_params["yolo_v5"], checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(test_loader=self.coco_dataset['yolo_v5'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloV5PostPredictionCallback(),
-                                                               num_cls=len(
+                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloPostPredictionCallback(),
+                                                                 num_cls=len(
                                                                    self.coco_dataset['yolo_v5'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolo_v5n"], delta=0.001)
