@@ -39,8 +39,6 @@ class TestYOLOX(unittest.TestCase):
                 output_augment = yolo_model(dummy_input)
                 self.assertIsNotNone(output_augment)
 
-                # MODEL IS ANCHORLESS
-                self.assertTrue(yolo_model._head.anchors.num_anchors == 0)
 
 
 if __name__ == '__main__':
