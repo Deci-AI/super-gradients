@@ -63,21 +63,28 @@ class DetectionDataSetV2(Dataset):
             cache: bool = False,
             cache_path: str = None,
             transforms: List[DetectionTransform] = [],
-            class_inclusion_list: Optional[List[str]] = None,
-            keep_empty_annotations: bool = False,
             all_classes_list: Optional[List[str]] = None,
-            annotation_fields_to_subclass: List[str] = None,
-            output_fields: List[str] = None,
+            class_inclusion_list: Optional[List[str]] = None,
+            ignore_empty_annotations: bool = True,
+            annotation_fields_to_subclass: List[str] = ["target"],
+            output_fields: List[str] = ["image", "target"],
     ):
-        """
-        DetectionDataSetV2
+        """Detection dataset.
 
-        :param input_dim:            Image size (when loaded, before transforms)
-        :param cache:                Whether to cache images
-        :param cache_path:       Path to a directory that will be used for caching (with memmap)
-        :param transforms:           List of transforms to apply sequentially on sample in __getitem__
+        :param input_dim:            Image size (when loaded, before transforms).
+        :paran n_available_samples:  Number of images that are avalaible (regardless of ignored images)
+                                         - Note that this can be different to len(self) if images are droped.
+        :param cache:                Whether to cache images or not.
+        :param cache_path:           Path to the directory where cached images will be stored in an optimized format.
+        :param transforms:           List of transforms to apply sequentially on sample.
         :param all_classes_list:     All the class names.
-        :param class_inclusion_list: Subclass names or None when subclassing is disabled.
+        :param class_inclusion_list: If not None, list of the only classes to take into account (other will be ignored).
+        :param ignore_empty_annotations:        If True and class_inclusion_list not None, images without any target
+                                                will be ignored.
+        :param annotation_fields_to_subclass:   List of the fields where "sub classing" applies.
+                                                It has to include at least "target" but can include other.
+        :paran output_fields:                   Fields that will be outputed by __getitem__.
+                                                It has to include at least "image" and "target" but can include other.
         """
         super().__init__()
 
@@ -85,14 +92,13 @@ class DetectionDataSetV2(Dataset):
         self.target_format = target_format
         self.transforms = transforms
 
-        # n_available_samples can be different to len(self.annotations) and len(self) if annotations are drop.
         self.n_available_samples = n_available_samples
 
         self.all_classes_list = all_classes_list
         self.class_inclusion_list = class_inclusion_list
         self.classes = self.class_inclusion_list or self.all_classes_list
 
-        self.keep_empty_annotations = keep_empty_annotations
+        self.ignore_empty_annotations = ignore_empty_annotations
         self.annotation_fields_to_subclass = annotation_fields_to_subclass or ["target"]
         assert "target" in self.annotation_fields_to_subclass,\
             '"target" is expected to be in the fields to subclassbut it was not included'
@@ -129,7 +135,7 @@ class DetectionDataSetV2(Dataset):
             if self.class_inclusion_list is not None:
                 img_annotation = self._sub_class_annotation(img_annotation)
 
-            if self.keep_empty_annotations or img_annotation is not None:
+            if not self.ignore_empty_annotations or img_annotation is not None:
                 annotations.append(img_annotation)
 
         return annotations
@@ -145,7 +151,7 @@ class DetectionDataSetV2(Dataset):
             annotation[field] = self._sub_class_target(targets=annotation[field], cls_posx=cls_posx)
 
         is_annotation_non_empty = any(len(annotation[field]) > 0 for field in self.annotation_fields_to_subclass)
-        return annotation if (self.keep_empty_annotations or is_annotation_non_empty) else None
+        return annotation if (not self.ignore_empty_annotations or is_annotation_non_empty) else None
 
     def _sub_class_target(self, targets: np.ndarray, cls_posx: int) -> np.ndarray:
         """Sublass targets of a specific image.
@@ -176,13 +182,11 @@ class DetectionDataSetV2(Dataset):
         if cache_path.parent.exists() and not cache_path.exists():
             cache_path.mkdir()
 
-        logger.warning(
-            "\n********************************************************************************\n"
-            "You are using cached images in RAM to accelerate training.\n"
-            "This requires large system RAM.\n"
-            "Make sure you have 200G+ RAM and 136G available disk space for training COCO.\n"
-            "********************************************************************************\n"
-        )
+        logger.warning("\n********************************************************************************\n"
+                       "You are using cached images in RAM to accelerate training.\n"
+                       "This requires large system RAM.\n"
+                       "********************************************************************************\n")
+
         max_h, max_w = self.input_dim[0], self.input_dim[1]
         img_resized_cache_path = cache_path / f"img_resized_cache.array"
 
@@ -203,11 +207,9 @@ class DetectionDataSetV2(Dataset):
             cached_imgs.flush()
             loaded_images_pbar.close()
         else:
-            logger.warning(
-                "You are using cached imgs! Make sure your dataset is not changed!!\n"
-                "Everytime the self.input_size is changed in your exp file, you need to delete\n"
-                "the cached data and re-generate them.\n"
-            )
+            logger.warning("You are using cached imgs! Make sure your dataset is not changed!!\n" 
+                           "Everytime the self.input_size is changed in your exp file, you need to delete\n" 
+                           "the cached data and re-generate them.\n")
 
         logger.info("Loading cached imgs...")
         cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
@@ -305,8 +307,8 @@ class DetectionDataSetV2(Dataset):
         additional_samples = self._get_random_samples(additional_samples_count, non_empty_annotations)
         sample["additional_samples"] = additional_samples
 
-    def _get_random_samples(
-            self, count: int, non_empty_annotations_only: bool = False) -> List[Dict[str, Union[np.ndarray, Any]]]:
+    def _get_random_samples(self, count: int,
+                            non_empty_annotations_only: bool = False) -> List[Dict[str, Union[np.ndarray, Any]]]:
         """Load random samples.
 
         :param count: The number of samples wanted
