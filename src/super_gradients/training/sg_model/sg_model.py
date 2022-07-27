@@ -907,10 +907,11 @@ class SgModel:
                                                            update_param_groups=self.update_param_groups,
                                                            **self.training_params.to_dict()))
         if self.training_params.lr_warmup_epochs > 0:
-            if issubclass(self.training_params.warmup_mode, PhaseCallback):
-                warmup_callback_cls = self.training_params.warmup_mode
-            elif isinstance(self.training_params.warmup_mode, str):
-                warmup_callback_cls = LR_WARMUP_CLS_DICT[self.training_params.warmup_mode]
+            warmup_mode = self.training_params.warmup_mode
+            if isinstance(warmup_mode, str):
+                warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
+            elif isinstance(warmup_mode, type) and issubclass(warmup_mode, PhaseCallback):
+                warmup_callback_cls = warmup_mode
             else:
                 raise RuntimeError('warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback')
             self.phase_callbacks.append(warmup_callback_cls(train_loader_len=len(self.train_loader),
