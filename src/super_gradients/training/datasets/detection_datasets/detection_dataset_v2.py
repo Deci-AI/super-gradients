@@ -119,11 +119,11 @@ class DetectionDataSetV2(Dataset):
                 annotations.append(img_annotation)
         return annotations
 
-    def _sub_class_target(self, targets: np.ndarray) -> np.ndarray:
-        """Sublass a specific the targets of a specific image"""
+    def _sub_class_target(self, targets: np.ndarray, label_posx) -> np.ndarray:
+        """Sublass targets of a specific image"""
+
         targets_kept = []
         for target in targets:
-            label_posx = get_label_posx_in_target(self.target_format)
             label_id = int(target[label_posx])
             label_name = self.all_classes_list[label_id]
             if label_name in self.class_inclusion_list:
@@ -134,15 +134,16 @@ class DetectionDataSetV2(Dataset):
         return np.array(targets_kept) if len(targets_kept) > 0 else np.zeros((0, 5), dtype=np.float32)
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
-        """Remove targets, crowd_targets, etc... that have a label not in class_inclusion_list."""
+        """
+        Subclass every field listed in self.annotation_fields_to_subclass.
+        It could be targets, crowd_targets, ect ...
+        """
+        label_posx = get_label_posx_in_target(self.target_format)
         for field in self.annotation_fields_to_subclass:
-            annotation[field] = self._sub_class_target(annotation[field])
+            annotation[field] = self._sub_class_target(targets=annotation[field], label_posx=label_posx)
 
         is_annotation_non_empty = any(len(annotation[field]) > 0 for field in self.annotation_fields_to_subclass)
-        if is_annotation_non_empty:
-            return annotation
-        else:
-            return None
+        return annotation if (self.keep_empty_annotations or is_annotation_non_empty) else None
 
     def _load_image(self, index: int) -> np.ndarray:
         """
