@@ -77,8 +77,6 @@ class PretrainedModelsTest(unittest.TestCase):
                                                      "greater_metric_to_watch_is_better": True}
         self.coco_pretrained_arch_params = {'ssd_lite_mobilenet_v2': {'num_classes': 80}}
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
-        self.coco_dataset = {
-            'ssd_lite_mobilenet_v2': CoCoDetectionDatasetInterface(
         self.coco_pretrained_arch_params = {"yolo_v5": {},
                                             'ssd_lite_mobilenet_v2': {'num_classes': 80},
                                             'coco_ssd_mobilenet_v1': {'num_classes': 80}}
@@ -462,7 +460,6 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         trainer.build_model("efficientnet_b0", arch_params=self.imagenet_pretrained_arch_params["efficientnet_b0"], checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(training_params=self.transfer_classification_train_params)
-
 
     def test_pretrained_ssd_lite_mobilenet_v2_coco(self):
         trainer = SgModel('coco_ssd_lite_mobilenet_v2', model_checkpoints_location='local',
