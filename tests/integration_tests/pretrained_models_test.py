@@ -114,7 +114,7 @@ class PretrainedModelsTest(unittest.TestCase):
                 }
             ),
         }
-        self.coco_pretrained_maps = {'ssd_lite_mobilenet_v2': 0.215}
+        self.coco_pretrained_maps = {'ssd_lite_mobilenet_v2': 0.215, 'coco_ssd_mobilenet_v1': 0.243}
         self.transfer_detection_dataset = {
             'ssd_lite_mobilenet_v2': DetectionTestDatasetInterface(image_size=320, classes=['class1', 'class2'])
         }
