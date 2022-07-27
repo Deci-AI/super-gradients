@@ -55,7 +55,7 @@ from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path,
     load_checkpoint_to_model, load_pretrained_weights
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
-    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods
+    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, PhaseCallback
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
@@ -907,7 +907,12 @@ class SgModel:
                                                            update_param_groups=self.update_param_groups,
                                                            **self.training_params.to_dict()))
         if self.training_params.lr_warmup_epochs > 0:
-            warmup_callback_cls = LR_WARMUP_CLS_DICT[self.training_params.warmup_mode]
+            if issubclass(self.training_params.warmup_mode, PhaseCallback):
+                warmup_callback_cls = self.training_params.warmup_mode
+            elif isinstance(self.training_params.warmup_mode, str):
+                warmup_callback_cls = LR_WARMUP_CLS_DICT[self.training_params.warmup_mode]
+            else:
+                raise RuntimeError('warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback')
             self.phase_callbacks.append(warmup_callback_cls(train_loader_len=len(self.train_loader),
                                                             net=self.net,
                                                             training_params=self.training_params,
@@ -1529,7 +1534,7 @@ class SgModel:
 
             self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
         else:
-            raise RuntimeError('sg_logger can be either an sg_logger name (str) or a subcalss of AbstractSGLogger')
+            raise RuntimeError('sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger')
 
         if not isinstance(self.sg_logger, BaseSGLogger):
             logger.warning("WARNING! Using a user-defined sg_logger: files will not be automatically written to disk!\n"
