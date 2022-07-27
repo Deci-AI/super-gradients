@@ -1,13 +1,10 @@
-"""
-YoloV5 code adapted from https://github.com/ultralytics/yolov5/blob/master/models/yolo.py
-"""
 import math
 from typing import Union, Type, List
 
 import torch
 import torch.nn as nn
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, \
-    CSPDarknet53, get_yolo_version_params
+    CSPDarknet53, get_yolo_type_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
     check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
@@ -40,9 +37,7 @@ DEFAULT_YOLO_ARCH_PARAMS = {
     'nms_conf': 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
     'nms_iou': 0.45,  # When add_nms is True IoU threshold for NMS algorithm
     # (with smaller value more boxed will be considered "the same" and removed)
-    'yolo_type': 'yoloV5',  # Type of yolo to build: 'yoloV5' and 'yoloX' are supported
-    'yolo_version': 'v6.0',  # Release version of Ultralytics yoloV5 to build a model from: v6.0 and v3.0 are supported
-                             # (has an impact only if yolo_type is yoloV5)
+    'yolo_type': 'yoloX',  # Type of yolo to build: 'yoloX' is only supported currently
     'stem_type': None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
     'depthwise': False,  # use depthwise separable convolutions all over the model
     'xhead_inter_channels': None,  # (has an impact only if yolo_type is yoloX)
@@ -55,7 +50,7 @@ DEFAULT_YOLO_ARCH_PARAMS = {
 }
 
 
-class YoloV5PostPredictionCallback(DetectionPostPredictionCallback):
+class YoloPostPredictionCallback(DetectionPostPredictionCallback):
     """Non-Maximum Suppression (NMS) module"""
 
     def __init__(self, conf: float = 0.001, iou: float = 0.6, classes: List[int] = None,
@@ -70,7 +65,7 @@ class YoloV5PostPredictionCallback(DetectionPostPredictionCallback):
         :param with_confidence: in NMS, whether to multiply objectness  (used in NMS_Type.ITERATIVE)
                                 score with class score
         """
-        super(YoloV5PostPredictionCallback, self).__init__()
+        super(YoloPostPredictionCallback, self).__init__()
         self.conf = conf
         self.iou = iou
         self.classes = classes
@@ -238,7 +233,7 @@ class DetectX(nn.Module):
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
-class AbstractYoLoV5Backbone:
+class AbstractYoLoBackbone:
     def __init__(self, arch_params):
         # CREATE A LIST CONTAINING THE LAYERS TO EXTRACT FROM THE BACKBONE AND ADD THE FINAL LAYER
         self._layer_idx_to_extract = [idx for sub_l in arch_params.skip_connections_dict.values() for idx in sub_l]
@@ -258,19 +253,19 @@ class AbstractYoLoV5Backbone:
         return extracted_intermediate_layers
 
 
-class YoLoV5DarknetBackbone(AbstractYoLoV5Backbone, CSPDarknet53):
+class YoLoDarknetBackbone(AbstractYoLoBackbone, CSPDarknet53):
     """Implements the CSP_Darknet53 module and inherit the forward pass to extract layers indicated in arch_params"""
 
     def __init__(self, arch_params):
         arch_params.backbone_mode = True
         CSPDarknet53.__init__(self, arch_params)
-        AbstractYoLoV5Backbone.__init__(self, arch_params)
+        AbstractYoLoBackbone.__init__(self, arch_params)
 
     def forward(self, x):
-        return AbstractYoLoV5Backbone.forward(self, x)
+        return AbstractYoLoBackbone.forward(self, x)
 
 
-class YoLoV5Head(nn.Module):
+class YoLoHead(nn.Module):
     def __init__(self, arch_params):
         super().__init__()
         # PARSE arch_params
@@ -284,10 +279,9 @@ class YoLoV5Head(nn.Module):
         # FLATTEN THE SOURCE LIST INTO A LIST OF INDICES
         self._layer_idx_to_extract = [idx for sub_l in self._skip_connections_dict.values() for idx in sub_l]
 
-        _, block, activation_type, width_mult, depth_mult = get_yolo_version_params(arch_params.yolo_version,
-                                                                                    arch_params.yolo_type,
-                                                                                    arch_params.width_mult_factor,
-                                                                                    arch_params.depth_mult_factor)
+        _, block, activation_type, width_mult, depth_mult = get_yolo_type_params(arch_params.yolo_type,
+                                                                                 arch_params.width_mult_factor,
+                                                                                 arch_params.depth_mult_factor)
 
         backbone_connector = [width_mult(c) if arch_params.scaled_backbone_width else c
                              for c in arch_params.backbone_connection_channels]
@@ -320,14 +314,10 @@ class YoLoV5Head(nn.Module):
             block(2 * width_mult(512), width_mult(1024), depth_mult(3), activation_type, False, depthwise))  # 23
 
         detect_input_channels = [width_mult(v) for v in (256, 512, 1024)]
-        if arch_params.yolo_type != 'yoloX':
-            self._modules_list.append(
-                Detect(num_classes, anchors, channels=detect_input_channels))  # 24
-        else:
-            strides = anchors.stride
-            self._modules_list.append(
-                DetectX(num_classes, strides, activation_type, channels=detect_input_channels, depthwise=depthwise,
-                        groups=xhead_groups, inter_channels=xhead_inter_channels))  # 24
+        strides = anchors.stride
+        self._modules_list.append(
+            DetectX(num_classes, strides, activation_type, channels=detect_input_channels, depthwise=depthwise,
+                    groups=xhead_groups, inter_channels=xhead_inter_channels))  # 24
 
         self.anchors = anchors
         self.width_mult = width_mult
@@ -358,7 +348,7 @@ class YoLoV5Head(nn.Module):
                                        out])
 
 
-class YoLoV5Base(SgModule):
+class YoLoBase(SgModule):
     def __init__(self, backbone: Type[nn.Module], arch_params: HpmStruct, initialize_module: bool = True):
         super().__init__()
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params
@@ -376,9 +366,8 @@ class YoLoV5Base(SgModule):
         # A FLAG TO DEFINE augment_forward IN INFERENCE
         self.augmented_inference = False
 
-        # RUN SPECIFIC INITIALIZATION OF YOLO-V5
         if initialize_module:
-            self._head = YoLoV5Head(self.arch_params)
+            self._head = YoLoHead(self.arch_params)
             self._initialize_module()
 
     def forward(self, x):
@@ -422,7 +411,7 @@ class YoLoV5Base(SgModule):
         if self.arch_params.add_nms:
             nms_conf = self.arch_params.nms_conf
             nms_iou = self.arch_params.nms_iou
-            self._nms = YoloV5PostPredictionCallback(nms_conf, nms_iou)
+            self._nms = YoloPostPredictionCallback(nms_conf, nms_iou)
 
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int,
                             training_params: HpmStruct, total_batch: int) -> list:
@@ -440,7 +429,7 @@ class YoLoV5Base(SgModule):
         dummy_input = torch.zeros(1, self.arch_params.channels_in, s, s)
         dummy_input = dummy_input.to(next(self._backbone.parameters()).device)
         stride = torch.tensor([s / x.shape[-2] for x in self._forward_once(dummy_input)])
-        stride = stride.to(dummy_input.device)
+        stride = stride.to(m.stride.device)
         if not torch.equal(m.stride, stride):
             raise RuntimeError('Provided anchor strides do not match the model strides')
         if isinstance(m, Detect):
@@ -519,7 +508,7 @@ class YoLoV5Base(SgModule):
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
-        A method for preparing the YoloV5 model for conversion to other frameworks (ONNX, CoreML etc)
+        A method for preparing the Yolo model for conversion to other frameworks (ONNX, CoreML etc)
         :param input_size: expected input size
         :return:
         """

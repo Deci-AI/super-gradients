@@ -4,7 +4,7 @@ import unittest
 from super_gradients.training import SgModel, utils as core_utils
 from super_gradients.training.datasets import CoCoDetectionDatasetInterface
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
-from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
+from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn, DetectionVisualization
 
 
@@ -21,9 +21,9 @@ class TestDetectionUtils(unittest.TestCase):
         # Create Yolo model
         model = SgModel('visualization_test',
                         model_checkpoints_location='local',
-                        post_prediction_callback=YoloV5PostPredictionCallback())
+                        post_prediction_callback=YoloPostPredictionCallback())
         model.connect_dataset_interface(dataset, data_loader_num_workers=8)
-        model.build_model("yolo_v5s")
+        model.build_model("yolox_s")
 
         # Simulate one iteration of validation subset
         valid_loader = model.valid_loader
