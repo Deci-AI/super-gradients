@@ -41,6 +41,22 @@ class DetectionTargetsFormat(Enum):
     NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
 
 
+def get_label_posx_in_target(target_format: DetectionTargetsFormat):
+    """Get the label of a given target"""
+    format_split = target_format.value.split("_")
+    if format_split[0] == "LABEL":
+        return 0
+    elif format_split[-1] == "LABEL":
+        return -1
+    else:
+        raise NotImplementedError(f"No implementation to find index of LABEL in {target_format.value}")
+
+
+def extract_label_from_target(target, target_format: DetectionTargetsFormat):
+    """Get the label of a given target"""
+    return target[get_label_posx_in_target(target_format)]
+
+
 def _set_batch_labels_index(labels_batch):
     for i, labels in enumerate(labels_batch):
         labels[:, 0] = i
@@ -1029,7 +1045,7 @@ class DetectionVisualization:
         for box in target_boxes:
             target_boxes_image = DetectionVisualization._draw_box_title(color_mapping, class_names, box_thickness,
                                                                         target_boxes_image, *box[2:],
-                                                                        class_id=box[1], is_target=True)
+                                                                        class_id=box[1])
 
         # Transparent overlay of ground truth boxes
         mask = target_boxes_image.astype(bool)
@@ -1268,7 +1284,7 @@ class DetectionCollateFN:
     def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
         nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
         targets_merged = []
-        for i in range(targets.shape[0]):
+        for i in range(targets.shape[0]): # shape = [n_image, bbox4, cls]
             targets_im = targets[i, :nlabel[i]]
             batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
             targets_merged.append(torch.cat((batch_column, targets_im), 1))
