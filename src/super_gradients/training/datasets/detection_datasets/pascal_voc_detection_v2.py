@@ -20,9 +20,14 @@ PASCAL_VOC_2012_CLASSES = [
 
 
 class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
-    """PascalVOCDetectionDataSetV2"""
+    """Dataset for Pascal VOC object detection"""
 
     def __init__(self, data_dir: str, images_sub_directory: str, *args, **kwargs):
+        """Dataset for Pascal VOC object detection
+
+        :param data_dir:                Where the data is stored
+        :param images_sub_directory:    Sub directory of data_dir that includes images.
+        """
         self.data_dir = data_dir
         self.images_sub_directory = images_sub_directory
         self.img_and_target_path_list = self._get_img_and_target_path_list()
@@ -34,7 +39,9 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
 
     def _get_img_and_target_path_list(self) -> List[Tuple[str, str]]:
         """Initialize img_and_target_path_list and warn if label file is missing
-        :return: List of tuples made of (img_path,target_path)"""
+
+        :return: List of tuples made of (img_path,target_path)
+        """
         img_files_folder = self.data_dir + self.images_sub_directory
         img_files = glob.glob(img_files_folder + "*.jpg")
         assert len(img_files) > 0, f"No image file found at {img_files_folder}"
@@ -53,6 +60,7 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
 
     def _load_annotation(self, sample_id: int) -> dict:
         """Load annotations associated to a specific sample.
+
         :return: Annotation including:
                     - target in XYXY_LABEL format
                     - img_path
