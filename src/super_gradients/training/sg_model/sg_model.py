@@ -55,7 +55,7 @@ from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path,
     load_checkpoint_to_model, load_pretrained_weights
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
-    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, PhaseCallback
+    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
@@ -910,7 +910,7 @@ class SgModel:
             warmup_mode = self.training_params.warmup_mode
             if isinstance(warmup_mode, str):
                 warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
-            elif isinstance(warmup_mode, type) and issubclass(warmup_mode, PhaseCallback):
+            elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
                 warmup_callback_cls = warmup_mode
             else:
                 raise RuntimeError('warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback')
