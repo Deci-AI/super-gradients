@@ -918,7 +918,6 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
         cache_dir = core_utils.get_param(self.dataset_params, "cache_dir", self.data_dir)
 
         class_inclusion_list = core_utils.get_param(self.dataset_params, "class_inclusion_list")
-        # self.data_root = core_utils.get_param(self.dataset_params, 'data_dir', "~/data/pascal_unified_coco_format/")
 
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)

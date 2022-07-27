@@ -17,14 +17,14 @@ logger = get_logger(__name__)
 
 
 class DetectionDataSetV2(Dataset):
-    """Detection dataset V2.
+    """Detection dataset.
 
-    This is a boilerplate class with a premade workflow to facilitate the implementation of datasets.
+    This is a boilerplate class to facilitate the implementation of datasets.
 
     HOW TO CREATE A DATASET THAT INHERITS FROM DetectionDataSetV2 ?
         - Inherit from DetectionDataSetV2
         - implement the method self._load_annotation to return at least the fields "target" and "img_path"
-        - Call super().__init__ with the reauired params at the end of.
+        - Call super().__init__ with the required params.
                 //!\\ super().__init__ will call self._load_annotation, so make sure that every required
                       attributes are set up before calling super().__init__ (ideally just call it last)
 
