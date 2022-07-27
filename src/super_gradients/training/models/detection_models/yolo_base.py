@@ -366,7 +366,6 @@ class YoLoBase(SgModule):
         # A FLAG TO DEFINE augment_forward IN INFERENCE
         self.augmented_inference = False
 
-        # RUN SPECIFIC INITIALIZATION OF YOLO-V5
         if initialize_module:
             self._head = YoLoHead(self.arch_params)
             self._initialize_module()
