@@ -21,7 +21,7 @@ from super_gradients.training.datasets.segmentation_datasets import PascalVOC201
 from super_gradients.training import utils as core_utils
 from super_gradients.common import DatasetDataInterface
 from super_gradients.common.environment import AWS_ENV_NAME
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn, crowd_detection_collate_fn, DetectionCollateFN, CrowdDetectionCollateFN
+from super_gradients.training.utils.detection_utils import base_detection_collate_fn, DetectionTargetsFormat, crowd_detection_collate_fn
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
@@ -1034,6 +1034,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
         super(CocoDetectionDatasetInterfaceV2, self).__init__(dataset_params=dataset_params)
 
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
+        targets_format = get_param(self.dataset_params, "targets_format", DetectionTargetsFormat.LABEL_CXCYWH)
 
         train_transforms = [DetectionMosaic(input_dim=train_input_dim,
                                             prob=self.dataset_params.mosaic_prob),
@@ -1045,11 +1046,16 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                                                   ),
                             DetectionMixup(input_dim=train_input_dim,
                                            mixup_scale=self.dataset_params.mixup_scale,
-                                           prob=self.dataset_params.mixup_prob),
-                            DetectionHSV(prob=self.dataset_params.hsv_prob),
+                                           prob=self.dataset_params.mixup_prob,
+                                           flip_prob=self.dataset_params.flip_prob),
+                            DetectionHSV(prob=self.dataset_params.hsv_prob,
+                                         hgain=self.dataset_params.hgain,
+                                         sgain=self.dataset_params.sgain,
+                                         vgain=self.dataset_params.vgain
+                                         ),
                             DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
                             DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
-                            DetectionTargetsFormatTransform()
+                            DetectionTargetsFormatTransform(output_format=targets_format)
                             ]
 
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
@@ -1060,6 +1066,7 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                                                    json_file=self.dataset_params.train_json_file,
                                                    img_size=train_input_dim,
                                                    cache=self.dataset_params.cache_train_images,
+                                                   cache_dir_path=self.dataset_params.cache_dir_path,
                                                    transforms=train_transforms,
                                                    with_crowd=False)
 
@@ -1074,8 +1081,9 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                 name=self.dataset_params.val_subdir,
                 img_size=val_input_dim,
                 transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
-                            DetectionTargetsFormatTransform(max_targets=50)],
+                            DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)],
                 cache=self.dataset_params.cache_val_images,
+                cache_dir_path=self.dataset_params.cache_dir_path,
                 with_crowd=with_crowd)
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
