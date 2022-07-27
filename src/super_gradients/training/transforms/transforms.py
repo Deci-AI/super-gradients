@@ -542,7 +542,7 @@ class DetectionMixup(DetectionTransform):
             img, cp_labels = cp_sample["image"], cp_sample["target"]
             cp_boxes = cp_labels[:, :4]
 
-            img, cp_boxes = _mirror(img, cp_boxes, 0.5)
+            img, cp_boxes = _mirror(img, cp_boxes, self.flip_prob)
             # PLUG IN TARGET THE FLIPPED BOXES
             cp_labels[:, :4] = cp_boxes
 
