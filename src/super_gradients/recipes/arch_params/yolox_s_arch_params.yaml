@@ -3,7 +3,7 @@ defaults:
 
 anchors:
   _target_: super_gradients.training.utils.detection_utils.Anchors
-  anchors_list: [[], [], []]
+  anchors_list: [[0,0], [0,0], [0,0]]
   strides: [8, 16, 32]
 
 yolo_type: 'yoloX'

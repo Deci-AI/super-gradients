@@ -17,6 +17,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
@@ -974,7 +975,7 @@ class SgModel:
         if self.load_checkpoint and load_opt_params:
             self.optimizer.load_state_dict(self.checkpoint['optimizer_state_dict'])
 
-        self.pre_prediction_callback = self.training_params.pre_prediction_callback
+        self.pre_prediction_callback = CallbacksFactory().get(self.training_params.pre_prediction_callback)
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 

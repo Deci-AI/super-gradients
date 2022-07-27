@@ -32,21 +32,19 @@ ema: True
 mixed_precision: True
 
 valid_metrics_list:
-  - _target_: super_gradients.training.metrics.DetectionMetrics
-    normalize_targets: True
-    post_prediction_callback:
-      _target_: super_gradients.training.models.detection_models.yolov5_base.YoloV5PostPredictionCallback
-      iou: 0.65
-      conf: 0.01
-    num_cls: 80
+  - DetectionMetrics:
+      normalize_targets: True
+      post_prediction_callback:
+        _target_: super_gradients.training.models.detection_models.yolov5_base.YoloV5PostPredictionCallback
+        iou: 0.65
+        conf: 0.01
+      num_cls: 80
 
-pre_prediction_callback:
-  _target_: super_gradients.training.datasets.datasets_utils.DetectionMultiscalePrePredictionCallback
+pre_prediction_callback: DetectionMultiscalePrePredictionCallback
 
 phase_callbacks:
-  - _target_: super_gradients.training.utils.callbacks.YoloXTrainingStageSwitchCallback
-    next_stage_start_epoch: 285
-
+  - YoloXTrainingStageSwitchCallback:
+      next_stage_start_epoch: 285
 
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True

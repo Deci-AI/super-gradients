@@ -1,4 +1,5 @@
 from super_gradients.common.factories.base_factory import BaseFactory
+from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
 from super_gradients.training.utils.callbacks import DeciLabUploadCallback, LRCallbackBase, LRSchedulerCallback, MetricsUpdateCallback, \
     ModelConversionCheckCallback
 from super_gradients.training.utils.early_stopping import EarlyStop
@@ -14,6 +15,7 @@ class CallbacksFactory(BaseFactory):
             'MetricsUpdateCallback': MetricsUpdateCallback,
             'ModelConversionCheckCallback': ModelConversionCheckCallback,
             'EarlyStop': EarlyStop,
+            "DetectionMultiscalePrePredictionCallback": DetectionMultiscalePrePredictionCallback
 
         }
         super().__init__(type_dict)

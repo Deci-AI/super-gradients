@@ -520,14 +520,16 @@ class DetectionMixup(DetectionTransform):
         mixup_scale: (tuple) scale range for the additional loaded image for mixup.
         prob: (float) probability of applying mixup.
         enable_mixup: (bool) whether to apply mixup at all (regardless of prob) (default=True).
+        flip_prob: (float) prbability to apply horizontal flip to the additional sample.
     """
 
-    def __init__(self, input_dim, mixup_scale, prob=1., enable_mixup=True):
+    def __init__(self, input_dim, mixup_scale, prob=1., enable_mixup=True, flip_prob=0.5):
         super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
         self.input_dim = input_dim
         self.mixup_scale = mixup_scale
         self.prob = prob
         self.enable_mixup = enable_mixup
+        self.flip_prob = flip_prob
 
     def close(self):
         self.additional_samples_count = 0
@@ -539,7 +541,11 @@ class DetectionMixup(DetectionTransform):
             cp_sample = sample["additional_samples"][0]
             img, cp_labels = cp_sample["image"], cp_sample["target"]
             cp_boxes = cp_labels[:, :4]
+
             img, cp_boxes = _mirror(img, cp_boxes, 0.5)
+            # PLUG IN TARGET THE FLIPPED BOXES
+            cp_labels[:, :4] = cp_boxes
+
             jit_factor = random.uniform(*self.mixup_scale)
 
             if len(img.shape) == 3:
@@ -958,11 +964,12 @@ def _mirror(image, boxes, prob=0.5):
     :param prob: probability to perform flipping.
     :return: flipped_image, flipped_bboxes
     """
+    flipped_boxes = boxes.copy()
     _, width, _ = image.shape
     if random.random() < prob:
         image = image[:, ::-1]
-        boxes[:, 0::2] = width - boxes[:, 2::-2]
-    return image, boxes
+        flipped_boxes[:, 0::2] = width - boxes[:, 2::-2]
+    return image, flipped_boxes
 
 
 def augment_hsv(img, hgain=5, sgain=30, vgain=30):
