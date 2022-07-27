@@ -3,10 +3,6 @@ import os
 import time
 from enum import Enum
 import math
-
-from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories.callbacks_factory import CallbacksFactory
-from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.training.utils.utils import get_param
 import numpy as np
 import onnx
@@ -770,7 +766,7 @@ class CallbackHandler:
     Attributes:
         callbacks: List[PhaseCallback]. Callbacks to be run.
     """
-    @resolve_param('callbacks', ListFactory(CallbacksFactory()))
+
     def __init__(self, callbacks):
         self.callbacks = callbacks
 
