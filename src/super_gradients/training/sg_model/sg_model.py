@@ -17,6 +17,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
@@ -181,6 +182,7 @@ class SgModel:
         self.ckpt_best_name = 'ckpt_best.pth'
         self.enable_qat = False
         self.qat_params = {}
+        self._infinite_train_loader = False
 
         # DETERMINE THE LOCATION OF THE LOSS AND ACCURACY IN THE RESULTS TUPLE OUTPUTED BY THE TEST
         self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = None, None
@@ -377,7 +379,8 @@ class SgModel:
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
                                train_loader=self.train_loader,
-                               context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END))
+                               context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
+                               ddp_silent_mode=self.ddp_silent_mode)
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
             batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
@@ -422,7 +425,7 @@ class SgModel:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler) and batch_idx == len(self.train_loader)-1:
+            if self._infinite_train_loader and batch_idx == len(self.train_loader)-1:
                 break
 
         if not self.ddp_silent_mode:
@@ -898,6 +901,7 @@ class SgModel:
         load_opt_params = self.training_params.load_opt_params
 
         self.phase_callbacks = self.training_params.phase_callbacks or []
+        self.phase_callbacks = ListFactory(CallbacksFactory()).get(self.phase_callbacks)
 
         if self.lr_mode is not None:
             sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
@@ -978,9 +982,12 @@ class SgModel:
         if self.load_checkpoint and load_opt_params:
             self.optimizer.load_state_dict(self.checkpoint['optimizer_state_dict'])
 
-        self.pre_prediction_callback = self.training_params.pre_prediction_callback
+        self.pre_prediction_callback = CallbacksFactory().get(self.training_params.pre_prediction_callback)
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
+
+        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or\
+                                      (hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler))
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
