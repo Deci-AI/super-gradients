@@ -94,10 +94,9 @@ class DetectionDataSetV2(Dataset):
 
     def _load_annotation(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
         """
-        Loads annotation at sample_id.
-        The implementation depends on the Dataset but has to be a np.ndarray, dict with the key "target" or tuple.
+        Loads annotation associated to one sample (i.e. couple image/ground_truth)
         :param sample_id:   sample_id
-        :return:        Annotation, which can be made of different fields (target, crowd_target, segment_labels, ...)
+        :return:            Annotation, a dict with any field but has to include at least "target" and "img_path".
         """
         raise NotImplementedError
 
@@ -120,7 +119,7 @@ class DetectionDataSetV2(Dataset):
         return annotations
 
     def _sub_class_target(self, targets: np.ndarray, label_posx) -> np.ndarray:
-        """Sublass targets of a specific image"""
+        """Sublass targets of a specific image."""
 
         targets_kept = []
         for target in targets:
@@ -234,15 +233,11 @@ class DetectionDataSetV2(Dataset):
 
     def __getitem__(self, index: int) -> Tuple:
         """Method called by SgModel."""
-        sample = self.get_transformed_sample(index)
+        sample = self.apply_transforms(self.get_sample(index))
         for field in self.output_fields:
             assert field in sample, f'The field {field} must be present in the sample but was not found.'\
                                      'Please check the output fields of your transforms.'
         return tuple(sample[field] for field in self.output_fields)
-
-    def get_transformed_sample(self, index: int) -> Dict[str, Union[np.ndarray, Any]]:
-        """Get ready to use samples in a dict format"""
-        return self.apply_transforms(self.get_sample(index))
 
     def get_sample(self, index: int) -> Dict[str, Union[np.ndarray, Any]]:
         """Get raw sample, before transforms, in a dict format."""
@@ -260,14 +255,6 @@ class DetectionDataSetV2(Dataset):
             return self.cached_imgs[index].copy()
         else:
             return self._load_resized_img(index)
-
-    def get_target(self, index: int) -> np.ndarray:
-        """Get the target at a specific index"""
-        annotation = self.annotations[index]
-        target = annotation["target"]
-
-        assert isinstance(target, np.ndarray), 'The target should be of type "np.ndarray"'
-        return target
 
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
@@ -312,7 +299,7 @@ class DetectionDataSetV2(Dataset):
         target, index = [], -1
         while len(target) == 0:
             index = self._get_random_index()
-            target = self.get_target(index)
+            target = self.annotations[index]["target"]
         return index
 
     def _get_random_index(self) -> int:
