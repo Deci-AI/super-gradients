@@ -915,15 +915,17 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
         super().__init__(dataset_params=dataset_params)
 
         self.data_dir = core_utils.get_param(self.dataset_params, 'data_dir', "~/data/pascal_unified_coco_format/")
+
         cache_dir = core_utils.get_param(self.dataset_params, "cache_dir", self.data_dir)
+        cache_train_images = core_utils.get_param(self.dataset_params, 'cache_train_images', default_val=True)
+        cache_val_images = core_utils.get_param(self.dataset_params, 'cache_val_images', default_val=True)
 
         class_inclusion_list = core_utils.get_param(self.dataset_params, "class_inclusion_list")
 
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
 
-        train_transforms = core_utils.get_param(self.dataset_params,
-                                                'train_transforms',
+        train_transforms = core_utils.get_param(self.dataset_params, 'train_transforms',
                                                 default_val=[DetectionMosaic(input_dim=train_input_dim, prob=1),
                                                              DetectionRandomAffine(degrees=0.373,
                                                                                    translate=0.245,
@@ -938,11 +940,10 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
                                                                                     max_targets=20),
                                                              DetectionTargetsFormatTransform(input_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
                                                                                              output_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH)])
-        val_transforms = core_utils.get_param(self.dataset_params,
-                                                'val_transforms',
-                                                default_val=[DetectionPaddedRescale(input_dim=val_input_dim),
-                                                             DetectionTargetsFormatTransform(input_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
-                                                                                             output_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH)])
+        val_transforms = core_utils.get_param(self.dataset_params, 'val_transforms',
+                                              default_val=[DetectionPaddedRescale(input_dim=val_input_dim),
+                                                           DetectionTargetsFormatTransform(input_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
+                                                                                           output_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH)])
 
         if core_utils.get_param(self.dataset_params, 'download', False):
             self._download_pascal()
@@ -952,9 +953,7 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
             for trainset_year in ["2007", "2012"]:
                 sub_trainset = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
                                                            input_dim=train_input_dim,
-                                                           cache=core_utils.get_param(self.dataset_params,
-                                                                                      'cache_train_images',
-                                                                                      default_val=True),
+                                                           cache=cache_train_images,
                                                            cache_path=cache_dir + "cache_train",
                                                            transforms=train_transforms,
                                                            images_sub_directory='images/' + trainset_prefix + trainset_year + '/',
@@ -963,8 +962,7 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
 
         testset2007 = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
                                                   input_dim=val_input_dim,
-                                                  cache=core_utils.get_param(self.dataset_params, 'cache_val_images',
-                                                                             default_val=True),
+                                                  cache=cache_val_images,
                                                   cache_path=cache_dir + "cache_valid",
                                                   transforms=val_transforms,
                                                   images_sub_directory='images/test2007/',
@@ -978,12 +976,10 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
         self.trainset.img_size = self.dataset_params.train_image_size
         self.trainset.cache_labels = self.dataset_params.cache_train_images
 
-    def _download_pascal(self, delete=True):
+    def _download_pascal(self, delete_zip=True):
         """
         Downloads Pascal dataset in XYXY_LABEL format.
-
         :param: delete: whether to delete the downloaded zip file after extracting the data (default=True).
-
         Source: https://github.com/ultralytics/yolov5/blob/master/data/VOC.yaml
         """
 
@@ -1010,7 +1006,8 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
         urls = [url + 'VOCtrainval_06-Nov-2007.zip',  # 446MB, 5012 images
                 url + 'VOCtest_06-Nov-2007.zip',  # 438MB, 4953 images
                 url + 'VOCtrainval_11-May-2012.zip']  # 1.95GB, 17126 images
-        download_and_unzip_from_url(urls, dir=dir / 'images', delete=delete)
+        download_and_unzip_from_url(urls, dir=dir / 'images', delete=delete_zip)
+
         # Convert
         path = dir / 'images/VOCdevkit'
         for year, image_set in ('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test'):
