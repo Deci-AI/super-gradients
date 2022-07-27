@@ -7,7 +7,6 @@ from pathlib import Path
 
 import numpy as np
 from tqdm import tqdm
-from pycocotools.coco import COCO
 from torch.utils.data import Dataset
 
 from super_gradients.training.utils.detection_utils import get_label_posx_in_target, DetectionTargetsFormat
@@ -122,8 +121,10 @@ class DetectionDataSetV2(Dataset):
 
             if self.class_inclusion_list is not None:
                 img_annotation = self._sub_class_annotation(img_annotation)
+
             if self.keep_empty_annotations or img_annotation is not None:
                 annotations.append(img_annotation)
+
         return annotations
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
@@ -167,16 +168,16 @@ class DetectionDataSetV2(Dataset):
             "********************************************************************************\n"
         )
         max_h, max_w = self.input_dim[0], self.input_dim[1]
-        cache_file = cache_path / f"img_resized_cache.array"
+        img_resized_cache_path = cache_path / f"img_resized_cache.array"
 
-        if not cache_file.exists():
+        if not img_resized_cache_path.exists():
             logger.info("Caching images for the first time.")
             NUM_THREADs = min(8, os.cpu_count())
             loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_resized_img(x),
                                                          iterable=range(len(self)))
 
             # Initialize placeholder for images
-            cached_imgs = np.memmap(cache_file, shape=(len(self), max_h, max_w, 3),
+            cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
                                     dtype=np.uint8, mode="w+")
 
             # Store images in the placeholder
@@ -193,7 +194,7 @@ class DetectionDataSetV2(Dataset):
             )
 
         logger.info("Loading cached imgs...")
-        cached_imgs = np.memmap(cache_file, shape=(len(self), max_h, max_w, 3),
+        cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
                                 dtype=np.uint8, mode="r+")
         return cached_imgs
 
