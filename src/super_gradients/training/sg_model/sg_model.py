@@ -901,7 +901,7 @@ class SgModel:
         load_opt_params = self.training_params.load_opt_params
 
         self.phase_callbacks = self.training_params.phase_callbacks or []
-        self.phase_callbacks = ListFactory(CallbacksFactory(self.phase_callbacks))
+        self.phase_callbacks = ListFactory(CallbacksFactory()).get(self.phase_callbacks)
 
         if self.lr_mode is not None:
             sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
