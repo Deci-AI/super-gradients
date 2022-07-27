@@ -41,6 +41,21 @@ class DetectionTargetsFormat(Enum):
     NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
 
 
+def get_cls_posx_in_target(target_format: DetectionTargetsFormat) -> int:
+    """Get the label of a given target
+    :param target_format:   Representation of the target (ex: LABEL_XYXY)
+    :return:                Position of the class id in a bbox
+                                ex: 0 if bbox of format label_xyxy | -1 if bbox of format xyxy_label
+    """
+    format_split = target_format.value.split("_")
+    if format_split[0] == "LABEL":
+        return 0
+    elif format_split[-1] == "LABEL":
+        return -1
+    else:
+        raise NotImplementedError(f"No implementation to find index of LABEL in {target_format.value}")
+
+
 def _set_batch_labels_index(labels_batch):
     for i, labels in enumerate(labels_batch):
         labels[:, 0] = i
@@ -1268,7 +1283,7 @@ class DetectionCollateFN:
     def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
         nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
         targets_merged = []
-        for i in range(targets.shape[0]):
+        for i in range(targets.shape[0]): # shape = [n_image, bbox4, cls]
             targets_im = targets[i, :nlabel[i]]
             batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
             targets_merged.append(torch.cat((batch_column, targets_im), 1))
