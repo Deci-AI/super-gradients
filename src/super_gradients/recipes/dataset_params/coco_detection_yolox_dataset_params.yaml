@@ -4,10 +4,10 @@ val_subdir: images/val2017 # sub directory path of data_dir containing the valid
 train_json_file: instances_train2017.json # path to coco train json file, data_dir/annotations/train_json_file.
 val_json_file: instances_val2017.json # path to coco validation json file, data_dir/annotations/val_json_file.
 
-batch_size: 16 # batch size for trainset in CoCoDetectionDatasetInterface
-val_batch_size: 64 # batch size for valset in CoCoDetectionDatasetInterface
-val_image_size: 640 # image size for valset in CoCoDetectionDatasetInterface
-train_image_size: 640 # image size for trainset in CoCoDetectionDatasetInterface
+batch_size: 16 # batch size for trainset
+val_batch_size: 64 # batch size for valset
+val_image_size: 640 # image size for valset
+train_image_size: 640 # image size for trainset
 
 # Augmentations
 mixup_prob: 1.0 # probability to apply per-sample mixup
