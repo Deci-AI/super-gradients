@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Union, Any, Optional, Tuple
+from typing import List, Dict, Union, Any, Optional, Tuple, Callable
 import random
 import cv2
 from multiprocessing.pool import ThreadPool
@@ -66,8 +66,9 @@ class DetectionDataSetV2(Dataset):
             all_classes_list: Optional[List[str]] = None,
             class_inclusion_list: Optional[List[str]] = None,
             ignore_empty_annotations: bool = True,
-            annotation_fields_to_subclass: List[str] = ["target"],
-            output_fields: List[str] = ["image", "target"],
+            annotation_fields_to_subclass: List[str] = None,
+            output_fields: List[str] = None,
+            collate_fn: Callable = None,
     ):
         """Detection dataset.
 
@@ -85,6 +86,7 @@ class DetectionDataSetV2(Dataset):
                                                 It has to include at least "target" but can include other.
         :paran output_fields:                   Fields that will be outputed by __getitem__.
                                                 It has to include at least "image" and "target" but can include other.
+        :paran collate_fn:                      Collate function, that groups outputs of __getitem__ into batche
         """
         super().__init__()
 
@@ -113,6 +115,11 @@ class DetectionDataSetV2(Dataset):
         self.output_fields = output_fields or ["image", "target"]
         assert "image" in self.output_fields, '"image" is expected to be in output_fields but it was not included'
         assert "target" in self.output_fields, '"target" is expected to be in output_fields but it was not included'
+
+
+        # IF collate_fn IS PROVIDED IN CTOR WE ASSUME THERE IS A BASE-CLASS INHERITANCE W/O collate_fn IMPLEMENTATION
+        if collate_fn is not None:
+            self.collate_fn = collate_fn
 
     def _load_annotation(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
         """Load annotations associated to a specific sample.

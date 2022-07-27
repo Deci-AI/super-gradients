@@ -945,6 +945,9 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
                                                            DetectionTargetsFormatTransform(input_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
                                                                                            output_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH)])
 
+        train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn', DetectionCollateFN())
+        val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn', DetectionCollateFN())
+
         if core_utils.get_param(self.dataset_params, 'download', False):
             self._download_pascal()
 
@@ -957,7 +960,8 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
                                                            cache_path=cache_dir + "cache_train",
                                                            transforms=train_transforms,
                                                            images_sub_directory='images/' + trainset_prefix + trainset_year + '/',
-                                                           class_inclusion_list=class_inclusion_list,)
+                                                           class_inclusion_list=class_inclusion_list,
+                                                           collate_fn=train_collate_fn,)
                 train_sets.append(sub_trainset)
 
         testset2007 = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
@@ -966,12 +970,14 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
                                                   cache_path=cache_dir + "cache_valid",
                                                   transforms=val_transforms,
                                                   images_sub_directory='images/test2007/',
-                                                  class_inclusion_list=class_inclusion_list,)
+                                                  class_inclusion_list=class_inclusion_list,
+                                                  collate_fn=val_collate_fn,)
 
         self.classes = train_sets[1].classes
         self.trainset = ConcatDataset(train_sets)
         self.valset = testset2007
 
+        self.trainset.collate_fn = train_collate_fn
         self.trainset.classes = self.classes
         self.trainset.img_size = self.dataset_params.train_image_size
         self.trainset.cache_labels = self.dataset_params.cache_train_images
