@@ -18,16 +18,24 @@ logger = get_logger(__name__)
 
 
 class DetectionDataSetV2(Dataset):
-    """Detection dataset.
+    """Detection dataset V2.
 
     This is a boilerplate class with a premade workflow to facilitate the implementation of datasets.
-    The workflow is as follow:
-    - On instatiation:
-        - All the (raw) annotations are loaded in the ram. If class_inclusion_list, there is also subclassing at this step.
-        - If cache is True, the images as well
 
-    - On call (__getitem__) for a specific image:
-        - The image and annotations are fetched
+    HOW TO CREATE A DATASET THAT INHERITS FROM DetectionDataSetV2 ?
+        - Inherit from DetectionDataSetV2
+        - implement the method self._load_annotation to return at least the fields "target" and "img_path"
+        - Call super().__init__ with the reauired params at the end of.
+                //!\\ super().__init__ will call self._load_annotation, so make sure that every required
+                      attributes are set up before calling super().__init__ (ideally just call it last)
+
+    WORKFLOW:
+        - On instatiation:
+            - All annotations are cached. If class_inclusion_list, there is also subclassing at this step.
+            - If cache is True, the images are also cached
+
+        - On call (__getitem__) for a specific image:
+            - The image and annotations are fetched
 
     INDEX VS SAMPLE_ID
     - index refers to the index in the dataset.
@@ -79,7 +87,7 @@ class DetectionDataSetV2(Dataset):
         self.keep_empty_annotations = keep_empty_annotations
         self.annotation_fields_to_subclass = annotation_fields_to_subclass or ["target"]
         assert "target" in self.annotation_fields_to_subclass,\
-            '"target" was not included in annotation_fields_to_subclass'
+            '"target" is expected to be in the fields to subclassbut it was not included'
 
         self.annotations = self._cache_annotations()
         assert len(self.annotations) > 0
@@ -118,6 +126,18 @@ class DetectionDataSetV2(Dataset):
                 annotations.append(img_annotation)
         return annotations
 
+    def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
+        """
+        Subclass every field listed in self.annotation_fields_to_subclass.
+        It could be targets, crowd_targets, ect ...
+        """
+        label_posx = get_label_posx_in_target(self.target_format)
+        for field in self.annotation_fields_to_subclass:
+            annotation[field] = self._sub_class_target(targets=annotation[field], label_posx=label_posx)
+
+        is_annotation_non_empty = any(len(annotation[field]) > 0 for field in self.annotation_fields_to_subclass)
+        return annotation if (self.keep_empty_annotations or is_annotation_non_empty) else None
+
     def _sub_class_target(self, targets: np.ndarray, label_posx) -> np.ndarray:
         """Sublass targets of a specific image."""
 
@@ -131,48 +151,6 @@ class DetectionDataSetV2(Dataset):
                 targets_kept.append(target)
 
         return np.array(targets_kept) if len(targets_kept) > 0 else np.zeros((0, 5), dtype=np.float32)
-
-    def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
-        """
-        Subclass every field listed in self.annotation_fields_to_subclass.
-        It could be targets, crowd_targets, ect ...
-        """
-        label_posx = get_label_posx_in_target(self.target_format)
-        for field in self.annotation_fields_to_subclass:
-            annotation[field] = self._sub_class_target(targets=annotation[field], label_posx=label_posx)
-
-        is_annotation_non_empty = any(len(annotation[field]) > 0 for field in self.annotation_fields_to_subclass)
-        return annotation if (self.keep_empty_annotations or is_annotation_non_empty) else None
-
-    def _load_image(self, index: int) -> np.ndarray:
-        """
-        Loads image at index with its original resolution.
-        :param index: index in self.annotations
-        :return: image (np.ndarray)
-        """
-        img_path = self.annotations[index]["img_path"]
-
-        img_file = os.path.join(img_path)
-        img = cv2.imread(img_file)
-
-        assert img is not None, \
-            f"{img_file} was no found. Please make sure that the dataset was downloaded and that the path is correct"
-        return img
-
-    def _load_resized_img(self, index: int) -> np.ndarray:
-        """
-        Loads image at index, and resizes it to self.input_dim
-
-        :param index: sample_id to load the image from
-        :return: resized_img
-        """
-        img = self._load_image(index)
-
-        r = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
-        desired_size = (int(img.shape[1] * r), int(img.shape[0] * r))
-
-        resized_img = cv2.resize(src=img, dsize=desired_size, interpolation=cv2.INTER_LINEAR).astype(np.uint8)
-        return resized_img
 
     def _cache_images(self) -> np.ndarray:
         cache_path = Path(self.cache_path)
@@ -218,6 +196,36 @@ class DetectionDataSetV2(Dataset):
         cached_imgs = np.memmap(cache_file, shape=(len(self), max_h, max_w, 3),
                                 dtype=np.uint8, mode="r+")
         return cached_imgs
+
+    def _load_resized_img(self, index: int) -> np.ndarray:
+        """
+        Loads image at index, and resizes it to self.input_dim
+
+        :param index: sample_id to load the image from
+        :return: resized_img
+        """
+        img = self._load_image(index)
+
+        r = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
+        desired_size = (int(img.shape[1] * r), int(img.shape[0] * r))
+
+        resized_img = cv2.resize(src=img, dsize=desired_size, interpolation=cv2.INTER_LINEAR).astype(np.uint8)
+        return resized_img
+
+    def _load_image(self, index: int) -> np.ndarray:
+        """
+        Loads image at index with its original resolution.
+        :param index: index in self.annotations
+        :return: image (np.ndarray)
+        """
+        img_path = self.annotations[index]["img_path"]
+
+        img_file = os.path.join(img_path)
+        img = cv2.imread(img_file)
+
+        assert img is not None, \
+            f"{img_file} was no found. Please make sure that the dataset was downloaded and that the path is correct"
+        return img
 
     def __del__(self):
         """Clear the cached images"""
