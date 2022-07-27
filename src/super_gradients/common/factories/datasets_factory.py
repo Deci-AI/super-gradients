@@ -5,8 +5,9 @@ from super_gradients.training.datasets.dataset_interfaces import TestDatasetInte
     ImageNetDatasetInterface, TinyImageNetDatasetInterface, \
     CoCoDetectionDatasetInterface, CoCoSegmentationDatasetInterface, CoCo2014DetectionDatasetInterface, \
     PascalAUG2012SegmentationDataSetInterface, PascalVOC2012SegmentationDataSetInterface
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDataSetInterface, \
-    ClassificationTestDatasetInterface, CityscapesDatasetInterface
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import \
+    PascalVOCUnifiedDetectionDataSetInterface, \
+    ClassificationTestDatasetInterface, CityscapesDatasetInterface, CocoDetectionDatasetInterfaceV2
 
 
 class DatasetsFactory(BaseFactory):
@@ -20,6 +21,7 @@ class DatasetsFactory(BaseFactory):
             "cifar_100": Cifar100DatasetInterface,
             "imagenet": ImageNetDatasetInterface,
             "tiny_imagenet": TinyImageNetDatasetInterface,
+            "coco2017_detection_v2": CocoDetectionDatasetInterfaceV2,
             "coco2017_detection": CoCoDetectionDatasetInterface,
             "coco2014_detection": CoCo2014DetectionDatasetInterface,
             "coco2017_segmentation": CoCoSegmentationDatasetInterface,

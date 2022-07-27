@@ -1,0 +1,12 @@
+defaults:
+  - yolo_arch_params
+
+anchors:
+  _target_: super_gradients.training.utils.detection_utils.Anchors
+  anchors_list: [[0,0], [0,0], [0,0]]
+  strides: [8, 16, 32]
+
+yolo_type: 'yoloX'
+
+depth_mult_factor: 0.33
+width_mult_factor: 0.5

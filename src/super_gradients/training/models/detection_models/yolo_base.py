@@ -16,7 +16,7 @@ COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [116, 90, 156, 198, 373, 326]],
                                                  strides=[8, 16, 32])  # output strides of all yolo outputs
 
-ANCHORSLESS_DUMMY_ANCHORS = Anchors([[], [], []], strides=[8, 16, 32])
+ANCHORSLESS_DUMMY_ANCHORS = Anchors([[0, 0], [0, 0], [0, 0]], strides=[8, 16, 32])
 
 
 DEFAULT_YOLO_ARCH_PARAMS = {
