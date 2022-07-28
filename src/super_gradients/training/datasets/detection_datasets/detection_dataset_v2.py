@@ -116,7 +116,6 @@ class DetectionDataSetV2(Dataset):
         assert "image" in self.output_fields, '"image" is expected to be in output_fields but it was not included'
         assert "target" in self.output_fields, '"target" is expected to be in output_fields but it was not included'
 
-
         # IF collate_fn IS PROVIDED IN CTOR WE ASSUME THERE IS A BASE-CLASS INHERITANCE W/O collate_fn IMPLEMENTATION
         if collate_fn is not None:
             self.collate_fn = collate_fn
@@ -323,7 +322,7 @@ class DetectionDataSetV2(Dataset):
         :return: A list of samples satisfying input params
         """
         indexes = [
-            self._get_random_non_empty_annotation_available_indexes() if non_empty_annotations_only else self._get_random_index()
+            self._get_random_non_empty_annotation_available_indexes() if non_empty_annotations_only else random.randint(0, len(self) - 1)
             for _ in range(count)]
         return [self.get_sample(index) for index in indexes]
 
@@ -332,11 +331,6 @@ class DetectionDataSetV2(Dataset):
         :return: Image index"""
         target, index = [], -1
         while len(target) == 0:
-            index = self._get_random_index()
+            index = random.randint(0, len(self) - 1)
             target = self.annotations[index]["target"]
         return index
-
-    def _get_random_index(self) -> int:
-        """Get a random index of this dataset.
-        :return: Random image index"""
-        return random.randint(0, len(self) - 1)
