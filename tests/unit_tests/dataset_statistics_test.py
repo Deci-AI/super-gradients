@@ -4,7 +4,7 @@ from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 
 from super_gradients.training import SgModel
 from super_gradients.training.datasets import CoCoDetectionDatasetInterface
-from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
+from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 
 
 class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
@@ -32,18 +32,18 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
 
         model = SgModel('dataset_statistics_visual_test',
                         model_checkpoints_location='local',
-                        post_prediction_callback=YoloV5PostPredictionCallback())
+                        post_prediction_callback=YoloPostPredictionCallback())
         model.connect_dataset_interface(dataset, data_loader_num_workers=8)
-        model.build_model("yolo_v5s")
+        model.build_model("yolox_s")
 
         training_params = {"max_epochs": 1,  # we dont really need the actual training to run
                            "lr_mode": "cosine",
                            "initial_lr": 0.01,
-                           "loss": "yolo_v5_loss",
+                           "loss": "yolox_loss",
+                           "criterion_params":{"strides": [8, 16, 32], "num_cls": 80},
                            "dataset_statistics": True,
                            "launch_tensorboard": True,
-                           "criterion_params": {"model": model},
-                           "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloV5PostPredictionCallback(),
+                           "valid_metrics_list": [DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                    num_cls=80)],
 
                            "loss_logging_items_names": ["GIoU", "obj", "cls", "Loss"],
