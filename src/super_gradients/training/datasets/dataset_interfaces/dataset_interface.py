@@ -21,7 +21,8 @@ from super_gradients.training.datasets.segmentation_datasets import PascalVOC201
 from super_gradients.training import utils as core_utils
 from super_gradients.common import DatasetDataInterface
 from super_gradients.common.environment import AWS_ENV_NAME
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn, DetectionTargetsFormat, crowd_detection_collate_fn
+from super_gradients.training.utils.detection_utils import base_detection_collate_fn, DetectionTargetsFormat,\
+    crowd_detection_collate_fn, DetectionTargetsFormat, DetectionCollateFN
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
@@ -31,7 +32,7 @@ from tqdm import tqdm
 from pathlib import Path
 from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
-from super_gradients.training.utils.utils import download_and_unzip_from_url
+from super_gradients.training.utils.utils import download_and_untar_from_url, download_and_unzip_from_url
 from super_gradients.training.utils import get_param
 import torchvision.transforms as transforms
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import \
@@ -40,7 +41,6 @@ from super_gradients.training.datasets.samplers.repeated_augmentation_sampler im
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine, DetectionTargetsFormatTransform, \
     DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip, DetectionTransform
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -982,51 +982,60 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
         self.trainset.img_size = self.dataset_params.train_image_size
         self.trainset.cache_labels = self.dataset_params.cache_train_images
 
-    def _download_pascal(self, delete_zip=True):
-        """
-        Downloads Pascal dataset in XYXY_LABEL format.
-        :param: delete: whether to delete the downloaded zip file after extracting the data (default=True).
-        Source: https://github.com/ultralytics/yolov5/blob/master/data/VOC.yaml
+    def _download_pascal(self):
+        """Download Pascal dataset in XYXY_LABEL format.
+
+        Data extracted form http://host.robots.ox.ac.uk/pascal/VOC/
         """
 
-        def convert_label(path, lb_path, year, image_id):
-            def _format_box(xmlbox, cls):
-                get_coord = lambda box_coord: xmlbox.find(box_coord).text
+        def _parse_and_save_labels(path, new_label_path, year, image_id):
+            """Parse and save the labels of an image in XYXY_LABEL format."""
+
+            def _parse_bbox(xml_box):
+                """Parse a bbox in XYXY_LABEL format."""
+                get_coord = lambda box_coord: xml_box.find(box_coord).text
                 xmin, ymin, xmax, ymax = get_coord("xmin"), get_coord("ymin"), get_coord("xmax"), get_coord("ymax")
-                cls_id = str(PASCAL_VOC_2012_CLASSES.index(cls))
-                return " ".join([xmin, ymin, xmax, ymax, cls_id]) + "\n"
+                return xmin, ymin, xmax, ymax, str(PASCAL_VOC_2012_CLASSES.index(cls))
 
-            in_file = open(f'{path}/VOC{year}/Annotations/{image_id}.xml')
-            with open(lb_path, 'w') as out_file:
-                tree = ET.parse(in_file)
-                root = tree.getroot()
-                for obj in root.iter('object'):
-                    cls = obj.find('name').text
-                    if cls in PASCAL_VOC_2012_CLASSES and not int(obj.find('difficult').text) == 1:
-                        xmlbox = obj.find('bndbox')
-                        out_file.write(_format_box(xmlbox, cls))
+            with open(f'{path}/VOC{year}/Annotations/{image_id}.xml') as f:
+                xml_parser = ET.parse(f).getroot()
 
-        # Download
-        dir = Path(self.data_dir)  # dataset root dir
-        url = 'https://github.com/ultralytics/yolov5/releases/download/v1.0/'
-        urls = [url + 'VOCtrainval_06-Nov-2007.zip',  # 446MB, 5012 images
-                url + 'VOCtest_06-Nov-2007.zip',  # 438MB, 4953 images
-                url + 'VOCtrainval_11-May-2012.zip']  # 1.95GB, 17126 images
-        download_and_unzip_from_url(urls, dir=dir / 'images', delete=delete_zip)
+            labels = []
+            for obj in xml_parser.iter('object'):
+                cls = obj.find('name').text
+                if cls in PASCAL_VOC_2012_CLASSES and not int(obj.find('difficult').text) == 1:
+                    bbox = _parse_bbox(xml_box=obj.find('bndbox'))
+                    labels.append(" ".join(bbox))
+
+            with open(new_label_path, 'w') as f:
+                f.write("\n".join(labels))
+
+        urls = [
+            "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar", # 439M 5011 images
+            "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar",     # 430M, 4952 images
+            "http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar", # 1.86G, 17125 images
+        ]
+        data_dir = Path(self.data_dir)
+        download_and_untar_from_url(urls, dir=data_dir / 'images')
 
         # Convert
-        path = dir / 'images/VOCdevkit'
+        data_path = data_dir / 'images' / 'VOCdevkit'
         for year, image_set in ('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test'):
-            imgs_path = dir / 'images' / f'{image_set}{year}'
-            lbs_path = dir / 'labels' / f'{image_set}{year}'
-            imgs_path.mkdir(exist_ok=True, parents=True)
-            lbs_path.mkdir(exist_ok=True, parents=True)
-            image_ids = open(path / f'VOC{year}/ImageSets/Main/{image_set}.txt').read().strip().split()
+            dest_imgs_path = data_dir / 'images' / f'{image_set}{year}'
+            dest_imgs_path.mkdir(exist_ok=True, parents=True)
+
+            dest_labels_path = data_dir / 'labels' / f'{image_set}{year}'
+            dest_labels_path.mkdir(exist_ok=True, parents=True)
+
+            with open(data_path / f'VOC{year}/ImageSets/Main/{image_set}.txt') as f:
+                image_ids = f.read().strip().split()
+
             for id in tqdm(image_ids, desc=f'{image_set}{year}'):
-                f = path / f'VOC{year}/JPEGImages/{id}.jpg'  # old img path
-                lb_path = (lbs_path / f.name).with_suffix('.txt')  # new label path
-                f.rename(imgs_path / f.name)  # move image
-                convert_label(path, lb_path, year, id)  # convert labels to YOLO format
+                img_path = data_path / f'VOC{year}/JPEGImages/{id}.jpg'
+                new_img_path = dest_imgs_path / img_path.name
+                new_label_path = (dest_labels_path / img_path.name).with_suffix('.txt')
+                img_path.rename(new_img_path) # Move image to dest folder
+                _parse_and_save_labels(data_path, new_label_path, year, id)
 
 
 class CocoDetectionDatasetInterfaceV2(DatasetInterface):
