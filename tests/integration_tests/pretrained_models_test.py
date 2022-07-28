@@ -14,7 +14,7 @@ from super_gradients.training.models.detection_models.ssd import DEFAULT_SSD_LIT
 import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 from super_gradients.training.utils.detection_utils import crowd_detection_collate_fn
-from super_gradients.training.metrics import DetectionMetricsV2
+from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.transforms.transforms import Rescale
 from super_gradients.training.losses.stdc_loss import STDCLoss
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
@@ -158,7 +158,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                          "nesterov": True},
                     "train_metrics_list": [],
                     "valid_metrics_list": [
-                        DetectionMetricsV2(
+                        DetectionMetrics(
                             post_prediction_callback=SSDPostPredictCallback(),
                             num_cls=len(self.transfer_detection_dataset['ssd_lite_mobilenet_v2'].classes))],
                     "loss_logging_items_names": ['smooth_l1', 'closs', 'Loss'],
@@ -490,7 +490,7 @@ class PretrainedModelsTest(unittest.TestCase):
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=ssd_post_prediction_callback,
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback,
                                                                  num_cls=len(self.coco_dataset['ssd_mobilenet'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
@@ -516,7 +516,7 @@ class PretrainedModelsTest(unittest.TestCase):
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=ssd_post_prediction_callback,
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback,
                                                                  num_cls=len(self.coco_dataset['ssd_mobilenet'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["coco_ssd_mobilenet_v1"], delta=0.001)
