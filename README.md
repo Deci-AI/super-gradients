@@ -375,11 +375,11 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 |------------- |------ | ---------- |------ | -------- |------ | ---------- |------ | :------: |
 | SSD lite MobileNet v2 | COCO |320x320 |21.5 |**0.77ms** |**1.40ms**|**5.28ms** |**6.44ms** |**4.13ms**|
 | SSD lite MobileNet v1 | COCO |320x320 |24.3 |**1.55ms** |**2.84ms**|**8.07ms** |**9.14ms** |**22.76ms**|
-| YOLOX tiny | COCO |640x640 |26.77 |**3.38ms** |**4.96ms**|**9.28ms** |**17.44ms** |**21.71ms**|
-| YOLOX nano | COCO |640x640 |37.18 |**2.47ms** |**4.09ms**|**9.28ms** |**17.44ms** |**21.71ms**|
-| YOLOX small | COCO |640x640 |40.47 |**3.58ms** |**4.94ms**|**14.31ms** |**22.50ms** |**34.10ms**|
-| YOLOX medium| COCO |640x640 |46.4 |**6.40ms** |**7.65ms**|**26.76ms** |**34.95ms** |**65.86ms**|
-| YOLOX large | COCO |640x640 |49.25 |**10.07ms** |**11.12ms**|**43.89ms** |**51.92ms** |**122.97ms**|
+| YOLOX nano | COCO |640x640 |26.77|**2.47ms** |**4.09ms**|**-ms** |**-ms** |**-**|
+| YOLOX tiny | COCO |640x640 |37.18|**3.16ms** |**4.61ms**|**-ms** |**-ms** |**-**|
+| YOLOX small | COCO |640x640 |40.47 |**3.58ms** |**4.94ms**|**-ms** |**-ms** |**-**|
+| YOLOX medium| COCO |640x640 |46.4 |**6.40ms** |**7.65ms**|**-ms** |**-ms** |**-**|
+| YOLOX large | COCO |640x640 |49.25 |**10.07ms** |**11.12ms**|**-ms** |**-ms** |**-**|
   
 
 > **NOTE:** <br/>
