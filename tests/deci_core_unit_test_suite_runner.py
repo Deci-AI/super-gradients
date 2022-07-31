@@ -22,6 +22,7 @@ from tests.unit_tests.yolox_unit_test import TestYOLOX
 from tests.unit_tests.lr_cooldown_test import LRCooldownTest
 from tests.unit_tests.detection_targets_format_transform_test import DetectionTargetsTransformTest
 from tests.unit_tests.forward_pass_prep_fn_test import ForwardpassPrepFNTest
+from tests.unit_tests.mask_loss_test import MaskAttentionLossTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -66,6 +67,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ForwardpassPrepFNTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ContextMethodsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(UpdateParamGroupsTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MaskAttentionLossTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
