@@ -7,18 +7,14 @@ from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
 
 import cv2
 from deprecated import deprecated
-from scipy.cluster.vq import kmeans
 from torch.utils.data._utils.collate import default_collate
-from tqdm import tqdm
 import matplotlib.pyplot as plt
-from PIL import Image
 
 import torch
 import torchvision
 import numpy as np
 from torch import nn
 from torch.nn import functional as F
-from super_gradients.common.abstractions.abstract_logger import get_logger
 from omegaconf import ListConfig
 
 
@@ -729,201 +725,6 @@ class NMS_Type(str, Enum):
     MATRIX = 'matrix'
 
 
-def calc_batch_prediction_accuracy(output: torch.Tensor, targets: torch.Tensor, height: int, width: int,  # noqa: C901
-                                   iou_thres: IouThreshold) -> tuple:
-    """
-
-    :param output:       list (of length batch_size) of Tensors of shape (num_detections, 6)
-                         format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
-    :param targets:      targets for all images of shape (total_num_targets, 6)
-                         format:     (image_index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-    :param height,width: dimensions of the image
-    :param iou_thres:    Threshold to compute the mAP
-    :param device:       'cuda'\'cpu' - where the computations are made
-    :return:
-    """
-    batch_metrics = []
-    batch_images_counter = 0
-    device = targets.device
-
-    if not iou_thres.is_range():
-        num_ious = 1
-        ious = torch.tensor([iou_thres[0]]).to(device)
-    else:
-        num_ious = int(round((iou_thres[1] - iou_thres[0]) / 0.05)) + 1
-        ious = torch.linspace(iou_thres[0], iou_thres[1], num_ious).to(device)
-
-    for i, pred in enumerate(output):
-        labels = targets[targets[:, 0] == i, 1:]
-        labels_num = len(labels)
-        target_class = labels[:, 0].tolist() if labels_num else []
-        batch_images_counter += 1
-
-        if pred is None:
-            if labels_num:
-                batch_metrics.append(
-                    (np.zeros((0, num_ious), dtype=np.bool), np.array([], dtype=np.float32),
-                     np.array([], dtype=np.float32), target_class))
-            continue
-
-        # CHANGE bboxes TO FIT THE IMAGE SIZE
-        change_bbox_bounds_for_image_size(pred, (height, width))
-
-        # ZEROING ALL OF THE bbox PREDICTIONS BEFORE MAX IOU FILTERATION
-        correct = torch.zeros(len(pred), num_ious, dtype=torch.bool, device=device)
-        if labels_num:
-            detected = []
-            tcls_tensor = labels[:, 0]
-
-            target_bboxes = convert_xywh_bbox_to_xyxy(labels[:, 1:5])
-            target_bboxes[:, [0, 2]] *= width
-            target_bboxes[:, [1, 3]] *= height
-
-            # SEARCH FOR CORRECT PREDICTIONS
-            # Per target class
-            for cls in torch.unique(tcls_tensor):
-                target_index = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)
-                pred_index = (cls == pred[:, 5]).nonzero(as_tuple=False).view(-1)
-
-                # Search for detections
-                if pred_index.shape[0]:
-                    # Prediction to target ious
-                    iou, i = box_iou(pred[pred_index, :4], target_bboxes[target_index]).max(1)  # best ious, indices
-
-                    # Append detections
-                    detected_set = set()
-                    for j in (iou > ious[0]).nonzero(as_tuple=False):
-                        detected_target = target_index[i[j]]
-                        if detected_target.item() not in detected_set:
-                            detected_set.add(detected_target.item())
-                            detected.append(detected_target)
-                            correct[pred_index[j]] = iou[j] > ious  # iou_thres is 1xn
-                            if len(detected) == labels_num:  # all targets already located in image
-                                break
-
-        # APPEND STATISTICS (CORRECT, CONF, PCLS, TCLS)
-        batch_metrics.append((correct.cpu().numpy(), pred[:, 4].cpu().numpy(), pred[:, -1].cpu().numpy(), target_class))
-
-    return batch_metrics, batch_images_counter
-
-
-class AnchorGenerator:
-    logger = get_logger(__name__)
-
-    @staticmethod
-    def _metric(objects, anchors):
-        """ measure how 'far' each object is from the closest anchor
-            :returns a matrix n by number of objects and the measurements to the closest anchor for each object
-        """
-        r = objects[:, None] / anchors[None]
-        matrix = np.amin(np.minimum(r, 1. / r), axis=2)
-        return matrix, matrix.max(1)
-
-    @staticmethod
-    def _anchor_fitness(objects, anchors, thresh):
-        """ how well the anchors fit the objects"""
-        _, best = AnchorGenerator._metric(objects, anchors)
-        return (best * (best > thresh)).mean()  # fitness
-
-    @staticmethod
-    def _print_results(objects, anchors, thresh, num_anchors, img_size):
-        # SORT SMALL TO LARGE (BY AREA)
-        anchors = anchors[np.argsort(anchors.prod(1))]
-        x, best = AnchorGenerator._metric(objects, anchors)
-        best_possible_recall = (best > thresh).mean()
-        anchors_above_thesh = (x > thresh).mean() * num_anchors
-
-        AnchorGenerator.logger.info(
-            f'thr={thresh:.2f}: {best_possible_recall:.4f} best possible recall, {anchors_above_thesh:.2f} anchors past thr')
-        AnchorGenerator.logger.info(f'num_anchors={num_anchors}, img_size={img_size}')
-        AnchorGenerator.logger.info(
-            f' metric_all={x.mean():.3f}/{best.mean():.3f}-mean/best, past_thr={x[x > thresh].mean():.3f}-mean: ')
-
-        for i, mean in enumerate(anchors):
-            print('%i,%i' % (round(mean[0]), round(mean[1])),
-                  end=',  ' if i < len(anchors) - 1 else '\n')  # use in *.cfg
-
-    @staticmethod
-    def _plot_object_distribution(objects, anchors):
-        selected = np.random.choice(objects.shape[0], size=objects.shape[0] // 50, replace=False)
-
-        distance_matrix = np.sqrt(np.power(objects[:, :, None] - anchors[:, :, None].T, 2).sum(1))
-        labels = np.argmin(distance_matrix, axis=1)
-        plt.scatter(objects[selected, 0], objects[selected, 1], c=labels[selected], marker='.')
-        plt.scatter(anchors[:, 0], anchors[:, 1], marker='P')
-        plt.show()
-
-    @staticmethod
-    def _generate_anchors(dataset, num_anchors=9, thresh=0.25, gen=1000):
-        """ Creates kmeans-evolved anchors from training dataset
-            Based on the implementation by Ultralytics for Yolo V5
-
-            :param dataset: a loaded dataset (must be with cached labels and "train_sample_loading_method":'rectangular')
-            :param num_anchors: number of anchors
-            :param thresh: anchor-label wh ratio threshold used to asses if a label can be detected by an anchor.
-                    it means that the aspect ratio of the object is not more than thres from the aspect ratio of the anchor.
-            :param gen: generations to evolve anchors using genetic algorithm. after kmeans, this algorithm iteratively
-                    make minor random changes in the anchors and if a change imporve the anchors-data fit it evolves the
-                    anchors.
-            :returns anchors array num_anchors by 2 (x,y) normalized to image size
-        """
-        _prefix = 'Anchors Generator: '
-        img_size = dataset.img_size
-        assert dataset.cache_labels, "dataset labels have to be cached before generating anchors"
-
-        image_shapes = np.array(
-            [dataset.exif_size(Image.open(f)) for f in tqdm(dataset.img_files, desc='Reading image shapes')])
-
-        # Get label wh
-        shapes = img_size * image_shapes / image_shapes.max(1, keepdims=True)
-        objects_wh = np.concatenate([l[:, 3:5] * s for s, l in zip(shapes, dataset.labels)])
-
-        # Filter
-        i = (objects_wh < 3.0).any(1).sum()
-        if i:
-            AnchorGenerator.logger.warning(
-                f'Extremely small objects found. {i} of {len(objects_wh)} labels are < 3 pixels in size.')
-        object_wh_filtered = objects_wh[(objects_wh >= 2.0).any(1)]
-
-        # Kmeans calculation
-        AnchorGenerator.logger.info(f'Running kmeans for {num_anchors} anchors on {len(object_wh_filtered)} points...')
-        mean_wh = object_wh_filtered.std(0)  # sigmas for whitening
-        anchors, dist = kmeans(object_wh_filtered / mean_wh, num_anchors, iter=30)  # points, mean distance
-        # MEANS WHERE NORMALIZED. SCALE THEM BACK TO IMAGE SIZE
-        anchors *= mean_wh
-
-        AnchorGenerator.logger.info('Initial results')
-        AnchorGenerator._print_results(objects_wh, anchors, thresh, num_anchors, img_size)
-        AnchorGenerator._plot_object_distribution(objects_wh, anchors)
-
-        # EVOLVE
-        fitness, generations, mutation_prob, sigma = AnchorGenerator._anchor_fitness(object_wh_filtered, anchors,
-                                                                                     thresh), anchors.shape, 0.9, 0.1
-        progress_bar = tqdm(range(gen), desc=f'{_prefix}Evolving anchors with Genetic Algorithm:')
-        for _ in progress_bar:
-            v = np.ones(generations)
-            while (v == 1).all():  # mutate until a change occurs (prevent duplicates)
-                v = ((np.random.random(generations) < mutation_prob) * np.random.random() * np.random.randn(
-                    *generations) * sigma + 1).clip(0.3, 3.0)
-            evolved_anchors = (anchors * v).clip(min=2.0)
-            evolved_anchors_fitness = AnchorGenerator._anchor_fitness(object_wh_filtered, evolved_anchors, thresh)
-            if evolved_anchors_fitness > fitness:
-                fitness, anchors = evolved_anchors_fitness, evolved_anchors.copy()
-                progress_bar.desc = f'{_prefix}Evolving anchors with Genetic Algorithm: fitness = {fitness:.4f}'
-
-        AnchorGenerator.logger.info('Final results')
-        AnchorGenerator._print_results(objects_wh, anchors, thresh, num_anchors, img_size)
-        AnchorGenerator._plot_object_distribution(objects_wh, anchors)
-
-        anchors = anchors[np.argsort(anchors.prod(1))]
-        anchors_list = np.round(anchors.reshape((3, -1))).astype(np.int32).tolist()
-        return anchors_list
-
-    @staticmethod
-    def __call__(dataset, num_anchors=9, thresh=0.25, gen=1000):
-        return AnchorGenerator._generate_anchors(dataset, num_anchors, thresh, gen)
-
-
 def plot_coco_datasaet_images_with_detections(data_loader, num_images_to_plot=1):
     """
     plot_coco_images
@@ -1320,8 +1121,10 @@ def compute_detection_matching(
     width: int,
     iou_thresholds: torch.Tensor,
     denormalize_targets: bool,
+    device: str,
     crowd_targets: Optional[torch.Tensor] = None,
     top_k: int = 100,
+    return_on_cpu: bool = True,
 ) -> List[Tuple]:
     """
     Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score.
@@ -1332,10 +1135,12 @@ def compute_detection_matching(
     :param height:          dimensions of the image
     :param width:           dimensions of the image
     :param iou_thresholds:  Threshold to compute the mAP
+    :param device:          Device
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
     :param top_k:           Number of predictions to keep per class, ordered by confidence score
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
+    :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
 
     :return:                list of the following tensors, for every image:
         :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
@@ -1346,11 +1151,13 @@ def compute_detection_matching(
         :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
         :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
     """
-    batch_metrics, device = [], targets.device
+    output = map(lambda tensor: None if tensor is None else tensor.to(device), output)
+    targets, iou_thresholds = targets.to(device), iou_thresholds.to(device)
 
     # If crowd_targets is not provided, we patch it with an empty tensor
-    crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets
+    crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.to(device)
 
+    batch_metrics = []
     for img_i, img_preds in enumerate(output):
         # If img_preds is None (not prediction for this image), we patch it with an empty tensor
         img_preds = img_preds if img_preds is not None else torch.zeros(size=(0, 6), device=device)
@@ -1366,7 +1173,8 @@ def compute_detection_matching(
             width=width,
             device=device,
             iou_thresholds=iou_thresholds,
-            top_k=top_k
+            top_k=top_k,
+            return_on_cpu=return_on_cpu
         )
         batch_metrics.append(img_matching_tensors)
 
@@ -1383,6 +1191,7 @@ def compute_img_detection_matching(
         device: str,
         denormalize_targets: bool,
         top_k: int = 100,
+        return_on_cpu: bool = True
 ) -> Tuple:
     """
     Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score
@@ -1398,7 +1207,9 @@ def compute_img_detection_matching(
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
     :param top_k:           Number of predictions to keep per class, ordered by confidence score
+    :param device:          Device
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
+    :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
 
     :return:
         :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
@@ -1412,11 +1223,13 @@ def compute_img_detection_matching(
     num_iou_thresholds = len(iou_thresholds)
 
     if preds is None or len(preds) == 0:
+        if return_on_cpu:
+            device = "cpu"
         preds_matched = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
         preds_to_ignore = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
         preds_scores = torch.tensor([], dtype=torch.float32, device=device)
         preds_cls = torch.tensor([], dtype=torch.float32, device=device)
-        targets_cls = targets[:, 0]
+        targets_cls = targets[:, 0].to(device=device)
         return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
 
     preds_matched = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
@@ -1508,6 +1321,13 @@ def compute_img_detection_matching(
 
         preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
 
+    if return_on_cpu:
+        preds_matched = preds_matched.to("cpu")
+        preds_to_ignore = preds_to_ignore.to("cpu")
+        preds_scores = preds_scores.to("cpu")
+        preds_cls = preds_cls.to("cpu")
+        targets_cls = targets_cls.to("cpu")
+
     return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
 
 
@@ -1559,7 +1379,10 @@ def compute_detection_metrics(
         :ap, precision, recall, f1: Tensors of shape (n_class, nb_iou_thrs)
         :unique_classes:            Vector with all unique target classes
     """
-    recall_thresholds = torch.linspace(0, 1, 101, device=device) if recall_thresholds is None else recall_thresholds
+    preds_matched, preds_to_ignore = preds_matched.to(device), preds_to_ignore.to(device)
+    preds_scores, preds_cls, targets_cls = preds_scores.to(device), preds_cls.to(device), targets_cls.to(device)
+
+    recall_thresholds = torch.linspace(0, 1, 101, device=device) if recall_thresholds is None else recall_thresholds.to(device)
 
     unique_classes = torch.unique(targets_cls)
     n_class, nb_iou_thrs = len(unique_classes), preds_matched.shape[-1]

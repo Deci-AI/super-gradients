@@ -385,9 +385,9 @@ class WarmupLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs >= context.epoch
 
 
-class YoloV5WarmupLRCallback(LRCallbackBase):
+class YoloWarmupLRCallback(LRCallbackBase):
     def __init__(self, **kwargs):
-        super(YoloV5WarmupLRCallback, self).__init__(Phase.TRAIN_BATCH_END, **kwargs)
+        super(YoloWarmupLRCallback, self).__init__(Phase.TRAIN_BATCH_END, **kwargs)
 
     def is_lr_scheduling_enabled(self, context):
         return context.epoch < self.training_params.lr_warmup_epochs
@@ -785,7 +785,7 @@ LR_SCHEDULERS_CLS_DICT = {
     "function": FunctionLRCallback,
 }
 
-LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback, "yolov5_warmup": YoloV5WarmupLRCallback}
+LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback, "yolo_warmup": YoloWarmupLRCallback}
 
 
 class TestLRCallback(PhaseCallback):
