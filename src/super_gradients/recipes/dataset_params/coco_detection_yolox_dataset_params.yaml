@@ -27,10 +27,10 @@ targets_format:
   _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
   value: LABEL_CXCYWH
 
-with_crowd: False # whether to return "crowd" labels in validation
+with_crowd: True # whether to return "crowd" labels in validation
 
 val_collate_fn: # collate function for valset
-  _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+  _target_: super_gradients.training.utils.detection_utils.CrowdDetectionCollateFN
 
 
 train_collate_fn: # collate function for trainset
