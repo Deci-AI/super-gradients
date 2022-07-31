@@ -350,7 +350,6 @@ def download_and_untar_from_url(urls: List[str], dir: Union[str, Path] = '.'):
     :param urls:    Url to download the file from.
     :param dir:     Destination directory.
     """
-
     dir = Path(dir)
     dir.mkdir(parents=True, exist_ok=True)
 
