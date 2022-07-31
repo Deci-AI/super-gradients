@@ -4,13 +4,22 @@ from typing import List
 
 from super_gradients.training.datasets import DetectionDataSetV2
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
+from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
+
 
 class TestDetectionDataSet(DetectionDataSetV2):
-
     def __init__(self, input_dim, *args, **kwargs):
         """Dummy Dataset testing subclassing, designed with no annotation that includes class_2."""
+
+        self.DUMMY_TARGETS = [np.array([[0, 0, 10, 10, 0],
+                                        [0, 5, 10, 15, 0],
+                                        [0, 5, 15, 20, 0]]),
+                              np.array([[0, 0, 10, 10, 0],
+                                        [0, 5, 10, 15, 0],
+                                        [0, 15, 55, 20, 1]])]
+
         self.image_size = input_dim
-        kwargs['n_available_samples'] = 2
+        kwargs['n_available_samples'] = len(self.DUMMY_TARGETS)
         kwargs['all_classes_list'] = ["class_0", "class_1", "class_2"]
         kwargs['target_format'] = DetectionTargetsFormat.XYXY_LABEL
         super().__init__(input_dim=input_dim, *args, **kwargs)
@@ -20,23 +29,11 @@ class TestDetectionDataSet(DetectionDataSetV2):
             - Annotation 0 is made of: 3 targets of class 0, 0 of class_1 and 0 of class_2
             - Annotation 1 is made of: 2 targets of class_0, 1 of class_1 and 0 of class_2
         """
-        return {"img_path": "", "target": _get_dummy_target(sample_id)}
+        return {"img_path": "", "target": self.DUMMY_TARGETS[sample_id]}
 
-    # We patch this to not have to have local image
+    # We patch this to mot load image (which is the base behavior of DetectionDataSetV2)
     def _load_image(self, index: int) -> np.ndarray:
         return np.random.random(self.image_size)
-
-
-def _get_dummy_target(sample_id: int) -> np.ndarray:
-    """Return a dummy target depending on the sample_id"""
-    if sample_id == 0:
-        return np.array([[0, 0, 10, 10, 0],
-                         [0, 5, 10, 15, 0],
-                         [0, 5, 10, 15, 0]])
-    if sample_id == 1:
-        return np.array([[0, 0, 10, 10, 0],
-                         [0, 5, 10, 15, 0],
-                         [0, 5, 10, 15, 1]])
 
 
 class TestDatasetInterface(unittest.TestCase):
@@ -90,7 +87,7 @@ class TestDatasetInterface(unittest.TestCase):
 
         # Check last case when class_2, which should raise FileNotFoundError because not a single image has
         # a target in class_inclusion_list
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaises(EmptyDatasetException):
             TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=True,
                                  class_inclusion_list=["class_2"])
 

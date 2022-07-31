@@ -12,6 +12,7 @@ from torch.utils.data import Dataset
 from super_gradients.training.utils.detection_utils import get_cls_posx_in_target, DetectionTargetsFormat
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.transforms.transforms import DetectionTransform
+from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
 
 logger = get_logger(__name__)
 
@@ -144,8 +145,8 @@ class DetectionDataSetV2(Dataset):
                 annotations.append(img_annotation)
 
         if len(annotations) == 0:
-            raise FileNotFoundError(f"Out of {self.n_available_samples} images, not a single one was found with"
-                                    f"any of these classes: {self.class_inclusion_list}")
+            raise EmptyDatasetException(f"Out of {self.n_available_samples} images, not a single one was found with"
+                                        f"any of these classes: {self.class_inclusion_list}")
         return annotations
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:

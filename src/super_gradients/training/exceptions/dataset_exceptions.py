@@ -12,6 +12,19 @@ class IllegalDatasetParameterException(Exception):
         super().__init__(self.message)
 
 
+class EmptyDatasetException(Exception):
+    """
+    Exception raised when a dataset does not have any image for a specific config
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self, desc):
+        self.message = "Empty Dataset: " + desc
+        super().__init__(self.message)
+
+
 class UnsupportedBatchItemsFormat(ValueError):
     """Exception raised illegal batch items returned from data loader.
 
