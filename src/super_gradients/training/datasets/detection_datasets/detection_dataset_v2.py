@@ -188,11 +188,7 @@ class DetectionDataSetV2(Dataset):
         if cache_path is None:
             raise ValueError("You must specify a cache_path if you want to cache your images."
                              "If you did not mean to use cache, please set cache=False ")
-        if not cache_path.parent.exists():
-            raise FileNotFoundError(f"cache_path={str(cache_path)} was specified,"
-                                    f"but it's parent folder {str(cache_path.parent)} does not exist")
-        if cache_path.parent.exists() and not cache_path.exists():
-            cache_path.mkdir()
+        cache_path.mkdir(parents=True, exist_ok=True)
 
         logger.warning("\n********************************************************************************\n"
                        "You are using cached images in RAM to accelerate training.\n"
