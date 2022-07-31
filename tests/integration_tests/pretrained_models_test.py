@@ -189,9 +189,9 @@ class PretrainedModelsTest(unittest.TestCase):
         self.cityscapes_pretrained_ckpt_params = {"pretrained_weights": "cityscapes"}
         self.cityscapes_pretrained_mious = {"ddrnet_23": 0.7865,
                                             "ddrnet_23_slim": 0.7689,
-                                            "stdc1_seg50": 0.7436,
+                                            "stdc1_seg50": 0.7511,
                                             "stdc1_seg75": 0.7687,
-                                            "stdc2_seg50": 0.7527,
+                                            "stdc2_seg50": 0.7644,
                                             "stdc2_seg75": 0.7893,
                                             "regseg48": 0.7815}
 
@@ -528,7 +528,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("yolox_s",
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(test_loader=self.coco_dataset['yolox'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloPostPredictionCallback(),
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                  num_cls=80,
                                                                  normalize_targets=True)])[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_s"], delta=0.001)
@@ -540,7 +540,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("yolox_m",
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(test_loader=self.coco_dataset['yolox'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloPostPredictionCallback(),
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                  num_cls=80,
                                                                  normalize_targets=True)])[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_m"], delta=0.001)
@@ -552,7 +552,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("yolox_l",
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(test_loader=self.coco_dataset['yolox'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloPostPredictionCallback(),
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                  num_cls=80,
                                                                  normalize_targets=True)])[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_l"], delta=0.001)
@@ -564,7 +564,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("yolox_n",
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(test_loader=self.coco_dataset['yolox'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloPostPredictionCallback(),
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                  num_cls=80,
                                                                  normalize_targets=True)])[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_n"], delta=0.001)
@@ -576,7 +576,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("yolox_t",
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(test_loader=self.coco_dataset['yolox'].val_loader,
-                           test_metrics_list=[DetectionMetricsV2(post_prediction_callback=YoloPostPredictionCallback(),
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                  num_cls=80,
                                                                  normalize_targets=True)])[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_t"], delta=0.001)
