@@ -156,15 +156,25 @@ def one_hot_to_binary_edge(x: torch.Tensor,
     padding = (kernel_size - 1) // 2
     # Use replicate padding to prevent class shifting and edge formation at the image boundaries.
     padded_x = F.pad(x.float(), mode="replicate", pad=[padding] * 4)
-
+    # The binary edges feature map is created by subtracting dilated features from erosed features.
+    # First the positive one value masks are expanded (dilation) by applying a sliding window filter of one values.
+    # The resulted output is then clamped to binary format to [0, 1], this way the one-hot boundaries are expanded by
+    # (kernel_size - 1) / 2.
     dilation = torch.clamp(
         F.conv2d(padded_x, _kernel, groups=x.size(1)),
         0, 1
     )
+    # Similar to dilation, erosion (can be seen as inverse of dilation) is applied to contract the one-hot features by
+    # applying a dilation operation on the inverse of the one-hot features.
     erosion = 1 - torch.clamp(
         F.conv2d(1 - padded_x, _kernel, groups=x.size(1)),
         0, 1
     )
+    # Finally the edge features are the result of subtracting dilation by erosion.
+    # i.e for a simple 1D one-hot input:    [0, 0, 0, 1, 1, 1, 0, 0, 0], using sliding kernel with size 3: [1, 1, 1]
+    # Dilated features:                     [0, 0, 1, 1, 1, 1, 1, 0, 0]
+    # Erosed inverse features:              [0, 0, 0, 0, 1, 0, 0, 0, 0]
+    # Edge features: dilation - erosion:    [0, 0, 1, 1, 0, 1, 1, 0, 0]
     edge = dilation - erosion
     if flatten_channels:
         # use max operator across channels. Equivalent to logical or for input with binary values [0, 1].
