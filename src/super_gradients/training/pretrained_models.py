@@ -15,9 +15,9 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "ddrnet_23_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet23_cityscapes"
                                       "/ddrnet23_cityscapes.pth ",
               "ddrnet_23_slim_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet23_cityscapes/ddrnet23_slim_cityscapes.pth",
-              "stdc1_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/stdc1_seg50/ckpt_best-3.pth",
+              "stdc1_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc1_seg50_dice_edge/ckpt_best.pth",
               "stdc1_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/stdc1_seg75_cityscapes/ckpt_best.pth",
-              "stdc2_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/stdc2_seg50_cityscapes/ckpt_best.pth",
+              "stdc2_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc2_seg50_dice_edge/ckpt_best.pth",
               "stdc2_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/stdc2_seg75_cityscapes/ckpt_best.pth",
               "efficientnet_b0_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/efficientnet_b0/average_model-3.pth",
               "ssd_lite_mobilenet_v2_coco": "https://deci-pretrained-models.s3.amazonaws.com/ssd_lite_mobilenet_v2/ckpt_best_anchors.pth",
@@ -33,7 +33,13 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "vit_base_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/vit_base_imagenet1k/ckpt_best.pth",
               "vit_large_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/vit_large_cutmix_randaug_v2_lr%3D0.03/average_model.pth",
               "beit_base_patch16_224_imagenet": 'https://deci-pretrained-models.s3.amazonaws.com/beit_base_patch16_224_imagenet.pth',
-              "beit_base_patch16_224_cifar10": 'https://deci-pretrained-models.s3.amazonaws.com/beit_cifar10.pth'
+              "beit_base_patch16_224_cifar10": 'https://deci-pretrained-models.s3.amazonaws.com/beit_cifar10.pth',
+              "yolox_s_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_s_coco/average_model.pth",
+              "yolox_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_m_coco/average_model.pth",
+              "yolox_l_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_l_coco/average_model.pth",
+              "yolox_t_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_tiny_coco/ckpt_best.pth",
+              "yolox_n_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_n_coco/ckpt_best.pth"
+
               }
 
 PRETRAINED_NUM_CLASSES = {"imagenet": 1000,
