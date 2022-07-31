@@ -143,7 +143,7 @@ class DetectionDataSetV2(Dataset):
             if not self.ignore_empty_annotations or img_annotation is not None:
                 annotations.append(img_annotation)
 
-        if len(self.annotations) == 0:
+        if len(annotations) == 0:
             raise FileNotFoundError(f"Out of {self.n_available_samples} images, not a single one was found with"
                                     f"any of these classes: {self.class_inclusion_list}")
         return annotations
@@ -305,7 +305,7 @@ class DetectionDataSetV2(Dataset):
         for transform in self.transforms:
             self._add_additional_inputs_for_transform(sample, transform)
             sample = transform(sample)
-        sample.pop("additional_samples")  # additional_samples is not useful after the transforms
+            sample.pop("additional_samples")  # additional_samples is not useful after the transform
         return sample
 
     def _add_additional_inputs_for_transform(self, sample: Dict[str, Union[np.ndarray, Any]],
