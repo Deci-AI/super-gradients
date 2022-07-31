@@ -44,14 +44,16 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
         """
         img_files_folder = self.data_dir + self.images_sub_directory
         img_files = glob.glob(img_files_folder + "*.jpg")
-        assert len(img_files) > 0, f"No image file found at {img_files_folder}"
+        if len(img_files) == 0:
+            raise FileNotFoundError(f"No image file found at {img_files_folder}")
 
         target_files = [img_file.replace("images", "labels").replace(".jpg", ".txt") for img_file in img_files]
 
         img_and_target_path_list = [(img_file, target_file)
                                     for img_file, target_file in zip(img_files, target_files)
                                     if os.path.exists(target_file)]
-        assert len(img_and_target_path_list) > 0, "No target file associated to the images was found"
+        if len(img_and_target_path_list) == 0:
+            raise FileNotFoundError("No target file associated to the images was found")
 
         num_missing_files = len(img_files) - len(img_and_target_path_list)
         if num_missing_files > 0:

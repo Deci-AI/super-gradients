@@ -102,19 +102,18 @@ class DetectionDataSetV2(Dataset):
 
         self.ignore_empty_annotations = ignore_empty_annotations
         self.annotation_fields_to_subclass = annotation_fields_to_subclass or ["target"]
-        assert "target" in self.annotation_fields_to_subclass,\
-            '"target" is expected to be in the fields to subclassbut it was not included'
+        if "target" not in self.annotation_fields_to_subclass:
+            raise KeyError('"target" is expected to be in the fields to subclassbut it was not included')
 
         self.annotations = self._cache_annotations()
-        assert len(self.annotations) > 0
 
         self.cache = cache
         self.cache_path = cache_path
         self.cached_imgs = self._cache_images() if self.cache else None
 
         self.output_fields = output_fields or ["image", "target"]
-        assert "image" in self.output_fields, '"image" is expected to be in output_fields but it was not included'
-        assert "target" in self.output_fields, '"target" is expected to be in output_fields but it was not included'
+        if "image" not in self.output_fields or "target" not in self.output_fields:
+            raise KeyError('"image" and "target" are expected to be in output_fields')
 
         # IF collate_fn IS PROVIDED IN CTOR WE ASSUME THERE IS A BASE-CLASS INHERITANCE W/O collate_fn IMPLEMENTATION
         if collate_fn is not None:
@@ -135,8 +134,8 @@ class DetectionDataSetV2(Dataset):
         annotations = []
         for sample_id, img_id in enumerate(tqdm(range(self.n_available_samples), desc="Caching annotations")):
             img_annotation = self._load_annotation(img_id)
-            assert "target" in img_annotation, '_load_annotation  is expected to return the field "target"'
-            assert "img_path" in img_annotation, '_load_annotation is expected to return the field "img_path"'
+            if "target" not in img_annotation or "img_path" not in img_annotation:
+                raise KeyError('_load_annotation is expected to return at least the field "target" and "img_path"')
 
             if self.class_inclusion_list is not None:
                 img_annotation = self._sub_class_annotation(img_annotation)
@@ -144,6 +143,9 @@ class DetectionDataSetV2(Dataset):
             if not self.ignore_empty_annotations or img_annotation is not None:
                 annotations.append(img_annotation)
 
+        if len(self.annotations) == 0:
+            raise FileNotFoundError(f"Out of {self.n_available_samples} images, not a single one was found with"
+                                    f"any of these classes: {self.class_inclusion_list}")
         return annotations
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
@@ -183,8 +185,12 @@ class DetectionDataSetV2(Dataset):
         :return: Cached images
         """
         cache_path = Path(self.cache_path)
-        if cache_path is None or not cache_path.parent.exists():
-            raise ValueError("Must pass valid path through cache_path when caching. Got " + str(cache_path))
+        if cache_path is None:
+            raise ValueError("You must specify a cache_path if you want to cache your images."
+                                    "If you did not mean to use cache, please set cache=False ")
+        if not cache_path.parent.exists():
+            raise FileNotFoundError(f"cache_path={str(cache_path)} was specified,"
+                                    f"but it's parent folder {str(cache_path.parent)} does not exist")
         if cache_path.parent.exists() and not cache_path.exists():
             cache_path.mkdir()
 
@@ -245,8 +251,9 @@ class DetectionDataSetV2(Dataset):
         img_file = os.path.join(img_path)
         img = cv2.imread(img_file)
 
-        assert img is not None, \
-            f"{img_file} was no found. Please make sure that the dataset was downloaded and that the path is correct"
+        if img is None:
+            raise FileNotFoundError(f"{img_file} was no found. Please make sure that the dataset was"
+                                    f"downloaded and that the path is correct")
         return img
 
     def __del__(self):
@@ -263,8 +270,9 @@ class DetectionDataSetV2(Dataset):
         The output of this function will be collated to form batches."""
         sample = self.apply_transforms(self.get_sample(index))
         for field in self.output_fields:
-            assert field in sample, f'The field {field} must be present in the sample but was not found.'\
-                                     'Please check the output fields of your transforms.'
+            if field not in sample:
+                raise KeyError(f'The field {field} must be present in the sample but was not found.'
+                               'Please check the output fields of your transforms.')
         return tuple(sample[field] for field in self.output_fields)
 
     def get_sample(self, index: int) -> Dict[str, Union[np.ndarray, Any]]:
