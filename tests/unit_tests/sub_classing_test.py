@@ -84,7 +84,7 @@ class TestDatasetInterface(unittest.TestCase):
             n_targets_after_subclass = _get_n_targets_after_subclass_per_index(test_dataset)
             self.assertListEqual(config["expected_n_targets_after_subclass"], n_targets_after_subclass)
 
-        # Check last case when class_2, which should raise FileNotFoundError because not a single image has
+        # Check last case when class_2, which should raise EmptyDatasetException because not a single image has
         # a target in class_inclusion_list
         with self.assertRaises(EmptyDatasetException):
             TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=True,
