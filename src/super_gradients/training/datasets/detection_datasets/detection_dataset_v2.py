@@ -187,7 +187,7 @@ class DetectionDataSetV2(Dataset):
         cache_path = Path(self.cache_path)
         if cache_path is None:
             raise ValueError("You must specify a cache_path if you want to cache your images."
-                                    "If you did not mean to use cache, please set cache=False ")
+                             "If you did not mean to use cache, please set cache=False ")
         if not cache_path.parent.exists():
             raise FileNotFoundError(f"cache_path={str(cache_path)} was specified,"
                                     f"but it's parent folder {str(cache_path.parent)} does not exist")
@@ -200,7 +200,7 @@ class DetectionDataSetV2(Dataset):
                        "********************************************************************************\n")
 
         max_h, max_w = self.input_dim[0], self.input_dim[1]
-        img_resized_cache_path = cache_path / f"img_resized_cache.array"
+        img_resized_cache_path = cache_path / "img_resized_cache.array"
 
         if not img_resized_cache_path.exists():
             logger.info("Caching images for the first time.")
@@ -219,8 +219,8 @@ class DetectionDataSetV2(Dataset):
             cached_imgs.flush()
             loaded_images_pbar.close()
         else:
-            logger.warning("You are using cached imgs! Make sure your dataset is not changed!!\n" 
-                           "Everytime the self.input_size is changed in your exp file, you need to delete\n" 
+            logger.warning("You are using cached imgs! Make sure your dataset is not changed!!\n"
+                           "Everytime the self.input_size is changed in your exp file, you need to delete\n"
                            "the cached data and re-generate them.\n")
 
         logger.info("Loading cached imgs...")

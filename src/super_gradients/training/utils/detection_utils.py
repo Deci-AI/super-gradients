@@ -1084,7 +1084,7 @@ class DetectionCollateFN:
     def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
         nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
         targets_merged = []
-        for i in range(targets.shape[0]): # shape = [n_image, bbox4, cls]
+        for i in range(targets.shape[0]):  # shape = [n_image, bbox4, cls]
             targets_im = targets[i, :nlabel[i]]
             batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
             targets_merged.append(torch.cat((batch_column, targets_im), 1))
@@ -1099,6 +1099,7 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
         batch = default_collate(data)
         ims, targets, crowd_targets = batch[0:3]
         return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:
     """Compute the area of one or many boxes.

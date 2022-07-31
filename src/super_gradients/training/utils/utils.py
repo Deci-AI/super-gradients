@@ -1,10 +1,11 @@
 import math
 import time
 from pathlib import Path
-from typing import Mapping, Optional, Tuple, Union
+from typing import Mapping, Optional, Tuple, Union, List
 from zipfile import ZipFile
 import os
 from jsonschema import validate
+import tarfile
 
 import torch
 import torch.nn as nn
@@ -14,6 +15,10 @@ import torch.nn as nn
 import random
 import numpy as np
 from importlib import import_module
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def convert_to_tensor(array):
@@ -239,7 +244,7 @@ def load_func(dotpath: str):
     return getattr(m, func)
 
 
-def get_filename_suffix_by_framework(framework: str):
+def get_filepath_suffix_by_framework(framework: str):
     """
     Return the file extension of framework.
 
@@ -336,6 +341,36 @@ def download_and_unzip_from_url(url, dir='.', unzip=True, delete=True):
     dir.mkdir(parents=True, exist_ok=True)  # make directory
     for u in [url] if isinstance(url, (str, Path)) else url:
         download_one(u, dir)
+
+
+def download_and_untar_from_url(urls: List[str], dir: Union[str, Path] = '.'):
+    """
+    Download a file from url and untar.
+
+    :param urls:    Url to download the file from.
+    :param dir:     Destination directory.
+    """
+
+    dir = Path(dir)
+    dir.mkdir(parents=True, exist_ok=True)
+
+    for url in urls:
+        url_path = Path(url)
+        filepath = dir / url_path.name
+
+        if url_path.is_file():
+            url_path.rename(filepath)
+        elif not filepath.exists():
+            logger.info(f'Downloading {url} to {filepath}...')
+            torch.hub.download_url_to_file(url, str(filepath), progress=True)
+
+        modes = {".tar.gz": "r:gz", ".tar": "r:"}
+        assert filepath.suffix in modes.keys(), f"{filepath} has {filepath.suffix} suffix which is not supported"
+
+        logger.info(f'Extracting to {dir}...')
+        with tarfile.open(filepath, mode=modes[filepath.suffix]) as f:
+            f.extractall(dir)
+        filepath.unlink()
 
 
 def make_divisible(x: int, divisor: int, ceil: bool = True) -> int:

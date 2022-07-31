@@ -40,7 +40,7 @@ from super_gradients.training.datasets.segmentation_datasets.supervisely_persons
 from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine, DetectionTargetsFormatTransform, \
-    DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip, DetectionTransform
+    DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -991,11 +991,6 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
         def _parse_and_save_labels(path, new_label_path, year, image_id):
             """Parse and save the labels of an image in XYXY_LABEL format."""
 
-            def _parse_bbox(xml_box):
-                """Parse a bbox in XYXY_LABEL format."""
-                get_coord = lambda box_coord: xml_box.find(box_coord).text
-                xmin, ymin, xmax, ymax = get_coord("xmin"), get_coord("ymin"), get_coord("xmax"), get_coord("ymax")
-                return xmin, ymin, xmax, ymax, str(PASCAL_VOC_2012_CLASSES.index(cls))
 
             with open(f'{path}/VOC{year}/Annotations/{image_id}.xml') as f:
                 xml_parser = ET.parse(f).getroot()
@@ -1004,16 +999,21 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
             for obj in xml_parser.iter('object'):
                 cls = obj.find('name').text
                 if cls in PASCAL_VOC_2012_CLASSES and not int(obj.find('difficult').text) == 1:
-                    bbox = _parse_bbox(xml_box=obj.find('bndbox'))
-                    labels.append(" ".join(bbox))
+                    xml_box = obj.find('bndbox')
+
+                    def get_coord(box_coord):
+                        return xml_box.find(box_coord).text
+
+                    xmin, ymin, xmax, ymax = get_coord("xmin"), get_coord("ymin"), get_coord("xmax"), get_coord("ymax")
+                    labels.append(" ".join([xmin, ymin, xmax, ymax, str(PASCAL_VOC_2012_CLASSES.index(cls))]))
 
             with open(new_label_path, 'w') as f:
                 f.write("\n".join(labels))
 
         urls = [
-            "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar", # 439M 5011 images
-            "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar",     # 430M, 4952 images
-            "http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar", # 1.86G, 17125 images
+            "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar",  # 439M 5011 images
+            "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar",      # 430M, 4952 images
+            "http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar",  # 1.86G, 17125 images
         ]
         data_dir = Path(self.data_dir)
         download_and_untar_from_url(urls, dir=data_dir / 'images')
@@ -1034,7 +1034,7 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
                 img_path = data_path / f'VOC{year}/JPEGImages/{id}.jpg'
                 new_img_path = dest_imgs_path / img_path.name
                 new_label_path = (dest_labels_path / img_path.name).with_suffix('.txt')
-                img_path.rename(new_img_path) # Move image to dest folder
+                img_path.rename(new_img_path)  # Move image to dest folder
                 _parse_and_save_labels(data_path, new_label_path, year, id)
 
 
