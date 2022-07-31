@@ -2,14 +2,14 @@
 #  Reproduction and refinement of paper: Rethinking BiSeNet For Real-time Semantic Segmentation.
 #
 #  Usage STDC1-Seg50:
-#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg50 external_checkpoint_path=<stdc1-backbone-pretrained-path>
+#      python -m torch.distributed.launch --nproc_per_node=2 train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path>
 #  Usage STDC2-Seg50:
-#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg50 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
+#      python -m torch.distributed.launch --nproc_per_node=2 train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path> architecture=stdc2_seg
 #
 #
 #  Validation mIoU - Cityscapes, training time:
-#      STDC1-Seg50:    input-size: [512, 1024]     mIoU: 74.36     4 X RTX A5000, 12 H
-#      STDC2-Seg50:    input-size: [512, 1024]     mIoU: 75.27     4 X RTX A5000, 13 H
+#      STDC1-Seg50:    input-size: [512, 1024]     mIoU: 75.11     2 X RTX A5000, 20 H
+#      STDC2-Seg50:    input-size: [512, 1024]     mIoU: 76.44     2 X RTX A5000, 23 H
 #
 #  Official git repo:
 #      https://github.com/MichaelFan01/STDC-Seg
@@ -22,95 +22,36 @@
 #       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc2_imagenet_pretrained.pth
 #
 #      Logs, tensorboards and network checkpoints:
-#       https://deci-pretrained-models.s3.amazonaws.com/stdc1_seg50/
-#       https://deci-pretrained-models.s3.amazonaws.com/stdc2_seg50_cityscapes/
+#       STDC1-Seg50: https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc1_seg50_dice_edge/
+#       STDC2-Seg50: https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc2_seg50_dice_edge/
 #
-#
-#  Learning rate and batch size parameters, using 4 GeForce RTX 2080 Ti with DDP:
-#      STDC1-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
-#      STDC2-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
+#  Learning rate and batch size parameters, using 2 RTX A5000 with DDP:
+#      STDC1-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 16 * 2gpus = 32
+#      STDC2-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 16 * 2gpus = 32
 #
 #  Comments:
 #      * Pretrained backbones were used.
-#      * Results with Deci code are higher than original implementation, mostly thanks to changes in Detail loss and
-#          module, different auxiliary feature maps and different loss weights.
 
 defaults:
-  - training_hyperparams: cityscapes_stdc_train_params
-  - dataset_params: cityscapes_dataset_params
-  - checkpoint_params: default_checkpoint_params
-
+  - cityscapes_stdc_base
+  - _self_
 
 dataset_params:
   _convert_: all
-  batch_size: 8
-  val_batch_size: 8
-  crop_size:
-    - 1024
-    - 512
+  batch_size: 16
+  val_batch_size: 16
+  crop_size: [1024, 512]
   eval_scale: 0.5
-  image_mask_transforms_aug:
-    Compose:
-      transforms:
-        - ColorJitterSeg:
-            brightness: 0.5
-            contrast: 0.5
-            saturation: 0.5
+  random_scales: [ 0.125, 1.5 ]
 
-        - RandomFlipSeg
+training_hyperparams:
+  loss:
+    dice_ce_edge_loss:
+      num_classes: 19
+      ignore_index: 19
+      weights: [ 1., 0.6, 0.4, 1. ]
+      dice_ce_weights: [ 1., 1. ]
+      ce_edge_weights: [ .5, .5 ]
+      edge_kernel: 3
 
-        - RandomRescaleSeg:
-            scales:
-              - 0.125
-              - 1.5
-
-        - PadShortToCropSizeSeg:
-            crop_size: ${dataset_params.crop_size}
-            fill_mask: ${dataset_params.cityscapes_ignored_label}
-
-        - CropImageAndMaskSeg:
-            crop_size: ${dataset_params.crop_size}
-            mode: random
-
-  image_mask_transforms:
-    Compose:
-      transforms:
-        - RescaleSeg:
-            scale_factor: ${dataset_params.eval_scale}
-
-dataset_interface:
-  cityscapes:
-    dataset_params: ${dataset_params}
-
-data_loader_num_workers: 10
-
-arch_params:
-  num_classes: 19
-  use_aux_heads: True
-  sync_bn: True
-
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
-  external_checkpoint_path:
-  load_backbone: True
-  load_weights_only: True
-  strict_load: no_key_matching
-
-architecture: stdc1_seg
 experiment_name: ${architecture}50_cityscapes
-
-model_checkpoints_location: local
-ckpt_root_dir:
-
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
-
-sg_model:
-  _target_: super_gradients.SgModel
-  experiment_name: ${experiment_name}
-  model_checkpoints_location: ${model_checkpoints_location}
-  ckpt_root_dir: ${ckpt_root_dir}
-  multi_gpu: ${multi_gpu}
-
