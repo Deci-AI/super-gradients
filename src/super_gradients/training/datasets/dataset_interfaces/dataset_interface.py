@@ -1,46 +1,50 @@
 import os
-from typing import List, Tuple
+from xml.etree import ElementTree
+from tqdm import tqdm
+from pathlib import Path
 
 import numpy as np
-
 import torch
 import torchvision
 import torchvision.datasets as datasets
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import ConcatDataset, BatchSampler, DataLoader
+import torchvision.transforms as transforms
 
+
+from super_gradients.common import DatasetDataInterface
+from super_gradients.common.environment import AWS_ENV_NAME
 from super_gradients.common.abstractions.abstract_logger import get_logger
+
+from super_gradients.training import utils as core_utils
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
+from super_gradients.training.utils.utils import download_and_untar_from_url, download_and_unzip_from_url
+from super_gradients.training.utils import get_param
+from super_gradients.training.utils.detection_utils import base_detection_collate_fn,\
+    crowd_detection_collate_fn, DetectionTargetsFormat, DetectionCollateFN
+
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
-from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
+from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataSet, PascalVOCDetectionDataSet, \
     PascalVOCDetectionDataSetV2
 from super_gradients.training.datasets.detection_datasets.coco_detection_yolox import COCODetectionDatasetV2
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.datasets.segmentation_datasets import PascalVOC2012SegmentationDataSet, \
     PascalAUG2012SegmentationDataSet, CoCoSegmentationDataSet
-from super_gradients.training import utils as core_utils
-from super_gradients.common import DatasetDataInterface
-from super_gradients.common.environment import AWS_ENV_NAME
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn, DetectionTargetsFormat,\
-    crowd_detection_collate_fn, DetectionTargetsFormat, DetectionCollateFN
-from super_gradients.training.datasets.mixup import CollateMixup
-from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
-from torch.utils.data import ConcatDataset, BatchSampler, DataLoader
-import xml.etree.ElementTree as ET
-from tqdm import tqdm
-from pathlib import Path
-from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
-from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
-from super_gradients.training.utils.utils import download_and_untar_from_url, download_and_unzip_from_url
-from super_gradients.training.utils import get_param
-import torchvision.transforms as transforms
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import \
     SuperviselyPersonsDataset
+from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
 from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
+
 from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine, DetectionTargetsFormatTransform, \
     DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
+
+from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
+
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -844,7 +848,7 @@ class PascalVOCUnifiedDetectionDataSetInterface(DatasetInterface):
 
             in_file = open(f'{path}/VOC{year}/Annotations/{image_id}.xml')
             with open(lb_path, 'w') as out_file:
-                tree = ET.parse(in_file)
+                tree = ElementTree.parse(in_file)
                 root = tree.getroot()
                 size = root.find('size')
                 w = int(size.find('width').text)
@@ -991,9 +995,8 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
         def _parse_and_save_labels(path, new_label_path, year, image_id):
             """Parse and save the labels of an image in XYXY_LABEL format."""
 
-
             with open(f'{path}/VOC{year}/Annotations/{image_id}.xml') as f:
-                xml_parser = ET.parse(f).getroot()
+                xml_parser = ElementTree.parse(f).getroot()
 
             labels = []
             for obj in xml_parser.iter('object'):
@@ -1010,11 +1013,9 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
             with open(new_label_path, 'w') as f:
                 f.write("\n".join(labels))
 
-        urls = [
-            "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar",  # 439M 5011 images
-            "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar",      # 430M, 4952 images
-            "http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar",  # 1.86G, 17125 images
-        ]
+        urls = ["http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar",  # 439M 5011 images
+                "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar",      # 430M, 4952 images
+                "http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar"]  # 1.86G, 17125 images
         data_dir = Path(self.data_dir)
         download_and_untar_from_url(urls, dir=data_dir / 'images')
 
