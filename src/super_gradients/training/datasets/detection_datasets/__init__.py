@@ -8,4 +8,3 @@ from super_gradients.training.datasets.detection_datasets.detection_dataset_v2 i
 
 __all__ = ['DetectionDataSet', 'COCODetectionDataSet', 'DetectionDataSetV2', 'COCODetectionDatasetV2',
            'PascalVOCDetectionDataSet', 'PascalVOCDetectionDataSetV2']
-DetectionDataSetV2 = 1

@@ -21,7 +21,7 @@ from super_gradients.training.utils.distributed_training_utils import get_local_
 from super_gradients.training.utils.utils import download_and_untar_from_url, download_and_unzip_from_url
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.detection_utils import base_detection_collate_fn,\
-    crowd_detection_collate_fn, DetectionTargetsFormat, DetectionCollateFN
+    crowd_detection_collate_fn, DetectionTargetsFormat
 
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
@@ -918,41 +918,11 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
             dataset_params = dict()
         super().__init__(dataset_params=dataset_params)
 
-        self.data_dir = core_utils.get_param(self.dataset_params, 'data_dir', "~/data/pascal_unified_coco_format/")
-
-        cache_dir = core_utils.get_param(self.dataset_params, "cache_dir", self.data_dir)
-        cache_train_images = core_utils.get_param(self.dataset_params, 'cache_train_images', default_val=True)
-        cache_val_images = core_utils.get_param(self.dataset_params, 'cache_val_images', default_val=True)
-
-        class_inclusion_list = core_utils.get_param(self.dataset_params, "class_inclusion_list")
-
+        self.data_dir = self.dataset_params.data_dir
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
 
-        train_transforms = core_utils.get_param(self.dataset_params, 'train_transforms',
-                                                default_val=[DetectionMosaic(input_dim=train_input_dim, prob=1),
-                                                             DetectionRandomAffine(degrees=0.373,
-                                                                                   translate=0.245,
-                                                                                   scales=0.898,
-                                                                                   shear=0.602,
-                                                                                   target_size=train_input_dim),
-                                                             DetectionHSV(prob=1,
-                                                                          hgain=0.0138,
-                                                                          sgain=0.664,
-                                                                          vgain=0.464),
-                                                             DetectionPaddedRescale(input_dim=train_input_dim,
-                                                                                    max_targets=20),
-                                                             DetectionTargetsFormatTransform(input_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
-                                                                                             output_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH)])
-        val_transforms = core_utils.get_param(self.dataset_params, 'val_transforms',
-                                              default_val=[DetectionPaddedRescale(input_dim=val_input_dim),
-                                                           DetectionTargetsFormatTransform(input_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
-                                                                                           output_format=DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH)])
-
-        train_collate_fn = core_utils.get_param(self.dataset_params, 'train_collate_fn', DetectionCollateFN())
-        val_collate_fn = core_utils.get_param(self.dataset_params, 'val_collate_fn', DetectionCollateFN())
-
-        if core_utils.get_param(self.dataset_params, 'download', False):
+        if self.dataset_params.download:
             self._download_pascal()
 
         train_sets = []
@@ -960,28 +930,28 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
             for trainset_year in ["2007", "2012"]:
                 sub_trainset = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
                                                            input_dim=train_input_dim,
-                                                           cache=cache_train_images,
-                                                           cache_path=cache_dir + "cache_train",
-                                                           transforms=train_transforms,
+                                                           cache=self.dataset_params.cache_train_images,
+                                                           cache_path=self.dataset_params + "cache_train",
+                                                           transforms=self.dataset_params.train_transforms,
                                                            images_sub_directory='images/' + trainset_prefix + trainset_year + '/',
-                                                           class_inclusion_list=class_inclusion_list,
-                                                           collate_fn=train_collate_fn,)
+                                                           class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                           collate_fn=self.dataset_params.train_collate_fn,)
                 train_sets.append(sub_trainset)
 
         testset2007 = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
                                                   input_dim=val_input_dim,
-                                                  cache=cache_val_images,
-                                                  cache_path=cache_dir + "cache_valid",
-                                                  transforms=val_transforms,
+                                                  cache=self.dataset_params.cache_val_images,
+                                                  cache_path=self.dataset_params + "cache_valid",
+                                                  transforms=self.dataset_params.val_transforms,
                                                   images_sub_directory='images/test2007/',
-                                                  class_inclusion_list=class_inclusion_list,
-                                                  collate_fn=val_collate_fn,)
+                                                  class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                  collate_fn=self.dataset_params.val_collate_fn,)
 
         self.classes = train_sets[1].classes
         self.trainset = ConcatDataset(train_sets)
         self.valset = testset2007
 
-        self.trainset.collate_fn = train_collate_fn
+        self.trainset.collate_fn = self.dataset_params.train_collate_fn
         self.trainset.classes = self.classes
         self.trainset.img_size = self.dataset_params.train_image_size
         self.trainset.cache_labels = self.dataset_params.cache_train_images

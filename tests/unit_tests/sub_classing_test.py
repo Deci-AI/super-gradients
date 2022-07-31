@@ -1,6 +1,5 @@
 import unittest
 import numpy as np
-from typing import List
 
 from super_gradients.training.datasets import DetectionDataSetV2
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
