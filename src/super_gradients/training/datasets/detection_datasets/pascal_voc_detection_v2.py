@@ -7,16 +7,9 @@ import numpy as np
 from super_gradients.training.datasets.detection_datasets.detection_dataset_v2 import DetectionDataSetV2
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 from super_gradients.common.abstractions.abstract_logger import get_logger
-
+from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLASSES_LIST
 
 logger = get_logger(__name__)
-
-PASCAL_VOC_2012_CLASSES = [
-    'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
-    'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse',
-    'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train',
-    'tvmonitor'
-]
 
 
 class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
@@ -33,7 +26,7 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
         self.img_and_target_path_list = self._get_img_and_target_path_list()
 
         kwargs['n_available_samples'] = len(self.img_and_target_path_list)
-        kwargs['all_classes_list'] = PASCAL_VOC_2012_CLASSES
+        kwargs['all_classes_list'] = PASCAL_VOC_2012_CLASSES_LIST
         kwargs['target_format'] = DetectionTargetsFormat.XYXY_LABEL
         super().__init__(*args, **kwargs)
 
