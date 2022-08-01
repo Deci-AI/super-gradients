@@ -101,6 +101,9 @@ class DetectionDataSetV2(Dataset):
         self.all_classes_list = all_classes_list
         self.class_inclusion_list = class_inclusion_list
         self.classes = self.class_inclusion_list or self.all_classes_list
+        if len(set(class_inclusion_list) - set(all_classes_list)) > 0:
+            wrong_classes = set(class_inclusion_list) - set(all_classes_list)
+            raise ValueError(f"class_inclusion_list includes classes that are not in all_classes_list: {wrong_classes}")
 
         self.ignore_empty_annotations = ignore_empty_annotations
         self.target_fields = target_fields or ["target"]

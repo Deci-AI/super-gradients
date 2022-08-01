@@ -20,7 +20,7 @@ class TestDetectionDataSet(DetectionDataSetV2):
         self.image_size = input_dim
         kwargs['n_available_samples'] = len(self.DUMMY_TARGETS)
         kwargs['all_classes_list'] = ["class_0", "class_1", "class_2"]
-        kwargs['target_format'] = DetectionTargetsFormat.XYXY_LABEL
+        kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
         super().__init__(input_dim=input_dim, *args, **kwargs)
 
     def _load_annotation(self, sample_id: int) -> dict:
@@ -71,6 +71,7 @@ class TestDatasetInterface(unittest.TestCase):
         ]
 
     def test_subclass_keep_empty(self):
+        """Check that subclassing only keeps annotations of wanted class"""
         for config in self.CONFIG_KEEP_EMPTY_ANNOTATION:
             test_dataset = TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=False,
                                                 class_inclusion_list=config["class_inclusion_list"])
@@ -78,6 +79,7 @@ class TestDatasetInterface(unittest.TestCase):
             self.assertListEqual(config["expected_n_targets_after_subclass"], n_targets_after_subclass)
 
     def test_subclass_drop_empty(self):
+        """Check that empty annotations are not indexed (i.e. ignored) when ignore_empty_annotations=True"""
         for config in self.CONFIG_IGNORE_EMPTY_ANNOTATION:
             test_dataset = TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=True,
                                                 class_inclusion_list=config["class_inclusion_list"])
@@ -89,6 +91,15 @@ class TestDatasetInterface(unittest.TestCase):
         with self.assertRaises(EmptyDatasetException):
             TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=True,
                                  class_inclusion_list=["class_2"])
+
+    def test_wrong_subclass(self):
+        """Check that ValueError is raised when class_inclusion_list includes a class that does not exist."""
+        # Check last case when class_2, which should raise EmptyDatasetException because not a single image has
+        # a target in class_inclusion_list
+        with self.assertRaises(ValueError):
+            TestDetectionDataSet(input_dim=(640, 512), class_inclusion_list=["non_existing_class"])
+        with self.assertRaises(ValueError):
+            TestDetectionDataSet(input_dim=(640, 512), class_inclusion_list=["class_0", "non_existing_class"])
 
 
 def _get_n_targets_after_subclass_per_index(test_dataset: TestDetectionDataSet):

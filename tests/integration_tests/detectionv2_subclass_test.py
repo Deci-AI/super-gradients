@@ -30,8 +30,8 @@ class SubclassingIntegrationTest(unittest.TestCase):
             dataset.plot(max_samples_per_plot=16, n_plots=1, plot_transformed_data=False)
 
     def test_non_existing_class(self):
-        """Run test_pascal_dataset_subclass on multiple inclusion lists"""
-        with self.assertRaises(EmptyDatasetException):
+        """Check that EmptyDatasetException is raised when unknown label """
+        with self.assertRaises(ValueError):
             PascalVOCDetectionDataSetV2(class_inclusion_list=["new_class"], **self.PASCAL_BASE_CONFIG)
 
 
