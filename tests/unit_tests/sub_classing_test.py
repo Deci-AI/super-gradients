@@ -30,7 +30,8 @@ class TestDetectionDataSet(DetectionDataSetV2):
         """
         return {"img_path": "", "target": self.DUMMY_TARGETS[sample_id]}
 
-    # We patch this to mot load image (which is the base behavior of DetectionDataSetV2)
+    # DetectionDatasetV2 will call _load_image but since we don't have any image we patch this method with
+    # tensor of image shape
     def _load_image(self, index: int) -> np.ndarray:
         return np.random.random(self.image_size)
 
@@ -75,7 +76,7 @@ class TestDatasetInterface(unittest.TestCase):
         for config in self.CONFIG_KEEP_EMPTY_ANNOTATION:
             test_dataset = TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=False,
                                                 class_inclusion_list=config["class_inclusion_list"])
-            n_targets_after_subclass = _get_n_targets_after_subclass_per_index(test_dataset)
+            n_targets_after_subclass = _count_targets_after_subclass_per_index(test_dataset)
             self.assertListEqual(config["expected_n_targets_after_subclass"], n_targets_after_subclass)
 
     def test_subclass_drop_empty(self):
@@ -83,7 +84,7 @@ class TestDatasetInterface(unittest.TestCase):
         for config in self.CONFIG_IGNORE_EMPTY_ANNOTATION:
             test_dataset = TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=True,
                                                 class_inclusion_list=config["class_inclusion_list"])
-            n_targets_after_subclass = _get_n_targets_after_subclass_per_index(test_dataset)
+            n_targets_after_subclass = _count_targets_after_subclass_per_index(test_dataset)
             self.assertListEqual(config["expected_n_targets_after_subclass"], n_targets_after_subclass)
 
         # Check last case when class_2, which should raise EmptyDatasetException because not a single image has
@@ -100,8 +101,8 @@ class TestDatasetInterface(unittest.TestCase):
             TestDetectionDataSet(input_dim=(640, 512), class_inclusion_list=["class_0", "non_existing_class"])
 
 
-def _get_n_targets_after_subclass_per_index(test_dataset: TestDetectionDataSet):
-    """Iterate through every index of the dataset and return the associated number of targets per index"""
+def _count_targets_after_subclass_per_index(test_dataset: TestDetectionDataSet):
+    """Iterate through every index of the dataset and count the associated number of targets per index"""
     dataset_target_len = []
     for index in range(len(test_dataset)):
         _img, targets = test_dataset[index]

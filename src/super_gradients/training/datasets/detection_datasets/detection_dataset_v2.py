@@ -99,6 +99,8 @@ class DetectionDataSetV2(Dataset):
         self.original_target_format = original_target_format
         self.n_available_samples = n_available_samples
 
+        self.image_metadata_file = "METADATA.json"
+
         self.all_classes_list = all_classes_list
         self.class_inclusion_list = class_inclusion_list
         self.classes = self.class_inclusion_list or self.all_classes_list
@@ -129,6 +131,7 @@ class DetectionDataSetV2(Dataset):
 
     def _load_annotation(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
         """Load annotations associated to a specific sample.
+        Please note that the targets should be resized according to self.input_dim!
 
         :param sample_id:   Id of the sample to load annotations from.
         :return:            Annotation, a dict with any field but has to include at least "target" and "img_path".
@@ -290,16 +293,16 @@ class DetectionDataSetV2(Dataset):
         annotation = self.annotations[index]
         return {"image": img, **annotation}
 
-    def get_resized_image(self, index: int) -> np.ndarray:  # TODO: Check if this the standard way, because COCO is different
+    def get_resized_image(self, index: int) -> np.ndarray:
         """
         Get the resized image at a specific sample_id, either from cache or by loading from disk, based on self.cached_imgs
         :param index:  Image index
         :return:       Resized image
         """
-        if self.cached_imgs is not None:
+        if self.cache:
             return self.cached_imgs[index].copy()
         else:
-            return self._load_image(index)
+            return self._load_resized_img(index)
 
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
@@ -399,7 +402,6 @@ class DetectionDataSetV2(Dataset):
                 boxes = boxes[(boxes != 0).any(axis=1)]
                 plt.subplot(n_subplot, n_subplot, img_i + 1).imshow(image)
                 plt.plot(boxes[:, [0, 2, 2, 0, 0]].T, boxes[:, [1, 1, 3, 3, 1]].T, '.-')
-                # plt.plot(boxes[[0, 2, 2, 0, 0]], boxes[[1, 1, 3, 3, 1]], '.-')
                 plt.axis('off')
             fig.tight_layout()
             plt.show()

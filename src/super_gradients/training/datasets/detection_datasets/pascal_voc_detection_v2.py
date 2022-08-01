@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 import numpy as np
 
-from super_gradients.training.utils.utils import download_and_untar_from_url
+from super_gradients.training.utils.utils import download_and_untar_from_url, get_image_size_from_path
 from super_gradients.training.datasets.detection_datasets.detection_dataset_v2 import DetectionDataSetV2
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -67,7 +67,17 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
         img_path, target_path = self.img_and_target_path_list[sample_id]
         with open(target_path, 'r') as targets_file:
             target = np.array([x.split() for x in targets_file.read().splitlines()], dtype=np.float32)
-        return {"target": target, "img_path": img_path}
+
+        width, height = get_image_size_from_path(img_path)
+
+        # We have to rescale the targets because the images will be rescaled.
+        r = min(self.input_dim[1] / height, self.input_dim[0] / width)
+        target[:, :4] *= r
+
+        img_info = (width, height)
+        resized_info = (int(width * r), int(height * r))
+
+        return {"img_path": img_path, "target": target, "intial_img_shape": img_info, "resized_info": resized_info}
 
     @staticmethod
     def download(data_dir: str):
@@ -75,7 +85,6 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
 
         Data extracted form http://host.robots.ox.ac.uk/pascal/VOC/
         """
-
         def _parse_and_save_labels(path, new_label_path, year, image_id):
             """Parse and save the labels of an image in XYXY_LABEL format."""
 

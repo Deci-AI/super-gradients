@@ -6,9 +6,15 @@ from zipfile import ZipFile
 import os
 from jsonschema import validate
 import tarfile
+from PIL import Image, ExifTags
 
 import torch
 import torch.nn as nn
+
+# GET ORIENTATION EXIF TAG
+for orientation in ExifTags.TAGS.keys():
+    if ExifTags.TAGS[orientation] == 'Orientation':
+        break
 
 # These functions changed from torch 1.2 to torch 1.3
 
@@ -396,3 +402,31 @@ def check_img_size_divisibility(img_size: int, stride: int = 32) -> Tuple[bool, 
         return False, (new_size, make_divisible(img_size, int(stride), ceil=False))
     else:
         return True, None
+
+
+def exif_size(image: Image) -> Tuple[int, int]:
+    """Get the size of image.
+    :param image:   The image to get size from
+    :return:        (width, height)
+    """
+    image_size = image.size
+    try:
+        exif_data = image._getexif()
+        if exif_data is not None:
+            rotation = dict(exif_data.items())[orientation]
+            # ROTATION 270
+            if rotation == 6:
+                image_size = (image_size[1], image_size[0])
+            # ROTATION 90
+            elif rotation == 8:
+                image_size = (image_size[1], image_size[0])
+    except Exception as ex:
+        print('Caught Exception trying to rotate: ' + str(image) + str(ex))
+    height, width = image_size
+    return width, height
+
+
+def get_image_size_from_path(img_path: str) -> Tuple[int, int]:
+    """Get the image size of an image at a specific path"""
+    with open(img_path, 'rb') as f:
+        return exif_size(Image.open(f))
