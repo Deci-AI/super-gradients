@@ -1,44 +1,38 @@
 import unittest
 
-from typing import List
 import super_gradients
-import torch
-from super_gradients.training.datasets import PascalVOCDetectionDataSetV2, COCODetectionDatasetV2
-from super_gradients.training.utils.detection_utils import DetectionCollateFN
-import os
-
+from super_gradients.training.datasets import PascalVOCDetectionDataSetV2
 from super_gradients.training.transforms import DetectionPaddedRescale, DetectionTargetsFormatTransform
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
+from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
 
 
 class SubclassingIntegrationTest(unittest.TestCase):
-
     def setUp(self) -> None:
         super_gradients.init_trainer()
         self.BATCH_SIZE = 64
         self.PASCAL_CLASS_INCLUSION_LISTS = [['aeroplane', 'bicycle'],
                                              ['bird', 'boat', 'bottle', 'bus'],
-                                             ['pottedplant']]
-
-    def test_multiple_pascal_dataset_subclass(self):
-        for class_inclusion_list in self.PASCAL_CLASS_INCLUSION_LISTS:
-            self.test_pascal_dataset_subclass(class_inclusion_list)
-
-    def test_pascal_dataset_subclass(self, class_inclusion_list: List[str]):
-        """Plot a single image with single bbox of an object from the sub class list, when in mosaic mode.
-        :param class_inclusion_list:  List of sub class names (from coco classes).
-        """
-
+                                             ['pottedplant'],
+                                             ['person']]
         transforms = [DetectionPaddedRescale(input_dim=(640, 640), max_targets=120),
                       DetectionTargetsFormatTransform(output_format=DetectionTargetsFormat.XYXY_LABEL)]
+        self.PASCAL_BASE_CONFIG = dict(data_dir='/home/louis.dupont/data/pascal_unified_coco_format/',
+                                       images_sub_directory='images/train2012/',
+                                       input_dim=(640, 640),
+                                       transforms=transforms)
 
-        PascalVOCDetectionDataSetV2(
-            data_dir='/home/louis.dupont/data/pascal_unified_coco_format/',
-            images_sub_directory='images/train2012/',
-            input_dim=(640, 640),
-            transforms=transforms,
-            class_inclusion_list=class_inclusion_list
-        ).plot(max_samples_per_plot=16, n_plots=1, plot_transformed_data=False)
+
+    def test_multiple_pascal_dataset_subclass(self):
+        """Run test_pascal_dataset_subclass on multiple inclusion lists"""
+        for class_inclusion_list in self.PASCAL_CLASS_INCLUSION_LISTS:
+            dataset = PascalVOCDetectionDataSetV2(class_inclusion_list=class_inclusion_list, **self.PASCAL_BASE_CONFIG)
+            dataset.plot(max_samples_per_plot=16, n_plots=1, plot_transformed_data=False)
+
+    def test_non_existing_class(self):
+        """Run test_pascal_dataset_subclass on multiple inclusion lists"""
+        with self.assertRaises(EmptyDatasetException):
+            PascalVOCDetectionDataSetV2(class_inclusion_list=["new_class"], **self.PASCAL_BASE_CONFIG)
 
 
 if __name__ == '__main__':
