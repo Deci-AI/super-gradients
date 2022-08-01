@@ -1,8 +1,9 @@
 import os
 from typing import List, Dict, Union, Any, Optional, Tuple, Callable
+from multiprocessing.pool import ThreadPool
 import random
 import cv2
-from multiprocessing.pool import ThreadPool
+import matplotlib.pyplot as plt
 from pathlib import Path
 
 import numpy as np
@@ -327,7 +328,7 @@ class DetectionDataSetV2(Dataset):
         sample["additional_samples"] = additional_samples
 
     def get_random_samples(self, count: int,
-                            non_empty_annotations_only: bool = False) -> List[Dict[str, Union[np.ndarray, Any]]]:
+                           non_empty_annotations_only: bool = False) -> List[Dict[str, Union[np.ndarray, Any]]]:
         """Load random samples.
 
         :param count: The number of samples wanted
@@ -362,10 +363,13 @@ class DetectionDataSetV2(Dataset):
                 target_format = transform.output_format
         return target_format
 
-    def plot(self, max_samples_per_plot: int = 16, n_plots: int = 1, plot_transformed_data=True):
-        """Combine samples of images with bbbox and plots the result.
+    def plot(self, max_samples_per_plot: int = 16, n_plots: int = 1, plot_transformed_data: bool = True):
+        """Combine samples of images with bbox and plots the result.
             :param max_samples_per_plot:    Maximum number of images to be displayed per plot
             :param n_plots:                 Number of plots to display (each plot being a combination of img with bbox)
+            :param plot_transformed_data:   If True, the plot will be over samples after applying transforms (i.e. on
+                                            __getitem__). If False, the plot will be over the raw samples (i.e. on
+                                            get_samples)
             :return:
         """
         plot_counter = 0
@@ -380,7 +384,7 @@ class DetectionDataSetV2(Dataset):
                 index = img_i + plot_i * 16
 
                 if plot_transformed_data:
-                    image, targets, *_ = self[img_i+plot_i*16]
+                    image, targets, *_ = self[img_i + plot_i * 16]
                     image = image.transpose(1, 2, 0).astype(np.int32)
                 else:
                     sample = self.get_sample(index)
@@ -404,8 +408,3 @@ class DetectionDataSetV2(Dataset):
             plot_counter += 1
             if plot_counter == n_plots:
                 return
-
-
-
-import matplotlib.pyplot as plt
-import numpy as np

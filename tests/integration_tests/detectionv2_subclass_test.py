@@ -4,7 +4,6 @@ import super_gradients
 from super_gradients.training.datasets import PascalVOCDetectionDataSetV2
 from super_gradients.training.transforms import DetectionPaddedRescale, DetectionTargetsFormatTransform
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
-from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
 
 
 class SubclassingIntegrationTest(unittest.TestCase):
@@ -21,7 +20,6 @@ class SubclassingIntegrationTest(unittest.TestCase):
                                        images_sub_directory='images/train2012/',
                                        input_dim=(640, 640),
                                        transforms=transforms)
-
 
     def test_multiple_pascal_dataset_subclass(self):
         """Run test_pascal_dataset_subclass on multiple inclusion lists"""

@@ -94,8 +94,6 @@ class TestDatasetInterface(unittest.TestCase):
 
     def test_wrong_subclass(self):
         """Check that ValueError is raised when class_inclusion_list includes a class that does not exist."""
-        # Check last case when class_2, which should raise EmptyDatasetException because not a single image has
-        # a target in class_inclusion_list
         with self.assertRaises(ValueError):
             TestDetectionDataSet(input_dim=(640, 512), class_inclusion_list=["non_existing_class"])
         with self.assertRaises(ValueError):
