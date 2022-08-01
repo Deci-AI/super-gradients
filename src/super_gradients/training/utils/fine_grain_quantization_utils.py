@@ -3,13 +3,13 @@ from dataclasses import dataclass
 from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
 from pytorch_quantization.tensor_quant import QuantDescriptor
 from torch import nn
+from pytorch_quantization import nn as quant_nn
 
-from super_gradients.training.utils.quantization.core_classes import SkipQuantization, SGQuantConv2d, SGQuantLinear, \
-    SGQuantInputAndWeights, SGQuantInputOnly
+from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin
 
 
 @dataclass(init=True)
-class QuantizedSuite:
+class QuantizedMetadata:
     quantized_type: Union[QuantMixin, QuantInputMixin]
     input_quant_descriptor: QuantDescriptor = None  # default is used if None
     weights_quant_descriptor: QuantDescriptor = None  # default is used if None
@@ -22,8 +22,9 @@ class RegisterQuantizedModule(object):
         self.weights_quant_descriptor = weights_quant_descriptor
 
     def __call__(self, quant_module):
+
         QuantizationUtility.mappings.update({
-            self.float_module: QuantizedSuite(
+            self.float_module: QuantizedMetadata(
                 quantized_type=quant_module,
                 input_quant_descriptor=self.input_quant_descriptor,
                 weights_quant_descriptor=self.weights_quant_descriptor
@@ -35,8 +36,9 @@ class QuantizationUtility:
 
     mappings = {
         SkipQuantization: None,  # SKIP
-        nn.Conv2d: QuantizedSuite(quantized_type=SGQuantConv2d),
-        nn.Linear: QuantizedSuite(quantized_type=SGQuantLinear),
+        nn.Conv2d: QuantizedMetadata(quantized_type=quant_nn.QuantConv2d),
+        nn.Linear: QuantizedMetadata(quantized_type=quant_nn.Linear),
+        nn.AvgPool2d: QuantizedMetadata(quantized_type=quant_nn.QuantAvgPool2d),
     }
 
     def __init__(self, *, custom_mappings: dict = None, default_quant_modules_calib_method: str = 'percentile',
@@ -71,10 +73,10 @@ class QuantizationUtility:
                 self.wrap_with_skip_quantization(child_module, layer_names, nesting + (name,))
 
     def quantize_module(self, module: nn.Module):
-        base_classes = (SGQuantInputAndWeights, SGQuantInputOnly)
+        base_classes = (QuantMixin, QuantInputMixin, SGQuantMixin)
         for name, child_module in module.named_children():
             if type(child_module) in self.mappings:
-                quant_suite: QuantizedSuite = self.mappings[type(child_module)]
+                quant_suite: QuantizedMetadata = self.mappings[type(child_module)]
                 if quant_suite is None:  # SKIP QUANTIZATION
                     continue
                 if quant_suite.quantized_type is None:
@@ -87,14 +89,21 @@ class QuantizationUtility:
                                          f"{', '.join(map(lambda _: _.__name__, base_classes))}")
 
                 # USE PROVIDED QUANT DESCRIPTORS, OR DEFAULT IF NONE PROVIDED
-                quant_descriptors = {
-                    'quant_desc_input': quant_suite.input_quant_descriptor or self._get_default_quant_descriptor()
-                }
-                if issubclass(quant_suite.quantized_type, SGQuantInputAndWeights):
+                quant_descriptors = dict()
+                if issubclass(quant_suite.quantized_type, (QuantMixin, QuantInputMixin)):
+                    quant_descriptors = {
+                        'quant_desc_input': quant_suite.input_quant_descriptor or self._get_default_quant_descriptor()
+                    }
+                if issubclass(quant_suite.quantized_type, QuantMixin):
                     quant_descriptors.update({
-                        'quant_desc_weight': quant_suite.weights_quant_descriptor
-                                             or self._get_default_quant_descriptor()
+                        'quant_desc_weight': (quant_suite.weights_quant_descriptor
+                                              or self._get_default_quant_descriptor())
                     })
+
+                if not hasattr(quant_suite.quantized_type, 'from_float'):
+                    assert isinstance(quant_suite.quantized_type, SGQuantMixin), \
+                        f'{quant_suite.quantized_type.__name__} must inherit from ' \
+                        f'{SGQuantMixin.__name__}, so that it would include `from_float` class method'
 
                 # ACTUAL REPLACEMENT
                 quant_child_module = quant_suite.quantized_type.from_float(child_module, **quant_descriptors)

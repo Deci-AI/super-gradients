@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import torch
+from pytorch_quantization.nn.modules._utils import QuantMixin
 from pytorch_quantization.tensor_quant import QuantDescriptor
 from torch import nn
 
@@ -7,8 +8,8 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.fine_grain_quantization_utils import SkipQuantization, QuantizationUtility, \
     RegisterQuantizedModule
-from super_gradients.training.utils.quantization.core_classes import SGQuantLinear, SGTensorQuantizer, \
-    SGQuantInputAndWeights
+from super_gradients.training.utils.quantization.core import SGQuantMixin
+from pytorch_quantization import nn as quant_nn
 
 
 class MyQATFriendlyBlock(nn.Module):
@@ -17,20 +18,21 @@ class MyQATFriendlyBlock(nn.Module):
         self.linear1 = nn.Linear(n_features, n_features)
         self.relu = nn.ReLU()
         self.n_features = n_features
+        self.anchors = []
 
     def forward(self, x):
         return x + self.relu(self.linear1(x))
 
 
 @RegisterQuantizedModule(float_module=MyQATFriendlyBlock, weights_quant_descriptor=QuantDescriptor(calib_method='max'))
-class QuantizedMyQATFriendlyBlock(SGQuantInputAndWeights):
+class QuantizedMyQATFriendlyBlock(SGQuantMixin):
 
-    def __init__(self, n_features, **kwargs) -> None:
+    def __init__(self, n_features, anchors) -> None:
         # kwargs WILL INCLUDE `quant_desc_input` AND `quant_desc_weight`
         super().__init__()
-        self.linear1 = SGQuantLinear(n_features, n_features, **kwargs)
+        self.linear1 = quant_nn.Linear(n_features, n_features)
         self.relu = nn.ReLU()
-        self.qt = SGTensorQuantizer(quant_desc=kwargs['quant_desc_input'])
+        self.qt = quant_nn.TensorQuantizer()
 
     def forward(self, x):
         return self.qt(x) + self.relu(self.linear1(x))

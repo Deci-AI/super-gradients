@@ -1,0 +1,3 @@
+from super_gradients.training.utils.quantization.core import _inject_class_methods_to_default_quant_types
+
+_inject_class_methods_to_default_quant_types()
