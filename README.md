@@ -60,7 +60,8 @@ All SuperGradients models’ are production ready in the sense that they are com
 
     
 ## What's New
-* 【07/07/2022】SSD Lite MobileNetV2 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) on COCO - Tailored for edge devices! 📱
+* 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
+* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) on COCO - Tailored for edge devices! 📱
 * 【07/07/2022】 STDC  - new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores 🎯
 * 【16/06/2022】 ResNet50  - new pre-trained checkpoint and [recipe](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/imagenet_resnet50_kd.yaml) for ImageNet top-1 score of 81.9 💪
 * 【09/06/2022】 ViT models (Vision Transformer) - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) (ViT, BEiT).
@@ -74,7 +75,6 @@ All SuperGradients models’ are production ready in the sense that they are com
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Coming soon
-- [ ] YOLOX models (object detection) - recipes and pre-trained checkpoints.
 - [ ] Single class detectors (recipes, pre-trained checkpoints) for edge devices deployment.
 - [ ] Single class segmentation (recipes, pre-trained checkpoints) for edge devices deployment.
 - [ ] QAT capabilities (Quantization Aware Training).
@@ -127,13 +127,13 @@ Want to try our pre-trained models on your machine? Import SuperGradients, initi
     
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
-# This is an example of loading COCO-2017 pre-trained weights for a YOLOv5 Nano object detection model
+# This is an example of loading COCO-2017 pre-trained weights for a YOLOX Nano object detection model
     
 import super_gradients
 from super_gradients.training import SgModel
 
-trainer = SgModel(experiment_name="yolov5n_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
-trainer.build_model(architecture="yolo_v5n", arch_params={"pretrained_weights": "coco", num_classes": 80})
+trainer = SgModel(experiment_name="yoloxn_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
+trainer.build_model(architecture="yolox_n", arch_params={"pretrained_weights": "coco", num_classes": 80})
 ```   
     
 ### Quick Start Notebook - Classification
@@ -239,7 +239,7 @@ Learn more about SuperGradients training components with our walkthrough noteboo
  ## Transfer Learning
  ### Transfer Learning with SG Notebook - Object Detection
 
-Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
+Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloX nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
