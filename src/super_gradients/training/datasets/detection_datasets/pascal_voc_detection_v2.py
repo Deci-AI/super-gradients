@@ -1,9 +1,13 @@
 import os
 import glob
+from pathlib import Path
 from typing import List, Tuple
+from xml.etree import ElementTree
+from tqdm import tqdm
 
 import numpy as np
 
+from super_gradients.training.utils.utils import download_and_untar_from_url
 from super_gradients.training.datasets.detection_datasets.detection_dataset_v2 import DetectionDataSetV2
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -64,3 +68,56 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
         with open(target_path, 'r') as targets_file:
             target = np.array([x.split() for x in targets_file.read().splitlines()], dtype=np.float32)
         return {"target": target, "img_path": img_path}
+
+    @staticmethod
+    def download(data_dir: str):
+        """Download Pascal dataset in XYXY_LABEL format.
+
+        Data extracted form http://host.robots.ox.ac.uk/pascal/VOC/
+        """
+
+        def _parse_and_save_labels(path, new_label_path, year, image_id):
+            """Parse and save the labels of an image in XYXY_LABEL format."""
+
+            with open(f'{path}/VOC{year}/Annotations/{image_id}.xml') as f:
+                xml_parser = ElementTree.parse(f).getroot()
+
+            labels = []
+            for obj in xml_parser.iter('object'):
+                cls = obj.find('name').text
+                if cls in PASCAL_VOC_2012_CLASSES_LIST and not int(obj.find('difficult').text) == 1:
+                    xml_box = obj.find('bndbox')
+
+                    def get_coord(box_coord):
+                        return xml_box.find(box_coord).text
+
+                    xmin, ymin, xmax, ymax = get_coord("xmin"), get_coord("ymin"), get_coord("xmax"), get_coord("ymax")
+                    labels.append(" ".join([xmin, ymin, xmax, ymax, str(PASCAL_VOC_2012_CLASSES_LIST.index(cls))]))
+
+            with open(new_label_path, 'w') as f:
+                f.write("\n".join(labels))
+
+        urls = ["http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar",  # 439M 5011 images
+                "http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar",  # 430M, 4952 images
+                "http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar"]  # 1.86G, 17125 images
+        data_dir = Path(data_dir)
+        download_and_untar_from_url(urls, dir=data_dir / 'images')
+
+        # Convert
+        data_path = data_dir / 'images' / 'VOCdevkit'
+        for year, image_set in ('2012', 'train'), ('2012', 'val'), ('2007', 'train'), ('2007', 'val'), ('2007', 'test'):
+            dest_imgs_path = data_dir / 'images' / f'{image_set}{year}'
+            dest_imgs_path.mkdir(exist_ok=True, parents=True)
+
+            dest_labels_path = data_dir / 'labels' / f'{image_set}{year}'
+            dest_labels_path.mkdir(exist_ok=True, parents=True)
+
+            with open(data_path / f'VOC{year}/ImageSets/Main/{image_set}.txt') as f:
+                image_ids = f.read().strip().split()
+
+            for id in tqdm(image_ids, desc=f'{image_set}{year}'):
+                img_path = data_path / f'VOC{year}/JPEGImages/{id}.jpg'
+                new_img_path = dest_imgs_path / img_path.name
+                new_label_path = (dest_labels_path / img_path.name).with_suffix('.txt')
+                img_path.rename(new_img_path)  # Move image to dest folder
+                _parse_and_save_labels(data_path, new_label_path, year, id)
