@@ -244,7 +244,7 @@ def load_func(dotpath: str):
     return getattr(m, func)
 
 
-def get_filepath_suffix_by_framework(framework: str):
+def get_filename_suffix_by_framework(framework: str):
     """
     Return the file extension of framework.
 
