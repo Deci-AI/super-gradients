@@ -59,6 +59,20 @@ jobs:
           name: setup custom environment variables
           command: |
             echo 'export PYTHONPATH=/home/circleci/super_gradients' >> $BASH_ENV
+      - when:
+          condition:
+            and:
+              - not:
+                  equal: [ develop, << pipeline.git.branch >> ]
+              - not:
+                  equal: [ staging, << pipeline.git.branch >> ]
+              - not:
+                  equal: [ master, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: Lint all python files changed since develop branch
+                command: |
+                  flake8 --statistics --config scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/develop --name-only | grep 'py$' | grep -v 'experimental/' | grep -v 'experimental_models/')
       - run:
           name: install package
           no_output_timeout: 30m
