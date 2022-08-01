@@ -11,10 +11,6 @@ from PIL import Image, ExifTags
 import torch
 import torch.nn as nn
 
-# GET ORIENTATION EXIF TAG
-for orientation in ExifTags.TAGS.keys():
-    if ExifTags.TAGS[orientation] == 'Orientation':
-        break
 
 # These functions changed from torch 1.2 to torch 1.3
 
@@ -25,6 +21,11 @@ from importlib import import_module
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
+
+# GET ORIENTATION EXIF TAG
+for orientation in ExifTags.TAGS.keys():
+    if ExifTags.TAGS[orientation] == 'Orientation':
+        break
 
 
 def convert_to_tensor(array):

@@ -74,10 +74,11 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
         r = min(self.input_dim[1] / height, self.input_dim[0] / width)
         target[:, :4] *= r
 
-        img_info = (width, height)
-        resized_info = (int(width * r), int(height * r))
+        initial_img_shape = (width, height)
+        resized_img_shape = (int(width * r), int(height * r))
 
-        return {"img_path": img_path, "target": target, "intial_img_shape": img_info, "resized_info": resized_info}
+        return {"img_path": img_path, "target": target,
+                "initial_img_shape": initial_img_shape, "resized_img_shape": resized_img_shape}
 
     @staticmethod
     def download(data_dir: str):

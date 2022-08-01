@@ -356,6 +356,7 @@ class DetectionDataSetV2(Dataset):
         return index
 
     def _random_index(self):
+        """Get a random index of this dataset"""
         return random.randint(0, len(self) - 1)
 
     @property
@@ -368,11 +369,12 @@ class DetectionDataSetV2(Dataset):
 
     def plot(self, max_samples_per_plot: int = 16, n_plots: int = 1, plot_transformed_data: bool = True):
         """Combine samples of images with bbox and plots the result.
+
             :param max_samples_per_plot:    Maximum number of images to be displayed per plot
-            :param n_plots:                 Number of plots to display (each plot being a combination of img with bbox)
-            :param plot_transformed_data:   If True, the plot will be over samples after applying transforms (i.e. on
-                                            __getitem__). If False, the plot will be over the raw samples (i.e. on
-                                            get_samples)
+        :param n_plots:                 Number of plots to display (each plot being a combination of img with bbox)
+        :param plot_transformed_data:   If True, the plot will be over samples after applying transforms
+                                        (i.e. on __getitem__).
+                                        If False, the plot will be over the raw samples (i.e. on get_sample)
             :return:
         """
         plot_counter = 0
