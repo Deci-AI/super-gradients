@@ -7,14 +7,14 @@ from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
 
 import cv2
 from deprecated import deprecated
-from torch.utils.data._utils.collate import default_collate
 import matplotlib.pyplot as plt
 
+import numpy as np
 import torch
 import torchvision
-import numpy as np
 from torch import nn
 from torch.nn import functional as F
+from torch.utils.data._utils.collate import default_collate
 from omegaconf import ListConfig
 
 

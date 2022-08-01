@@ -27,7 +27,7 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
 
         kwargs['n_available_samples'] = len(self.img_and_target_path_list)
         kwargs['all_classes_list'] = PASCAL_VOC_2012_CLASSES_LIST
-        kwargs['target_format'] = DetectionTargetsFormat.XYXY_LABEL
+        kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
         super().__init__(*args, **kwargs)
 
     def _get_img_and_target_path_list(self) -> List[Tuple[str, str]]:
