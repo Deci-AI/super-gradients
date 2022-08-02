@@ -10,8 +10,7 @@ except (ModuleNotFoundError, ImportError, NameError):
     from torch.hub import _download_url_to_file as download_url_to_file
 
 
-def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str,
-                        model_checkpoints_location: str, external_checkpoint_path: str,
+def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, model_checkpoints_location: str, external_checkpoint_path: str,
                         overwrite_local_checkpoint: bool, load_weights_only: bool):
     """
     Gets the local path to the checkpoint file, which will be:
@@ -22,14 +21,12 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
             YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name/ckpt_name if such file exists.
         - external_checkpoint_path when external_checkpoint_path != None
 
-    @param source_ckpt_folder_name: The folder where the checkpoint is saved. When set to None- uses the experiment_name
+    @param source_ckpt_folder_name: The folder where the checkpoint is saved. When set to None- uses the experiment_name.
     @param experiment_name: experiment name attr in sg_model
     @param ckpt_name: checkpoint filename
     @param model_checkpoints_location: S3, local ot URL
-    @param external_checkpoint_path: full path to checkpoint file (that might be located outside of
-                                     super_gradients/checkpoints directory)
-    @param overwrite_local_checkpoint: whether to overwrite the checkpoint file with the same name when downloading
-                                       from S3.
+    @param external_checkpoint_path: full path to checkpoint file (that might be located outside of super_gradients/checkpoints directory)
+    @param overwrite_local_checkpoint: whether to overwrite the checkpoint file with the same name when downloading from S3.
     @param load_weights_only: whether to load the network's state dict only.
     @return:
     """

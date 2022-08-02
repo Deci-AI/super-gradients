@@ -66,8 +66,7 @@ class TeacherKnowledgeException(KDModelException):
     """
 
     def __init__(self):
-        super().__init__("Expected: at least one of: teacher_pretrained_weights,"
-                         "teacher_checkpoint_path or load_kd_model_checkpoint=True")
+        super().__init__("Expected: at least one of: teacher_pretrained_weights, teacher_checkpoint_path or load_kd_model_checkpoint=True")
 
 
 class UndefinedNumClassesException(KDModelException):
@@ -77,5 +76,4 @@ class UndefinedNumClassesException(KDModelException):
         message -- explanation of the error
     """
     def __init__(self):
-        super().__init__("Number of classes must be defined in students and teachers arch params or by"
-                         "connecting to a dataset interface")
+        super().__init__("Number of classes must be defined in students and teachers arch params or by connecting to a dataset interface")

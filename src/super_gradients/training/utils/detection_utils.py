@@ -910,8 +910,7 @@ class DetectionVisualization:
             targets_cur = targets[targets[:, 0] == i]
 
             image_name = '_'.join([str(batch_name), str(i)])
-            res_image = DetectionVisualization._visualize_image(image_np[i], preds, targets_cur, class_names,
-                                                                box_thickness, gt_alpha, image_scale,
+            res_image = DetectionVisualization._visualize_image(image_np[i], preds, targets_cur, class_names, box_thickness, gt_alpha, image_scale,
                                                                 checkpoint_dir, image_name)
             if res_image is not None:
                 out_images.append(res_image)

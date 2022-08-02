@@ -88,8 +88,7 @@ class LadderResNet(nn.Module):
     """
 
     # pylint: disable=unused-variable
-    # FIXME - ORIGINAL CODE
-    # def __init__(self, block, layers, num_classes=1000, dilated=False, norm_layer=SyncBatchNorm):
+    # def __init__(self, block, layers, num_classes=1000, dilated=False, norm_layer=SyncBatchNorm): # FIXME - ORIGINAL CODE
     def __init__(self, block, layers, num_classes=1000, dilated=False,
                  norm_layer=nn.BatchNorm2d):  # FIXME - TIME MEASUREMENT CODE
         self.inplanes = 64
