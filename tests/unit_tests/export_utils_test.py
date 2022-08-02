@@ -75,8 +75,6 @@ class TestUtil(unittest.TestCase):
         self.assertIsInstance(model._modules['0'], nn.Conv2d)
         self.assertIsInstance(model._modules['1'], nn.Conv2d)
 
-
-
     def test_fuse_conv_bn_on_toy_models(self):
 
         class Toy(nn.Module):
