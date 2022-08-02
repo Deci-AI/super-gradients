@@ -577,7 +577,6 @@ class DetectionMixup(DetectionTransform):
             )
             cp_scale_ratio *= jit_factor
 
-
             origin_h, origin_w = cp_img.shape[:2]
             target_h, target_w = origin_img.shape[:2]
             padded_img = np.zeros(

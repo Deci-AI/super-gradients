@@ -4,7 +4,7 @@ from super_gradients.training import MultiGPUMode
 from super_gradients.training import SgModel
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface, \
     ClassificationTestDatasetInterface, CityscapesDatasetInterface, SegmentationTestDatasetInterface, \
-    CoCoSegmentationDatasetInterface, CoCoDetectionDatasetInterface, DetectionTestDatasetInterface
+    CoCoSegmentationDatasetInterface, DetectionTestDatasetInterface
 from super_gradients.training.utils.segmentation_utils import coco_sub_classes_inclusion_tuples_list
 from super_gradients.training.metrics import Accuracy, IoU
 import os
@@ -13,7 +13,6 @@ from super_gradients.training.utils.ssd_utils import SSDPostPredictCallback
 from super_gradients.training.models.detection_models.ssd import DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS
 import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
-from super_gradients.training.utils.detection_utils import crowd_detection_collate_fn
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.transforms.transforms import Rescale
 from super_gradients.training.losses.stdc_loss import STDCLoss
@@ -541,8 +540,7 @@ class PretrainedModelsTest(unittest.TestCase):
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
-                           test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback,
-                                                                 num_cls=80)],
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback, num_cls=80)],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
 
