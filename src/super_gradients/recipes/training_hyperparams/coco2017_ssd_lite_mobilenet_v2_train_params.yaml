@@ -1,0 +1,32 @@
+ema: True
+max_epochs: 400
+lr_mode: cosine
+cosine_final_lr_ratio: 0.01
+batch_accumulate: 1
+initial_lr: 0.02
+loss: ssd_loss
+loss_logging_items_names: [ smooth_l1, closs, Loss ]
+criterion_params:
+  alpha: 1.0
+  dboxes: # OVERRIDEN IN MAIN RECIPE YAML FILE ONCE DBOXES ARE CHOSEN.
+
+optimizer: SGD
+optimizer_params:
+  momentum: 0.9
+  weight_decay: 0.0005
+  nesterov: True
+lr_warmup_epochs: 3
+warmup_momentum: 0.8
+warmup_initial_lr: 1e-06
+warmup_bias_lr: 0.1
+
+valid_metrics_list:
+  - DetectionMetrics:
+      post_prediction_callback:
+        _target_: super_gradients.training.utils.ssd_utils.SSDPostPredictCallback
+        conf: 0.001
+        iou: 0.6
+      num_cls: 80
+
+metric_to_watch: 'mAP@0.50:0.95'
+greater_metric_to_watch_is_better: True
