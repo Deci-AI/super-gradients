@@ -4,12 +4,12 @@ import torch
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.losses.loss_utils import LossReduction
-from super_gradients.training.losses.structure_loss import AbstarctStructureLoss
+from super_gradients.training.losses.structure_loss import AbstarctSegmentationStructureLoss
 
 logger = get_logger(__name__)
 
 
-class IoULoss(AbstarctStructureLoss):
+class IoULoss(AbstarctSegmentationStructureLoss):
     """
     Compute average IoU loss between two tensors, It can support both multi-classes and binary tasks.
     """

@@ -11,7 +11,7 @@ from super_gradients.training.utils.segmentation_utils import to_one_hot
 logger = get_logger(__name__)
 
 
-class AbstarctStructureLoss(_Loss, ABC):
+class AbstarctSegmentationStructureLoss(_Loss, ABC):
     """
     Abstract computation of structure loss between two tensors, It can support both multi-classes and binary tasks.
     """
@@ -57,7 +57,7 @@ class AbstarctStructureLoss(_Loss, ABC):
                 logger.warning("When using GeneralizedLoss, it is recommended to set smooth value as 0.")
 
     @abstractmethod
-    def _calc_numerator_denominator(self, labels_one_hot, predict):
+    def _calc_numerator_denominator(self, labels_one_hot, predict) -> (torch.Tensor, torch.Tensor):
         """
         All base classes must implement this function.
         Return: 2 tensor of shape [BS, num_classes, img_width, img_height].
@@ -65,7 +65,7 @@ class AbstarctStructureLoss(_Loss, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def _calc_loss(self, numerator, denominator):
+    def _calc_loss(self, numerator, denominator) -> torch.Tensor:
         """
         All base classes must implement this function.
         Return a tensors of shape [BS] if self.sum_over_batches else [num_classes].
@@ -78,7 +78,7 @@ class AbstarctStructureLoss(_Loss, ABC):
         # target to one hot format
         if target.size() == predict.size():
             labels_one_hot = target
-        elif len(target.size()) == 3:       # if target tensor is in class indexes format.
+        elif target.dim() == 3:       # if target tensor is in class indexes format.
             if predict.size(1) == 1 and self.ignore_index is None:    # if one class prediction task
                 labels_one_hot = target.unsqueeze(1)
             else:
