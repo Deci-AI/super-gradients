@@ -273,5 +273,3 @@ class KDModel(SgModel):
 
         state["net"] = best_net.state_dict()
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
-
-
