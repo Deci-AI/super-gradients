@@ -13,7 +13,8 @@ if AWS_ENV_NAME not in AWS_ENVIRONMENTS:
             )
         else:
             print(
-                f'Bad AWS environment name: {AWS_ENV_NAME}. Please set an environment variable named ENVIRONMENT_NAME with one of the values: {",".join(AWS_ENVIRONMENTS)}'
+                f'Bad AWS environment name: {AWS_ENV_NAME}. Please set an environment variable named ENVIRONMENT_NAME '
+                f'with one of the values: {",".join(AWS_ENVIRONMENTS)}'
             )
 
 # Controlling the default logging level via environment variable
