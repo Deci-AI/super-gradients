@@ -401,7 +401,6 @@ class SgModel:
                                    preds=outputs,
                                    target=targets,
                                    loss_log_items=loss_log_items,
-                                   net=self.net,
                                    **additional_batch_items)
 
             self.phase_callback_handler(Phase.TRAIN_BATCH_END, context)
