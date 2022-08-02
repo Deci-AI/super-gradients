@@ -410,7 +410,7 @@ class DetectionMosaic(DetectionTransform):
             all_samples = [sample] + sample["additional_samples"]
 
             for i_mosaic, mosaic_sample in enumerate(all_samples):
-                img, _labels, = mosaic_sample["image"], mosaic_sample["target"]
+                img, _labels = mosaic_sample["image"], mosaic_sample["target"]
                 _labels_seg = mosaic_sample.get("target_seg")
 
                 h0, w0 = img.shape[:2]  # orig hw
@@ -487,20 +487,11 @@ class DetectionRandomAffine(DetectionTransform):
      shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
         from (shear, shear)
 
-     enable: (bool) whether to apply the below transform at all.
-
-     filter_box_candidates: (bool) whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio (default=False).
-
-     wh_thr: (float) edge size threshold when filter_box_candidates = True (default=2)
-
-     ar_thr: (float) aspect ratio threshold filter_box_candidates = True (default=20)
-
-     area_thr:(float) threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True (default=0.1)
+    enable: (bool) whether to apply the below transform at all.
 
     """
 
-    def __init__(self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640),
-                 filter_box_candidates: bool = False, wh_thr=2, ar_thr=20, area_thr=0.1):
+    def __init__(self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640)):
         super(DetectionRandomAffine, self).__init__()
         self.degrees = degrees
         self.translate = translate
@@ -508,10 +499,6 @@ class DetectionRandomAffine(DetectionTransform):
         self.shear = shear
         self.target_size = target_size
         self.enable = True
-        self.filter_box_candidates = filter_box_candidates
-        self.wh_thr = wh_thr
-        self.ar_thr = ar_thr
-        self.area_thr = area_thr
 
     def close(self):
         self.enable = False
@@ -589,6 +576,7 @@ class DetectionMixup(DetectionTransform):
                 (int(cp_img.shape[1] * jit_factor), int(cp_img.shape[0] * jit_factor)),
             )
             cp_scale_ratio *= jit_factor
+
 
             origin_h, origin_w = cp_img.shape[:2]
             target_h, target_w = origin_img.shape[:2]
@@ -692,9 +680,8 @@ class DetectionHorizontalFlip(DetectionTransform):
             targets = np.zeros((self.max_targets, 5), dtype=np.float32)
             boxes = targets[:, :4]
         image, boxes = _mirror(image, boxes, self.prob)
-        targets[:, :4] = boxes
-        sample["target"] = targets
         sample["image"] = image
+        sample["target"][:, :4] = boxes
         return sample
 
 
@@ -941,11 +928,6 @@ def random_affine(
         translate: Union[float, tuple] = 0.1,
         scales: Union[float, tuple] = 0.1,
         shear: Union[float, tuple] = 10,
-        filter_box_candidates: bool = False,
-        wh_thr=2,
-        ar_thr=20,
-        area_thr=0.1
-
 ):
     """
     Performs random affine transform to img, targets
@@ -961,11 +943,6 @@ def random_affine(
                             from (0.1-scales, 0.1+scales)
     :param shear:       Degrees for random shear, when float the random values are drawn uniformly
                                 from (shear, shear)
-
-    :param filter_box_candidates:    whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
-    :param wh_thr:                   edge size threshold when filter_box_candidates = True (pixels)
-    :param ar_thr:                   aspect ratio threshold filter_box_candidates = True
-    :param area_thr:                 threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
     :return:            Image and Target with applied random affine
     """
 
@@ -976,36 +953,9 @@ def random_affine(
 
     # Transform label coordinates
     if len(targets) > 0:
-        targets_orig = targets.copy()
         targets = apply_affine_to_bboxes(targets, targets_seg, target_size, M)
-        if filter_box_candidates:
-            box_candidates_ids = _filter_box_candidates(targets_orig[:, :4],
-                                                        targets[:, :4],
-                                                        wh_thr=wh_thr,
-                                                        ar_thr=ar_thr,
-                                                        area_thr=area_thr
-                                                        )
-            targets = targets[box_candidates_ids]
+
     return img, targets
-
-
-def _filter_box_candidates(box1, box2, wh_thr=2, ar_thr=20, area_thr=0.1):
-    """
-    compute candidate boxes
-        :param box1:        before augment
-        :param box2:        after augment
-        :param wh_thr:      wh_thr (pixels)
-        :param ar_thr:      aspect_ratio_thr
-        :param area_thr:    area_ratio
-    :return:
-    """
-    box1 = box1.T
-    box2 = box2.T
-    w1, h1 = box1[2] - box1[0], box1[3] - box1[1]
-    w2, h2 = box2[2] - box2[0], box2[3] - box2[1]
-    ar = np.maximum(w2 / (h2 + 1e-16), h2 / (w2 + 1e-16))  # aspect ratio
-    return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + 1e-16) > area_thr) & (
-            ar < ar_thr)  # candidates
 
 
 def _mirror(image, boxes, prob=0.5):
