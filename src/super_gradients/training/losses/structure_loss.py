@@ -94,13 +94,14 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
         # Calculate the numerator and denominator of the chosen metric
         numerator, denominator = self._calc_numerator_denominator(labels_one_hot, predict)
 
-        numerator = torch.sum(numerator, dim=reduce_dims)
-
-        # exclude ignore labels from denominator, false positive predicted on ignore samples are not included in
-        # total denominator.
+        # exclude ignore labels from numerator and denominator, false positive predicted on ignore samples
+        # are not included in the total calculation.
         if self.ignore_index is not None:
             valid_mask = target.ne(self.ignore_index).unsqueeze(1).expand_as(denominator)
+            numerator *= valid_mask
             denominator *= valid_mask
+
+        numerator = torch.sum(numerator, dim=reduce_dims)
         denominator = torch.sum(denominator, dim=reduce_dims)
 
         if self.generalized_metric:
