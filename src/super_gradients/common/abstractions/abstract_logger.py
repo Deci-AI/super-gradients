@@ -5,6 +5,7 @@ from super_gradients.common.auto_logging import AutoLoggerConfig
 from super_gradients.common.environment.environment_config import DEFAULT_LOGGING_LEVEL
 
 # Do not remove, it's necessary for the get_logger functionality.
+# flake8: noqa
 from cmreslogging.handlers import CMRESHandler
 
 

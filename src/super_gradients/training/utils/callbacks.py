@@ -237,7 +237,7 @@ class DeciLabUploadCallback(PhaseCallback):
 
     @staticmethod
     def log_optimization_failed():
-        logger.info(f"We couldn't finish your model optimization. Visit https://console.deci.ai for details")
+        logger.info("We couldn't finish your model optimization. Visit https://console.deci.ai for details")
 
     def upload_model(self, model):
         """
@@ -304,10 +304,10 @@ class DeciLabUploadCallback(PhaseCallback):
             logger.info(f"Successfully added {model_name} to the model repository")
 
             optimized_model_name = f"{model_name}_1_1"
-            logger.info(f"We'll wait for the scheduled optimization to finish. Please don't close this window")
+            logger.info("We'll wait for the scheduled optimization to finish. Please don't close this window")
             success = self.get_optimization_status(optimized_model_name=optimized_model_name)
             if success:
-                logger.info(f"Successfully finished your model optimization. Visit https://console.deci.ai for details")
+                logger.info("Successfully finished your model optimization. Visit https://console.deci.ai for details")
             else:
                 DeciLabUploadCallback.log_optimization_failed()
         except Exception as ex:
@@ -460,11 +460,8 @@ class ExponentialLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return (
-            self.training_params.lr_warmup_epochs
-            <= context.epoch
-            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-        )
+        post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
 class PolyLRCallback(LRCallbackBase):
@@ -489,11 +486,8 @@ class PolyLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return (
-            self.training_params.lr_warmup_epochs
-            <= context.epoch
-            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-        )
+        post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
 class CosineLRCallback(LRCallbackBase):
@@ -519,11 +513,8 @@ class CosineLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return (
-            self.training_params.lr_warmup_epochs
-            <= context.epoch
-            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-        )
+        post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
 class FunctionLRCallback(LRCallbackBase):
@@ -538,11 +529,8 @@ class FunctionLRCallback(LRCallbackBase):
         self.max_epochs = max_epochs
 
     def is_lr_scheduling_enabled(self, context):
-        return (
-            self.training_params.lr_warmup_epochs
-            <= context.epoch
-            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-        )
+        post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs

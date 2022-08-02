@@ -9,10 +9,12 @@ if AWS_ENV_NAME not in AWS_ENVIRONMENTS:
         if AWS_ENV_NAME not in AWS_ENVIRONMENTS:
             print(
                 f'You did not mention an AWS environment.'
-                f'You can set the environment variable ENVIRONMENT_NAME with one of the values: {",".join(AWS_ENVIRONMENTS)}')
+                f'You can set the environment variable ENVIRONMENT_NAME with'
+                f'one of the values: {",".join(AWS_ENVIRONMENTS)}')
         else:
             print(
-                f'Bad AWS environment name: {AWS_ENV_NAME}. Please set an environment variable named ENVIRONMENT_NAME with one of the values: {",".join(AWS_ENVIRONMENTS)}')
+                f'Bad AWS environment name: {AWS_ENV_NAME}. Please set an environment variable'
+                f'named ENVIRONMENT_NAME with one of the values: {",".join(AWS_ENVIRONMENTS)}')
 
 # If this flag exists, ElasticSerach handler in every ILogger class (auto-logger) will be disabled.
 # For standalone super_gradients.infra clients.

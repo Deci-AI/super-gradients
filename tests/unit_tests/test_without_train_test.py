@@ -7,9 +7,7 @@ from super_gradients import SgModel, \
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training import MultiGPUMode
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn, DetectionCollateFN
-from super_gradients.training.datasets.datasets_utils import ComposedCollateFunction, MultiScaleCollateFunction
-from super_gradients.training.utils.detection_utils import YoloV3NonMaxSuppression
+from super_gradients.training.utils.detection_utils import DetectionCollateFN
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.metrics.segmentation_metrics import PixelAccuracy, IoU
 

@@ -1,6 +1,5 @@
 from super_gradients.common.factories.base_factory import BaseFactory
-from super_gradients.training.datasets.dataset_interfaces import TestDatasetInterface, \
-    LibraryDatasetInterface, \
+from super_gradients.training.datasets.dataset_interfaces import LibraryDatasetInterface, \
     ClassificationDatasetInterface, Cifar10DatasetInterface, Cifar100DatasetInterface, \
     ImageNetDatasetInterface, TinyImageNetDatasetInterface, \
     CoCoDetectionDatasetInterface, CoCoSegmentationDatasetInterface, CoCo2014DetectionDatasetInterface, \

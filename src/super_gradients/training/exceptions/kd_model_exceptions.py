@@ -43,8 +43,8 @@ class InconsistentParamsException(KDModelException):
 
     def __init__(self, inconsistent_key1: str, inconsistent_key1_container_name: str, inconsistent_key2: str,
                  inconsistent_key2_container_name: str, ):
-        super().__init__(
-            inconsistent_key1 + " in " + inconsistent_key1_container_name + " must be equal to " + inconsistent_key2 + " in " + inconsistent_key2_container_name)
+        super().__init__(f"{inconsistent_key1} in {inconsistent_key1_container_name} must be equal to "
+                         f"{inconsistent_key2} in {inconsistent_key2_container_name}")
 
 
 class UnsupportedKDModelArgException(KDModelException):
@@ -55,8 +55,7 @@ class UnsupportedKDModelArgException(KDModelException):
     """
 
     def __init__(self, param_name: str, dict_name: str):
-        super().__init__(
-            param_name + " in " + dict_name + " not supported for KD models.")
+        super().__init__(param_name + " in " + dict_name + " not supported for KD models.")
 
 
 class TeacherKnowledgeException(KDModelException):
@@ -67,8 +66,8 @@ class TeacherKnowledgeException(KDModelException):
     """
 
     def __init__(self):
-        super().__init__(
-            "Expected: at least one of: teacher_pretrained_weights, teacher_checkpoint_path or load_kd_model_checkpoint=True")
+        super().__init__("Expected: at least one of: teacher_pretrained_weights,"
+                         "teacher_checkpoint_path or load_kd_model_checkpoint=True")
 
 
 class UndefinedNumClassesException(KDModelException):
@@ -78,5 +77,5 @@ class UndefinedNumClassesException(KDModelException):
         message -- explanation of the error
     """
     def __init__(self):
-        super().__init__(
-            'Number of classes must be defined in students and teachers arch params or by connecting to a dataset interface')
+        super().__init__("Number of classes must be defined in students and teachers arch params or by"
+                         "connecting to a dataset interface")
