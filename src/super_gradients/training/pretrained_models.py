@@ -20,7 +20,7 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "stdc2_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc2_seg50_dice_edge/ckpt_best.pth",
               "stdc2_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/stdc2_seg75_cityscapes/ckpt_best.pth",
               "efficientnet_b0_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/efficientnet_b0/average_model-3.pth",
-              "ssd_lite_mobilenet_v2_coco": "https://deci-pretrained-models.s3.amazonaws.com/ssd_lite_mobilenet_v2/ckpt_best_anchors.pth",
+              "ssd_lite_mobilenet_v2_coco": "https://deci-pretrained-models.s3.amazonaws.com/ssd_lite_mobilenet_v2_coco_res320_new_coco_filtered_affine_scale_5_15_no_mosaic/ckpt_best.pth",
               "ssd_mobilenet_v1_coco": "https://deci-pretrained-models.s3.amazonaws.com/ssd_mobilenet_v1_coco_res320/ckpt_best.pth",
 
               "mobilenet_v3_large_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/mobilenetv3+large+300epoch/average_model.pth",

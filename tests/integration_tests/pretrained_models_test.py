@@ -112,22 +112,49 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                      "cache_train_images": False,
                                                                      "cache_val_images": False,
                                                                      "targets_format": DetectionTargetsFormat.LABEL_CXCYWH,
-                                                                     "with_crowd": True
+                                                                     "with_crowd": True,
+                                                                     "filter_box_candidates": False,
+                                                                     "wh_thr": 0,
+                                                                     "ar_thr": 0,
+                                                                     "area_thr": 0
                                                                      }),
-            'ssd_mobilenet': CoCoDetectionDatasetInterface(
-                dataset_params={
-                    "batch_size": 32,
-                    "val_batch_size": 32,
-                    "train_image_size": 320,
-                    "val_image_size": 320,
-                    "val_collate_fn": crowd_detection_collate_fn,
-                    "val_sample_loading_method": "default",
-                    "with_crowd": True
-                }
-            ),
+
+            'ssd_mobilenet': CocoDetectionDatasetInterfaceV2(dataset_params={"data_dir": "/data/coco",
+                                                                             "train_subdir": "images/train2017",
+                                                                             "val_subdir": "images/val2017",
+                                                                             "train_json_file": "instances_train2017.json",
+                                                                             "val_json_file": "instances_val2017.json",
+                                                                             "batch_size": 16,
+                                                                             "val_batch_size": 128,
+                                                                             "val_image_size": 320,
+                                                                             "train_image_size": 320,
+                                                                             "hgain": 5,
+                                                                             "sgain": 30,
+                                                                             "vgain": 30,
+                                                                             "mixup_prob": .0,
+                                                                             "degrees": 0.,
+                                                                             "shear": 0.,
+                                                                             "flip_prob": 0.,
+                                                                             "hsv_prob": 0.,
+                                                                             "mosaic_scale": [0.5, 1.5],
+                                                                             "mixup_scale": [0.5, 1.5],
+                                                                             "mosaic_prob": 1.,
+                                                                             "translate": 0.1,
+                                                                             "val_collate_fn": CrowdDetectionCollateFN(),
+                                                                             "train_collate_fn": DetectionCollateFN(),
+                                                                             "cache_dir_path": None,
+                                                                             "cache_train_images": False,
+                                                                             "cache_val_images": False,
+                                                                             "targets_format": DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
+                                                                             "with_crowd": True,
+                                                                             "filter_box_candidates": True,
+                                                                             "wh_thr": 2,
+                                                                             "ar_thr": 20,
+                                                                             "area_thr": 0.1
+                                                                             })
         }
 
-        self.coco_pretrained_maps = {'ssd_lite_mobilenet_v2': 0.215,
+        self.coco_pretrained_maps = {'ssd_lite_mobilenet_v2': 0.2052,
                                      'coco_ssd_mobilenet_v1': 0.243,
                                      "yolox_s": 0.4047,
                                      "yolox_m": 0.4640,
@@ -491,7 +518,7 @@ class PretrainedModelsTest(unittest.TestCase):
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback,
-                                                                 num_cls=len(self.coco_dataset['ssd_mobilenet'].coco_classes))],
+                                                                 num_cls=80)],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
 
