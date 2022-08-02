@@ -7,8 +7,3 @@ from super_gradients.training.metrics.segmentation_metrics import PreprocessSegm
 
 __all__ = ['accuracy', 'Accuracy', 'Top5', 'ToyTestClassificationMetric', 'DetectionMetrics', 'PreprocessSegmentationMetricsArgs', 'PixelAccuracy', 'IoU',
            'Dice', 'BinaryIOU', 'BinaryDice']
-
-
-# test the linter in the ci
-
-
