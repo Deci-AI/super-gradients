@@ -250,9 +250,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                         "load_opt_params": False,
                                                         "train_metrics_list": [IoU(5)],
                                                         "valid_metrics_list": [IoU(5)],
-                                                        "loss_logging_items_names": ["main_loss", "aux_loss1",
-                                                                                     "aux_loss2", "detail_loss",
-                                                                                     "loss"],
+                                                        "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
                                                         "metric_to_watch": "IoU",
                                                         "greater_metric_to_watch_is_better": True
                                                         }
@@ -514,11 +512,10 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.build_model("ssd_lite_mobilenet_v2",
                             arch_params=self.coco_pretrained_arch_params["ssd_lite_mobilenet_v2"],
                             checkpoint_params=self.coco_pretrained_ckpt_params)
-
-        metric = DetectionMetrics(post_prediction_callback=SSDPostPredictCallback(),
-                                  num_cls=len(self.coco_dataset['ssd_mobilenet'].coco_classes))
+        ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
-                           test_metrics_list=[metric],
+                           test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback,
+                                                                 num_cls=len(self.coco_dataset['ssd_mobilenet'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
 

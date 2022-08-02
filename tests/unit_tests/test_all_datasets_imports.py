@@ -17,10 +17,8 @@ class TestSgLibraryDatasets(TestCase):
 
     def test_get_dateset_with_invalid_dataset_name_raises_exception(self):
         with self.assertRaises(ValueError):
-            self.sg_library_datasets.get_dataset('classification',
-                                                 'cifar_1000000')
+            self.sg_library_datasets.get_dataset('classification', 'cifar_1000000')
 
     def test_get_dateset_with_invalid_dl_task_raises_exception(self):
         with self.assertRaises(ValueError):
-            self.sg_library_datasets.get_dataset('classification_of_something_that_deci_does_not_support',
-                                                 'cifar_100')
+            self.sg_library_datasets.get_dataset('classification_of_something_that_deci_does_not_support', 'cifar_100')
