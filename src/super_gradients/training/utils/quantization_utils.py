@@ -83,12 +83,13 @@ def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.
     """
     Calibrates torch model with quantized modules.
 
-    :param model: torch.nn.Module, model to perfrom the calibration on.
-    :param calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset.
-    :param method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
-                 computation of the quantized modules (default=percentile).
-    :param num_calib_batches: int, number of batches to collect the statistics from.
-    :param percentile: float, percentile value to use when SgModel,quant_modules_calib_method='percentile'. Discarded when other methods are used (Default=99.99).
+    :param model:               torch.nn.Module, model to perfrom the calibration on.
+    :param calib_data_loader:   torch.utils.data.DataLoader, data loader of the calibration dataset.
+    :param method:              str, One of [percentile, mse, entropy, max]. Statistics method for amax computation of the quantized modules
+                                (Default=percentile).
+    :param num_calib_batches:   int, number of batches to collect the statistics from.
+    :param percentile:          float, percentile value to use when SgModel,quant_modules_calib_method='percentile'. Discarded when other methods are used
+                                (Default=99.99).
 
     """
     if _imported_pytorch_quantization_failure is not None:

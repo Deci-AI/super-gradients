@@ -284,7 +284,7 @@ class YoLoHead(nn.Module):
                                                                                  arch_params.depth_mult_factor)
 
         backbone_connector = [width_mult(c) if arch_params.scaled_backbone_width else c
-                             for c in arch_params.backbone_connection_channels]
+                              for c in arch_params.backbone_connection_channels]
 
         DownConv = GroupedConvBlock if depthwise else Conv
 
