@@ -149,7 +149,7 @@ class MaskAttentionLossTest(unittest.TestCase):
         """
         predict = torch.randn(self.batch, self.num_classes, self.img_size, self.img_size)
         target = torch.randint(0, self.num_classes,
-                               size=(self.batch, self.num_classes,  self.img_size, self.img_size)).float()
+                               size=(self.batch, self.num_classes, self.img_size, self.img_size)).float()
 
         loss_weigths = [1., 0.5]
         ce_crit = nn.BCEWithLogitsLoss(reduction="none")
