@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 def fuse_conv_bn(model: nn.Module, replace_bn_with_identity: bool = False):

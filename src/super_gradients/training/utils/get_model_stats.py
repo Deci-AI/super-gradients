@@ -136,7 +136,8 @@ def _convert_summary_dict_to_string(summary: dict, high_verbosity: bool, input_d
     trainable_params = 0
     if high_verbosity:
         summary_str += f"{'-' * 200}\n"
-        line_new = f'{"block (type)":>20} {"Layer (type)":>20} {"Output Shape":>63} {"Param #":>15} {"inference time[ms]":>25} {"gpu_cached_memory[GB]":>25} {"gpu_occupation[GB]":>25}'
+        line_new = f'{"block (type)":>20} {"Layer (type)":>20} {"Output Shape":>63} {"Param #":>15} ' \
+                   f'{"inference time[ms]":>25} {"gpu_cached_memory[GB]":>25} {"gpu_occupation[GB]":>25}'
         summary_str += f"{line_new}\n"
         summary_str += f"{'=' * 200}\n"
     for layer in summary:
@@ -178,7 +179,7 @@ def _convert_summary_dict_to_string(summary: dict, high_verbosity: bool, input_d
                    f"Params size (MB): {total_params_size}\n" \
                    f"Estimated Total Size (MB): {total_size}\n"
 
-    summary_str += str(["Memory Footprint (percentage): %0.2f" % gpu_memory_utilization[i] for i in range(4)]) + "\n" \
-                                                                                                                 f"{'-' * 200}\n" if device == 'cuda' else f"{'-' * 200}\n"
+    summary_str += str(["Memory Footprint (percentage): %0.2f" % gpu_memory_utilization[i] for i in range(4)]) + "\n"
+    summary_str += f"{'-' * 200}\n" if device == 'cuda' else f"{'-' * 200}\n"
 
     return summary_str
