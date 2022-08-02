@@ -17,7 +17,6 @@ from super_gradients.training.datasets.detection_datasets.detection_dataset impo
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from deprecated import deprecated
 from matplotlib.patches import Rectangle
-from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import ImageFolder
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from torchvision.transforms import transforms, InterpolationMode, RandomResizedCrop
@@ -658,8 +657,11 @@ class DatasetStatisticsTensorboardLogger:
 
 def get_color_augmentation(rand_augment_config_string: str, color_jitter: tuple, crop_size=224, img_mean=[0.485, 0.456, 0.406]):
     """
-    Returns color augmentation class. As these augmentation cannot work on top one another, only one is returned according to rand_augment_config_string
-    :param rand_augment_config_string: string which defines the auto augment configurations. If none, color jitter will be returned. For possibile values see auto_augment.py
+    Returns color augmentation class. As these augmentation cannot work on top one another, only one is returned
+    according to rand_augment_config_string
+
+    :param rand_augment_config_string: string which defines the auto augment configurations.
+                                       If none, color jitter will be returned. For possibile values see auto_augment.py
     :param color_jitter: tuple for color jitter value.
     :param crop_size: relevant only for auto augment
     :param img_mean: relevant only for auto augment

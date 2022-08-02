@@ -74,7 +74,8 @@ IMAGENET_PCA = {
 class Lighting(object):
     """
     Lighting noise(AlexNet - style PCA - based noise)
-    Taken from fastai Imagenet training - https://github.com/fastai/imagenet-fast/blob/faa0f9dfc9e8e058ffd07a248724bf384f526fae/imagenet_nv/fastai_imagenet.py#L103
+    Taken from fastai Imagenet training -
+    https://github.com/fastai/imagenet-fast/blob/faa0f9dfc9e8e058ffd07a248724bf384f526fae/imagenet_nv/fastai_imagenet.py#L103
     To use:
         - training_params = {"imagenet_pca_aug": 0.1}
         - Default training_params arg is 0.0 ("don't use")

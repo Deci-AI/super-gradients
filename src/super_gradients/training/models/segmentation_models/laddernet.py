@@ -81,7 +81,8 @@ class LadderResNet(nn.Module):
 
     Reference:
 
-        - He, Kaiming, et al. "Deep residual learning for image recognition." Proceedings of the IEEE conference on computer vision and pattern recognition. 2016.
+        - He, Kaiming, et al. "Deep residual learning for image recognition."
+            Proceedings of the IEEE conference on computer vision and pattern recognition. 2016.
 
         - Yu, Fisher, and Vladlen Koltun. "Multi-scale context aggregation by dilated convolutions."
     """
