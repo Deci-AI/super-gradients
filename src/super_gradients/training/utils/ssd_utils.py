@@ -4,7 +4,6 @@ from typing import List
 
 import numpy as np
 import torch
-from torch.nn import functional as F
 
 from super_gradients.training.utils.detection_utils import non_max_suppression, NMS_Type, \
     matrix_non_max_suppression, DetectionPostPredictionCallback
@@ -136,7 +135,7 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
         nms_input = predictions[0]
         if self.nms_type == NMS_Type.ITERATIVE:
             nms_res = non_max_suppression(nms_input, conf_thres=self.conf, iou_thres=self.iou,
-                                          multi_label_per_box=self.multi_label_per_box)
+                                          multi_label_per_box=self.multi_label_per_box, with_confidence=True)
         else:
             nms_res = matrix_non_max_suppression(nms_input, conf_thres=self.conf,
                                                  max_num_of_detections=self.max_predictions)

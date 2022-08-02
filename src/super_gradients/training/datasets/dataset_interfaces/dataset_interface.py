@@ -916,7 +916,11 @@ class CocoDetectionDatasetInterfaceV2(DatasetInterface):
                                                   translate=self.dataset_params.translate,
                                                   scales=self.dataset_params.mosaic_scale,
                                                   shear=self.dataset_params.shear,
-                                                  target_size=train_input_dim
+                                                  target_size=train_input_dim,
+                                                  filter_box_candidates=self.dataset_params.filter_box_candidates,
+                                                  wh_thr=self.dataset_params.wh_thr,
+                                                  area_thr=self.dataset_params.area_thr,
+                                                  ar_thr=self.dataset_params.ar_thr
                                                   ),
                             DetectionMixup(input_dim=train_input_dim,
                                            mixup_scale=self.dataset_params.mixup_scale,

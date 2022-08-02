@@ -910,7 +910,8 @@ class DetectionVisualization:
             targets_cur = targets[targets[:, 0] == i]
 
             image_name = '_'.join([str(batch_name), str(i)])
-            res_image = DetectionVisualization._visualize_image(image_np[i], preds, targets_cur, class_names, box_thickness, gt_alpha, image_scale, checkpoint_dir, image_name)
+            res_image = DetectionVisualization._visualize_image(image_np[i], preds, targets_cur, class_names, box_thickness, gt_alpha, image_scale,
+                                                                checkpoint_dir, image_name)
             if res_image is not None:
                 out_images.append(res_image)
 
@@ -1084,6 +1085,7 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
         batch = default_collate(data)
         ims, targets, crowd_targets = batch[0:3]
         return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+
 
 def compute_box_area(box: torch.Tensor) -> torch.Tensor:
     """Compute the area of one or many boxes.
