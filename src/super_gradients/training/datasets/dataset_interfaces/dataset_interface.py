@@ -10,7 +10,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
-from super_gradients.training.datasets.detection_datasets import COCODetectionDataSet, PascalVOCDetectionDataSet
+from super_gradients.training.datasets.detection_datasets import PascalVOCDetectionDataSet
 from super_gradients.training.datasets.detection_datasets.coco_detection_yolox import COCODetectionDatasetV2
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.datasets.segmentation_datasets import PascalVOC2012SegmentationDataSet, \
@@ -694,14 +694,6 @@ class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):
             dataset_classes_inclusion_tuples_list=dataset_classes_inclusion_tuples_list)
 
         self.coco_classes = self.trainset.classes
-
-
-class CoCo2014DetectionDatasetInterface(CoCoDetectionDatasetInterface):
-    def __init__(self, dataset_params=None, cache_labels=False, cache_images=False, train_list_file='train2014.txt',
-                 val_list_file='val2014.txt'):
-        dataset_params['dataset_dir'] = core_utils.get_param(dataset_params, 'dataset_dir', '/data/coco2014/')
-        super().__init__(dataset_params=dataset_params, cache_labels=cache_labels, cache_images=cache_images,
-                         train_list_file=train_list_file, val_list_file=val_list_file)
 
 
 class CityscapesDatasetInterface(DatasetInterface):
