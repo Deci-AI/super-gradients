@@ -69,7 +69,9 @@ class PhaseContextTest(unittest.TestCase):
             self.assertTrue(phase_callback.context.epoch == 1)
 
             # EPOCH END PHASES USE THE SAME CONTEXT, WHICH IS UPDATED- SO VALID METRICS DICT SHOULD BE PRESENT
-            self.assertTrue(isinstance(phase_callback.context.metrics_dict, dict) and "Loss" in phase_callback.context.metrics_dict.keys() and "Top5" in phase_callback.context.metrics_dict.keys())
+            self.assertTrue(isinstance(phase_callback.context.metrics_dict, dict))
+            self.assertTrue("Loss" in phase_callback.context.metrics_dict.keys())
+            self.assertTrue("Top5" in phase_callback.context.metrics_dict.keys())
 
 
 if __name__ == '__main__':
