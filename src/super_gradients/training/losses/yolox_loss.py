@@ -473,10 +473,14 @@ class YoloXDetectionLoss(_Loss):
         # FIND CELL CENTERS THAT ARE WITHIN +- self.center_sampling_radius CELLS FROM GROUND TRUTH BOXES CENTERS
 
         # define fake boxes: instead of ground truth boxes step +- self.center_sampling_radius from their centers
-        gt_bboxes_per_image_l = (gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(1, total_num_anchors) - self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
-        gt_bboxes_per_image_r = (gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(1, total_num_anchors) + self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
-        gt_bboxes_per_image_t = (gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(1, total_num_anchors) - self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
-        gt_bboxes_per_image_b = (gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(1, total_num_anchors) + self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
+        gt_bboxes_per_image_l = ((gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(1, total_num_anchors) -
+                                 self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0))
+        gt_bboxes_per_image_r = ((gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(1, total_num_anchors) +
+                                 self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0))
+        gt_bboxes_per_image_t = ((gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(1, total_num_anchors) -
+                                 self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0))
+        gt_bboxes_per_image_b = ((gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(1, total_num_anchors) +
+                                 self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0))
 
         c_l = x_centers_per_image - gt_bboxes_per_image_l
         c_r = gt_bboxes_per_image_r - x_centers_per_image
@@ -517,7 +521,7 @@ class YoloXDetectionLoss(_Loss):
         for gt_idx in range(num_gt):
             try:
                 _, pos_idx = torch.topk(cost[gt_idx], k=dynamic_ks[gt_idx], largest=False)
-            except:
+            except Exception:
                 logger.warning("cost[gt_idx]: " + str(cost[gt_idx]) + " dynamic_ks[gt_idx]L " + str(dynamic_ks[gt_idx]))
             matching_matrix[gt_idx][pos_idx] = 1
 
