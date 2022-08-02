@@ -70,6 +70,10 @@ jobs:
                   equal: [ master, << pipeline.git.branch >> ]
           steps:
             - run:
+                name: install Flake8 python linter
+                command: |
+                  pip install --user flake8
+            - run:
                 name: Lint all python files changed since develop branch
                 command: |
                   flake8 --statistics --config scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/develop --name-only | grep 'py$' | grep -v 'experimental/' | grep -v 'experimental_models/')
