@@ -60,8 +60,8 @@ class AWSSecretsManagerConnector:
             for secret_key_property in db_properties_set:
                 secret_key_to_retrieve = '.'.join([env.upper(), secret_key, secret_key_property])
                 if secret_key_to_retrieve not in aws_secrets_dict:
-                    error = f'[{current_class_name}] - Error retrieving data from AWS Secrets Manager for' \
-                            f'Secret Key "{secret_name}": The secret property "{secret_key_property}" Does Not Exist'
+                    error = f'[{current_class_name}] - Error retrieving data from AWS Secrets Manager for Secret Key "{secret_name}": ' \
+                            f'The secret property "{secret_key_property}" Does Not Exist'
                     logger.error(error)
                     raise EnvironmentError(error)
                 else:
@@ -73,9 +73,8 @@ class AWSSecretsManagerConnector:
             for secret_key_name, secret_value in aws_secrets_dict.items():
                 secret_key_to_retrieve = '.'.join([env.upper(), secret_key])
                 assert secret_key_name.startswith(
-                    env.upper()), f'The secret key property "{secret_key_name}", found in secret named {secret_name},' \
-                                  f' is not following the convention of environment prefix.' \
-                                  f'please add the environment prefix "{env.upper()}" to property "{secret_key_name}"'
+                    env.upper()), f'The secret key property "{secret_key_name}", found in secret named {secret_name}, is not following the convention of ' \
+                                  f'environment prefix. please add the environment prefix "{env.upper()}" to property "{secret_key_name}"'
                 if secret_key_name.startswith(secret_key_to_retrieve):
                     env_stripped_key_name = secret_key_name.lstrip(env.upper()).lstrip('.')
                     aws_env_safe_secrets[env_stripped_key_name] = secret_value

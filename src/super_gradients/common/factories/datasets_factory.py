@@ -1,11 +1,8 @@
 from super_gradients.common.factories.base_factory import BaseFactory
-from super_gradients.training.datasets.dataset_interfaces import LibraryDatasetInterface, \
-    ClassificationDatasetInterface, Cifar10DatasetInterface, Cifar100DatasetInterface, \
-    ImageNetDatasetInterface, TinyImageNetDatasetInterface, \
-    CoCoDetectionDatasetInterface, CoCoSegmentationDatasetInterface, CoCo2014DetectionDatasetInterface, \
-    PascalAUG2012SegmentationDataSetInterface, PascalVOC2012SegmentationDataSetInterface
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import \
-    PascalVOCUnifiedDetectionDataSetInterface, \
+from super_gradients.training.datasets.dataset_interfaces import LibraryDatasetInterface, ClassificationDatasetInterface, Cifar10DatasetInterface,\
+    Cifar100DatasetInterface, ImageNetDatasetInterface, TinyImageNetDatasetInterface, CoCoDetectionDatasetInterface, CoCoSegmentationDatasetInterface, \
+    CoCo2014DetectionDatasetInterface, PascalAUG2012SegmentationDataSetInterface, PascalVOC2012SegmentationDataSetInterface
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDataSetInterface, \
     ClassificationTestDatasetInterface, CityscapesDatasetInterface, CocoDetectionDatasetInterfaceV2
 
 

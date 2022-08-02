@@ -135,9 +135,7 @@ def env_sanity_check():
         logger.log(stdout_log_level, '_' * 20)
 
     if sanity_check_errors:
-        logger.log(stdout_log_level,
-                   'The current environment does not meet Deci\'s needs,'
-                   f'errors found in: {", ".join(list(sanity_check_errors.keys()))}')
+        logger.log(stdout_log_level, f'The current environment does not meet Deci\'s needs, errors found in: {", ".join(list(sanity_check_errors.keys()))}')
     elif lib_check_is_impossible:
         logger.log(stdout_log_level, LIB_CHECK_IMPOSSIBLE_MSG)
     else:
