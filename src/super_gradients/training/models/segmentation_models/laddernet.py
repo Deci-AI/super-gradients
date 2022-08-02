@@ -81,13 +81,15 @@ class LadderResNet(nn.Module):
 
     Reference:
 
-        - He, Kaiming, et al. "Deep residual learning for image recognition." Proceedings of the IEEE conference on computer vision and pattern recognition. 2016.
+        - He, Kaiming, et al. "Deep residual learning for image recognition."
+            Proceedings of the IEEE conference on computer vision and pattern recognition. 2016.
 
         - Yu, Fisher, and Vladlen Koltun. "Multi-scale context aggregation by dilated convolutions."
     """
 
     # pylint: disable=unused-variable
-    # def __init__(self, block, layers, num_classes=1000, dilated=False, norm_layer=SyncBatchNorm): # FIXME - ORIGINAL CODE
+    # FIXME - ORIGINAL CODE
+    # def __init__(self, block, layers, num_classes=1000, dilated=False, norm_layer=SyncBatchNorm):
     def __init__(self, block, layers, num_classes=1000, dilated=False,
                  norm_layer=nn.BatchNorm2d):  # FIXME - TIME MEASUREMENT CODE
         self.inplanes = 64

@@ -12,4 +12,5 @@ __all__ = ['DatasetInterface', 'TestDatasetInterface', 'LibraryDatasetInterface'
            'CoCoDetectionDatasetInterface',
            'CoCo2014DetectionDatasetInterface', 'CoCoSegmentationDatasetInterface',
            'PascalAUG2012SegmentationDataSetInterface',
-           'PascalVOC2012SegmentationDataSetInterface', 'TestYoloDetectionDatasetInterface', 'SegmentationTestDatasetInterface', 'DetectionTestDatasetInterface', 'ClassificationTestDatasetInterface']
+           'PascalVOC2012SegmentationDataSetInterface', 'TestYoloDetectionDatasetInterface',
+           'SegmentationTestDatasetInterface', 'DetectionTestDatasetInterface', 'ClassificationTestDatasetInterface']

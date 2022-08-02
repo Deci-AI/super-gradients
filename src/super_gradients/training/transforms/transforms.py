@@ -410,7 +410,7 @@ class DetectionMosaic(DetectionTransform):
             all_samples = [sample] + sample["additional_samples"]
 
             for i_mosaic, mosaic_sample in enumerate(all_samples):
-                img, _labels,  = mosaic_sample["image"], mosaic_sample["target"]
+                img, _labels = mosaic_sample["image"], mosaic_sample["target"]
                 _labels_seg = mosaic_sample.get("target_seg")
 
                 h0, w0 = img.shape[:2]  # orig hw
@@ -576,7 +576,6 @@ class DetectionMixup(DetectionTransform):
                 (int(cp_img.shape[1] * jit_factor), int(cp_img.shape[0] * jit_factor)),
             )
             cp_scale_ratio *= jit_factor
-
 
             origin_h, origin_w = cp_img.shape[:2]
             target_h, target_w = origin_img.shape[:2]

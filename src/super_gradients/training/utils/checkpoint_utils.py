@@ -10,7 +10,9 @@ except (ModuleNotFoundError, ImportError, NameError):
     from torch.hub import _download_url_to_file as download_url_to_file
 
 
-def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, model_checkpoints_location: str, external_checkpoint_path: str, overwrite_local_checkpoint: bool, load_weights_only: bool):
+def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str,
+                        model_checkpoints_location: str, external_checkpoint_path: str,
+                        overwrite_local_checkpoint: bool, load_weights_only: bool):
     """
     Gets the local path to the checkpoint file, which will be:
         - By default: YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name.
@@ -20,12 +22,14 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
             YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name/ckpt_name if such file exists.
         - external_checkpoint_path when external_checkpoint_path != None
 
-    @param source_ckpt_folder_name: The folder where the checkpoint is saved. When set to None- uses the experiment_name.
+    @param source_ckpt_folder_name: The folder where the checkpoint is saved. When set to None- uses the experiment_name
     @param experiment_name: experiment name attr in sg_model
     @param ckpt_name: checkpoint filename
     @param model_checkpoints_location: S3, local ot URL
-    @param external_checkpoint_path: full path to checkpoint file (that might be located outside of super_gradients/checkpoints directory)
-    @param overwrite_local_checkpoint: whether to overwrite the checkpoint file with the same name when downloading from S3.
+    @param external_checkpoint_path: full path to checkpoint file (that might be located outside of
+                                     super_gradients/checkpoints directory)
+    @param overwrite_local_checkpoint: whether to overwrite the checkpoint file with the same name when downloading
+                                       from S3.
     @param load_weights_only: whether to load the network's state dict only.
     @return:
     """
@@ -132,7 +136,8 @@ def read_ckpt_state_dict(ckpt_path: str, device="cpu"):
     return state_dict
 
 
-def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckpt: dict, exclude: list = [], solver: callable=None):
+def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckpt: dict,
+                                              exclude: list = [], solver: callable = None):
     """
     Given a model state dict and source checkpoints, the method tries to correct the keys in the model_state_dict to fit
     the ckpt in order to properly load the weights into the model. If unsuccessful - returns None
@@ -174,7 +179,8 @@ def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
         raise RuntimeError(exception_msg)
 
 
-def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: torch.nn.Module, strict: str, load_weights_only: bool, load_ema_as_net: bool = False):
+def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: torch.nn.Module, strict: str,
+                             load_weights_only: bool, load_ema_as_net: bool = False):
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
 
@@ -226,12 +232,14 @@ class MissingPretrainedWeightsException(Exception):
         self.message = "Missing pretrained wights: " + desc
         super().__init__(self.message)
 
+
 def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
     """
     Helper method for reshaping old pretrained checkpoint's focus weights to 6x6 conv weights.
     """
 
-    if ckpt_val.shape != model_val.shape and ckpt_key == 'module._backbone._modules_list.0.conv.conv.weight' and model_key == '_backbone._modules_list.0.conv.weight':
+    if ckpt_val.shape != model_val.shape and ckpt_key == 'module._backbone._modules_list.0.conv.conv.weight' and \
+            model_key == '_backbone._modules_list.0.conv.weight':
         model_val.data[:, :, ::2, ::2] = ckpt_val.data[:, :3]
         model_val.data[:, :, 1::2, ::2] = ckpt_val.data[:, 3:6]
         model_val.data[:, :, ::2, 1::2] = ckpt_val.data[:, 6:9]
@@ -241,6 +249,7 @@ def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
         replacement = ckpt_val
 
     return replacement
+
 
 def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretrained_weights: str):
 
@@ -262,5 +271,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     if 'ema_net' in pretrained_state_dict.keys():
         pretrained_state_dict['net'] = pretrained_state_dict['ema_net']
     solver = _yolox_ckpt_solver if "yolox" in architecture else None
-    adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(model_state_dict=model.state_dict(), source_ckpt=pretrained_state_dict, solver=solver)
+    adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(model_state_dict=model.state_dict(),
+                                                                              source_ckpt=pretrained_state_dict,
+                                                                              solver=solver)
     model.load_state_dict(adapted_pretrained_state_dict['net'], strict=False)
