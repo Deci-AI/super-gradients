@@ -20,7 +20,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
                  ignore_index: int = None,
                  smooth: float = 1.,
                  eps: float = 1e-5,
-                 sum_over_batches: bool = False,
+                 reduce_over_batches: bool = False,
                  generalized_metric: bool = False,
                  weight: Optional[torch.Tensor] = None,
                  reduction: Union[LossReduction, str] = "mean"):
@@ -30,7 +30,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
             coefficient is to 1, which can be used as a regularization effect.
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
         :param eps: epsilon value to avoid inf.
-        :param sum_over_batches: Whether to average metric over the batch axis if set True,
+        :param reduce_over_batches: Whether to average metric over the batch axis if set True,
          default is `False` to average over the classes axis.
         :param generalized_metric: Whether to apply normalization by the volume of each class.
         :param weight: a manual rescaling weight given to each class. If given, it has to be a Tensor of size `C`.
@@ -45,7 +45,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
         self.apply_softmax = apply_softmax
         self.eps = eps
         self.smooth = smooth
-        self.sum_over_batches = sum_over_batches
+        self.reduce_over_batches = reduce_over_batches
         self.generalized_metric = generalized_metric
         self.weight = weight
         if self.generalized_metric:
@@ -68,7 +68,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
     def _calc_loss(self, numerator, denominator) -> torch.Tensor:
         """
         All base classes must implement this function.
-        Return a tensors of shape [BS] if self.sum_over_batches else [num_classes].
+        Return a tensors of shape [BS] if self.reduce_over_batches else [num_classes].
         """
         raise NotImplementedError()
 
@@ -89,7 +89,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
                                  f" or to have the same num of channels like prediction tensor")
 
         reduce_spatial_dims = list(range(2, len(predict.shape)))
-        reduce_dims = [1] + reduce_spatial_dims if self.sum_over_batches else [0] + reduce_spatial_dims
+        reduce_dims = [1] + reduce_spatial_dims if self.reduce_over_batches else [0] + reduce_spatial_dims
 
         # Calculate the numerator and denominator of the chosen metric
         numerator, denominator = self._calc_numerator_denominator(labels_one_hot, predict)

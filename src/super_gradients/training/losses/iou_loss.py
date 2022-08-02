@@ -30,7 +30,7 @@ class IoULoss(AbstarctSegmentationStructureLoss):
     def _calc_loss(self, numerator, denominator):
         """
         Calculate iou loss.
-        All tensors are of shape [BS] if self.sum_over_batches else [num_classes]
+        All tensors are of shape [BS] if self.reduce_over_batches else [num_classes]
 
         :param numerator: intersection between predictions and target.
         :param denominator: area of union between prediction pixels and target pixels.
@@ -55,7 +55,7 @@ class BinaryIoULoss(IoULoss):
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
         :param eps: epsilon value to avoid inf.
         """
-        super().__init__(apply_softmax=False, ignore_index=None, smooth=smooth, eps=eps, sum_over_batches=False)
+        super().__init__(apply_softmax=False, ignore_index=None, smooth=smooth, eps=eps, reduce_over_batches=False)
         self.apply_sigmoid = apply_sigmoid
 
     def forward(self, predict, target):
@@ -79,7 +79,7 @@ class GeneralizedIoULoss(IoULoss):
                  ignore_index: int = None,
                  smooth: float = 0.0,
                  eps: float = 1e-17,
-                 sum_over_batches: bool = False,
+                 reduce_over_batches: bool = False,
                  reduction: Union[LossReduction, str] = "mean"
                  ):
         """
@@ -88,7 +88,7 @@ class GeneralizedIoULoss(IoULoss):
             coefficient is to 1, which can be used as a regularization effect.
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
         :param eps: epsilon value to avoid inf.
-        :param sum_over_batches: Whether to average iou over the batch axis if set True,
+        :param reduce_over_batches: Whether to apply reduction over the batch axis if set True,
          default is `False` to average over the classes axis.
         :param reduction: Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
             `none`: no reduction will be applied.
@@ -97,4 +97,5 @@ class GeneralizedIoULoss(IoULoss):
             Default: `mean`
         """
         super().__init__(apply_softmax=apply_softmax, ignore_index=ignore_index, smooth=smooth, eps=eps,
-                         sum_over_batches=sum_over_batches, generalized_metric=True, weight=None, reduction=reduction)
+                         reduce_over_batches=reduce_over_batches, generalized_metric=True, weight=None,
+                         reduction=reduction)
