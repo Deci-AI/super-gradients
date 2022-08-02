@@ -410,7 +410,7 @@ class DetectionMosaic(DetectionTransform):
             all_samples = [sample] + sample["additional_samples"]
 
             for i_mosaic, mosaic_sample in enumerate(all_samples):
-                img, _labels,  = mosaic_sample["image"], mosaic_sample["target"]
+                img, _labels = mosaic_sample["image"], mosaic_sample["target"]
                 _labels_seg = mosaic_sample.get("target_seg")
 
                 h0, w0 = img.shape[:2]  # orig hw
@@ -577,7 +577,6 @@ class DetectionMixup(DetectionTransform):
             )
             cp_scale_ratio *= jit_factor
 
-
             origin_h, origin_w = cp_img.shape[:2]
             target_h, target_w = origin_img.shape[:2]
             padded_img = np.zeros(
@@ -681,6 +680,7 @@ class DetectionHorizontalFlip(DetectionTransform):
             boxes = targets[:, :4]
         image, boxes = _mirror(image, boxes, self.prob)
         sample["image"] = image
+        sample["target"][:, :4] = boxes
         return sample
 
 

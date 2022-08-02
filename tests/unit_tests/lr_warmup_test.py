@@ -124,7 +124,7 @@ class LRWarmupTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks,
-                        "warmup_mode": ExponentialWarmupLRCallback, "initial_lr": 1.,  "warmup_initial_lr": 0.1}
+                        "warmup_mode": ExponentialWarmupLRCallback, "initial_lr": 1., "warmup_initial_lr": 0.1}
 
         expected_lrs = [0.1, 0.18102751585334242, 0.40128313980266034, 1.0, 1.0]
         model.train(train_params)

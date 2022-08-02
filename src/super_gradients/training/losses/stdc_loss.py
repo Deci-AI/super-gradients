@@ -157,7 +157,10 @@ class STDCLoss(_Loss):
             self.detail_loss = DetailLoss(weights=detail_weights)
 
         if ohem_criteria is None:
-            ohem_criteria = OhemCELoss(threshold=threshold, mining_percent=mining_percent, ignore_lb=ignore_index) if num_classes > 1 else OhemBCELoss(threshold=threshold, mining_percent=mining_percent)
+            if num_classes > 1:
+                ohem_criteria = OhemCELoss(threshold=threshold, mining_percent=mining_percent, ignore_lb=ignore_index)
+            else:
+                ohem_criteria = OhemBCELoss(threshold=threshold, mining_percent=mining_percent)
 
         self.ce_ohem = ohem_criteria
         self.num_classes = num_classes
