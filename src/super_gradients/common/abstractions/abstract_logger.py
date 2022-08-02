@@ -4,16 +4,13 @@ import logging.config
 from super_gradients.common.auto_logging import AutoLoggerConfig
 from super_gradients.common.environment.environment_config import DEFAULT_LOGGING_LEVEL
 
-# Do not remove, it's necessary for the get_logger functionality.
-# flake8: noqa
-from cmreslogging.handlers import CMRESHandler
 
-
-def get_logger(logger_name: str, training_log_path=None, logs_dir_path=None, log_level=DEFAULT_LOGGING_LEVEL) -> logging.Logger:
-    config_dict = AutoLoggerConfig.generate_config_for_module_name(module_name=logger_name,
-                                                                   training_log_path=training_log_path,
-                                                                   logs_dir_path=logs_dir_path,
-                                                                   log_level=log_level)
+def get_logger(
+    logger_name: str, training_log_path=None, logs_dir_path=None, log_level=DEFAULT_LOGGING_LEVEL
+) -> logging.Logger:
+    config_dict = AutoLoggerConfig.generate_config_for_module_name(
+        module_name=logger_name, training_log_path=training_log_path, logs_dir_path=logs_dir_path, log_level=log_level
+    )
     logging.config.dictConfig(config_dict)
     logger: logging.Logger = logging.getLogger(logger_name)
     return logger

@@ -60,7 +60,8 @@ All SuperGradients models’ are production ready in the sense that they are com
 
     
 ## What's New
-* 【07/07/2022】SSD Lite MobileNetV2 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) on COCO - Tailored for edge devices! 📱
+* 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
+* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) on COCO - Tailored for edge devices! 📱
 * 【07/07/2022】 STDC  - new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores 🎯
 * 【16/06/2022】 ResNet50  - new pre-trained checkpoint and [recipe](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/imagenet_resnet50_kd.yaml) for ImageNet top-1 score of 81.9 💪
 * 【09/06/2022】 ViT models (Vision Transformer) - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) (ViT, BEiT).
@@ -74,7 +75,6 @@ All SuperGradients models’ are production ready in the sense that they are com
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Coming soon
-- [ ] YOLOX models (object detection) - recipes and pre-trained checkpoints.
 - [ ] Single class detectors (recipes, pre-trained checkpoints) for edge devices deployment.
 - [ ] Single class segmentation (recipes, pre-trained checkpoints) for edge devices deployment.
 - [ ] QAT capabilities (Quantization Aware Training).
@@ -89,10 +89,10 @@ ________________________________________________________________________________
 
 - [Getting Started](#getting-started)
     - [Quick Start Notebook - Classification example](#quick-start-notebook---classification)
-    - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
     - [Quick Start Notebook - Semantic segmentation example](#quick-start-notebook---semantic-segmentation)
-    - [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
- <!-- - [Quick Start Notebook - Upload to Deci Platform example](#quick-start-notebook---upload-your-model-to-deci-platform) -->
+<!-- - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
+- [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
+    - [Quick Start Notebook - Upload to Deci Platform example](#quick-start-notebook---upload-your-model-to-deci-platform) -->
 - [Transfer Learning](#transfer-learning)  
     - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
     - [Transfer Learning with SG Notebook - Semantic segmentation example](#transfer-learning-with-sg-notebook---semantic-segmentation)
@@ -127,13 +127,13 @@ Want to try our pre-trained models on your machine? Import SuperGradients, initi
     
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
-# This is an example of loading COCO-2017 pre-trained weights for a YOLOv5 Nano object detection model
+# This is an example of loading COCO-2017 pre-trained weights for a YOLOX Nano object detection model
     
 import super_gradients
 from super_gradients.training import SgModel
 
-trainer = SgModel(experiment_name="yolov5n_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
-trainer.build_model(architecture="yolo_v5n", arch_params={"pretrained_weights": "coco", num_classes": 80})
+trainer = SgModel(experiment_name="yoloxn_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
+trainer.build_model(architecture="yolox_n", arch_params={"pretrained_weights": "coco", num_classes": 80})
 ```   
     
 ### Quick Start Notebook - Classification
@@ -153,22 +153,6 @@ Get started with our quick start notebook for image classification tasks on Goog
 </table>
  </br></br>
 
-### Quick Start Notebook - Object Detection
-
-Get started with our quick start notebook for object detection tasks on Google Colab for a quick and easy start using free GPU hardware.
-
-<table class="tfo-notebook-buttons" align="left">
- <td>
-   <a target="_blank" href="https://bit.ly/3wqMsEM"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
- </td>
-  <td>
-   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
- </td>
- <td>
-   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
- </td>
-</table>
- </br></br>
 
 ### Quick Start Notebook - Semantic Segmentation
 
@@ -188,6 +172,23 @@ Get started with our quick start notebook for semantic segmentation tasks on Goo
  </br></br>
 
 <!-- 
+### Quick Start Notebook - Object Detection
+
+Get started with our quick start notebook for object detection tasks on Google Colab for a quick and easy start using free GPU hardware.
+
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://bit.ly/3wqMsEM"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+ 
 ### Quick Start Notebook - Upload your model to Deci Platform
 
 Get Started with an example of how to upload your trained model to Deci Platform for runtime optimization and compilation to your target deployment HW.
@@ -216,7 +217,7 @@ Get Started with an example of how to upload your trained model to Deci Platform
   </tbody>
 </table>
  </br></br>
--->
+
 ### SuperGradients Complete Walkthrough Notebook
 
 Learn more about SuperGradients training components with our walkthrough notebook on Google Colab for an easy to use tutorial using free GPU hardware
@@ -233,12 +234,12 @@ Learn more about SuperGradients training components with our walkthrough noteboo
  </td>
 </table>
  </br></br>
- 
+ -->
  
  ## Transfer Learning
  ### Transfer Learning with SG Notebook - Object Detection
 
-Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
+Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloX nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
@@ -374,10 +375,11 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 |------------- |------ | ---------- |------ | -------- |------ | ---------- |------ | :------: |
 | SSD lite MobileNet v2 | COCO |320x320 |21.5 |**0.77ms** |**1.40ms**|**5.28ms** |**6.44ms** |**4.13ms**|
 | SSD lite MobileNet v1 | COCO |320x320 |24.3 |**1.55ms** |**2.84ms**|**8.07ms** |**9.14ms** |**22.76ms**|
-| YOLOv5 nano | COCO |640x640 |27.7  |**1.48ms** |**5.43ms**|**9.28ms** |**17.44ms** |**21.71ms**|
-| YOLOv5 small | COCO |640x640 |37.3 |**2.29ms** |**6.14ms**|**14.31ms** |**22.50ms** |**34.10ms**|
-| YOLOv5 medium| COCO |640x640 |45.2 |**4.60ms** |**8.10ms**|**26.76ms** |**34.95ms** |**65.86ms**|
-| YOLOv5 large | COCO |640x640 |48.0 |**7.20ms** |**10.28ms**|**43.89ms** |**51.92ms** |**122.97ms**|
+| YOLOX nano | COCO |640x640 |26.77|**2.47ms** |**4.09ms**|**-ms** |**12.97ms** |**-**|
+| YOLOX tiny | COCO |640x640 |37.18|**3.16ms** |**4.61ms**|**-ms** |**16.83ms** |**-**|
+| YOLOX small | COCO |640x640 |40.47 |**3.58ms** |**4.94ms**|**-ms** |**21.08ms** |**-**|
+| YOLOX medium| COCO |640x640 |46.4 |**6.40ms** |**7.65ms**|**-ms** |**44.5ms** |**-**|
+| YOLOX large | COCO |640x640 |49.25 |**10.07ms** |**11.12ms**|**-ms** |**77.01ms** |**-**|
   
 
 > **NOTE:** <br/>
@@ -434,8 +436,7 @@ Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
 - [CSP DarkNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/csp_darknet53.py)
 - [DarkNet-53](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/darknet53.py)
 - [SSD (Single Shot Detector)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py) - [https://arxiv.org/pdf/1512.02325](https://arxiv.org/pdf/1512.02325)
-- [YOLO v3](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolov3.py) - [https://arxiv.org/pdf/1804.02767](https://arxiv.org/pdf/1804.02767)
-- [YOLO v5](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolov5.py) - [by Ultralytics](https://docs.ultralytics.com/)
+- [YOLOX](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolox.py) - [https://arxiv.org/abs/2107.08430](https://arxiv.org/abs/2107.08430)
   
   
 ### Semantic Segmentation 

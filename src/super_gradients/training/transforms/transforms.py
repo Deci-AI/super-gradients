@@ -680,6 +680,7 @@ class DetectionHorizontalFlip(DetectionTransform):
             boxes = targets[:, :4]
         image, boxes = _mirror(image, boxes, self.prob)
         sample["image"] = image
+        sample["target"][:, :4] = boxes
         return sample
 
 
