@@ -1,5 +1,5 @@
 [flake8]
-ignore = E501
+ignore = E731, C901, W504 # lambda functions, function too complex, line break after binary operator
 max-line-length = 160
 max-complexity = 10
 exclude =
