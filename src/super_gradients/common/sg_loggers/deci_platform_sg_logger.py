@@ -3,7 +3,6 @@ import os
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.common.environment.env_helpers import multi_process_safe
-from super_gradients.training.params import TrainingParams
 
 logger = get_logger(__name__)
 
