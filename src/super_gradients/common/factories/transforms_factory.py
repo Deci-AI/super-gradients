@@ -36,4 +36,3 @@ class TransformsFactory(BaseFactory):
         if isinstance(conf, Mapping) and 'Compose' in conf:
             conf['Compose']['transforms'] = ListFactory(TransformsFactory()).get(conf['Compose']['transforms'])
         return super().get(conf)
-

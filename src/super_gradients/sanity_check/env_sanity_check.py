@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 from pip._internal.operations.freeze import freeze
-from typing import List, Dict, Union, Tuple
+from typing import List, Dict, Union
 from pathlib import Path
 from packaging.version import Version
 
@@ -82,7 +82,9 @@ def verify_installed_libraries() -> List[str]:
 
         is_constraint_respected = {
             ">=": installed_version >= required_version,
-            "~=": installed_version.major == required_version.major and installed_version.minor == required_version.minor and installed_version.micro >= required_version.micro,
+            "~=": (installed_version.major == required_version.major and
+                   installed_version.minor == required_version.minor and
+                   installed_version.micro >= required_version.micro),
             "==": installed_version == required_version
         }
         if not is_constraint_respected[constraint]:
@@ -133,8 +135,9 @@ def env_sanity_check():
         logger.log(stdout_log_level, '_' * 20)
 
     if sanity_check_errors:
-        logger.log(stdout_log_level, 
-            f'The current environment does not meet Deci\'s needs, errors found in: {", ".join(list(sanity_check_errors.keys()))}')
+        logger.log(stdout_log_level,
+                   'The current environment does not meet Deci\'s needs,'
+                   f'errors found in: {", ".join(list(sanity_check_errors.keys()))}')
     elif lib_check_is_impossible:
         logger.log(stdout_log_level, LIB_CHECK_IMPOSSIBLE_MSG)
     else:
@@ -142,10 +145,10 @@ def env_sanity_check():
 
     # The last message needs to be displayed independently of DISPLAY_SANITY_CHECK
     if display_sanity_check:
-        logger.info(f'** This check can be hidden by setting the env variable DISPLAY_SANITY_CHECK=False prior to import. **')
+        logger.info('** This check can be hidden by setting the env variable DISPLAY_SANITY_CHECK=False prior to import. **')
     else:
-        logger.info(f'** A sanity check is done when importing super_gradients for the first time. **\n'
-                    f'-> You can see the details by setting the env variable DISPLAY_SANITY_CHECK=True prior to import.')
+        logger.info('** A sanity check is done when importing super_gradients for the first time. **\n'
+                    '-> You can see the details by setting the env variable DISPLAY_SANITY_CHECK=True prior to import.')
 
 
 if __name__ == '__main__':
