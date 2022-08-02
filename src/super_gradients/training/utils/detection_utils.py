@@ -1,23 +1,20 @@
 import math
 import os
+import pathlib
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, List, Union, Tuple
+from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
 
 import cv2
 from deprecated import deprecated
-from scipy.cluster.vq import kmeans
 from torch.utils.data._utils.collate import default_collate
-from tqdm import tqdm
 import matplotlib.pyplot as plt
-from PIL import Image
 
 import torch
 import torchvision
 import numpy as np
 from torch import nn
 from torch.nn import functional as F
-from super_gradients.common.abstractions.abstract_logger import get_logger
 from omegaconf import ListConfig
 
 
@@ -40,28 +37,51 @@ class DetectionTargetsFormat(Enum):
     NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
 
 
-def base_detection_collate_fn(batch):
+def _set_batch_labels_index(labels_batch):
+    for i, labels in enumerate(labels_batch):
+        labels[:, 0] = i
+    return labels_batch
+
+
+def base_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Batch Processing helper function for detection training/testing.
-    stacks the lists of images and targets into tensors and adds the image index to each target (so the targets could
-    later be associated to the correct images)
-         :param batch:   Input batch from the Dataset __get_item__ method
-         :return:        batch with the transformed values
+    Stacks the lists of images and targets into tensors and adds the image index to each target, so the targets could
+    later be associated to the correct images
+         :param batch:      Input batch from the Dataset __get_item__ method
+         :return:           Batch images and labels and a dict with 'crowd_target'
      """
-
-    images_batch, labels_batch = list(zip(*batch))
-    for i, labels in enumerate(labels_batch):
-        # ADD TARGET IMAGE INDEX
-        labels[:, 0] = i
-
+    images_batch, labels_batch, *_additional_items_batch = zip(*batch)
+    labels_batch = _set_batch_labels_index(labels_batch)
     return torch.stack(images_batch, 0), torch.cat(labels_batch, 0)
+
+
+def crowd_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+    """
+    Batch Processing helper function for detection training/testing.
+    Stacks the lists of images, targets and crowd targets into tensors and adds the image index to each target and
+    crowd targets, so the targets could later be associated to the correct images
+         :param batch:      Input batch from the Dataset __get_item__ method
+         :return:           Batch images and labels and a dict with 'crowd_target'
+     """
+    images_batch, labels_batch, *additional_items_batch = zip(*batch)
+
+    assert len(additional_items_batch) == 1, \
+        f"{len(additional_items_batch) + 2} elements were provided by the Dataloader but 3 were expected by crowd_detection_collate_fn."
+    additional_item_batch = additional_items_batch[0]
+
+    crowd_labels_batch = [item['crowd_targets'] for item in additional_item_batch]
+    labels_batch = _set_batch_labels_index(labels_batch)
+    crowd_labels_batch = _set_batch_labels_index(crowd_labels_batch)
+    return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), {"crowd_targets": torch.cat(crowd_labels_batch, 0)}
 
 
 def convert_xyxy_bbox_to_xywh(input_bbox):
     """
-    convert_xyxy_bbox_to_xywh - Converts bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
-        :param input_bbox:  input bbox
-        :return:            Converted bbox
+    Converts bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
+
+        :param input_bbox:           Input bbox of shape (n_boxes, 4)
+        :return:                     Converted bbox of shape (n_boxes, 4)
     """
     converted_bbox = torch.zeros_like(input_bbox) if isinstance(input_bbox, torch.Tensor) else np.zeros_like(input_bbox)
     converted_bbox[:, 0] = (input_bbox[:, 0] + input_bbox[:, 2]) / 2
@@ -95,6 +115,21 @@ def convert_xywh_bbox_to_xyxy(input_bbox: torch.Tensor):
         converted_bbox = converted_bbox[0]
 
     return converted_bbox
+
+
+def convert_xywh_to_cxcywh(bbox: List[float], img_width: float, img_height: float) -> List[float]:
+    """
+    Convert a single bbox from xywh to cxcywh format
+    :param bbox: Bounding box in format (x_left, y_top, width, height) not normalized
+    :return:     Normalized bbox in centered and format (x_center, y_center, width, height) normalized between 0-1
+    """
+    result = [
+        (bbox[0] + bbox[2] / 2) / img_width,
+        (bbox[1] + bbox[3] / 2) / img_height,
+        (bbox[2]) / img_width,
+        (bbox[3]) / img_height,
+    ]
+    return [round(coordinate, 6) for coordinate in result]
 
 
 def calculate_wh_iou(box1, box2) -> float:
@@ -480,6 +515,14 @@ class IouThreshold(tuple, Enum):
     def is_range(self):
         return self[0] != self[1]
 
+    def to_tensor(self):
+        if self.is_range():
+            n_iou_thresh = int(round((self[1] - self[0]) / 0.05)) + 1
+            return torch.linspace(self[0], self[1], n_iou_thresh)
+        else:
+            n_iou_thresh = 1
+            return torch.tensor([self[0]])
+
 
 def scale_img(img, ratio=1.0, pad_to_original_img_size=False):
     """
@@ -567,91 +610,52 @@ def box_iou(box1, box2):
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
 
 
-def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, classes=None,
-                        agnostic=False, multi_label_per_box=None):  # noqa: C901
-    """Performs Non-Maximum Suppression (NMS) on inference results
+def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6,
+                        multi_label_per_box: bool = True, with_confidence: bool = False):
+    """
+    Performs Non-Maximum Suppression (NMS) on inference results
         :param prediction: raw model prediction
         :param conf_thres: below the confidence threshold - prediction are discarded
         :param iou_thres: IoU threshold for the nms algorithm
-        :param merge: Merge boxes using weighted mean
-        :param classes: (optional list) filter by class
-        :param agnostic: Determines if is class agnostic. i.e. may display a box with 2 predictions
         :param multi_label_per_box: whether to use re-use each box with all possible labels
                                     (instead of the maximum confidence all confidences above threshold
                                     will be sent to NMS); by default is set to True
+        :param with_confidence: whether to multiply objectness score with class score.
+                                usually valid for Yolo models only.
         :return:  (x1, y1, x2, y2, object_conf, class_conf, class)
     Returns:
          detections with shape: nx6 (x1, y1, x2, y2, conf, cls)
     """
-    # TODO: INVESTIGATE THE COMMENTED OUT PARTS AND DECIDE IF TO ERASE OR UNCOMMENT
-    number_of_classes = prediction[0].shape[1] - 5
-    candidates_above_thres = prediction[..., 4] > conf_thres
-
-    # Settings
-    # min_box_width_and_height = 2
-    max_box_width_and_height = 4096
-    max_num_of_detections = 300
-    require_redundant_detections = True
-    # when set to True (adds 0.5ms/img)
-    multi_label_per_box = multi_label_per_box if multi_label_per_box is not None else number_of_classes > 1
+    candidates_above_thres = prediction[..., 4] > conf_thres  # filter by confidence
     output = [None] * prediction.shape[0]
-    for image_idx, pred in enumerate(prediction):
-        # Apply constraints
-        # pred[((pred[..., 2:4] < min_box_width_and_height) | (pred[..., 2:4] > max_box_width_and_height)).any(1), 4] = 0  # width-height
-        pred = pred[candidates_above_thres[image_idx]]  # confidence
 
-        # If none remain process next image
-        if not pred.shape[0]:
+    for image_idx, pred in enumerate(prediction):
+
+        pred = pred[candidates_above_thres[image_idx]]  # confident
+
+        if not pred.shape[0]:  # If none remain process next image
             continue
 
-        # Compute confidence = object_conf * class_conf
-        pred[:, 5:] *= pred[:, 4:5]
-        # Box (center x, center y, width, height) to (x1, y1, x2, y2)
-        box = convert_xywh_bbox_to_xyxy(pred[:, :4])
+        if with_confidence:
+            pred[:, 5:] *= pred[:, 4:5]  # multiply objectness score with class score
+
+        box = convert_xywh_bbox_to_xyxy(pred[:, :4])  # xywh to xyxy
 
         # Detections matrix nx6 (xyxy, conf, cls)
-        if multi_label_per_box:
+        if multi_label_per_box:  # try for all good confidence classes
             i, j = (pred[:, 5:] > conf_thres).nonzero(as_tuple=False).T
             pred = torch.cat((box[i], pred[i, j + 5, None], j[:, None].float()), 1)
+
         else:  # best class only
             conf, j = pred[:, 5:].max(1, keepdim=True)
             pred = torch.cat((box, conf, j.float()), 1)[conf.view(-1) > conf_thres]
 
-        # Filter by class
-        if classes:
-            pred = pred[(pred[:, 5:6] == torch.tensor(classes, device=pred.device)).any(1)]
-
-        # Apply finite constraint
-        # if not torch.isfinite(x).all():
-        #     x = x[torch.isfinite(x).all(1)]
-
-        # If none remain process next image
-        number_of_boxes = pred.shape[0]
-        if not number_of_boxes:
+        if not pred.shape[0]:  # If none remain process next image
             continue
 
-        # Sort by confidence
-        # x = x[x[:, 4].argsort(descending=True)]
-
-        # Batched NMS
-        # CREATE AN OFFSET OF THE PREDICTIVE BOX OF DIFFERENT CLASSES IF not agnostic
-        offset = pred[:, 5:6] * (0 if agnostic else max_box_width_and_height)
-        boxes, scores = pred[:, :4] + offset, pred[:, 4]
-        idx_to_keep = torch.ops.torchvision.nms(boxes, scores, iou_thres)
-        if idx_to_keep.shape[0] > max_num_of_detections:  # limit number of detections
-            idx_to_keep = idx_to_keep[:max_num_of_detections]
-        if merge and (1 < number_of_boxes < 3000):
-            try:  # update boxes as boxes(i,4) = weights(i,n) * boxes(n,4)
-                iou = box_iou(boxes[idx_to_keep], boxes) > iou_thres  # iou matrix
-                box_weights = iou * scores[None]
-                # MERGED BOXES
-                pred[idx_to_keep, :4] = torch.mm(box_weights, pred[:, :4]).float() / box_weights.sum(1, keepdim=True)
-                if require_redundant_detections:
-                    idx_to_keep = idx_to_keep[iou.sum(1) > 1]
-            except RuntimeError:  # possible CUDA error https://github.com/ultralytics/yolov3/issues/1139
-                print(pred, idx_to_keep, pred.shape, idx_to_keep.shape)
-                pass
-
+        # Apply torch batched NMS algorithm
+        boxes, scores, cls_idx = pred[:, :4], pred[:, 4], pred[:, 5]
+        idx_to_keep = torchvision.ops.boxes.batched_nms(boxes, scores, cls_idx, iou_thres)
         output[image_idx] = pred[idx_to_keep]
 
     return output
@@ -721,201 +725,6 @@ class NMS_Type(str, Enum):
     MATRIX = 'matrix'
 
 
-def calc_batch_prediction_accuracy(output: torch.Tensor, targets: torch.Tensor, height: int, width: int,  # noqa: C901
-                                   iou_thres: IouThreshold) -> tuple:
-    """
-
-    :param output:       list (of length batch_size) of Tensors of shape (num_detections, 6)
-                         format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
-    :param targets:      targets for all images of shape (total_num_targets, 6)
-                         format:     (image_index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-    :param height,width: dimensions of the image
-    :param iou_thres:    Threshold to compute the mAP
-    :param device:       'cuda'\'cpu' - where the computations are made
-    :return:
-    """
-    batch_metrics = []
-    batch_images_counter = 0
-    device = targets.device
-
-    if not iou_thres.is_range():
-        num_ious = 1
-        ious = torch.tensor([iou_thres[0]]).to(device)
-    else:
-        num_ious = int(round((iou_thres[1] - iou_thres[0]) / 0.05)) + 1
-        ious = torch.linspace(iou_thres[0], iou_thres[1], num_ious).to(device)
-
-    for i, pred in enumerate(output):
-        labels = targets[targets[:, 0] == i, 1:]
-        labels_num = len(labels)
-        target_class = labels[:, 0].tolist() if labels_num else []
-        batch_images_counter += 1
-
-        if pred is None:
-            if labels_num:
-                batch_metrics.append(
-                    (np.zeros((0, num_ious), dtype=np.bool), np.array([], dtype=np.float32),
-                     np.array([], dtype=np.float32), target_class))
-            continue
-
-        # CHANGE bboxes TO FIT THE IMAGE SIZE
-        change_bbox_bounds_for_image_size(pred, (height, width))
-
-        # ZEROING ALL OF THE bbox PREDICTIONS BEFORE MAX IOU FILTERATION
-        correct = torch.zeros(len(pred), num_ious, dtype=torch.bool, device=device)
-        if labels_num:
-            detected = []
-            tcls_tensor = labels[:, 0]
-
-            target_bboxes = convert_xywh_bbox_to_xyxy(labels[:, 1:5])
-            target_bboxes[:, [0, 2]] *= width
-            target_bboxes[:, [1, 3]] *= height
-
-            # SEARCH FOR CORRECT PREDICTIONS
-            # Per target class
-            for cls in torch.unique(tcls_tensor):
-                target_index = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)
-                pred_index = (cls == pred[:, 5]).nonzero(as_tuple=False).view(-1)
-
-                # Search for detections
-                if pred_index.shape[0]:
-                    # Prediction to target ious
-                    iou, i = box_iou(pred[pred_index, :4], target_bboxes[target_index]).max(1)  # best ious, indices
-
-                    # Append detections
-                    detected_set = set()
-                    for j in (iou > ious[0]).nonzero(as_tuple=False):
-                        detected_target = target_index[i[j]]
-                        if detected_target.item() not in detected_set:
-                            detected_set.add(detected_target.item())
-                            detected.append(detected_target)
-                            correct[pred_index[j]] = iou[j] > ious  # iou_thres is 1xn
-                            if len(detected) == labels_num:  # all targets already located in image
-                                break
-
-        # APPEND STATISTICS (CORRECT, CONF, PCLS, TCLS)
-        batch_metrics.append((correct.cpu().numpy(), pred[:, 4].cpu().numpy(), pred[:, -1].cpu().numpy(), target_class))
-
-    return batch_metrics, batch_images_counter
-
-
-class AnchorGenerator:
-    logger = get_logger(__name__)
-
-    @staticmethod
-    def _metric(objects, anchors):
-        """ measure how 'far' each object is from the closest anchor
-            :returns a matrix n by number of objects and the measurements to the closest anchor for each object
-        """
-        r = objects[:, None] / anchors[None]
-        matrix = np.amin(np.minimum(r, 1. / r), axis=2)
-        return matrix, matrix.max(1)
-
-    @staticmethod
-    def _anchor_fitness(objects, anchors, thresh):
-        """ how well the anchors fit the objects"""
-        _, best = AnchorGenerator._metric(objects, anchors)
-        return (best * (best > thresh)).mean()  # fitness
-
-    @staticmethod
-    def _print_results(objects, anchors, thresh, num_anchors, img_size):
-        # SORT SMALL TO LARGE (BY AREA)
-        anchors = anchors[np.argsort(anchors.prod(1))]
-        x, best = AnchorGenerator._metric(objects, anchors)
-        best_possible_recall = (best > thresh).mean()
-        anchors_above_thesh = (x > thresh).mean() * num_anchors
-
-        AnchorGenerator.logger.info(
-            f'thr={thresh:.2f}: {best_possible_recall:.4f} best possible recall, {anchors_above_thesh:.2f} anchors past thr')
-        AnchorGenerator.logger.info(f'num_anchors={num_anchors}, img_size={img_size}')
-        AnchorGenerator.logger.info(
-            f' metric_all={x.mean():.3f}/{best.mean():.3f}-mean/best, past_thr={x[x > thresh].mean():.3f}-mean: ')
-
-        for i, mean in enumerate(anchors):
-            print('%i,%i' % (round(mean[0]), round(mean[1])),
-                  end=',  ' if i < len(anchors) - 1 else '\n')  # use in *.cfg
-
-    @staticmethod
-    def _plot_object_distribution(objects, anchors):
-        selected = np.random.choice(objects.shape[0], size=objects.shape[0] // 50, replace=False)
-
-        distance_matrix = np.sqrt(np.power(objects[:, :, None] - anchors[:, :, None].T, 2).sum(1))
-        labels = np.argmin(distance_matrix, axis=1)
-        plt.scatter(objects[selected, 0], objects[selected, 1], c=labels[selected], marker='.')
-        plt.scatter(anchors[:, 0], anchors[:, 1], marker='P')
-        plt.show()
-
-    @staticmethod
-    def _generate_anchors(dataset, num_anchors=9, thresh=0.25, gen=1000):
-        """ Creates kmeans-evolved anchors from training dataset
-            Based on the implementation by Ultralytics for Yolo V5
-
-            :param dataset: a loaded dataset (must be with cached labels and "train_sample_loading_method":'rectangular')
-            :param num_anchors: number of anchors
-            :param thresh: anchor-label wh ratio threshold used to asses if a label can be detected by an anchor.
-                    it means that the aspect ratio of the object is not more than thres from the aspect ratio of the anchor.
-            :param gen: generations to evolve anchors using genetic algorithm. after kmeans, this algorithm iteratively
-                    make minor random changes in the anchors and if a change imporve the anchors-data fit it evolves the
-                    anchors.
-            :returns anchors array num_anchors by 2 (x,y) normalized to image size
-        """
-        _prefix = 'Anchors Generator: '
-        img_size = dataset.img_size
-        assert dataset.cache_labels, "dataset labels have to be cached before generating anchors"
-
-        image_shapes = np.array(
-            [dataset.exif_size(Image.open(f)) for f in tqdm(dataset.img_files, desc='Reading image shapes')])
-
-        # Get label wh
-        shapes = img_size * image_shapes / image_shapes.max(1, keepdims=True)
-        objects_wh = np.concatenate([l[:, 3:5] * s for s, l in zip(shapes, dataset.labels)])
-
-        # Filter
-        i = (objects_wh < 3.0).any(1).sum()
-        if i:
-            AnchorGenerator.logger.warning(
-                f'Extremely small objects found. {i} of {len(objects_wh)} labels are < 3 pixels in size.')
-        object_wh_filtered = objects_wh[(objects_wh >= 2.0).any(1)]
-
-        # Kmeans calculation
-        AnchorGenerator.logger.info(f'Running kmeans for {num_anchors} anchors on {len(object_wh_filtered)} points...')
-        mean_wh = object_wh_filtered.std(0)  # sigmas for whitening
-        anchors, dist = kmeans(object_wh_filtered / mean_wh, num_anchors, iter=30)  # points, mean distance
-        # MEANS WHERE NORMALIZED. SCALE THEM BACK TO IMAGE SIZE
-        anchors *= mean_wh
-
-        AnchorGenerator.logger.info('Initial results')
-        AnchorGenerator._print_results(objects_wh, anchors, thresh, num_anchors, img_size)
-        AnchorGenerator._plot_object_distribution(objects_wh, anchors)
-
-        # EVOLVE
-        fitness, generations, mutation_prob, sigma = AnchorGenerator._anchor_fitness(object_wh_filtered, anchors,
-                                                                                     thresh), anchors.shape, 0.9, 0.1
-        progress_bar = tqdm(range(gen), desc=f'{_prefix}Evolving anchors with Genetic Algorithm:')
-        for _ in progress_bar:
-            v = np.ones(generations)
-            while (v == 1).all():  # mutate until a change occurs (prevent duplicates)
-                v = ((np.random.random(generations) < mutation_prob) * np.random.random() * np.random.randn(
-                    *generations) * sigma + 1).clip(0.3, 3.0)
-            evolved_anchors = (anchors * v).clip(min=2.0)
-            evolved_anchors_fitness = AnchorGenerator._anchor_fitness(object_wh_filtered, evolved_anchors, thresh)
-            if evolved_anchors_fitness > fitness:
-                fitness, anchors = evolved_anchors_fitness, evolved_anchors.copy()
-                progress_bar.desc = f'{_prefix}Evolving anchors with Genetic Algorithm: fitness = {fitness:.4f}'
-
-        AnchorGenerator.logger.info('Final results')
-        AnchorGenerator._print_results(objects_wh, anchors, thresh, num_anchors, img_size)
-        AnchorGenerator._plot_object_distribution(objects_wh, anchors)
-
-        anchors = anchors[np.argsort(anchors.prod(1))]
-        anchors_list = np.round(anchors.reshape((3, -1))).astype(np.int32).tolist()
-        return anchors_list
-
-    @staticmethod
-    def __call__(dataset, num_anchors=9, thresh=0.25, gen=1000):
-        return AnchorGenerator._generate_anchors(dataset, num_anchors, thresh, gen)
-
-
 def plot_coco_datasaet_images_with_detections(data_loader, num_images_to_plot=1):
     """
     plot_coco_images
@@ -982,7 +791,7 @@ class DetectionVisualization:
     @staticmethod
     def _draw_box_title(color_mapping: List[Tuple[int]], class_names: List[str], box_thickness: int,
                         image_np: np.ndarray, x1: int, y1: int, x2: int, y2: int, class_id: int,
-                        pred_conf: float = None):
+                        pred_conf: float = None, is_target: bool = False):
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
@@ -991,7 +800,12 @@ class DetectionVisualization:
 
         # Caption with class name and confidence if given
         text_color = (255, 255, 255)  # white
-        title = f'{class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+
+        if is_target:
+            title = f'[GT] {class_name}'
+        if not is_target:
+            title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
+
         image_np = cv2.rectangle(image_np, (x1, y1 - 15), (x1 + len(title) * 10, y1), color, cv2.FILLED)
         image_np = cv2.putText(image_np, title, (x1, y1 - box_thickness), 2, .5, text_color, 1, lineType=cv2.LINE_AA)
 
@@ -1016,7 +830,7 @@ class DetectionVisualization:
         for box in target_boxes:
             target_boxes_image = DetectionVisualization._draw_box_title(color_mapping, class_names, box_thickness,
                                                                         target_boxes_image, *box[2:],
-                                                                        class_id=box[1])
+                                                                        class_id=box[1], is_target=True)
 
         # Transparent overlay of ground truth boxes
         mask = target_boxes_image.astype(bool)
@@ -1025,6 +839,7 @@ class DetectionVisualization:
         if checkpoint_dir is None:
             return image_np
         else:
+            pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
             cv2.imwrite(os.path.join(checkpoint_dir, str(image_name) + '.jpg'), image_np)
 
     @staticmethod
@@ -1246,15 +1061,440 @@ class DetectionCollateFN:
     """
     Collate function for Yolox training
     """
-    def __call__(self, data):
+    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         batch = default_collate(data)
-        ims = batch[0]
-        targets = batch[1]
-        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of objects
+        ims, targets = batch[0:2]
+        return ims, self._format_targets(targets)
+
+    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
+        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
         targets_merged = []
         for i in range(targets.shape[0]):
             targets_im = targets[i, :nlabel[i]]
             batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
             targets_merged.append(torch.cat((batch_column, targets_im), 1))
-        targets = torch.cat(targets_merged, 0)
-        return ims, targets
+        return torch.cat(targets_merged, 0)
+
+
+class CrowdDetectionCollateFN(DetectionCollateFN):
+    """
+    Collate function for Yolox training with additional_batch_items that includes crowd targets
+    """
+    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+        batch = default_collate(data)
+        ims, targets, crowd_targets = batch[0:3]
+        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+
+def compute_box_area(box: torch.Tensor) -> torch.Tensor:
+    """Compute the area of one or many boxes.
+         :param box: One or many boxes, shape = (4, ?), each box in format (x1, y1, x2, y2)
+    Returns:
+        Area of every box, shape = (1, ?)
+     """
+    # box = 4xn
+    return (box[2] - box[0]) * (box[3] - box[1])
+
+
+def crowd_ioa(det_box: torch.Tensor, crowd_box: torch.Tensor) -> torch.Tensor:
+    """
+    Return intersection-over-detection_area of boxes, used for crowd ground truths.
+    Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
+    Arguments:
+        det_box (Tensor[N, 4])
+        crowd_box (Tensor[M, 4])
+    Returns:
+        crowd_ioa (Tensor[N, M]): the NxM matrix containing the pairwise
+            IoA values for every element in det_box and crowd_box
+    """
+    det_area = compute_box_area(det_box.T)
+
+    # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
+    inter = (torch.min(det_box[:, None, 2:], crowd_box[:, 2:]) - torch.max(det_box[:, None, :2], crowd_box[:, :2])) \
+        .clamp(0).prod(2)
+    return inter / det_area[:, None]  # crowd_ioa = inter / det_area
+
+
+def compute_detection_matching(
+    output: torch.Tensor,
+    targets: torch.Tensor,
+    height: int,
+    width: int,
+    iou_thresholds: torch.Tensor,
+    denormalize_targets: bool,
+    device: str,
+    crowd_targets: Optional[torch.Tensor] = None,
+    top_k: int = 100,
+    return_on_cpu: bool = True,
+) -> List[Tuple]:
+    """
+    Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score.
+    :param output:          list (of length batch_size) of Tensors of shape (num_predictions, 6)
+                            format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
+    :param targets:         targets for all images of shape (total_num_targets, 6)
+                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+    :param height:          dimensions of the image
+    :param width:           dimensions of the image
+    :param iou_thresholds:  Threshold to compute the mAP
+    :param device:          Device
+    :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
+                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+    :param top_k:           Number of predictions to keep per class, ordered by confidence score
+    :param denormalize_targets: If True, denormalize the targets and crowd_targets
+    :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
+
+    :return:                list of the following tensors, for every image:
+        :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
+                            True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
+        :preds_to_ignore:   Tensor of shape (num_img_predictions, n_iou_thresholds)
+                            True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
+        :preds_scores:      Tensor of shape (num_img_predictions), confidence score for every prediction
+        :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
+        :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
+    """
+    output = map(lambda tensor: None if tensor is None else tensor.to(device), output)
+    targets, iou_thresholds = targets.to(device), iou_thresholds.to(device)
+
+    # If crowd_targets is not provided, we patch it with an empty tensor
+    crowd_targets = torch.zeros(size=(0, 6), device=device) if crowd_targets is None else crowd_targets.to(device)
+
+    batch_metrics = []
+    for img_i, img_preds in enumerate(output):
+        # If img_preds is None (not prediction for this image), we patch it with an empty tensor
+        img_preds = img_preds if img_preds is not None else torch.zeros(size=(0, 6), device=device)
+        img_targets = targets[targets[:, 0] == img_i, 1:]
+        img_crowd_targets = crowd_targets[crowd_targets[:, 0] == img_i, 1:]
+
+        img_matching_tensors = compute_img_detection_matching(
+            preds=img_preds,
+            targets=img_targets,
+            crowd_targets=img_crowd_targets,
+            denormalize_targets=denormalize_targets,
+            height=height,
+            width=width,
+            device=device,
+            iou_thresholds=iou_thresholds,
+            top_k=top_k,
+            return_on_cpu=return_on_cpu
+        )
+        batch_metrics.append(img_matching_tensors)
+
+    return batch_metrics
+
+
+def compute_img_detection_matching(
+        preds: torch.Tensor,
+        targets: torch.Tensor,
+        crowd_targets: torch.Tensor,
+        height: int,
+        width: int,
+        iou_thresholds: torch.Tensor,
+        device: str,
+        denormalize_targets: bool,
+        top_k: int = 100,
+        return_on_cpu: bool = True
+) -> Tuple:
+    """
+    Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score
+    for a given image.
+    :param preds:           Tensor of shape (num_img_predictions, 6)
+                            format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
+    :param targets:         targets for this image of shape (num_img_targets, 6)
+                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+    :param height:          dimensions of the image
+    :param width:           dimensions of the image
+    :param iou_thresholds:  Threshold to compute the mAP
+    :param device:
+    :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
+                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+    :param top_k:           Number of predictions to keep per class, ordered by confidence score
+    :param device:          Device
+    :param denormalize_targets: If True, denormalize the targets and crowd_targets
+    :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
+
+    :return:
+        :preds_matched:     Tensor of shape (num_img_predictions, n_iou_thresholds)
+                                True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
+        :preds_to_ignore:   Tensor of shape (num_img_predictions, n_iou_thresholds)
+                                True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
+        :preds_scores:      Tensor of shape (num_img_predictions), confidence score for every prediction
+        :preds_cls:         Tensor of shape (num_img_predictions), predicted class for every prediction
+        :targets_cls:       Tensor of shape (num_img_targets), ground truth class for every target
+    """
+    num_iou_thresholds = len(iou_thresholds)
+
+    if preds is None or len(preds) == 0:
+        if return_on_cpu:
+            device = "cpu"
+        preds_matched = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
+        preds_to_ignore = torch.zeros((0, num_iou_thresholds), dtype=torch.bool, device=device)
+        preds_scores = torch.tensor([], dtype=torch.float32, device=device)
+        preds_cls = torch.tensor([], dtype=torch.float32, device=device)
+        targets_cls = targets[:, 0].to(device=device)
+        return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
+
+    preds_matched = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
+    targets_matched = torch.zeros(len(targets), num_iou_thresholds, dtype=torch.bool, device=device)
+    preds_to_ignore = torch.zeros(len(preds), num_iou_thresholds, dtype=torch.bool, device=device)
+
+    preds_cls, preds_box, preds_scores = preds[:, -1], preds[:, 0:4], preds[:, 4]
+    targets_cls, targets_box = targets[:, 0], targets[:, 1:5]
+    crowd_targets_cls, crowd_target_box = crowd_targets[:, 0], crowd_targets[:, 1:5]
+
+    # Ignore all but the predictions that were top_k for their class
+    preds_idx_to_use = get_top_k_idx_per_cls(preds_scores, preds_cls, top_k)
+    preds_to_ignore[:, :] = True
+    preds_to_ignore[preds_idx_to_use] = False
+
+    if len(targets) > 0 or len(crowd_targets) > 0:
+
+        # CHANGE bboxes TO FIT THE IMAGE SIZE
+        change_bbox_bounds_for_image_size(preds, (height, width))
+
+        # if target_format == "xywh":
+        targets_box = convert_xywh_bbox_to_xyxy(targets_box)  # cxcywh2xyxy
+        crowd_target_box = convert_xywh_bbox_to_xyxy(crowd_target_box)  # convert_xywh_bbox_to_xyxy
+
+        if denormalize_targets:
+            targets_box[:, [0, 2]] *= width
+            targets_box[:, [1, 3]] *= height
+            crowd_target_box[:, [0, 2]] *= width
+            crowd_target_box[:, [1, 3]] *= height
+
+    if len(targets) > 0:
+
+        # shape = (n_preds x n_targets)
+        iou = box_iou(preds_box[preds_idx_to_use], targets_box)
+
+        # Fill IoU values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
+        # Filling with 0 is equivalent to ignore these values since with want IoU > iou_threshold > 0
+        cls_mismatch = (preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1))
+        iou[cls_mismatch] = 0
+
+        # The matching priority is first detection confidence and then IoU value.
+        # The detection is already sorted by confidence in NMS, so here for each prediction we order the targets by iou.
+        sorted_iou, target_sorted = iou.sort(descending=True, stable=True)
+
+        # Only iterate over IoU values higher than min threshold to speed up the process
+        for pred_selected_i, target_sorted_i in (sorted_iou > iou_thresholds[0]).nonzero(as_tuple=False):
+
+            # pred_selected_i and target_sorted_i are relative to filters/sorting, so we extract their absolute indexes
+            pred_i = preds_idx_to_use[pred_selected_i]
+            target_i = target_sorted[pred_selected_i, target_sorted_i]
+
+            # Vector[j], True when IoU(pred_i, target_i) is above the (j)th threshold
+            is_iou_above_threshold = sorted_iou[pred_selected_i, target_sorted_i] > iou_thresholds
+
+            # Vector[j], True when both pred_i and target_i are not matched yet for the (j)th threshold
+            are_candidates_free = torch.logical_and(~preds_matched[pred_i, :], ~targets_matched[target_i, :])
+
+            # Vector[j], True when (pred_i, target_i) can be matched for the (j)th threshold
+            are_candidates_good = torch.logical_and(is_iou_above_threshold, are_candidates_free)
+
+            # For every threshold (j) where target_i and pred_i can be matched together ( are_candidates_good[j]==True )
+            # fill the matching placeholders with True
+            targets_matched[target_i, are_candidates_good] = True
+            preds_matched[pred_i, are_candidates_good] = True
+
+            # When all the targets are matched with a prediction for every IoU Threshold, stop.
+            if targets_matched.all():
+                break
+
+    # Crowd targets can be matched with many predictions.
+    # Therefore, for every prediction we just need to check if it has IoA large enough with any crowd target.
+    if len(crowd_targets) > 0:
+
+        # shape = (n_preds_to_use x n_crowd_targets)
+        ioa = crowd_ioa(preds_box[preds_idx_to_use], crowd_target_box)
+
+        # Fill IoA values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
+        # Filling with 0 is equivalent to ignore these values since with want IoA > threshold > 0
+        cls_mismatch = (preds_cls[preds_idx_to_use].view(-1, 1) != crowd_targets_cls.view(1, -1))
+        ioa[cls_mismatch] = 0
+
+        # For each prediction, we keep it's highest score with any crowd target (of same class)
+        # shape = (n_preds_to_use)
+        best_ioa, _ = ioa.max(1)
+
+        # If a prediction has IoA higher than threshold (with any target of same class), then there is a match
+        # shape = (n_preds_to_use x iou_thresholds)
+        is_matching_with_crowd = (best_ioa.view(-1, 1) > iou_thresholds.view(1, -1))
+
+        preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
+
+    if return_on_cpu:
+        preds_matched = preds_matched.to("cpu")
+        preds_to_ignore = preds_to_ignore.to("cpu")
+        preds_scores = preds_scores.to("cpu")
+        preds_cls = preds_cls.to("cpu")
+        targets_cls = targets_cls.to("cpu")
+
+    return preds_matched, preds_to_ignore, preds_scores, preds_cls, targets_cls
+
+
+def get_top_k_idx_per_cls(preds_scores: torch.Tensor, preds_cls: torch.Tensor, top_k: int):
+    """Get the indexes of all the top k predictions for every class
+
+    :param preds_scores:   The confidence scores, vector of shape (n_pred)
+    :param preds_cls:      The predicted class, vector of shape (n_pred)
+    :param top_k:          Number of predictions to keep per class, ordered by confidence score
+
+    :return top_k_idx:     Indexes of the top k predictions. length <= (k * n_unique_class)
+    """
+    n_unique_cls = torch.max(preds_cls)
+    mask = (preds_cls.view(-1, 1) == torch.arange(n_unique_cls + 1, device=preds_scores.device).view(1, -1))
+    preds_scores_per_cls = preds_scores.view(-1, 1) * mask
+
+    sorted_scores_per_cls, sorting_idx = preds_scores_per_cls.sort(0, descending=True)
+    idx_with_satisfying_scores = sorted_scores_per_cls[:top_k, :].nonzero(as_tuple=False)
+    top_k_idx = sorting_idx[idx_with_satisfying_scores.split(1, dim=1)]
+    return top_k_idx.view(-1)
+
+
+def compute_detection_metrics(
+    preds_matched: torch.Tensor,
+    preds_to_ignore: torch.Tensor,
+    preds_scores: torch.Tensor,
+    preds_cls: torch.Tensor,
+    targets_cls: torch.Tensor,
+    device: str,
+    recall_thresholds: Optional[torch.Tensor] = None,
+    score_threshold: Optional[float] = 0.1,
+) -> Tuple:
+    """
+    Compute the list of precision, recall, MaP and f1 for every recall IoU threshold and for every class.
+
+    :param preds_matched:      Tensor of shape (num_predictions, n_iou_thresholds)
+                                    True when prediction (i) is matched with a target with respect to the (j)th IoU threshold
+    :param preds_to_ignore     Tensor of shape (num_predictions, n_iou_thresholds)
+                                    True when prediction (i) is matched with a crowd target with respect to the (j)th IoU threshold
+    :param preds_scores:       Tensor of shape (num_predictions), confidence score for every prediction
+    :param preds_cls:          Tensor of shape (num_predictions), predicted class for every prediction
+    :param targets_cls:        Tensor of shape (num_targets), ground truth class for every target box to be detected
+    :param recall_thresholds:   Recall thresholds used to compute MaP.
+    :param score_threshold:    Minimum confidence score to consider a prediction for the computation of
+                                    precision, recall and f1 (not MaP)
+    :param device:             Device
+
+    :return:
+        :ap, precision, recall, f1: Tensors of shape (n_class, nb_iou_thrs)
+        :unique_classes:            Vector with all unique target classes
+    """
+    preds_matched, preds_to_ignore = preds_matched.to(device), preds_to_ignore.to(device)
+    preds_scores, preds_cls, targets_cls = preds_scores.to(device), preds_cls.to(device), targets_cls.to(device)
+
+    recall_thresholds = torch.linspace(0, 1, 101, device=device) if recall_thresholds is None else recall_thresholds.to(device)
+
+    unique_classes = torch.unique(targets_cls)
+    n_class, nb_iou_thrs = len(unique_classes), preds_matched.shape[-1]
+
+    ap = torch.zeros((n_class, nb_iou_thrs), device=device)
+    precision = torch.zeros((n_class, nb_iou_thrs), device=device)
+    recall = torch.zeros((n_class, nb_iou_thrs), device=device)
+
+    for cls_i, cls in enumerate(unique_classes):
+        cls_preds_idx, cls_targets_idx = (preds_cls == cls), (targets_cls == cls)
+        cls_ap, cls_precision, cls_recall = compute_detection_metrics_per_cls(
+            preds_matched=preds_matched[cls_preds_idx],
+            preds_to_ignore=preds_to_ignore[cls_preds_idx],
+            preds_scores=preds_scores[cls_preds_idx],
+            n_targets=cls_targets_idx.sum(),
+            recall_thresholds=recall_thresholds,
+            score_threshold=score_threshold,
+            device=device
+        )
+        ap[cls_i, :] = cls_ap
+        precision[cls_i, :] = cls_precision
+        recall[cls_i, :] = cls_recall
+
+    f1 = 2 * precision * recall / (precision + recall + 1e-16)
+
+    return ap, precision, recall, f1, unique_classes
+
+
+def compute_detection_metrics_per_cls(
+        preds_matched: torch.Tensor,
+        preds_to_ignore: torch.Tensor,
+        preds_scores: torch.Tensor,
+        n_targets: int,
+        recall_thresholds: torch.Tensor,
+        score_threshold: float,
+        device: str,
+):
+    """
+    Compute the list of precision, recall and MaP of a given class for every recall IoU threshold.
+
+        :param preds_matched:      Tensor of shape (num_predictions, n_iou_thresholds)
+                                        True when prediction (i) is matched with a target
+                                        with respect to the(j)th IoU threshold
+        :param preds_to_ignore     Tensor of shape (num_predictions, n_iou_thresholds)
+                                        True when prediction (i) is matched with a crowd target
+                                        with respect to the (j)th IoU threshold
+        :param preds_scores:       Tensor of shape (num_predictions), confidence score for every prediction
+        :param n_targets:          Number of target boxes of this class
+        :param recall_thresholds:  Tensor of shape (max_n_rec_thresh) list of recall thresholds used to compute MaP
+        :param score_threshold:    Minimum confidence score to consider a prediction for the computation of
+                                        precision and recall (not MaP)
+        :param device:             Device
+
+        :return ap, precision, recall:  Tensors of shape (nb_iou_thrs)
+    """
+    nb_iou_thrs = preds_matched.shape[-1]
+
+    tps = preds_matched
+    fps = torch.logical_and(torch.logical_not(preds_matched), torch.logical_not(preds_to_ignore))
+
+    if len(tps) == 0:
+        return 0, 0, torch.zeros(nb_iou_thrs, device=device)
+
+    # Sort by decreasing score
+    dtype = torch.uint8 if preds_scores.is_cuda and preds_scores.dtype is torch.bool else preds_scores.dtype
+    sort_ind = torch.argsort(preds_scores.to(dtype), descending=True)
+    tps = tps[sort_ind, :]
+    fps = fps[sort_ind, :]
+    preds_scores = preds_scores[sort_ind]
+
+    # Rolling sum over the predictions
+    rolling_tps = torch.cumsum(tps, axis=0, dtype=torch.float)
+    rolling_fps = torch.cumsum(fps, axis=0, dtype=torch.float)
+
+    rolling_recalls = rolling_tps / n_targets
+    rolling_precisions = rolling_tps / (rolling_tps + rolling_fps + torch.finfo(torch.float64).eps)
+
+    # Reversed cummax to only have decreasing values
+    rolling_precisions = rolling_precisions.flip(0).cummax(0).values.flip(0)
+
+    # ==================
+    # RECALL & PRECISION
+
+    # We want the rolling precision/recall at index i so that: preds_scores[i-1] >= score_threshold > preds_scores[i]
+    # Note: torch.searchsorted works on increasing sequence and preds_scores is decreasing, so we work with "-"
+    lowest_score_above_threshold = torch.searchsorted(-preds_scores, -score_threshold, right=False)
+
+    if lowest_score_above_threshold == 0:  # Here score_threshold > preds_scores[0], so no pred is above the threshold
+        recall = 0
+        precision = 0  # the precision is not really defined when no pred but we need to give it a value
+    else:
+        recall = rolling_recalls[lowest_score_above_threshold - 1]
+        precision = rolling_precisions[lowest_score_above_threshold - 1]
+
+    # ==================
+    # AVERAGE PRECISION
+
+    # shape = (nb_iou_thrs, n_recall_thresholds)
+    recall_thresholds = recall_thresholds.view(1, -1).repeat(nb_iou_thrs, 1)
+
+    # We want the index i so that: rolling_recalls[i-1] < recall_thresholds[k] <= rolling_recalls[i]
+    # Note:  when recall_thresholds[k] > max(rolling_recalls), i = len(rolling_recalls)
+    # Note2: we work with transpose (.T) to apply torch.searchsorted on first dim instead of the last one
+    recall_threshold_idx = torch.searchsorted(rolling_recalls.T, recall_thresholds, right=False).T
+
+    # When recall_thresholds[k] > max(rolling_recalls), rolling_precisions[i] is not defined, and we want precision = 0
+    rolling_precisions = torch.cat((rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device)), dim=0)
+
+    # shape = (n_recall_thresholds, nb_iou_thrs)
+    sampled_precision_points = torch.gather(input=rolling_precisions, index=recall_threshold_idx, dim=0)
+
+    # Average over the recall_thresholds
+    ap = sampled_precision_points.mean(0)
+
+    return ap, precision, recall

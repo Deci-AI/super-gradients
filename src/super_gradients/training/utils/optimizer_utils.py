@@ -79,7 +79,10 @@ def build_optimizer(net, lr, training_params):
         :param lr: initial learning rate
         :param training_params: training_parameters
     """
-    optimizer_cls = OptimizersTypeFactory().get(training_params.optimizer)
+    if isinstance(training_params.optimizer, str):
+        optimizer_cls = OptimizersTypeFactory().get(training_params.optimizer)
+    else:
+        optimizer_cls = training_params.optimizer
     default_optimizer_params = OPTIMIZERS_DEFAULT_PARAMS[optimizer_cls] if optimizer_cls in OPTIMIZERS_DEFAULT_PARAMS else {}
     training_params.optimizer_params = get_param(training_params, 'optimizer_params', default_optimizer_params)
 

@@ -90,28 +90,9 @@ class TestTrainer(unittest.TestCase):
             ckpt = torch.load(ckpt_path)
             self.assertListEqual(['net', 'acc', 'epoch', 'optimizer_state_dict', 'scaler_state_dict'],
                                  list(ckpt.keys()))
-        model.save_checkpoint()
+        model._save_checkpoint()
         weights_only = torch.load(os.path.join(model.checkpoints_dir_path, 'ckpt_latest_weights_only.pth'))
         self.assertListEqual(['net'], list(weights_only.keys()))
-
-    def test_compute_model_runtime(self):
-        model = self.get_classification_trainer(self.folder_names[6])
-        model.compute_model_runtime()
-        model.compute_model_runtime(batch_sizes=1, input_dims=(3, 224, 224), verbose=False)
-        model.compute_model_runtime(batch_sizes=[1, 2, 3], verbose=True)
-        # VERIFY MODEL RETURNS TO PREVIOUS TRAINING MODE
-        model.net.train()
-        model.compute_model_runtime(batch_sizes=1, verbose=False)
-        assert model.net.training, 'MODEL WAS SET TO eval DURING compute_model_runtime, BUT DIDN\'t RETURN TO PREVIOUS'
-        model.net.eval()
-        model.compute_model_runtime(batch_sizes=1, verbose=False)
-        assert not model.net.training, 'MODEL WAS SET TO eval DURING compute_model_runtime, BUT RETURNED TO TRAINING'
-
-        # THESE SHOULD HANDLE THE EXCEPTION OF CUDA OUT OF MEMORY
-        if torch.cuda.is_available():
-            model._switch_device('cuda')
-            model.compute_model_runtime(batch_sizes=10000, verbose=False, input_dims=(3, 224, 224))
-            model.compute_model_runtime(batch_sizes=[10000, 10, 50, 100, 1000, 5000], verbose=True)
 
     def test_predict(self):
         model = self.get_classification_trainer(self.folder_names[6])

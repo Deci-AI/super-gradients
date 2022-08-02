@@ -1,3 +1,4 @@
+import inspect
 import os
 import sys
 from copy import deepcopy
@@ -16,7 +17,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
-
+from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
@@ -32,9 +33,11 @@ from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
+from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_model_utils import MonitoredValue
 from super_gradients.training import metrics
-from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, IllegalDataloaderInitialization
+from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, \
+    IllegalDataloaderInitialization
 from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
@@ -53,7 +56,7 @@ from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path,
     load_checkpoint_to_model, load_pretrained_weights
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
-    MetricsUpdateCallback, LR_WARMUP_CLS_DICT
+    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
@@ -176,6 +179,10 @@ class SgModel:
         self.external_checkpoint_path = None
         self.strict_load = StrictLoad.ON
         self.load_ema_as_net = False
+        self.ckpt_best_name = 'ckpt_best.pth'
+        self.enable_qat = False
+        self.qat_params = {}
+        self._infinite_train_loader = False
 
         # DETERMINE THE LOCATION OF THE LOSS AND ACCURACY IN THE RESULTS TUPLE OUTPUTED BY THE TEST
         self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = None, None
@@ -289,13 +296,16 @@ class SgModel:
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
 
-        self.net = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args, **kwargs)
+        self.net = self._instantiate_net(architecture, self.arch_params, checkpoint_params, *args, **kwargs)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
 
-        self.architecture = self.net.structure if hasattr(self.net, 'structure') else architecture
+        self.architecture = architecture
 
         self._net_to_device()
+
+        # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
+        self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
 
         self._load_checkpoint_to_model()
 
@@ -313,6 +323,7 @@ class SgModel:
         if self.load_checkpoint or self.external_checkpoint_path:
             self.load_weights_only = core_utils.get_param(self.checkpoint_params, 'load_weights_only',
                                                           default_val=False)
+        self.ckpt_name = core_utils.get_param(self.checkpoint_params, 'ckpt_name', default_val=self.ckpt_name)
 
     def _net_to_device(self):
         """
@@ -354,7 +365,8 @@ class SgModel:
         progress_bar_train_loader.set_description(f"Train epoch {epoch}")
 
         # RESET/INIT THE METRIC LOGGERS
-        self.train_metrics.reset()
+        self._reset_metrics()
+
         self.train_metrics.to(self.device)
         loss_avg_meter = core_utils.utils.AverageMeter()
 
@@ -366,7 +378,9 @@ class SgModel:
                                device=self.device,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
-                               train_loader=self.train_loader)
+                               train_loader=self.train_loader,
+                               context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
+                               ddp_silent_mode=self.ddp_silent_mode)
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
             batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
@@ -395,7 +409,7 @@ class SgModel:
             if not self.ddp_silent_mode and batch_idx == 0:
                 self._write_lrs(epoch)
 
-            self.backward_step(loss, epoch, batch_idx, context)
+            self._backward_step(loss, epoch, batch_idx, context)
 
             # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
             logging_values = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
@@ -411,7 +425,7 @@ class SgModel:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler) and batch_idx == len(self.train_loader)-1:
+            if self._infinite_train_loader and batch_idx == len(self.train_loader)-1:
                 break
 
         if not self.ddp_silent_mode:
@@ -437,7 +451,7 @@ class SgModel:
         # RETURN AND THE LOSS LOGGING ITEMS COMPUTED DURING LOSS FORWARD PASS
         return loss, loss_logging_items
 
-    def backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
+    def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
         """
         Run backprop on the loss and perform a step
         :param loss: The value computed by the loss function
@@ -469,8 +483,8 @@ class SgModel:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
 
-    def save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None,
-                        context: PhaseContext = None):
+    def _save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None,
+                         context: PhaseContext = None):
         """
         Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
         params)
@@ -509,7 +523,7 @@ class SgModel:
                 metric < self.best_metric and not self.greater_metric_to_watch_is_better):
             # STORE THE CURRENT metric AS BEST
             self.best_metric = metric
-            self.sg_logger.add_checkpoint(tag='ckpt_best.pth', state_dict=state, global_step=epoch)
+            self._save_best_checkpoint(epoch, state)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.VALIDATION_END_BEST_EPOCH, context)
@@ -524,6 +538,9 @@ class SgModel:
                                                                               validation_results_tuple=validation_results_tuple)
             self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename,
                                           state_dict={'net': averaged_model_sd}, global_step=epoch)
+
+    def _save_best_checkpoint(self, epoch, state):
+        self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def train(self, training_params: dict = dict()):  # noqa: C901
@@ -586,7 +603,6 @@ class SgModel:
                               "detection_loss": YoLoV3DetectionLoss,
                               "shelfnet_ohem_loss": ShelfNetOHEMLoss,
                               "shelfnet_se_loss": ShelfNetSemanticEncodingLoss,
-                              "yolo_v5_loss": YoLoV5DetectionLoss,
                               "ssd_loss": SSDLoss,
 
 
@@ -768,6 +784,35 @@ class SgModel:
                       for the forward pass, and further computations. Args for this callable should be in the order
                       (inputs, targets, batch_idx) returning modified_inputs, modified_targets
 
+                -   `ckpt_best_name` : str (default='ckpt_best.pth')
+
+                    The best checkpoint (according to metric_to_watch) will be saved under this filename in the checkpoints directory.
+
+                -   `enable_qat`: bool (default=False)
+
+                    Adds a QATCallback to the phase callbacks, that triggers quantization aware training starting from
+                     qat_params["start_epoch"]
+
+                -   `qat_params`: dict-like object with the following key/values:
+
+                        start_epoch: int, first epoch to start QAT.
+
+                        quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
+                         computation of the quantized modules (default=percentile).
+
+                        per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).
+
+                        calibrate: bool, whether to perfrom calibration (default=False).
+
+                        calibrated_model_path: str, path to a calibrated checkpoint (default=None).
+
+                        calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset. When None,
+                         context.train_loader will be used (default=None).
+
+                        num_calib_batches: int, number of batches to collect the statistics from.
+
+                        percentile: float, percentile value to use when SgModel,quant_modules_calib_method='percentile'.
+                         Discarded when other methods are used (Default=99.99).
 
 
         :return:
@@ -805,9 +850,10 @@ class SgModel:
 
         # Instantiate the values to monitor (loss/metric)
         for loss in self.loss_logging_items_names:
-            self.train_monitored_values[loss] = MonitoredValue()
-            self.valid_monitored_values[loss] = MonitoredValue()
-        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue()
+            self.train_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
+            self.valid_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
+        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch,
+                                                                           greater_is_better=True)
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -835,7 +881,7 @@ class SgModel:
         if self.ema:
             ema_params = self.training_params.ema_params
             logger.info(f'Using EMA with params {ema_params}')
-            self.ema_model = self.instantiate_ema_model(**ema_params)
+            self.ema_model = self._instantiate_ema_model(**ema_params)
             self.ema_model.updates = self.start_epoch * num_batches // self.batch_accumulate
             if self.load_checkpoint:
                 if 'ema_net' in self.checkpoint.keys():
@@ -855,6 +901,7 @@ class SgModel:
         load_opt_params = self.training_params.load_opt_params
 
         self.phase_callbacks = self.training_params.phase_callbacks or []
+        self.phase_callbacks = ListFactory(CallbacksFactory()).get(self.phase_callbacks)
 
         if self.lr_mode is not None:
             sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
@@ -864,7 +911,13 @@ class SgModel:
                                                            update_param_groups=self.update_param_groups,
                                                            **self.training_params.to_dict()))
         if self.training_params.lr_warmup_epochs > 0:
-            warmup_callback_cls = LR_WARMUP_CLS_DICT[self.training_params.warmup_mode]
+            warmup_mode = self.training_params.warmup_mode
+            if isinstance(warmup_mode, str):
+                warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
+            elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
+                warmup_callback_cls = warmup_mode
+            else:
+                raise RuntimeError('warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback')
             self.phase_callbacks.append(warmup_callback_cls(train_loader_len=len(self.train_loader),
                                                             net=self.net,
                                                             training_params=self.training_params,
@@ -874,6 +927,14 @@ class SgModel:
         self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
         self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
 
+        # ADD CALLBACK FOR QAT
+        self.enable_qat = core_utils.get_param(self.training_params, "enable_qat", False)
+        if self.enable_qat:
+            self.qat_params = core_utils.get_param(self.training_params, "qat_params")
+            if self.qat_params is None:
+                raise ValueError("Must pass QAT params when enable_qat=True")
+            self.phase_callbacks.append(QATCallback(**self.qat_params))
+
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
         if not self.ddp_silent_mode:
@@ -881,9 +942,9 @@ class SgModel:
 
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
-                dataset_statistics_logger.analyze(self.train_loader, dataset_params=self.dataset_params,
+                dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes,
                                                   title="Train-set", anchors=self.net.module.arch_params.anchors)
-                dataset_statistics_logger.analyze(self.valid_loader, dataset_params=self.dataset_params,
+                dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes,
                                                   title="val-set")
             # AVERAGE BEST 10 MODELS PARAMS
             if self.training_params.average_best_models:
@@ -902,10 +963,11 @@ class SgModel:
         if not self.load_checkpoint or self.load_weights_only:
             # WHEN STARTING TRAINING FROM SCRATCH, DO NOT LOAD OPTIMIZER PARAMS (EVEN IF LOADING BACKBONE)
             self.start_epoch = 0
-            self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
+            self._reset_best_metric()
             load_opt_params = False
 
-        if isinstance(self.training_params.optimizer, str):
+        if isinstance(self.training_params.optimizer, str) or \
+                (inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)):
             self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr,
                                              training_params=self.training_params)
         elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
@@ -920,9 +982,14 @@ class SgModel:
         if self.load_checkpoint and load_opt_params:
             self.optimizer.load_state_dict(self.checkpoint['optimizer_state_dict'])
 
-        self.pre_prediction_callback = self.training_params.pre_prediction_callback
+        self.pre_prediction_callback = CallbacksFactory().get(self.training_params.pre_prediction_callback)
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
+
+        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or\
+                                      (hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler))
+
+        self.ckpt_best_name = self.training_params.ckpt_best_name
 
         context = PhaseContext(optimizer=self.optimizer,
                                net=self.net,
@@ -932,7 +999,17 @@ class SgModel:
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
                                train_loader=self.train_loader,
-                               valid_loader=self.valid_loader)
+                               valid_loader=self.valid_loader,
+                               training_params=self.training_params,
+                               ddp_silent_mode=self.ddp_silent_mode,
+                               checkpoint_params=self.checkpoint_params,
+                               architecture=self.architecture,
+                               arch_params=self.arch_params,
+                               metric_idx_in_results_tuple=self.metric_idx_in_results_tuple,
+                               metric_to_watch=self.metric_to_watch,
+                               device=self.device,
+                               context_methods=self._get_context_methods(Phase.PRE_TRAINING)
+                               )
 
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
@@ -1030,6 +1107,14 @@ class SgModel:
                     self.sg_logger.upload()
 
                 self.sg_logger.close()
+
+    def _reset_best_metric(self):
+        self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
+
+    def _reset_metrics(self):
+        for metric in ("train_metrics", "valid_metrics", "test_metrics"):
+            if hasattr(self, metric) and getattr(self, metric) is not None:
+                getattr(self, metric).reset()
 
     @resolve_param('train_metrics_list', ListFactory(MetricsFactory()))
     def _set_train_metrics(self, train_metrics_list):
@@ -1199,101 +1284,22 @@ class SgModel:
 
         return outputs, acc, net_time, gross_time
 
-    def compute_model_runtime(self, input_dims: tuple = None,
-                              batch_sizes: Union[tuple, list, int] = (1, 8, 16, 32, 64),
-                              verbose: bool = True):
-        """
-        Compute the "atomic" inference time and throughput.
-        Atomic refers to calculating the forward pass independently, discarding effects such as data augmentation,
-        data upload to device, multi-gpu distribution etc.
-        :param input_dims: tuple
-            shape of a basic input to the network (without the first index) e.g. (3, 224, 224)
-            if None uses an input from the test loader
-        :param batch_sizes: int or list
-            Batch sizes for latency calculation
-        :param verbose: bool
-            Prints results to screen
-        :return: log: dict
-            Latency and throughput for each tested batch size
-        """
-        assert input_dims or self.test_loader is not None, 'Must get \'input_dims\' or connect a dataset interface'
-        assert self.multi_gpu not in (MultiGPUMode.DATA_PARALLEL, MultiGPUMode.DISTRIBUTED_DATA_PARALLEL), \
-            'The model is on multiple GPUs, move it to a single GPU is order to compute runtime'
-
-        # TRANSFER THE MODEL TO EVALUATION MODE BUT REMEMBER THE MODE TO RETURN TO
-        was_in_training_mode = True if self.net.training else False
-        self.net.eval()
-
-        # INITIALIZE LOGS AND PRINTS
-        timer = core_utils.Timer(self.device)
-        logs = {}
-        log_print = f"{'-' * 35}\n" \
-                    f"Batch   Time per Batch  Throughput\n" \
-                    f"size         (ms)        (im/s)\n" \
-                    f"{'-' * 35}\n"
-
-        # GET THE INPUT SHAPE FROM THE DATA LOADER IF NOT PROVIDED EXPLICITLY
-        input_dims = input_dims or next(iter(self.test_loader))[0].shape[1:]
-
-        # DEFINE NUMBER ACCORDING TO DEVICE
-        repetitions = 200 if self.device == 'cuda' else 20
-
-        # CREATE A LIST OF BATCH SIZES
-        batch_sizes = [batch_sizes] if type(batch_sizes) == int else batch_sizes
-
-        for batch_size in sorted(batch_sizes):
-            try:
-                # CREATE A RANDOM TENSOR AS INPUT
-                dummy_batch = torch.randn((batch_size, *input_dims), device=self.device)
-
-                # WARM UP
-                for _ in range(10):
-                    _ = self.net(dummy_batch)
-
-                # RUN & TIME
-                accumulated_time = 0
-                with torch.no_grad():
-                    for _ in range(repetitions):
-                        timer.start()
-                        _ = self.net(dummy_batch)
-                        accumulated_time += timer.stop()
-
-                # PERFORMANCE CALCULATION
-                time_per_batch = accumulated_time / repetitions
-                throughput = batch_size * 1000 / time_per_batch
-
-                logs[batch_size] = {'time_per_batch': time_per_batch, 'throughput': throughput}
-                log_print += f"{batch_size:4.0f} {time_per_batch:12.1f} {throughput:12.0f}\n"
-
-            except RuntimeError as e:
-                # ONLY FOR THE CASE OF CUDA OUT OF MEMORY WE CATCH THE EXCEPTION AND CONTINUE THE FUNCTION
-                if 'CUDA out of memory' in str(e):
-                    log_print += f"{batch_size:4d}\t{'CUDA out of memory':13s}\n"
-                else:
-                    raise
-
-        # PRINT RESULTS
-        if verbose:
-            logger.info(log_print)
-
-        # RETURN THE MODEL TO THE PREVIOUS MODE
-        self.net.train(was_in_training_mode)
-
-        return logs
-
+    @property
     def get_arch_params(self):
         return self.arch_params.to_dict()
 
+    @property
     def get_structure(self):
         return self.net.module.structure
 
+    @property
     def get_architecture(self):
         return self.architecture
 
     def set_experiment_name(self, experiment_name):
         self.experiment_name = experiment_name
 
-    def re_build_model(self, arch_params={}):
+    def _re_build_model(self, arch_params={}):
         """
         arch_params : dict
             Architecture H.P. e.g.: block, num_blocks, num_classes, etc.
@@ -1307,7 +1313,7 @@ class SgModel:
 
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.classes = self.arch_params.num_classes
-        self.net = self.instantiate_net(self.architecture, self.arch_params, self.checkpoint_params)
+        self.net = self._instantiate_net(self.architecture, self.arch_params, self.checkpoint_params)
         # save the architecture for neural architecture search
         if hasattr(self.net, 'structure'):
             self.architecture = self.net.structure
@@ -1320,24 +1326,7 @@ class SgModel:
                                          device_ids=self.device_ids) if self.multi_gpu else core_utils.WrappedModel(
             self.net)
 
-    def update_architecture(self, structure):
-        '''
-        architecture : str
-            Defines the network's architecture according to the options in models/all_architectures
-        load_checkpoint : bool
-            Loads a checkpoint according to experiment_name
-        arch_params : dict
-            Architecture H.P. e.g.: block, num_blocks, num_classes, etc.
-        :return:
-        '''
-        if hasattr(self.net.module, 'update_structure'):
-
-            self.net.module.update_structure(structure)
-            self.net.to(self.device)
-
-        else:
-            raise Exception("architecture is not valid for NAS")
-
+    @property
     def get_module(self):
         return self.net
 
@@ -1517,7 +1506,7 @@ class SgModel:
                              "with a non empty testset attribute.")
 
         # RESET METRIC RUNNERS
-        self.test_metrics.reset()
+        self._reset_metrics()
         self.test_metrics.to(self.device)
 
     def _add_metrics_update_callback(self, phase: Phase):
@@ -1553,7 +1542,7 @@ class SgModel:
 
             self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
         else:
-            raise RuntimeError('sg_logger can be either an sg_logger name (str) or a subcalss of AbstractSGLogger')
+            raise RuntimeError('sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger')
 
         if not isinstance(self.sg_logger, BaseSGLogger):
             logger.warning("WARNING! Using a user-defined sg_logger: files will not be automatically written to disk!\n"
@@ -1561,13 +1550,13 @@ class SgModel:
 
         # IN CASE SG_LOGGER UPDATED THE DIR PATH
         self.checkpoints_dir_path = self.sg_logger.local_dir()
-        hyper_param_config = self.get_hyper_param_config()
+        hyper_param_config = self._get_hyper_param_config()
 
         self.sg_logger.add_config("hyper_params", hyper_param_config)
 
         self.sg_logger.flush()
 
-    def get_hyper_param_config(self):
+    def _get_hyper_param_config(self):
         """
         Creates a training hyper param config for logging.
         """
@@ -1598,7 +1587,7 @@ class SgModel:
 
         # SAVE THE CHECKPOINT
         if self.training_params.save_model:
-            self.save_checkpoint(self.optimizer, epoch + 1, validation_results, context)
+            self._save_checkpoint(self.optimizer, epoch + 1, validation_results, context)
 
     def _write_lrs(self, epoch):
         lrs = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
@@ -1666,7 +1655,7 @@ class SgModel:
         """
 
         self.net.eval()
-        self.valid_metrics.reset()
+        self._reset_metrics()
         self.valid_metrics.to(self.device)
 
         return self.evaluate(data_loader=self.valid_loader, metrics=self.valid_metrics,
@@ -1703,7 +1692,8 @@ class SgModel:
                                criterion=self.criterion,
                                device=self.device,
                                lr_warmup_epochs=lr_warmup_epochs,
-                               sg_logger=self.sg_logger)
+                               sg_logger=self.sg_logger,
+                               context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END))
 
         if not silent_mode:
             # PRINT TITLES
@@ -1778,8 +1768,8 @@ class SgModel:
 
         return logging_values
 
-    def instantiate_net(self, architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict,
-                        checkpoint_params: dict, *args, **kwargs) -> tuple:
+    def _instantiate_net(self, architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict,
+                         checkpoint_params: dict, *args, **kwargs) -> tuple:
         """
         Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
             module manipulation (i.e head replacement).
@@ -1814,7 +1804,7 @@ class SgModel:
 
         return net
 
-    def instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> ModelEMA:
+    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> ModelEMA:
         """Instantiate ema model for standard SgModule.
         :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value
                       until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
@@ -1822,3 +1812,58 @@ class SgModel:
                      its final value. beta=15 is ~40% of the training process.
         """
         return ModelEMA(self.net, decay, beta, exp_activation)
+
+    @property
+    def get_net(self):
+        """
+        Getter for network.
+        :return: torch.nn.Module, self.net
+        """
+        return self.net
+
+    def set_net(self, net: torch.nn.Module):
+        """
+        Setter for network.
+
+        :param net: torch.nn.Module, value to set net
+        :return:
+        """
+        self.net = net
+
+    def set_ckpt_best_name(self, ckpt_best_name):
+        """
+        Setter for best checkpoint filename.
+
+        :param ckpt_best_name: str, value to set ckpt_best_name
+        """
+        self.ckpt_best_name = ckpt_best_name
+
+    def set_ema(self, val: bool):
+        """
+        Setter for self.ema
+
+        :param val: bool, value to set ema
+        """
+        self.ema = val
+
+    def _get_context_methods(self, phase: Phase) -> ContextSgMethods:
+        """
+        Returns ContextSgMethods holding the methods that should be accessible through phase callbacks to the user at
+         the specific phase
+
+        :param phase: Phase, controls what methods should be returned.
+        :return: ContextSgMethods holding methods from self.
+        """
+        if phase in [Phase.PRE_TRAINING, Phase.TRAIN_EPOCH_START, Phase.TRAIN_EPOCH_END, Phase.VALIDATION_EPOCH_END,
+                     Phase.VALIDATION_EPOCH_END, Phase.POST_TRAINING, Phase.VALIDATION_END_BEST_EPOCH]:
+            context_methods = ContextSgMethods(get_net=self.get_net,
+                                               set_net=self.set_net,
+                                               set_ckpt_best_name=self.set_ckpt_best_name,
+                                               reset_best_metric=self._reset_best_metric,
+                                               build_model=self.build_model,
+                                               validate_epoch=self._validate_epoch,
+                                               set_ema=self.set_ema)
+        else:
+            context_methods = ContextSgMethods()
+
+        return context_methods
