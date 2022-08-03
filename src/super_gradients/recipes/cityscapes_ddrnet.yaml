@@ -1,3 +1,35 @@
+#  DDRNet segmentation training example with Cityscapes dataset.
+#  Paper:
+#      "Deep Dual-resolution Networks for Real-time and Accurate Semantic Segmentation of Road Scenes"
+#      https://arxiv.org/abs/2104.13188
+#
+#  Usage DDRNet23:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_ddrnet checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path>
+#  Usage DDRNet23-Slim:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_ddrnet checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path> architecture=ddrnet_23_slim
+#
+#  Validation mIoU - Cityscapes, training time:
+#      DDRNet23:        input-size: [1024, 2048]     mIoU: 79.73     4 X RTX A5000, 12 H
+#      DDRNet23-Slim:   input-size: [1024, 2048]     mIoU: 77.99     4 X RTX A5000, 9 H
+#
+#  Official git repo:
+#      https://github.com/ydhongHIT/DDRNet
+#
+#  Pretrained checkpoints:
+#      Backbones- downloaded from the author's official repo.
+#       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_bb_imagenet.pth
+#       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_slim_bb_imagenet.pth
+#
+#      Logs, tensorboards and network checkpoints:
+#       DDRNet23:       https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc1_seg50_dice_edge/
+#       DDRNet23-Slim:  https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23/
+#
+#  Learning rate and batch size parameters, using 4 RTX A5000 with DDP:
+#      DDRNet23:        input-size: [1024, 1024]     initial_lr: 0.0075    batch-size: 6 * 4gpus = 24
+#      DDRNet23-Slim:   input-size: [1024, 1024]     initial_lr: 0.0075    batch-size: 6 * 4gpus = 24
+#
+#  Comments:
+#      * Pretrained backbones were used.
 
 defaults:
   - training_hyperparams: cityscapes_stdc_train_params
@@ -6,6 +38,7 @@ defaults:
 
 
 training_hyperparams:
+  max_epochs: 500
   initial_lr: 0.0075   # batch size 24
   loss:
     dice_ce_edge_loss:
