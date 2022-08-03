@@ -808,7 +808,7 @@ class CoCoDetectionDatasetInterface(DatasetInterface):
         local_rank = get_local_rank()
         with wait_for_the_master(local_rank):
             self.trainset = COCODetectionDataset(data_dir=self.dataset_params.data_dir,
-                                                 name=self.dataset_params.train_subdir,
+                                                 subdir=self.dataset_params.train_subdir,
                                                  json_file=self.dataset_params.train_json_file,
                                                  input_dim=train_input_dim,
                                                  cache=self.dataset_params.cache_train_images,
@@ -824,7 +824,7 @@ class CoCoDetectionDatasetInterface(DatasetInterface):
             self.valset = COCODetectionDataset(
                 data_dir=self.dataset_params.data_dir,
                 json_file=self.dataset_params.val_json_file,
-                name=self.dataset_params.val_subdir,
+                subdir=self.dataset_params.val_subdir,
                 input_dim=train_input_dim,
                 transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
                             DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)],

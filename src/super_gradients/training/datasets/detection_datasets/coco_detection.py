@@ -18,7 +18,7 @@ class COCODetectionDataset(DetectionDataset):
             self,
             data_dir: str,
             json_file: str = "instances_train2017.json",
-            name: str = "images/train2017",
+            subdir: str = "images/train2017",
             tight_box_rotation: bool = False,
             with_crowd: bool = True,
             *args, **kwargs
@@ -26,22 +26,21 @@ class COCODetectionDataset(DetectionDataset):
         """
         :param data_dir:    Path to the folder including coco data.
         :param json_file:   Name of the coco json file, that resides in data_dir/annotations/json_file.
-        :param name:        Sub directory of data_dir containing the data.
+        :param subdir:        Sub directory of data_dir containing the data.
         :param tight_box_rotation: bool, whether to use of segmentation maps convex hull as target_seg
                                    (check get_sample docs).
         :param transforms: list of transforms to apply sequentially on sample in __getitem__
         :param with_crowd: Add the crowd groundtruths to __getitem__
         """
         self.data_dir = data_dir
-        self.name = name
+        self.subdir = subdir
         self.json_file = json_file
         self.tight_box_rotation = tight_box_rotation
         self.with_crowd = with_crowd
 
         self.coco = self._init_coco()
         self.class_ids = sorted(self.coco.getCatIds())
-        # list([category["name"] for category in self.coco.loadCats(self.coco.getCatIds())])  # TODO check type
-        self.classes = list([category["name"] for category in self.coco.loadCats(self.class_ids)]) #TODO check type
+        self.classes = list([category["name"] for category in self.coco.loadCats(self.class_ids)])
         self.sample_id_to_coco_id = self.coco.getImgIds()
 
         kwargs['n_available_samples'] = len(self.sample_id_to_coco_id)
@@ -53,7 +52,7 @@ class COCODetectionDataset(DetectionDataset):
         kwargs['output_fields'] = ["image", *target_fields]
         super().__init__(*args, **kwargs)
 
-    def _init_coco(self):
+    def _init_coco(self) -> COCO:
         annotation_file_path = os.path.join(self.data_dir, "annotations", self.json_file)
         if not os.path.exists(annotation_file_path):
             raise ValueError("Could not find annotation file under " + str(annotation_file_path))
@@ -134,7 +133,7 @@ class COCODetectionDataset(DetectionDataset):
             if "file_name" in img_metadata
             else "{:012}".format(img_id) + ".jpg"
         )
-        img_path = os.path.join(self.data_dir, self.name, file_name)
+        img_path = os.path.join(self.data_dir, self.subdir, file_name)
         img_id = self.sample_id_to_coco_id[sample_id]
 
         annotation = {
