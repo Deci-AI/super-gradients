@@ -1,6 +1,6 @@
 import unittest
 
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterfaceV2
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterface
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 
 from super_gradients.training import SgModel
@@ -19,7 +19,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
         browser and make sure the text and plots in the tensorboard are as expected.
         """
         # Create dataset
-        dataset = CocoDetectionDatasetInterfaceV2(dataset_params={"data_dir": "/data/coco",
+        dataset = CocoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
                                                                   "train_subdir": "images/train2017",
                                                                   "val_subdir": "images/val2017",
                                                                   "train_json_file": "instances_train2017.json",
@@ -30,28 +30,28 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                                                                   "train_image_size": 640,
                                                                   "hgain": 5,
                                                                   "sgain": 30,
-                                                                  "vgain": 30,
-                                                                  "mixup_prob": 1.0,
-                                                                  "degrees": 10.,
-                                                                  "shear": 2.0,
-                                                                  "flip_prob": 0.5,
-                                                                  "hsv_prob": 1.0,
-                                                                  "mosaic_scale": [0.1, 2],
-                                                                  "mixup_scale": [0.5, 1.5],
-                                                                  "mosaic_prob": 1.,
-                                                                  "translate": 0.1,
-                                                                  "val_collate_fn": CrowdDetectionCollateFN(),
-                                                                  "train_collate_fn": DetectionCollateFN(),
-                                                                  "cache_dir_path": None,
-                                                                  "cache_train_images": False,
-                                                                  "cache_val_images": False,
-                                                                  "targets_format": DetectionTargetsFormat.LABEL_CXCYWH,
-                                                                  "with_crowd": True,
-                                                                  "filter_box_candidates": False,
-                                                                  "wh_thr": 0,
-                                                                  "ar_thr": 0,
-                                                                  "area_thr": 0
-                                                                  })
+                                                                "vgain": 30,
+                                                                "mixup_prob": 1.0,
+                                                                "degrees": 10.,
+                                                                "shear": 2.0,
+                                                                "flip_prob": 0.5,
+                                                                "hsv_prob": 1.0,
+                                                                "mosaic_scale": [0.1, 2],
+                                                                "mixup_scale": [0.5, 1.5],
+                                                                "mosaic_prob": 1.,
+                                                                "translate": 0.1,
+                                                                "val_collate_fn": CrowdDetectionCollateFN(),
+                                                                "train_collate_fn": DetectionCollateFN(),
+                                                                "cache_dir_path": None,
+                                                                "cache_train_images": False,
+                                                                "cache_val_images": False,
+                                                                "targets_format": DetectionTargetsFormat.LABEL_CXCYWH,
+                                                                "with_crowd": True,
+                                                                "filter_box_candidates": False,
+                                                                "wh_thr": 0,
+                                                                "ar_thr": 0,
+                                                                "area_thr": 0
+                                                                })
 
         model = SgModel('dataset_statistics_visual_test',
                         model_checkpoints_location='local',

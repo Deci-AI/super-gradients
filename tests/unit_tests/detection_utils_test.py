@@ -2,7 +2,7 @@ import os
 import unittest
 
 from super_gradients.training import SgModel, utils as core_utils
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterfaceV2
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterface
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionCollateFN, DetectionTargetsFormat
@@ -11,7 +11,7 @@ from super_gradients.training.utils.detection_utils import DetectionVisualizatio
 class TestDetectionUtils(unittest.TestCase):
     def test_visualization(self):
         # Create dataset
-        dataset = CocoDetectionDatasetInterfaceV2(dataset_params={"data_dir": "/data/coco",
+        dataset = CocoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
                                                                   "train_subdir": "images/train2017",
                                                                   "val_subdir": "images/val2017",
                                                                   "train_json_file": "instances_train2017.json",
@@ -22,28 +22,28 @@ class TestDetectionUtils(unittest.TestCase):
                                                                   "train_image_size": 640,
                                                                   "hgain": 5,
                                                                   "sgain": 30,
-                                                                  "vgain": 30,
-                                                                  "mixup_prob": 1.0,
-                                                                  "degrees": 10.,
-                                                                  "shear": 2.0,
-                                                                  "flip_prob": 0.5,
-                                                                  "hsv_prob": 1.0,
-                                                                  "mosaic_scale": [0.1, 2],
-                                                                  "mixup_scale": [0.5, 1.5],
-                                                                  "mosaic_prob": 1.,
-                                                                  "translate": 0.1,
-                                                                  "val_collate_fn": DetectionCollateFN(),
-                                                                  "train_collate_fn": DetectionCollateFN(),
-                                                                  "cache_dir_path": None,
-                                                                  "cache_train_images": False,
-                                                                  "cache_val_images": False,
-                                                                  "targets_format": DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
-                                                                  "with_crowd": False,
-                                                                  "filter_box_candidates": False,
-                                                                  "wh_thr": 0,
-                                                                  "ar_thr": 0,
-                                                                  "area_thr": 0
-                                                                  })
+                                                                "vgain": 30,
+                                                                "mixup_prob": 1.0,
+                                                                "degrees": 10.,
+                                                                "shear": 2.0,
+                                                                "flip_prob": 0.5,
+                                                                "hsv_prob": 1.0,
+                                                                "mosaic_scale": [0.1, 2],
+                                                                "mixup_scale": [0.5, 1.5],
+                                                                "mosaic_prob": 1.,
+                                                                "translate": 0.1,
+                                                                "val_collate_fn": DetectionCollateFN(),
+                                                                "train_collate_fn": DetectionCollateFN(),
+                                                                "cache_dir_path": None,
+                                                                "cache_train_images": False,
+                                                                "cache_val_images": False,
+                                                                "targets_format": DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
+                                                                "with_crowd": False,
+                                                                "filter_box_candidates": False,
+                                                                "wh_thr": 0,
+                                                                "ar_thr": 0,
+                                                                "area_thr": 0
+                                                                })
 
         # Create Yolo model
         model = SgModel('visualization_test',

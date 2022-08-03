@@ -7,7 +7,7 @@ from super_gradients.training.datasets.dataset_interfaces import DatasetInterfac
     ImageNetDatasetInterface, TinyImageNetDatasetInterface, CoCoSegmentationDatasetInterface,\
     PascalAUG2012SegmentationDataSetInterface, PascalVOC2012SegmentationDataSetInterface
 from super_gradients.common.data_types.enum.deep_learning_task import DeepLearningTask
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterfaceV2
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterface
 
 CLASSIFICATION_DATASETS = {
     "test_dataset": TestDatasetInterface,
@@ -20,7 +20,7 @@ CLASSIFICATION_DATASETS = {
 }
 
 OBJECT_DETECTION_DATASETS = {
-    "coco": CocoDetectionDatasetInterfaceV2,
+    "coco": CocoDetectionDatasetInterface,
 }
 
 SEMANTIC_SEGMENTATION_DATASETS = {
