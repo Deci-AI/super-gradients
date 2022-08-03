@@ -18,13 +18,13 @@ from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetE
 logger = get_logger(__name__)
 
 
-class DetectionDataSetV2(Dataset):
+class DetectionDataset(Dataset):
     """Detection dataset.
 
     This is a boilerplate class to facilitate the implementation of datasets.
 
-    HOW TO CREATE A DATASET THAT INHERITS FROM DetectionDataSetV2 ?
-        - Inherit from DetectionDataSetV2
+    HOW TO CREATE A DATASET THAT INHERITS FROM DetectionDataSet ?
+        - Inherit from DetectionDataSet
         - implement the method self._load_annotation to return at least the fields "target" and "img_path"
         - Call super().__init__ with the required params.
                 //!\\ super().__init__ will call self._load_annotation, so make sure that every required

@@ -1,9 +1,7 @@
 import os
-from xml.etree import ElementTree
-from tqdm import tqdm
-from pathlib import Path
 
 import numpy as np
+
 import torch
 import torchvision
 import torchvision.datasets as datasets
@@ -18,25 +16,23 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 
 from super_gradients.training import utils as core_utils
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
-from super_gradients.training.utils.utils import download_and_unzip_from_url
+
 from super_gradients.training.utils import get_param
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn,\
-    crowd_detection_collate_fn, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
 from super_gradients.training.datasets.mixup import CollateMixup
-from super_gradients.training.datasets.detection_datasets import COCODetectionDataSet, PascalVOCDetectionDataSet, \
-    PascalVOCDetectionDataSetV2
-from super_gradients.training.datasets.detection_datasets.coco_detection_yolox import COCODetectionDatasetV2
+from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, PascalVOCDetectionDataset
+
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.datasets.segmentation_datasets import PascalVOC2012SegmentationDataSet, \
     PascalAUG2012SegmentationDataSet, CoCoSegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import \
     SuperviselyPersonsDataset
-from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import PASCAL_VOC_2012_CLASSES
+
 from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
 
@@ -697,8 +693,7 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
         self.classes = self.trainset.classes
 
 
-class CoCoDetectionDatasetInterface(DatasetInterface):
-class DatasetInterfaceV2(DatasetInterface):
+class DetectionDatasetInterface(DatasetInterface):
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
 
@@ -732,7 +727,7 @@ class DatasetInterfaceV2(DatasetInterface):
         self.val_loader = val_loader
 
 
-class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterfaceV2):
+class PascalVOCUnifiedDetectionDataSetInterfaceDetection(DetectionDatasetInterface):
 
     def __init__(self, dataset_params=None):
         if dataset_params is None:
@@ -744,27 +739,27 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterfaceV2):
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
 
         if self.dataset_params.download:
-            PascalVOCDetectionDataSetV2.download(data_dir=self.data_dir)
+            PascalVOCDetectionDataset.download(data_dir=self.data_dir)
 
         train_sets = []
         for trainset_prefix in ["train", "val"]:
             for trainset_year in ["2007", "2012"]:
-                sub_trainset = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
-                                                           input_dim=train_input_dim,
-                                                           cache=self.dataset_params.cache_train_images,
-                                                           cache_path=self.dataset_params.cache_dir + "cache_train",
-                                                           transforms=self.dataset_params.train_transforms,
-                                                           images_sub_directory='images/' + trainset_prefix + trainset_year + '/',
-                                                           class_inclusion_list=self.dataset_params.class_inclusion_list)
+                sub_trainset = PascalVOCDetectionDataset(data_dir=self.data_dir,
+                                                         input_dim=train_input_dim,
+                                                         cache=self.dataset_params.cache_train_images,
+                                                         cache_path=self.dataset_params.cache_dir + "cache_train",
+                                                         transforms=self.dataset_params.train_transforms,
+                                                         images_sub_directory='images/' + trainset_prefix + trainset_year + '/',
+                                                         class_inclusion_list=self.dataset_params.class_inclusion_list)
                 train_sets.append(sub_trainset)
 
-        testset2007 = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
-                                                  input_dim=val_input_dim,
-                                                  cache=self.dataset_params.cache_val_images,
-                                                  cache_path=self.dataset_params.cache_dir + "cache_valid",
-                                                  transforms=self.dataset_params.val_transforms,
-                                                  images_sub_directory='images/test2007/',
-                                                  class_inclusion_list=self.dataset_params.class_inclusion_list)
+        testset2007 = PascalVOCDetectionDataset(data_dir=self.data_dir,
+                                                input_dim=val_input_dim,
+                                                cache=self.dataset_params.cache_val_images,
+                                                cache_path=self.dataset_params.cache_dir + "cache_valid",
+                                                transforms=self.dataset_params.val_transforms,
+                                                images_sub_directory='images/test2007/',
+                                                class_inclusion_list=self.dataset_params.class_inclusion_list)
 
         self.classes = train_sets[1].classes
         self.trainset = ConcatDataset(train_sets)
@@ -776,7 +771,7 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterfaceV2):
         self.trainset.cache_labels = self.dataset_params.cache_train_images
 
 
-class CocoDetectionDatasetInterfaceV2(DatasetInterface):
+class CoCoDetectionDatasetInterface(DatasetInterface):
     def __init__(self, dataset_params={}):
         super(CoCoDetectionDatasetInterface, self).__init__(dataset_params=dataset_params)
 

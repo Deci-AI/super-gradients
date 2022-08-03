@@ -1,7 +1,7 @@
 import unittest
 
 import super_gradients
-from super_gradients.training.datasets import PascalVOCDetectionDataSetV2
+from super_gradients.training.datasets import PascalVOCDetectionDataset
 from super_gradients.training.transforms import DetectionMosaic, DetectionPaddedRescale, DetectionTargetsFormatTransform
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 
@@ -25,19 +25,19 @@ class SubclassingIntegrationTest(unittest.TestCase):
     def test_multiple_pascal_dataset_subclass_before_transforms(self):
         """Run test_pascal_dataset_subclass on multiple inclusion lists"""
         for class_inclusion_list in self.pascal_class_inclusion_lists:
-            dataset = PascalVOCDetectionDataSetV2(class_inclusion_list=class_inclusion_list, **self.pascal_base_config)
+            dataset = PascalVOCDetectionDataset(class_inclusion_list=class_inclusion_list, **self.pascal_base_config)
             dataset.plot(max_samples_per_plot=16, n_plots=1, plot_transformed_data=False)
 
     def test_multiple_pascal_dataset_subclass_after_transforms(self):
         """Run test_pascal_dataset_subclass on multiple inclusion lists"""
         for class_inclusion_list in self.pascal_class_inclusion_lists:
-            dataset = PascalVOCDetectionDataSetV2(class_inclusion_list=class_inclusion_list, **self.pascal_base_config)
+            dataset = PascalVOCDetectionDataset(class_inclusion_list=class_inclusion_list, **self.pascal_base_config)
             dataset.plot(max_samples_per_plot=16, n_plots=1, plot_transformed_data=True)
 
     def test_non_existing_class(self):
         """Check that EmptyDatasetException is raised when unknown label """
         with self.assertRaises(ValueError):
-            PascalVOCDetectionDataSetV2(class_inclusion_list=["new_class"], **self.pascal_base_config)
+            PascalVOCDetectionDataset(class_inclusion_list=["new_class"], **self.pascal_base_config)
 
 
 if __name__ == '__main__':

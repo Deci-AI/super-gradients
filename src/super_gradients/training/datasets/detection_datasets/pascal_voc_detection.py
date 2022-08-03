@@ -8,7 +8,7 @@ from tqdm import tqdm
 import numpy as np
 
 from super_gradients.training.utils.utils import download_and_untar_from_url, get_image_size_from_path
-from super_gradients.training.datasets.detection_datasets.detection_dataset_v2 import DetectionDataSetV2
+from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLASSES_LIST
@@ -16,7 +16,7 @@ from super_gradients.training.datasets.datasets_conf import PASCAL_VOC_2012_CLAS
 logger = get_logger(__name__)
 
 
-class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
+class PascalVOCDetectionDataset(DetectionDataset):
     """Dataset for Pascal VOC object detection"""
 
     def __init__(self, data_dir: str, images_sub_directory: str, *args, **kwargs):

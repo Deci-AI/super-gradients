@@ -1,12 +1,12 @@
 import unittest
 import numpy as np
 
-from super_gradients.training.datasets import DetectionDataSetV2
+from super_gradients.training.datasets import DetectionDataset
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
 
 
-class TestDetectionDataSet(DetectionDataSetV2):
+class TestDetectionDataset(DetectionDataset):
     def __init__(self, input_dim, *args, **kwargs):
         """Dummy Dataset testing subclassing, designed with no annotation that includes class_2."""
 
@@ -74,7 +74,7 @@ class TestDatasetInterface(unittest.TestCase):
     def test_subclass_keep_empty(self):
         """Check that subclassing only keeps annotations of wanted class"""
         for config in self.config_keep_empty_annotation:
-            test_dataset = TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=False,
+            test_dataset = TestDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=False,
                                                 class_inclusion_list=config["class_inclusion_list"])
             n_targets_after_subclass = _count_targets_after_subclass_per_index(test_dataset)
             self.assertListEqual(config["expected_n_targets_after_subclass"], n_targets_after_subclass)
@@ -82,7 +82,7 @@ class TestDatasetInterface(unittest.TestCase):
     def test_subclass_drop_empty(self):
         """Check that empty annotations are not indexed (i.e. ignored) when ignore_empty_annotations=True"""
         for config in self.config_ignore_empty_annotation:
-            test_dataset = TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=True,
+            test_dataset = TestDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
                                                 class_inclusion_list=config["class_inclusion_list"])
             n_targets_after_subclass = _count_targets_after_subclass_per_index(test_dataset)
             self.assertListEqual(config["expected_n_targets_after_subclass"], n_targets_after_subclass)
@@ -90,18 +90,18 @@ class TestDatasetInterface(unittest.TestCase):
         # Check last case when class_2, which should raise EmptyDatasetException because not a single image has
         # a target in class_inclusion_list
         with self.assertRaises(EmptyDatasetException):
-            TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=True,
+            TestDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
                                  class_inclusion_list=["class_2"])
 
     def test_wrong_subclass(self):
         """Check that ValueError is raised when class_inclusion_list includes a class that does not exist."""
         with self.assertRaises(ValueError):
-            TestDetectionDataSet(input_dim=(640, 512), class_inclusion_list=["non_existing_class"])
+            TestDetectionDataset(input_dim=(640, 512), class_inclusion_list=["non_existing_class"])
         with self.assertRaises(ValueError):
-            TestDetectionDataSet(input_dim=(640, 512), class_inclusion_list=["class_0", "non_existing_class"])
+            TestDetectionDataset(input_dim=(640, 512), class_inclusion_list=["class_0", "non_existing_class"])
 
 
-def _count_targets_after_subclass_per_index(test_dataset: TestDetectionDataSet):
+def _count_targets_after_subclass_per_index(test_dataset: TestDetectionDataset):
     """Iterate through every index of the dataset and count the associated number of targets per index"""
     dataset_target_len = []
     for index in range(len(test_dataset)):

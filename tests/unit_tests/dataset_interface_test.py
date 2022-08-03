@@ -1,7 +1,7 @@
 import unittest
 
 from super_gradients.training.datasets import Cifar10DatasetInterface
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDataSetInterfaceV2
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDataSetInterfaceDetection
 from super_gradients.training.transforms.transforms import DetectionPaddedRescale, DetectionTargetsFormatTransform, DetectionMosaic, DetectionRandomAffine,\
     DetectionHSV
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
@@ -50,7 +50,7 @@ class TestDatasetInterface(unittest.TestCase):
             "cache_val_images": False,
             "class_inclusion_list": ["person"]
         }
-        dataset_interface = PascalVOCUnifiedDetectionDataSetInterfaceV2(dataset_params=dataset_params)
+        dataset_interface = PascalVOCUnifiedDetectionDataSetInterfaceDetection(dataset_params=dataset_params)
         train_loader, valid_loader, _test_loader, _classes = dataset_interface.get_data_loaders()
         return train_loader, valid_loader
 
