@@ -1,6 +1,6 @@
 import unittest
 
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterface
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 
 from super_gradients.training import SgModel
@@ -19,7 +19,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
         browser and make sure the text and plots in the tensorboard are as expected.
         """
         # Create dataset
-        dataset = CocoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
+        dataset = CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
                                                                 "train_subdir": "images/train2017",
                                                                 "val_subdir": "images/val2017",
                                                                 "train_json_file": "instances_train2017.json",

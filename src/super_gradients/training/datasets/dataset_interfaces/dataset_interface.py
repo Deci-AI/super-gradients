@@ -683,9 +683,9 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
         self.classes = self.trainset.classes
 
 
-class CocoDetectionDatasetInterface(DatasetInterface):
+class CoCoDetectionDatasetInterface(DatasetInterface):
     def __init__(self, dataset_params={}):
-        super(CocoDetectionDatasetInterface, self).__init__(dataset_params=dataset_params)
+        super(CoCoDetectionDatasetInterface, self).__init__(dataset_params=dataset_params)
 
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
         targets_format = get_param(self.dataset_params, "targets_format", DetectionTargetsFormat.LABEL_CXCYWH)

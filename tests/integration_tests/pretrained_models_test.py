@@ -18,7 +18,7 @@ from super_gradients.training.transforms.transforms import Rescale
 from super_gradients.training.losses.stdc_loss import STDCLoss
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterface
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 
 
@@ -83,7 +83,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                             'coco_ssd_mobilenet_v1': {'num_classes': 80}}
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
         self.coco_dataset = {
-            'yolox': CocoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
+            'yolox': CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
                                                                    "train_subdir": "images/train2017",
                                                                    "val_subdir": "images/val2017",
                                                                    "train_json_file": "instances_train2017.json",
@@ -117,7 +117,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                    "area_thr": 0
                                                                    }),
 
-            'ssd_mobilenet': CocoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
+            'ssd_mobilenet': CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
                                                                            "train_subdir": "images/train2017",
                                                                            "val_subdir": "images/val2017",
                                                                            "train_json_file": "instances_train2017.json",

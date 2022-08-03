@@ -2,7 +2,7 @@ import os
 import unittest
 
 from super_gradients.training import SgModel, utils as core_utils
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterface
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionCollateFN, DetectionTargetsFormat
@@ -11,7 +11,7 @@ from super_gradients.training.utils.detection_utils import DetectionVisualizatio
 class TestDetectionUtils(unittest.TestCase):
     def test_visualization(self):
         # Create dataset
-        dataset = CocoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
+        dataset = CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
                                                                 "train_subdir": "images/train2017",
                                                                 "val_subdir": "images/val2017",
                                                                 "train_json_file": "instances_train2017.json",
