@@ -84,16 +84,16 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
         self.coco_dataset = {
             'yolox': CocoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
-                                                                     "train_subdir": "images/train2017",
-                                                                     "val_subdir": "images/val2017",
-                                                                     "train_json_file": "instances_train2017.json",
-                                                                     "val_json_file": "instances_val2017.json",
-                                                                     "batch_size": 16,
-                                                                     "val_batch_size": 128,
-                                                                     "val_image_size": 640,
-                                                                     "train_image_size": 640,
-                                                                     "hgain": 5,
-                                                                     "sgain": 30,
+                                                                   "train_subdir": "images/train2017",
+                                                                   "val_subdir": "images/val2017",
+                                                                   "train_json_file": "instances_train2017.json",
+                                                                   "val_json_file": "instances_val2017.json",
+                                                                   "batch_size": 16,
+                                                                   "val_batch_size": 128,
+                                                                   "val_image_size": 640,
+                                                                   "train_image_size": 640,
+                                                                   "hgain": 5,
+                                                                   "sgain": 30,
                                                                    "vgain": 30,
                                                                    "mixup_prob": 1.0,
                                                                    "degrees": 10.,
@@ -118,16 +118,16 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                    }),
 
             'ssd_mobilenet': CocoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
-                                                                             "train_subdir": "images/train2017",
-                                                                             "val_subdir": "images/val2017",
-                                                                             "train_json_file": "instances_train2017.json",
-                                                                             "val_json_file": "instances_val2017.json",
-                                                                             "batch_size": 16,
-                                                                             "val_batch_size": 128,
-                                                                             "val_image_size": 320,
-                                                                             "train_image_size": 320,
-                                                                             "hgain": 5,
-                                                                             "sgain": 30,
+                                                                           "train_subdir": "images/train2017",
+                                                                           "val_subdir": "images/val2017",
+                                                                           "train_json_file": "instances_train2017.json",
+                                                                           "val_json_file": "instances_val2017.json",
+                                                                           "batch_size": 16,
+                                                                           "val_batch_size": 128,
+                                                                           "val_image_size": 320,
+                                                                           "train_image_size": 320,
+                                                                           "hgain": 5,
+                                                                           "sgain": 30,
                                                                            "vgain": 30,
                                                                            "mixup_prob": .0,
                                                                            "degrees": 0.,
@@ -276,7 +276,9 @@ class PretrainedModelsTest(unittest.TestCase):
                                                         "load_opt_params": False,
                                                         "train_metrics_list": [IoU(5)],
                                                         "valid_metrics_list": [IoU(5)],
-                                                        "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
+                                                        "loss_logging_items_names": ["main_loss", "aux_loss1",
+                                                                                     "aux_loss2", "detail_loss",
+                                                                                     "loss"],
                                                         "metric_to_watch": "IoU",
                                                         "greater_metric_to_watch_is_better": True
                                                         }
@@ -540,7 +542,8 @@ class PretrainedModelsTest(unittest.TestCase):
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
-                           test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback, num_cls=80)],
+                           test_metrics_list=[
+                               DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback, num_cls=80)],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
 
@@ -566,7 +569,8 @@ class PretrainedModelsTest(unittest.TestCase):
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback,
-                                                               num_cls=len(self.coco_dataset['ssd_mobilenet'].coco_classes))],
+                                                               num_cls=len(
+                                                                   self.coco_dataset['ssd_mobilenet'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["coco_ssd_mobilenet_v1"], delta=0.001)
 
