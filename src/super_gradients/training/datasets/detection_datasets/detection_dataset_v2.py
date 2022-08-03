@@ -70,7 +70,6 @@ class DetectionDataSetV2(Dataset):
             ignore_empty_annotations: bool = True,
             target_fields: List[str] = None,
             output_fields: List[str] = None,
-            collate_fn: Callable = None,
     ):
         """Detection dataset.
 
@@ -91,7 +90,6 @@ class DetectionDataSetV2(Dataset):
                                                 It has to include at least "target" but can include other.
         :paran output_fields:                   Fields that will be outputed by __getitem__.
                                                 It has to include at least "image" and "target" but can include other.
-        :paran collate_fn:                      Collate function, that groups outputs of __getitem__ into batch.
         """
         super().__init__()
 

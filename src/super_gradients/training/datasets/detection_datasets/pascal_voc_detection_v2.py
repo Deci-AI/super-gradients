@@ -26,6 +26,8 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
         :param images_sub_directory:    Sub directory of data_dir that includes images.
         """
         self.data_dir = data_dir
+        if not Path(data_dir).exists():
+            raise FileNotFoundError(f"Please make sure to download the data in the data directory ({self.data_dir}).")
         self.images_sub_directory = images_sub_directory
         self.img_and_target_path_list = self._get_img_and_target_path_list()
 
@@ -40,6 +42,11 @@ class PascalVOCDetectionDataSetV2(DetectionDataSetV2):
         :return: List of tuples made of (img_path,target_path)
         """
         img_files_folder = self.data_dir + self.images_sub_directory
+        if not Path(img_files_folder).exists():
+            raise FileNotFoundError(f"{self.data_dir} does not include {self.images_sub_directory}. "
+                                    f"Please make sure that f{self.data_dir} refers to PascalVOC dataset and that "
+                                    "it was downloaded using PascalVOCDetectionDataSetV2.download()")
+
         img_files = glob.glob(img_files_folder + "*.jpg")
         if len(img_files) == 0:
             raise FileNotFoundError(f"No image file found at {img_files_folder}")
