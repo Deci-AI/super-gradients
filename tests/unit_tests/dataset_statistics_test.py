@@ -4,7 +4,6 @@ from super_gradients.training.datasets.dataset_interfaces.dataset_interface impo
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 
 from super_gradients.training import SgModel
-from super_gradients.training.datasets import CoCoDetectionDatasetInterface
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN, DetectionCollateFN, \
     DetectionTargetsFormat
@@ -64,7 +63,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                            "lr_mode": "cosine",
                            "initial_lr": 0.01,
                            "loss": "yolox_loss",
-                           "criterion_params": {"strides": [8, 16, 32], "num_cls": 80},
+                           "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},
                            "dataset_statistics": True,
                            "launch_tensorboard": True,
                            "valid_metrics_list": [

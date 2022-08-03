@@ -4,10 +4,10 @@ from typing import Dict, List, Type
 from super_gradients.training.datasets.dataset_interfaces import DatasetInterface, TestDatasetInterface, \
     LibraryDatasetInterface, \
     ClassificationDatasetInterface, Cifar10DatasetInterface, Cifar100DatasetInterface, \
-    ImageNetDatasetInterface, TinyImageNetDatasetInterface, \
-    CoCoDetectionDatasetInterface, CoCoSegmentationDatasetInterface,\
+    ImageNetDatasetInterface, TinyImageNetDatasetInterface, CoCoSegmentationDatasetInterface,\
     PascalAUG2012SegmentationDataSetInterface, PascalVOC2012SegmentationDataSetInterface
 from super_gradients.common.data_types.enum.deep_learning_task import DeepLearningTask
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterfaceV2
 
 CLASSIFICATION_DATASETS = {
     "test_dataset": TestDatasetInterface,
@@ -20,7 +20,7 @@ CLASSIFICATION_DATASETS = {
 }
 
 OBJECT_DETECTION_DATASETS = {
-    "coco": CoCoDetectionDatasetInterface,
+    "coco": CocoDetectionDatasetInterfaceV2,
 }
 
 SEMANTIC_SEGMENTATION_DATASETS = {

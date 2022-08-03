@@ -10,7 +10,7 @@ from super_gradients.training.datasets.segmentation_datasets.pascal_voc_segmenta
 from super_gradients.training.datasets.segmentation_datasets.pascal_aug_segmentation import PascalAUG2012SegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.coco_segmentation import CoCoSegmentationDataSet
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import TestDatasetInterface, DatasetInterface, \
-    Cifar10DatasetInterface, CoCoSegmentationDatasetInterface, CoCoDetectionDatasetInterface, \
+    Cifar10DatasetInterface, CoCoSegmentationDatasetInterface, \
     PascalVOC2012SegmentationDataSetInterface, PascalAUG2012SegmentationDataSetInterface, \
     TestYoloDetectionDatasetInterface, SegmentationTestDatasetInterface, DetectionTestDatasetInterface, \
     ClassificationTestDatasetInterface, ImageNetDatasetInterface
@@ -19,7 +19,7 @@ __all__ = ['DataAugmentation', 'ListDataset', 'DirectoryDataSet', 'CLASSIFICATIO
            'SEMANTIC_SEGMENTATION_DATASETS', 'DetectionDataSet', 'SegmentationDataSet',
            'PascalVOC2012SegmentationDataSet',
            'PascalAUG2012SegmentationDataSet', 'CoCoSegmentationDataSet', 'TestDatasetInterface', 'DatasetInterface',
-           'Cifar10DatasetInterface', 'CoCoSegmentationDatasetInterface', 'CoCoDetectionDatasetInterface',
+           'Cifar10DatasetInterface', 'CoCoSegmentationDatasetInterface',
            'PascalVOC2012SegmentationDataSetInterface', 'PascalAUG2012SegmentationDataSetInterface',
            'TestYoloDetectionDatasetInterface', 'DetectionTestDatasetInterface', 'ClassificationTestDatasetInterface',
            'SegmentationTestDatasetInterface',
