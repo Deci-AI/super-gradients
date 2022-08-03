@@ -94,7 +94,7 @@ data_loader_num_workers: 8
 
 arch_params:
   num_classes: 19
-  use_aux_heads: True
+  aux_head: True
   sync_bn: True
 
 load_checkpoint: False
