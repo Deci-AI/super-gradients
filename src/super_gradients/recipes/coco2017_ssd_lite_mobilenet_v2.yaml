@@ -50,7 +50,7 @@ arch_params:
   anchors: ${dboxes}
 
 dataset_interface:
-  coco2017_detection_v2:
+  coco2017_detection:
     dataset_params: ${dataset_params}
 
 training_hyperparams:

@@ -18,7 +18,7 @@ from super_gradients.training.transforms.transforms import Rescale
 from super_gradients.training.losses.stdc_loss import STDCLoss
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import DetectionCollateFN, CrowdDetectionCollateFN
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterfaceV2
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 
 
@@ -83,73 +83,73 @@ class PretrainedModelsTest(unittest.TestCase):
                                             'coco_ssd_mobilenet_v1': {'num_classes': 80}}
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
         self.coco_dataset = {
-            'yolox': CocoDetectionDatasetInterfaceV2(dataset_params={"data_dir": "/data/coco",
-                                                                     "train_subdir": "images/train2017",
-                                                                     "val_subdir": "images/val2017",
-                                                                     "train_json_file": "instances_train2017.json",
-                                                                     "val_json_file": "instances_val2017.json",
-                                                                     "batch_size": 16,
-                                                                     "val_batch_size": 128,
-                                                                     "val_image_size": 640,
-                                                                     "train_image_size": 640,
-                                                                     "hgain": 5,
-                                                                     "sgain": 30,
-                                                                     "vgain": 30,
-                                                                     "mixup_prob": 1.0,
-                                                                     "degrees": 10.,
-                                                                     "shear": 2.0,
-                                                                     "flip_prob": 0.5,
-                                                                     "hsv_prob": 1.0,
-                                                                     "mosaic_scale": [0.1, 2],
-                                                                     "mixup_scale": [0.5, 1.5],
-                                                                     "mosaic_prob": 1.,
-                                                                     "translate": 0.1,
-                                                                     "val_collate_fn": CrowdDetectionCollateFN(),
-                                                                     "train_collate_fn": DetectionCollateFN(),
-                                                                     "cache_dir_path": None,
-                                                                     "cache_train_images": False,
-                                                                     "cache_val_images": False,
-                                                                     "targets_format": DetectionTargetsFormat.LABEL_CXCYWH,
-                                                                     "with_crowd": True,
-                                                                     "filter_box_candidates": False,
-                                                                     "wh_thr": 0,
-                                                                     "ar_thr": 0,
-                                                                     "area_thr": 0
-                                                                     }),
+            'yolox': CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
+                                                                   "train_subdir": "images/train2017",
+                                                                   "val_subdir": "images/val2017",
+                                                                   "train_json_file": "instances_train2017.json",
+                                                                   "val_json_file": "instances_val2017.json",
+                                                                   "batch_size": 16,
+                                                                   "val_batch_size": 128,
+                                                                   "val_image_size": 640,
+                                                                   "train_image_size": 640,
+                                                                   "hgain": 5,
+                                                                   "sgain": 30,
+                                                                   "vgain": 30,
+                                                                   "mixup_prob": 1.0,
+                                                                   "degrees": 10.,
+                                                                   "shear": 2.0,
+                                                                   "flip_prob": 0.5,
+                                                                   "hsv_prob": 1.0,
+                                                                   "mosaic_scale": [0.1, 2],
+                                                                   "mixup_scale": [0.5, 1.5],
+                                                                   "mosaic_prob": 1.,
+                                                                   "translate": 0.1,
+                                                                   "val_collate_fn": CrowdDetectionCollateFN(),
+                                                                   "train_collate_fn": DetectionCollateFN(),
+                                                                   "cache_dir_path": None,
+                                                                   "cache_train_images": False,
+                                                                   "cache_val_images": False,
+                                                                   "targets_format": DetectionTargetsFormat.LABEL_CXCYWH,
+                                                                   "with_crowd": True,
+                                                                   "filter_box_candidates": False,
+                                                                   "wh_thr": 0,
+                                                                   "ar_thr": 0,
+                                                                   "area_thr": 0
+                                                                   }),
 
-            'ssd_mobilenet': CocoDetectionDatasetInterfaceV2(dataset_params={"data_dir": "/data/coco",
-                                                                             "train_subdir": "images/train2017",
-                                                                             "val_subdir": "images/val2017",
-                                                                             "train_json_file": "instances_train2017.json",
-                                                                             "val_json_file": "instances_val2017.json",
-                                                                             "batch_size": 16,
-                                                                             "val_batch_size": 128,
-                                                                             "val_image_size": 320,
-                                                                             "train_image_size": 320,
-                                                                             "hgain": 5,
-                                                                             "sgain": 30,
-                                                                             "vgain": 30,
-                                                                             "mixup_prob": .0,
-                                                                             "degrees": 0.,
-                                                                             "shear": 0.,
-                                                                             "flip_prob": 0.,
-                                                                             "hsv_prob": 0.,
-                                                                             "mosaic_scale": [0.5, 1.5],
-                                                                             "mixup_scale": [0.5, 1.5],
-                                                                             "mosaic_prob": 1.,
-                                                                             "translate": 0.1,
-                                                                             "val_collate_fn": CrowdDetectionCollateFN(),
-                                                                             "train_collate_fn": DetectionCollateFN(),
-                                                                             "cache_dir_path": None,
-                                                                             "cache_train_images": False,
-                                                                             "cache_val_images": False,
-                                                                             "targets_format": DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
-                                                                             "with_crowd": True,
-                                                                             "filter_box_candidates": True,
-                                                                             "wh_thr": 2,
-                                                                             "ar_thr": 20,
-                                                                             "area_thr": 0.1
-                                                                             })
+            'ssd_mobilenet': CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
+                                                                           "train_subdir": "images/train2017",
+                                                                           "val_subdir": "images/val2017",
+                                                                           "train_json_file": "instances_train2017.json",
+                                                                           "val_json_file": "instances_val2017.json",
+                                                                           "batch_size": 16,
+                                                                           "val_batch_size": 128,
+                                                                           "val_image_size": 320,
+                                                                           "train_image_size": 320,
+                                                                           "hgain": 5,
+                                                                           "sgain": 30,
+                                                                           "vgain": 30,
+                                                                           "mixup_prob": .0,
+                                                                           "degrees": 0.,
+                                                                           "shear": 0.,
+                                                                           "flip_prob": 0.,
+                                                                           "hsv_prob": 0.,
+                                                                           "mosaic_scale": [0.5, 1.5],
+                                                                           "mixup_scale": [0.5, 1.5],
+                                                                           "mosaic_prob": 1.,
+                                                                           "translate": 0.1,
+                                                                           "val_collate_fn": CrowdDetectionCollateFN(),
+                                                                           "train_collate_fn": DetectionCollateFN(),
+                                                                           "cache_dir_path": None,
+                                                                           "cache_train_images": False,
+                                                                           "cache_val_images": False,
+                                                                           "targets_format": DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
+                                                                           "with_crowd": True,
+                                                                           "filter_box_candidates": True,
+                                                                           "wh_thr": 2,
+                                                                           "ar_thr": 20,
+                                                                           "area_thr": 0.1
+                                                                           })
         }
 
         self.coco_pretrained_maps = {'ssd_lite_mobilenet_v2': 0.2052,
@@ -276,7 +276,9 @@ class PretrainedModelsTest(unittest.TestCase):
                                                         "load_opt_params": False,
                                                         "train_metrics_list": [IoU(5)],
                                                         "valid_metrics_list": [IoU(5)],
-                                                        "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
+                                                        "loss_logging_items_names": ["main_loss", "aux_loss1",
+                                                                                     "aux_loss2", "detail_loss",
+                                                                                     "loss"],
                                                         "metric_to_watch": "IoU",
                                                         "greater_metric_to_watch_is_better": True
                                                         }
@@ -540,7 +542,8 @@ class PretrainedModelsTest(unittest.TestCase):
                             checkpoint_params=self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
-                           test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback, num_cls=80)],
+                           test_metrics_list=[
+                               DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback, num_cls=80)],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
 
@@ -566,7 +569,8 @@ class PretrainedModelsTest(unittest.TestCase):
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback,
-                                                               num_cls=len(self.coco_dataset['ssd_mobilenet'].coco_classes))],
+                                                               num_cls=len(
+                                                                   self.coco_dataset['ssd_mobilenet'].coco_classes))],
                            metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["coco_ssd_mobilenet_v1"], delta=0.001)
 

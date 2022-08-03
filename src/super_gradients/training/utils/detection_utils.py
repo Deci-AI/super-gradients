@@ -3,7 +3,7 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
+from typing import Callable, List, Union, Tuple, Optional, Dict
 
 import cv2
 from deprecated import deprecated
@@ -58,54 +58,6 @@ def _set_batch_labels_index(labels_batch):
     return labels_batch
 
 
-def base_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Tensor]:
-    """
-    Batch Processing helper function for detection training/testing.
-    Stacks the lists of images and targets into tensors and adds the image index to each target, so the targets could
-    later be associated to the correct images
-         :param batch:      Input batch from the Dataset __get_item__ method
-         :return:           Batch images and labels and a dict with 'crowd_target'
-     """
-    images_batch, labels_batch, *_additional_items_batch = zip(*batch)
-    labels_batch = _set_batch_labels_index(labels_batch)
-    return torch.stack(images_batch, 0), torch.cat(labels_batch, 0)
-
-
-def crowd_detection_collate_fn(batch: Iterable) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
-    """
-    Batch Processing helper function for detection training/testing.
-    Stacks the lists of images, targets and crowd targets into tensors and adds the image index to each target and
-    crowd targets, so the targets could later be associated to the correct images
-         :param batch:      Input batch from the Dataset __get_item__ method
-         :return:           Batch images and labels and a dict with 'crowd_target'
-     """
-    images_batch, labels_batch, *additional_items_batch = zip(*batch)
-
-    assert len(additional_items_batch) == 1, \
-        f"{len(additional_items_batch) + 2} elements were provided by the Dataloader but 3 were expected by crowd_detection_collate_fn."
-    additional_item_batch = additional_items_batch[0]
-
-    crowd_labels_batch = [item['crowd_targets'] for item in additional_item_batch]
-    labels_batch = _set_batch_labels_index(labels_batch)
-    crowd_labels_batch = _set_batch_labels_index(crowd_labels_batch)
-    return torch.stack(images_batch, 0), torch.cat(labels_batch, 0), {"crowd_targets": torch.cat(crowd_labels_batch, 0)}
-
-
-def convert_xyxy_bbox_to_xywh(input_bbox):
-    """
-    Converts bounding box format from [x1, y1, x2, y2] to [x, y, w, h]
-
-        :param input_bbox:           Input bbox of shape (n_boxes, 4)
-        :return:                     Converted bbox of shape (n_boxes, 4)
-    """
-    converted_bbox = torch.zeros_like(input_bbox) if isinstance(input_bbox, torch.Tensor) else np.zeros_like(input_bbox)
-    converted_bbox[:, 0] = (input_bbox[:, 0] + input_bbox[:, 2]) / 2
-    converted_bbox[:, 1] = (input_bbox[:, 1] + input_bbox[:, 3]) / 2
-    converted_bbox[:, 2] = input_bbox[:, 2] - input_bbox[:, 0]
-    converted_bbox[:, 3] = input_bbox[:, 3] - input_bbox[:, 1]
-    return converted_bbox
-
-
 def convert_xywh_bbox_to_xyxy(input_bbox: torch.Tensor):
     """
     Converts bounding box format from [x, y, w, h] to [x1, y1, x2, y2]
@@ -130,44 +82,6 @@ def convert_xywh_bbox_to_xyxy(input_bbox: torch.Tensor):
         converted_bbox = converted_bbox[0]
 
     return converted_bbox
-
-
-def convert_xywh_to_cxcywh(bbox: List[float], img_width: float, img_height: float) -> List[float]:
-    """
-    Convert a single bbox from xywh to cxcywh format
-    :param bbox: Bounding box in format (x_left, y_top, width, height) not normalized
-    :return:     Normalized bbox in centered and format (x_center, y_center, width, height) normalized between 0-1
-    """
-    result = [
-        (bbox[0] + bbox[2] / 2) / img_width,
-        (bbox[1] + bbox[3] / 2) / img_height,
-        (bbox[2]) / img_width,
-        (bbox[3]) / img_height,
-    ]
-    return [round(coordinate, 6) for coordinate in result]
-
-
-def calculate_wh_iou(box1, box2) -> float:
-    """
-    calculate_wh_iou - Gets the Intersection over Union of the w,h values of the bboxes
-        :param box1:
-        :param box2:
-        :return: IOU
-    """
-    # RETURNS THE IOU OF WH1 TO WH2. WH1 IS 2, WH2 IS NX2
-    box2 = box2.t()
-
-    # W, H = BOX1
-    w1, h1 = box1[0], box1[1]
-    w2, h2 = box2[0], box2[1]
-
-    # INTERSECTION AREA
-    intersection_area = torch.min(w1, w2) * torch.min(h1, h2)
-
-    # UNION AREA
-    union_area = (w1 * h1 + 1e-16) + w2 * h2 - intersection_area
-
-    return intersection_area / union_area
 
 
 def _iou(CIoU: bool, DIoU: bool, GIoU: bool, b1_x1, b1_x2, b1_y1, b1_y2, b2_x1, b2_x2, b2_y1, b2_y2, eps):
@@ -232,30 +146,6 @@ def calculate_bbox_iou_matrix(box1, box2, x1y1x2y2=True, GIoU: bool = False, DIo
     return _iou(CIoU, DIoU, GIoU, b1_x1, b1_x2, b1_y1, b1_y2, b2_x1, b2_x2, b2_y1, b2_y2, eps)
 
 
-def calculate_bbox_iou_elementwise(box1, box2, x1y1x2y2=True, GIoU: bool = False, DIoU=False, CIoU=False, eps=1e-9):
-    """
-    calculate elementwise iou of two bbox tensors
-        :param box1: a 2D tensor of boxes (shape N x 4)
-        :param box2: a 2D tensor of boxes (shape N x 4)
-        :param x1y1x2y2: boxes format is x1y1x2y2 (True) or xywh where xy is the center (False)
-        :return: a 1D iou tensor (shape N)
-    """
-    # Returns the IoU of box1 to box2. box1 is 4, box2 is nx4
-    box2 = box2.T
-
-    # Get the coordinates of bounding boxes
-    if x1y1x2y2:  # x1, y1, x2, y2 = box1
-        b1_x1, b1_y1, b1_x2, b1_y2 = box1[0], box1[1], box1[2], box1[3]
-        b2_x1, b2_y1, b2_x2, b2_y2 = box2[0], box2[1], box2[2], box2[3]
-    else:  # x, y, w, h = box1
-        b1_x1, b1_x2 = box1[0] - box1[2] / 2, box1[0] + box1[2] / 2
-        b1_y1, b1_y2 = box1[1] - box1[3] / 2, box1[1] + box1[3] / 2
-        b2_x1, b2_x2 = box2[0] - box2[2] / 2, box2[0] + box2[2] / 2
-        b2_y1, b2_y2 = box2[1] - box2[3] / 2, box2[1] + box2[3] / 2
-
-    return _iou(CIoU, DIoU, GIoU, b1_x1, b1_x2, b1_y1, b1_y2, b2_x1, b2_x2, b2_y1, b2_y2, eps)
-
-
 def calc_bbox_iou_matrix(pred: torch.Tensor):
     """
     calculate iou for every pair of boxes in the boxes vector
@@ -281,217 +171,11 @@ def calc_bbox_iou_matrix(pred: torch.Tensor):
     return ious
 
 
-def build_detection_targets(detection_net: nn.Module, targets: torch.Tensor):
-    """
-    build_detection_targets - Builds the outputs of the Detection NN
-                              This function filters all of the targets that don't have a sufficient iou coverage
-                              of the Model's pre-trained k-means anchors
-                              The iou_threshold is a parameter of the NN Model
-        :param detection_net:   The nn.Module of the Detection Algorithm
-        :param targets:         targets (labels)
-        :return:
-    """
-    # TARGETS = [image, class, x, y, w, h]
-    targets_num = len(targets)
-    target_classes, target_bbox, indices, anchor_vector_list = [], [], [], []
-    reject, use_all_anchors = True, True
-
-    for i in detection_net.yolo_layers_indices:
-        yolo_layer_module = list(detection_net.module_list)[i]
-
-        # GET NUMBER OF GRID POINTS AND ANCHOR VEC FOR THIS YOLO LAYER
-        grid_points_num, anchor_vec = yolo_layer_module.grid_size, yolo_layer_module.anchor_vec
-
-        # IOU OF TARGETS-ANCHORS
-        iou_targets, anchors = targets, []
-        gwh = iou_targets[:, 4:6] * grid_points_num
-        if targets_num:
-            iou = torch.stack([calculate_wh_iou(x, gwh) for x in anchor_vec], 0)
-
-            if use_all_anchors:
-                anchors_num = len(anchor_vec)
-                anchors = torch.arange(anchors_num).view((-1, 1)).repeat([1, targets_num]).view(-1)
-                iou_targets = targets.repeat([anchors_num, 1])
-                gwh = gwh.repeat([anchors_num, 1])
-            else:
-                # USE ONLY THE BEST ANCHOR
-                iou, anchors = iou.max(0)  # best iou and anchor
-
-            # REJECT ANCHORS BELOW IOU_THRES (OPTIONAL, INCREASES P, LOWERS R)
-            if reject:
-                # IOU THRESHOLD HYPERPARAMETER
-                j = iou.view(-1) > detection_net.iou_t
-                iou_targets, anchors, gwh = iou_targets[j], anchors[j], gwh[j]
-
-        # INDICES
-        target_image, target_class = iou_targets[:, :2].long().t()
-        x_y_grid = iou_targets[:, 2:4] * grid_points_num
-        x_grid_idx, y_grid_idx = x_y_grid.long().t()
-        indices.append((target_image, anchors, y_grid_idx, x_grid_idx))
-
-        # GIoU
-        x_y_grid -= x_y_grid.floor()
-        target_bbox.append(torch.cat((x_y_grid, gwh), 1))
-        anchor_vector_list.append(anchor_vec[anchors])
-
-        # Class
-        target_classes.append(target_class)
-        if target_class.shape[0]:
-            if not target_class.max() < detection_net.num_classes:
-                raise ValueError('Labeled Class is out of bounds of the classes list')
-
-    return target_classes, target_bbox, indices, anchor_vector_list
-
-
-def yolo_v3_non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.5, device='cpu'):  # noqa: C901
-    """
-    non_max_suppression - Removes detections with lower object confidence score than 'conf_thres'
-                          Non-Maximum Suppression to further filter detections.
-        :param prediction:      the raw prediction as produced by the yolo_v3 network
-        :param conf_thres:      confidence threshold - only prediction with confidence score higher than the threshold
-                                will be considered
-        :param nms_thres:       IoU threshold for the nms algorithm
-        :param device:          the device to move all output tensors into
-        :return:  (x1, y1, x2, y2, object_conf, class_conf, class)
-    """
-    # MINIMUM AND MAXIMIUM BOX WIDTH AND HEIGHT IN PIXELS
-    min_wh = 2
-    max_wh = 10000
-
-    output = [None] * len(prediction)
-    for image_i, pred in enumerate(prediction):
-        # MULTIPLY CONF BY CLASS CONF TO GET COMBINED CONFIDENCE
-        class_conf, class_pred = pred[:, 5:].max(1)
-        pred[:, 4] *= class_conf
-
-        # IGNORE ANYTHING UNDER conf_thres
-        i = (pred[:, 4] > conf_thres) & (pred[:, 2:4] > min_wh).all(1) & (pred[:, 2:4] < max_wh).all(1) & \
-            torch.isfinite(pred).all(1)
-        pred = pred[i]
-
-        # NOTHING IS OVER THE THRESHOLD
-        if len(pred) == 0:
-            continue
-
-        class_conf = class_conf[i]
-        class_pred = class_pred[i].unsqueeze(1).float()
-
-        # BOX (CENTER X, CENTER Y, WIDTH, HEIGHT) TO (X1, Y1, X2, Y2)
-        pred[:, :4] = convert_xywh_bbox_to_xyxy(pred[:, :4])
-
-        # DETECTIONS ORDERED AS (x1y1x2y2, obj_conf, class_conf, class_pred)
-        pred = torch.cat((pred[:, :5], class_conf.unsqueeze(1), class_pred), 1)
-
-        # SORT DETECTIONS BY DECREASING CONFIDENCE SCORES
-        pred = pred[(-pred[:, 4]).argsort()]
-
-        # 'OR', 'AND', 'MERGE', 'VISION', 'VISION_BATCHED'
-        # MERGE is highest mAP, VISION is fastest
-        method = 'MERGE' if conf_thres <= 0.01 else 'VISION'
-
-        # BATCHED NMS
-        if method == 'VISION_BATCHED':
-            i = torchvision.ops.boxes.batched_nms(boxes=pred[:, :4],
-                                                  scores=pred[:, 4],
-                                                  idxs=pred[:, 6],
-                                                  iou_threshold=nms_thres)
-            output[image_i] = pred[i]
-            continue
-
-        # Non-maximum suppression
-        det_max = []
-        for detection_class in pred[:, -1].unique():
-            dc = pred[pred[:, -1] == detection_class]
-            n = len(dc)
-            if n == 1:
-                # NO NMS REQUIRED FOR A SINGLE CLASS
-                det_max.append(dc)
-                continue
-            elif n > 500:
-                dc = dc[:500]
-
-            if method == 'VISION':
-                i = torchvision.ops.boxes.nms(dc[:, :4], dc[:, 4], nms_thres)
-                det_max.append(dc[i])
-
-            elif method == 'OR':
-                while dc.shape[0]:
-                    det_max.append(dc[:1])
-                    if len(dc) == 1:
-                        break
-                    iou = calculate_bbox_iou_elementwise(dc[0], dc[1:])
-                    dc = dc[1:][iou < nms_thres]
-
-            elif method == 'AND':
-                while len(dc) > 1:
-                    iou = calculate_bbox_iou_elementwise(dc[0], dc[1:])
-                    if iou.max() > 0.5:
-                        det_max.append(dc[:1])
-                    dc = dc[1:][iou < nms_thres]
-
-            elif method == 'MERGE':
-                while len(dc):
-                    if len(dc) == 1:
-                        det_max.append(dc)
-                        break
-                    i = calculate_bbox_iou_elementwise(dc[0], dc) > nms_thres
-                    weights = dc[i, 4:5]
-                    dc[0, :4] = (weights * dc[i, :4]).sum(0) / weights.sum()
-                    det_max.append(dc[:1])
-                    dc = dc[i == 0]
-
-            elif method == 'SOFT':
-                sigma = 0.5
-                while len(dc):
-                    if len(dc) == 1:
-                        det_max.append(dc)
-                        break
-                    det_max.append(dc[:1])
-                    iou = calculate_bbox_iou_elementwise(dc[0], dc[1:])
-                    dc = dc[1:]
-                    dc[:, 4] *= torch.exp(-iou ** 2 / sigma)
-                    dc = dc[dc[:, 4] > conf_thres]
-
-        if len(det_max):
-            det_max = torch.cat(det_max)
-            output[image_i] = det_max[(-det_max[:, 4]).argsort()].to(device)
-
-    return output
-
-
 def change_bbox_bounds_for_image_size(boxes, img_shape):
     # CLIP BOUNDING XYXY BOUNDING BOXES TO IMAGE SHAPE (HEIGHT, WIDTH)
     boxes[:, [0, 2]] = boxes[:, [0, 2]].clamp(min=0, max=img_shape[1])
     boxes[:, [1, 3]] = boxes[:, [1, 3]].clamp(min=0, max=img_shape[0])
     return boxes
-
-
-def rescale_bboxes_for_image_size(current_image_shape, bbox, original_image_shape, ratio_pad=None):
-    """
-    rescale_bboxes_for_image_size - Changes the bboxes to fit the original image
-        :param current_image_shape:
-        :param bbox:
-        :param original_image_shape:
-        :param ratio_pad:
-        :return:
-    """
-    if ratio_pad is None:
-        gain = max(current_image_shape) / max(original_image_shape)
-        # WH PADDING
-        pad = (current_image_shape[1] - original_image_shape[1] * gain) / 2, \
-              (current_image_shape[0] - original_image_shape[0] * gain) / 2
-    else:
-        gain = ratio_pad[0][0]
-        pad = ratio_pad[1]
-
-    # X PADDING
-    bbox[:, [0, 2]] -= pad[0]
-
-    # Y PADDING
-    bbox[:, [1, 3]] -= pad[1]
-    bbox[:, :4] /= gain
-    bbox = change_bbox_bounds_for_image_size(bbox, original_image_shape)
-    return bbox
 
 
 class DetectionPostPredictionCallback(ABC, nn.Module):
@@ -509,18 +193,6 @@ class DetectionPostPredictionCallback(ABC, nn.Module):
                         with shape: nx6 (x1, y1, x2, y2, confidence, class) where x and y are in range [0,1]
         """
         raise NotImplementedError
-
-
-class YoloV3NonMaxSuppression(DetectionPostPredictionCallback):
-
-    def __init__(self, conf: float = 0.001, nms_thres: float = 0.5, max_predictions=500) -> None:
-        super().__init__()
-        self.conf = conf
-        self.max_predictions = max_predictions
-        self.nms_thres = nms_thres
-
-    def forward(self, x, device: str):
-        return yolo_v3_non_max_suppression(x[0], device=device, conf_thres=self.conf, nms_thres=self.nms_thres)
 
 
 class IouThreshold(tuple, Enum):
@@ -738,48 +410,6 @@ class NMS_Type(str, Enum):
     """
     ITERATIVE = 'iterative'
     MATRIX = 'matrix'
-
-
-def plot_coco_datasaet_images_with_detections(data_loader, num_images_to_plot=1):
-    """
-    plot_coco_images
-        :param data_loader:
-        :param num_images_to_plot:
-        :return:
-    # """
-    images_counter = 0
-
-    # PLOT ONE image AND ONE GROUND_TRUTH bbox
-    for imgs, targets in data_loader:
-
-        # PLOTS TRAINING IMAGES OVERLAID WITH TARGETS
-        imgs = imgs.cpu().numpy()
-        targets = targets.cpu().numpy()
-
-        fig = plt.figure(figsize=(10, 10))
-        batch_size, _, h, w = imgs.shape
-
-        # LIMIT PLOT TO 16 IMAGES
-        batch_size = min(batch_size, 16)
-
-        # NUMBER OF SUBPLOTS
-        ns = np.ceil(batch_size ** 0.5)
-
-        for i in range(batch_size):
-            boxes = convert_xywh_bbox_to_xyxy(
-                torch.from_numpy(targets[targets[:, 0] == i, 2:6])).cpu().detach().numpy().T
-            boxes[[0, 2]] *= w
-            boxes[[1, 3]] *= h
-            plt.subplot(ns, ns, i + 1).imshow(imgs[i].transpose(1, 2, 0))
-            plt.plot(boxes[[0, 2, 2, 0, 0]], boxes[[1, 1, 3, 3, 1]], '.-')
-            plt.axis('off')
-        fig.tight_layout()
-        plt.show()
-        plt.close()
-
-        images_counter += 1
-        if images_counter == num_images_to_plot:
-            break
 
 
 def undo_image_preprocessing(im_tensor: torch.Tensor) -> np.ndarray:

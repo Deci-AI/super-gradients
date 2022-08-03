@@ -12,7 +12,6 @@ import torch
 import torch.distributed as dist
 
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
-from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataSet
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from deprecated import deprecated
@@ -416,11 +415,13 @@ class DatasetStatisticsTensorboardLogger:
         :param anchors: the list of anchors used by the model. applicable only for detection datasets
         :param all_classes: the list of all classes names
         """
-        if isinstance(data_loader.dataset, DetectionDataSet):
-            self._analyze_detection(data_loader=data_loader, title=title,
-                                    all_classes=all_classes, anchors=anchors)
-        else:
-            DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
+        # FIXME: UNCOMMENT AND APPLY TO NEW DetectionDataSet ONCE ITS MERGED
+        # if isinstance(data_loader.dataset, DetectionDataSet):
+        #     self._analyze_detection(data_loader=data_loader, title=title,
+        #                             all_classes=all_classes, anchors=anchors)
+        # else:
+        #     DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
+        DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
 
     def _analyze_detection(self, data_loader, title, all_classes, anchors=None):
         """
