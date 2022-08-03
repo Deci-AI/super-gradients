@@ -410,7 +410,7 @@ class DetectionMosaic(DetectionTransform):
             all_samples = [sample] + sample["additional_samples"]
 
             for i_mosaic, mosaic_sample in enumerate(all_samples):
-                img, _labels, = mosaic_sample["image"], mosaic_sample["target"]
+                img, _labels = mosaic_sample["image"], mosaic_sample["target"]
                 _labels_seg = mosaic_sample.get("target_seg")
 
                 h0, w0 = img.shape[:2]  # orig hw
@@ -491,11 +491,14 @@ class DetectionRandomAffine(DetectionTransform):
 
      filter_box_candidates: (bool) whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio (default=False).
 
-     wh_thr: (float) edge size threshold when filter_box_candidates = True (default=2)
+     wh_thr: (float) edge size threshold when filter_box_candidates = True. Bounding oxes with edges smaller
+      then this values will be filtered out. (default=2)
 
-     ar_thr: (float) aspect ratio threshold filter_box_candidates = True (default=20)
+     ar_thr: (float) aspect ratio threshold filter_box_candidates = True. Bounding boxes with aspect ratio larger
+      then this values will be filtered out. (default=20)
 
-     area_thr:(float) threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True (default=0.1)
+     area_thr:(float) threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True.
+      Bounding boxes with such ratio smaller then this value will be filtered out. (default=0.1)
 
     """
 
@@ -527,6 +530,10 @@ class DetectionRandomAffine(DetectionTransform):
                 translate=self.translate,
                 scales=self.scale,
                 shear=self.shear,
+                filter_box_candidates=self.filter_box_candidates,
+                wh_thr=self.wh_thr,
+                area_thr=self.area_thr,
+                ar_thr=self.ar_thr
             )
             sample["image"] = img
             sample["target"] = target
@@ -963,9 +970,14 @@ def random_affine(
                                 from (shear, shear)
 
     :param filter_box_candidates:    whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
-    :param wh_thr:                   edge size threshold when filter_box_candidates = True (pixels)
-    :param ar_thr:                   aspect ratio threshold filter_box_candidates = True
-    :param area_thr:                 threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
+    :param wh_thr: (float) edge size threshold when filter_box_candidates = True. Bounding oxes with edges smaller
+      then this values will be filtered out. (default=2)
+
+    :param ar_thr: (float) aspect ratio threshold filter_box_candidates = True. Bounding boxes with aspect ratio larger
+      then this values will be filtered out. (default=20)
+
+    :param area_thr:(float) threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True.
+      Bounding boxes with such ratio smaller then this value will be filtered out. (default=0.1)
     :return:            Image and Target with applied random affine
     """
 
