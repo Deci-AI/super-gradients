@@ -45,7 +45,7 @@ class TestDatasetInterface(unittest.TestCase):
                                                 output_format=DetectionTargetsFormat.LABEL_CXCYWH)],
             "train_collate_fn": DetectionCollateFN(),
             "val_collate_fn": DetectionCollateFN(),
-            "download": True,
+            "download": False,
             "cache_train_images": False,
             "cache_val_images": False,
             "class_inclusion_list": ["person"]
