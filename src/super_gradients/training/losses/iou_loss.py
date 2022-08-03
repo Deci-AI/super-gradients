@@ -9,40 +9,39 @@ from super_gradients.training.losses.structure_loss import AbstarctSegmentationS
 logger = get_logger(__name__)
 
 
-class DiceLoss(AbstarctSegmentationStructureLoss):
+class IoULoss(AbstarctSegmentationStructureLoss):
     """
-    Compute average Dice loss between two tensors, It can support both multi-classes and binary tasks.
-    Defined in the paper: "V-Net: Fully Convolutional Neural Networks for Volumetric Medical Image Segmentation"
+    Compute average IoU loss between two tensors, It can support both multi-classes and binary tasks.
     """
     def _calc_numerator_denominator(self, labels_one_hot, predict):
         """
-        Calculate dice metric's numerator and denominator.
+        Calculate iou metric's numerator and denominator.
 
         :param labels_one_hot: target in one hot format.   shape: [BS, num_classes, img_width, img_height]
         :param predict: predictions tensor.                shape: [BS, num_classes, img_width, img_height]
         :return:
-            numerator = intersection between predictions and target. shape: [BS, num_classes, img_width, img_height]
-            denominator = sum of predictions and target areas.       shape: [BS, num_classes, img_width, img_height]
+            numerator = intersection between predictions and target.    shape: [BS, num_classes, img_width, img_height]
+            denominator = area of union between predictions and target. shape: [BS, num_classes, img_width, img_height]
         """
         numerator = labels_one_hot * predict
-        denominator = labels_one_hot + predict
+        denominator = labels_one_hot + predict - numerator
         return numerator, denominator
 
     def _calc_loss(self, numerator, denominator):
         """
-        Calculate dice loss.
-        All tensors are of shape [BS] if self.reduce_over_batches else [num_classes].
+        Calculate iou loss.
+        All tensors are of shape [BS] if self.reduce_over_batches else [num_classes]
 
         :param numerator: intersection between predictions and target.
-        :param denominator: total number of pixels of prediction and target.
+        :param denominator: area of union between prediction pixels and target pixels.
         """
-        loss = 1. - ((2. * numerator + self.smooth) / (denominator + self.eps + self.smooth))
+        loss = 1. - ((numerator + self.smooth) / (denominator + self.eps + self.smooth))
         return loss
 
 
-class BinaryDiceLoss(DiceLoss):
+class BinaryIoULoss(IoULoss):
     """
-    Compute Dice Loss for binary class tasks (1 class only).
+    Compute IoU Loss for binary class tasks (1 class only).
     Except target to be a binary map with 0 and 1 values.
     """
     def __init__(self,
@@ -51,7 +50,7 @@ class BinaryDiceLoss(DiceLoss):
                  eps: float = 1e-5):
         """
         :param apply_sigmoid: Whether to apply sigmoid to the predictions.
-        :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the dice
+        :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the IoU
             coefficient is to 1, which can be used as a regularization effect.
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
         :param eps: epsilon value to avoid inf.
@@ -65,14 +64,12 @@ class BinaryDiceLoss(DiceLoss):
         return super().forward(predict=predict, target=target)
 
 
-class GeneralizedDiceLoss(DiceLoss):
+class GeneralizedIoULoss(IoULoss):
     """
-    Compute the Generalised Dice loss, contribution of each label is normalized by the inverse of its volume, in order
+    Compute the Generalised IoU loss, contribution of each label is normalized by the inverse of its volume, in order
      to deal with class imbalance.
-    Defined in the paper: "Generalised Dice overlap as a deep learning loss function for highly unbalanced
-     segmentations"
     Args:
-        smooth (float): default value is 0, smooth laplacian is not recommended to be used with GeneralizedDiceLoss.
+        smooth (float): default value is 0, smooth laplacian is not recommended to be used with GeneralizedIoULoss.
          because the weighted values to be added are very small.
         eps (float): default value is 1e-17, must be a very small value, because weighted `intersection` and
         `denominator` are very small after multiplication with `1 / counts ** 2`
@@ -87,7 +84,7 @@ class GeneralizedDiceLoss(DiceLoss):
                  ):
         """
         :param apply_softmax: Whether to apply softmax to the predictions.
-        :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the dice
+        :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the iou
             coefficient is to 1, which can be used as a regularization effect.
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
         :param eps: epsilon value to avoid inf.
