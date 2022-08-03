@@ -4,7 +4,7 @@ from super_gradients.training.datasets.dataset_interfaces.dataset_interface impo
     ImageNetDatasetInterface, TinyImageNetDatasetInterface, CoCoSegmentationDatasetInterface, \
     PascalAUG2012SegmentationDataSetInterface, PascalVOC2012SegmentationDataSetInterface, \
     TestYoloDetectionDatasetInterface, SegmentationTestDatasetInterface, DetectionTestDatasetInterface, ClassificationTestDatasetInterface,\
-    CoCoDetectionDatasetInterface, PascalVOCUnifiedDetectionDataSetInterfaceDetection
+    CoCoDetectionDatasetInterface, PascalVOCUnifiedDetectionDatasetInterface
 
 
 __all__ = ['DatasetInterface', 'TestDatasetInterface', 'LibraryDatasetInterface', 'ClassificationDatasetInterface', 'Cifar10DatasetInterface',
@@ -12,4 +12,4 @@ __all__ = ['DatasetInterface', 'TestDatasetInterface', 'LibraryDatasetInterface'
            'CoCoSegmentationDatasetInterface', 'PascalAUG2012SegmentationDataSetInterface',
            'PascalVOC2012SegmentationDataSetInterface', 'TestYoloDetectionDatasetInterface', 'SegmentationTestDatasetInterface',
            'DetectionTestDatasetInterface', 'ClassificationTestDatasetInterface', 'CoCoDetectionDatasetInterface',
-           'PascalVOCUnifiedDetectionDataSetInterfaceDetection']
+           'PascalVOCUnifiedDetectionDatasetInterface']

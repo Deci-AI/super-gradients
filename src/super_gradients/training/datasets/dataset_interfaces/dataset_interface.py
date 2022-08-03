@@ -727,7 +727,7 @@ class DetectionDatasetInterface(DatasetInterface):
         self.val_loader = val_loader
 
 
-class PascalVOCUnifiedDetectionDataSetInterfaceDetection(DetectionDatasetInterface):
+class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
 
     def __init__(self, dataset_params=None):
         if dataset_params is None:
