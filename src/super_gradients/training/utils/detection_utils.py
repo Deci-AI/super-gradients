@@ -3,7 +3,7 @@ import os
 import pathlib
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
+from typing import Callable, List, Union, Tuple, Optional, Dict
 
 import cv2
 from deprecated import deprecated

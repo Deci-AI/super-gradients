@@ -5,8 +5,7 @@ from super_gradients.training import SgModel, utils as core_utils
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterfaceV2
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
-from super_gradients.training.utils.detection_utils import DetectionVisualization, CrowdDetectionCollateFN, \
-    DetectionCollateFN, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionCollateFN, DetectionTargetsFormat
 
 
 class TestDetectionUtils(unittest.TestCase):
@@ -45,7 +44,6 @@ class TestDetectionUtils(unittest.TestCase):
                                                                   "ar_thr": 0,
                                                                   "area_thr": 0
                                                                   })
-
 
         # Create Yolo model
         model = SgModel('visualization_test',
