@@ -3,10 +3,13 @@ from super_gradients.training.datasets.dataset_interfaces.dataset_interface impo
     ClassificationDatasetInterface, Cifar10DatasetInterface, Cifar100DatasetInterface, \
     ImageNetDatasetInterface, TinyImageNetDatasetInterface, CoCoSegmentationDatasetInterface, \
     PascalAUG2012SegmentationDataSetInterface, PascalVOC2012SegmentationDataSetInterface, \
-    TestYoloDetectionDatasetInterface, SegmentationTestDatasetInterface, DetectionTestDatasetInterface, ClassificationTestDatasetInterface
+    TestYoloDetectionDatasetInterface, SegmentationTestDatasetInterface, DetectionTestDatasetInterface, ClassificationTestDatasetInterface,\
+    CoCoDetectionDatasetInterface, PascalVOCUnifiedDetectionDatasetInterface
+
 
 __all__ = ['DatasetInterface', 'TestDatasetInterface', 'LibraryDatasetInterface', 'ClassificationDatasetInterface', 'Cifar10DatasetInterface',
            'Cifar100DatasetInterface', 'ImageNetDatasetInterface', 'TinyImageNetDatasetInterface',
            'CoCoSegmentationDatasetInterface', 'PascalAUG2012SegmentationDataSetInterface',
            'PascalVOC2012SegmentationDataSetInterface', 'TestYoloDetectionDatasetInterface', 'SegmentationTestDatasetInterface',
-           'DetectionTestDatasetInterface', 'ClassificationTestDatasetInterface']
+           'DetectionTestDatasetInterface', 'ClassificationTestDatasetInterface', 'CoCoDetectionDatasetInterface',
+           'PascalVOCUnifiedDetectionDatasetInterface']
