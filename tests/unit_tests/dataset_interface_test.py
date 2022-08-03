@@ -12,7 +12,7 @@ from super_gradients.training import utils as core_utils
 
 class TestDatasetInterface(unittest.TestCase):
     def setUp(self) -> None:
-        self.root_dir = "/home/louis.dupont/data/"
+        self.root_dir = "/home/data/"
         self.train_batch_size, self.val_batch_size = 16, 32
         self.train_image_size, self.val_image_size = 640, 640
         self.train_input_dim = (self.train_image_size, self.train_image_size)

@@ -17,7 +17,7 @@ class SubclassingIntegrationTest(unittest.TestCase):
         transforms = [DetectionMosaic(input_dim=(640, 640), prob=0.8),
                       DetectionPaddedRescale(input_dim=(640, 640), max_targets=120),
                       DetectionTargetsFormatTransform(output_format=DetectionTargetsFormat.XYXY_LABEL)]
-        self.pascal_base_config = dict(data_dir='/home/louis.dupont/data/pascal_unified_coco_format/',
+        self.pascal_base_config = dict(data_dir='/home/data/pascal_unified_coco_format/',
                                        images_sub_directory='images/train2012/',
                                        input_dim=(640, 640),
                                        transforms=transforms)
