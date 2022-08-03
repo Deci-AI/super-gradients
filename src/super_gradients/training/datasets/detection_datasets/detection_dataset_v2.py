@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Union, Any, Optional, Tuple, Callable
+from typing import List, Dict, Union, Any, Optional, Tuple
 from multiprocessing.pool import ThreadPool
 import random
 import cv2
