@@ -965,7 +965,7 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterfaceV2):
                 sub_trainset = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
                                                            input_dim=train_input_dim,
                                                            cache=self.dataset_params.cache_train_images,
-                                                           cache_path=self.data_dir + "cache_train",
+                                                           cache_path=self.dataset_params.cache_dir + "cache_train",
                                                            transforms=self.dataset_params.train_transforms,
                                                            images_sub_directory='images/' + trainset_prefix + trainset_year + '/',
                                                            class_inclusion_list=self.dataset_params.class_inclusion_list)
@@ -974,7 +974,7 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterfaceV2):
         testset2007 = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
                                                   input_dim=val_input_dim,
                                                   cache=self.dataset_params.cache_val_images,
-                                                  cache_path=self.data_dir + "cache_valid",
+                                                  cache_path=self.dataset_params.cache_dir + "cache_valid",
                                                   transforms=self.dataset_params.val_transforms,
                                                   images_sub_directory='images/test2007/',
                                                   class_inclusion_list=self.dataset_params.class_inclusion_list)

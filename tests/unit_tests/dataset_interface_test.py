@@ -12,7 +12,7 @@ from super_gradients.training import utils as core_utils
 
 class TestDatasetInterface(unittest.TestCase):
     def setUp(self) -> None:
-        self.ROOT_DIR = "/home/louis.dupont/data"
+        self.ROOT_DIR = "/home/data/"
         self.TRAIN_BATCH_SIZE, self.VAL_BATCH_SIZE = 16, 32
         self.TRAIN_IMG_SIZE, self.VAL_IMG_SIZE = 640, 640
         self.TRAIN_INPUT_DIM = (self.TRAIN_IMG_SIZE, self.TRAIN_IMG_SIZE)
@@ -26,7 +26,8 @@ class TestDatasetInterface(unittest.TestCase):
     def setup_pascal_voc_interface_v2(self):
         """setup PascalVOCUnifiedDetectionDataSetInterfaceV2 and return dataloaders"""
         dataset_params = {
-            "data_dir": self.ROOT_DIR + "/pascal_unified_coco_format/",
+            "data_dir": self.ROOT_DIR + "pascal_unified_coco_format/",
+            "cache_dir": self.ROOT_DIR + "pascal_unified_coco_format/",
             "batch_size": self.TRAIN_BATCH_SIZE,
             "val_batch_size": self.VAL_BATCH_SIZE,
             "train_image_size": self.TRAIN_IMG_SIZE,
@@ -45,8 +46,8 @@ class TestDatasetInterface(unittest.TestCase):
             "train_collate_fn": DetectionCollateFN(),
             "val_collate_fn": DetectionCollateFN(),
             "download": True,
-            "cache_train_images": True,
-            "cache_val_images": True,
+            "cache_train_images": False,
+            "cache_val_images": False,
             "class_inclusion_list": ["person"]
         }
         dataset_interface = PascalVOCUnifiedDetectionDataSetInterfaceV2(dataset_params=dataset_params)
