@@ -1,7 +1,6 @@
 import unittest
-from super_gradients.training.datasets import Cifar10DatasetInterface
 
-import super_gradients
+from super_gradients.training.datasets import Cifar10DatasetInterface
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDataSetInterfaceV2
 from super_gradients.training.transforms.transforms import DetectionPaddedRescale, DetectionTargetsFormatTransform, DetectionMosaic, DetectionRandomAffine,\
     DetectionHSV
@@ -9,6 +8,7 @@ from super_gradients.training.utils.detection_utils import DetectionTargetsForma
 from super_gradients.training.utils.detection_utils import DetectionCollateFN
 from super_gradients.training.utils import sg_model_utils
 from super_gradients.training import utils as core_utils
+
 
 class TestDatasetInterface(unittest.TestCase):
     def setUp(self) -> None:
