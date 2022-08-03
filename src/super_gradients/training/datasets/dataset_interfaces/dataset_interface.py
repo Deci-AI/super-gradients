@@ -810,9 +810,9 @@ class CoCoDetectionDatasetInterface(DatasetInterface):
             self.trainset = COCODetectionDataset(data_dir=self.dataset_params.data_dir,
                                                  name=self.dataset_params.train_subdir,
                                                  json_file=self.dataset_params.train_json_file,
-                                                 img_size=train_input_dim,
+                                                 input_dim=train_input_dim,
                                                  cache=self.dataset_params.cache_train_images,
-                                                 cache_dir_path=self.dataset_params.cache_dir_path,
+                                                 cache_path=self.dataset_params.cache_dir_path,
                                                  transforms=train_transforms,
                                                  with_crowd=False)
 
@@ -825,11 +825,11 @@ class CoCoDetectionDatasetInterface(DatasetInterface):
                 data_dir=self.dataset_params.data_dir,
                 json_file=self.dataset_params.val_json_file,
                 name=self.dataset_params.val_subdir,
-                img_size=val_input_dim,
+                input_dim=train_input_dim,
                 transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
                             DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)],
                 cache=self.dataset_params.cache_val_images,
-                cache_dir_path=self.dataset_params.cache_dir_path,
+                cache_path=self.dataset_params.cache_dir_path,
                 with_crowd=with_crowd)
 
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
