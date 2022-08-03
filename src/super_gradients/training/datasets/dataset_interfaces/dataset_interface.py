@@ -911,7 +911,41 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
         self.classes = self.trainset.classes
 
 
-class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
+class DatasetInterfaceV2(DatasetInterface):
+    def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
+                           test_batch_size=None, distributed_sampler: bool = False):
+
+        train_sampler = InfiniteSampler(len(self.trainset), seed=0)
+
+        train_batch_sampler = BatchSampler(
+            sampler=train_sampler,
+            batch_size=self.dataset_params.batch_size,
+            drop_last=False,
+        )
+
+        self.train_loader = DataLoader(self.trainset,
+                                       batch_sampler=train_batch_sampler,
+                                       num_workers=num_workers,
+                                       pin_memory=True,
+                                       worker_init_fn=worker_init_reset_seed,
+                                       collate_fn=self.dataset_params.train_collate_fn)
+
+        if distributed_sampler:
+            sampler = torch.utils.data.distributed.DistributedSampler(self.valset, shuffle=False)
+        else:
+            sampler = torch.utils.data.SequentialSampler(self.valset)
+
+        val_loader = torch.utils.data.DataLoader(self.valset,
+                                                 num_workers=num_workers,
+                                                 pin_memory=True,
+                                                 sampler=sampler,
+                                                 batch_size=self.dataset_params.val_batch_size,
+                                                 collate_fn=self.dataset_params.val_collate_fn)
+
+        self.val_loader = val_loader
+
+
+class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterfaceV2):
 
     def __init__(self, dataset_params=None):
         if dataset_params is None:
@@ -931,21 +965,19 @@ class PascalVOCUnifiedDetectionDataSetInterfaceV2(DatasetInterface):
                 sub_trainset = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
                                                            input_dim=train_input_dim,
                                                            cache=self.dataset_params.cache_train_images,
-                                                           cache_path=self.dataset_params + "cache_train",
+                                                           cache_path=self.data_dir + "cache_train",
                                                            transforms=self.dataset_params.train_transforms,
                                                            images_sub_directory='images/' + trainset_prefix + trainset_year + '/',
-                                                           class_inclusion_list=self.dataset_params.class_inclusion_list,
-                                                           collate_fn=self.dataset_params.train_collate_fn,)
+                                                           class_inclusion_list=self.dataset_params.class_inclusion_list)
                 train_sets.append(sub_trainset)
 
         testset2007 = PascalVOCDetectionDataSetV2(data_dir=self.data_dir,
                                                   input_dim=val_input_dim,
                                                   cache=self.dataset_params.cache_val_images,
-                                                  cache_path=self.dataset_params + "cache_valid",
+                                                  cache_path=self.data_dir + "cache_valid",
                                                   transforms=self.dataset_params.val_transforms,
                                                   images_sub_directory='images/test2007/',
-                                                  class_inclusion_list=self.dataset_params.class_inclusion_list,
-                                                  collate_fn=self.dataset_params.val_collate_fn,)
+                                                  class_inclusion_list=self.dataset_params.class_inclusion_list)
 
         self.classes = train_sets[1].classes
         self.trainset = ConcatDataset(train_sets)

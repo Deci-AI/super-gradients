@@ -99,13 +99,11 @@ class DetectionDataSetV2(Dataset):
         self.original_target_format = original_target_format
         self.n_available_samples = n_available_samples
 
-        self.image_metadata_file = "METADATA.json"
-
         self.all_classes_list = all_classes_list
         self.class_inclusion_list = class_inclusion_list
         self.classes = self.class_inclusion_list or self.all_classes_list
-        if len(set(class_inclusion_list) - set(all_classes_list)) > 0:
-            wrong_classes = set(class_inclusion_list) - set(all_classes_list)
+        if len(set(self.classes) - set(all_classes_list)) > 0:
+            wrong_classes = set(self.classes) - set(all_classes_list)
             raise ValueError(f"class_inclusion_list includes classes that are not in all_classes_list: {wrong_classes}")
 
         self.ignore_empty_annotations = ignore_empty_annotations
@@ -124,10 +122,6 @@ class DetectionDataSetV2(Dataset):
         self.output_fields = output_fields or ["image", "target"]
         if len(self.output_fields) < 2 or self.output_fields[0] != "image" or self.output_fields[1] != "target":
             raise ValueError('output_fields must start with "image" and then "target", followed by any other field')
-
-        # IF collate_fn IS PROVIDED IN CTOR WE ASSUME THERE IS A BASE-CLASS INHERITANCE W/O collate_fn IMPLEMENTATION
-        if collate_fn is not None:
-            self.collate_fn = collate_fn
 
     def _load_annotation(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
         """Load annotations associated to a specific sample.
@@ -368,7 +362,7 @@ class DetectionDataSetV2(Dataset):
         return target_format
 
     def plot(self, max_samples_per_plot: int = 16, n_plots: int = 1, plot_transformed_data: bool = True):
-        """Combine samples of images with bbox and plots the result.
+        """Combine samples of images with bbox into plots and display the result.
 
             :param max_samples_per_plot:    Maximum number of images to be displayed per plot
             :param n_plots:                 Number of plots to display (each plot being a combination of img with bbox)
