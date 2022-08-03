@@ -12,11 +12,11 @@ from super_gradients.training import utils as core_utils
 
 class TestDatasetInterface(unittest.TestCase):
     def setUp(self) -> None:
-        self.ROOT_DIR = "/home/data/"
-        self.TRAIN_BATCH_SIZE, self.VAL_BATCH_SIZE = 16, 32
-        self.TRAIN_IMG_SIZE, self.VAL_IMG_SIZE = 640, 640
-        self.TRAIN_INPUT_DIM = (self.TRAIN_IMG_SIZE, self.TRAIN_IMG_SIZE)
-        self.VAL_INPUT_DIM = (self.VAL_IMG_SIZE, self.VAL_IMG_SIZE)
+        self.root_dir = "/home/louis.dupont/data/"
+        self.train_batch_size, self.val_batch_size = 16, 32
+        self.train_image_size, self.val_image_size = 640, 640
+        self.train_input_dim = (self.train_image_size, self.train_image_size)
+        self.val_input_dim = (self.val_image_size, self.val_image_size)
 
     def test_cifar(self):
         test_dataset_interface = Cifar10DatasetInterface()
@@ -26,21 +26,21 @@ class TestDatasetInterface(unittest.TestCase):
     def setup_pascal_voc_interface_v2(self):
         """setup PascalVOCUnifiedDetectionDataSetInterfaceV2 and return dataloaders"""
         dataset_params = {
-            "data_dir": self.ROOT_DIR + "pascal_unified_coco_format/",
-            "cache_dir": self.ROOT_DIR + "pascal_unified_coco_format/",
-            "batch_size": self.TRAIN_BATCH_SIZE,
-            "val_batch_size": self.VAL_BATCH_SIZE,
-            "train_image_size": self.TRAIN_IMG_SIZE,
-            "val_image_size": self.VAL_IMG_SIZE,
+            "data_dir": self.root_dir + "pascal_unified_coco_format/",
+            "cache_dir": self.root_dir + "pascal_unified_coco_format/",
+            "batch_size": self.train_batch_size,
+            "val_batch_size": self.val_batch_size,
+            "train_image_size": self.train_image_size,
+            "val_image_size": self.val_image_size,
             "train_transforms": [
-                DetectionMosaic(input_dim=self.TRAIN_INPUT_DIM, prob=1),
-                DetectionRandomAffine(degrees=0.373, translate=0.245, scales=0.898, shear=0.602, target_size=self.TRAIN_INPUT_DIM),
+                DetectionMosaic(input_dim=self.train_input_dim, prob=1),
+                DetectionRandomAffine(degrees=0.373, translate=0.245, scales=0.898, shear=0.602, target_size=self.train_input_dim),
                 DetectionHSV(prob=1, hgain=0.0138, sgain=0.664, vgain=0.464),
-                DetectionPaddedRescale(input_dim=self.TRAIN_INPUT_DIM, max_targets=100),
+                DetectionPaddedRescale(input_dim=self.train_input_dim, max_targets=100),
                 DetectionTargetsFormatTransform(input_format=DetectionTargetsFormat.XYXY_LABEL,
                                                 output_format=DetectionTargetsFormat.LABEL_CXCYWH)],
             "val_transforms": [
-                DetectionPaddedRescale(input_dim=self.VAL_INPUT_DIM),
+                DetectionPaddedRescale(input_dim=self.val_input_dim),
                 DetectionTargetsFormatTransform(input_format=DetectionTargetsFormat.XYXY_LABEL,
                                                 output_format=DetectionTargetsFormat.LABEL_CXCYWH)],
             "train_collate_fn": DetectionCollateFN(),
@@ -58,8 +58,8 @@ class TestDatasetInterface(unittest.TestCase):
         """Check that the dataset interface is correctly instantiated, and that the batch items are of expected size"""
         train_loader, valid_loader = self.setup_pascal_voc_interface_v2()
 
-        for loader, batch_size, image_size in [(train_loader, self.TRAIN_BATCH_SIZE, self.TRAIN_IMG_SIZE),
-                                               (valid_loader, self.VAL_BATCH_SIZE, self.VAL_IMG_SIZE)]:
+        for loader, batch_size, image_size in [(train_loader, self.train_batch_size, self.train_image_size),
+                                               (valid_loader, self.val_batch_size, self.val_image_size)]:
 
             batch_items = next(iter(loader))
             batch_items = core_utils.tensor_container_to_device(batch_items, 'cuda', non_blocking=True)

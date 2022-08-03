@@ -10,7 +10,7 @@ class TestDetectionDataSet(DetectionDataSetV2):
     def __init__(self, input_dim, *args, **kwargs):
         """Dummy Dataset testing subclassing, designed with no annotation that includes class_2."""
 
-        self.DUMMY_TARGETS = [np.array([[0, 0, 10, 10, 0],
+        self.dummy_targets = [np.array([[0, 0, 10, 10, 0],
                                         [0, 5, 10, 15, 0],
                                         [0, 5, 15, 20, 0]]),
                               np.array([[0, 0, 10, 10, 0],
@@ -18,7 +18,7 @@ class TestDetectionDataSet(DetectionDataSetV2):
                                         [0, 15, 55, 20, 1]])]
 
         self.image_size = input_dim
-        kwargs['n_available_samples'] = len(self.DUMMY_TARGETS)
+        kwargs['n_available_samples'] = len(self.dummy_targets)
         kwargs['all_classes_list'] = ["class_0", "class_1", "class_2"]
         kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
         super().__init__(input_dim=input_dim, *args, **kwargs)
@@ -28,7 +28,7 @@ class TestDetectionDataSet(DetectionDataSetV2):
             - Annotation 0 is made of: 3 targets of class 0, 0 of class_1 and 0 of class_2
             - Annotation 1 is made of: 2 targets of class_0, 1 of class_1 and 0 of class_2
         """
-        return {"img_path": "", "target": self.DUMMY_TARGETS[sample_id]}
+        return {"img_path": "", "target": self.dummy_targets[sample_id]}
 
     # DetectionDatasetV2 will call _load_image but since we don't have any image we patch this method with
     # tensor of image shape
@@ -38,7 +38,7 @@ class TestDetectionDataSet(DetectionDataSetV2):
 
 class TestDatasetInterface(unittest.TestCase):
     def setUp(self) -> None:
-        self.CONFIG_KEEP_EMPTY_ANNOTATION = [
+        self.config_keep_empty_annotation = [
             {
                 "class_inclusion_list": ["class_0", "class_1", "class_2"],
                 "expected_n_targets_after_subclass": [3, 3]
@@ -56,7 +56,7 @@ class TestDatasetInterface(unittest.TestCase):
                 "expected_n_targets_after_subclass": [0, 0]
             },
         ]
-        self.CONFIG_IGNORE_EMPTY_ANNOTATION = [
+        self.config_ignore_empty_annotation = [
             {
                 "class_inclusion_list": ["class_0", "class_1", "class_2"],
                 "expected_n_targets_after_subclass": [3, 3]
@@ -73,7 +73,7 @@ class TestDatasetInterface(unittest.TestCase):
 
     def test_subclass_keep_empty(self):
         """Check that subclassing only keeps annotations of wanted class"""
-        for config in self.CONFIG_KEEP_EMPTY_ANNOTATION:
+        for config in self.config_keep_empty_annotation:
             test_dataset = TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=False,
                                                 class_inclusion_list=config["class_inclusion_list"])
             n_targets_after_subclass = _count_targets_after_subclass_per_index(test_dataset)
@@ -81,7 +81,7 @@ class TestDatasetInterface(unittest.TestCase):
 
     def test_subclass_drop_empty(self):
         """Check that empty annotations are not indexed (i.e. ignored) when ignore_empty_annotations=True"""
-        for config in self.CONFIG_IGNORE_EMPTY_ANNOTATION:
+        for config in self.config_ignore_empty_annotation:
             test_dataset = TestDetectionDataSet(input_dim=(640, 512), ignore_empty_annotations=True,
                                                 class_inclusion_list=config["class_inclusion_list"])
             n_targets_after_subclass = _count_targets_after_subclass_per_index(test_dataset)
