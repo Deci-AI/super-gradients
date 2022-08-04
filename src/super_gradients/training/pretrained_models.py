@@ -13,7 +13,7 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
                                                           "/shelfnet34_coco_segmentation_subclass.pth",
 
               "ddrnet_23_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23/average_model.pth",
-              "ddrnet_23_slim_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23_slim/ckpt_best.pth",
+              "ddrnet_23_slim_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23_slim/average_model.pth",
               "stdc1_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc1_seg50_dice_edge/ckpt_best.pth",
               "stdc1_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/stdc1_seg75_cityscapes/ckpt_best.pth",
               "stdc2_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc2_seg50_dice_edge/ckpt_best.pth",

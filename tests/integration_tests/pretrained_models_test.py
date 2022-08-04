@@ -213,7 +213,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.cityscapes_pretrained_ckpt_params = {"pretrained_weights": "cityscapes"}
         self.cityscapes_pretrained_mious = {"ddrnet_23": 0.8026,
-                                            "ddrnet_23_slim": 0.7799,
+                                            "ddrnet_23_slim": 0.7801,
                                             "stdc1_seg50": 0.7511,
                                             "stdc1_seg75": 0.7687,
                                             "stdc2_seg50": 0.7644,
