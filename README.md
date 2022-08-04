@@ -92,9 +92,9 @@ ________________________________________________________________________________
     - [Quick Start Notebook - Semantic segmentation example](#quick-start-notebook---semantic-segmentation)
 <!-- - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
 - [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
+- [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
     - [Quick Start Notebook - Upload to Deci Platform example](#quick-start-notebook---upload-your-model-to-deci-platform) -->
 - [Transfer Learning](#transfer-learning)  
-    - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
     - [Transfer Learning with SG Notebook - Semantic segmentation example](#transfer-learning-with-sg-notebook---semantic-segmentation)
 - [Knowledge Distillation Training](#knowledge-distillation-training)  
     - [Knowledge Distillation Training Quick Start with SG Notebook - ResNet18 example](#knowledge-distillation-training-quick-start-with-sg-notebook---resnet18-example)
@@ -234,9 +234,7 @@ Learn more about SuperGradients training components with our walkthrough noteboo
  </td>
 </table>
  </br></br>
- -->
- 
- ## Transfer Learning
+
  ### Transfer Learning with SG Notebook - Object Detection
 
 Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloX nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
@@ -253,7 +251,9 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
  </td>
 </table>
  </br></br>
+  -->
  
+## Transfer Learning
 ### Transfer Learning with SG Notebook - Semantic Segmentation
 Learn more about SuperGradients transfer learning or fine tuning abilities with our Citiscapes pre-trained RegSeg48 fine tuning into a sub-dataset of Supervisely example notebook on Google Colab for an easy to use tutorial using free GPU hardware
 

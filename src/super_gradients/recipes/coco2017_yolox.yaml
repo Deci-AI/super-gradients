@@ -18,7 +18,7 @@ defaults:
   - checkpoint_params: default_checkpoint_params
 
 dataset_interface:
-  coco2017_detection_v2:
+  coco2017_detection:
     dataset_params: ${dataset_params}
 
 
