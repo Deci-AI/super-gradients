@@ -21,7 +21,6 @@ from super_gradients.training.utils import get_param
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
 from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, PascalVOCDetectionDataset
@@ -737,6 +736,8 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         self.data_dir = self.dataset_params.data_dir
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
+        train_max_num_samples = get_param(self.dataset_params, "train_max_num_samples")
+        val_max_num_samples = get_param(self.dataset_params, "val_max_num_sampless")
 
         if self.dataset_params.download:
             PascalVOCDetectionDataset.download(data_dir=self.data_dir)
@@ -750,7 +751,8 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
                                                          cache_path=self.dataset_params.cache_dir + "cache_train",
                                                          transforms=self.dataset_params.train_transforms,
                                                          images_sub_directory='images/' + trainset_prefix + trainset_year + '/',
-                                                         class_inclusion_list=self.dataset_params.class_inclusion_list)
+                                                         class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                         max_num_samples=train_max_num_samples)
                 train_sets.append(sub_trainset)
 
         testset2007 = PascalVOCDetectionDataset(data_dir=self.data_dir,
@@ -759,7 +761,8 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
                                                 cache_path=self.dataset_params.cache_dir + "cache_valid",
                                                 transforms=self.dataset_params.val_transforms,
                                                 images_sub_directory='images/test2007/',
-                                                class_inclusion_list=self.dataset_params.class_inclusion_list)
+                                                class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                max_num_samples=val_max_num_samples)
 
         self.classes = train_sets[1].classes
         self.trainset = ConcatDataset(train_sets)

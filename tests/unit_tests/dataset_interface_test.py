@@ -13,7 +13,7 @@ from super_gradients.training import utils as core_utils
 
 class TestDatasetInterface(unittest.TestCase):
     def setUp(self) -> None:
-        self.root_dir = "/home/louis.dupont/data/"
+        self.root_dir = "/home/data/"
         self.train_batch_size, self.val_batch_size = 16, 32
         self.train_image_size, self.val_image_size = 640, 640
         self.train_input_dim = (self.train_image_size, self.train_image_size)
@@ -59,10 +59,10 @@ class TestDatasetInterface(unittest.TestCase):
         """setup CoCoDetectionDatasetInterface and return dataloaders"""
         dataset_params = {
             "data_dir": "/data/coco",
-            "train_subdir": "images/train2017", # sub directory path of data_dir containing the train data.
-            "val_subdir": "images/val2017", # sub directory path of data_dir containing the validation data.
-            "train_json_file": "instances_train2017.json", # path to coco train json file, data_dir/annotations/train_json_file.
-            "val_json_file": "instances_val2017.json", # path to coco validation json file, data_dir/annotations/val_json_file.
+            "train_subdir": "images/train2017",  # sub directory path of data_dir containing the train data.
+            "val_subdir": "images/val2017",  # sub directory path of data_dir containing the validation data.
+            "train_json_file": "instances_train2017.json",  # path to coco train json file, data_dir/annotations/train_json_file.
+            "val_json_file": "instances_val2017.json",  # path to coco validation json file, data_dir/annotations/val_json_file.
 
             "batch_size": self.train_batch_size,
             "val_batch_size": self.val_batch_size,

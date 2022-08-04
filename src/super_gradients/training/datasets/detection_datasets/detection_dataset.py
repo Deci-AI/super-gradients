@@ -62,6 +62,7 @@ class DetectionDataset(Dataset):
             input_dim: tuple,
             n_available_samples: int,
             original_target_format: DetectionTargetsFormat,
+            max_num_samples: int = None,
             cache: bool = False,
             cache_path: str = None,
             transforms: List[DetectionTransform] = [],
@@ -78,6 +79,7 @@ class DetectionDataset(Dataset):
                                             - Note that this can be different to len(self) if images are droped.
         :param original_target_format:  Format of targets stored on disk. raw data format, the output format might
                                         differ based on transforms.
+        :param max_num_samples:         If not None, set the maximum size of the dataset by only indexing the first n annotations/images.
         :param cache:                   Whether to cache images or not.
         :param cache_path:              Path to the directory where cached images will be stored in an optimized format.
         :param transforms:              List of transforms to apply sequentially on sample.
@@ -96,6 +98,7 @@ class DetectionDataset(Dataset):
         self.input_dim = input_dim
         self.original_target_format = original_target_format
         self.n_available_samples = n_available_samples
+        self.max_num_samples = max_num_samples
 
         self.all_classes_list = all_classes_list
         self.class_inclusion_list = class_inclusion_list
@@ -136,6 +139,10 @@ class DetectionDataset(Dataset):
         """
         annotations = []
         for sample_id, img_id in enumerate(tqdm(range(self.n_available_samples), desc="Caching annotations")):
+
+            if self.max_num_samples is not None and len(annotations) >= self.max_num_samples:
+                break
+
             img_annotation = self._load_annotation(img_id)
             if "target" not in img_annotation or "img_path" not in img_annotation:
                 raise KeyError('_load_annotation is expected to return at least the field "target" and "img_path"')

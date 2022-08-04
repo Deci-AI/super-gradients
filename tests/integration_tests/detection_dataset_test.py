@@ -4,9 +4,10 @@ import super_gradients
 from super_gradients.training.datasets import PascalVOCDetectionDataset, COCODetectionDataset
 from super_gradients.training.transforms import DetectionMosaic, DetectionPaddedRescale, DetectionTargetsFormatTransform
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
+from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
 
 
-class SubclassingIntegrationTest(unittest.TestCase):
+class DatasetIntegrationTest(unittest.TestCase):
     def setUp(self) -> None:
         super_gradients.init_trainer()
         self.batch_size = 64
@@ -57,11 +58,22 @@ class SubclassingIntegrationTest(unittest.TestCase):
             dataset = COCODetectionDataset(class_inclusion_list=class_inclusion_list, **self.dataset_parcoco_base_config)
             dataset.plot(max_samples_per_plot=16, n_plots=1, plot_transformed_data=True)
 
-    def test_non_existing_class(self):
-        """Check that EmptyDatasetException is raised when unknown label """
+    def test_subclass_non_existing_class(self):
+        """Check that EmptyDatasetException is raised when unknown label."""
         with self.assertRaises(ValueError):
             PascalVOCDetectionDataset(class_inclusion_list=["new_class"], **self.pascal_base_config)
 
+    def test_sub_sampling_dataset(self):
+        """Check that sub sampling works."""
+
+        full_dataset = PascalVOCDetectionDataset(**self.pascal_base_config)
+
+        with self.assertRaises(EmptyDatasetException):
+            PascalVOCDetectionDataset(max_num_samples=0, **self.pascal_base_config)
+
+        for max_num_samples in [1, 10, 1000, 1_000_000]:
+            sampled_dataset = PascalVOCDetectionDataset(max_num_samples=max_num_samples, **self.pascal_base_config)
+            self.assertEqual(len(sampled_dataset), min(max_num_samples, len(full_dataset)))
 
 
 if __name__ == '__main__':
