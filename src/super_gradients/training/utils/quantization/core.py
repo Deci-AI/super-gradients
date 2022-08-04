@@ -1,5 +1,10 @@
 import inspect
+from dataclasses import dataclass
+from enum import Enum
+from typing import Union, Type, Optional
 
+from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
+from pytorch_quantization.tensor_quant import QuantDescriptor
 from torch import nn
 
 
@@ -33,6 +38,12 @@ def _from_float(cls, float_instance, **kwargs):
     return cls(**init_params)
 
 
+class SGQuantMixin(nn.Module):
+    @classmethod
+    def from_float(cls, float_instance, **kwargs):
+        return _from_float(cls, float_instance, **kwargs)
+
+
 class SkipQuantization(nn.Module):
 
     def __init__(self, module: nn.Module) -> None:
@@ -41,10 +52,35 @@ class SkipQuantization(nn.Module):
         self.forward = module.forward
 
 
-class SGQuantMixin(nn.Module):
-    @classmethod
-    def from_float(cls, float_instance, **kwargs):
-        return _from_float(cls, float_instance, **kwargs)
+class QuantizedMapping(nn.Module):
+    def __init__(self, module: nn.Module, quantized_type: Type[SGQuantMixin],
+                 input_quant_descriptor: QuantDescriptor = None,
+                 weights_quant_descriptor: QuantDescriptor = None) -> None:
+        super().__init__()
+        self.float_module = module
+        self.quantized_type = quantized_type
+        self.input_quant_descriptor = input_quant_descriptor,
+        self.weights_quant_descriptor = weights_quant_descriptor,
+        self.forward = module.forward
+
+
+@dataclass(init=True)
+class QuantizedMetadata:
+
+    class ReplacementAction(Enum):
+        REPLACE = 'replace'
+        UNWRAP = 'unwrap'
+        SKIP = 'skip'
+
+    float_source: Union[str, Type]
+    quantized_type: Optional[Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]]]
+    action: ReplacementAction
+    input_quant_descriptor: QuantDescriptor = None  # default is used if None
+    weights_quant_descriptor: QuantDescriptor = None  # default is used if None
+
+    def __post_init__(self):
+        if self.action == QuantizedMetadata.ReplacementAction.REPLACE:
+            assert issubclass(self.quantized_type, (SGQuantMixin, QuantMixin, QuantInputMixin))
 
 
 def _inject_class_methods_to_default_quant_types():

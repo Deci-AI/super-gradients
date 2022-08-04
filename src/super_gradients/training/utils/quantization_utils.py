@@ -17,7 +17,7 @@ from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_m
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, \
     get_world_size
-from torch.distributed import all_gather
+# from torch.distributed import all_gather
 
 logger = get_logger(__name__)
 
@@ -93,7 +93,8 @@ def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.
     """
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
-    elif method in ["percentile", "mse", "entropy", "max"]:
+    acceptable_methods = ["percentile", "mse", "entropy", "max"]
+    if method in acceptable_methods:
         with torch.no_grad():
             _collect_stats(model, calib_data_loader, num_batches=num_calib_batches)
 
@@ -104,9 +105,9 @@ def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.
             else:
                 _compute_amax(model, method=method)
     else:
-        raise ValueError(
-            "Unsupported quantization calibration method, expected one of: percentile, mse, entropy, max, got " + str(
-                method) + ".")
+        raise ValueError('Unsupported quantization calibration method,'
+                         f'expected one of: {", ".join(acceptable_methods)}. '
+                         f'Got {method}')
 
 
 def _collect_stats(model, data_loader, num_batches):
@@ -266,7 +267,8 @@ class QATCallback(PhaseCallback):
 
             if self.calibrated_model_path is not None:
                 checkpoint_params_qat['external_checkpoint_path'] = self.calibrated_model_path
-                checkpoint_params_qat['load_ema_as_net'] = 'ema_net' in read_ckpt_state_dict(self.calibrated_model_path).keys()
+                checkpoint_params_qat['load_ema_as_net'] = 'ema_net' in read_ckpt_state_dict(
+                    self.calibrated_model_path).keys()
                 checkpoint_params_qat['load_checkpoint'] = True
             elif self.start_epoch > 0:
                 checkpoint_params_qat['load_ema_as_net'] = context.training_params.ema

@@ -1,18 +1,11 @@
-from typing import Tuple, Set, Union
-from dataclasses import dataclass
+from typing import Tuple, Set
 from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
 from pytorch_quantization.tensor_quant import QuantDescriptor
 from torch import nn
 from pytorch_quantization import nn as quant_nn
 
-from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin
-
-
-@dataclass(init=True)
-class QuantizedMetadata:
-    quantized_type: Union[QuantMixin, QuantInputMixin]
-    input_quant_descriptor: QuantDescriptor = None  # default is used if None
-    weights_quant_descriptor: QuantDescriptor = None  # default is used if None
+from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, \
+    QuantizedMetadata
 
 
 class RegisterQuantizedModule(object):
@@ -22,33 +15,41 @@ class RegisterQuantizedModule(object):
         self.weights_quant_descriptor = weights_quant_descriptor
 
     def __call__(self, quant_module):
-
-        QuantizationUtility.mappings.update({
+        QuantizationUtility.mapping_instructions.update({
             self.float_module: QuantizedMetadata(
+                float_source=self.float_module,
                 quantized_type=quant_module,
                 input_quant_descriptor=self.input_quant_descriptor,
-                weights_quant_descriptor=self.weights_quant_descriptor
+                weights_quant_descriptor=self.weights_quant_descriptor,
+                action=QuantizedMetadata.ReplacementAction.REPLACE
             )
         })
 
 
 class QuantizationUtility:
 
-    mappings = {
-        SkipQuantization: None,  # SKIP
-        nn.Conv2d: QuantizedMetadata(quantized_type=quant_nn.QuantConv2d),
-        nn.Linear: QuantizedMetadata(quantized_type=quant_nn.Linear),
-        nn.AvgPool2d: QuantizedMetadata(quantized_type=quant_nn.QuantAvgPool2d),
-    }
+    mapping_instructions = {
+        **{
+            float_type: QuantizedMetadata(float_source=float_type, quantized_type=quantized_type,
+                                          action=QuantizedMetadata.ReplacementAction.REPLACE)
+            for (float_type, quantized_type) in [
+                (nn.Conv2d, quant_nn.QuantConv2d),
+                (nn.Linear, quant_nn.Linear),
+                (nn.AvgPool2d, quant_nn.QuantAvgPool2d),
+            ]
+        },
+        SkipQuantization: QuantizedMetadata(float_source=SkipQuantization, quantized_type=None,
+                                            action=QuantizedMetadata.ReplacementAction.UNWRAP)
+    }  # DEFAULT MAPPING INSTRUCTIONS
 
     def __init__(self, *, custom_mappings: dict = None, default_quant_modules_calib_method: str = 'percentile',
                  default_per_channel_quant_modules: bool = False) -> None:
         super().__init__()
         self.default_quant_modules_calib_method = default_quant_modules_calib_method
         self.default_per_channel_quant_modules = default_per_channel_quant_modules
-        self.mappings = self.mappings.copy()
+        self.mapping_instructions = self.mapping_instructions.copy()
         if custom_mappings is not None:
-            self.mappings.update(custom_mappings)  # OVERRIDE DEFAULT WITH CUSTOM. CUSTOM IS PRIORITIZED
+            self.mapping_instructions.update(custom_mappings)  # OVERRIDE DEFAULT WITH CUSTOM. CUSTOM IS PRIORITIZED
 
     def _get_default_quant_descriptor(self):
         if self.default_quant_modules_calib_method in ["percentile", "mse", "entropy"]:
@@ -61,54 +62,101 @@ class QuantizationUtility:
 
         return QuantDescriptor(calib_method=calib_method_type, axis=None)
 
-    def wrap_with_skip_quantization(self, module: nn.Module, layer_names: Set[str], nesting: Tuple[str, ...] = ()):
+    def register_skip_quantization(self, *, layer_names: Set[str]):
+        self.mapping_instructions.update({
+            name: QuantizedMetadata(float_source=name,
+                                    quantized_type=None,
+                                    action=QuantizedMetadata.ReplacementAction.SKIP)
+            for name in layer_names
+        })
+
+    def _preprocess_skips_and_custom_mappings(self, module: nn.Module, nesting: Tuple[str, ...] = ()):
+        """
+        This pass is done to extract layer name and mapping instructions, so that we regard to per-layer processing
+        """
+        mapping_instructions = dict()
         for name, child_module in module.named_children():
             nested_name = '.'.join(nesting + (name,))
-            if nested_name in layer_names:
-                layer_names.remove(nested_name)
-                setattr(module, name, SkipQuantization(child_module))
+            if isinstance(child_module, SkipQuantization):
+                mapping_instructions[nested_name] = QuantizedMetadata(
+                    float_source=nested_name,
+                    quantized_type=None,
+                    action=QuantizedMetadata.ReplacementAction.UNWRAP
+                )
 
-            # RECURSIVE CALL, to support module_list, sequential, custom (nested) modules
+            if isinstance(child_module, QuantizedMapping):
+                mapping_instructions[nested_name] = QuantizedMetadata(
+                    float_source=nested_name,
+                    quantized_type=child_module.quantized_type,
+                    input_quant_descriptor=child_module.input_quant_descriptor,
+                    weights_quant_descriptor=child_module.weights_quant_descriptor,
+                    action=QuantizedMetadata.ReplacementAction.REPLACE
+                )
+
             if isinstance(child_module, nn.Module):
-                self.wrap_with_skip_quantization(child_module, layer_names, nesting + (name,))
+                mapping_instructions.update(self._preprocess_skips_and_custom_mappings(child_module, nesting + (name,)))
 
-    def quantize_module(self, module: nn.Module):
+        return mapping_instructions
+
+    def _instantiate_quantized_from_float(self, float_module, metadata):
         base_classes = (QuantMixin, QuantInputMixin, SGQuantMixin)
+        if not issubclass(metadata.quantized_type, base_classes):
+            raise AssertionError(f"Quantization suite for {type(float_module).__name__} is invalid. "
+                                 f"{metadata.quantized_type.__name__} must inherit one of "
+                                 f"{', '.join(map(lambda _: _.__name__, base_classes))}")
+
+        # USE PROVIDED QUANT DESCRIPTORS, OR DEFAULT IF NONE PROVIDED
+        quant_descriptors = dict()
+        if issubclass(metadata.quantized_type, (QuantMixin, QuantInputMixin)):
+            quant_descriptors = {
+                'quant_desc_input': metadata.input_quant_descriptor or self._get_default_quant_descriptor()
+            }
+        if issubclass(metadata.quantized_type, QuantMixin):
+            quant_descriptors.update({
+                'quant_desc_weight': (metadata.weights_quant_descriptor
+                                      or self._get_default_quant_descriptor())
+            })
+
+        if not hasattr(metadata.quantized_type, 'from_float'):
+            assert isinstance(metadata.quantized_type, SGQuantMixin), \
+                f'{metadata.quantized_type.__name__} must inherit from ' \
+                f'{SGQuantMixin.__name__}, so that it would include `from_float` class method'
+
+        return metadata.quantized_type.from_float(float_module, **quant_descriptors)
+
+    def _maybe_quantize_one_layer(self, module, child_name, nesting, child_module, mapping_instructions) -> bool:
+        # if we don't have any instruction for the specific layer or the specific type - we continue
+        # NOTE! IT IS IMPORTANT TO FIRST PROCESS THE NAME AND ONLY THEN THE TYPE
+        for candidate_key in ('.'.join(nesting + (child_name,)), type(child_module)):
+            if candidate_key not in mapping_instructions:
+                continue
+            metadata: QuantizedMetadata = mapping_instructions[candidate_key]
+            if metadata.action == QuantizedMetadata.ReplacementAction.SKIP:
+                return True
+            elif metadata.action == QuantizedMetadata.ReplacementAction.UNWRAP:
+                assert isinstance(child_module, SkipQuantization)
+                setattr(module, child_name, child_module.float_module)
+                return True
+            elif metadata.action == QuantizedMetadata.ReplacementAction.REPLACE:
+                if isinstance(child_module, QuantizedMapping):  # UNWRAP MAPPING
+                    child_module = child_module.float_module
+                q_instance = self._instantiate_quantized_from_float(float_module=child_module, metadata=metadata)
+                setattr(module, child_name, q_instance)
+                return True
+            else:
+                raise NotImplementedError
+        return False
+
+    def quantize_module(self, module: nn.Module, nesting: Tuple[str, ...] = ()):
+        per_layer_mappings = self._preprocess_skips_and_custom_mappings(module)
+        mapping_instructions = {
+            **per_layer_mappings,
+            **self.mapping_instructions,
+        }  # we first regard the per layer mappings, and then override with the custom mappings in case there is overlap
+
         for name, child_module in module.named_children():
-            if type(child_module) in self.mappings:
-                quant_suite: QuantizedMetadata = self.mappings[type(child_module)]
-                if quant_suite is None:  # SKIP QUANTIZATION
-                    continue
-                if quant_suite.quantized_type is None:
-                    raise AssertionError(f"Quantization suite for {type(child_module).__name__} is incomplete. "
-                                         f"Please add `quantized_type`")
-
-                if not issubclass(quant_suite.quantized_type, base_classes):
-                    raise AssertionError(f"Quantization suite for {type(child_module).__name__} is invalid. "
-                                         f"{quant_suite.quantized_type.__name__} must inherit one of "
-                                         f"{', '.join(map(lambda _: _.__name__, base_classes))}")
-
-                # USE PROVIDED QUANT DESCRIPTORS, OR DEFAULT IF NONE PROVIDED
-                quant_descriptors = dict()
-                if issubclass(quant_suite.quantized_type, (QuantMixin, QuantInputMixin)):
-                    quant_descriptors = {
-                        'quant_desc_input': quant_suite.input_quant_descriptor or self._get_default_quant_descriptor()
-                    }
-                if issubclass(quant_suite.quantized_type, QuantMixin):
-                    quant_descriptors.update({
-                        'quant_desc_weight': (quant_suite.weights_quant_descriptor
-                                              or self._get_default_quant_descriptor())
-                    })
-
-                if not hasattr(quant_suite.quantized_type, 'from_float'):
-                    assert isinstance(quant_suite.quantized_type, SGQuantMixin), \
-                        f'{quant_suite.quantized_type.__name__} must inherit from ' \
-                        f'{SGQuantMixin.__name__}, so that it would include `from_float` class method'
-
-                # ACTUAL REPLACEMENT
-                quant_child_module = quant_suite.quantized_type.from_float(child_module, **quant_descriptors)
-                setattr(module, name, quant_child_module)
+            found = self._maybe_quantize_one_layer(module, name, nesting, child_module, mapping_instructions)
 
             # RECURSIVE CALL, to support module_list, sequential, custom (nested) modules
-            if isinstance(child_module, nn.Module):
+            if not found and isinstance(child_module, nn.Module):
                 self.quantize_module(child_module)
