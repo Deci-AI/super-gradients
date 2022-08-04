@@ -783,6 +783,9 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
 
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
         targets_format = get_param(self.dataset_params, "targets_format", DetectionTargetsFormat.LABEL_CXCYWH)
+        train_max_num_samples = get_param(self.dataset_params, "train_max_num_samples")
+        val_max_num_samples = get_param(self.dataset_params, "val_max_num_samples")
+        class_inclusion_list = get_param(self.dataset_params, "class_inclusion_list")
 
         train_transforms = [DetectionMosaic(input_dim=train_input_dim,
                                             prob=self.dataset_params.mosaic_prob),
@@ -818,6 +821,8 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
                                                  cache=self.dataset_params.cache_train_images,
                                                  cache_path=self.dataset_params.cache_dir_path,
                                                  transforms=train_transforms,
+                                                 class_inclusion_list=class_inclusion_list,
+                                                 max_num_samples=train_max_num_samples,
                                                  with_crowd=False)
 
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
@@ -834,6 +839,8 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
                             DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)],
                 cache=self.dataset_params.cache_val_images,
                 cache_path=self.dataset_params.cache_dir_path,
+                class_inclusion_list=class_inclusion_list,
+                max_num_samples=val_max_num_samples,
                 with_crowd=with_crowd)
 
         self.classes = self.trainset.classes
