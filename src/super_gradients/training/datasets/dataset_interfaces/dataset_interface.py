@@ -737,23 +737,26 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
         train_max_num_samples = get_param(self.dataset_params, "train_max_num_samples")
-        val_max_num_samples = get_param(self.dataset_params, "val_max_num_sampless")
+        val_max_num_samples = get_param(self.dataset_params, "val_max_num_samples")
 
         if self.dataset_params.download:
             PascalVOCDetectionDataset.download(data_dir=self.data_dir)
 
-        train_sets = []
-        for trainset_prefix in ["train", "val"]:
-            for trainset_year in ["2007", "2012"]:
-                sub_trainset = PascalVOCDetectionDataset(data_dir=self.data_dir,
-                                                         input_dim=train_input_dim,
-                                                         cache=self.dataset_params.cache_train_images,
-                                                         cache_path=self.dataset_params.cache_dir + "cache_train",
-                                                         transforms=self.dataset_params.train_transforms,
-                                                         images_sub_directory='images/' + trainset_prefix + trainset_year + '/',
-                                                         class_inclusion_list=self.dataset_params.class_inclusion_list,
-                                                         max_num_samples=train_max_num_samples)
-                train_sets.append(sub_trainset)
+        train_dataset_names = ["train2007", "val2007", "train2012", "val2012"]
+        # We divide train_max_num_samples between the datasets
+        if train_max_num_samples:
+            max_num_samples_per_train_dataset = [len(segment) for segment in np.array_split(range(train_max_num_samples), len(train_dataset_names))]
+        else:
+            max_num_samples_per_train_dataset = [None] * len(train_dataset_names)
+        train_sets = [PascalVOCDetectionDataset(data_dir=self.data_dir,
+                                                input_dim=train_input_dim,
+                                                cache=self.dataset_params.cache_train_images,
+                                                cache_path=self.dataset_params.cache_dir + "cache_train",
+                                                transforms=self.dataset_params.train_transforms,
+                                                images_sub_directory='images/' + trainset_name + '/',
+                                                class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                max_num_samples=max_num_samples_per_train_dataset[i])
+                      for i, trainset_name in enumerate(train_dataset_names)]
 
         testset2007 = PascalVOCDetectionDataset(data_dir=self.data_dir,
                                                 input_dim=val_input_dim,

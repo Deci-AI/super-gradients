@@ -13,11 +13,13 @@ from super_gradients.training import utils as core_utils
 
 class TestDatasetInterface(unittest.TestCase):
     def setUp(self) -> None:
-        self.root_dir = "/home/data/"
+        self.root_dir = "/home/louis.dupont/data/"
         self.train_batch_size, self.val_batch_size = 16, 32
         self.train_image_size, self.val_image_size = 640, 640
         self.train_input_dim = (self.train_image_size, self.train_image_size)
         self.val_input_dim = (self.val_image_size, self.val_image_size)
+        self.train_max_num_samples = 100
+        self.val_max_num_samples = 90
 
     def test_cifar(self):
         test_dataset_interface = Cifar10DatasetInterface()
@@ -29,10 +31,14 @@ class TestDatasetInterface(unittest.TestCase):
         dataset_params = {
             "data_dir": self.root_dir + "pascal_unified_coco_format/",
             "cache_dir": self.root_dir + "pascal_unified_coco_format/",
+
             "batch_size": self.train_batch_size,
             "val_batch_size": self.val_batch_size,
             "train_image_size": self.train_image_size,
             "val_image_size": self.val_image_size,
+            "train_max_num_samples": self.train_max_num_samples,
+            "val_max_num_samples": self.val_max_num_samples,
+
             "train_transforms": [
                 DetectionMosaic(input_dim=self.train_input_dim, prob=1),
                 DetectionRandomAffine(degrees=0.373, translate=0.245, scales=0.898, shear=0.602, target_size=self.train_input_dim),
@@ -68,6 +74,8 @@ class TestDatasetInterface(unittest.TestCase):
             "val_batch_size": self.val_batch_size,
             "train_image_size": self.train_image_size,
             "val_image_size": self.val_image_size,
+            "train_max_num_samples": self.train_max_num_samples,
+            "val_max_num_samples": self.val_max_num_samples,
 
             "mixup_prob": 1.0,  # probability to apply per-sample mixup
             "degrees": 10.,  # rotation degrees, randomly sampled from [-degrees, degrees]
@@ -103,8 +111,8 @@ class TestDatasetInterface(unittest.TestCase):
         """Check that the dataset interface is correctly instantiated, and that the batch items are of expected size"""
         train_loader, valid_loader = self.setup_coco_detection_interface()
 
-        for loader, batch_size, image_size in [(train_loader, self.train_batch_size, self.train_image_size),
-                                               (valid_loader, self.val_batch_size, self.val_image_size)]:
+        for loader, batch_size, image_size, max_num_samples in [(train_loader, self.train_batch_size, self.train_image_size, self.train_max_num_samples),
+                                                                (valid_loader, self.val_batch_size, self.val_image_size, self.val_max_num_samples)]:
 
             batch_items = next(iter(loader))
             batch_items = core_utils.tensor_container_to_device(batch_items, 'cuda', non_blocking=True)
@@ -116,8 +124,10 @@ class TestDatasetInterface(unittest.TestCase):
         """Check that the dataset interface is correctly instantiated, and that the batch items are of expected size"""
         train_loader, valid_loader = self.setup_pascal_voc_interface()
 
-        for loader, batch_size, image_size in [(train_loader, self.train_batch_size, self.train_image_size),
-                                               (valid_loader, self.val_batch_size, self.val_image_size)]:
+        for loader, batch_size, image_size, max_num_samples in [(train_loader, self.train_batch_size, self.train_image_size, self.train_max_num_samples),
+                                                                (valid_loader, self.val_batch_size, self.val_image_size, self.val_max_num_samples)]:
+            # The dataset is at most of length max_num_samples, but can be smaller if not enough samples
+            self.assertGreaterEqual(max_num_samples, len(loader.dataset))
 
             batch_items = next(iter(loader))
             batch_items = core_utils.tensor_container_to_device(batch_items, 'cuda', non_blocking=True)
