@@ -1,7 +1,7 @@
 # STDC Base training params
 
 defaults:
-  - training_hyperparams: cityscapes_stdc_train_params
+  - training_hyperparams: cityscapes_train_params
   - dataset_params: cityscapes_dataset_params
   - checkpoint_params: default_checkpoint_params
 
