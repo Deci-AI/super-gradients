@@ -7,7 +7,7 @@ from super_gradients.training.models.detection_models.csp_darknet53 import Conv,
     CSPDarknet53, get_yolo_type_params
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
-    check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
+    matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 
 
@@ -99,48 +99,6 @@ class Concat(nn.Module):
 
     def forward(self, x):
         return torch.cat(x, self.dimension)
-
-
-class Detect(nn.Module):
-
-    def __init__(self, num_classes: int, anchors: Anchors, channels: list = None):
-        super().__init__()
-
-        self.num_classes = num_classes
-        self.num_outputs = num_classes + 5
-        self.detection_layers_num = anchors.detection_layers_num
-        self.num_anchors = anchors.num_anchors
-        self.grid = [torch.zeros(1)] * self.detection_layers_num  # init grid
-
-        self.register_buffer('stride', anchors.stride)
-        self.register_buffer('anchors', anchors.anchors)
-        self.register_buffer('anchor_grid', anchors.anchor_grid)
-
-        self.output_convs = nn.ModuleList(nn.Conv2d(x, self.num_outputs * self.num_anchors, 1) for x in channels)
-
-    def forward(self, x):
-        z = []  # inference output
-        for i in range(self.detection_layers_num):
-            x[i] = self.output_convs[i](x[i])  # conv
-            bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
-            x[i] = x[i].view(bs, self.num_anchors, self.num_outputs, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
-
-            if not self.training:  # inference
-                if self.grid[i].shape[2:4] != x[i].shape[2:4]:
-                    self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
-
-                y = x[i].sigmoid()
-                xy = (y[..., 0:2] * 2. - 0.5 + self.grid[i].to(x[i].device)) * self.stride[i]  # xy
-                wh = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i].view(1, self.num_anchors, 1, 1, 2)  # wh
-                y = torch.cat([xy, wh, y[..., 4:]], dim=4)
-                z.append(y.view(bs, -1, self.num_outputs))
-
-        return x if self.training else (torch.cat(z, 1), x)
-
-    @staticmethod
-    def _make_grid(nx=20, ny=20):
-        yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
-        return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
 class DetectX(nn.Module):
@@ -432,8 +390,6 @@ class YoLoBase(SgModule):
         stride = stride.to(m.stride.device)
         if not torch.equal(m.stride, stride):
             raise RuntimeError('Provided anchor strides do not match the model strides')
-        if isinstance(m, Detect):
-            check_anchor_order(m)
 
         self.register_buffer('stride', m.stride)  # USED ONLY FOR CONVERSION
 
