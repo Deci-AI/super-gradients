@@ -819,7 +819,7 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
                                                  json_file=self.dataset_params.train_json_file,
                                                  input_dim=train_input_dim,
                                                  cache=self.dataset_params.cache_train_images,
-                                                 cache_path=self.dataset_params.cache_dir_path,
+                                                 cache_path=self.dataset_params.cache_dir_path + "cache_train",
                                                  transforms=train_transforms,
                                                  class_inclusion_list=class_inclusion_list,
                                                  max_num_samples=train_max_num_samples,
@@ -838,7 +838,7 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
                 transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
                             DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)],
                 cache=self.dataset_params.cache_val_images,
-                cache_path=self.dataset_params.cache_dir_path,
+                cache_path=self.dataset_params.cache_dir_path + "cache_valid",
                 class_inclusion_list=class_inclusion_list,
                 max_num_samples=val_max_num_samples,
                 with_crowd=with_crowd)
