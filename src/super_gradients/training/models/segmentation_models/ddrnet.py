@@ -428,7 +428,6 @@ class DDRNet(SgModule):
                 self.seghead_extra = SegmentHead(self.highres_planes, self.head_width, new_num_classes, 8,
                                                  inter_mode=self.segmentation_inter_mode)
 
-
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
         Custom param groups for training:
