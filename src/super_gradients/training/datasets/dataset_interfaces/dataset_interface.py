@@ -771,7 +771,7 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         self.trainset.cache_labels = self.dataset_params.cache_train_images
 
 
-class CoCoDetectionDatasetInterface(DatasetInterface):
+class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
     def __init__(self, dataset_params={}):
         super(CoCoDetectionDatasetInterface, self).__init__(dataset_params=dataset_params)
 
@@ -788,8 +788,7 @@ class CoCoDetectionDatasetInterface(DatasetInterface):
                                                   filter_box_candidates=self.dataset_params.filter_box_candidates,
                                                   wh_thr=self.dataset_params.wh_thr,
                                                   area_thr=self.dataset_params.area_thr,
-                                                  ar_thr=self.dataset_params.ar_thr
-                                                  ),
+                                                  ar_thr=self.dataset_params.ar_thr),
                             DetectionMixup(input_dim=train_input_dim,
                                            mixup_scale=self.dataset_params.mixup_scale,
                                            prob=self.dataset_params.mixup_prob,
@@ -797,8 +796,7 @@ class CoCoDetectionDatasetInterface(DatasetInterface):
                             DetectionHSV(prob=self.dataset_params.hsv_prob,
                                          hgain=self.dataset_params.hgain,
                                          sgain=self.dataset_params.sgain,
-                                         vgain=self.dataset_params.vgain
-                                         ),
+                                         vgain=self.dataset_params.vgain),
                             DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
                             DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
                             DetectionTargetsFormatTransform(output_format=targets_format)
@@ -832,35 +830,36 @@ class CoCoDetectionDatasetInterface(DatasetInterface):
                 cache_path=self.dataset_params.cache_dir_path,
                 with_crowd=with_crowd)
 
-    def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
-                           test_batch_size=None, distributed_sampler: bool = False):
-
-        train_sampler = InfiniteSampler(len(self.trainset), seed=0)
-
-        train_batch_sampler = BatchSampler(
-            sampler=train_sampler,
-            batch_size=self.dataset_params.batch_size,
-            drop_last=False,
-        )
-
-        self.train_loader = DataLoader(self.trainset,
-                                       batch_sampler=train_batch_sampler,
-                                       num_workers=num_workers,
-                                       pin_memory=True,
-                                       worker_init_fn=worker_init_reset_seed,
-                                       collate_fn=self.dataset_params.train_collate_fn)
-
-        if distributed_sampler:
-            sampler = torch.utils.data.distributed.DistributedSampler(self.valset, shuffle=False)
-        else:
-            sampler = torch.utils.data.SequentialSampler(self.valset)
-
-        val_loader = torch.utils.data.DataLoader(self.valset,
-                                                 num_workers=num_workers,
-                                                 pin_memory=True,
-                                                 sampler=sampler,
-                                                 batch_size=self.dataset_params.val_batch_size,
-                                                 collate_fn=self.dataset_params.val_collate_fn)
-
-        self.val_loader = val_loader
-        self.classes = COCO_DETECTION_CLASSES_LIST
+        self.classes = self.trainset.classes
+    # def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
+    #                        test_batch_size=None, distributed_sampler: bool = False):
+    #
+    #     train_sampler = InfiniteSampler(len(self.trainset), seed=0)
+    #
+    #     train_batch_sampler = BatchSampler(
+    #         sampler=train_sampler,
+    #         batch_size=self.dataset_params.batch_size,
+    #         drop_last=False,
+    #     )
+    #
+    #     self.train_loader = DataLoader(self.trainset,
+    #                                    batch_sampler=train_batch_sampler,
+    #                                    num_workers=num_workers,
+    #                                    pin_memory=True,
+    #                                    worker_init_fn=worker_init_reset_seed,
+    #                                    collate_fn=self.dataset_params.train_collate_fn)
+    #
+    #     if distributed_sampler:
+    #         sampler = torch.utils.data.distributed.DistributedSampler(self.valset, shuffle=False)
+    #     else:
+    #         sampler = torch.utils.data.SequentialSampler(self.valset)
+    #
+    #     val_loader = torch.utils.data.DataLoader(self.valset,
+    #                                              num_workers=num_workers,
+    #                                              pin_memory=True,
+    #                                              sampler=sampler,
+    #                                              batch_size=self.dataset_params.val_batch_size,
+    #                                              collate_fn=self.dataset_params.val_collate_fn)
+    #
+    #     self.val_loader = val_loader
+    #     self.classes = COCO_DETECTION_CLASSES_LIST
