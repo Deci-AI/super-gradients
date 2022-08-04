@@ -437,27 +437,19 @@ class YoLoBase(SgModule):
 
         self.register_buffer('stride', m.stride)  # USED ONLY FOR CONVERSION
 
-    def _initialize_biases(self, cf=None):
+    def _initialize_biases(self):
         """initialize biases into Detect(), cf is class frequency"""
         detect_module = self._head._modules_list[-1]  # Detect() module
-        if isinstance(detect_module, Detect):
-            for pred_conv, s in zip(detect_module.output_convs, detect_module.stride):  # from
-                bias = pred_conv.bias.view(detect_module.num_anchors, -1)  # conv.bias(255) to (3,85)
-                with torch.no_grad():
-                    bias[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
-                    bias[:, 5:] += math.log(0.6 / (detect_module.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
-                pred_conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
-        elif isinstance(detect_module, DetectX):
-            prior_prob = 1e-2
-            for conv in detect_module.cls_preds:
-                bias = conv.bias.view(detect_module.n_anchors, -1)
-                bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
-                conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
+        prior_prob = 1e-2
+        for conv in detect_module.cls_preds:
+            bias = conv.bias.view(detect_module.n_anchors, -1)
+            bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+            conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
 
-            for conv in detect_module.obj_preds:
-                bias = conv.bias.view(detect_module.n_anchors, -1)
-                bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
-                conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
+        for conv in detect_module.obj_preds:
+            bias = conv.bias.view(detect_module.n_anchors, -1)
+            bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+            conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -536,7 +528,18 @@ class YoLoBase(SgModule):
             self._head = new_head
         else:
             self.arch_params.num_classes = new_num_classes
-            new_last_layer = Detect(new_num_classes, self._head.anchors, channels=[self._head.width_mult(v) for v in (256, 512, 1024)])
+            old_detectx = self._head._modules_list[-1]
+            _, block, activation_type, width_mult, depth_mult = get_yolo_type_params(self.arch_params.yolo_type,
+                                                                                     self.arch_params.width_mult_factor,
+                                                                                     self.arch_params.depth_mult_factor)
+
+            new_last_layer = DetectX(num_classes=new_num_classes,
+                                     stride=self._head.anchors.stride,
+                                     activation_func_type=activation_type,
+                                     channels=[width_mult(v) for v in (256, 512, 1024)],
+                                     depthwise=isinstance(old_detectx.cls_convs[0][0], GroupedConvBlock),
+                                     groups=self.arch_params.xhead_groups,
+                                     inter_channels=self.arch_params.xhead_inter_channels)
             new_last_layer = new_last_layer.to(next(self.parameters()).device)
             self._head._modules_list[-1] = new_last_layer
             self._check_strides_and_anchors()
