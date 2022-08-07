@@ -129,8 +129,7 @@ class QuantizationUtility:
             }
         if issubclass(metadata.quantized_type, QuantMixin):
             quant_descriptors.update({
-                'quant_desc_weight': (metadata.weights_quant_descriptor
-                                      or self._get_default_quant_descriptor())
+                'quant_desc_weight': (metadata.weights_quant_descriptor or self._get_default_quant_descriptor())
             })
 
         if not hasattr(metadata.quantized_type, 'from_float'):
