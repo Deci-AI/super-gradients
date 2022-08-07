@@ -13,18 +13,13 @@ from super_gradients.training import utils as core_utils
 
 class TestDatasetInterface(unittest.TestCase):
     def setUp(self) -> None:
-        self.root_dir = "/home/louis.dupont/data/"
+        self.root_dir = "/home/data/"
         self.train_batch_size, self.val_batch_size = 16, 32
         self.train_image_size, self.val_image_size = 640, 640
         self.train_input_dim = (self.train_image_size, self.train_image_size)
         self.val_input_dim = (self.val_image_size, self.val_image_size)
         self.train_max_num_samples = 100
         self.val_max_num_samples = 90
-
-    def test_cifar(self):
-        test_dataset_interface = Cifar10DatasetInterface()
-        cifar_dataset_sample = test_dataset_interface.get_test_sample()
-        self.assertListEqual([3, 32, 32], list(cifar_dataset_sample[0].shape))
 
     def setup_pascal_voc_interface(self):
         """setup PascalVOCUnifiedDetectionDatasetInterface and return dataloaders"""
