@@ -352,7 +352,7 @@ class YoLoBase(SgModule):
             self._nms = YoloPostPredictionCallback(nms_conf, nms_iou)
 
     def _check_strides_and_anchors(self):
-        m = self._head._modules_list[-1]  # Detect()
+        m = self._head._modules_list[-1]  # DetectX()
         # Do inference in train mode on a dummy image to get output stride of each head output layer
         s = 128  # twice the minimum acceptable image size
         dummy_input = torch.zeros(1, self.arch_params.channels_in, s, s)
@@ -365,8 +365,8 @@ class YoLoBase(SgModule):
         self.register_buffer('stride', m.stride)  # USED ONLY FOR CONVERSION
 
     def _initialize_biases(self):
-        """initialize biases into Detect(), cf is class frequency"""
-        detect_module = self._head._modules_list[-1]  # Detect() module
+        """initialize biases into DetectX(), cf is class frequency"""
+        detect_module = self._head._modules_list[-1]  # DetectX() module
         prior_prob = 1e-2
         for conv in detect_module.cls_preds:
             bias = conv.bias.view(detect_module.n_anchors, -1)
