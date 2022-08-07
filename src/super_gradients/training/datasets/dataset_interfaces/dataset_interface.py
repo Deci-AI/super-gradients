@@ -778,7 +778,7 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         self.trainset.cache_labels = self.dataset_params.cache_train_images
 
 
-class CoCoDetectionDatasetInterface(DatasetInterface):
+class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
     def __init__(self, dataset_params={}):
         super(CoCoDetectionDatasetInterface, self).__init__(dataset_params=dataset_params)
 
@@ -838,36 +838,4 @@ class CoCoDetectionDatasetInterface(DatasetInterface):
                 cache=self.dataset_params.cache_val_images,
                 cache_dir_path=self.dataset_params.cache_dir_path,
                 with_crowd=with_crowd)
-
-    def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
-                           test_batch_size=None, distributed_sampler: bool = False):
-
-        train_sampler = InfiniteSampler(len(self.trainset), seed=0)
-
-        train_batch_sampler = BatchSampler(
-            sampler=train_sampler,
-            batch_size=self.dataset_params.batch_size,
-            drop_last=False,
-        )
-
-        self.train_loader = DataLoader(self.trainset,
-                                       batch_sampler=train_batch_sampler,
-                                       num_workers=num_workers,
-                                       pin_memory=True,
-                                       worker_init_fn=worker_init_reset_seed,
-                                       collate_fn=self.dataset_params.train_collate_fn)
-
-        if distributed_sampler:
-            sampler = torch.utils.data.distributed.DistributedSampler(self.valset, shuffle=False)
-        else:
-            sampler = torch.utils.data.SequentialSampler(self.valset)
-
-        val_loader = torch.utils.data.DataLoader(self.valset,
-                                                 num_workers=num_workers,
-                                                 pin_memory=True,
-                                                 sampler=sampler,
-                                                 batch_size=self.dataset_params.val_batch_size,
-                                                 collate_fn=self.dataset_params.val_collate_fn)
-
-        self.val_loader = val_loader
         self.classes = COCO_DETECTION_CLASSES_LIST
