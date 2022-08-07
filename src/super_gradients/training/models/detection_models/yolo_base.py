@@ -6,9 +6,9 @@ import torch.nn as nn
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, \
     CSPDarknet53, get_yolo_type_params
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.utils.detection_utils import non_max_suppression, scale_img, \
-    check_anchor_order, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
-from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
+from super_gradients.training.utils.detection_utils import non_max_suppression, \
+    matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
+from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility
 
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
@@ -99,48 +99,6 @@ class Concat(nn.Module):
 
     def forward(self, x):
         return torch.cat(x, self.dimension)
-
-
-class Detect(nn.Module):
-
-    def __init__(self, num_classes: int, anchors: Anchors, channels: list = None):
-        super().__init__()
-
-        self.num_classes = num_classes
-        self.num_outputs = num_classes + 5
-        self.detection_layers_num = anchors.detection_layers_num
-        self.num_anchors = anchors.num_anchors
-        self.grid = [torch.zeros(1)] * self.detection_layers_num  # init grid
-
-        self.register_buffer('stride', anchors.stride)
-        self.register_buffer('anchors', anchors.anchors)
-        self.register_buffer('anchor_grid', anchors.anchor_grid)
-
-        self.output_convs = nn.ModuleList(nn.Conv2d(x, self.num_outputs * self.num_anchors, 1) for x in channels)
-
-    def forward(self, x):
-        z = []  # inference output
-        for i in range(self.detection_layers_num):
-            x[i] = self.output_convs[i](x[i])  # conv
-            bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
-            x[i] = x[i].view(bs, self.num_anchors, self.num_outputs, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
-
-            if not self.training:  # inference
-                if self.grid[i].shape[2:4] != x[i].shape[2:4]:
-                    self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
-
-                y = x[i].sigmoid()
-                xy = (y[..., 0:2] * 2. - 0.5 + self.grid[i].to(x[i].device)) * self.stride[i]  # xy
-                wh = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i].view(1, self.num_anchors, 1, 1, 2)  # wh
-                y = torch.cat([xy, wh, y[..., 4:]], dim=4)
-                z.append(y.view(bs, -1, self.num_outputs))
-
-        return x if self.training else (torch.cat(z, 1), x)
-
-    @staticmethod
-    def _make_grid(nx=20, ny=20):
-        yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
-        return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
 class DetectX(nn.Module):
@@ -371,31 +329,11 @@ class YoLoBase(SgModule):
             self._initialize_module()
 
     def forward(self, x):
-        return self._augment_forward(x) if self.augmented_inference else self._forward_once(x)
-
-    def _forward_once(self, x):
         out = self._backbone(x)
         out = self._head(out)
         # THIS HAS NO EFFECT IF add_nms() WAS NOT DONE
         out = self._nms(out)
         return out
-
-    def _augment_forward(self, x):
-        """Multi-scale forward pass"""
-        img_size = x.shape[-2:]  # height, width
-        s = [1, 0.83, 0.67]  # scales
-        f = [None, 3, None]  # flips (2-ud, 3-lr)
-        y = []  # outputs
-        for si, fi in zip(s, f):
-            xi = scale_img(x.flip(fi) if fi else x, si)
-            yi = self._forward_once(xi)[0]  # forward
-            yi[..., :4] /= si  # de-scale
-            if fi == 2:
-                yi[..., 1] = img_size[0] - yi[..., 1]  # de-flip ud
-            elif fi == 3:
-                yi[..., 0] = img_size[1] - yi[..., 0]  # de-flip lr
-            y.append(yi)
-        return torch.cat(y, 1), None  # augmented inference, train
 
     def load_state_dict(self, state_dict, strict=True):
         try:
@@ -405,7 +343,7 @@ class YoLoBase(SgModule):
                                f"checkpoint may have been saved after fusing conv and bn. use fuse_conv_bn before loading.")
 
     def _initialize_module(self):
-        self._check_strides_and_anchors()
+        self._check_strides()
         self._initialize_biases()
         self._initialize_weights()
         if self.arch_params.add_nms:
@@ -413,51 +351,32 @@ class YoLoBase(SgModule):
             nms_iou = self.arch_params.nms_iou
             self._nms = YoloPostPredictionCallback(nms_conf, nms_iou)
 
-    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int,
-                            training_params: HpmStruct, total_batch: int) -> list:
-
-        lr_warmup_epochs = get_param(training_params, 'lr_warmup_epochs', 0)
-        if epoch >= lr_warmup_epochs:
-            return super().update_param_groups(param_groups, lr, epoch, iter, training_params, total_batch)
-        else:
-            return param_groups
-
-    def _check_strides_and_anchors(self):
-        m = self._head._modules_list[-1]  # Detect()
+    def _check_strides(self):
+        m = self._head._modules_list[-1]  # DetectX()
         # Do inference in train mode on a dummy image to get output stride of each head output layer
         s = 128  # twice the minimum acceptable image size
         dummy_input = torch.zeros(1, self.arch_params.channels_in, s, s)
         dummy_input = dummy_input.to(next(self._backbone.parameters()).device)
-        stride = torch.tensor([s / x.shape[-2] for x in self._forward_once(dummy_input)])
+        stride = torch.tensor([s / x.shape[-2] for x in self.forward(dummy_input)])
         stride = stride.to(m.stride.device)
         if not torch.equal(m.stride, stride):
             raise RuntimeError('Provided anchor strides do not match the model strides')
-        if isinstance(m, Detect):
-            check_anchor_order(m)
 
         self.register_buffer('stride', m.stride)  # USED ONLY FOR CONVERSION
 
-    def _initialize_biases(self, cf=None):
-        """initialize biases into Detect(), cf is class frequency"""
-        detect_module = self._head._modules_list[-1]  # Detect() module
-        if isinstance(detect_module, Detect):
-            for pred_conv, s in zip(detect_module.output_convs, detect_module.stride):  # from
-                bias = pred_conv.bias.view(detect_module.num_anchors, -1)  # conv.bias(255) to (3,85)
-                with torch.no_grad():
-                    bias[:, 4] += math.log(8 / (640 / s) ** 2)  # obj (8 objects per 640 image)
-                    bias[:, 5:] += math.log(0.6 / (detect_module.num_classes - 0.99)) if cf is None else torch.log(cf / cf.sum())  # cls
-                pred_conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
-        elif isinstance(detect_module, DetectX):
-            prior_prob = 1e-2
-            for conv in detect_module.cls_preds:
-                bias = conv.bias.view(detect_module.n_anchors, -1)
-                bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
-                conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
+    def _initialize_biases(self):
+        """initialize biases into DetectX()"""
+        detect_module = self._head._modules_list[-1]  # DetectX() module
+        prior_prob = 1e-2
+        for conv in detect_module.cls_preds:
+            bias = conv.bias.view(detect_module.n_anchors, -1)
+            bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+            conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
 
-            for conv in detect_module.obj_preds:
-                bias = conv.bias.view(detect_module.n_anchors, -1)
-                bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
-                conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
+        for conv in detect_module.obj_preds:
+            bias = conv.bias.view(detect_module.n_anchors, -1)
+            bias.data.fill_(-math.log((1 - prior_prob) / prior_prob))
+            conv.bias = torch.nn.Parameter(bias.view(-1), requires_grad=True)
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -466,45 +385,6 @@ class YoLoBase(SgModule):
                 m.momentum = 0.03
             elif isinstance(m, (nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.Hardswish, nn.SiLU)):
                 m.inplace = True
-
-    def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
-        """
-        initialize_optimizer_for_model_param_groups - Initializes the weights of the optimizer
-                                                      adds weight decay  *Only* to the Conv2D layers
-            :param optimizer_cls:   The nn.optim (optimizer class) to initialize
-            :param lr:              lr to set for the optimizer
-            :param training_params:
-            :return: The optimizer, initialized with the relevant param groups
-        """
-        optimizer_params = get_param(training_params, 'optimizer_params')
-        # OPTIMIZER PARAMETER GROUPS
-        default_param_group, weight_decay_param_group, biases_param_group = [], [], []
-        deprecated_params_total = 0
-
-        for name, m in self.named_modules():
-            if hasattr(m, 'bias') and isinstance(m.bias, nn.Parameter):  # bias
-                biases_param_group.append((name, m.bias))
-            if isinstance(m, nn.BatchNorm2d):  # weight (no decay)
-                default_param_group.append((name, m.weight))
-            elif hasattr(m, 'weight') and isinstance(m.weight, nn.Parameter):  # weight (with decay)
-                weight_decay_param_group.append((name, m.weight))
-            elif name == '_head.anchors':
-                deprecated_params_total += m.stride.numel() + m._anchors.numel() + m._anchor_grid.numel()
-
-        # EXTRACT weight_decay FROM THE optimizer_params IN ORDER TO ASSIGN THEM MANUALLY
-        weight_decay = optimizer_params.pop('weight_decay') if 'weight_decay' in optimizer_params.keys() else 0
-        param_groups = [{'named_params': default_param_group, 'lr': lr, **optimizer_params, 'name': 'default'},
-                        {'named_params': weight_decay_param_group, 'weight_decay': weight_decay, 'name': 'wd'},
-                        {'named_params': biases_param_group, 'name': 'bias'}]
-
-        # Assert that all parameters were added to optimizer param groups
-        params_total = sum(p.numel() for p in self.parameters())
-        optimizer_params_total = sum(p.numel() for g in param_groups for _, p in g['named_params'])
-        assert params_total == optimizer_params_total + deprecated_params_total, \
-            f"Parameters {[n for n, _ in self.named_parameters() if 'weight' not in n and 'bias' not in n]} " \
-            f"weren't added to optimizer param groups"
-
-        return param_groups
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
@@ -536,9 +416,20 @@ class YoLoBase(SgModule):
             self._head = new_head
         else:
             self.arch_params.num_classes = new_num_classes
-            new_last_layer = Detect(new_num_classes, self._head.anchors, channels=[self._head.width_mult(v) for v in (256, 512, 1024)])
+            old_detectx = self._head._modules_list[-1]
+            _, block, activation_type, width_mult, depth_mult = get_yolo_type_params(self.arch_params.yolo_type,
+                                                                                     self.arch_params.width_mult_factor,
+                                                                                     self.arch_params.depth_mult_factor)
+
+            new_last_layer = DetectX(num_classes=new_num_classes,
+                                     stride=self._head.anchors.stride,
+                                     activation_func_type=activation_type,
+                                     channels=[width_mult(v) for v in (256, 512, 1024)],
+                                     depthwise=isinstance(old_detectx.cls_convs[0][0], GroupedConvBlock),
+                                     groups=self.arch_params.xhead_groups,
+                                     inter_channels=self.arch_params.xhead_inter_channels)
             new_last_layer = new_last_layer.to(next(self.parameters()).device)
             self._head._modules_list[-1] = new_last_layer
-            self._check_strides_and_anchors()
+            self._check_strides()
             self._initialize_biases()
             self._initialize_weights()

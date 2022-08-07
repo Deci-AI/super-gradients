@@ -1,7 +1,6 @@
 """
 CSP Darknet
 
-credits: https://github.com/ultralytics
 """
 import math
 from typing import Tuple, Type
@@ -169,7 +168,7 @@ class BottleneckCSP(nn.Module):
 
 
 class SPP(nn.Module):
-    # SPATIAL PYRAMID POOLING LAYER USED IN YOLOV3-SPP
+    # SPATIAL PYRAMID POOLING LAYER
     def __init__(self, input_channels, output_channels, k: Tuple, activation_type: Type[nn.Module]):
         super().__init__()
 
@@ -181,18 +180,6 @@ class SPP(nn.Module):
     def forward(self, x):
         x = self.cv1(x)
         return self.cv2(torch.cat([x] + [m(x) for m in self.m], 1))
-
-
-class Focus(nn.Module):
-    # FOCUS WH INFORMATION INTO C-SPACE
-    def __init__(self, input_channels, output_channels, kernel, stride, activation_type: Type[nn.Module],
-                 padding=None, groups=1):
-        super().__init__()
-
-        self.conv = Conv(input_channels * 4, output_channels, kernel, stride, activation_type, padding, groups)
-
-    def forward(self, x):  # x(b,c,w,h) -> y(b,4c,w/2,h/2)
-        return self.conv(torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1))
 
 
 class ViewModule(nn.Module):

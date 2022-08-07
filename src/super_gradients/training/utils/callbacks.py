@@ -3,7 +3,6 @@ import os
 import time
 from enum import Enum
 import math
-from super_gradients.training.utils.utils import get_param
 import numpy as np
 import onnx
 import onnxruntime
@@ -385,29 +384,6 @@ class WarmupLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs >= context.epoch
 
 
-class YoloWarmupLRCallback(LRCallbackBase):
-    def __init__(self, **kwargs):
-        super(YoloWarmupLRCallback, self).__init__(Phase.TRAIN_BATCH_END, **kwargs)
-
-    def is_lr_scheduling_enabled(self, context):
-        return context.epoch < self.training_params.lr_warmup_epochs
-
-    def perform_scheduling(self, context):
-        # OVERRIDE THE lr FROM DeciModelBase WITH initial_lr, SINCE DeciModelBase MANIPULATE THE ORIGINAL VALUE
-        lr = self.training_params.initial_lr
-        momentum = get_param(self.training_params.optimizer_params, "momentum")
-        warmup_momentum = get_param(self.training_params, "warmup_momentum", momentum)
-        warmup_bias_lr = get_param(self.training_params, "warmup_bias_lr", lr)
-        nw = self.training_params.lr_warmup_epochs * self.train_loader_len
-        ni = context.epoch * self.train_loader_len + context.batch_idx
-        xi = [0, nw]  # x interp
-        for x in context.optimizer.param_groups:
-            # BIAS LR FALLS FROM 0.1 TO LR0, ALL OTHER LRS RISE FROM 0.0 TO LR0
-            x["lr"] = np.interp(ni, xi, [warmup_bias_lr if x["name"] == "bias" else 0.0, lr])
-            if "momentum" in x:
-                x["momentum"] = np.interp(ni, xi, [warmup_momentum, momentum])
-
-
 class StepLRCallback(LRCallbackBase):
     """
     Hard coded step learning rate scheduling (i.e at specific milestones).
@@ -773,7 +749,7 @@ LR_SCHEDULERS_CLS_DICT = {
     "function": FunctionLRCallback,
 }
 
-LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback, "yolo_warmup": YoloWarmupLRCallback}
+LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback}
 
 
 class TestLRCallback(PhaseCallback):
