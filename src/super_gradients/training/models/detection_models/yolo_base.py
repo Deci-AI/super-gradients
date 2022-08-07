@@ -357,7 +357,7 @@ class YoLoBase(SgModule):
         s = 128  # twice the minimum acceptable image size
         dummy_input = torch.zeros(1, self.arch_params.channels_in, s, s)
         dummy_input = dummy_input.to(next(self._backbone.parameters()).device)
-        stride = torch.tensor([s / x.shape[-2] for x in self._forward_once(dummy_input)])
+        stride = torch.tensor([s / x.shape[-2] for x in self.forward(dummy_input)])
         stride = stride.to(m.stride.device)
         if not torch.equal(m.stride, stride):
             raise RuntimeError('Provided anchor strides do not match the model strides')
