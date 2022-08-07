@@ -6,14 +6,12 @@ from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional, Dict
 
 import cv2
-from deprecated import deprecated
 import matplotlib.pyplot as plt
 
 import numpy as np
 import torch
 import torchvision
 from torch import nn
-from torch.nn import functional as F
 from torch.utils.data._utils.collate import default_collate
 from omegaconf import ListConfig
 
