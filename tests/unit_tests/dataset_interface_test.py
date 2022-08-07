@@ -1,6 +1,5 @@
 import unittest
 
-from super_gradients.training.datasets import Cifar10DatasetInterface
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDatasetInterface
 from super_gradients.training.transforms.transforms import DetectionPaddedRescale, DetectionTargetsFormatTransform, DetectionMosaic, DetectionRandomAffine,\
     DetectionHSV
@@ -19,11 +18,6 @@ class TestDatasetInterface(unittest.TestCase):
         self.val_input_dim = (self.val_image_size, self.val_image_size)
         self.train_max_num_samples = 100
         self.val_max_num_samples = 90
-
-    def test_cifar(self):
-        test_dataset_interface = Cifar10DatasetInterface()
-        cifar_dataset_sample = test_dataset_interface.get_test_sample()
-        self.assertListEqual([3, 32, 32], list(cifar_dataset_sample[0].shape))
 
     def setup_pascal_voc_interface(self):
         """setup PascalVOCUnifiedDetectionDataSetInterfaceV2 and return dataloaders"""
