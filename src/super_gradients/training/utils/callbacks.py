@@ -3,7 +3,6 @@ import os
 import time
 from enum import Enum
 import math
-from super_gradients.training.utils.utils import get_param
 import numpy as np
 import onnx
 import onnxruntime
@@ -237,7 +236,7 @@ class DeciLabUploadCallback(PhaseCallback):
 
     @staticmethod
     def log_optimization_failed():
-        logger.info(f"We couldn't finish your model optimization. Visit https://console.deci.ai for details")
+        logger.info("We couldn't finish your model optimization. Visit https://console.deci.ai for details")
 
     def upload_model(self, model):
         """
@@ -304,10 +303,10 @@ class DeciLabUploadCallback(PhaseCallback):
             logger.info(f"Successfully added {model_name} to the model repository")
 
             optimized_model_name = f"{model_name}_1_1"
-            logger.info(f"We'll wait for the scheduled optimization to finish. Please don't close this window")
+            logger.info("We'll wait for the scheduled optimization to finish. Please don't close this window")
             success = self.get_optimization_status(optimized_model_name=optimized_model_name)
             if success:
-                logger.info(f"Successfully finished your model optimization. Visit https://console.deci.ai for details")
+                logger.info("Successfully finished your model optimization. Visit https://console.deci.ai for details")
             else:
                 DeciLabUploadCallback.log_optimization_failed()
         except Exception as ex:
@@ -385,29 +384,6 @@ class WarmupLRCallback(LRCallbackBase):
         return self.training_params.lr_warmup_epochs >= context.epoch
 
 
-class YoloV5WarmupLRCallback(LRCallbackBase):
-    def __init__(self, **kwargs):
-        super(YoloV5WarmupLRCallback, self).__init__(Phase.TRAIN_BATCH_END, **kwargs)
-
-    def is_lr_scheduling_enabled(self, context):
-        return context.epoch < self.training_params.lr_warmup_epochs
-
-    def perform_scheduling(self, context):
-        # OVERRIDE THE lr FROM DeciModelBase WITH initial_lr, SINCE DeciModelBase MANIPULATE THE ORIGINAL VALUE
-        lr = self.training_params.initial_lr
-        momentum = get_param(self.training_params.optimizer_params, "momentum")
-        warmup_momentum = get_param(self.training_params, "warmup_momentum", momentum)
-        warmup_bias_lr = get_param(self.training_params, "warmup_bias_lr", lr)
-        nw = self.training_params.lr_warmup_epochs * self.train_loader_len
-        ni = context.epoch * self.train_loader_len + context.batch_idx
-        xi = [0, nw]  # x interp
-        for x in context.optimizer.param_groups:
-            # BIAS LR FALLS FROM 0.1 TO LR0, ALL OTHER LRS RISE FROM 0.0 TO LR0
-            x["lr"] = np.interp(ni, xi, [warmup_bias_lr if x["name"] == "bias" else 0.0, lr])
-            if "momentum" in x:
-                x["momentum"] = np.interp(ni, xi, [warmup_momentum, momentum])
-
-
 class StepLRCallback(LRCallbackBase):
     """
     Hard coded step learning rate scheduling (i.e at specific milestones).
@@ -460,11 +436,8 @@ class ExponentialLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return (
-            self.training_params.lr_warmup_epochs
-            <= context.epoch
-            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-        )
+        post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
 class PolyLRCallback(LRCallbackBase):
@@ -489,11 +462,8 @@ class PolyLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return (
-            self.training_params.lr_warmup_epochs
-            <= context.epoch
-            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-        )
+        post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
 class CosineLRCallback(LRCallbackBase):
@@ -519,11 +489,8 @@ class CosineLRCallback(LRCallbackBase):
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
 
     def is_lr_scheduling_enabled(self, context):
-        return (
-            self.training_params.lr_warmup_epochs
-            <= context.epoch
-            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-        )
+        post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
 
 class FunctionLRCallback(LRCallbackBase):
@@ -538,11 +505,8 @@ class FunctionLRCallback(LRCallbackBase):
         self.max_epochs = max_epochs
 
     def is_lr_scheduling_enabled(self, context):
-        return (
-            self.training_params.lr_warmup_epochs
-            <= context.epoch
-            < self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
-        )
+        post_warmup_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
+        return self.training_params.lr_warmup_epochs <= context.epoch < post_warmup_epochs
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
@@ -785,7 +749,7 @@ LR_SCHEDULERS_CLS_DICT = {
     "function": FunctionLRCallback,
 }
 
-LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback, "yolov5_warmup": YoloV5WarmupLRCallback}
+LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback}
 
 
 class TestLRCallback(PhaseCallback):

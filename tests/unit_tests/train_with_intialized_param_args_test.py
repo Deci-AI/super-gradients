@@ -78,7 +78,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         model.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
-        optimizer = SGD # a class - not an instance
+        optimizer = SGD  # a class - not an instance
         model.build_model(net)
 
         train_params = {"max_epochs": 2,

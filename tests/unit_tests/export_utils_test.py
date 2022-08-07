@@ -21,7 +21,7 @@ class TestUtil(unittest.TestCase):
         the result of the original net are the same as the results of the fused net
         """
 
-        archs = ['resnet18', 'mobilenet_v2', 'densenet121', 'regnetY200', 'yolo_v5s' ]
+        archs = ['resnet18', 'mobilenet_v2', 'densenet121', 'regnetY200']
 
         for arch_name in archs:
 
@@ -74,8 +74,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(len(model._modules), 2)
         self.assertIsInstance(model._modules['0'], nn.Conv2d)
         self.assertIsInstance(model._modules['1'], nn.Conv2d)
-
-
 
     def test_fuse_conv_bn_on_toy_models(self):
 

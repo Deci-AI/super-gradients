@@ -349,7 +349,7 @@ class DetectionTransform:
     Detection transform base class.
 
     Complex transforms that require extra data loading can use the the additional_samples_count attribute in a
-     similar fashion to what's been done in COCODetectionDatasetV2:
+     similar fashion to what's been done in COCODetectionDataset:
 
     self._load_additional_inputs_for_transform(sample, transform)
 
@@ -410,8 +410,9 @@ class DetectionMosaic(DetectionTransform):
             all_samples = [sample] + sample["additional_samples"]
 
             for i_mosaic, mosaic_sample in enumerate(all_samples):
-                img, _labels, _labels_seg, _ = mosaic_sample["image"], mosaic_sample["target"], mosaic_sample[
-                    "target_seg"], mosaic_sample["id"]
+                img, _labels = mosaic_sample["image"], mosaic_sample["target"]
+                _labels_seg = mosaic_sample.get("target_seg")
+
                 h0, w0 = img.shape[:2]  # orig hw
                 scale = min(1. * input_h / h0, 1. * input_w / w0)
                 img = cv2.resize(
@@ -430,7 +431,6 @@ class DetectionMosaic(DetectionTransform):
                 padw, padh = l_x1 - s_x1, l_y1 - s_y1
 
                 labels = _labels.copy()
-                labels_seg = _labels_seg.copy()
 
                 # Normalized xywh to pixel xyxy format
                 if _labels.size > 0:
@@ -438,11 +438,14 @@ class DetectionMosaic(DetectionTransform):
                     labels[:, 1] = scale * _labels[:, 1] + padh
                     labels[:, 2] = scale * _labels[:, 2] + padw
                     labels[:, 3] = scale * _labels[:, 3] + padh
-
-                    labels_seg[:, ::2] = scale * labels_seg[:, ::2] + padw
-                    labels_seg[:, 1::2] = scale * labels_seg[:, 1::2] + padh
-                mosaic_labels_seg.append(labels_seg)
                 mosaic_labels.append(labels)
+
+                if _labels_seg is not None:
+                    labels_seg = _labels_seg.copy()
+                    if _labels.size > 0:
+                        labels_seg[:, ::2] = scale * labels_seg[:, ::2] + padw
+                        labels_seg[:, 1::2] = scale * labels_seg[:, 1::2] + padh
+                    mosaic_labels_seg.append(labels_seg)
 
             if len(mosaic_labels):
                 mosaic_labels = np.concatenate(mosaic_labels, 0)
@@ -450,12 +453,18 @@ class DetectionMosaic(DetectionTransform):
                 np.clip(mosaic_labels[:, 1], 0, 2 * input_h, out=mosaic_labels[:, 1])
                 np.clip(mosaic_labels[:, 2], 0, 2 * input_w, out=mosaic_labels[:, 2])
                 np.clip(mosaic_labels[:, 3], 0, 2 * input_h, out=mosaic_labels[:, 3])
+
+            if len(mosaic_labels_seg):
                 mosaic_labels_seg = np.concatenate(mosaic_labels_seg, 0)
                 np.clip(mosaic_labels_seg[:, ::2], 0, 2 * input_w, out=mosaic_labels_seg[:, ::2])
                 np.clip(mosaic_labels_seg[:, 1::2], 0, 2 * input_h, out=mosaic_labels_seg[:, 1::2])
 
-            sample = {"image": mosaic_img, "target": mosaic_labels, "target_seg": mosaic_labels_seg,
-                      "info": (mosaic_img.shape[1], mosaic_img.shape[0]), "id": sample["id"]}
+            sample["image"] = mosaic_img
+            sample["target"] = mosaic_labels
+            sample["info"] = (mosaic_img.shape[1], mosaic_img.shape[0])
+            if len(mosaic_labels_seg):
+                sample["target_seg"] = mosaic_labels_seg
+
         return sample
 
 
@@ -478,11 +487,23 @@ class DetectionRandomAffine(DetectionTransform):
      shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
         from (shear, shear)
 
-    enable: (bool) whether to apply the below transform at all.
+     enable: (bool) whether to apply the below transform at all.
+
+     filter_box_candidates: (bool) whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio (default=False).
+
+     wh_thr: (float) edge size threshold when filter_box_candidates = True. Bounding oxes with edges smaller
+      then this values will be filtered out. (default=2)
+
+     ar_thr: (float) aspect ratio threshold filter_box_candidates = True. Bounding boxes with aspect ratio larger
+      then this values will be filtered out. (default=20)
+
+     area_thr:(float) threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True.
+      Bounding boxes with such ratio smaller then this value will be filtered out. (default=0.1)
 
     """
 
-    def __init__(self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640)):
+    def __init__(self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640),
+                 filter_box_candidates: bool = False, wh_thr=2, ar_thr=20, area_thr=0.1):
         super(DetectionRandomAffine, self).__init__()
         self.degrees = degrees
         self.translate = translate
@@ -490,6 +511,10 @@ class DetectionRandomAffine(DetectionTransform):
         self.shear = shear
         self.target_size = target_size
         self.enable = True
+        self.filter_box_candidates = filter_box_candidates
+        self.wh_thr = wh_thr
+        self.ar_thr = ar_thr
+        self.area_thr = area_thr
 
     def close(self):
         self.enable = False
@@ -499,12 +524,16 @@ class DetectionRandomAffine(DetectionTransform):
             img, target = random_affine(
                 sample["image"],
                 sample["target"],
-                sample["target_seg"],
+                sample.get("target_seg"),
                 target_size=self.target_size,
                 degrees=self.degrees,
                 translate=self.translate,
                 scales=self.scale,
                 shear=self.shear,
+                filter_box_candidates=self.filter_box_candidates,
+                wh_thr=self.wh_thr,
+                area_thr=self.area_thr,
+                ar_thr=self.ar_thr
             )
             sample["image"] = img
             sample["target"] = target
@@ -520,14 +549,16 @@ class DetectionMixup(DetectionTransform):
         mixup_scale: (tuple) scale range for the additional loaded image for mixup.
         prob: (float) probability of applying mixup.
         enable_mixup: (bool) whether to apply mixup at all (regardless of prob) (default=True).
+        flip_prob: (float) prbability to apply horizontal flip to the additional sample.
     """
 
-    def __init__(self, input_dim, mixup_scale, prob=1., enable_mixup=True):
+    def __init__(self, input_dim, mixup_scale, prob=1., enable_mixup=True, flip_prob=0.5):
         super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
         self.input_dim = input_dim
         self.mixup_scale = mixup_scale
         self.prob = prob
         self.enable_mixup = enable_mixup
+        self.flip_prob = flip_prob
 
     def close(self):
         self.additional_samples_count = 0
@@ -538,8 +569,12 @@ class DetectionMixup(DetectionTransform):
             origin_img, origin_labels = sample["image"], sample["target"]
             cp_sample = sample["additional_samples"][0]
             img, cp_labels = cp_sample["image"], cp_sample["target"]
+            cp_boxes = cp_labels[:, :4]
 
-            img, cp_labels = _mirror(img, cp_labels, 0.5)
+            img, cp_boxes = _mirror(img, cp_boxes, self.flip_prob)
+            # PLUG IN TARGET THE FLIPPED BOXES
+            cp_labels[:, :4] = cp_boxes
+
             jit_factor = random.uniform(*self.mixup_scale)
 
             if len(img.shape) == 3:
@@ -561,7 +596,6 @@ class DetectionMixup(DetectionTransform):
                 (int(cp_img.shape[1] * jit_factor), int(cp_img.shape[0] * jit_factor)),
             )
             cp_scale_ratio *= jit_factor
-
 
             origin_h, origin_w = cp_img.shape[:2]
             target_h, target_w = origin_img.shape[:2]
@@ -618,16 +652,13 @@ class DetectionPaddedRescale(DetectionTransform):
         self.max_targets = max_targets
 
     def __call__(self, sample: Dict[str, np.array]):
-        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target", [])
-        new_targets = np.zeros((self.max_targets, 5), dtype=np.float32) if len(targets) == 0 else targets.copy()
-        new_crowd_targets = np.zeros((self.max_targets, 5), dtype=np.float32) if len(crowd_targets) == 0 else crowd_targets.copy()
-
+        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
         img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap)
 
         sample["image"] = img
-        sample["target"] = self._rescale_target(new_targets, r)
+        sample["target"] = self._rescale_target(targets, r)
         if crowd_targets is not None:
-            sample["crowd_target"] = self._rescale_target(new_crowd_targets, r)
+            sample["crowd_target"] = self._rescale_target(crowd_targets, r)
         return sample
 
     def _rescale_target(self, targets: np.array, r: float) -> np.array:
@@ -639,6 +670,7 @@ class DetectionPaddedRescale(DetectionTransform):
 
         :return:         Rescaled targets, shape (batch_size, 6)
         """
+        targets = targets.copy() if len(targets) > 0 else np.zeros((self.max_targets, 5), dtype=np.float32)
         boxes, labels = targets[:, :4], targets[:, 4]
         boxes = xyxy2cxcywh(boxes)
         boxes *= r
@@ -651,7 +683,7 @@ class DetectionHorizontalFlip(DetectionTransform):
     Horizontal Flip for Detection
 
     Attributes:
-        prob: float: probability of applying HSV transform
+        prob: float: probability of applying horizontal flip
         max_targets: int: max objects in single image, padding target to this size in case of empty image.
     """
 
@@ -667,6 +699,8 @@ class DetectionHorizontalFlip(DetectionTransform):
             targets = np.zeros((self.max_targets, 5), dtype=np.float32)
             boxes = targets[:, :4]
         image, boxes = _mirror(image, boxes, self.prob)
+        targets[:, :4] = boxes
+        sample["target"] = targets
         sample["image"] = image
         return sample
 
@@ -676,13 +710,16 @@ class DetectionHSV(DetectionTransform):
     Detection HSV transform.
     """
 
-    def __init__(self, prob):
+    def __init__(self, prob: float, hgain: float = 0.5, sgain: float = 0.5, vgain: float = 0.5):
         super(DetectionHSV, self).__init__()
         self.prob = prob
+        self.hgain = hgain
+        self.sgain = sgain
+        self.vgain = vgain
 
-    def __call__(self, sample):
+    def __call__(self, sample: dict) -> dict:
         if random.random() < self.prob:
-            augment_hsv(sample["image"])
+            augment_hsv(sample["image"], self.hgain, self.sgain, self.vgain)
         return sample
 
 
@@ -721,7 +758,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         convert2xyxy = not input_xyxy_format and output_xyxy_format
         convert2cxcy = input_xyxy_format and not output_xyxy_format
 
-        image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target", [])
+        image, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
 
         _, h, w = image.shape
 
@@ -765,7 +802,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
             return padded_targets
 
         sample["target"] = _format_target(targets)
-        if crowd_targets != []:
+        if crowd_targets is not None:
             sample["crowd_target"] = _format_target(crowd_targets)
         return sample
 
@@ -850,6 +887,8 @@ def get_affine_matrix(
 def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
     num_gts = len(targets)
     twidth, theight = target_size
+    # targets_seg = [B x w x h]
+    # if any is_not_nan in axis = 1
     seg_is_present_mask = np.logical_or.reduce(~np.isnan(targets_seg), axis=1)
     num_gts_masks = seg_is_present_mask.sum()
     num_gts_boxes = num_gts - num_gts_masks
@@ -901,49 +940,83 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
 
 
 def random_affine(
-        img,
-        targets=(),
-        targets_seg=(),
-        target_size=(640, 640),
-        degrees=10,
-        translate=0.1,
-        scales=0.1,
-        shear=10,
+        img: np.ndarray,
+        targets: np.ndarray = (),
+        targets_seg: np.ndarray = None,
+        target_size: tuple = (640, 640),
+        degrees: Union[float, tuple] = 10,
+        translate: Union[float, tuple] = 0.1,
+        scales: Union[float, tuple] = 0.1,
+        shear: Union[float, tuple] = 10,
+        filter_box_candidates: bool = False,
+        wh_thr=2,
+        ar_thr=20,
+        area_thr=0.1
+
 ):
     """
     Performs random affine transform to img, targets
+    :param img:         Input image
+    :param targets:     Input target
+    :param targets_seg: Targets derived from segmentation masks
+    :param target_size: Desired output shape
+    :param degrees:     Degrees for random rotation, when float the random values are drawn uniformly
+                            from (-degrees, degrees).
+    :param translate:   Translate size (in pixels) for random translation, when float the random values
+                            are drawn uniformly from (-translate, translate)
+    :param scales:      Values for random rescale, when float the random values are drawn uniformly
+                            from (0.1-scales, 0.1+scales)
+    :param shear:       Degrees for random shear, when float the random values are drawn uniformly
+                                from (shear, shear)
 
-    :param img: (array) input image.
+    :param filter_box_candidates:    whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
+    :param wh_thr: (float) edge size threshold when filter_box_candidates = True. Bounding oxes with edges smaller
+      then this values will be filtered out. (default=2)
 
-    :param targets: (array) input target.
+    :param ar_thr: (float) aspect ratio threshold filter_box_candidates = True. Bounding boxes with aspect ratio larger
+      then this values will be filtered out. (default=20)
 
-    :param targets_seg: (array) targets derived from segmentation masks.
-
-    :param target_size: (tuple) desired output shape.
-
-    :param degrees:  (Union[tuple, float]) degrees for random rotation, when float the random values are drawn uniformly
-     from (-degrees, degrees)
-
-    :param translate:  (Union[tuple, float]) translate size (in pixels) for random translation, when float the random values
-     are drawn uniformly from (-translate, translate)
-
-    :param scales: (Union[tuple, float]) values for random rescale, when float the random values are drawn uniformly
-     from (0.1-scales, 0.1+scales)
-
-    :param shear: (Union[tuple, float]) degrees for random shear, when float the random values are drawn uniformly
-     from (shear, shear)
-
-    :return:
+    :param area_thr:(float) threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True.
+      Bounding boxes with such ratio smaller then this value will be filtered out. (default=0.1)
+    :return:            Image and Target with applied random affine
     """
+
+    targets_seg = np.zeros((targets.shape[0], 0)) if targets_seg is None else targets_seg
     M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
 
     img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(114, 114, 114))
 
     # Transform label coordinates
     if len(targets) > 0:
+        targets_orig = targets.copy()
         targets = apply_affine_to_bboxes(targets, targets_seg, target_size, M)
-
+        if filter_box_candidates:
+            box_candidates_ids = _filter_box_candidates(targets_orig[:, :4],
+                                                        targets[:, :4],
+                                                        wh_thr=wh_thr,
+                                                        ar_thr=ar_thr,
+                                                        area_thr=area_thr
+                                                        )
+            targets = targets[box_candidates_ids]
     return img, targets
+
+
+def _filter_box_candidates(box1, box2, wh_thr=2, ar_thr=20, area_thr=0.1):
+    """
+    compute candidate boxes
+        :param box1:        before augment
+        :param box2:        after augment
+        :param wh_thr:      wh_thr (pixels)
+        :param ar_thr:      aspect_ratio_thr
+        :param area_thr:    area_ratio
+    :return:
+    """
+    box1 = box1.T
+    box2 = box2.T
+    w1, h1 = box1[2] - box1[0], box1[3] - box1[1]
+    w2, h2 = box2[2] - box2[0], box2[3] - box2[1]
+    ar = np.maximum(w2 / (h2 + 1e-16), h2 / (w2 + 1e-16))  # aspect ratio
+    return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + 1e-16) > area_thr) & (ar < ar_thr)  # candidates
 
 
 def _mirror(image, boxes, prob=0.5):
@@ -955,14 +1028,15 @@ def _mirror(image, boxes, prob=0.5):
     :param prob: probability to perform flipping.
     :return: flipped_image, flipped_bboxes
     """
+    flipped_boxes = boxes.copy()
     _, width, _ = image.shape
     if random.random() < prob:
         image = image[:, ::-1]
-        boxes[:, 0::2] = width - boxes[:, 2::-2]
-    return image, boxes
+        flipped_boxes[:, 0::2] = width - boxes[:, 2::-2]
+    return image, flipped_boxes
 
 
-def augment_hsv(img, hgain=5, sgain=30, vgain=30):
+def augment_hsv(img: np.array, hgain: float, sgain: float, vgain: float):
     hsv_augs = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain]  # random gains
     hsv_augs *= np.random.randint(0, 2, 3)  # random selection of h, s, v
     hsv_augs = hsv_augs.astype(np.int16)

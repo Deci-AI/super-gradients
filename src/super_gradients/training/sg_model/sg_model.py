@@ -17,6 +17,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
@@ -55,7 +56,7 @@ from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path,
     load_checkpoint_to_model, load_pretrained_weights
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
-    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods
+    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
@@ -181,6 +182,7 @@ class SgModel:
         self.ckpt_best_name = 'ckpt_best.pth'
         self.enable_qat = False
         self.qat_params = {}
+        self._infinite_train_loader = False
 
         # DETERMINE THE LOCATION OF THE LOSS AND ACCURACY IN THE RESULTS TUPLE OUTPUTED BY THE TEST
         self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = None, None
@@ -377,7 +379,8 @@ class SgModel:
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
                                train_loader=self.train_loader,
-                               context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END))
+                               context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
+                               ddp_silent_mode=self.ddp_silent_mode)
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
             batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
@@ -422,7 +425,7 @@ class SgModel:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler) and batch_idx == len(self.train_loader)-1:
+            if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1:
                 break
 
         if not self.ddp_silent_mode:
@@ -600,7 +603,6 @@ class SgModel:
                               "detection_loss": YoLoV3DetectionLoss,
                               "shelfnet_ohem_loss": ShelfNetOHEMLoss,
                               "shelfnet_se_loss": ShelfNetSemanticEncodingLoss,
-                              "yolo_v5_loss": YoLoV5DetectionLoss,
                               "ssd_loss": SSDLoss,
 
 
@@ -848,9 +850,10 @@ class SgModel:
 
         # Instantiate the values to monitor (loss/metric)
         for loss in self.loss_logging_items_names:
-            self.train_monitored_values[loss] = MonitoredValue()
-            self.valid_monitored_values[loss] = MonitoredValue()
-        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue()
+            self.train_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
+            self.valid_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
+        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch,
+                                                                           greater_is_better=True)
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -898,6 +901,7 @@ class SgModel:
         load_opt_params = self.training_params.load_opt_params
 
         self.phase_callbacks = self.training_params.phase_callbacks or []
+        self.phase_callbacks = ListFactory(CallbacksFactory()).get(self.phase_callbacks)
 
         if self.lr_mode is not None:
             sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
@@ -907,7 +911,13 @@ class SgModel:
                                                            update_param_groups=self.update_param_groups,
                                                            **self.training_params.to_dict()))
         if self.training_params.lr_warmup_epochs > 0:
-            warmup_callback_cls = LR_WARMUP_CLS_DICT[self.training_params.warmup_mode]
+            warmup_mode = self.training_params.warmup_mode
+            if isinstance(warmup_mode, str):
+                warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
+            elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
+                warmup_callback_cls = warmup_mode
+            else:
+                raise RuntimeError('warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback')
             self.phase_callbacks.append(warmup_callback_cls(train_loader_len=len(self.train_loader),
                                                             net=self.net,
                                                             training_params=self.training_params,
@@ -972,9 +982,12 @@ class SgModel:
         if self.load_checkpoint and load_opt_params:
             self.optimizer.load_state_dict(self.checkpoint['optimizer_state_dict'])
 
-        self.pre_prediction_callback = self.training_params.pre_prediction_callback
+        self.pre_prediction_callback = CallbacksFactory().get(self.training_params.pre_prediction_callback)
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
+
+        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or\
+                                      (hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler))
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
@@ -1017,7 +1030,8 @@ class SgModel:
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
-                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader, "sampler") and hasattr(self.train_loader.sampler, "set_epoch"):
+                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader, "sampler")\
+                        and hasattr(self.train_loader.sampler, "set_epoch"):
                     self.train_loader.sampler.set_epoch(epoch)
 
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
@@ -1529,7 +1543,7 @@ class SgModel:
 
             self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
         else:
-            raise RuntimeError('sg_logger can be either an sg_logger name (str) or a subcalss of AbstractSGLogger')
+            raise RuntimeError('sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger')
 
         if not isinstance(self.sg_logger, BaseSGLogger):
             logger.warning("WARNING! Using a user-defined sg_logger: files will not be automatically written to disk!\n"
@@ -1746,7 +1760,7 @@ class SgModel:
         self.valid_monitored_values = sg_model_utils.update_monitored_values_dict(
             monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict)
 
-        if not silent_mode and evaluation_type==EvaluationType.VALIDATION:
+        if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
             progress_bar_data_loader.write("===========================================================")
             sg_model_utils.display_epoch_summary(epoch=context.epoch, n_digits=4,
                                                  train_monitored_values=self.train_monitored_values,
