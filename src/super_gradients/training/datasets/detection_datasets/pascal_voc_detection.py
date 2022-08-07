@@ -19,24 +19,19 @@ logger = get_logger(__name__)
 class PascalVOCDetectionDataset(DetectionDataset):
     """Dataset for Pascal VOC object detection"""
 
-    def __init__(self, data_dir: str, images_sub_directory: str, *args, **kwargs):
+    def __init__(self, images_sub_directory: str, *args, **kwargs):
         """Dataset for Pascal VOC object detection
 
-        :param data_dir:                Where the data is stored
         :param images_sub_directory:    Sub directory of data_dir that includes images.
         """
-        self.data_dir = data_dir
-        if not Path(data_dir).exists():
-            raise FileNotFoundError(f"Please make sure to download the data in the data directory ({self.data_dir}).")
         self.images_sub_directory = images_sub_directory
-        self.img_and_target_path_list = self._get_img_and_target_path_list()
+        self.img_and_target_path_list = None
 
-        kwargs['n_available_samples'] = len(self.img_and_target_path_list)
         kwargs['all_classes_list'] = PASCAL_VOC_2012_CLASSES_LIST
         kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
         super().__init__(*args, **kwargs)
 
-    def _get_img_and_target_path_list(self) -> List[Tuple[str, str]]:
+    def _setup_data_source(self):
         """Initialize img_and_target_path_list and warn if label file is missing
 
         :return: List of tuples made of (img_path,target_path)
@@ -62,7 +57,9 @@ class PascalVOCDetectionDataset(DetectionDataset):
         num_missing_files = len(img_files) - len(img_and_target_path_list)
         if num_missing_files > 0:
             logger.warning(f'{num_missing_files} labels files were not loaded our of {len(img_files)} image files')
-        return img_and_target_path_list
+
+        self.img_and_target_path_list = img_and_target_path_list
+        return len(self.img_and_target_path_list)
 
     def _load_annotation(self, sample_id: int) -> dict:
         """Load annotations associated to a specific sample.

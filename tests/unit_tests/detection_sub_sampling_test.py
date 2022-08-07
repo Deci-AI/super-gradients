@@ -12,10 +12,12 @@ class DummyDetectionDataset(DetectionDataset):
 
         self.dataset_size = dataset_size
         self.image_size = input_dim
-        kwargs['n_available_samples'] = self.dataset_size
         kwargs['all_classes_list'] = ["class_0", "class_1", "class_2"]
         kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
-        super().__init__(input_dim=input_dim, *args, **kwargs)
+        super().__init__(data_dir='', input_dim=input_dim, *args, **kwargs)
+
+    def _setup_data_source(self):
+        return self.dataset_size
 
     def _load_annotation(self, sample_id: int) -> dict:
         """Load dummy annotation"""

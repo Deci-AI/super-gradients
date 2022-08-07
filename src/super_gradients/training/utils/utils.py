@@ -22,11 +22,6 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
 
-# GET ORIENTATION EXIF TAG
-for orientation in ExifTags.TAGS.keys():
-    if ExifTags.TAGS[orientation] == 'Orientation':
-        break
-
 
 def convert_to_tensor(array):
     """Converts numpy arrays and lists to Torch tensors before calculation losses
@@ -410,11 +405,14 @@ def exif_size(image: Image) -> Tuple[int, int]:
     :param image:   The image to get size from
     :return:        (width, height)
     """
+
+    orientation_key = 274  # ExifTags.TAGS[orientation_key] == 'Orientation'
+
     image_size = image.size
     try:
         exif_data = image._getexif()
         if exif_data is not None:
-            rotation = dict(exif_data.items())[orientation]
+            rotation = dict(exif_data.items())[orientation_key]
             # ROTATION 270
             if rotation == 6:
                 image_size = (image_size[1], image_size[0])

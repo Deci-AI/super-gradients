@@ -18,10 +18,12 @@ class DummyDetectionDataset(DetectionDataset):
                                         [0, 15, 55, 20, 1]])]
 
         self.image_size = input_dim
-        kwargs['n_available_samples'] = len(self.dummy_targets)
         kwargs['all_classes_list'] = ["class_0", "class_1", "class_2"]
         kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
-        super().__init__(input_dim=input_dim, *args, **kwargs)
+        super().__init__(data_dir='', input_dim=input_dim, *args, **kwargs)
+
+    def _setup_data_source(self):
+        return len(self.dummy_targets)
 
     def _load_annotation(self, sample_id: int) -> dict:
         """Load 2 different annotations.

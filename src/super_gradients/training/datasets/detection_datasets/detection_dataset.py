@@ -59,8 +59,8 @@ class DetectionDataset(Dataset):
 
     def __init__(
             self,
+            data_dir: str,
             input_dim: tuple,
-            n_available_samples: int,
             original_target_format: DetectionTargetsFormat,
             max_num_samples: int = None,
             cache: bool = False,
@@ -74,9 +74,8 @@ class DetectionDataset(Dataset):
     ):
         """Detection dataset.
 
+        :param data_dir:                Where the data is stored
         :param input_dim:               Image size (when loaded, before transforms).
-        :paran n_available_samples:     Number of images that are avalaible (regardless of ignored images)
-                                            - Note that this can be different to len(self) if images are droped.
         :param original_target_format:  Format of targets stored on disk. raw data format, the output format might
                                         differ based on transforms.
         :param max_num_samples:         If not None, set the maximum size of the dataset by only indexing the first n annotations/images.
@@ -95,9 +94,17 @@ class DetectionDataset(Dataset):
         """
         super().__init__()
 
+        self.data_dir = data_dir
+        if not Path(data_dir).exists():
+            raise FileNotFoundError(f"Please make sure to download the data in the data directory ({self.data_dir}).")
+
+        # Number of images that are avalaible(regardless of ignored images)
+        self.n_available_samples = self._setup_data_source()
+        if not isinstance(self.n_available_samples, int) or self.n_available_samples < 1:
+            raise ValueError(f"_setup_data_source() should return the number of available samples but got {self.n_available_samples}")
+
         self.input_dim = input_dim
         self.original_target_format = original_target_format
-        self.n_available_samples = n_available_samples
         self.max_num_samples = max_num_samples
 
         self.all_classes_list = all_classes_list
@@ -123,6 +130,12 @@ class DetectionDataset(Dataset):
         self.output_fields = output_fields or ["image", "target"]
         if len(self.output_fields) < 2 or self.output_fields[0] != "image" or self.output_fields[1] != "target":
             raise ValueError('output_fields must start with "image" and then "target", followed by any other field')
+
+    def _setup_data_source(self) -> int:
+        """Set up the data source and store relevant objects as attributes.
+
+        :return: Number of available samples, (i.e. how many images we have, regardless of any filter we might want to use)"""
+        raise NotImplementedError
 
     def _load_annotation(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
         """Load annotations associated to a specific sample.
