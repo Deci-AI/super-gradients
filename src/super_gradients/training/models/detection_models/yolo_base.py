@@ -365,7 +365,7 @@ class YoLoBase(SgModule):
         self.register_buffer('stride', m.stride)  # USED ONLY FOR CONVERSION
 
     def _initialize_biases(self):
-        """initialize biases into DetectX(), cf is class frequency"""
+        """initialize biases into DetectX()"""
         detect_module = self._head._modules_list[-1]  # DetectX() module
         prior_prob = 1e-2
         for conv in detect_module.cls_preds:
