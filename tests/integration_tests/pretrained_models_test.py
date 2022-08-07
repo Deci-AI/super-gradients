@@ -160,9 +160,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                      "yolox_n": 0.2677,
                                      "yolox_t": 0.3718}
 
-        self.transfer_detection_dataset = {
-            'ssd_lite_mobilenet_v2': DetectionTestDatasetInterface(image_size=320, classes=['class1', 'class2'])
-        }
+        self.transfer_detection_dataset = DetectionTestDatasetInterface(image_size=320, classes=['class1', 'class2'])
 
         ssd_dboxes = DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS['anchors']
         self.transfer_detection_train_params = {
@@ -185,11 +183,33 @@ class PretrainedModelsTest(unittest.TestCase):
                     "valid_metrics_list": [
                         DetectionMetrics(
                             post_prediction_callback=SSDPostPredictCallback(),
-                            num_cls=len(self.transfer_detection_dataset['ssd_lite_mobilenet_v2'].classes))],
+                            num_cls=len(self.transfer_detection_dataset.classes))],
                     "loss_logging_items_names": ['smooth_l1', 'closs', 'Loss'],
                     "metric_to_watch": "mAP@0.50:0.95",
                     "greater_metric_to_watch_is_better": True
-                }
+                },
+            "yolox":
+                {"max_epochs": 3,
+                 "lr_mode": "cosine",
+                 "cosine_final_lr_ratio": 0.05,
+                 "warmup_bias_lr": 0.0,
+                 "warmup_momentum": 0.9,
+                 "initial_lr": 0.02,
+                 "loss": "yolox_loss",
+                 "criterion_params": {
+                     "strides": [8, 16, 32],  # output strides of all yolo outputs
+                     "num_classes": len(self.transfer_detection_dataset.classes)},
+
+                 "loss_logging_items_names": ["iou", "obj", "cls", "l1", "num_fg", "Loss"],
+
+                 "train_metrics_list": [],
+                 "valid_metrics_list": [
+                     DetectionMetrics(
+                         post_prediction_callback=YoloPostPredictionCallback(),
+                         normalize_targets=True,
+                         num_cls=len(self.transfer_detection_dataset.classes))],
+                 "metric_to_watch": 'mAP@0.50:0.95',
+                 "greater_metric_to_watch_is_better": True}
         }
 
         self.coco_segmentation_subclass_pretrained_arch_params = {
@@ -550,10 +570,10 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_transfer_learning_ssd_lite_mobilenet_v2_coco(self):
         trainer = SgModel('coco_ssd_lite_mobilenet_v2_transfer_learning',
                           model_checkpoints_location='local', multi_gpu=MultiGPUMode.OFF)
-        trainer.connect_dataset_interface(self.transfer_detection_dataset['ssd_lite_mobilenet_v2'],
+        trainer.connect_dataset_interface(self.transfer_detection_dataset,
                                           data_loader_num_workers=8)
         transfer_arch_params = self.coco_pretrained_arch_params['ssd_lite_mobilenet_v2'].copy()
-        transfer_arch_params['num_classes'] = len(self.transfer_detection_dataset['ssd_lite_mobilenet_v2'].classes)
+        transfer_arch_params['num_classes'] = len(self.transfer_detection_dataset.classes)
         trainer.build_model("ssd_lite_mobilenet_v2",
                             arch_params=transfer_arch_params,
                             checkpoint_params=self.coco_pretrained_ckpt_params)
@@ -633,6 +653,14 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                num_cls=80,
                                                                normalize_targets=True)])[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_t"], delta=0.001)
+
+    def test_transfer_learning_yolox_n_coco(self):
+        trainer = SgModel('test_transfer_learning_yolox_n_coco',
+                          model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.transfer_detection_dataset, data_loader_num_workers=8)
+        trainer.build_model("yolox_n", checkpoint_params=self.coco_pretrained_ckpt_params)
+        trainer.train(training_params=self.transfer_detection_train_params["yolox"])
 
     def test_transfer_learning_mobilenet_v3_large_imagenet(self):
         trainer = SgModel('imagenet_pretrained_mobilenet_v3_large_transfer_learning',
