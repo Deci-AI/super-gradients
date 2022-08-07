@@ -1,12 +1,13 @@
 import math
 import time
+from functools import lru_cache
 from pathlib import Path
 from typing import Mapping, Optional, Tuple, Union, List
 from zipfile import ZipFile
 import os
 from jsonschema import validate
 import tarfile
-from PIL import Image
+from PIL import Image, ExifTags
 
 import torch
 import torch.nn as nn
@@ -400,13 +401,21 @@ def check_img_size_divisibility(img_size: int, stride: int = 32) -> Tuple[bool, 
         return True, None
 
 
+@lru_cache
+def get_orientation_key():
+    """Get the orientiation key defined by PIL"""
+    for key, value in ExifTags.TAGS.items():
+        if value == 'Orientation':
+            return key
+
+
 def exif_size(image: Image) -> Tuple[int, int]:
     """Get the size of image.
     :param image:   The image to get size from
     :return:        (width, height)
     """
 
-    orientation_key = 274  # ExifTags.TAGS[orientation_key] == 'Orientation'
+    orientation_key = get_orientation_key()
 
     image_size = image.size
     try:
