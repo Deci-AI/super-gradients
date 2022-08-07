@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional, Dict
 
 import cv2
-from deprecated import deprecated
 from torch.utils.data._utils.collate import default_collate
 import matplotlib.pyplot as plt
 
@@ -14,7 +13,6 @@ import torch
 import torchvision
 import numpy as np
 from torch import nn
-from torch.nn import functional as F
 from omegaconf import ListConfig
 
 
@@ -196,66 +194,6 @@ class IouThreshold(tuple, Enum):
             return torch.tensor([self[0]])
 
 
-def scale_img(img, ratio=1.0, pad_to_original_img_size=False):
-    """
-    Scales the image by ratio (image dims is (batch_size, channels, height, width)
-    Taken from Yolov5 Ultralitics repo"""
-    if ratio == 1.0:
-        return img
-    else:
-        h, w = img.shape[2:]
-        rescaled_size = (int(h * ratio), int(w * ratio))
-        img = F.interpolate(img, size=rescaled_size, mode='bilinear', align_corners=False)
-        # PAD THE IMAGE TO BE A MULTIPLIER OF grid_size. O.W. PAD IT TO THE ORIGINAL IMAGE SIZE
-        if not pad_to_original_img_size:
-            # THE MULTIPLIER WHICH THE DIMENSION MUST BE DIVISIBLE BY
-            grid_size = 32
-            # COMPUTE THE NEW SIZE OF THE IMAGE TO RETURN
-            h, w = [math.ceil(x * ratio / grid_size) * grid_size for x in (h, w)]
-        # PAD THE IMAGE TO FIT w, h (EITHER THE ORIGINAL SIZE OR THE NEW SIZE
-        return F.pad(img, [0, w - rescaled_size[1], 0, h - rescaled_size[0]], value=0.447)  # value = imagenet mean
-
-
-@deprecated(reason="use @torch.nn.utils.fuse_conv_bn_eval(conv, bn) instead")
-def fuse_conv_and_bn(conv, bn):
-    """Fuse convolution and batchnorm layers https://tehnokv.com/posts/fusing-batchnorm-and-conv/
-    Taken from Yolov5 Ultralitics repo"""
-
-    # init
-    fusedconv = nn.Conv2d(conv.in_channels,
-                          conv.out_channels,
-                          kernel_size=conv.kernel_size,
-                          stride=conv.stride,
-                          padding=conv.padding,
-                          groups=conv.groups,
-                          bias=True).requires_grad_(False).to(conv.weight.device)
-
-    # prepare filters
-    w_conv = conv.weight.clone().view(conv.out_channels, -1)
-    w_bn = torch.diag(bn.weight.div(torch.sqrt(bn.eps + bn.running_var)))
-    fusedconv.weight.copy_(torch.mm(w_bn, w_conv).view(fusedconv.weight.size()))
-
-    # prepare spatial bias
-    b_conv = torch.zeros(conv.weight.size(0), device=conv.weight.device) if conv.bias is None else conv.bias
-    b_bn = bn.bias - bn.weight.mul(bn.running_mean).div(torch.sqrt(bn.running_var + bn.eps))
-    fusedconv.bias.copy_(torch.mm(w_bn, b_conv.reshape(-1, 1)).reshape(-1) + b_bn)
-
-    return fusedconv
-
-
-def check_anchor_order(m):
-    """Check anchor order against stride order for YOLOv5 Detect() module m, and correct if necessary
-    Taken from Yolov5 Ultralitics repo"""
-    anchor_area = m.anchor_grid.prod(-1).view(-1)
-    delta_area = anchor_area[-1] - anchor_area[0]
-    delta_stride = m.stride[-1] - m.stride[0]  # delta s
-    # IF THE SIGN OF THE SUBTRACTION IS DIFFERENT => THE STRIDE IS NOT ALIGNED WITH ANCHORS => m.anchors ARE REVERSED
-    if delta_area.sign() != delta_stride.sign():
-        print('Reversing anchor order')
-        m.anchors[:] = m.anchors.flip(0)
-        m.anchor_grid[:] = m.anchor_grid.flip(0)
-
-
 def box_iou(box1, box2):
     # https://github.com/pytorch/vision/blob/master/torchvision/ops/boxes.py
     """
@@ -267,7 +205,6 @@ def box_iou(box1, box2):
     Returns:
         iou (Tensor[N, M]): the NxM matrix containing the pairwise
             IoU values for every element in boxes1 and boxes2
-    Taken from Yolov5 Ultralitics repo
     """
 
     def box_area(box):
