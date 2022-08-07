@@ -6,13 +6,13 @@ from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional, Dict
 
 import cv2
-from torch.utils.data._utils.collate import default_collate
 import matplotlib.pyplot as plt
 
+import numpy as np
 import torch
 import torchvision
-import numpy as np
 from torch import nn
+from torch.utils.data._utils.collate import default_collate
 from omegaconf import ListConfig
 
 
@@ -33,6 +33,21 @@ class DetectionTargetsFormat(Enum):
     CXCYWH_LABEL = "CXCYWH_LABEL"
     LABEL_NORMALIZED_CXCYWH = "LABEL_NORMALIZED_CXCYWH"
     NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
+
+
+def get_cls_posx_in_target(target_format: DetectionTargetsFormat) -> int:
+    """Get the label of a given target
+    :param target_format:   Representation of the target (ex: LABEL_XYXY)
+    :return:                Position of the class id in a bbox
+                                ex: 0 if bbox of format label_xyxy | -1 if bbox of format xyxy_label
+    """
+    format_split = target_format.value.split("_")
+    if format_split[0] == "LABEL":
+        return 0
+    elif format_split[-1] == "LABEL":
+        return -1
+    else:
+        raise NotImplementedError(f"No implementation to find index of LABEL in {target_format.value}")
 
 
 def _set_batch_labels_index(labels_batch):

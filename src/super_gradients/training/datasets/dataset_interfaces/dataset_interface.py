@@ -1,36 +1,46 @@
 import os
+
 import numpy as np
 
 import torch
 import torchvision
 import torchvision.datasets as datasets
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import ConcatDataset, BatchSampler, DataLoader
+import torchvision.transforms as transforms
 
+
+from super_gradients.common import DatasetDataInterface
+from super_gradients.common.environment import AWS_ENV_NAME
 from super_gradients.common.abstractions.abstract_logger import get_logger
+
+from super_gradients.training import utils as core_utils
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
+
+from super_gradients.training.utils import get_param
+from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
+
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
-from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
-from super_gradients.training.datasets.detection_datasets.coco_detection import COCODetectionDataset
+from super_gradients.training.datasets.mixup import CollateMixup
+from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, PascalVOCDetectionDataset
+
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.datasets.segmentation_datasets import PascalVOC2012SegmentationDataSet, \
     PascalAUG2012SegmentationDataSet, CoCoSegmentationDataSet
-from super_gradients.training import utils as core_utils
-from super_gradients.common import DatasetDataInterface
-from super_gradients.common.environment import AWS_ENV_NAME
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
-from super_gradients.training.datasets.mixup import CollateMixup
-from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
-from torch.utils.data import BatchSampler, DataLoader
-from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
-from super_gradients.training.utils import get_param
-import torchvision.transforms as transforms
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import \
     SuperviselyPersonsDataset
+
 from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
-from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine, DetectionTargetsFormatTransform, \
-    DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
+from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
+
+from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine,\
+    DetectionTargetsFormatTransform, DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
+
+from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
+
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -683,7 +693,92 @@ class SuperviselyPersonsDatasetInterface(DatasetInterface):
         self.classes = self.trainset.classes
 
 
-class CoCoDetectionDatasetInterface(DatasetInterface):
+class DetectionDatasetInterface(DatasetInterface):
+    def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
+                           test_batch_size=None, distributed_sampler: bool = False):
+
+        train_sampler = InfiniteSampler(len(self.trainset), seed=0)
+
+        train_batch_sampler = BatchSampler(
+            sampler=train_sampler,
+            batch_size=self.dataset_params.batch_size,
+            drop_last=False,
+        )
+
+        self.train_loader = DataLoader(self.trainset,
+                                       batch_sampler=train_batch_sampler,
+                                       num_workers=num_workers,
+                                       pin_memory=True,
+                                       worker_init_fn=worker_init_reset_seed,
+                                       collate_fn=self.dataset_params.train_collate_fn)
+
+        if distributed_sampler:
+            sampler = torch.utils.data.distributed.DistributedSampler(self.valset, shuffle=False)
+        else:
+            sampler = torch.utils.data.SequentialSampler(self.valset)
+
+        val_loader = torch.utils.data.DataLoader(self.valset,
+                                                 num_workers=num_workers,
+                                                 pin_memory=True,
+                                                 sampler=sampler,
+                                                 batch_size=self.dataset_params.val_batch_size,
+                                                 collate_fn=self.dataset_params.val_collate_fn)
+
+        self.val_loader = val_loader
+
+
+class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
+
+    def __init__(self, dataset_params=None):
+        if dataset_params is None:
+            dataset_params = dict()
+        super().__init__(dataset_params=dataset_params)
+
+        self.data_dir = self.dataset_params.data_dir
+        train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
+        val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
+        train_max_num_samples = get_param(self.dataset_params, "train_max_num_samples")
+        val_max_num_samples = get_param(self.dataset_params, "val_max_num_samples")
+
+        if self.dataset_params.download:
+            PascalVOCDetectionDataset.download(data_dir=self.data_dir)
+
+        train_dataset_names = ["train2007", "val2007", "train2012", "val2012"]
+        # We divide train_max_num_samples between the datasets
+        if train_max_num_samples:
+            max_num_samples_per_train_dataset = [len(segment) for segment in np.array_split(range(train_max_num_samples), len(train_dataset_names))]
+        else:
+            max_num_samples_per_train_dataset = [None] * len(train_dataset_names)
+        train_sets = [PascalVOCDetectionDataset(data_dir=self.data_dir,
+                                                input_dim=train_input_dim,
+                                                cache=self.dataset_params.cache_train_images,
+                                                cache_path=self.dataset_params.cache_dir + "cache_train",
+                                                transforms=self.dataset_params.train_transforms,
+                                                images_sub_directory='images/' + trainset_name + '/',
+                                                class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                max_num_samples=max_num_samples_per_train_dataset[i])
+                      for i, trainset_name in enumerate(train_dataset_names)]
+
+        testset2007 = PascalVOCDetectionDataset(data_dir=self.data_dir,
+                                                input_dim=val_input_dim,
+                                                cache=self.dataset_params.cache_val_images,
+                                                cache_path=self.dataset_params.cache_dir + "cache_valid",
+                                                transforms=self.dataset_params.val_transforms,
+                                                images_sub_directory='images/test2007/',
+                                                class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                max_num_samples=val_max_num_samples)
+
+        self.classes = train_sets[1].classes
+        self.trainset = ConcatDataset(train_sets)
+        self.valset = testset2007
+
+        self.trainset.collate_fn = self.dataset_params.train_collate_fn
+        self.trainset.classes = self.classes
+        self.trainset.img_size = self.dataset_params.train_image_size
+        self.trainset.cache_labels = self.dataset_params.cache_train_images
+
+
+class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
     def __init__(self, dataset_params={}):
         super(CoCoDetectionDatasetInterface, self).__init__(dataset_params=dataset_params)
 
@@ -743,36 +838,4 @@ class CoCoDetectionDatasetInterface(DatasetInterface):
                 cache=self.dataset_params.cache_val_images,
                 cache_dir_path=self.dataset_params.cache_dir_path,
                 with_crowd=with_crowd)
-
-    def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
-                           test_batch_size=None, distributed_sampler: bool = False):
-
-        train_sampler = InfiniteSampler(len(self.trainset), seed=0)
-
-        train_batch_sampler = BatchSampler(
-            sampler=train_sampler,
-            batch_size=self.dataset_params.batch_size,
-            drop_last=False,
-        )
-
-        self.train_loader = DataLoader(self.trainset,
-                                       batch_sampler=train_batch_sampler,
-                                       num_workers=num_workers,
-                                       pin_memory=True,
-                                       worker_init_fn=worker_init_reset_seed,
-                                       collate_fn=self.dataset_params.train_collate_fn)
-
-        if distributed_sampler:
-            sampler = torch.utils.data.distributed.DistributedSampler(self.valset, shuffle=False)
-        else:
-            sampler = torch.utils.data.SequentialSampler(self.valset)
-
-        val_loader = torch.utils.data.DataLoader(self.valset,
-                                                 num_workers=num_workers,
-                                                 pin_memory=True,
-                                                 sampler=sampler,
-                                                 batch_size=self.dataset_params.val_batch_size,
-                                                 collate_fn=self.dataset_params.val_collate_fn)
-
-        self.val_loader = val_loader
         self.classes = COCO_DETECTION_CLASSES_LIST
