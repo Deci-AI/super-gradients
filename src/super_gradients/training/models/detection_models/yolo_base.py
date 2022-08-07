@@ -343,7 +343,7 @@ class YoLoBase(SgModule):
                                f"checkpoint may have been saved after fusing conv and bn. use fuse_conv_bn before loading.")
 
     def _initialize_module(self):
-        self._check_strides_and_anchors()
+        self._check_strides()
         self._initialize_biases()
         self._initialize_weights()
         if self.arch_params.add_nms:
@@ -351,7 +351,7 @@ class YoLoBase(SgModule):
             nms_iou = self.arch_params.nms_iou
             self._nms = YoloPostPredictionCallback(nms_conf, nms_iou)
 
-    def _check_strides_and_anchors(self):
+    def _check_strides(self):
         m = self._head._modules_list[-1]  # DetectX()
         # Do inference in train mode on a dummy image to get output stride of each head output layer
         s = 128  # twice the minimum acceptable image size
@@ -430,6 +430,6 @@ class YoLoBase(SgModule):
                                      inter_channels=self.arch_params.xhead_inter_channels)
             new_last_layer = new_last_layer.to(next(self.parameters()).device)
             self._head._modules_list[-1] = new_last_layer
-            self._check_strides_and_anchors()
+            self._check_strides()
             self._initialize_biases()
             self._initialize_weights()
