@@ -1,6 +1,5 @@
 import unittest
 
-from super_gradients.training.datasets import Cifar10DatasetInterface
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import PascalVOCUnifiedDetectionDatasetInterface,\
     CoCoDetectionDatasetInterface
 from super_gradients.training.transforms.transforms import DetectionPaddedRescale, DetectionTargetsFormatTransform, DetectionMosaic, DetectionRandomAffine,\
