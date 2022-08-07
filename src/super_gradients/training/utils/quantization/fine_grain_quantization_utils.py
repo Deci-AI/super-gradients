@@ -1,4 +1,4 @@
-from typing import Tuple, Set
+from typing import Tuple, Set, Type
 from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
 from pytorch_quantization.tensor_quant import QuantDescriptor
 from torch import nn
@@ -9,12 +9,19 @@ from super_gradients.training.utils.quantization.core import SkipQuantization, S
 
 
 class RegisterQuantizedModule(object):
-    def __init__(self, *, float_module, input_quant_descriptor=None, weights_quant_descriptor=None):
+    """
+    Decorator used to register a Quantized module as a quantized version for Float module
+    :param float_module:                the float module type that is being registered
+    :param input_quant_descriptor:      the input quantization descriptor
+    :param weights_quant_descriptor:    the weight quantization descriptor
+    """
+
+    def __init__(self, *, float_module: Type[nn.Module], input_quant_descriptor=None, weights_quant_descriptor=None):
         self.float_module = float_module
         self.input_quant_descriptor = input_quant_descriptor
         self.weights_quant_descriptor = weights_quant_descriptor
 
-    def __call__(self, quant_module):
+    def __call__(self, quant_module: Type[SGQuantMixin]):
         QuantizationUtility.mapping_instructions.update({
             self.float_module: QuantizedMetadata(
                 float_source=self.float_module,
@@ -24,9 +31,16 @@ class RegisterQuantizedModule(object):
                 action=QuantizedMetadata.ReplacementAction.REPLACE
             )
         })
+        return quant_module  # this is required since the decorator assigns the result to the `quant_module`
 
 
 class QuantizationUtility:
+
+    """
+    :param custom_mappings:                     custom mappings that extend the default mappings with extra behaviour
+    :param default_quant_modules_calib_method:  default calibration method (default='percentile')
+    :param default_per_channel_quant_modules:   whether quant modules should be per channel (default=False)
+    """
 
     mapping_instructions = {
         **{
@@ -72,7 +86,9 @@ class QuantizationUtility:
 
     def _preprocess_skips_and_custom_mappings(self, module: nn.Module, nesting: Tuple[str, ...] = ()):
         """
-        This pass is done to extract layer name and mapping instructions, so that we regard to per-layer processing
+        This pass is done to extract layer name and mapping instructions, so that we regard to per-layer processing.
+        Relevant layer-specific mapping instructions are either `SkipQuantization` or `QuantizedMapping`, which are then
+        being added to the mappings
         """
         mapping_instructions = dict()
         for name, child_module in module.named_children():
@@ -93,7 +109,7 @@ class QuantizationUtility:
                     action=QuantizedMetadata.ReplacementAction.REPLACE
                 )
 
-            if isinstance(child_module, nn.Module):
+            if isinstance(child_module, nn.Module):  # recursive call
                 mapping_instructions.update(self._preprocess_skips_and_custom_mappings(child_module, nesting + (name,)))
 
         return mapping_instructions

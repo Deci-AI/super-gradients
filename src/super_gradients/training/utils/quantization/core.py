@@ -9,6 +9,10 @@ from torch import nn
 
 
 def _extract_init_args(cls, float_instance):
+    """
+    Inspecting the __init__ args, and searching for corresponding properties from the float instance
+    e.g., for `__init__(self, a)` the mechanism will look for `float_instance.a` and pass that value to `__init__`
+    """
     required_init_params = list(inspect.signature(cls.__init__).parameters)[1:]  # [0] is self
 
     if 'kwargs' in required_init_params:  # we don't want to search for a state named `kwargs`
@@ -39,12 +43,30 @@ def _from_float(cls, float_instance, **kwargs):
 
 
 class SGQuantMixin(nn.Module):
+    """
+    A base class for user custom Quantized classes.
+    Every Quantized class must inherit this mixin, which adds `from_float` class-method.
+    NOTES:
+        * the Quantized class may also inherit from the native `QuantMixin` or `QuantInputMixin`
+        * quant descriptors (for inputs and weights) will be passed as `kwargs`. The module may ignore them if they are
+          not necessary
+        * the default implementation of `from_float` is inspecting the __init__ args, and searching for corresponding
+          properties from the float instance that is passed as argument, e.g., for `__init__(self, a)`
+          the mechanism will look for `float_instance.a` and pass that value to the `__init__` method
+    """
+
     @classmethod
     def from_float(cls, float_instance, **kwargs):
         return _from_float(cls, float_instance, **kwargs)
 
 
 class SkipQuantization(nn.Module):
+    """
+    This class wraps a float module instance, and defines that this instance will not be converted to quantized version
+
+    Example:
+        self.my_block = SkipQuantization(MyBlock(4, n_classes))
+    """
 
     def __init__(self, module: nn.Module) -> None:
         super().__init__()
@@ -53,19 +75,43 @@ class SkipQuantization(nn.Module):
 
 
 class QuantizedMapping(nn.Module):
-    def __init__(self, module: nn.Module, quantized_type: Type[SGQuantMixin],
+    """
+    This class wraps a float module instance, and defines a mapping from this instance to the corresponding quantized
+    class, with relevant quant descriptors.
+
+    Example:
+        self.my_block = QuantizedMapping(float_module=MyBlock(4, n_classes), quantized_type=MyQuantizedBlock)
+    """
+
+    def __init__(self, *, float_module: nn.Module,
+                 quantized_type: Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]],
                  input_quant_descriptor: QuantDescriptor = None,
                  weights_quant_descriptor: QuantDescriptor = None) -> None:
         super().__init__()
-        self.float_module = module
+        self.float_module = float_module
         self.quantized_type = quantized_type
         self.input_quant_descriptor = input_quant_descriptor,
         self.weights_quant_descriptor = weights_quant_descriptor,
-        self.forward = module.forward
+        self.forward = float_module.forward
 
 
 @dataclass(init=True)
 class QuantizedMetadata:
+    """
+    This dataclass is responsible for holding the information regarding float->quantized module relation.
+    It can be both layer-grained and module-grained, e.g.,
+    `module.backbone.conv1 -> QuantConv2d`, `Linear -> QuantLinear`, etc...
+
+    Args:
+        float_source:               the name of a specific layer (e.g., `module.backbone.conv1`),
+                                    or a specific type (e.g., `Conv2d`) that will be later quantized
+        quantized_type:             the quantized type that the source will be converted to
+        action:                     how to resolve the conversion: we either skip it,
+                                    unwrap the instance and work with the wrapped one (i.e., we wrap with a mapper),
+                                    or replace source with an instance of the quantized type
+        input_quant_descriptor:     quantization descriptor for inputs (None will take the default one)
+        weights_quant_descriptor:   quantization descriptor for weights (None will take the default one)
+    """
 
     class ReplacementAction(Enum):
         REPLACE = 'replace'
@@ -86,6 +132,7 @@ class QuantizedMetadata:
 def _inject_class_methods_to_default_quant_types():
     """
     This is used to add `from_float` capability for the "native" pytorch-quantization (=nvidia-tensorrt) quant classes
+    It allows SG to support these modules out of the box
     """
     import pytorch_quantization.quant_modules
     for quant_entry in pytorch_quantization.quant_modules._DEFAULT_QUANT_MAP:
