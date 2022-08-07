@@ -403,7 +403,8 @@ def check_img_size_divisibility(img_size: int, stride: int = 32) -> Tuple[bool, 
 
 @lru_cache
 def get_orientation_key() -> int:
-    """Get the orientation key defined by PIL"""
+    """Get the orientation key according to PIL, which is useful to get the image size for instance
+    :return: Orientation key according to PIL"""
     for key, value in ExifTags.TAGS.items():
         if value == 'Orientation':
             return key
