@@ -1,9 +1,7 @@
 """
 Quantization utilities
-
 Methods are based on:
  https://github.com/NVIDIA/TensorRT/blob/51a4297753d3e12d0eed864be52400f429a6a94c/tools/pytorch-quantization/examples/torchvision/classification_flow.py#L385
-
 (Licensed under the Apache License, Version 2.0)
 """
 from torch.utils.data import DataLoader
@@ -17,7 +15,7 @@ from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_m
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, \
     get_world_size
-# from torch.distributed import all_gather
+from torch.distributed import all_gather
 
 logger = get_logger(__name__)
 
@@ -57,7 +55,6 @@ def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tup
                     per_channel_quantization: bool = False):
     """
     Method for exporting onnx after QAT.
-
     :param model: torch.nn.Module, model to export
     :param onnx_filename: str, target path for the onnx file,
     :param input_shape: tuple, input shape (usually BCHW)
@@ -82,7 +79,6 @@ def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.
                     num_calib_batches: int = 2, percentile: float = 99.99):
     """
     Calibrates torch model with quantized modules.
-
     :param model:               torch.nn.Module, model to perfrom the calibration on.
     :param calib_data_loader:   torch.utils.data.DataLoader, data loader of the calibration dataset.
     :param method:              str, One of [percentile, mse, entropy, max]. Statistics method for amax computation of the quantized modules
@@ -90,12 +86,10 @@ def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.
     :param num_calib_batches:   int, number of batches to collect the statistics from.
     :param percentile:          float, percentile value to use when SgModel,quant_modules_calib_method='percentile'. Discarded when other methods are used
                                 (Default=99.99).
-
     """
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
-    acceptable_methods = ["percentile", "mse", "entropy", "max"]
-    if method in acceptable_methods:
+    elif method in ["percentile", "mse", "entropy", "max"]:
         with torch.no_grad():
             _collect_stats(model, calib_data_loader, num_batches=num_calib_batches)
 
@@ -106,9 +100,9 @@ def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.
             else:
                 _compute_amax(model, method=method)
     else:
-        raise ValueError('Unsupported quantization calibration method,'
-                         f'expected one of: {", ".join(acceptable_methods)}. '
-                         f'Got {method}')
+        raise ValueError(
+            "Unsupported quantization calibration method, expected one of: percentile, mse, entropy, max, got " + str(
+                method) + ".")
 
 
 def _collect_stats(model, data_loader, num_batches):
@@ -197,40 +191,25 @@ def _activate_quant_modules_wrapping():
 class QATCallback(PhaseCallback):
     """
     A callback for transitioning training into QAT.
-
     Rebuilds the model with QAT layers then either:
         1. loads the best checkpoint then performs calibration.
         2. loads an external calibrated model (makes sense when start_epoch=0).
-
     Additionally, resets SgModel's best_metric and sets ckpt_best_name to 'qat_ckpt_best.pth' so best QAT checkpoints
      will be saved separately.
-
     If performing calibration- the calibrated model is evaluated, and the metric_to_watch is logged under
      calibrated_model_{metric_to_watch}. The calibrated checkpoint is saved under ckpt_calibrated_{calibration_method}.pth
-
-
     Attributes:
         start_epoch: int, first epoch to start QAT.
-
         quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
          computation of the quantized modules (default=percentile).
-
         per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).
-
         calibrate: bool, whether to perfrom calibration (default=False).
-
         calibrated_model_path: str, path to a calibrated checkpoint (default=None).
-
         calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset. When None,
          context.train_loader will be used (default=None).
-
         num_calib_batches: int, number of batches to collect the statistics from.
-
         percentile: float, percentile value to use when SgModel,quant_modules_calib_method='percentile'.
          Discarded when other methods are used (Default=99.99).
-
-
-
     """
 
     def __init__(self, start_epoch: int, quant_modules_calib_method: str = "percentile",
@@ -268,8 +247,7 @@ class QATCallback(PhaseCallback):
 
             if self.calibrated_model_path is not None:
                 checkpoint_params_qat['external_checkpoint_path'] = self.calibrated_model_path
-                checkpoint_params_qat['load_ema_as_net'] = 'ema_net' in read_ckpt_state_dict(
-                    self.calibrated_model_path).keys()
+                checkpoint_params_qat['load_ema_as_net'] = 'ema_net' in read_ckpt_state_dict(self.calibrated_model_path).keys()
                 checkpoint_params_qat['load_checkpoint'] = True
             elif self.start_epoch > 0:
                 checkpoint_params_qat['load_ema_as_net'] = context.training_params.ema
@@ -305,7 +283,6 @@ class QATCallback(PhaseCallback):
     def _calibrate_model(self, context: PhaseContext):
         """
         Performs model calibration (collecting stats and setting amax for the fake quantized moduls)
-
         :param context: PhaseContext, current phase context.
         """
         self.calib_data_loader = self.calib_data_loader or context.train_loader
@@ -366,7 +343,6 @@ class PostQATConversionCallback(PhaseCallback):
     """
     Post QAT training callback that saves the best checkpoint (i.e ckpt_best.pth) in onnx format.
     Should be used with QATCallback.
-
     Attributes:
         dummy_input_size: (tuple) dummy input size for the ONNX conversion.
     """
