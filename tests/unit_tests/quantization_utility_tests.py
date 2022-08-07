@@ -2,13 +2,19 @@ import unittest
 import torch
 from torch import nn
 
-from super_gradients.training.utils.quantization.fine_grain_quantization_utils import QuantizationUtility, \
-    RegisterQuantizedModule
-from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping
+try:
+    from pytorch_quantization import nn as quant_nn
+    from super_gradients.training.utils.quantization.fine_grain_quantization_utils import QuantizationUtility, \
+        RegisterQuantizedModule
+    from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping
 
-from pytorch_quantization import nn as quant_nn
+    _imported_pytorch_quantization_failure = None
+
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    _imported_pytorch_quantization_failure = import_err
 
 
+@unittest.skipIf(_imported_pytorch_quantization_failure is not None, "Failed to import `pytorch_quantization`")
 class QuantizationUtilityTest(unittest.TestCase):
     def test_vanilla_replacement(self):
         # ARRANGE

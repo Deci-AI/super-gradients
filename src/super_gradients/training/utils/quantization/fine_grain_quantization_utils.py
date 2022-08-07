@@ -1,11 +1,21 @@
 from typing import Tuple, Set, Type
-from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
-from pytorch_quantization.tensor_quant import QuantDescriptor
 from torch import nn
-from pytorch_quantization import nn as quant_nn
 
-from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, \
-    QuantizedMetadata
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
+try:
+    from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
+    from pytorch_quantization.tensor_quant import QuantDescriptor
+    from pytorch_quantization import nn as quant_nn
+
+    from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, \
+        QuantizedMetadata
+
+    _imported_pytorch_quantization_failure = None
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    logger.warning("Failed to import pytorch_quantization")
+    _imported_pytorch_quantization_failure = import_err
 
 
 class RegisterQuantizedModule(object):
@@ -15,6 +25,8 @@ class RegisterQuantizedModule(object):
     :param input_quant_descriptor:      the input quantization descriptor
     :param weights_quant_descriptor:    the weight quantization descriptor
     """
+    if _imported_pytorch_quantization_failure is not None:
+        raise _imported_pytorch_quantization_failure
 
     def __init__(self, *, float_module: Type[nn.Module], input_quant_descriptor=None, weights_quant_descriptor=None):
         self.float_module = float_module
@@ -41,7 +53,8 @@ class QuantizationUtility:
     :param default_quant_modules_calib_method:  default calibration method (default='percentile')
     :param default_per_channel_quant_modules:   whether quant modules should be per channel (default=False)
     """
-
+    if _imported_pytorch_quantization_failure is not None:
+        raise _imported_pytorch_quantization_failure
     mapping_instructions = {
         **{
             float_type: QuantizedMetadata(float_source=float_type, quantized_type=quantized_type,
@@ -142,6 +155,8 @@ class QuantizationUtility:
     def _maybe_quantize_one_layer(self, module, child_name, nesting, child_module, mapping_instructions) -> bool:
         # if we don't have any instruction for the specific layer or the specific type - we continue
         # NOTE! IT IS IMPORTANT TO FIRST PROCESS THE NAME AND ONLY THEN THE TYPE
+        if _imported_pytorch_quantization_failure is not None:
+            raise _imported_pytorch_quantization_failure
         for candidate_key in ('.'.join(nesting + (child_name,)), type(child_module)):
             if candidate_key not in mapping_instructions:
                 continue
