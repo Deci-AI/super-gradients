@@ -1,5 +1,6 @@
 import math
 import time
+from functools import lru_cache
 from pathlib import Path
 from typing import Mapping, Optional, Tuple, Union, List
 from zipfile import ZipFile
@@ -21,11 +22,6 @@ from importlib import import_module
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
-
-# GET ORIENTATION EXIF TAG
-for orientation in ExifTags.TAGS.keys():
-    if ExifTags.TAGS[orientation] == 'Orientation':
-        break
 
 
 def convert_to_tensor(array):
@@ -405,16 +401,28 @@ def check_img_size_divisibility(img_size: int, stride: int = 32) -> Tuple[bool, 
         return True, None
 
 
+@lru_cache
+def get_orientation_key() -> int:
+    """Get the orientation key according to PIL, which is useful to get the image size for instance
+    :return: Orientation key according to PIL"""
+    for key, value in ExifTags.TAGS.items():
+        if value == 'Orientation':
+            return key
+
+
 def exif_size(image: Image) -> Tuple[int, int]:
     """Get the size of image.
     :param image:   The image to get size from
     :return:        (width, height)
     """
+
+    orientation_key = get_orientation_key()
+
     image_size = image.size
     try:
         exif_data = image._getexif()
         if exif_data is not None:
-            rotation = dict(exif_data.items())[orientation]
+            rotation = dict(exif_data.items())[orientation_key]
             # ROTATION 270
             if rotation == 6:
                 image_size = (image_size[1], image_size[0])
