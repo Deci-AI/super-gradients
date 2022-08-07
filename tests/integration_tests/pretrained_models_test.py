@@ -207,7 +207,7 @@ class PretrainedModelsTest(unittest.TestCase):
                  "train_metrics_list": [],
                  "valid_metrics_list": [
                      DetectionMetrics(
-                         post_prediction_callback=SSDPostPredictCallback(),
+                         post_prediction_callback=YoloPostPredictionCallback(),
                          normalize_targets=True,
                          num_cls=len(self.transfer_detection_dataset['ssd_lite_mobilenet_v2'].classes))],
                  "metric_to_watch": 'mAP@0.50:0.95',
