@@ -738,6 +738,7 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
         train_max_num_samples = get_param(self.dataset_params, "train_max_num_samples")
         val_max_num_samples = get_param(self.dataset_params, "val_max_num_samples")
+        class_inclusion_list = get_param(self.dataset_params, "class_inclusion_list")
 
         if self.dataset_params.download:
             PascalVOCDetectionDataset.download(data_dir=self.data_dir)
@@ -754,7 +755,7 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
                                                 cache_path=self.dataset_params.cache_dir + "cache_train",
                                                 transforms=self.dataset_params.train_transforms,
                                                 images_sub_directory='images/' + trainset_name + '/',
-                                                class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                class_inclusion_list=class_inclusion_list,
                                                 max_num_samples=max_num_samples_per_train_dataset[i])
                       for i, trainset_name in enumerate(train_dataset_names)]
 
@@ -764,7 +765,7 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
                                                 cache_path=self.dataset_params.cache_dir + "cache_valid",
                                                 transforms=self.dataset_params.val_transforms,
                                                 images_sub_directory='images/test2007/',
-                                                class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                class_inclusion_list=class_inclusion_list,
                                                 max_num_samples=val_max_num_samples)
 
         self.classes = train_sets[1].classes
@@ -787,29 +788,29 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
         val_max_num_samples = get_param(self.dataset_params, "val_max_num_samples")
         class_inclusion_list = get_param(self.dataset_params, "class_inclusion_list")
 
-        train_transforms = [DetectionMosaic(input_dim=train_input_dim,
-                                            prob=self.dataset_params.mosaic_prob),
-                            DetectionRandomAffine(degrees=self.dataset_params.degrees,
-                                                  translate=self.dataset_params.translate,
-                                                  scales=self.dataset_params.mosaic_scale,
-                                                  shear=self.dataset_params.shear,
-                                                  target_size=train_input_dim,
-                                                  filter_box_candidates=self.dataset_params.filter_box_candidates,
-                                                  wh_thr=self.dataset_params.wh_thr,
-                                                  area_thr=self.dataset_params.area_thr,
-                                                  ar_thr=self.dataset_params.ar_thr),
-                            DetectionMixup(input_dim=train_input_dim,
-                                           mixup_scale=self.dataset_params.mixup_scale,
-                                           prob=self.dataset_params.mixup_prob,
-                                           flip_prob=self.dataset_params.flip_prob),
-                            DetectionHSV(prob=self.dataset_params.hsv_prob,
-                                         hgain=self.dataset_params.hgain,
-                                         sgain=self.dataset_params.sgain,
-                                         vgain=self.dataset_params.vgain),
-                            DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
-                            DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
-                            DetectionTargetsFormatTransform(output_format=targets_format)
-                            ]
+        # train_transforms = [DetectionMosaic(input_dim=train_input_dim,
+        #                                     prob=self.dataset_params.mosaic_prob),
+        #                     DetectionRandomAffine(degrees=self.dataset_params.degrees,
+        #                                           translate=self.dataset_params.translate,
+        #                                           scales=self.dataset_params.mosaic_scale,
+        #                                           shear=self.dataset_params.shear,
+        #                                           target_size=train_input_dim,
+        #                                           filter_box_candidates=self.dataset_params.filter_box_candidates,
+        #                                           wh_thr=self.dataset_params.wh_thr,
+        #                                           area_thr=self.dataset_params.area_thr,
+        #                                           ar_thr=self.dataset_params.ar_thr),
+        #                     DetectionMixup(input_dim=train_input_dim,
+        #                                    mixup_scale=self.dataset_params.mixup_scale,
+        #                                    prob=self.dataset_params.mixup_prob,
+        #                                    flip_prob=self.dataset_params.flip_prob),
+        #                     DetectionHSV(prob=self.dataset_params.hsv_prob,
+        #                                  hgain=self.dataset_params.hgain,
+        #                                  sgain=self.dataset_params.sgain,
+        #                                  vgain=self.dataset_params.vgain),
+        #                     DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
+        #                     DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
+        #                     DetectionTargetsFormatTransform(output_format=targets_format)
+        #                     ]
 
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
         local_rank = get_local_rank()
@@ -819,8 +820,8 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
                                                  json_file=self.dataset_params.train_json_file,
                                                  input_dim=train_input_dim,
                                                  cache=self.dataset_params.cache_train_images,
-                                                 cache_path=self.dataset_params.cache_dir_path + "cache_train",
-                                                 transforms=train_transforms,
+                                                 cache_path=self.dataset_params.cache_dir + "cache_train",
+                                                 transforms=self.dataset_params.train_transforms,
                                                  class_inclusion_list=class_inclusion_list,
                                                  max_num_samples=train_max_num_samples,
                                                  with_crowd=False)
@@ -835,10 +836,11 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
                 json_file=self.dataset_params.val_json_file,
                 subdir=self.dataset_params.val_subdir,
                 input_dim=train_input_dim,
-                transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
-                            DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)],
+                transforms=self.dataset_params.val_transforms,
+                # [DetectionPaddedRescale(input_dim=val_input_dim),
+                #             DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)],
                 cache=self.dataset_params.cache_val_images,
-                cache_path=self.dataset_params.cache_dir_path + "cache_valid",
+                cache_path=self.dataset_params.cache_dir + "cache_valid",
                 class_inclusion_list=class_inclusion_list,
                 max_num_samples=val_max_num_samples,
                 with_crowd=with_crowd)

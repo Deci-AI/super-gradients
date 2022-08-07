@@ -7,7 +7,7 @@ from pycocotools.coco import COCO
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
-
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 logger = get_logger(__name__)
 
 
@@ -16,7 +16,6 @@ class COCODetectionDataset(DetectionDataset):
 
     def __init__(
             self,
-            data_dir: str,
             json_file: str = "instances_train2017.json",
             subdir: str = "images/train2017",
             tight_box_rotation: bool = False,
@@ -24,7 +23,6 @@ class COCODetectionDataset(DetectionDataset):
             *args, **kwargs
     ):
         """
-        :param data_dir:    Path to the folder including coco data.
         :param json_file:   Name of the coco json file, that resides in data_dir/annotations/json_file.
         :param subdir:        Sub directory of data_dir containing the data.
         :param tight_box_rotation: bool, whether to use of segmentation maps convex hull as target_seg
@@ -32,25 +30,29 @@ class COCODetectionDataset(DetectionDataset):
         :param transforms: list of transforms to apply sequentially on sample in __getitem__
         :param with_crowd: Add the crowd groundtruths to __getitem__
         """
-        self.data_dir = data_dir
         self.subdir = subdir
         self.json_file = json_file
         self.tight_box_rotation = tight_box_rotation
         self.with_crowd = with_crowd
 
+        target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
+        kwargs['target_fields'] = target_fields
+        kwargs['output_fields'] = ["image", *target_fields]
+        kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
+        kwargs['all_classes_list'] = COCO_DETECTION_CLASSES_LIST
+        super().__init__(*args, **kwargs)
+
+    def _setup_data_source(self) -> int:
+        """Initialize img_and_target_path_list and warn if label file is missing
+
+        :return: List of tuples made of (img_path,target_path)
+        """
         self.coco = self._init_coco()
         self.class_ids = sorted(self.coco.getCatIds())
         self.classes = list([category["name"] for category in self.coco.loadCats(self.class_ids)])
         self.sample_id_to_coco_id = self.coco.getImgIds()
+        return len(self.sample_id_to_coco_id)
 
-        kwargs['n_available_samples'] = len(self.sample_id_to_coco_id)
-        kwargs['all_classes_list'] = self.classes
-        kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
-
-        target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
-        kwargs['target_fields'] = target_fields
-        kwargs['output_fields'] = ["image", *target_fields]
-        super().__init__(*args, **kwargs)
 
     def _init_coco(self) -> COCO:
         annotation_file_path = os.path.join(self.data_dir, "annotations", self.json_file)
