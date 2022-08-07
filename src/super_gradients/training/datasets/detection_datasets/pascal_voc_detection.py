@@ -1,7 +1,6 @@
 import os
 import glob
 from pathlib import Path
-from typing import List, Tuple
 from xml.etree import ElementTree
 from tqdm import tqdm
 

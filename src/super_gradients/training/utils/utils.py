@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import os
 from jsonschema import validate
 import tarfile
-from PIL import Image, ExifTags
+from PIL import Image
 
 import torch
 import torch.nn as nn
