@@ -382,7 +382,7 @@ class SgModel:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if self._infinite_train_loader and batch_idx == len(self.train_loader)-1:
+            if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1:
                 break
 
         if not self.ddp_silent_mode:
@@ -807,9 +807,10 @@ class SgModel:
 
         # Instantiate the values to monitor (loss/metric)
         for loss in self.loss_logging_items_names:
-            self.train_monitored_values[loss] = MonitoredValue()
-            self.valid_monitored_values[loss] = MonitoredValue()
-        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue()
+            self.train_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
+            self.valid_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
+        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch,
+                                                                           greater_is_better=True)
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -986,7 +987,8 @@ class SgModel:
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
-                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader, "sampler") and hasattr(self.train_loader.sampler, "set_epoch"):
+                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader, "sampler")\
+                        and hasattr(self.train_loader.sampler, "set_epoch"):
                     self.train_loader.sampler.set_epoch(epoch)
 
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
@@ -1715,7 +1717,7 @@ class SgModel:
         self.valid_monitored_values = sg_model_utils.update_monitored_values_dict(
             monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict)
 
-        if not silent_mode and evaluation_type==EvaluationType.VALIDATION:
+        if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
             progress_bar_data_loader.write("===========================================================")
             sg_model_utils.display_epoch_summary(epoch=context.epoch, n_digits=4,
                                                  train_monitored_values=self.train_monitored_values,

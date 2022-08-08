@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from collections import OrderedDict
 from super_gradients.training.models import BasicBlock, Bottleneck, SgModule, HpmStruct
+from super_gradients.training.utils import get_param
 
 """
 paper: Deep Dual-resolution Networks for Real-time and
@@ -277,9 +278,9 @@ class DDRNet(SgModule):
         assert not (aux_head and classification_mode), "auxiliary head cannot be used in classification mode"
 
         assert isinstance(backbone, DDRBackBoneBase), 'The backbone must inherit from AbstractDDRBackBone'
-        self.backbone = backbone
-        self.backbone.validate_backbone_attributes()
-        out_chan_backbone = self.backbone.get_backbone_output_number_of_channels()
+        self._backbone = backbone
+        self._backbone.validate_backbone_attributes()
+        out_chan_backbone = self._backbone.get_backbone_output_number_of_channels()
 
         self.compression3 = ConvBN(in_channels=out_chan_backbone['layer3'], out_channels=highres_planes, kernel_size=1,
                                    bias=False)
@@ -346,6 +347,23 @@ class DDRNet(SgModule):
         self.head_width = head_width
         self._initialize_weights()
 
+    @property
+    def backbone(self):
+        """
+        Create a fake backbone module to load backbone pre-trained weights.
+        """
+        return nn.Sequential(OrderedDict([
+            ("_backbone", self._backbone),
+            ("compression3", self.compression3),
+            ("compression4", self.compression4),
+            ("down3", self.down3),
+            ("down4", self.down4),
+            ("layer3_skip", self.layer3_skip),
+            ("layer4_skip", self.layer4_skip),
+            ("layer4_skip", self.layer4_skip),
+            ("layer5_skip", self.layer5_skip),
+        ]))
+
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -358,11 +376,10 @@ class DDRNet(SgModule):
         width_output = x.shape[-1] // 8
         height_output = x.shape[-2] // 8
 
-        x = self.backbone.stem(x)
-        x = self.backbone.layer1(x)
-        out_layer2 = self.backbone.layer2(self.relu(x))
-
-        out_layer3 = self.backbone.layer3(self.relu(out_layer2))
+        x = self._backbone.stem(x)
+        x = self._backbone.layer1(x)
+        out_layer2 = self._backbone.layer2(self.relu(x))
+        out_layer3 = self._backbone.layer3(self.relu(out_layer2))
         out_layer3_skip = self.layer3_skip(self.relu(out_layer2))
 
         x = out_layer3 + self.down3(self.relu(out_layer3_skip))
@@ -372,7 +389,7 @@ class DDRNet(SgModule):
         if self.aux_head:
             temp = x_skip
 
-        out_layer4 = self.backbone.layer4(self.relu(x))
+        out_layer4 = self._backbone.layer4(self.relu(x))
         out_layer4_skip = self.layer4_skip(self.relu(x_skip))
 
         x = out_layer4 + self.down4(self.relu(out_layer4_skip))
@@ -410,6 +427,40 @@ class DDRNet(SgModule):
             if self.aux_head:
                 self.seghead_extra = SegmentHead(self.highres_planes, self.head_width, new_num_classes, 8,
                                                  inter_mode=self.segmentation_inter_mode)
+
+    def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
+        """
+        Custom param groups for training:
+            - Different lr for backbone and the rest, if `multiply_head_lr` key is in `training_params`.
+        """
+        multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
+        multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
+        param_groups = [{"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
+                        {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"}]
+        return param_groups
+
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
+                            total_batch: int) -> list:
+        multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
+        for param_group in param_groups:
+            param_group['lr'] = lr
+            if param_group["name"] == "multiply_lr_params":
+                param_group['lr'] *= multiply_head_lr
+        return param_groups
+
+    def _separate_lr_multiply_params(self):
+        """
+        Separate backbone params from the rest.
+        :return: iterators of groups named_parameters.
+        """
+        backbone_names = [n for n, p in self.backbone.named_parameters()]
+        multiply_lr_params, no_multiply_params = {}, {}
+        for name, param in self.named_parameters():
+            if name in backbone_names:
+                no_multiply_params[name] = param
+            else:
+                multiply_lr_params[name] = param
+        return multiply_lr_params.items(), no_multiply_params.items()
 
 
 class DDRNetCustom(DDRNet):

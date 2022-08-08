@@ -12,12 +12,10 @@ import torch
 import torch.distributed as dist
 
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
-from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataSet
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from deprecated import deprecated
 from matplotlib.patches import Rectangle
-from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import ImageFolder
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from torchvision.transforms import transforms, InterpolationMode, RandomResizedCrop
@@ -417,11 +415,13 @@ class DatasetStatisticsTensorboardLogger:
         :param anchors: the list of anchors used by the model. applicable only for detection datasets
         :param all_classes: the list of all classes names
         """
-        if isinstance(data_loader.dataset, DetectionDataSet):
-            self._analyze_detection(data_loader=data_loader, title=title,
-                                    all_classes=all_classes, anchors=anchors)
-        else:
-            DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
+        # FIXME: UNCOMMENT AND APPLY TO NEW DetectionDataSet ONCE ITS MERGED
+        # if isinstance(data_loader.dataset, DetectionDataSet):
+        #     self._analyze_detection(data_loader=data_loader, title=title,
+        #                             all_classes=all_classes, anchors=anchors)
+        # else:
+        #     DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
+        DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
 
     def _analyze_detection(self, data_loader, title, all_classes, anchors=None):
         """
@@ -658,8 +658,11 @@ class DatasetStatisticsTensorboardLogger:
 
 def get_color_augmentation(rand_augment_config_string: str, color_jitter: tuple, crop_size=224, img_mean=[0.485, 0.456, 0.406]):
     """
-    Returns color augmentation class. As these augmentation cannot work on top one another, only one is returned according to rand_augment_config_string
-    :param rand_augment_config_string: string which defines the auto augment configurations. If none, color jitter will be returned. For possibile values see auto_augment.py
+    Returns color augmentation class. As these augmentation cannot work on top one another, only one is returned
+    according to rand_augment_config_string
+
+    :param rand_augment_config_string: string which defines the auto augment configurations.
+                                       If none, color jitter will be returned. For possibile values see auto_augment.py
     :param color_jitter: tuple for color jitter value.
     :param crop_size: relevant only for auto augment
     :param img_mean: relevant only for auto augment

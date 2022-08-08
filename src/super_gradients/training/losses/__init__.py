@@ -7,7 +7,8 @@ from super_gradients.training.losses.shelfnet_semantic_encoding_loss import Shel
 from super_gradients.training.losses.yolox_loss import YoloXDetectionLoss
 from super_gradients.training.losses.ssd_loss import SSDLoss
 from super_gradients.training.losses.bce_dice_loss import BCEDiceLoss
+from super_gradients.training.losses.dice_ce_edge_loss import DiceCEEdgeLoss
 from super_gradients.training.losses.all_losses import LOSSES
 
 __all__ = ['FocalLoss', 'LabelSmoothingCrossEntropyLoss', 'ShelfNetOHEMLoss', 'ShelfNetSemanticEncodingLoss',
-           'YoloXDetectionLoss', 'RSquaredLoss', 'SSDLoss', 'LOSSES', 'BCEDiceLoss', 'KDLogitsLoss']
+           'YoloXDetectionLoss', 'RSquaredLoss', 'SSDLoss', 'LOSSES', 'BCEDiceLoss', 'KDLogitsLoss', 'DiceCEEdgeLoss']
