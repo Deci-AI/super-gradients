@@ -5,6 +5,7 @@ import random
 import cv2
 import matplotlib.pyplot as plt
 from pathlib import Path
+from copy import deepcopy
 
 import numpy as np
 from tqdm import tqdm
@@ -302,7 +303,7 @@ class DetectionDataset(Dataset):
         :return:        Sample, i.e. a dictionary including at least "image" and "target"
         """
         img = self.get_resized_image(index)
-        annotation = self.annotations[index]
+        annotation = deepcopy(self.annotations[index])
         return {"image": img, **annotation}
 
     def get_resized_image(self, index: int) -> np.ndarray:
