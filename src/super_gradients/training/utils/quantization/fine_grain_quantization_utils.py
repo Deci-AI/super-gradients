@@ -97,6 +97,19 @@ class QuantizationUtility:
             for name in layer_names
         })
 
+    def register_quantization_mapping(self, *, layer_names: Set[str],
+                                      quantized_type: Type[SGQuantMixin],
+                                      input_quant_descriptor=None,
+                                      weights_quant_descriptor=None):
+        self.mapping_instructions.update({
+            name: QuantizedMetadata(float_source=name,
+                                    quantized_type=quantized_type,
+                                    action=QuantizedMetadata.ReplacementAction.REPLACE,
+                                    input_quant_descriptor=input_quant_descriptor,
+                                    weights_quant_descriptor=weights_quant_descriptor)
+            for name in layer_names
+        })
+
     def _preprocess_skips_and_custom_mappings(self, module: nn.Module, nesting: Tuple[str, ...] = ()):
         """
         This pass is done to extract layer name and mapping instructions, so that we regard to per-layer processing.

@@ -1,14 +1,14 @@
 import inspect
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union, Type, Optional
+from typing import Union, Type, Optional, Set
 
 from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
 from pytorch_quantization.tensor_quant import QuantDescriptor
 from torch import nn
 
 
-def _extract_init_args(cls, float_instance):
+def _extract_init_args(cls, float_instance, ignore_init_args: Set[str] = ()):
     """
     Inspecting the __init__ args, and searching for corresponding properties from the float instance
     e.g., for `__init__(self, a)` the mechanism will look for `float_instance.a` and pass that value to `__init__`
@@ -17,6 +17,11 @@ def _extract_init_args(cls, float_instance):
 
     if 'kwargs' in required_init_params:  # we don't want to search for a state named `kwargs`
         required_init_params.pop(required_init_params.index('kwargs'))
+
+    # ignore these args and don't pick state from the instance
+    for ignore_arg in ignore_init_args:
+        if ignore_arg in required_init_params:
+            required_init_params.pop(required_init_params.index(ignore_arg))
 
     float_instance_state = {}
     for p in required_init_params:
@@ -36,8 +41,8 @@ def _extract_init_args(cls, float_instance):
     return float_instance_state
 
 
-def _from_float(cls, float_instance, **kwargs):
-    init_params = _extract_init_args(cls, float_instance)
+def _from_float(cls, float_instance, ignore_init_args: Set[str] = (), **kwargs):
+    init_params = _extract_init_args(cls, float_instance, ignore_init_args)
     init_params.update(**kwargs)
     return cls(**init_params)
 
@@ -57,7 +62,10 @@ class SGQuantMixin(nn.Module):
 
     @classmethod
     def from_float(cls, float_instance, **kwargs):
-        return _from_float(cls, float_instance, **kwargs)
+        required_init_params = list(inspect.signature(cls.__init__).parameters)[1:]  # [0] is self
+        ignore_init_args = {'quant_desc_input', 'quant_desc_weight'}.intersection(set(required_init_params))
+        ignore_init_args = set()
+        return _from_float(cls, float_instance, ignore_init_args, **kwargs)
 
 
 class SkipQuantization(nn.Module):
