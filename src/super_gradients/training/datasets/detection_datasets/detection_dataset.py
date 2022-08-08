@@ -120,6 +120,7 @@ class DetectionDataset(Dataset):
         if "target" not in self.target_fields:
             raise KeyError('"target" is expected to be in the fields to subclass but it was not included')
 
+        self.REQUIRED_ANNOTATION_FIELDS = {"target", "img_path", "initial_img_shape", "resized_img_shape"}
         self.annotations = self._cache_annotations()
 
         self.cache = cache
@@ -143,7 +144,7 @@ class DetectionDataset(Dataset):
         Please note that the targets should be resized according to self.input_dim!
 
         :param sample_id:   Id of the sample to load annotations from.
-        :return:            Annotation, a dict with any field but has to include at least "target" and "img_path".
+        :return:            Annotation, a dict with any field but has to include at least the fields specified in self.REQUIRED_ANNOTATION_FIELDS.
         """
         raise NotImplementedError
 
@@ -158,8 +159,8 @@ class DetectionDataset(Dataset):
                 break
 
             img_annotation = self._load_annotation(img_id)
-            if "target" not in img_annotation or "img_path" not in img_annotation:
-                raise KeyError('_load_annotation is expected to return at least the field "target" and "img_path"')
+            if not self.REQUIRED_ANNOTATION_FIELDS.issubset(set(img_annotation.keys())):
+                raise KeyError(f'_load_annotation is expected to return at least the fields {self.REQUIRED_ANNOTATION_FIELDS} but got {set(img_annotation.keys())}')
 
             if self.class_inclusion_list is not None:
                 img_annotation = self._sub_class_annotation(img_annotation)
@@ -222,25 +223,25 @@ class DetectionDataset(Dataset):
         max_h, max_w = self.input_dim[0], self.input_dim[1]
         img_resized_cache_path = cache_path / "img_resized_cache.array"
 
-        if not img_resized_cache_path.exists():
-            logger.info("Caching images for the first time.")
-            NUM_THREADs = min(8, os.cpu_count())
-            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_image(x), iterable=range(len(self)))
+        # if not img_resized_cache_path.exists():
+        logger.info("Caching images for the first time.")
+        NUM_THREADs = min(8, os.cpu_count())
+        loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_resized_img(x), iterable=range(len(self)))
 
-            # Initialize placeholder for images
-            cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
-                                    dtype=np.uint8, mode="w+")
+        # Initialize placeholder for images
+        cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
+                                dtype=np.uint8, mode="w+")
 
-            # Store images in the placeholder
-            loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
-            for i, image in loaded_images_pbar:
-                cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
-            cached_imgs.flush()
-            loaded_images_pbar.close()
-        else:
-            logger.warning("You are using cached imgs! Make sure your dataset is not changed!!\n"
-                           "Everytime the self.input_size is changed in your exp file, you need to delete\n"
-                           "the cached data and re-generate them.\n")
+        # Store images in the placeholder
+        loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
+        for i, image in loaded_images_pbar:
+            cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
+        cached_imgs.flush()
+        loaded_images_pbar.close()
+        # else:
+        #     logger.warning("You are using cached imgs! Make sure your dataset is not changed!!\n"
+        #                    "Everytime the self.input_size is changed in your exp file, you need to delete\n"
+        #                    "the cached data and re-generate them.\n")
 
         logger.info("Loading cached imgs...")
         cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
@@ -313,9 +314,12 @@ class DetectionDataset(Dataset):
         :return:       Resized image
         """
         if self.cache:
-            return self.cached_imgs[index].copy()
+            padded_image = self.cached_imgs[index]
+            resized_height, resized_width = self.annotations[index]["resized_img_shape"]
+            resized_image = padded_image[:resized_height, :resized_width, :]
+            return resized_image.copy()
         else:
-            return self._load_resized_img(index)
+            return self._load_resized_img(index).copy()
 
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """

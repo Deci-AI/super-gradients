@@ -53,7 +53,6 @@ class COCODetectionDataset(DetectionDataset):
         self.sample_id_to_coco_id = self.coco.getImgIds()
         return len(self.sample_id_to_coco_id)
 
-
     def _init_coco(self) -> COCO:
         annotation_file_path = os.path.join(self.data_dir, "annotations", self.json_file)
         if not os.path.exists(annotation_file_path):
@@ -71,8 +70,8 @@ class COCODetectionDataset(DetectionDataset):
         :return res:                Target Bboxes (detection) in XYXY_LABEL format
         :return crowd_target:       Crowd target Bboxes (detection) in XYXY_LABEL format
         :return target_segmentation:Segmentation
-        :return img_info:           Image (height, width)
-        :return resized_info:       Resides image (height, width)
+        :return initial_img_shape:           Image (height, width)
+        :return resized_img_shape:       Resides image (height, width)
         :return img_path:           Path to the associated image
         """
 
@@ -127,8 +126,8 @@ class COCODetectionDataset(DetectionDataset):
         crowd_target[:, :4] *= r
         target_segmentation *= r
 
-        img_info = (height, width)
-        resized_info = (int(height * r), int(width * r))
+        initial_img_shape = (height, width)
+        resized_img_shape = (int(height * r), int(width * r))
 
         file_name = (
             img_metadata["file_name"]
@@ -140,7 +139,8 @@ class COCODetectionDataset(DetectionDataset):
 
         annotation = {
             "target": target, "crowd_target": crowd_target, "target_segmentation": target_segmentation,
-            "img_info": img_info, "resized_info": resized_info, "img_path": img_path, "id": np.array([img_id])}
+            "initial_img_shape": initial_img_shape, "resized_img_shape": resized_img_shape,
+            "img_path": img_path, "id": np.array([img_id])}
         return annotation
 
 
