@@ -64,18 +64,6 @@ from super_gradients.training.datasets.samplers.infinite_sampler import Infinite
 from super_gradients.common import StrictLoad, MultiGPUMode, EvaluationType
 logger = get_logger(__name__)
 
-@deprecated(reason='moved into separated file in super_gradients.common', version='3.0.0')
-class StrictLoad(StrictLoad):
-    pass
-
-@deprecated(reason='moved into separated file in super_gradients.common', version='3.0.0')
-class MultiGPUMode(MultiGPUMode):
-    pass
-
-@deprecated(reason='moved into separated file in super_gradients.common', version='3.0.0')
-class EvaluationType(EvaluationType):
-    pass
-
 
 class SgModel:
     """
