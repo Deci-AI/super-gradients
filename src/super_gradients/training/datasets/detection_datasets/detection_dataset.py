@@ -125,7 +125,7 @@ class DetectionDataset(Dataset):
 
         self.cache = cache
         self.cache_path = cache_path
-        self.cached_padded_imgs = self._cache_images() if self.cache else None
+        self.cached_imgs_padded = self._cache_images() if self.cache else None
 
         self.transforms = transforms
 
@@ -229,20 +229,20 @@ class DetectionDataset(Dataset):
         loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_resized_img(x), iterable=range(len(self)))
 
         # Initialize placeholder for images
-        cached_padded_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
+        cached_imgs_padded = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
                                        dtype=np.uint8, mode="w+")
 
         # Store images in the placeholder
         loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
         for i, image in loaded_images_pbar:
-            cached_padded_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
-        cached_padded_imgs.flush()
+            cached_imgs_padded[i][: image.shape[0], : image.shape[1], :] = image.copy()
+        cached_imgs_padded.flush()
         loaded_images_pbar.close()
 
         logger.info("Loading cached imgs...")
-        cached_padded_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
+        cached_imgs_padded = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
                                        dtype=np.uint8, mode="r+")
-        return cached_padded_imgs
+        return cached_imgs_padded
 
     def _load_resized_img(self, index: int) -> np.ndarray:
         """Load image, and resizes it to self.input_dim
@@ -274,8 +274,8 @@ class DetectionDataset(Dataset):
 
     def __del__(self):
         """Clear the cached images"""
-        if hasattr(self, "cached_padded_imgs"):
-            del self.cached_padded_imgs
+        if hasattr(self, "cached_imgs_padded"):
+            del self.cached_imgs_padded
 
     def __len__(self):
         """Get the length of the dataset."""
@@ -305,12 +305,12 @@ class DetectionDataset(Dataset):
 
     def get_resized_image(self, index: int) -> np.ndarray:
         """
-        Get the resized image at a specific sample_id, either from cache or by loading from disk, based on self.cached_padded_imgs
+        Get the resized image at a specific sample_id, either from cache or by loading from disk, based on self.cached_imgs_padded
         :param index:  Image index
         :return:       Resized image
         """
         if self.cache:
-            padded_image = self.cached_padded_imgs[index]
+            padded_image = self.cached_imgs_padded[index]
             resized_height, resized_width = self.annotations[index]["resized_img_shape"]
             resized_image = padded_image[:resized_height, :resized_width, :]
             return resized_image.copy()
