@@ -18,13 +18,10 @@ def _extract_init_args(cls, float_instance, ignore_init_args: Set[str] = ()):
     if 'kwargs' in required_init_params:  # we don't want to search for a state named `kwargs`
         required_init_params.pop(required_init_params.index('kwargs'))
 
-    # ignore these args and don't pick state from the instance
-    for ignore_arg in ignore_init_args:
-        if ignore_arg in required_init_params:
-            required_init_params.pop(required_init_params.index(ignore_arg))
-
     float_instance_state = {}
     for p in required_init_params:
+        if p in ignore_init_args:  # ignore these args and don't pick state from the instance
+            continue
         if not hasattr(float_instance, p):
             raise ValueError(f"{float_instance.__class__.__name__} is missing `{p}` which is required "
                              f"in {cls.__name__}.__init__. Either override `SGQuantBase.from_float` "
@@ -63,8 +60,19 @@ class SGQuantMixin(nn.Module):
     @classmethod
     def from_float(cls, float_instance, **kwargs):
         required_init_params = list(inspect.signature(cls.__init__).parameters)[1:]  # [0] is self
+
+        # if cls.__init__ has explicit `quant_desc_input` or `quant_desc_weight` - we don't search the state of the
+        # float module, because it would not contain this state. these values are injected by the framework
         ignore_init_args = {'quant_desc_input', 'quant_desc_weight'}.intersection(set(required_init_params))
-        ignore_init_args = set()
+
+        # if cls.__init__ doesn't have neither **kwargs, nor `quant_desc_input` and `quant_desc_weight`,
+        # we should also remove these keys from the passed kwargs and make sure there's nothing more!
+        if 'kwargs' not in required_init_params:
+            for arg in ('quant_desc_input', 'quant_desc_weight'):
+                if arg in ignore_init_args:
+                    continue
+                kwargs.pop(arg, None)  # we ignore if not existing
+
         return _from_float(cls, float_instance, ignore_init_args, **kwargs)
 
 
@@ -98,8 +106,8 @@ class QuantizedMapping(nn.Module):
         super().__init__()
         self.float_module = float_module
         self.quantized_type = quantized_type
-        self.input_quant_descriptor = input_quant_descriptor,
-        self.weights_quant_descriptor = weights_quant_descriptor,
+        self.input_quant_descriptor = input_quant_descriptor
+        self.weights_quant_descriptor = weights_quant_descriptor
         self.forward = float_module.forward
 
 

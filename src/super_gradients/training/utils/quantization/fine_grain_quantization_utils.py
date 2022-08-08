@@ -149,13 +149,13 @@ class QuantizationUtility:
 
         # USE PROVIDED QUANT DESCRIPTORS, OR DEFAULT IF NONE PROVIDED
         quant_descriptors = dict()
-        if issubclass(metadata.quantized_type, (QuantMixin, QuantInputMixin)):
+        if issubclass(metadata.quantized_type, (SGQuantMixin, QuantMixin, QuantInputMixin)):
             quant_descriptors = {
                 'quant_desc_input': metadata.input_quant_descriptor or self._get_default_quant_descriptor()
             }
-        if issubclass(metadata.quantized_type, QuantMixin):
+        if issubclass(metadata.quantized_type, (SGQuantMixin, QuantMixin)):
             quant_descriptors.update({
-                'quant_desc_weight': (metadata.weights_quant_descriptor or self._get_default_quant_descriptor())
+                'quant_desc_weight': metadata.weights_quant_descriptor or self._get_default_quant_descriptor()
             })
 
         if not hasattr(metadata.quantized_type, 'from_float'):

@@ -262,10 +262,7 @@ class QuantizationUtilityTest(unittest.TestCase):
                 return self.linear(self.flatten(x))
 
         class MyQuantizedBlock(SGQuantMixin):
-            # NOTE: **kwargs are necessary because quant descriptors are passed there!
-            # NOTE: because we don't override `from_float`,
-            #       then the float instance should have `in_feats` and `out_feats` as state
-            def __init__(self, in_feats, out_feats, **kwargs) -> None:
+            def __init__(self, in_feats, out_feats) -> None:
                 super().__init__()
                 self.flatten = nn.Flatten()
                 self.linear = quant_nn.QuantLinear(in_feats, out_feats)
@@ -317,10 +314,7 @@ class QuantizationUtilityTest(unittest.TestCase):
 
         @RegisterQuantizedModule(float_module=MyBlock)
         class MyQuantizedBlock(SGQuantMixin):
-            # NOTE: **kwargs are necessary because quant descriptors are passed there!
-            # NOTE: because we don't override `from_float`,
-            #       then the float instance should have `in_feats` and `out_feats` as state
-            def __init__(self, in_feats, out_feats, **kwargs) -> None:
+            def __init__(self, in_feats, out_feats) -> None:
                 super().__init__()
                 self.flatten = nn.Flatten()
                 self.linear = quant_nn.QuantLinear(in_feats, out_feats)
@@ -370,10 +364,7 @@ class QuantizationUtilityTest(unittest.TestCase):
                 return self.linear(self.flatten(x))
 
         class MyQuantizedBlock(SGQuantMixin):
-            # NOTE: **kwargs are necessary because quant descriptors are passed there!
-            # NOTE: because we don't override `from_float`,
-            #       then the float instance should have `in_feats` and `out_feats` as state
-            def __init__(self, in_feats, out_feats, **kwargs) -> None:
+            def __init__(self, in_feats, out_feats) -> None:
                 super().__init__()
                 self.flatten = nn.Flatten()
                 self.linear = quant_nn.QuantLinear(in_feats, out_feats)
@@ -470,6 +461,181 @@ class QuantizationUtilityTest(unittest.TestCase):
         self.assertTrue(type(module.conv1._weight_quantizer._calibrator) == HistogramCalibrator)
         self.assertTrue(type(module.conv2._input_quantizer._calibrator) == HistogramCalibrator)
         self.assertTrue(type(module.conv2._weight_quantizer._calibrator) == MaxCalibrator)
+
+    def test_quant_descriptors_are_piped_to_custom_quant_modules_if_has_kwargs(self):
+        # ARRANGE
+        class MyBlock(nn.Module):
+            def __init__(self, in_feats, out_feats) -> None:
+                super().__init__()
+                self.in_feats = in_feats
+                self.out_feats = out_feats
+                self.flatten = nn.Flatten()
+                self.linear = nn.Linear(in_feats, out_feats)
+
+            def forward(self, x):
+                return self.linear(self.flatten(x))
+
+        class MyQuantizedBlock(SGQuantMixin):
+            # NOTE: if **kwargs are existing, then quant descriptors are passed there!
+            # NOTE: because we don't override `from_float`,
+            #       then the float instance should have `in_feats` and `out_feats` as state
+            def __init__(self, in_feats, out_feats, **kwargs) -> None:
+                super().__init__()
+                self.flatten = nn.Flatten()
+                self.linear = quant_nn.QuantLinear(in_feats, out_feats,
+                                                   quant_desc_input=kwargs['quant_desc_input'],
+                                                   quant_desc_weight=kwargs['quant_desc_weight'],
+                                                   )
+
+            def forward(self, x):
+                return self.linear(self.flatten(x))
+
+        class MyModel(nn.Module):
+            def __init__(self, res, n_classes) -> None:
+                super().__init__()
+                self.conv = nn.Conv2d(3, 4, kernel_size=3, padding=1)
+                self.my_block = QuantizedMapping(float_module=MyBlock(4 * (res ** 2), n_classes),
+                                                 quantized_type=MyQuantizedBlock,
+                                                 input_quant_descriptor=QuantDescriptor(calib_method='max'),
+                                                 weights_quant_descriptor=QuantDescriptor(calib_method='histogram'))
+
+            def forward(self, x):
+                y = self.conv(x)
+                return self.my_block(y)
+
+        res = 32
+        n_clss = 10
+        module = MyModel(res, n_clss)
+
+        # TEST
+        q_util = QuantizationUtility()
+        q_util.quantize_module(module)
+
+        x = torch.rand(1, 3, res, res)
+
+        # ASSERT
+        with torch.no_grad():
+            y = module(x)
+            torch.testing.assert_close(y.size(), (1, n_clss))
+
+        self.assertTrue(isinstance(module.conv, QuantizationUtility.mapping_instructions[nn.Conv2d].quantized_type))
+        self.assertTrue(isinstance(module.my_block, MyQuantizedBlock))
+        self.assertTrue(type(module.my_block.linear._input_quantizer._calibrator) == MaxCalibrator)
+        self.assertTrue(type(module.my_block.linear._weight_quantizer._calibrator) == HistogramCalibrator)
+
+    def test_quant_descriptors_are_piped_to_custom_quant_modules_if_expects_in_init(self):
+        # ARRANGE
+        class MyBlock(nn.Module):
+            def __init__(self, in_feats, out_feats) -> None:
+                super().__init__()
+                self.in_feats = in_feats
+                self.out_feats = out_feats
+                self.flatten = nn.Flatten()
+                self.linear = nn.Linear(in_feats, out_feats)
+
+            def forward(self, x):
+                return self.linear(self.flatten(x))
+
+        class MyQuantizedBlock(SGQuantMixin):
+            # NOTE: `since quant_desc_input`, `quant_desc_weight` are existing, then quant descriptors are passed there!
+            # NOTE: because we don't override `from_float`,
+            #       then the float instance should have `in_feats` and `out_feats` as state
+            def __init__(self, in_feats, out_feats, quant_desc_input, quant_desc_weight) -> None:
+                super().__init__()
+                self.flatten = nn.Flatten()
+                self.linear = quant_nn.QuantLinear(in_feats, out_feats,
+                                                   quant_desc_input=quant_desc_input,
+                                                   quant_desc_weight=quant_desc_weight,
+                                                   )
+
+            def forward(self, x):
+                return self.linear(self.flatten(x))
+
+        class MyModel(nn.Module):
+            def __init__(self, res, n_classes) -> None:
+                super().__init__()
+                self.conv = nn.Conv2d(3, 4, kernel_size=3, padding=1)
+                self.my_block = QuantizedMapping(float_module=MyBlock(4 * (res ** 2), n_classes),
+                                                 quantized_type=MyQuantizedBlock,
+                                                 input_quant_descriptor=QuantDescriptor(calib_method='max'),
+                                                 weights_quant_descriptor=QuantDescriptor(calib_method='histogram'))
+
+            def forward(self, x):
+                y = self.conv(x)
+                return self.my_block(y)
+
+        res = 32
+        n_clss = 10
+        module = MyModel(res, n_clss)
+
+        # TEST
+        q_util = QuantizationUtility()
+        q_util.quantize_module(module)
+
+        x = torch.rand(1, 3, res, res)
+
+        # ASSERT
+        with torch.no_grad():
+            y = module(x)
+            torch.testing.assert_close(y.size(), (1, n_clss))
+
+        self.assertTrue(isinstance(module.conv, QuantizationUtility.mapping_instructions[nn.Conv2d].quantized_type))
+        self.assertTrue(isinstance(module.my_block, MyQuantizedBlock))
+        self.assertTrue(type(module.my_block.linear._input_quantizer._calibrator) == MaxCalibrator)
+        self.assertTrue(type(module.my_block.linear._weight_quantizer._calibrator) == HistogramCalibrator)
+
+    def test_quant_descriptors_are_not_piped_if_custom_quant_module_does_not_expect_them(self):
+        # ARRANGE
+        class MyBlock(nn.Module):
+            def __init__(self, in_feats, out_feats) -> None:
+                super().__init__()
+                self.in_feats = in_feats
+                self.out_feats = out_feats
+                self.flatten = nn.Flatten()
+                self.linear = nn.Linear(in_feats, out_feats)
+
+            def forward(self, x):
+                return self.linear(self.flatten(x))
+
+        class MyQuantizedBlock(SGQuantMixin):
+            # NOTE: because we don't override `from_float`,
+            #       then the float instance should have `in_feats` and `out_feats` as state
+            def __init__(self, in_feats, out_feats) -> None:
+                super().__init__()
+                self.flatten = nn.Flatten()
+                self.linear = quant_nn.QuantLinear(in_feats, out_feats)
+
+            def forward(self, x):
+                return self.linear(self.flatten(x))
+
+        class MyModel(nn.Module):
+            def __init__(self, res, n_classes) -> None:
+                super().__init__()
+                self.conv = nn.Conv2d(3, 4, kernel_size=3, padding=1)
+                self.my_block = QuantizedMapping(float_module=MyBlock(4 * (res ** 2), n_classes),
+                                                 quantized_type=MyQuantizedBlock)
+
+            def forward(self, x):
+                y = self.conv(x)
+                return self.my_block(y)
+
+        res = 32
+        n_clss = 10
+        module = MyModel(res, n_clss)
+
+        # TEST
+        q_util = QuantizationUtility()
+        q_util.quantize_module(module)
+
+        x = torch.rand(1, 3, res, res)
+
+        # ASSERT
+        with torch.no_grad():
+            y = module(x)
+            torch.testing.assert_close(y.size(), (1, n_clss))
+
+        self.assertTrue(isinstance(module.conv, QuantizationUtility.mapping_instructions[nn.Conv2d].quantized_type))
+        self.assertTrue(isinstance(module.my_block, MyQuantizedBlock))
 
 
 if __name__ == '__main__':
