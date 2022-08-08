@@ -1,21 +1,23 @@
 import unittest
 import torch
+from pytorch_quantization.nn import QuantConv2d
+from pytorch_quantization.tensor_quant import QuantDescriptor
 from torch import nn
 
 try:
     from pytorch_quantization import nn as quant_nn
     from super_gradients.training.utils.quantization.fine_grain_quantization_utils import QuantizationUtility, \
         RegisterQuantizedModule
+    from pytorch_quantization.calib import MaxCalibrator, HistogramCalibrator
     from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping
 
-    _imported_pytorch_quantization_failure = None
+    _imported_pytorch_quantization_failure = False
 
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    _imported_pytorch_quantization_failure = import_err
-    print(import_err)
+except (ImportError, NameError, ModuleNotFoundError):
+    _imported_pytorch_quantization_failure = True
 
 
-@unittest.skipIf(_imported_pytorch_quantization_failure is not None, "Failed to import `pytorch_quantization`")
+@unittest.skipIf(_imported_pytorch_quantization_failure, "Failed to import `pytorch_quantization`")
 class QuantizationUtilityTest(unittest.TestCase):
     def test_vanilla_replacement(self):
         # ARRANGE
@@ -407,6 +409,67 @@ class QuantizationUtilityTest(unittest.TestCase):
 
         self.assertTrue(isinstance(module.conv, QuantizationUtility.mapping_instructions[nn.Conv2d].quantized_type))
         self.assertTrue(isinstance(module.my_block, MyQuantizedBlock))
+
+    def test_non_default_quant_descriptors_are_piped(self):
+        # ARRANGE
+        class MyModel(nn.Module):
+            def __init__(self) -> None:
+                super().__init__()
+                self.conv1 = nn.Conv2d(3, 8, kernel_size=3, padding=1)
+
+            def forward(self, x):
+                return self.conv1(x)
+
+        module = MyModel()
+
+        # TEST
+        q_util = QuantizationUtility(default_quant_modules_calib_method='max')
+        q_util.quantize_module(module)
+
+        x = torch.rand(1, 3, 32, 32)
+
+        # ASSERT
+        with torch.no_grad():
+            y = module(x)
+            torch.testing.assert_close(y.size(), (1, 8, 32, 32))
+        self.assertTrue(isinstance(module.conv1, QuantizationUtility.mapping_instructions[nn.Conv2d].quantized_type))
+        self.assertTrue(type(module.conv1._input_quantizer._calibrator) == MaxCalibrator)
+        self.assertTrue(type(module.conv1._weight_quantizer._calibrator) == MaxCalibrator)
+
+    def test_different_quant_descriptors_are_piped(self):
+        # ARRANGE
+        class MyModel(nn.Module):
+            def __init__(self) -> None:
+                super().__init__()
+                self.conv1 = nn.Conv2d(3, 8, kernel_size=3, padding=1)
+                self.conv2 = nn.Conv2d(8, 8, kernel_size=3, padding=1)
+
+            def forward(self, x):
+                return self.conv2(self.conv1(x))
+
+        module = MyModel()
+
+        # TEST
+        q_util = QuantizationUtility()
+        q_util.register_quantization_mapping(layer_names={'conv1'}, quantized_type=QuantConv2d,
+                                             input_quant_descriptor=QuantDescriptor(calib_method='max'),
+                                             weights_quant_descriptor=QuantDescriptor(calib_method='histogram'))
+        q_util.register_quantization_mapping(layer_names={'conv2'}, quantized_type=QuantConv2d,
+                                             input_quant_descriptor=QuantDescriptor(calib_method='histogram'),
+                                             weights_quant_descriptor=QuantDescriptor(calib_method='max'))
+        q_util.quantize_module(module)
+
+        x = torch.rand(1, 3, 32, 32)
+
+        # ASSERT
+        with torch.no_grad():
+            y = module(x)
+            torch.testing.assert_close(y.size(), (1, 8, 32, 32))
+        self.assertTrue(isinstance(module.conv1, QuantizationUtility.mapping_instructions[nn.Conv2d].quantized_type))
+        self.assertTrue(type(module.conv1._input_quantizer._calibrator) == MaxCalibrator)
+        self.assertTrue(type(module.conv1._weight_quantizer._calibrator) == HistogramCalibrator)
+        self.assertTrue(type(module.conv2._input_quantizer._calibrator) == HistogramCalibrator)
+        self.assertTrue(type(module.conv2._weight_quantizer._calibrator) == MaxCalibrator)
 
 
 if __name__ == '__main__':
