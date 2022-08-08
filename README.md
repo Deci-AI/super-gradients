@@ -60,13 +60,14 @@ All SuperGradients models’ are production ready in the sense that they are com
 
     
 ## What's New
+* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
 * 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
 * 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) on COCO - Tailored for edge devices! 📱
-* 【07/07/2022】 STDC  - new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores 🎯
+* 【07/07/2022】 STDC  - new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
 * 【16/06/2022】 ResNet50  - new pre-trained checkpoint and [recipe](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/imagenet_resnet50_kd.yaml) for ImageNet top-1 score of 81.9 💪
 * 【09/06/2022】 ViT models (Vision Transformer) - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) (ViT, BEiT).
 * 【09/06/2022】 Knowledge Distillation support - [training module](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/kd_model/kd_model.py) and [notebook](https://bit.ly/3HQvbsg).
-* 【06/04/2022】 Integration with professional tools - [Weights and Biases](https://deci-ai.github.io/super-gradients/user_guide.html?highlight=wandb#professional-tools-integration) and [DagsHub](https://dagshub.com/Deci-AI).
+* 【06/04/2022】 Integration with professional tools - [Weights and Biases](https://bit.ly/3BJzCUv) and [DagsHub](https://bit.ly/3bznLhc).
 * 【09/03/2022】 New [quick start](#quick-start-notebook---semantic-segmentation) and [transfer learning](#transfer-learning-with-sg-notebook---semantic-segmentation) example notebooks for Semantic Segmentation.
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
 * 【01/02/2022】 We added issue templates for feature requests and bug reporting.
@@ -393,8 +394,8 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 | Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
-| DDRNet 23   | Cityscapes |1024x2048   |78.65  |**7.62ms** |**25.94ms**|
-| DDRNet 23 slim   | Cityscapes |1024x2048 |76.6  |**3.56ms** |**22.80ms**|
+| DDRNet 23   | Cityscapes |1024x2048   |80.26 |**7.62ms** |**25.94ms**|
+| DDRNet 23 slim   | Cityscapes |1024x2048 |78.01 |**3.56ms** |**22.80ms**|
 | STDC 1-Seg50   | Cityscapes | 512x1024 |75.07 |**2.83ms** |**12.57ms**|
 | STDC 1-Seg75   | Cityscapes | 768x1536 |77.8  |**5.71ms** |**26.70ms**|
 | STDC 2-Seg50   | Cityscapes | 512x1024 |75.79 |**3.74ms** |**13.89ms**

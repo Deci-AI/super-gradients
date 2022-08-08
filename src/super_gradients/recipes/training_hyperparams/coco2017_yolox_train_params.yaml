@@ -6,10 +6,8 @@ lr_mode: cosine
 cosine_final_lr_ratio: 0.05
 lr_warmup_epochs: 5
 lr_cooldown_epochs: 15
-warmup_bias_lr: 0.0
-warmup_momentum: 0.9
 initial_lr:  0.02
-warmup_mode: yolo_warmup
+zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
 
 save_ckpt_epoch_list: [285]

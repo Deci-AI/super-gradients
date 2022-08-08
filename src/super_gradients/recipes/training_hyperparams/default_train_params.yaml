@@ -5,7 +5,7 @@ lr_cooldown_epochs: 0 # epochs to cooldown LR (i.e the last epoch from schedulin
 warmup_initial_lr: # Initial lr for linear_step. When none is given, initial_lr/(warmup_epochs+1) will be used.
 step_lr_update_freq: # (float) update frequency in epoch units for computing lr_updates when lr_mode=`step`.
 cosine_final_lr_ratio: 0.01 # final learning rate ratio (only relevant when `lr_mode`='cosine')
-warmup_mode: linear_step # learning rate warmup scheme, one of ['linear_step', 'yolo_warmup']
+warmup_mode: linear_step # learning rate warmup scheme, currently only 'linear_step' is supported
 lr_updates: []
 pre_prediction_callback: # callback modifying images and targets right before forward pass.
 

@@ -1,0 +1,124 @@
+#  DDRNet segmentation training example with Cityscapes dataset.
+#  Paper:
+#      "Deep Dual-resolution Networks for Real-time and Accurate Semantic Segmentation of Road Scenes"
+#      https://arxiv.org/abs/2104.13188
+#
+#  Usage DDRNet23:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_ddrnet checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path>
+#  Usage DDRNet23-Slim:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_ddrnet checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path> architecture=ddrnet_23_slim
+#
+#  Validation mIoU - Cityscapes, training time:
+#      DDRNet23:        input-size: [1024, 2048]     mIoU: 80.26     4 X RTX A5000, 12 H
+#      DDRNet23-Slim:   input-size: [1024, 2048]     mIoU: 78.01     4 X RTX A5000, 9 H
+#
+#  Official git repo:
+#      https://github.com/ydhongHIT/DDRNet
+#
+#  Pretrained checkpoints:
+#      Backbones- downloaded from the author's official repo.
+#       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_bb_imagenet.pth
+#       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/imagenet_pt_backbones/ddrnet23_slim_bb_imagenet.pth
+#
+#      Logs, tensorboards and network checkpoints:
+#       DDRNet23:       https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23/
+#       DDRNet23-Slim:  https://deci-pretrained-models.s3.amazonaws.com/ddrnet/cityscapes/ddrnet23_slim/
+#
+#  Learning rate and batch size parameters, using 4 RTX A5000 with DDP:
+#      DDRNet23:        input-size: [1024, 1024]     initial_lr: 0.0075    batch-size: 6 * 4gpus = 24
+#      DDRNet23-Slim:   input-size: [1024, 1024]     initial_lr: 0.0075    batch-size: 6 * 4gpus = 24
+#
+#  Comments:
+#      * Pretrained backbones were used.
+
+defaults:
+  - training_hyperparams: cityscapes_default_train_params
+  - dataset_params: cityscapes_dataset_params
+  - checkpoint_params: default_checkpoint_params
+
+
+training_hyperparams:
+  max_epochs: 500
+  initial_lr: 0.0075   # batch size 24
+  loss:
+    dice_ce_edge_loss:
+      num_classes: 19
+      ignore_index: 19
+      num_aux_heads: 1
+      num_detail_heads: 0
+      weights: [ 1., 0.4 ]
+      dice_ce_weights: [ 1., 1. ]
+      ce_edge_weights: [ .5, .5 ]
+      edge_kernel: 5
+  loss_logging_items_names: [main_loss, aux_loss1, loss]
+
+dataset_params:
+  batch_size: 6
+  val_batch_size: 6
+  crop_size: [ 1024, 1024 ]
+  eval_scale: 1.
+  random_scales: [ 0.5, 2. ]
+  color_jitter: 0.5
+  image_mask_transforms_aug:
+    Compose:
+      transforms:
+        - ColorJitterSeg:
+            brightness: ${dataset_params.color_jitter}
+            contrast: ${dataset_params.color_jitter}
+            saturation: ${dataset_params.color_jitter}
+
+        - RandomFlipSeg
+
+        - RandomRescaleSeg:
+            scales: ${dataset_params.random_scales}
+
+        - PadShortToCropSizeSeg:
+            crop_size: ${dataset_params.crop_size}
+            fill_mask: ${dataset_params.cityscapes_ignored_label}
+
+        - CropImageAndMaskSeg:
+            crop_size: ${dataset_params.crop_size}
+            mode: random
+
+  image_mask_transforms:
+    Compose:
+      transforms:
+        - RescaleSeg:
+            scale_factor: ${dataset_params.eval_scale}
+
+dataset_interface:
+  cityscapes:
+    dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+
+arch_params:
+  num_classes: 19
+  aux_head: True
+  sync_bn: True
+
+load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
+  external_checkpoint_path:
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
+
+architecture: ddrnet_23
+experiment_name: ${architecture}_cityscapes
+
+model_checkpoints_location: local
+ckpt_root_dir:
+
+multi_gpu:
+  _target_: super_gradients.training.sg_model.MultiGPUMode
+  value: 'DDP'
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  ckpt_root_dir: ${ckpt_root_dir}
+  multi_gpu: ${multi_gpu}
+
