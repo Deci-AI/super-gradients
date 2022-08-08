@@ -34,7 +34,7 @@ class DatasetIntegrationTest(unittest.TestCase):
                                              subdir="images/val2017",
                                              json_file="instances_val2017.json",
                                              input_dim=(640, 640),
-                                             transforms=transforms)
+                                             transforms=transforms,)
 
     def test_multiple_pascal_dataset_subclass_before_transforms(self):
         """Run test_pascal_dataset_subclass on multiple inclusion lists"""
@@ -42,9 +42,7 @@ class DatasetIntegrationTest(unittest.TestCase):
             dataset = PascalVOCDetectionDataset(class_inclusion_list=class_inclusion_list,
                                                 max_num_samples=self.max_samples_per_plot * self.n_plot,
                                                 **self.pascal_base_config)
-            dataset.plot(max_samples_per_plot=self.max_samples_per_plot,
-                         n_plots=self.n_plot,
-                         plot_transformed_data=False)
+            dataset.plot(max_samples_per_plot=self.max_samples_per_plot, n_plots=self.n_plot, plot_transformed_data=False)
 
     def test_multiple_pascal_dataset_subclass_after_transforms(self):
         """Run test_pascal_dataset_subclass on multiple inclusion lists"""
