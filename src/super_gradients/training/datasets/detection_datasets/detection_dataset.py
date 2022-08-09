@@ -222,27 +222,33 @@ class DetectionDataset(Dataset):
                        "********************************************************************************\n")
 
         max_h, max_w = self.input_dim[0], self.input_dim[1]
-        img_rescaled_cache_path = cache_path / "img_rescaled_cache.array"
 
-        logger.info("Caching images.")
-        NUM_THREADs = min(8, os.cpu_count())
-        loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_rescaled_img(x), iterable=range(len(self)))
+        # The cache should be the same as long as the images and their sizes are the same
+        cache_hash = hash(tuple((Path(annotation["img_path"]).name, annotation["resized_img_shape"]) for annotation in self.annotations))
+        img_resized_cache_path = cache_path / f"img_resized_cache_{cache_hash}.array"
 
-        # Initialize placeholder for images with fixes size (padded)
-        cached_imgs_padded = np.memmap(str(img_rescaled_cache_path), shape=(len(self), max_h, max_w, 3),
-                                       dtype=np.uint8, mode="w+")
+        if not img_resized_cache_path.exists():
+            logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
+            NUM_THREADs = min(8, os.cpu_count())
+            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_rescaled_img(x), iterable=range(len(self)))
 
-        # Store images in the placeholder
-        loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
-        for i, image in loaded_images_pbar:
-            cached_imgs_padded[i][: image.shape[0], : image.shape[1], :] = image.copy()
-        cached_imgs_padded.flush()
-        loaded_images_pbar.close()
+            # Initialize placeholder for images
+            cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
+                                    dtype=np.uint8, mode="w+")
+
+            # Store images in the placeholder
+            loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
+            for i, image in loaded_images_pbar:
+                cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
+            cached_imgs.flush()
+            loaded_images_pbar.close()
+        else:
+            logger.warning("You are using cached imgs!")
 
         logger.info("Loading cached imgs...")
-        cached_imgs_padded = np.memmap(str(img_rescaled_cache_path), shape=(len(self), max_h, max_w, 3),
-                                       dtype=np.uint8, mode="r+")
-        return cached_imgs_padded
+        cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
+                                dtype=np.uint8, mode="r+")
+        return cached_imgs
 
     def _load_rescaled_img(self, index: int) -> np.ndarray:
         """Load image, and resizes it to self.input_dim
