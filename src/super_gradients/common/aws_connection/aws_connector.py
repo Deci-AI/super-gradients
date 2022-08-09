@@ -4,8 +4,6 @@ import boto3
 import logging
 from botocore.exceptions import ClientError, ProfileNotFound
 
-from super_gradients.common import explicit_params_validation
-
 
 class AWSConnector:
     """

@@ -35,19 +35,23 @@
 #      * Results with Deci code are higher than original implementation, mostly thanks to changes in Detail loss and
 #          module, different auxiliary feature maps and different loss weights.
 defaults:
-  - cityscapes_stdc_seg50
+  - cityscapes_stdc_base
 
 dataset_params:
   batch_size: 4
   val_batch_size: 4
   crop_size: [1536, 768]
   eval_scale: 0.75
-
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+  random_scales: [ 0.125, 1.5 ]
 
 training_hyperparams:
   initial_lr: 0.005
+
+  loss:
+    stdc_loss:
+      num_classes: 19
+      ignore_index: 19
+      mining_percent: 0.0625 # mining percentage is 1/16 of pixels following original implementation.
+      weights: [ 1., 0.6, 0.4, 1. ]
 
 experiment_name: ${architecture}75_cityscapes

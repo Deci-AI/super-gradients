@@ -18,13 +18,6 @@ ema_params:
   beta: 15
   exp_activation: True
 
-loss:
-  stdc_loss:
-    num_classes: 19
-    ignore_index: 19
-    mining_percent: 0.0625 # mining percentage is 1/16 of pixels following original implementation.
-    weights: [1., 0.6, 0.4, 1.]
-
 train_metrics_list:
   - PixelAccuracy:
       ignore_label: 19

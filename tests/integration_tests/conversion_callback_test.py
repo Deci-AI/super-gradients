@@ -5,14 +5,10 @@ import re
 from super_gradients import (
     SgModel,
     ClassificationTestDatasetInterface,
-    DetectionTestDatasetInterface,
     SegmentationTestDatasetInterface,
 )
 from super_gradients.training.utils.callbacks import ModelConversionCheckCallback
-from super_gradients.training.utils.detection_utils import Anchors
-from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.metrics import Accuracy, Top5, IoU
-from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.losses.stdc_loss import STDCLoss
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 
@@ -47,6 +43,7 @@ def generate_model_metadata(architecture: str, task: Task):
 CLASSIFICATION = ["efficientnet_b0", "regnetY200", "regnetY400", "regnetY600", "regnetY800", "mobilenet_v3_large"]
 SEMANTIC_SEGMENTATION = ["ddrnet_23", "stdc1_seg", "stdc2_seg", "regseg48"]
 # TODO: ADD YOLOX ARCHITECTURES AND TESTS
+
 
 class ConversionCallbackTest(unittest.TestCase):
     def test_classification_architectures(self):
