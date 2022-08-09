@@ -73,7 +73,7 @@ class DetectionDataset(Dataset):
             output_fields: List[str] = None,
     ):
         """Detection dataset.
-self.input_dim, self.max_num_samples, self.classes, self.ignore_empty_annotations, len(self.annotations)
+
         :param data_dir:                Where the data is stored
         :param input_dim:               Image size (when loaded, before transforms).
         :param original_target_format:  Format of targets stored on disk. raw data format, the output format might
