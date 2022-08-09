@@ -78,10 +78,10 @@ class PascalVOCDetectionDataset(DetectionDataset):
         target[:, :4] *= r
 
         initial_img_shape = (width, height)
-        resized_img_shape = (int(width * r), int(height * r))
+        rescaled_img_shape = (int(width * r), int(height * r))
 
         return {"img_path": img_path, "target": target,
-                "initial_img_shape": initial_img_shape, "resized_img_shape": resized_img_shape}
+                "initial_img_shape": initial_img_shape, "rescaled_img_shape": rescaled_img_shape}
 
     @staticmethod
     def download(data_dir: str):

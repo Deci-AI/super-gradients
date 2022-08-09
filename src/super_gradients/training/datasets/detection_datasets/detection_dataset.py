@@ -5,6 +5,7 @@ import random
 import cv2
 import matplotlib.pyplot as plt
 from pathlib import Path
+from copy import deepcopy
 
 import numpy as np
 from tqdm import tqdm
@@ -119,11 +120,12 @@ class DetectionDataset(Dataset):
         if "target" not in self.target_fields:
             raise KeyError('"target" is expected to be in the fields to subclass but it was not included')
 
+        self.REQUIRED_ANNOTATION_FIELDS = {"target", "img_path", "rescaled_img_shape"}
         self.annotations = self._cache_annotations()
 
         self.cache = cache
         self.cache_path = cache_path
-        self.cached_imgs = self._cache_images() if self.cache else None
+        self.cached_imgs_padded = self._cache_images() if self.cache else None
 
         self.transforms = transforms
 
@@ -139,10 +141,10 @@ class DetectionDataset(Dataset):
 
     def _load_annotation(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
         """Load annotations associated to a specific sample.
-        Please note that the targets should be resized according to self.input_dim!
+        Please note that the targets should be rescaled according to self.input_dim!
 
         :param sample_id:   Id of the sample to load annotations from.
-        :return:            Annotation, a dict with any field but has to include at least "target" and "img_path".
+        :return:            Annotation, a dict with any field but has to include at least the fields specified in self.REQUIRED_ANNOTATION_FIELDS.
         """
         raise NotImplementedError
 
@@ -157,8 +159,9 @@ class DetectionDataset(Dataset):
                 break
 
             img_annotation = self._load_annotation(img_id)
-            if "target" not in img_annotation or "img_path" not in img_annotation:
-                raise KeyError('_load_annotation is expected to return at least the field "target" and "img_path"')
+            if not self.REQUIRED_ANNOTATION_FIELDS.issubset(set(img_annotation.keys())):
+                raise KeyError(f'_load_annotation is expected to return at least the fields {self.REQUIRED_ANNOTATION_FIELDS}'
+                               f'but got {set(img_annotation.keys())}')
 
             if self.class_inclusion_list is not None:
                 img_annotation = self._sub_class_annotation(img_annotation)
@@ -219,45 +222,40 @@ class DetectionDataset(Dataset):
                        "********************************************************************************\n")
 
         max_h, max_w = self.input_dim[0], self.input_dim[1]
-        img_resized_cache_path = cache_path / "img_resized_cache.array"
+        img_rescaled_cache_path = cache_path / "img_rescaled_cache.array"
 
-        if not img_resized_cache_path.exists():
-            logger.info("Caching images for the first time.")
-            NUM_THREADs = min(8, os.cpu_count())
-            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_image(x), iterable=range(len(self)))
+        logger.info("Caching images.")
+        NUM_THREADs = min(8, os.cpu_count())
+        loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_rescaled_img(x), iterable=range(len(self)))
 
-            # Initialize placeholder for images
-            cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
-                                    dtype=np.uint8, mode="w+")
+        # Initialize placeholder for images with fixes size (padded)
+        cached_imgs_padded = np.memmap(str(img_rescaled_cache_path), shape=(len(self), max_h, max_w, 3),
+                                       dtype=np.uint8, mode="w+")
 
-            # Store images in the placeholder
-            loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
-            for i, image in loaded_images_pbar:
-                cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
-            cached_imgs.flush()
-            loaded_images_pbar.close()
-        else:
-            logger.warning("You are using cached imgs! Make sure your dataset is not changed!!\n"
-                           "Everytime the self.input_size is changed in your exp file, you need to delete\n"
-                           "the cached data and re-generate them.\n")
+        # Store images in the placeholder
+        loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
+        for i, image in loaded_images_pbar:
+            cached_imgs_padded[i][: image.shape[0], : image.shape[1], :] = image.copy()
+        cached_imgs_padded.flush()
+        loaded_images_pbar.close()
 
         logger.info("Loading cached imgs...")
-        cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
-                                dtype=np.uint8, mode="r+")
-        return cached_imgs
+        cached_imgs_padded = np.memmap(str(img_rescaled_cache_path), shape=(len(self), max_h, max_w, 3),
+                                       dtype=np.uint8, mode="r+")
+        return cached_imgs_padded
 
-    def _load_resized_img(self, index: int) -> np.ndarray:
+    def _load_rescaled_img(self, index: int) -> np.ndarray:
         """Load image, and resizes it to self.input_dim
         :param index:   Image index
-        :return:        Resized image
+        :return:        rescaled image
         """
         img = self._load_image(index)
 
         r = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
         desired_size = (int(img.shape[1] * r), int(img.shape[0] * r))
 
-        resized_img = cv2.resize(src=img, dsize=desired_size, interpolation=cv2.INTER_LINEAR).astype(np.uint8)
-        return resized_img
+        rescaled_img = cv2.resize(src=img, dsize=desired_size, interpolation=cv2.INTER_LINEAR).astype(np.uint8)
+        return rescaled_img
 
     def _load_image(self, index: int) -> np.ndarray:
         """Loads image at index with its original resolution.
@@ -276,8 +274,8 @@ class DetectionDataset(Dataset):
 
     def __del__(self):
         """Clear the cached images"""
-        if hasattr(self, "cached_imgs"):
-            del self.cached_imgs
+        if hasattr(self, "cached_imgs_padded"):
+            del self.cached_imgs_padded
 
     def __len__(self):
         """Get the length of the dataset."""
@@ -301,20 +299,24 @@ class DetectionDataset(Dataset):
         :param index:   Image index
         :return:        Sample, i.e. a dictionary including at least "image" and "target"
         """
-        img = self.get_resized_image(index)
-        annotation = self.annotations[index]
+        img = self.get_rescaled_image(index)
+        annotation = deepcopy(self.annotations[index])
         return {"image": img, **annotation}
 
-    def get_resized_image(self, index: int) -> np.ndarray:
+    def get_rescaled_image(self, index: int) -> np.ndarray:
         """
-        Get the resized image at a specific sample_id, either from cache or by loading from disk, based on self.cached_imgs
+        Get the rescaled image (i.e. either width or height reaches its input_dim) at a specific sample_id,
+        either from cache or by loading from disk, based on self.cached_imgs_padded
         :param index:  Image index
-        :return:       Resized image
+        :return:       rescaled image
         """
         if self.cache:
-            return self.cached_imgs[index].copy()
+            padded_image = self.cached_imgs_padded[index]
+            rescaled_height, rescaled_width = self.annotations[index]["rescaled_img_shape"]
+            rescaled_image = padded_image[:rescaled_height, :rescaled_width, :]
+            return rescaled_image.copy()
         else:
-            return self._load_resized_img(index)
+            return self._load_rescaled_img(index).copy()
 
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
