@@ -316,7 +316,7 @@ class DetectionDataset(Dataset):
             rescaled_image = padded_image[:rescaled_height, :rescaled_width, :]
             return rescaled_image.copy()
         else:
-            return self._load_rescaled_img(index).copy()
+            return self._load_rescaled_img(index)
 
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
