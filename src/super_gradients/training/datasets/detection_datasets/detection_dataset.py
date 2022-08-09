@@ -5,6 +5,7 @@ import random
 import cv2
 import matplotlib.pyplot as plt
 from pathlib import Path
+import hashlib
 
 import numpy as np
 from tqdm import tqdm
@@ -216,18 +217,25 @@ class DetectionDataset(Dataset):
         logger.warning("\n********************************************************************************\n"
                        "You are using cached images in RAM to accelerate training.\n"
                        "This requires large system RAM.\n"
-                       "********************************************************************************\n")
+                       "********************************************************************************")
 
         max_h, max_w = self.input_dim[0], self.input_dim[1]
 
         # The cache should be the same as long as the images and their sizes are the same
-        cache_hash = hash(tuple((Path(annotation["img_path"]).name, annotation["resized_img_shape"]) for annotation in self.annotations))
+        hash = hashlib.sha256()
+        for annotation in self.annotations:
+            values_to_hash = [annotation["resized_img_shape"][0], annotation["resized_img_shape"][1], Path(annotation["img_path"]).name]
+            for value in values_to_hash:
+                hash.update(str(value).encode('utf-8'))
+        cache_hash = hash.hexdigest()
+
         img_resized_cache_path = cache_path / f"img_resized_cache_{cache_hash}.array"
 
         if not img_resized_cache_path.exists():
             logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
             NUM_THREADs = min(8, os.cpu_count())
-            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_image(x), iterable=range(len(self)))
+            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_resized_img(x), iterable=range(len(self)))
+            # loaded_images = map(lambda x: self._load_resized_img(x), range(len(self)))
 
             # Initialize placeholder for images
             cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
