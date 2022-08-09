@@ -73,7 +73,7 @@ class DetectionDataset(Dataset):
             output_fields: List[str] = None,
     ):
         """Detection dataset.
-
+self.input_dim, self.max_num_samples, self.classes, self.ignore_empty_annotations, len(self.annotations)
         :param data_dir:                Where the data is stored
         :param input_dim:               Image size (when loaded, before transforms).
         :param original_target_format:  Format of targets stored on disk. raw data format, the output format might
@@ -219,10 +219,13 @@ class DetectionDataset(Dataset):
                        "********************************************************************************\n")
 
         max_h, max_w = self.input_dim[0], self.input_dim[1]
-        img_resized_cache_path = cache_path / "img_resized_cache.array"
+
+        # The cache should be the same as long as the images and their sizes are the same
+        cache_hash = hash(tuple((Path(annotation["img_path"]).name, annotation["resized_img_shape"]) for annotation in self.annotations))
+        img_resized_cache_path = cache_path / f"img_resized_cache_{cache_hash}.array"
 
         if not img_resized_cache_path.exists():
-            logger.info("Caching images for the first time.")
+            logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
             NUM_THREADs = min(8, os.cpu_count())
             loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_image(x), iterable=range(len(self)))
 
@@ -237,9 +240,7 @@ class DetectionDataset(Dataset):
             cached_imgs.flush()
             loaded_images_pbar.close()
         else:
-            logger.warning("You are using cached imgs! Make sure your dataset is not changed!!\n"
-                           "Everytime the self.input_size is changed in your exp file, you need to delete\n"
-                           "the cached data and re-generate them.\n")
+            logger.warning("You are using cached imgs!")
 
         logger.info("Loading cached imgs...")
         cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
