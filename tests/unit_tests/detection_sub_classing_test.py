@@ -30,7 +30,7 @@ class DummyDetectionDataset(DetectionDataset):
             - Annotation 0 is made of: 3 targets of class 0, 0 of class_1 and 0 of class_2
             - Annotation 1 is made of: 2 targets of class_0, 1 of class_1 and 0 of class_2
         """
-        return {"img_path": "", "target": self.dummy_targets[sample_id]}
+        return {"img_path": "", "rescaled_img_shape": None, "target": self.dummy_targets[sample_id]}
 
     # DetectionDatasetV2 will call _load_image but since we don't have any image we patch this method with
     # tensor of image shape
