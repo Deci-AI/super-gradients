@@ -160,7 +160,7 @@ class DetectionDataset(Dataset):
 
             img_annotation = self._load_annotation(img_id)
             if not self.REQUIRED_ANNOTATION_FIELDS.issubset(set(img_annotation.keys())):
-                raise KeyError(f'_load_annotation is expected to return at least the fields {self.REQUIRED_ANNOTATION_FIELDS}'
+                raise KeyError(f'_load_annotation is expected to return at least the fields {self.REQUIRED_ANNOTATION_FIELDS} '
                                f'but got {set(img_annotation.keys())}')
 
             if self.class_inclusion_list is not None:
