@@ -224,16 +224,16 @@ class DetectionDataset(Dataset):
         max_h, max_w = self.input_dim[0], self.input_dim[1]
 
         # The cache should be the same as long as the images and their sizes are the same
-        cache_hash = hash(tuple((Path(annotation["img_path"]).name, annotation["resized_img_shape"]) for annotation in self.annotations))
-        img_resized_cache_path = cache_path / f"img_resized_cache_{cache_hash}.array"
+        cache_hash = hash(tuple((Path(annotation["img_path"]).name, annotation["rescaled_img_shape"]) for annotation in self.annotations))
+        img_rescaled_cache_path = cache_path / f"img_rescaled_cache_{cache_hash}.array"
 
-        if not img_resized_cache_path.exists():
+        if not img_rescaled_cache_path.exists():
             logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
             NUM_THREADs = min(8, os.cpu_count())
             loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_rescaled_img(x), iterable=range(len(self)))
 
             # Initialize placeholder for images
-            cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
+            cached_imgs = np.memmap(str(img_rescaled_cache_path), shape=(len(self), max_h, max_w, 3),
                                     dtype=np.uint8, mode="w+")
 
             # Store images in the placeholder
@@ -246,7 +246,7 @@ class DetectionDataset(Dataset):
             logger.warning("You are using cached imgs!")
 
         logger.info("Loading cached imgs...")
-        cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
+        cached_imgs = np.memmap(str(img_rescaled_cache_path), shape=(len(self), max_h, max_w, 3),
                                 dtype=np.uint8, mode="r+")
         return cached_imgs
 
