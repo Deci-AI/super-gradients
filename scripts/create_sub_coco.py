@@ -33,7 +33,7 @@ def _copy_to_new_dir(mode: str, n_images: int, input_data_dir: Path, dest_data_d
     image_ids = {instance["id"] for instance in instances["images"]}
     annotation_image_ids = {instance["image_id"] for instance in instances["annotations"]}
 
-    kept_image_ids = list(image_ids & annotation_image_ids)[: n_images]
+    kept_image_ids = list(image_ids & annotation_image_ids)[: n_images]  # Make sure that the ids taken include both image and annotation
     kept_annotations = [image for image in instances["annotations"] if image["image_id"] in kept_image_ids]
     kept_images = [image for image in instances["images"] if image["id"] in kept_image_ids]
 
