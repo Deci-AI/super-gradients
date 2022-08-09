@@ -19,10 +19,14 @@ class DummyDetectionDataset(DetectionDataset):
         return self.n_samples
 
     def _load_annotation(self, sample_id: int) -> dict:
-        """Every image is made of one target, with label sample_id%len(all_classes_list)
+        """Every image is made of one target, with label sample_id % len(all_classes_list) and
+        a seed to allow the random image to the same for a given sample_id
         """
         cls_id = sample_id % len(self.all_classes_list)
-        return {"img_path": str(sample_id), "target": np.array([[0, 0, 10, 10, cls_id]]), "resized_img_shape": (self.image_size[0], self.image_size[1]), "seed": sample_id}
+        return {"img_path": str(sample_id),
+                "target": np.array([[0, 0, 10, 10, cls_id]]),
+                "resized_img_shape": self.image_size,
+                "seed": sample_id}
 
     # We overwrite this to fake images
     def _load_image(self, index: int) -> np.ndarray:
@@ -57,6 +61,7 @@ class TestDetectionDatasetCaching(unittest.TestCase):
 
         for first_dataset, second_dataset in zip(datasets[:-1], datasets[1:]):
             self.assertFalse(np.array_equal(first_dataset.cached_imgs, second_dataset.cached_imgs))
+
 
 if __name__ == '__main__':
     unittest.main()
