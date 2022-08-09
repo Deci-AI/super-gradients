@@ -1,7 +1,5 @@
 import unittest
 import torch
-from pytorch_quantization.nn import QuantConv2d
-from pytorch_quantization.tensor_quant import QuantDescriptor
 from torch import nn
 
 try:
@@ -10,7 +8,8 @@ try:
         RegisterQuantizedModule
     from pytorch_quantization.calib import MaxCalibrator, HistogramCalibrator
     from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping
-
+    from pytorch_quantization.nn import QuantConv2d
+    from pytorch_quantization.tensor_quant import QuantDescriptor
     _imported_pytorch_quantization_failure = False
 
 except (ImportError, NameError, ModuleNotFoundError):
