@@ -71,14 +71,14 @@ class PascalVOCDetectionDataset(DetectionDataset):
         with open(target_path, 'r') as targets_file:
             target = np.array([x.split() for x in targets_file.read().splitlines()], dtype=np.float32)
 
-        width, height = get_image_size_from_path(img_path)
+        height, width = get_image_size_from_path(img_path)
 
         # We have to rescale the targets because the images will be rescaled.
         r = min(self.input_dim[1] / height, self.input_dim[0] / width)
         target[:, :4] *= r
 
-        initial_img_shape = (width, height)
-        rescaled_img_shape = (int(width * r), int(height * r))
+        initial_img_shape = (height, width)
+        rescaled_img_shape = (int(height * r), int(width * r))
 
         return {"img_path": img_path, "target": target,
                 "initial_img_shape": initial_img_shape, "rescaled_img_shape": rescaled_img_shape}
