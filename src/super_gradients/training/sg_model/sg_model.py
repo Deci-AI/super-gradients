@@ -2,7 +2,6 @@ import inspect
 import os
 import sys
 from copy import deepcopy
-from enum import Enum
 from typing import Union, Tuple, Mapping, List, Any
 
 import numpy as np

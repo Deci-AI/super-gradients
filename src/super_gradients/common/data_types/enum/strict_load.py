@@ -13,3 +13,4 @@ class StrictLoad(Enum):
     OFF = False
     ON = True
     NO_KEY_MATCHING = 'no_key_matching'
+
