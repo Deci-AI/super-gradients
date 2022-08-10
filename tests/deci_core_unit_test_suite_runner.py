@@ -27,6 +27,7 @@ from tests.unit_tests.mask_loss_test import MaskAttentionLossTest
 from tests.unit_tests.detection_sub_sampling_test import TestDetectionDatasetSubsampling
 from tests.unit_tests.detection_sub_classing_test import TestDetectionDatasetSubclassing
 from tests.unit_tests.detection_caching import TestDetectionDatasetCaching
+from tests.unit_tests.multi_scaling_test import MultiScaleTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -76,6 +77,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetSubsampling))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetSubclassing))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetCaching))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MultiScaleTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
