@@ -263,7 +263,6 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
                 dist.barrier()
                 dist.broadcast(tensor, 0)
 
-            # Put this to self
             self.new_input_size = (tensor[0].item(), tensor[1].item())
 
         scale_y = self.new_input_size[0] / input_size[0]
