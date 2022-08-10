@@ -9,9 +9,8 @@ from torch.distributed import all_gather
 logger = get_logger(__name__)
 
 try:
-    from pytorch_quantization import nn as quant_nn, quant_modules
+    from pytorch_quantization import nn as quant_nn
     from pytorch_quantization import calib
-    from pytorch_quantization.tensor_quant import QuantDescriptor
 
     _imported_pytorch_quantization_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
