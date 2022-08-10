@@ -120,7 +120,7 @@ class DetectionDataset(Dataset):
         if "target" not in self.target_fields:
             raise KeyError('"target" is expected to be in the fields to subclass but it was not included')
 
-        self.REQUIRED_ANNOTATION_FIELDS = {"target", "img_path", "resized_img_shape"}
+        self._required_annotation_fields = {"target", "img_path", "resized_img_shape"}
         self.annotations = self._cache_annotations()
 
         self.cache = cache
@@ -159,8 +159,8 @@ class DetectionDataset(Dataset):
                 break
 
             img_annotation = self._load_annotation(img_id)
-            if not self.REQUIRED_ANNOTATION_FIELDS.issubset(set(img_annotation.keys())):
-                raise KeyError(f'_load_annotation is expected to return at least the fields {self.REQUIRED_ANNOTATION_FIELDS} '
+            if not self._required_annotation_fields.issubset(set(img_annotation.keys())):
+                raise KeyError(f'_load_annotation is expected to return at least the fields {self._required_annotation_fields} '
                                f'but got {set(img_annotation.keys())}')
 
             if self.class_inclusion_list is not None:
