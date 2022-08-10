@@ -120,7 +120,7 @@ class DetectionDataset(Dataset):
         if "target" not in self.target_fields:
             raise KeyError('"target" is expected to be in the fields to subclass but it was not included')
 
-        self.REQUIRED_ANNOTATION_FIELDS = {"target", "img_path", "rescaled_img_shape"}
+        self.REQUIRED_ANNOTATION_FIELDS = {"target", "img_path", "resized_img_shape"}
         self.annotations = self._cache_annotations()
 
         self.cache = cache
@@ -141,7 +141,7 @@ class DetectionDataset(Dataset):
 
     def _load_annotation(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
         """Load annotations associated to a specific sample.
-        Please note that the targets should be rescaled according to self.input_dim!
+        Please note that the targets should be resized according to self.input_dim!
 
         :param sample_id:   Id of the sample to load annotations from.
         :return:            Annotation, a dict with any field but has to include at least the fields specified in self.REQUIRED_ANNOTATION_FIELDS.
@@ -224,16 +224,16 @@ class DetectionDataset(Dataset):
         max_h, max_w = self.input_dim[0], self.input_dim[1]
 
         # The cache should be the same as long as the images and their sizes are the same
-        cache_hash = hash(tuple((Path(annotation["img_path"]).name, annotation["rescaled_img_shape"]) for annotation in self.annotations))
-        img_rescaled_cache_path = cache_path / f"img_rescaled_cache_{cache_hash}.array"
+        cache_hash = hash(tuple((Path(annotation["img_path"]).name, annotation["resized_img_shape"]) for annotation in self.annotations))
+        img_resized_cache_path = cache_path / f"img_resized_cache_{cache_hash}.array"
 
-        if not img_rescaled_cache_path.exists():
+        if not img_resized_cache_path.exists():
             logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
             NUM_THREADs = min(8, os.cpu_count())
-            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_rescaled_img(x), iterable=range(len(self)))
+            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_resized_img(x), iterable=range(len(self)))
 
             # Initialize placeholder for images
-            cached_imgs = np.memmap(str(img_rescaled_cache_path), shape=(len(self), max_h, max_w, 3),
+            cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
                                     dtype=np.uint8, mode="w+")
 
             # Store images in the placeholder
@@ -246,22 +246,22 @@ class DetectionDataset(Dataset):
             logger.warning("You are using cached imgs!")
 
         logger.info("Loading cached imgs...")
-        cached_imgs = np.memmap(str(img_rescaled_cache_path), shape=(len(self), max_h, max_w, 3),
+        cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
                                 dtype=np.uint8, mode="r+")
         return cached_imgs
 
-    def _load_rescaled_img(self, index: int) -> np.ndarray:
+    def _load_resized_img(self, index: int) -> np.ndarray:
         """Load image, and resizes it to self.input_dim
         :param index:   Image index
-        :return:        rescaled image
+        :return:        resized image
         """
         img = self._load_image(index)
 
         r = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
         desired_size = (int(img.shape[1] * r), int(img.shape[0] * r))
 
-        rescaled_img = cv2.resize(src=img, dsize=desired_size, interpolation=cv2.INTER_LINEAR).astype(np.uint8)
-        return rescaled_img
+        resized_img = cv2.resize(src=img, dsize=desired_size, interpolation=cv2.INTER_LINEAR).astype(np.uint8)
+        return resized_img
 
     def _load_image(self, index: int) -> np.ndarray:
         """Loads image at index with its original resolution.
@@ -305,24 +305,24 @@ class DetectionDataset(Dataset):
         :param index:   Image index
         :return:        Sample, i.e. a dictionary including at least "image" and "target"
         """
-        img = self.get_rescaled_image(index)
+        img = self.get_resized_image(index)
         annotation = deepcopy(self.annotations[index])
         return {"image": img, **annotation}
 
-    def get_rescaled_image(self, index: int) -> np.ndarray:
+    def get_resized_image(self, index: int) -> np.ndarray:
         """
-        Get the rescaled image (i.e. either width or height reaches its input_dim) at a specific sample_id,
+        Get the resized image (i.e. either width or height reaches its input_dim) at a specific sample_id,
         either from cache or by loading from disk, based on self.cached_imgs_padded
         :param index:  Image index
-        :return:       rescaled image
+        :return:       resized image
         """
         if self.cache:
             padded_image = self.cached_imgs_padded[index]
-            rescaled_height, rescaled_width = self.annotations[index]["rescaled_img_shape"]
-            rescaled_image = padded_image[:rescaled_height, :rescaled_width, :]
-            return rescaled_image.copy()
+            resized_height, resized_width = self.annotations[index]["resized_img_shape"]
+            resized_image = padded_image[:resized_height, :resized_width, :]
+            return resized_image.copy()
         else:
-            return self._load_rescaled_img(index)
+            return self._load_resized_img(index)
 
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
