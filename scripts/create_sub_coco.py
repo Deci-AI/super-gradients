@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
 import shutil
+import argparse
 
 
 def copy_train_val_to_new_dir(input_data_dir: str, dest_data_dir: str):
@@ -10,8 +11,8 @@ def copy_train_val_to_new_dir(input_data_dir: str, dest_data_dir: str):
     """
     input_data_dir = Path(input_data_dir)
     dest_data_dir = Path(dest_data_dir)
-    _copy_to_new_dir("train", 500, input_data_dir, dest_data_dir)
-    _copy_to_new_dir("val", 250, input_data_dir, dest_data_dir)
+    _copy_to_new_dir("train", 1000, input_data_dir, dest_data_dir)
+    _copy_to_new_dir("val", 500, input_data_dir, dest_data_dir)
 
 
 def _copy_to_new_dir(mode: str, n_images: int, input_data_dir: Path, dest_data_dir: Path):
@@ -53,7 +54,6 @@ def _copy_to_new_dir(mode: str, n_images: int, input_data_dir: Path, dest_data_d
 
 
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser(description='Extract a sub set of Coco into specified dir')
     parser.add_argument('--input_data_dir', help='Where the full coco dataset is stored', default="/data/coco")
     parser.add_argument('--dest_data_dir', help='Where the resulting data should be stored', required=True)
