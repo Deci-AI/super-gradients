@@ -1,6 +1,8 @@
 import unittest
 import numpy as np
 from pathlib import Path
+import tempfile
+import os
 
 from super_gradients.training.datasets import DetectionDataset
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
@@ -37,13 +39,15 @@ class DummyDetectionDataset(DetectionDataset):
 
 class TestDetectionDatasetCaching(unittest.TestCase):
     def setUp(self) -> None:
-        self.cache_dir = '/home/louis.dupont/data/cache'
+        self.temp_cache_dir = tempfile.TemporaryDirectory(prefix='cache').name
+        if not os.path.isdir(self.temp_cache_dir):
+            os.mkdir(self.temp_cache_dir)
 
     def _count_cached_array(self):
-        return len(list(Path(self.cache_dir).glob('*.array')))
+        return len(list(Path(self.temp_cache_dir).glob('*.array')))
 
     def _empty_cache(self):
-        for cache_file in Path(self.cache_dir).glob('*.array'):
+        for cache_file in Path(self.temp_cache_dir).glob('*.array'):
             cache_file.unlink()
 
     def test_cache_keep_empty(self):
@@ -51,7 +55,7 @@ class TestDetectionDatasetCaching(unittest.TestCase):
 
         datasets = [
             DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=False, class_inclusion_list=class_inclusion_list,
-                                  cache=True, cache_path=self.cache_dir, data_dir='/home/')
+                                  cache=True, cache_path=self.temp_cache_dir, data_dir='/home/')
             for class_inclusion_list in [["class_0", "class_1", "class_2"], ["class_0"], ["class_1"], ["class_2"], ["class_1", "class_2"]]
         ]
 
@@ -66,7 +70,7 @@ class TestDetectionDatasetCaching(unittest.TestCase):
 
         datasets = [
             DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True, class_inclusion_list=class_inclusion_list,
-                                  cache=True, cache_path=self.cache_dir, data_dir='/home/')
+                                  cache=True, cache_path=self.temp_cache_dir, data_dir='/home/')
             for class_inclusion_list in [["class_0", "class_1", "class_2"], ["class_0"], ["class_1"], ["class_2"], ["class_1", "class_2"]]
         ]
 
@@ -83,12 +87,12 @@ class TestDetectionDatasetCaching(unittest.TestCase):
         self.assertEqual(0, self._count_cached_array())
 
         _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
-                                  cache=True, cache_path=self.cache_dir, data_dir='/home/')
+                                  cache=True, cache_path=self.temp_cache_dir, data_dir='/home/')
         self.assertEqual(1, self._count_cached_array())
 
         for _ in range(5):
             _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
-                                      cache=True, cache_path=self.cache_dir, data_dir='/home/')
+                                      cache=True, cache_path=self.temp_cache_dir, data_dir='/home/')
             self.assertEqual(1, self._count_cached_array())
 
         self._empty_cache()
