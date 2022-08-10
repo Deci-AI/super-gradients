@@ -34,7 +34,7 @@ class RegisterQuantizedModule(object):
         self.weights_quant_descriptor = weights_quant_descriptor
 
     def __call__(self, quant_module: Type[SGQuantMixin]):
-        QuantizationUtility.mapping_instructions.update({
+        SelectiveQuantizer.mapping_instructions.update({
             self.float_module: QuantizedMetadata(
                 float_source=self.float_module,
                 quantized_type=quant_module,
@@ -46,7 +46,7 @@ class RegisterQuantizedModule(object):
         return quant_module  # this is required since the decorator assigns the result to the `quant_module`
 
 
-class QuantizationUtility:
+class SelectiveQuantizer:
 
     """
     :param custom_mappings:                     custom mappings that extend the default mappings with extra behaviour
@@ -183,7 +183,9 @@ class QuantizationUtility:
             elif metadata.action == QuantizedMetadata.ReplacementAction.REPLACE:
                 if isinstance(child_module, QuantizedMapping):  # UNWRAP MAPPING
                     child_module = child_module.float_module
-                q_instance = self._instantiate_quantized_from_float(float_module=child_module, metadata=metadata)
+                q_instance: nn.Module = self._instantiate_quantized_from_float(float_module=child_module,
+                                                                               metadata=metadata)
+                q_instance = q_instance.to(next(child_module.parameters()).device)
                 setattr(module, child_name, q_instance)
                 return True
             else:
