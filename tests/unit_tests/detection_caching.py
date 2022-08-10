@@ -80,6 +80,7 @@ class TestDetectionDatasetCaching(unittest.TestCase):
         """Check that after the first time a dataset is called with specific params,
         the next time it will call the saved array instead of building it."""
         self._empty_cache()
+        self.assertEqual(0, self._count_cached_array())
 
         _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
                                   cache=True, cache_path=self.cache_dir, data_dir='/home/')
