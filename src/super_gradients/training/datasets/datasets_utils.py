@@ -242,7 +242,7 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
         # GENERATE A NEW SIZE AND BROADCAST IT TO THE THE OTHER RANKS SO THEY HAVE THE SAME SCALE
         input_size = inputs.shape[2:]
         if batch_idx % self.frequency == 0:
-            tensor = torch.LongTensor(2).cuda()
+            tensor = torch.LongTensor(2).to(inputs.device)
 
             if self.rank == 0:
                 size_factor = input_size[1] * 1.0 / input_size[0]
