@@ -542,8 +542,28 @@ class SgModel:
     def _save_best_checkpoint(self, epoch, state):
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
+    def _prep_net_for_train(self):
+        if self.arch_params is None:
+            self.arch_params = getattr(self.net, "arch_params", HpmStruct(sync_bn=False))
+
+        # TODO: REMOVE THE BELOW LINE (FOR BACKWARD COMPATIBILITY)
+        if self.checkpoint_params is None:
+            self.checkpoint_params = HpmStruct(load_checkpoint=self.training_params.resume)
+
+        self._net_to_device()
+
+        # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
+        self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
+
+        self.checkpoint = {}
+        self.strict_load = core_utils.get_param(self.training_params, "resume_strict_load", StrictLoad.ON)
+        self.load_ema_as_net = False
+        self.load_checkpoint = core_utils.get_param(self.training_params, "resume", False)
+        self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
+        self._load_checkpoint_to_model()
+
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, training_params: dict = dict()):  # noqa: C901
+    def train(self, net: nn.Module=None, training_params: dict = dict()):  # noqa: C901
         """
 
         train - Trains the Model
@@ -819,13 +839,15 @@ class SgModel:
         """
         global logger
 
-        if self.net is None:
-            raise Exception('Model', 'No model found')
         if self.dataset_interface is None and self.train_loader is None:
             raise Exception('Data', 'No dataset found')
 
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
+
+        if self.net is None:
+            self.net = net
+            self._prep_net_for_train()
 
         # SET RANDOM SEED
         random_seed(is_ddp=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL,
@@ -1598,6 +1620,7 @@ class SgModel:
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
     def test(self,  # noqa: C901
+             net: nn.Module = None,
              test_loader: torch.utils.data.DataLoader = None,
              loss: torch.nn.modules.loss._Loss = None,
              silent_mode: bool = False,
@@ -1606,7 +1629,7 @@ class SgModel:
              use_ema_net=True) -> tuple:
         """
         Evaluates the model on given dataloader and metrics.
-
+        :param net: net to perfrom test on. When none is given, will try to use self.net (defalut=None).
         :param test_loader: dataloader to perform test on.
         :param test_metrics_list: (list(torchmetrics.Metric)) metrics list for evaluation.
         :param silent_mode: (bool) controls verbosity
@@ -1618,6 +1641,8 @@ class SgModel:
         All of the above args will override SgModel's corresponding attribute when not equal to None. Then evaluation
          is ran on self.test_loader with self.test_metrics.
         """
+
+        self.net = net or self.net
 
         # IN CASE TRAINING WAS PERFROMED BEFORE TEST- MAKE SURE TO TEST THE EMA MODEL (UNLESS SPECIFIED OTHERWISE BY
         # use_ema_net)
@@ -1868,3 +1893,4 @@ class SgModel:
             context_methods = ContextSgMethods()
 
         return context_methods
+

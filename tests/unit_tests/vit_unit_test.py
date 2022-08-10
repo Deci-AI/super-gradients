@@ -3,7 +3,7 @@ from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients import SgModel
 from super_gradients.training.metrics import Accuracy, Top5
-
+from super_gradients.training import models
 
 class TestViT(unittest.TestCase):
 
@@ -23,8 +23,8 @@ class TestViT(unittest.TestCase):
         """
         model = SgModel("test_vit_base", device='cpu')
         model.connect_dataset_interface(self.dataset, data_loader_num_workers=8)
-        model.build_model('vit_base', load_checkpoint=False)
-        model.train(training_params=self.train_params)
+        net = models.get('vit_base', arch_params={"num_classes": 5})
+        model.train(net=net, training_params=self.train_params)
 
 
 if __name__ == '__main__':
