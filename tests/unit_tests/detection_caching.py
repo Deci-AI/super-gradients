@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+from pathlib import Path
 
 from super_gradients.training.datasets import DetectionDataset
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
@@ -36,22 +37,32 @@ class DummyDetectionDataset(DetectionDataset):
 
 class TestDetectionDatasetCaching(unittest.TestCase):
     def setUp(self) -> None:
-        self.cache_dir = '/home/data/cache'
+        self.cache_dir = '/home/louis.dupont/data/cache'
+
+    def _count_cached_array(self):
+        return len(list(Path(self.cache_dir).glob('*.array')))
+
+    def _empty_cache(self):
+        for cache_file in Path(self.cache_dir).glob('*.array'):
+            cache_file.unlink()
 
     def test_cache_keep_empty(self):
-        """Check that subclassing only keeps annotations of wanted class"""
+        self._empty_cache()
 
         datasets = [
-            DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True, class_inclusion_list=class_inclusion_list,
-                                  cache=False, cache_path=self.cache_dir, data_dir='/home/')
+            DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=False, class_inclusion_list=class_inclusion_list,
+                                  cache=True, cache_path=self.cache_dir, data_dir='/home/')
             for class_inclusion_list in [["class_0", "class_1", "class_2"], ["class_0"], ["class_1"], ["class_2"], ["class_1", "class_2"]]
         ]
 
+        self.assertEqual(1, self._count_cached_array())
         for first_dataset, second_dataset in zip(datasets[:-1], datasets[1:]):
             self.assertTrue(np.array_equal(first_dataset.cached_imgs, second_dataset.cached_imgs))
 
+        self._empty_cache()
+
     def test_cache_ignore_empty(self):
-        """Check that subclassing only keeps annotations of wanted class"""
+        self._empty_cache()
 
         datasets = [
             DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True, class_inclusion_list=class_inclusion_list,
@@ -59,8 +70,27 @@ class TestDetectionDatasetCaching(unittest.TestCase):
             for class_inclusion_list in [["class_0", "class_1", "class_2"], ["class_0"], ["class_1"], ["class_2"], ["class_1", "class_2"]]
         ]
 
+        self.assertEqual(5, self._count_cached_array())
         for first_dataset, second_dataset in zip(datasets[:-1], datasets[1:]):
             self.assertFalse(np.array_equal(first_dataset.cached_imgs, second_dataset.cached_imgs))
+
+        self._empty_cache()
+
+    def test_cache_saved(self):
+        """Check that after the first time a dataset is called with specific params,
+        the next time it will call the saved array instead of building it."""
+        self._empty_cache()
+
+        _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
+                                  cache=True, cache_path=self.cache_dir, data_dir='/home/')
+        self.assertEqual(1, self._count_cached_array())
+
+        for _ in range(5):
+            _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
+                                      cache=True, cache_path=self.cache_dir, data_dir='/home/')
+            self.assertEqual(1, self._count_cached_array())
+
+        self._empty_cache()
 
 
 if __name__ == '__main__':
