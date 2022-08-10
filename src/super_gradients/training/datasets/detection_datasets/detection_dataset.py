@@ -253,7 +253,7 @@ class DetectionDataset(Dataset):
     def _load_resized_img(self, index: int) -> np.ndarray:
         """Load image, and resizes it to self.input_dim
         :param index:   Image index
-        :return:        resized image
+        :return:        Resized image
         """
         img = self._load_image(index)
 
@@ -314,7 +314,7 @@ class DetectionDataset(Dataset):
         Get the resized image (i.e. either width or height reaches its input_dim) at a specific sample_id,
         either from cache or by loading from disk, based on self.cached_imgs_padded
         :param index:  Image index
-        :return:       resized image
+        :return:       Resized image
         """
         if self.cache:
             padded_image = self.cached_imgs_padded[index]
