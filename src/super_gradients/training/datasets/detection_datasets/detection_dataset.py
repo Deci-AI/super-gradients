@@ -145,7 +145,7 @@ class DetectionDataset(Dataset):
         Please note that the targets should be resized according to self.input_dim!
 
         :param sample_id:   Id of the sample to load annotations from.
-        :return:            Annotation, a dict with any field but has to include at least the fields specified in self.REQUIRED_ANNOTATION_FIELDS.
+        :return:            Annotation, a dict with any field but has to include at least the fields specified in self._required_annotation_fields.
         """
         raise NotImplementedError
 
