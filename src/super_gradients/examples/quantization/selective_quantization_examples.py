@@ -163,7 +163,7 @@ def e2e_example():
     q_util.register_quantization_mapping(layer_names={'my_block'}, quantized_type=MyQuantizedBlock)
     q_util.quantize_module(module)
 
-    # CALIBRATE
+    # CALIBRATE (PTQ)
     dataset_interface = Cifar10DatasetInterface(dataset_params={"batch_size": 32})
     dataset_interface.build_data_loaders()
     train_loader = dataset_interface.train_loader
