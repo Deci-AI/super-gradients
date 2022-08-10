@@ -223,9 +223,7 @@ class DetectionDataset(Dataset):
 
         max_h, max_w = self.input_dim[0], self.input_dim[1]
 
-        # The cache should be the same as long as the images and their sizes are the same
-        cache_hash = hash(tuple((Path(annotation["img_path"]).name, annotation["resized_img_shape"]) for annotation in self.annotations))
-        img_resized_cache_path = cache_path / f"img_resized_cache_{cache_hash}.array"
+        img_resized_cache_path = cache_path / "img_resized_cache.array"
 
         if not img_resized_cache_path.exists():
             logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
