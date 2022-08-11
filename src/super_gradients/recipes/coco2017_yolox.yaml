@@ -32,7 +32,7 @@ checkpoint_params:
 
 architecture: yolox_s
 
-multi_gpu: 'Off'
+multi_gpu: DDP
 
 experiment_name: ${architecture}_coco2017_${dataset_params.train_image_size}
 
