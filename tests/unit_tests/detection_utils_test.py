@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from super_gradients.training import SgModel, utils as core_utils
+from super_gradients.training import SgModel, utils as core_utils, models
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
@@ -50,14 +50,14 @@ class TestDetectionUtils(unittest.TestCase):
                         model_checkpoints_location='local',
                         post_prediction_callback=YoloPostPredictionCallback())
         model.connect_dataset_interface(dataset, data_loader_num_workers=8)
-        model.build_model("yolox_n", checkpoint_params={"pretrained_weights": "coco"})
+        net = models.get("yolox_n", checkpoint_params={"pretrained_weights": "coco"})
 
         # Simulate one iteration of validation subset
         valid_loader = model.valid_loader
         batch_i, (imgs, targets) = 0, next(iter(valid_loader))
         imgs = core_utils.tensor_container_to_device(imgs, model.device)
         targets = core_utils.tensor_container_to_device(targets, model.device)
-        output = model.net(imgs)
+        output = net(imgs)
         output = model.post_prediction_callback(output)
         # Visualize the batch
         DetectionVisualization.visualize_batch(imgs, output, targets, batch_i,

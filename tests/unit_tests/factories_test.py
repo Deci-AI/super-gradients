@@ -16,7 +16,6 @@ class FactoriesTest(unittest.TestCase):
         model.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
-        model.build_model(net)
         train_params = {"max_epochs": 2,
                         "lr_updates": [1],
                         "lr_decay_factor": 0.1,
@@ -32,7 +31,7 @@ class FactoriesTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
 
-        model.train(train_params)
+        model.train(net=net, training_params=train_params)
 
         self.assertIsInstance(model.train_metrics.Accuracy, Accuracy)
         self.assertIsInstance(model.valid_metrics.Top5, Top5)

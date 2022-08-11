@@ -63,7 +63,7 @@ class PhaseContext:
                  train_loader=None, valid_loader=None,
                  training_params=None, ddp_silent_mode=None, checkpoint_params=None, architecture=None,
                  arch_params=None, metric_idx_in_results_tuple=None,
-                 metric_to_watch=None, valid_metrics=None, context_methods=None):
+                 metric_to_watch=None, valid_metrics=None, context_methods=None, ema_model=None):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -93,6 +93,7 @@ class PhaseContext:
         self.metric_to_watch = metric_to_watch
         self.valid_metrics = valid_metrics
         self.context_methods = context_methods
+        self.ema_model = ema_model
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():

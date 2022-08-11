@@ -4,7 +4,7 @@ import unittest
 import os
 
 from super_gradients.common.sg_loggers import BaseSGLogger
-from super_gradients.training import SgModel
+from super_gradients.training import SgModel, models
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -40,26 +40,6 @@ class StrictLoadEnumTest(unittest.TestCase):
         if not os.path.isdir(cls.temp_working_file_dir):
             os.mkdir(cls.temp_working_file_dir)
 
-        cls.experiment_name = 'load_checkpoint_test'
-
-        cls.checkpoint_diff_keys_name = 'strict_load_test_diff_keys.pth'
-        cls.checkpoint_diff_keys_path = cls.temp_working_file_dir + '/' + cls.checkpoint_diff_keys_name
-
-        # Setup the model
-        cls.original_torch_net = Net()
-
-        # Save the model's state_dict checkpoint with different keys
-        torch.save(cls.change_state_dict_keys(cls.original_torch_net.state_dict()), cls.checkpoint_diff_keys_path)
-
-        # Save the model's state_dict checkpoint in SgModel format
-        cls.sg_model = SgModel("load_checkpoint_test", model_checkpoints_location='local')  # Saves in /checkpoints
-        cls.sg_model.build_model(cls.original_torch_net, arch_params={'num_classes': 10})
-        # FIXME: after uniting init and build_model we should remove this
-        cls.sg_model.sg_logger = BaseSGLogger('project_name', 'load_checkpoint_test', 'local', resumed=False,
-                                              training_params=HpmStruct(max_epochs=10),
-                                              checkpoints_dir_path=cls.sg_model.checkpoints_dir_path)
-        cls.sg_model._save_checkpoint()
-
     @classmethod
     def tearDownClass(cls):
         if os.path.isdir(cls.temp_working_file_dir):
@@ -69,7 +49,7 @@ class StrictLoadEnumTest(unittest.TestCase):
     def change_state_dict_keys(self, state_dict):
         new_ckpt_dict = {}
         for i, (ckpt_key, ckpt_val) in enumerate(state_dict.items()):
-            new_ckpt_dict[i] = ckpt_val
+            new_ckpt_dict[str(i)] = ckpt_val
         return new_ckpt_dict
 
     def check_models_have_same_weights(self, model_1, model_2):
@@ -91,71 +71,69 @@ class StrictLoadEnumTest(unittest.TestCase):
 
     def test_strict_load_on(self):
         # Define Model
-        new_torch_net = Net()
+        net = models.get('resnet18', arch_params={"num_classes": 1000})
+        pretrained_net = models.get('resnet18', arch_params={"num_classes": 1000},
+                                    checkpoint_params={"pretrained_weights": "imagenet"})
 
         # Make sure we initialized a model with different weights
-        assert not self.check_models_have_same_weights(new_torch_net, self.original_torch_net)
+        assert not self.check_models_have_same_weights(net, pretrained_net)
 
-        # Build the SgModel and load the checkpoint
-        model = SgModel(self.experiment_name, model_checkpoints_location='local',
-                        ckpt_name='ckpt_latest_weights_only.pth')
-        model.build_model(new_torch_net, arch_params={'num_classes': 10},
-                          checkpoint_params={'strict_load': StrictLoad.ON,
-                                             'load_checkpoint': True})
+        pretrained_sd_path = os.path.join(self.temp_working_file_dir, "pretrained_net_strict_load_on.pth")
+        torch.save(pretrained_net.state_dict(), pretrained_sd_path)
 
+        net = models.get('resnet18', arch_params={"num_classes": 1000},
+                         checkpoint_params={"checkpoint_path": pretrained_sd_path,
+                                            "strict_load": StrictLoad.ON})
         # Assert the weights were loaded correctly
-        assert self.check_models_have_same_weights(model.net, self.original_torch_net)
+        assert self.check_models_have_same_weights(net, pretrained_net)
 
     def test_strict_load_off(self):
         # Define Model
-        new_torch_net = Net()
+        net = models.get('resnet18', arch_params={"num_classes": 1000})
+        pretrained_net = models.get('resnet18', arch_params={"num_classes": 1000},
+                                    checkpoint_params={"pretrained_weights": "imagenet"})
 
         # Make sure we initialized a model with different weights
-        assert not self.check_models_have_same_weights(new_torch_net, self.original_torch_net)
+        assert not self.check_models_have_same_weights(net, pretrained_net)
 
-        # Build the SgModel and load the checkpoint
-        model = SgModel(self.experiment_name, model_checkpoints_location='local',
-                        ckpt_name='ckpt_latest_weights_only.pth')
-        model.build_model(new_torch_net, arch_params={'num_classes': 10},
-                          checkpoint_params={'strict_load': StrictLoad.OFF,
-                                             'load_checkpoint': True})
+        pretrained_sd_path = os.path.join(self.temp_working_file_dir, "pretrained_net_strict_load_off.pth")
+        del pretrained_net.linear
+        torch.save(pretrained_net.state_dict(), pretrained_sd_path)
 
+        with self.assertRaises(RuntimeError):
+            models.get('resnet18', arch_params={"num_classes": 1000},
+                       checkpoint_params={"checkpoint_path": pretrained_sd_path,
+                                          "strict_load": StrictLoad.ON})
+
+        net = models.get('resnet18', arch_params={"num_classes": 1000},
+                         checkpoint_params={"checkpoint_path": pretrained_sd_path,
+                                            "strict_load": StrictLoad.OFF})
+        del net.linear
         # Assert the weights were loaded correctly
-        assert self.check_models_have_same_weights(model.net, self.original_torch_net)
-
-    def test_strict_load_no_key_matching_external_checkpoint(self):
-        # Define Model
-        new_torch_net = Net()
-
-        # Make sure we initialized a model with different weights
-        assert not self.check_models_have_same_weights(new_torch_net, self.original_torch_net)
-
-        # Build the SgModel and load the checkpoint
-        model = SgModel(self.experiment_name, model_checkpoints_location='local')
-        model.build_model(new_torch_net, arch_params={'num_classes': 10},
-                          checkpoint_params={'strict_load': StrictLoad.NO_KEY_MATCHING,
-                                             'external_checkpoint_path': self.checkpoint_diff_keys_path,
-                                             'load_checkpoint': True})
-
-        # Assert the weights were loaded correctly
-        assert self.check_models_have_same_weights(model.net, self.original_torch_net)
+        assert self.check_models_have_same_weights(net, pretrained_net)
 
     def test_strict_load_no_key_matching_sg_checkpoint(self):
         # Define Model
-        new_torch_net = Net()
+        net = models.get('resnet18', arch_params={"num_classes": 1000})
+        pretrained_net = models.get('resnet18', arch_params={"num_classes": 1000},
+                                    checkpoint_params={"pretrained_weights": "imagenet"})
 
         # Make sure we initialized a model with different weights
-        assert not self.check_models_have_same_weights(new_torch_net, self.original_torch_net)
+        assert not self.check_models_have_same_weights(net, pretrained_net)
 
-        # Build the SgModel and load the checkpoint
-        model = SgModel(self.experiment_name, model_checkpoints_location='local',
-                        ckpt_name='ckpt_latest_weights_only.pth')
-        model.build_model(new_torch_net, arch_params={'num_classes': 10},
-                          checkpoint_params={'strict_load': StrictLoad.NO_KEY_MATCHING,
-                                             'load_checkpoint': True})
+        pretrained_sd_path = os.path.join(self.temp_working_file_dir, "pretrained_net_strict_load_soft.pth")
+        torch.save(self.change_state_dict_keys(pretrained_net.state_dict()), pretrained_sd_path)
 
+        with self.assertRaises(RuntimeError):
+            models.get('resnet18', arch_params={"num_classes": 1000},
+                       checkpoint_params={"checkpoint_path": pretrained_sd_path,
+                                          "strict_load": StrictLoad.ON})
+
+        net = models.get('resnet18', arch_params={"num_classes": 1000},
+                         checkpoint_params={"checkpoint_path": pretrained_sd_path,
+                                            "strict_load": StrictLoad.NO_KEY_MATCHING})
         # Assert the weights were loaded correctly
-        assert self.check_models_have_same_weights(model.net, self.original_torch_net)
+        assert self.check_models_have_same_weights(net, pretrained_net)
 
 
 if __name__ == '__main__':

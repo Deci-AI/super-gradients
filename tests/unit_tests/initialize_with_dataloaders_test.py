@@ -1,4 +1,7 @@
 import unittest
+
+from super_gradients.training import models
+
 from super_gradients import SgModel, ClassificationTestDatasetInterface
 import torch
 from torch.utils.data import TensorDataset, DataLoader
@@ -29,7 +32,7 @@ class InitializeWithDataloadersTest(unittest.TestCase):
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
 
-        model.build_model("efficientnet_b0")
+        net = models.get("efficientnet_b0", arch_params={"num_classes": 5})
         train_params = {"max_epochs": 1, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": torch.nn.CrossEntropyLoss(),
                         "optimizer": "SGD",
@@ -37,7 +40,7 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
                         "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        model.train(train_params)
+        model.train(net=net, training_params=train_params)
 
     def test_initialization_rules(self):
         self.assertRaises(IllegalDataloaderInitialization, SgModel, "test_name", model_checkpoints_location='local',
@@ -63,8 +66,8 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                         train_loader=self.testcase_trainloader, valid_loader=self.testcase_validloader,
                         classes=self.testcase_classes)
 
-        model.build_model("resnet18")
-        model.train(training_params={"max_epochs": 2,
+        net = models.get("resnet18", arch_params={"num_classes": 5})
+        model.train(net=net, training_params={"max_epochs": 2,
                                      "lr_updates": [5, 6, 12],
                                      "lr_decay_factor": 0.01,
                                      "lr_mode": "step",

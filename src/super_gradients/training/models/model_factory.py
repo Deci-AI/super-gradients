@@ -9,7 +9,8 @@ from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model, load_pretrained_weights
+from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model, load_pretrained_weights, \
+    read_ckpt_state_dict
 import torch.nn as nn
 
 
@@ -34,14 +35,14 @@ class SgNetsFactory:
         checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
         net = cls.instantiate_net(architecture, arch_params, checkpoint_params, *args, **kwargs)
         strict_load = core_utils.get_param(checkpoint_params, 'strict_load', default_val="no_key_matching")
-        load_ema_as_net = core_utils.get_param(checkpoint_params, 'load_ema_as_net', default_val=True)
         load_backbone = core_utils.get_param(checkpoint_params, 'load_backbone', default_val=False)
         checkpoint_path = core_utils.get_param(checkpoint_params, 'checkpoint_path')
         if checkpoint_path:
+            load_ema_as_net = 'ema_net' in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
             _ = load_checkpoint_to_model(ckpt_local_path=checkpoint_path,
                                          load_backbone=load_backbone,
                                          net=net,
-                                         strict=strict_load,
+                                         strict=strict_load.value if hasattr(strict_load, "value") else strict_load,
                                          load_weights_only=True,
                                          load_ema_as_net=load_ema_as_net)
         return net
@@ -64,7 +65,11 @@ class SgNetsFactory:
         pretrained_weights = core_utils.get_param(checkpoint_params, 'pretrained_weights', default_val=None)
 
         if pretrained_weights is not None:
-            num_classes_new_head = arch_params.num_classes
+            if hasattr(arch_params, "num_classes"):
+                num_classes_new_head = arch_params.num_classes
+            else:
+                num_classes_new_head = PRETRAINED_NUM_CLASSES[pretrained_weights]
+
             arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
 
         if isinstance(architecture, str):

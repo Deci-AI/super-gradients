@@ -1,5 +1,5 @@
 import unittest
-from super_gradients.training import SgModel
+from super_gradients.training import SgModel, models
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
@@ -37,7 +37,6 @@ class ContextMethodsTest(unittest.TestCase):
         net = LeNet()
         model = SgModel("test_access_to_methods_by_phase", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
-        model.build_model(net, arch_params=self.arch_params)
 
         phase_callbacks = []
         for phase in Phase:
@@ -68,7 +67,7 @@ class ContextMethodsTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks}
 
-        model.train(train_params)
+        model.train(net=net, training_params=train_params)
         for phase_callback in phase_callbacks:
             if isinstance(phase_callback, ContextMethodsCheckerCallback):
                 self.assertTrue(phase_callback.result)

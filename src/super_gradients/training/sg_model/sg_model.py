@@ -986,7 +986,8 @@ class SgModel:
                                metric_idx_in_results_tuple=self.metric_idx_in_results_tuple,
                                metric_to_watch=self.metric_to_watch,
                                device=self.device,
-                               context_methods=self._get_context_methods(Phase.PRE_TRAINING)
+                               context_methods=self._get_context_methods(Phase.PRE_TRAINING),
+                               ema_model=self.ema_model
                                )
 
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
@@ -1487,6 +1488,7 @@ class SgModel:
         # RESET METRIC RUNNERS
         self._reset_metrics()
         self.test_metrics.to(self.device)
+        self.net.to(self.device)
 
     def _add_metrics_update_callback(self, phase: Phase):
         """

@@ -17,7 +17,6 @@ class PhaseContextTest(unittest.TestCase):
         model.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
-        model.build_model(net)
 
         phase_callbacks = [PhaseContextTestCallback(Phase.TRAIN_BATCH_END),
                            PhaseContextTestCallback(Phase.TRAIN_BATCH_STEP),
@@ -32,7 +31,7 @@ class PhaseContextTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Top5",
                         "greater_metric_to_watch_is_better": True, "phase_callbacks": phase_callbacks}
 
-        model.train(train_params)
+        model.train(net=net, training_params=train_params)
         context_callbacks = list(filter(lambda cb: isinstance(cb, PhaseContextTestCallback), model.phase_callbacks))
 
         # CHECK THAT PHASE CONTEXES HAVE THE EXACT INFORMATION THERY'RE SUPPOSE TO HOLD
