@@ -17,7 +17,6 @@ class SgTrainerLoggingTest(unittest.TestCase):
         model.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
-        model.build_model(net)
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
@@ -26,7 +25,7 @@ class SgTrainerLoggingTest(unittest.TestCase):
                         "greater_metric_to_watch_is_better": True,
                         "save_full_train_log": True}
 
-        model.train(train_params)
+        model.train(net=net, training_params=train_params)
 
         logfile_path = model.log_file.replace('.txt', 'full_train_log.log')
         assert os.path.exists(logfile_path) and os.path.getsize(logfile_path) > 0
