@@ -8,6 +8,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+
 logger = get_logger(__name__)
 
 
@@ -23,11 +24,10 @@ class COCODetectionDataset(DetectionDataset):
             *args, **kwargs
     ):
         """
-        :param json_file:   Name of the coco json file, that resides in data_dir/annotations/json_file.
-        :param subdir:        Sub directory of data_dir containing the data.
-        :param tight_box_rotation: bool, whether to use of segmentation maps convex hull as target_seg
-                                   (check get_sample docs).
-        :param transforms: list of transforms to apply sequentially on sample in __getitem__
+        :param json_file:           Name of the coco json file, that resides in data_dir/annotations/json_file.
+        :param subdir:              Sub directory of data_dir containing the data.
+        :param tight_box_rotation:  bool, whether to use of segmentation maps convex hull as target_seg
+                                    (check get_sample docs).
         :param with_crowd: Add the crowd groundtruths to __getitem__
         """
         self.subdir = subdir
@@ -66,13 +66,13 @@ class COCODetectionDataset(DetectionDataset):
         """
         Load relevant information of a specific image.
 
-        :param sample_id:               sample_id in the dataset
-        :return res:                Target Bboxes (detection) in XYXY_LABEL format
-        :return crowd_target:       Crowd target Bboxes (detection) in XYXY_LABEL format
-        :return target_segmentation:Segmentation
-        :return initial_img_shape:           Image (height, width)
-        :return resized_img_shape:       Resides image (height, width)
-        :return img_path:           Path to the associated image
+        :param sample_id:               Sample_id in the dataset
+        :return target:                 Target Bboxes (detection) in XYXY_LABEL format
+        :return crowd_target:           Crowd target Bboxes (detection) in XYXY_LABEL format
+        :return target_segmentation:    Segmentation
+        :return initial_img_shape:      Image (height, width)
+        :return resized_img_shape:      Resides image (height, width)
+        :return img_path:               Path to the associated image
         """
 
         img_id = self.sample_id_to_coco_id[sample_id]

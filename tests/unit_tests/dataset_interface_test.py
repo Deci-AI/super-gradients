@@ -12,7 +12,7 @@ from super_gradients.training import utils as core_utils
 
 class TestDatasetInterface(unittest.TestCase):
     def setUp(self) -> None:
-        self.root_dir = "/home/data/"
+        self.root_dir = "/home/louis.dupont/data/"
         self.train_batch_size, self.val_batch_size = 16, 32
         self.train_image_size, self.val_image_size = 640, 640
         self.train_input_dim = (self.train_image_size, self.train_image_size)
@@ -88,12 +88,13 @@ class TestDatasetInterface(unittest.TestCase):
             "ar_thr": 20,  # aspect ratio threshold when filter_box_candidates = True
             "area_thr": 0.1,  # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
 
-            "download": True,
+            "download": False,
             "train_collate_fn": DetectionCollateFN(),
             "val_collate_fn": DetectionCollateFN(),
             "cache_train_images": False,
             "cache_val_images": False,
-            "cache_dir_path": "/home/louis.dupont/data/cache",
+            "cache_dir": "/home/louis.dupont/data/cache",
+            "class_inclusion_list": None
             # "with_crowd": True
         }
 
