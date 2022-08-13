@@ -1,17 +1,17 @@
 from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
 
-DEFAULT_TRANSFORMS = {"mixup_prob": 1.0,  # probability to apply per-sample mixup
-                      "degrees": 10.,  # rotation degrees, randomly sampled from [-degrees, degrees]
-                      "shear": 2.0,  # shear degrees, randomly sampled from [-degrees, degrees]
-                      "flip_prob": 0.5,  # probability to apply horizontal flip
-                      "hsv_prob": 1.0,  # probability to apply HSV transform
-                      "hgain": 5,  # HSV transform hue gain (randomly sampled from [-hgain, hgain])
-                      "sgain": 30,  # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
-                      "vgain": 30,  # HSV transform value gain (randomly sampled from [-vgain, vgain])
-                      "mosaic_scale": [0.1, 2],  # random rescale range (keeps size by padding/cropping) after mosaic transform.
-                      "mixup_scale": [0.5, 1.5],  # random rescale range for the additional sample in mixup
-                      "mosaic_prob": 1.,  # probability to apply mosaic
-                      "translate": 0.1,  # image translation fraction
+DEFAULT_TRANSFORMS = {"mixup_prob": .0,  # probability to apply per-sample mixup
+                      "degrees": 0.,  # rotation degrees, randomly sampled from [-degrees, degrees]
+                      "shear": 0.,  # shear degrees, randomly sampled from [-degrees, degrees]
+                      "flip_prob": 0.,  # probability to apply horizontal flip
+                      "hsv_prob": 0.,  # probability to apply HSV transform
+                      "hgain": 1,  # HSV transform hue gain (randomly sampled from [-hgain, hgain])
+                      "sgain": 1,  # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
+                      "vgain": 1,  # HSV transform value gain (randomly sampled from [-vgain, vgain])
+                      "mosaic_scale": [0.5, 1.5],  # random rescale range (keeps size by padding/cropping) after mosaic transform.
+                      "mixup_scale": [1., 1.],  # random rescale range for the additional sample in mixup
+                      "mosaic_prob": 0.5,  # probability to apply mosaic
+                      "translate": 0.,  # image translation fraction
                       "filter_box_candidates": False,  # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
                       "wh_thr": 2,  # edge size threshold when filter_box_candidates = True (pixels)
                       "ar_thr": 20,  # aspect ratio threshold when filter_box_candidates = True
@@ -22,7 +22,6 @@ DEFAULT_TRAINING_PARAMS = {"max_epochs": 20,
                            "lr_mode": "cosine",
                            "cosine_final_lr_ratio": 0.04,
                            "initial_lr": 0.01,
-                           "warmup_mode": "yolo_warmup",
                            "lr_warmup_epochs": 5,
                            "warmup_bias_lr": 0.0,
                            "warmup_momentum": 0.9,
