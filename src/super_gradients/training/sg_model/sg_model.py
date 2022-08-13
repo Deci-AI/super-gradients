@@ -2,7 +2,6 @@ import inspect
 import os
 import sys
 from copy import deepcopy
-from enum import Enum
 from typing import Union, Tuple, Mapping, List, Any
 
 import numpy as np
@@ -61,51 +60,8 @@ from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 
+from super_gradients.common import StrictLoad, MultiGPUMode, EvaluationType
 logger = get_logger(__name__)
-
-
-class StrictLoad(Enum):
-    """
-    Wrapper for adding more functionality to torch's strict_load parameter in load_state_dict().
-        Attributes:
-            OFF              - Native torch "strict_load = off" behaviour. See nn.Module.load_state_dict() documentation for more details.
-            ON               - Native torch "strict_load = on" behaviour. See nn.Module.load_state_dict() documentation for more details.
-            NO_KEY_MATCHING  - Allows the usage of SuperGradient's adapt_checkpoint function, which loads a checkpoint by matching each
-                               layer's shapes (and bypasses the strict matching of the names of each layer (ie: disregards the state_dict key matching)).
-    """
-    OFF = False
-    ON = True
-    NO_KEY_MATCHING = 'no_key_matching'
-
-
-class MultiGPUMode(str, Enum):
-    """
-    MultiGPUMode
-
-        Attributes:
-            OFF                       - Single GPU Mode / CPU Mode
-            DATA_PARALLEL             - Multiple GPUs, Synchronous
-            DISTRIBUTED_DATA_PARALLEL - Multiple GPUs, Asynchronous
-    """
-    OFF = 'Off'
-    DATA_PARALLEL = 'DP'
-    DISTRIBUTED_DATA_PARALLEL = 'DDP'
-    AUTO = "AUTO"
-
-
-class EvaluationType(str, Enum):
-    """
-    EvaluationType
-
-    Passed to SgModel.evaluate(..), and controls which phase callbacks should be triggered (if at all).
-
-        Attributes:
-            TEST
-            VALIDATION
-
-    """
-    TEST = 'TEST'
-    VALIDATION = 'VALIDATION'
 
 
 class SgModel:
