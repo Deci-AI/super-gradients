@@ -17,7 +17,6 @@ loss: yolox_fast_loss
 criterion_params:
   strides: [8, 16, 32]  # output strides of all yolo outputs
   num_classes: 80
-  im_size: 640
 
 loss_logging_items_names: [iou, obj, cls, l1, num_fg, Loss]
 

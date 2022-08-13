@@ -575,7 +575,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
                             Can be used for objectness loss.
     """
 
-    def __init__(self, strides, im_size, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou',
+    def __init__(self, strides, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou',
                  dynamic_ks_bias=1.1, sync_num_fgs=False, obj_loss_fix=False):
         super().__init__(strides=strides, num_classes=num_classes, use_l1=use_l1, center_sampling_radius=center_sampling_radius,
                          iou_type=iou_type)

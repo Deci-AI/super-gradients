@@ -34,7 +34,7 @@ architecture: yolox_s
 
 multi_gpu: DDP
 
-experiment_name: ${architecture}_coco2017_${dataset_params.train_image_size}
+experiment_name: $yolox_fastloss_after_fix_filter_box_candidates
 
 ckpt_root_dir:
 sg_model:
