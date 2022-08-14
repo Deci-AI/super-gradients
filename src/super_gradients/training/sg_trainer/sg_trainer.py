@@ -1,3 +1,4 @@
+import inspect
 import os
 import sys
 from copy import deepcopy
@@ -7,8 +8,6 @@ import hydra
 import numpy as np
 import pkg_resources
 import torch
-import torchvision.transforms as transforms
-from deprecated import deprecated
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler
@@ -17,6 +16,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -34,8 +34,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.training.utils.quantization_utils import QATCallback
-from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, scale_params_for_yolov5
-from super_gradients.training import metrics
+from super_gradients.training.utils.sg_trainer_utils import MonitoredValue
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, \
     IllegalDataloaderInitialization
 from super_gradients.training.datasets import DatasetInterface
@@ -56,7 +55,7 @@ from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path,
     load_checkpoint_to_model, load_pretrained_weights
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
-    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods
+    MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
@@ -137,6 +136,7 @@ class Trainer:
         self.ckpt_best_name = 'ckpt_best.pth'
         self.enable_qat = False
         self.qat_params = {}
+        self._infinite_train_loader = False
 
         # DETERMINE THE LOCATION OF THE LOSS AND ACCURACY IN THE RESULTS TUPLE OUTPUTED BY THE TEST
         self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = None, None
@@ -187,13 +187,16 @@ class Trainer:
         self.valid_monitored_values = {}
 
     @classmethod
-    def train_from_config(cls, cfg: DictConfig) -> None:
+    def train_from_config(cls, cfg: Union[DictConfig, dict]) -> None:
         """
         Trains according to cfg recipe configuration.
 
-        @param cfg: The parsed DictConfig from yaml recipe files
+        @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         @return: output of trainer.train(...) (i.e results tuple)
         """
+        if isinstance(cfg, Mapping):
+            cfg = DictConfig(cfg)
+
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
@@ -203,12 +206,8 @@ class Trainer:
         # BUILD NETWORK
         cfg.trainer.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
 
-        # FIXME: REMOVE PARAMETER MANIPULATION SPECIFIC FOR YOLO
-        if str(cfg.architecture).startswith("yolo_v5"):
-            cfg = scale_params_for_yolov5(cfg)
-
         # TRAIN
-        cfg.trainer .train(training_params=cfg.training_hyperparams)
+        cfg.trainer.train(training_params=cfg.training_hyperparams)
 
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
@@ -344,7 +343,8 @@ class Trainer:
         progress_bar_train_loader.set_description(f"Train epoch {epoch}")
 
         # RESET/INIT THE METRIC LOGGERS
-        self.train_metrics.reset()
+        self._reset_metrics()
+
         self.train_metrics.to(self.device)
         loss_avg_meter = core_utils.utils.AverageMeter()
 
@@ -357,7 +357,8 @@ class Trainer:
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs,
                                sg_logger=self.sg_logger,
                                train_loader=self.train_loader,
-                               context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END))
+                               context_methods=self._get_context_methods(Phase.TRAIN_BATCH_END),
+                               ddp_silent_mode=self.ddp_silent_mode)
 
         for batch_idx, batch_items in enumerate(progress_bar_train_loader):
             batch_items = core_utils.tensor_container_to_device(batch_items, self.device, non_blocking=True)
@@ -402,7 +403,7 @@ class Trainer:
 
             # TODO: ITERATE BY MAX ITERS
             # FOR INFINITE SAMPLERS WE MUST BREAK WHEN REACHING LEN ITERATIONS.
-            if hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler) and batch_idx == len(self.train_loader)-1:
+            if self._infinite_train_loader and batch_idx == len(self.train_loader) - 1:
                 break
 
         if not self.ddp_silent_mode:
@@ -580,7 +581,6 @@ class Trainer:
                               "detection_loss": YoLoV3DetectionLoss,
                               "shelfnet_ohem_loss": ShelfNetOHEMLoss,
                               "shelfnet_se_loss": ShelfNetSemanticEncodingLoss,
-                              "yolo_v5_loss": YoLoV5DetectionLoss,
                               "ssd_loss": SSDLoss,
 
 
@@ -828,9 +828,10 @@ class Trainer:
 
         # Instantiate the values to monitor (loss/metric)
         for loss in self.loss_logging_items_names:
-            self.train_monitored_values[loss] = MonitoredValue()
-            self.valid_monitored_values[loss] = MonitoredValue()
-        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue()
+            self.train_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
+            self.valid_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
+        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch,
+                                                                           greater_is_better=True)
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -878,6 +879,7 @@ class Trainer:
         load_opt_params = self.training_params.load_opt_params
 
         self.phase_callbacks = self.training_params.phase_callbacks or []
+        self.phase_callbacks = ListFactory(CallbacksFactory()).get(self.phase_callbacks)
 
         if self.lr_mode is not None:
             sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
@@ -887,7 +889,13 @@ class Trainer:
                                                            update_param_groups=self.update_param_groups,
                                                            **self.training_params.to_dict()))
         if self.training_params.lr_warmup_epochs > 0:
-            warmup_callback_cls = LR_WARMUP_CLS_DICT[self.training_params.warmup_mode]
+            warmup_mode = self.training_params.warmup_mode
+            if isinstance(warmup_mode, str):
+                warmup_callback_cls = LR_WARMUP_CLS_DICT[warmup_mode]
+            elif isinstance(warmup_mode, type) and issubclass(warmup_mode, LRCallbackBase):
+                warmup_callback_cls = warmup_mode
+            else:
+                raise RuntimeError('warmup_mode has to be either a name of a mode (str) or a subclass of PhaseCallback')
             self.phase_callbacks.append(warmup_callback_cls(train_loader_len=len(self.train_loader),
                                                             net=self.net,
                                                             training_params=self.training_params,
@@ -912,9 +920,9 @@ class Trainer:
 
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
-                dataset_statistics_logger.analyze(self.train_loader, dataset_params=self.dataset_params,
+                dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes,
                                                   title="Train-set", anchors=self.net.module.arch_params.anchors)
-                dataset_statistics_logger.analyze(self.valid_loader, dataset_params=self.dataset_params,
+                dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes,
                                                   title="val-set")
             # AVERAGE BEST 10 MODELS PARAMS
             if self.training_params.average_best_models:
@@ -936,7 +944,8 @@ class Trainer:
             self._reset_best_metric()
             load_opt_params = False
 
-        if isinstance(self.training_params.optimizer, str):
+        if isinstance(self.training_params.optimizer, str) or \
+                (inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)):
             self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr,
                                              training_params=self.training_params)
         elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
@@ -951,9 +960,12 @@ class Trainer:
         if self.load_checkpoint and load_opt_params:
             self.optimizer.load_state_dict(self.checkpoint['optimizer_state_dict'])
 
-        self.pre_prediction_callback = self.training_params.pre_prediction_callback
+        self.pre_prediction_callback = CallbacksFactory().get(self.training_params.pre_prediction_callback)
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
+
+        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or\
+                                      (hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler))
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
@@ -996,7 +1008,8 @@ class Trainer:
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
-                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader, "sampler") and hasattr(self.train_loader.sampler, "set_epoch"):
+                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader, "sampler")\
+                        and hasattr(self.train_loader.sampler, "set_epoch"):
                     self.train_loader.sampler.set_epoch(epoch)
 
                 train_metrics_tuple = self._train_epoch(epoch=epoch, silent_mode=silent_mode)
@@ -1077,6 +1090,11 @@ class Trainer:
     def _reset_best_metric(self):
         self.best_metric = -1 * np.inf if self.greater_metric_to_watch_is_better else np.inf
 
+    def _reset_metrics(self):
+        for metric in ("train_metrics", "valid_metrics", "test_metrics"):
+            if hasattr(self, metric) and getattr(self, metric) is not None:
+                getattr(self, metric).reset()
+
     @resolve_param('train_metrics_list', ListFactory(MetricsFactory()))
     def _set_train_metrics(self, train_metrics_list):
         self.train_metrics = MetricCollection(train_metrics_list)
@@ -1148,102 +1166,6 @@ class Trainer:
             self.sg_logger.add_text("Averaged_Model_Performance", write_struct, self.max_epochs)
             if cleanup_snapshots_pkl_file:
                 self.model_weight_averaging.cleanup()
-
-    # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    @deprecated(version='0.1', reason="directly predict using the nn_module")  # noqa: C901
-    def predict(self, inputs, targets=None, half=False, normalize=False, verbose=False,
-                move_outputs_to_cpu=True):
-        """
-        A fast predictor for a batch of inputs
-        :param inputs: torch.tensor or numpy.array
-            a batch of inputs
-        :param targets: torch.tensor()
-            corresponding labels - if non are given - accuracy will not be computed
-        :param verbose: bool
-            print the results to screen
-        :param normalize: bool
-            If true, normalizes the tensor according to the dataloader's normalization values
-        :param half:
-            Performs half precision evaluation
-        :param move_outputs_to_cpu:
-            Moves the results from the GPU to the CPU
-        :return: outputs, acc, net_time, gross_time
-            networks predictions, accuracy calculation, forward pass net time, function gross time
-        """
-
-        transform_list = []
-
-        # Create a 'to_tensor' transformation and a place holder of input_t
-        if type(inputs) == torch.Tensor:
-            inputs_t = torch.zeros_like(inputs)
-        else:
-            transform_list.append(transforms.ToTensor())
-            inputs_t = torch.zeros(size=(inputs.shape[0], inputs.shape[3], inputs.shape[1], inputs.shape[2]))
-
-        # Create a normalization transformation
-        if normalize:
-            try:
-                mean, std = self.dataset_interface.lib_dataset_params['mean'], self.dataset_interface.lib_dataset_params['std']
-            except AttributeError:
-                raise AttributeError('In \'predict()\', Normalization is set to True while the dataset has no default '
-                                     'mean & std => deactivate normalization or inject it to the datasets library.')
-            transform_list.append(transforms.Normalize(mean, std))
-
-        # Compose all transformations into one
-        transformation = transforms.Compose(transform_list)
-
-        # Transform the input
-        for idx in range(len(inputs_t)):
-            inputs_t[idx] = transformation(inputs[idx])
-
-        # Timer instances
-        gross_timer = core_utils.Timer('cpu')
-        gross_timer.start()
-        net_timer = core_utils.Timer(self.device)
-
-        # Set network in eval mode
-        self.net.eval()
-
-        # Half is not supported on CPU
-        if self.device != 'cuda' and half:
-            half = False
-            logger.warning('NOTICE: half is set to True but is not supported on CPU ==> using full precision')
-
-        # Apply half precision to network and input
-        if half:
-            self.net.half()
-            inputs_t = inputs_t.half()
-
-        with torch.no_grad():
-            # Move input to compute device
-            inputs_t = inputs_t.to(self.device)
-
-            # Forward pass (timed...)
-            net_timer.start()
-            outputs = self.net(inputs_t)
-            net_time = net_timer.stop()
-
-        if move_outputs_to_cpu:
-            outputs = outputs.cpu()
-
-        gross_time = gross_timer.stop()
-
-        # Convert targets to tensor
-        targets = torch.tensor(targets) if (type(targets) != torch.Tensor and targets is not None) else targets
-
-        # Compute accuracy
-        acc = metrics.accuracy(outputs.float(), targets.cpu())[0] if targets is not None else None
-        acc_str = '%.2f' % acc if targets is not None else 'N/A'
-
-        if verbose:
-            logger.info('%s\nPredicted %d examples: \n\t%.2f ms (gross) --> %.2f ms (net)\n\tWith accuracy %s\n%s' %
-                        ('-' * 50, inputs_t.shape[0], gross_time, net_time, acc_str, '-' * 50))
-
-        # Undo the half precision
-        if half and not self.half_precision:
-            self.net = self.net.float()
-
-        return outputs, acc, net_time, gross_time
 
     @property
     def get_arch_params(self):
@@ -1467,7 +1389,7 @@ class Trainer:
                              "with a non empty testset attribute.")
 
         # RESET METRIC RUNNERS
-        self.test_metrics.reset()
+        self._reset_metrics()
         self.test_metrics.to(self.device)
 
     def _add_metrics_update_callback(self, phase: Phase):
@@ -1503,7 +1425,7 @@ class Trainer:
 
             self.sg_logger = SG_LOGGERS[sg_logger](**sg_logger_params)
         else:
-            raise RuntimeError('sg_logger can be either an sg_logger name (str) or a subcalss of AbstractSGLogger')
+            raise RuntimeError('sg_logger can be either an sg_logger name (str) or an instance of AbstractSGLogger')
 
         if not isinstance(self.sg_logger, BaseSGLogger):
             logger.warning("WARNING! Using a user-defined sg_logger: files will not be automatically written to disk!\n"
@@ -1616,7 +1538,7 @@ class Trainer:
         """
 
         self.net.eval()
-        self.valid_metrics.reset()
+        self._reset_metrics()
         self.valid_metrics.to(self.device)
 
         return self.evaluate(data_loader=self.valid_loader, metrics=self.valid_metrics,
@@ -1720,7 +1642,7 @@ class Trainer:
         self.valid_monitored_values = sg_trainer_utils.update_monitored_values_dict(
             monitored_values_dict=self.valid_monitored_values, new_values_dict=pbar_message_dict)
 
-        if not silent_mode and evaluation_type==EvaluationType.VALIDATION:
+        if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
             progress_bar_data_loader.write("===========================================================")
             sg_trainer_utils.display_epoch_summary(epoch=context.epoch, n_digits=4,
                                                  train_monitored_values=self.train_monitored_values,
