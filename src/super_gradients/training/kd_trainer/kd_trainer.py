@@ -17,6 +17,7 @@ from super_gradients.training.exceptions.kd_trainer_exceptions import Architectu
     TeacherKnowledgeException, UndefinedNumClassesException
 from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallback
 from super_gradients.training.utils.ema import KDModelEMA
+from super_gradients.training.utils.sg_trainer_utils import parse_args
 
 logger = get_logger(__name__)
 
@@ -30,7 +31,7 @@ class KDTrainer(Trainer):
         self.teacher_arch_params = None
 
     @classmethod
-    def train_from_config(cls, cfg: DictConfig) -> None:
+    def train_from_config(cls, cfg: Union[DictConfig, dict]) -> None:
         """
         Trains according to cfg recipe configuration.
 
@@ -40,18 +41,22 @@ class KDTrainer(Trainer):
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
+        kwargs = parse_args(cfg, cls.__init__)
+
+        trainer = KDTrainer(kwargs)
+
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
-        cfg.trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
+        trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
         # BUILD NETWORK
-        cfg.trainer.build_model(student_architecture=cfg.student_architecture,
+        trainer.build_model(student_architecture=cfg.student_architecture,
                                 teacher_architecture=cfg.teacher_architecture,
                                 arch_params=cfg.arch_params, student_arch_params=cfg.student_arch_params,
                                 teacher_arch_params=cfg.teacher_arch_params,
                                 checkpoint_params=cfg.checkpoint_params, run_teacher_on_eval=cfg.run_teacher_on_eval)
 
         # TRAIN
-        cfg.trainer .train(training_params=cfg.training_hyperparams)
+        trainer.train(training_params=cfg.training_hyperparams)
 
     def build_model(self,
                     # noqa: C901 - too complex

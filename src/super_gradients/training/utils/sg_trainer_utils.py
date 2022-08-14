@@ -5,8 +5,10 @@ import time
 from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union, Dict
+from typing import Tuple, Union, Dict, List, Sequence
 import random
+
+import inspect
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from treelib import Tree
@@ -331,3 +333,18 @@ def log_uncaught_exceptions(logger):
         logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     sys.excepthook = handle_exception
+
+
+def parse_args(cfg, arg_names: Union[List[str], callable]) -> dict:
+    """
+    parse args from a config.
+    unlike get_param(), in this case only parameters that appear in the config will override default params from the function's signature
+    """
+    if not isinstance(arg_names, Sequence):
+        arg_names = list(inspect.signature(arg_names).parameters.keys())
+
+    kwargs_dict = {}
+    for arg_name in arg_names:
+        if hasattr(cfg, arg_name):
+            kwargs_dict[arg_name] = getattr(cfg, arg_name)
+    return kwargs_dict
