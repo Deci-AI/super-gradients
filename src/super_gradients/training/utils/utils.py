@@ -1,19 +1,27 @@
 import math
 import time
+from functools import lru_cache
 from pathlib import Path
-from typing import Mapping, Optional, Tuple, Union
+from typing import Mapping, Optional, Tuple, Union, List
 from zipfile import ZipFile
 import os
 from jsonschema import validate
+import tarfile
+from PIL import Image, ExifTags
 
 import torch
 import torch.nn as nn
+
 
 # These functions changed from torch 1.2 to torch 1.3
 
 import random
 import numpy as np
 from importlib import import_module
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def convert_to_tensor(array):
@@ -338,6 +346,35 @@ def download_and_unzip_from_url(url, dir='.', unzip=True, delete=True):
         download_one(u, dir)
 
 
+def download_and_untar_from_url(urls: List[str], dir: Union[str, Path] = '.'):
+    """
+    Download a file from url and untar.
+
+    :param urls:    Url to download the file from.
+    :param dir:     Destination directory.
+    """
+    dir = Path(dir)
+    dir.mkdir(parents=True, exist_ok=True)
+
+    for url in urls:
+        url_path = Path(url)
+        filepath = dir / url_path.name
+
+        if url_path.is_file():
+            url_path.rename(filepath)
+        elif not filepath.exists():
+            logger.info(f'Downloading {url} to {filepath}...')
+            torch.hub.download_url_to_file(url, str(filepath), progress=True)
+
+        modes = {".tar.gz": "r:gz", ".tar": "r:"}
+        assert filepath.suffix in modes.keys(), f"{filepath} has {filepath.suffix} suffix which is not supported"
+
+        logger.info(f'Extracting to {dir}...')
+        with tarfile.open(filepath, mode=modes[filepath.suffix]) as f:
+            f.extractall(dir)
+        filepath.unlink()
+
+
 def make_divisible(x: int, divisor: int, ceil: bool = True) -> int:
     """
     Returns x evenly divisible by divisor.
@@ -362,3 +399,43 @@ def check_img_size_divisibility(img_size: int, stride: int = 32) -> Tuple[bool, 
         return False, (new_size, make_divisible(img_size, int(stride), ceil=False))
     else:
         return True, None
+
+
+@lru_cache(None)
+def get_orientation_key() -> int:
+    """Get the orientation key according to PIL, which is useful to get the image size for instance
+    :return: Orientation key according to PIL"""
+    for key, value in ExifTags.TAGS.items():
+        if value == 'Orientation':
+            return key
+
+
+def exif_size(image: Image) -> Tuple[int, int]:
+    """Get the size of image.
+    :param image:   The image to get size from
+    :return:        (width, height)
+    """
+
+    orientation_key = get_orientation_key()
+
+    image_size = image.size
+    try:
+        exif_data = image._getexif()
+        if exif_data is not None:
+            rotation = dict(exif_data.items())[orientation_key]
+            # ROTATION 270
+            if rotation == 6:
+                image_size = (image_size[1], image_size[0])
+            # ROTATION 90
+            elif rotation == 8:
+                image_size = (image_size[1], image_size[0])
+    except Exception as ex:
+        print('Caught Exception trying to rotate: ' + str(image) + str(ex))
+    height, width = image_size
+    return width, height
+
+
+def get_image_size_from_path(img_path: str) -> Tuple[int, int]:
+    """Get the image size of an image at a specific path"""
+    with open(img_path, 'rb') as f:
+        return exif_size(Image.open(f))

@@ -1,8 +1,3 @@
-"""
-Darknet
-
-credits: https://github.com/ultralytics
-"""
 from torch import nn
 from super_gradients.training.models.sg_module import SgModule
 

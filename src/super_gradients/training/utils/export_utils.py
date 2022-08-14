@@ -1,26 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-
-class ExportableHardswish(nn.Module):
-    '''
-    Export-friendly version of nn.Hardswish()
-    '''
-
-    @staticmethod
-    def forward(x):
-        return x * F.hardtanh(x + 3, 0., 6.) / 6.  # for torchscript, CoreML and ONNX
-
-
-class ExportableSiLU(nn.Module):
-    """
-    Export-friendly version of nn.SiLU()
-    From https://github.com/ultralytics/yolov5
-    """
-    @staticmethod
-    def forward(x):
-        return x * torch.sigmoid(x)
 
 
 def fuse_conv_bn(model: nn.Module, replace_bn_with_identity: bool = False):

@@ -3,6 +3,7 @@ import os
 from abc import ABC, abstractmethod
 from multiprocessing import Value, Lock
 import random
+from typing import List
 import numpy as np
 import torch.nn.functional as F
 import torchvision
@@ -11,19 +12,17 @@ import torch
 import torch.distributed as dist
 
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
-from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataSet
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from deprecated import deprecated
 from matplotlib.patches import Rectangle
-from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import ImageFolder
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from torchvision.transforms import transforms, InterpolationMode, RandomResizedCrop
 from tqdm import tqdm
 
 from super_gradients.training.utils.utils import AverageMeter
-from super_gradients.training.utils.detection_utils import DetectionVisualization
+from super_gradients.training.utils.detection_utils import DetectionVisualization, Anchors
 import uuid
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
 
@@ -231,6 +230,8 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
         self.frequency = change_frequency
         self.rank = None
         self.is_distributed = None
+        self.sampled_imres_once = False
+        self.new_input_size = None
 
     def __call__(self, inputs, targets, batch_idx):
         if self.rank is None:
@@ -239,16 +240,21 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
             self.is_distributed = get_world_size() > 1
 
         # GENERATE A NEW SIZE AND BROADCAST IT TO THE THE OTHER RANKS SO THEY HAVE THE SAME SCALE
+        input_size = inputs.shape[2:]
         if batch_idx % self.frequency == 0:
-            tensor = torch.LongTensor(2).cuda()
-            input_size = inputs.shape[2:]
+            tensor = torch.LongTensor(2).to(inputs.device)
 
             if self.rank == 0:
                 size_factor = input_size[1] * 1.0 / input_size[0]
                 min_size = int(input_size[0] / self.image_size_steps) - self.multiscale_range
                 max_size = int(input_size[0] / self.image_size_steps) + self.multiscale_range
                 random_size = (min_size, max_size)
-                size = random.randint(*random_size)
+                if self.sampled_imres_once:
+                    size = random.randint(*random_size)
+                else:
+                    # sample the biggest resolution first to make sure the run fits into the GPU memory
+                    size = max_size
+                    self.sampled_imres_once = True
                 size = (int(self.image_size_steps * size), self.image_size_steps * int(size * size_factor))
                 tensor[0] = size[0]
                 tensor[1] = size[1]
@@ -257,12 +263,12 @@ class MultiscalePrePredictionCallback(AbstractPrePredictionCallback):
                 dist.barrier()
                 dist.broadcast(tensor, 0)
 
-            new_input_size = (tensor[0].item(), tensor[1].item())
+            self.new_input_size = (tensor[0].item(), tensor[1].item())
 
-            scale_y = new_input_size[0] / input_size[0]
-            scale_x = new_input_size[1] / input_size[1]
-            if scale_x != 1 or scale_y != 1:
-                inputs = torch.nn.functional.interpolate(inputs, size=new_input_size, mode="bilinear", align_corners=False)
+        scale_y = self.new_input_size[0] / input_size[0]
+        scale_x = self.new_input_size[1] / input_size[1]
+        if scale_x != 1 or scale_y != 1:
+            inputs = torch.nn.functional.interpolate(inputs, size=self.new_input_size, mode="bilinear", align_corners=False)
         return inputs, targets
 
 
@@ -285,16 +291,6 @@ class DetectionMultiscalePrePredictionCallback(MultiscalePrePredictionCallback):
         change_frequency: (int) The frequency to apply change in input size.
 
     """
-
-    def __init__(self, multiscale_range: int = 5,
-                 image_size_steps: int = 32,
-                 change_frequency: int = 10):
-
-        self.multiscale_range = multiscale_range
-        self.image_size_steps = image_size_steps
-        self.frequency = change_frequency
-        self.rank = None
-        self.is_distributed = None
 
     def __call__(self, inputs, targets, batch_idx):
         # RESCALE THE IMAGE FIRST WITH SUPER(), AND IF RESCALING HAS ACTUALLY BEEN DONE APPLY TO BOXES AS WELL
@@ -411,24 +407,30 @@ class DatasetStatisticsTensorboardLogger:
         self.sg_logger = sg_logger
         self.summary_params = {**DatasetStatisticsTensorboardLogger.DEFAULT_SUMMARY_PARAMS, **summary_params}
 
-    def analyze(self, data_loader: torch.utils.data.DataLoader, dataset_params: dict, title: str, anchors: list = None):
+    def analyze(self, data_loader: torch.utils.data.DataLoader, title: str,
+                all_classes: List[str], anchors: list = None):
         """
         :param data_loader: the dataset data loader
         :param dataset_params: the dataset parameters
         :param title: the title for this dataset (i.e. Coco 2017 test set)
         :param anchors: the list of anchors used by the model. applicable only for detection datasets
+        :param all_classes: the list of all classes names
         """
-        if isinstance(data_loader.dataset, DetectionDataSet):
-            self._analyze_detection(data_loader=data_loader, dataset_params=dataset_params, title=title, anchors=anchors)
-        else:
-            DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
+        # FIXME: UNCOMMENT AND APPLY TO NEW DetectionDataSet ONCE ITS MERGED
+        # if isinstance(data_loader.dataset, DetectionDataSet):
+        #     self._analyze_detection(data_loader=data_loader, title=title,
+        #                             all_classes=all_classes, anchors=anchors)
+        # else:
+        #     DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
+        DatasetStatisticsTensorboardLogger.logger.warning('only DetectionDataSet are currently supported')
 
-    def _analyze_detection(self, data_loader, dataset_params, title, anchors=None):
+    def _analyze_detection(self, data_loader, title, all_classes, anchors=None):
         """
         Analyze a detection dataset
 
         :param data_loader: the dataset data loader
         :param dataset_params: the dataset parameters
+        :param all_classes: the list of all classes names
         :param title: the title for this dataset (i.e. Coco 2017 test set)
         :param anchors: the list of anchors used by the model. if not provided, anchors coverage will not be analyzed
         """
@@ -436,57 +438,77 @@ class DatasetStatisticsTensorboardLogger:
             color_mean = AverageMeter()
             color_std = AverageMeter()
             all_labels = []
-
+            image_size = 0
             for i, (images, labels) in enumerate(tqdm(data_loader)):
 
                 if i >= self.summary_params['max_batches'] > 0:
                     break
 
                 if i == 0:
+                    image_size = max(images[0].shape[1], images[0].shape[2])
                     if images.shape[0] > self.summary_params['sample_images']:
                         samples = images[:self.summary_params['sample_images']]
                     else:
                         samples = images
 
                     pred = [torch.zeros(size=(0, 6)) for _ in range(len(samples))]
-                    class_names = data_loader.dataset.all_classes_list
-                    result_images = DetectionVisualization.visualize_batch(image_tensor=samples, pred_boxes=pred,
-                                                                           target_boxes=copy.deepcopy(labels),
-                                                                           batch_name=title, class_names=class_names,
-                                                                           box_thickness=1,
-                                                                           gt_alpha=1.0)
+                    try:
+                        result_images = DetectionVisualization.visualize_batch(image_tensor=samples, pred_boxes=pred,
+                                                                               target_boxes=copy.deepcopy(labels),
+                                                                               batch_name=title,
+                                                                               class_names=all_classes,
+                                                                               box_thickness=1,
+                                                                               gt_alpha=1.0)
 
-                    self.sg_logger.add_images(tag=f'{title} sample images', images=np.stack(result_images)
-                                           .transpose([0, 3, 1, 2])[:, ::-1, :, :])
+                        self.sg_logger.add_images(tag=f'{title} sample images', images=np.stack(result_images)
+                                                  .transpose([0, 3, 1, 2])[:, ::-1, :, :])
+                    except Exception as e:
+                        DatasetStatisticsTensorboardLogger.logger.error(
+                            f'Dataset Statistics failed at adding an example batch:\n{e}')
+                        return
 
                 all_labels.append(labels)
                 color_mean.update(torch.mean(images, dim=[0, 2, 3]), 1)
                 color_std.update(torch.std(images, dim=[0, 2, 3]), 1)
 
-            all_labels = torch.cat(all_labels, dim=0)[:, 1:].numpy()
+            all_labels = torch.cat(all_labels, dim=0)[1:].numpy()
 
-            if self.summary_params['plot_class_distribution']:
-                self._analyze_class_distribution(labels=all_labels, num_classes=dataset_params.num_classes, title=title)
+            try:
+                if self.summary_params['plot_class_distribution']:
+                    self._analyze_class_distribution(labels=all_labels, num_classes=len(all_classes), title=title)
+            except Exception as e:
+                DatasetStatisticsTensorboardLogger.logger.error(f'Dataset Statistics failed at analyzing class distributions.\n{e}')
+                return
 
-            if self.summary_params['plot_box_size_distribution']:
-                self._analyze_object_size_distribution(labels=all_labels, title=title)
+            try:
+                if self.summary_params['plot_box_size_distribution']:
+                    self._analyze_object_size_distribution(labels=all_labels, title=title)
+            except Exception as e:
+                DatasetStatisticsTensorboardLogger.logger.error(f'Dataset Statistics failed at analyzing object size '
+                                                                f'distributions.\n{e}')
+                return
 
             summary = ''
             summary += f'dataset size: {len(data_loader)}  \n'
             summary += f'color mean: {color_mean.average}  \n'
             summary += f'color std: {color_std.average}  \n'
 
-            if anchors is not None:
-                coverage = self._analyze_anchors_coverage(anchors=anchors, image_size=dataset_params.train_image_size,
-                                                          title=title, labels=all_labels)
-                summary += f'anchors: {anchors}  \n'
-                summary += f'anchors coverage: {coverage}  \n'
+            try:
+                if anchors is not None and image_size > 0:
+                    coverage = self._analyze_anchors_coverage(anchors=anchors, image_size=image_size,
+                                                              title=title, labels=all_labels)
+                    summary += f'anchors: {anchors}  \n'
+                    summary += f'anchors coverage: {coverage}  \n'
+            except Exception as e:
+                DatasetStatisticsTensorboardLogger.logger.error(f'Dataset Statistics failed at analyzing anchors '
+                                                                f'coverage.\n{e}')
+                return
 
             self.sg_logger.add_text(tag=f'{title} Statistics', text_string=summary)
             self.sg_logger.flush()
+
         except Exception as e:
-            # any exception is caught here. we dont want the DatasetStatisticsLogger to crash any training
-            DatasetStatisticsTensorboardLogger.logger.error(f'dataset analysis failed: {e}')
+            DatasetStatisticsTensorboardLogger.logger.error(f'dataset analysis failed!\n{e}')
 
     def _analyze_class_distribution(self, labels: list, num_classes: int, title: str):
         hist, edges = np.histogram(labels[:, 0], num_classes)
@@ -571,7 +593,7 @@ class DatasetStatisticsTensorboardLogger:
         to_closest_anchor[to_closest_anchor > 0.75] = 2
         return to_closest_anchor.reshape(image_size - 1, -1)
 
-    def _analyze_anchors_coverage(self, anchors: list, image_size: int, labels: list, title: str):
+    def _analyze_anchors_coverage(self, anchors: Anchors, image_size: int, labels: list, title: str):
         """
         This function will add anchors coverage plots to the tensorboard.
         :param anchors: a list of anchors
@@ -590,9 +612,13 @@ class DatasetStatisticsTensorboardLogger:
         ax.set_xlim([0, image_size])
         ax.set_ylim([0, image_size])
 
-        anchors = np.array(anchors).reshape(-1, 2)
-        for i in range(len(anchors)):
-            rect = self._get_rect(anchors[i][0], anchors[i][1])
+        anchors_boxes = anchors.anchors.cpu().numpy()
+        anchors_len = anchors.num_anchors
+
+        anchors_boxes = anchors_boxes.reshape(-1, 2)
+
+        for i in range(anchors_len):
+            rect = self._get_rect(anchors_boxes[i][0], anchors_boxes[i][1])
             rect.set_alpha(0.3)
             rect.set_facecolor([random.random(), random.random(), random.random(), 0.3])
             ax.add_patch(rect)
@@ -607,7 +633,7 @@ class DatasetStatisticsTensorboardLogger:
         xx, yy = np.meshgrid(x, y, sparse=False)
         points = np.concatenate([xx.reshape(1, -1), yy.reshape(1, -1)])
 
-        color = self._get_score(anchors, points, image_size)
+        color = self._get_score(anchors_boxes, points, image_size)
 
         ax.set_xlabel('W', fontsize=STAT_LOGGER_FONT_SIZE)
         ax.set_ylabel('H', fontsize=STAT_LOGGER_FONT_SIZE)
@@ -616,11 +642,11 @@ class DatasetStatisticsTensorboardLogger:
 
         # calculate the coverage for the dataset labels
         cover_masks = []
-        for i in range(len(anchors)):
-            w_max = (anchors[i][0] / image_size) * 4
-            w_min = (anchors[i][0] / image_size) * 0.25
-            h_max = (anchors[i][1] / image_size) * 4
-            h_min = (anchors[i][1] / image_size) * 0.25
+        for i in range(anchors_len):
+            w_max = (anchors_boxes[i][0] / image_size) * 4
+            w_min = (anchors_boxes[i][0] / image_size) * 0.25
+            h_max = (anchors_boxes[i][1] / image_size) * 4
+            h_min = (anchors_boxes[i][1] / image_size) * 0.25
             cover_masks.append(np.logical_and(
                 np.logical_and(np.logical_and(labels[:, 3] < w_max, labels[:, 3] > w_min), labels[:, 4] < h_max),
                 labels[:, 4] > h_min))
@@ -633,8 +659,11 @@ class DatasetStatisticsTensorboardLogger:
 
 def get_color_augmentation(rand_augment_config_string: str, color_jitter: tuple, crop_size=224, img_mean=[0.485, 0.456, 0.406]):
     """
-    Returns color augmentation class. As these augmentation cannot work on top one another, only one is returned according to rand_augment_config_string
-    :param rand_augment_config_string: string which defines the auto augment configurations. If none, color jitter will be returned. For possibile values see auto_augment.py
+    Returns color augmentation class. As these augmentation cannot work on top one another, only one is returned
+    according to rand_augment_config_string
+
+    :param rand_augment_config_string: string which defines the auto augment configurations.
+                                       If none, color jitter will be returned. For possibile values see auto_augment.py
     :param color_jitter: tuple for color jitter value.
     :param crop_size: relevant only for auto augment
     :param img_mean: relevant only for auto augment

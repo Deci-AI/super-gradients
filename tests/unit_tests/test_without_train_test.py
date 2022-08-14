@@ -6,9 +6,8 @@ from super_gradients import Trainer, \
     SegmentationTestDatasetInterface, DetectionTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training import MultiGPUMode
-from super_gradients.training.utils.detection_utils import base_detection_collate_fn
-from super_gradients.training.datasets.datasets_utils import ComposedCollateFunction, MultiScaleCollateFunction
-from super_gradients.training.utils.detection_utils import YoloV3NonMaxSuppression
+from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
+from super_gradients.training.utils.detection_utils import DetectionCollateFN
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.metrics.segmentation_metrics import PixelAccuracy, IoU
 
@@ -37,25 +36,21 @@ class TestWithoutTrainTest(unittest.TestCase):
 
     @staticmethod
     def get_detection_trainer(name=''):
-        collate_fn_holder = ComposedCollateFunction([base_detection_collate_fn, MultiScaleCollateFunction(320)])
         dataset_params = {"batch_size": 4,
                           "test_batch_size": 4,
                           "dataset_dir": "/data/coco/",
                           "s3_link": None,
                           "image_size": 320,
-                          "test_collate_fn": base_detection_collate_fn,
-                          "train_collate_fn": collate_fn_holder,
+                          "test_collate_fn": DetectionCollateFN(),
+                          "train_collate_fn": DetectionCollateFN(),
                           }
 
-        yolo_v3_arch_params = {"image_size": 320, "iou_t": 0.225, "multi_gpu_mode": "distributed_data_parallel"}
-
-        post_prediction_callback = YoloV3NonMaxSuppression()
         trainer = Trainer(name, model_checkpoints_location='local',
                         multi_gpu=MultiGPUMode.OFF,
-                        post_prediction_callback=post_prediction_callback)
+                        post_prediction_callback=YoloPostPredictionCallback())
         dataset_interface = DetectionTestDatasetInterface(dataset_params=dataset_params)
         trainer.connect_dataset_interface(dataset_interface, data_loader_num_workers=4)
-        trainer.build_model('yolo_v3', arch_params=yolo_v3_arch_params)
+        trainer.build_model('yolox_s')
         return trainer
 
     @staticmethod

@@ -1,0 +1,56 @@
+# stride_N_plus is for models where the first skip begins from the feature map with output stride N and higher
+# grids of [input_size / N x input_size / N] and smaller
+# NOTE: changing anchors to a different stride requires updating output_paths in model anch params
+# because feat_size are hardcoded and won't automatically change in a model
+256x256:
+  stride_16_plus:
+    _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes
+    fig_size: 256
+    feat_size: [ 32, 16, 8, 4, 2, 1 ]
+    scales: [ 18, 38, 84, 131, 177, 223, 269 ]
+    aspect_ratios: [ [ 2 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2 ], [ 2 ] ]
+    scale_xy: 0.1
+    scale_wh: 0.2
+  stride_8_plus: [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
+300x300:
+  stride_8_plus:
+    _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes
+    fig_size: 300
+    feat_size: [38, 19, 10, 5, 3, 2]
+    scales: [21, 45, 99, 153, 207, 261, 315]
+    aspect_ratios: [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
+    scale_xy: 0.1
+    scale_wh: 0.2
+  stride_16_plus:
+    _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes
+    fig_size: 300
+    feat_size: [19, 10, 5, 3, 2, 1]
+    scales: [21, 45, 99, 153, 207, 261, 315]
+    aspect_ratios: [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
+    scale_xy: 0.1
+    scale_wh: 0.2
+320x320:
+  stride_8_plus:
+    _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes
+    fig_size: 320
+    feat_size: [ 40, 20, 10, 5, 3, 2 ]
+    scales: [ 22, 48, 106, 163, 221, 278, 336 ]
+    aspect_ratios: [ [ 2 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2 ], [ 2 ] ]
+    scale_xy: 0.1
+    scale_wh: 0.2
+  stride_16_plus:
+    _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes
+    fig_size: 320
+    feat_size: [ 20, 10, 5, 3, 2, 1 ]
+    scales: [ 22, 48,  106, 163, 221, 278, 336 ]
+    aspect_ratios: [ [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ] ]
+    scale_xy: 0.1
+    scale_wh: 0.2
+  stride_16_plus_big:
+    _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes
+    fig_size: 320
+    feat_size: [ 20, 10, 5, 3, 2, 1 ]
+    scales: [ 32, 82, 133, 184, 235, 285, 336 ]
+    aspect_ratios: [ [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ] ]
+    scale_xy: 0.1
+    scale_wh: 0.2

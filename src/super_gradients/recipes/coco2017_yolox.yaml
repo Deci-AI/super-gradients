@@ -1,0 +1,47 @@
+# YoloX Detection training on CoCo2017 Dataset:
+# YoloX trained in 640x640
+# Checkpoints + tensorboards: https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/
+# Recipe runs with batch size = 16 X 8 gpus = 128.
+# Instructions:
+# python -m torch.distributed.launch super_gradients.train_from_recipe --nproc_per_node=8 --config-name=coco2017_yolox architecture=yolox_<YOLOX_SIZE> dataset_params.data_dir=<YOUR_COCO_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+# Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images):
+# yolox_n: 1d 16h 33m 9s on 8 NVIDIA GeForce RTX 3090, mAP: 26.77
+# yolox_tiny: 20h 43m 37s on 8 NVIDIA RTX A5000, mAP: 37.18
+# yolox_s: 1d 17h 40m 30s on 8 NVIDIA RTX A5000, mAP: 40.47
+# yolox_m: 1d 22h 23m 43s on 8 NVIDIA GeForce RTX 3090, mAP: 46.40
+# yolox_l: 2d 14h 11m 41s on 8 NVIDIA GeForce RTX 3090, mAP: 49.25
+
+defaults:
+  - training_hyperparams: coco2017_yolox_train_params
+  - dataset_params: coco_detection_yolox_dataset_params
+  - arch_params: yolox_s_arch_params
+  - checkpoint_params: default_checkpoint_params
+
+dataset_interface:
+  coco2017_detection:
+    dataset_params: ${dataset_params}
+
+
+data_loader_num_workers: 8
+
+model_checkpoints_location: local
+
+load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
+
+architecture: yolox_s
+
+multi_gpu: DDP
+
+experiment_name: ${architecture}_coco2017_${dataset_params.train_image_size}
+
+ckpt_root_dir:
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: ${multi_gpu}
+  ckpt_root_dir: ${ckpt_root_dir}
+
+

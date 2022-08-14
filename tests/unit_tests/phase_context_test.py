@@ -49,11 +49,13 @@ class PhaseContextTest(unittest.TestCase):
 
                 if phase_callback.phase == Phase.VALIDATION_BATCH_END:
                     self.assertTrue(phase_callback.context.epoch == 2)
-                    self.assertTrue(isinstance(phase_callback.context.metrics_compute_fn, MetricCollection) and hasattr(phase_callback.context.metrics_compute_fn, "Top5"))
+                    self.assertTrue(isinstance(phase_callback.context.metrics_compute_fn, MetricCollection) and
+                                    hasattr(phase_callback.context.metrics_compute_fn, "Top5"))
 
                 else:
                     self.assertTrue(phase_callback.context.epoch == 1)
-                    self.assertTrue(isinstance(phase_callback.context.metrics_compute_fn, MetricCollection) and hasattr(phase_callback.context.metrics_compute_fn, "Accuracy"))
+                    self.assertTrue(isinstance(phase_callback.context.metrics_compute_fn, MetricCollection) and
+                                    hasattr(phase_callback.context.metrics_compute_fn, "Accuracy"))
 
         if phase_callback.phase in [Phase.TRAIN_EPOCH_END, Phase.VALIDATION_EPOCH_END]:
             self.assertTrue(phase_callback.context.batch_idx is None)
@@ -67,7 +69,9 @@ class PhaseContextTest(unittest.TestCase):
             self.assertTrue(phase_callback.context.epoch == 1)
 
             # EPOCH END PHASES USE THE SAME CONTEXT, WHICH IS UPDATED- SO VALID METRICS DICT SHOULD BE PRESENT
-            self.assertTrue(isinstance(phase_callback.context.metrics_dict, dict) and "Loss" in phase_callback.context.metrics_dict.keys() and "Top5" in phase_callback.context.metrics_dict.keys())
+            self.assertTrue(isinstance(phase_callback.context.metrics_dict, dict))
+            self.assertTrue("Loss" in phase_callback.context.metrics_dict.keys())
+            self.assertTrue("Top5" in phase_callback.context.metrics_dict.keys())
 
 
 if __name__ == '__main__':

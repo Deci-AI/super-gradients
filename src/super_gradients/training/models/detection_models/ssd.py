@@ -13,7 +13,9 @@ DEFAULT_SSD_ARCH_PARAMS = {
 
 DEFAULT_SSD_MOBILENET_V1_ARCH_PARAMS = {
     "out_channels": [512, 1024, 512, 256, 256, 256],
-    "kernel_sizes": [3, 3, 3, 3, 2]
+    "kernel_sizes": [3, 3, 3, 3, 2],
+    "anchors": DefaultBoxes(fig_size=320, feat_size=[40, 20, 10, 5, 3, 2], scales=[22, 48, 106, 163, 221, 278, 336],
+                            aspect_ratios=[[2], [2, 3], [2, 3], [2, 3], [2], [2]], scale_xy=0.1, scale_wh=0.2)
 }
 
 DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {

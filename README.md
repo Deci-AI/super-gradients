@@ -24,7 +24,7 @@ ______________________________________________________________________
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue" />
   <a href="https://github.com/Deci-AI/super-gradients#prerequisites"><img src="https://img.shields.io/badge/pytorch-1.9%20%7C%201.10-blue" />
   <a href="https://pypi.org/project/super-gradients/"><img src="https://img.shields.io/pypi/v/super-gradients" />
-  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-29-brightgreen" />
+  <a href="https://github.com/Deci-AI/super-gradients#computer-vision-models-pretrained-checkpoints" ><img src="https://img.shields.io/badge/pre--trained%20models-30-brightgreen" />
   <a href="https://github.com/Deci-AI/super-gradients/releases"><img src="https://img.shields.io/github/v/release/Deci-AI/super-gradients" />
   <a href="https://join.slack.com/t/supergradients-comm52/shared_invite/zt-10vz6o1ia-b_0W5jEPEnuHXm087K~t8Q"><img src="https://img.shields.io/badge/slack-community-blueviolet" />
   <a href="https://github.com/Deci-AI/super-gradients/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" />
@@ -60,12 +60,14 @@ All SuperGradients models’ are production ready in the sense that they are com
 
     
 ## What's New
-* 【07/07/2022】SSD Lite MobileNetV2 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) on COCO - Tailored for edge devices! 📱
-* 【07/07/2022】 STDC  - new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores 🎯
+* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
+* 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
+* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) on COCO - Tailored for edge devices! 📱
+* 【07/07/2022】 STDC  - new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
 * 【16/06/2022】 ResNet50  - new pre-trained checkpoint and [recipe](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/imagenet_resnet50_kd.yaml) for ImageNet top-1 score of 81.9 💪
 * 【09/06/2022】 ViT models (Vision Transformer) - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) (ViT, BEiT).
 * 【09/06/2022】 Knowledge Distillation support - [training module](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/kd_model/kd_model.py) and [notebook](https://bit.ly/3HQvbsg).
-* 【06/04/2022】 Integration with professional tools - [Weights and Biases](https://deci-ai.github.io/super-gradients/user_guide.html?highlight=wandb#professional-tools-integration) and [DagsHub](https://dagshub.com/Deci-AI).
+* 【06/04/2022】 Integration with professional tools - [Weights and Biases](https://bit.ly/3BJzCUv) and [DagsHub](https://bit.ly/3bznLhc).
 * 【09/03/2022】 New [quick start](#quick-start-notebook---semantic-segmentation) and [transfer learning](#transfer-learning-with-sg-notebook---semantic-segmentation) example notebooks for Semantic Segmentation.
 * 【07/02/2022】 We added RegSeg recipes and pre-trained models to our [Semantic Segmentation models](#pretrained-semantic-segmentation-pytorch-checkpoints).
 * 【01/02/2022】 We added issue templates for feature requests and bug reporting.
@@ -74,7 +76,6 @@ All SuperGradients models’ are production ready in the sense that they are com
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Coming soon
-- [ ] YOLOX models (object detection) - recipes and pre-trained checkpoints.
 - [ ] Single class detectors (recipes, pre-trained checkpoints) for edge devices deployment.
 - [ ] Single class segmentation (recipes, pre-trained checkpoints) for edge devices deployment.
 - [ ] QAT capabilities (Quantization Aware Training).
@@ -89,12 +90,12 @@ ________________________________________________________________________________
 
 - [Getting Started](#getting-started)
     - [Quick Start Notebook - Classification example](#quick-start-notebook---classification)
-    - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
     - [Quick Start Notebook - Semantic segmentation example](#quick-start-notebook---semantic-segmentation)
-    - [Quick Start Notebook - Upload to Deci Lab example](#quick-start-notebook---model-upload-to-deci-lab)
-    - [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
+<!-- - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
+- [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
+- [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
+    - [Quick Start Notebook - Upload to Deci Platform example](#quick-start-notebook---upload-your-model-to-deci-platform) -->
 - [Transfer Learning](#transfer-learning)  
-    - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
     - [Transfer Learning with SG Notebook - Semantic segmentation example](#transfer-learning-with-sg-notebook---semantic-segmentation)
 - [Knowledge Distillation Training](#knowledge-distillation-training)  
     - [Knowledge Distillation Training Quick Start with SG Notebook - ResNet18 example](#knowledge-distillation-training-quick-start-with-sg-notebook---resnet18-example)
@@ -127,13 +128,13 @@ Want to try our pre-trained models on your machine? Import SuperGradients, initi
 
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
-# This is an example of loading COCO-2017 pre-trained weights for a YOLOv5 Nano object detection model
-
+# This is an example of loading COCO-2017 pre-trained weights for a YOLOX Nano object detection model
+    
 import super_gradients
 from super_gradients.training import Trainer
 
-trainer = Trainer(experiment_name="yolov5n_coco_experiment", ckpt_root_dir= < CHECKPOINT_DIRECTORY >)
-trainer.build_model(architecture="yolo_v5n", arch_params={"pretrained_weights": "coco", num_classes": 80})
+trainer = SgModel(experiment_name="yoloxn_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
+trainer.build_model(architecture="yolox_n", arch_params={"pretrained_weights": "coco", num_classes": 80})
 ```   
     
 ### Quick Start Notebook - Classification
@@ -153,22 +154,6 @@ Get started with our quick start notebook for image classification tasks on Goog
 </table>
  </br></br>
 
-### Quick Start Notebook - Object Detection
-
-Get started with our quick start notebook for object detection tasks on Google Colab for a quick and easy start using free GPU hardware.
-
-<table class="tfo-notebook-buttons" align="left">
- <td>
-   <a target="_blank" href="https://bit.ly/3wqMsEM"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
- </td>
-  <td>
-   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
- </td>
- <td>
-   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
- </td>
-</table>
- </br></br>
 
 ### Quick Start Notebook - Semantic Segmentation
 
@@ -187,16 +172,34 @@ Get started with our quick start notebook for semantic segmentation tasks on Goo
 </table>
  </br></br>
 
-### Quick Start Notebook - Model Upload to Deci Lab
+<!-- 
+### Quick Start Notebook - Object Detection
 
-Get Started with an example of how to upload to Deci Lab a freshly trained model
+Get started with our quick start notebook for object detection tasks on Google Colab for a quick and easy start using free GPU hardware.
+
+<table class="tfo-notebook-buttons" align="left">
+ <td>
+   <a target="_blank" href="https://bit.ly/3wqMsEM"><img src="./docs/assets/SG_img/colab_logo.png" />Detection Quick Start in Google Colab</a>
+ </td>
+  <td>
+   <a href="https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/examples/SG_quickstart_detection.ipynb"><img src="./docs/assets/SG_img/download_logo.png" />Download notebook</a>
+ </td>
+ <td>
+   <a target="_blank" href="https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/examples"><img src="./docs/assets/SG_img/GitHub_logo.png" />View source on GitHub</a>
+ </td>
+</table>
+ </br></br>
+ 
+### Quick Start Notebook - Upload your model to Deci Platform
+
+Get Started with an example of how to upload your trained model to Deci Platform for runtime optimization and compilation to your target deployment HW.
 <table class="tfo-notebook-buttons" align="left">
   <tbody>
     <tr>
       <td vertical-align="middle">
         <img src="./docs/assets/SG_img/colab_logo.png" />
-        <a target="_blank" href="https://colab.research.google.com/drive/1cNvakn8ttLhD9g8IMbe51PBvk-vJ40Oi?usp=sharing&utm_campaign=SG%20github%20repo&utm_source=Google%20Colab&utm_medium=GitHub%20Repo&utm_content=Quickstart%20trainig%20with20model%20upload%20notebook%20-%20README.md">
-          Classification Quick Start in Google Colab
+        <a target="_blank" href="https://bit.ly/3cAkoXG">
+          Upload to Deci Platform in Google Colab
         </a>
       </td>
       <td vertical-align="middle">
@@ -214,8 +217,8 @@ Get Started with an example of how to upload to Deci Lab a freshly trained model
     </tr>
   </tbody>
 </table>
-<br>
- 
+ </br></br>
+
 ### SuperGradients Complete Walkthrough Notebook
 
 Learn more about SuperGradients training components with our walkthrough notebook on Google Colab for an easy to use tutorial using free GPU hardware
@@ -232,12 +235,10 @@ Learn more about SuperGradients training components with our walkthrough noteboo
  </td>
 </table>
  </br></br>
- 
- 
- ## Transfer Learning
+
  ### Transfer Learning with SG Notebook - Object Detection
 
-Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloV5nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
+Learn more about SuperGradients transfer learning or fine tuning abilities with our COCO pre-trained YoloX nano fine tuning into a sub-dataset of PASCAL VOC example notebook on Google Colab for an easy to use tutorial using free GPU hardware
 
 <table class="tfo-notebook-buttons" align="left">
  <td>
@@ -251,7 +252,9 @@ Learn more about SuperGradients transfer learning or fine tuning abilities with 
  </td>
 </table>
  </br></br>
+  -->
  
+## Transfer Learning
 ### Transfer Learning with SG Notebook - Semantic Segmentation
 Learn more about SuperGradients transfer learning or fine tuning abilities with our Citiscapes pre-trained RegSeg48 fine tuning into a sub-dataset of Supervisely example notebook on Google Colab for an easy to use tutorial using free GPU hardware
 
@@ -372,10 +375,12 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 | Model | Dataset |  Resolution | mAP<sup>val<br>0.5:0.95 | Latency (HW)*<sub>T4</sub>  | Latency (Production)**<sub>T4</sub> |Latency (HW)*<sub>Jetson Xavier NX</sub>  | Latency (Production)**<sub>Jetson Xavier NX</sub> | Latency <sub>Cascade Lake</sub>  |
 |------------- |------ | ---------- |------ | -------- |------ | ---------- |------ | :------: |
 | SSD lite MobileNet v2 | COCO |320x320 |21.5 |**0.77ms** |**1.40ms**|**5.28ms** |**6.44ms** |**4.13ms**|
-| YOLOv5 nano | COCO |640x640 |27.7  |**1.48ms** |**5.43ms**|**9.28ms** |**17.44ms** |**21.71ms**|
-| YOLOv5 small | COCO |640x640 |37.3 |**2.29ms** |**6.14ms**|**14.31ms** |**22.50ms** |**34.10ms**|
-| YOLOv5 medium| COCO |640x640 |45.2 |**4.60ms** |**8.10ms**|**26.76ms** |**34.95ms** |**65.86ms**|
-| YOLOv5 large | COCO |640x640 |48.0 |**7.20ms** |**10.28ms**|**43.89ms** |**51.92ms** |**122.97ms**|
+| SSD lite MobileNet v1 | COCO |320x320 |24.3 |**1.55ms** |**2.84ms**|**8.07ms** |**9.14ms** |**22.76ms**|
+| YOLOX nano | COCO |640x640 |26.77|**2.47ms** |**4.09ms**|**11.49ms** |**12.97ms** |**-**|
+| YOLOX tiny | COCO |640x640 |37.18|**3.16ms** |**4.61ms**|**15.23ms** |**19.24ms** |**-**|
+| YOLOX small | COCO |640x640 |40.47 |**3.58ms** |**4.94ms**|**18.88ms** |**22.48ms** |**-**|
+| YOLOX medium| COCO |640x640 |46.4 |**6.40ms** |**7.65ms**|**39.22ms** |**44.5ms** |**-**|
+| YOLOX large | COCO |640x640 |49.25 |**10.07ms** |**11.12ms**|**68.73ms** |**77.01ms** |**-**|
   
 
 > **NOTE:** <br/>
@@ -389,8 +394,8 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 | Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
-| DDRNet 23   | Cityscapes |1024x2048   |78.65  |**7.62ms** |**25.94ms**|
-| DDRNet 23 slim   | Cityscapes |1024x2048 |76.6  |**3.56ms** |**22.80ms**|
+| DDRNet 23   | Cityscapes |1024x2048   |80.26 |**7.62ms** |**25.94ms**|
+| DDRNet 23 slim   | Cityscapes |1024x2048 |78.01 |**3.56ms** |**22.80ms**|
 | STDC 1-Seg50   | Cityscapes | 512x1024 |75.07 |**2.83ms** |**12.57ms**|
 | STDC 1-Seg75   | Cityscapes | 768x1536 |77.8  |**5.71ms** |**26.70ms**|
 | STDC 2-Seg50   | Cityscapes | 512x1024 |75.79 |**3.74ms** |**13.89ms**
@@ -432,8 +437,7 @@ Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
 - [CSP DarkNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/csp_darknet53.py)
 - [DarkNet-53](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/darknet53.py)
 - [SSD (Single Shot Detector)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/ssd.py) - [https://arxiv.org/pdf/1512.02325](https://arxiv.org/pdf/1512.02325)
-- [YOLO v3](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolov3.py) - [https://arxiv.org/pdf/1804.02767](https://arxiv.org/pdf/1804.02767)
-- [YOLO v5](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolov5.py) - [by Ultralytics](https://docs.ultralytics.com/)
+- [YOLOX](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/detection_models/yolox.py) - [https://arxiv.org/abs/2107.08430](https://arxiv.org/abs/2107.08430)
   
   
 ### Semantic Segmentation 

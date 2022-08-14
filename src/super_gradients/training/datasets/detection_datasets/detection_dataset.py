@@ -1,699 +1,433 @@
 import os
-import math
+from typing import List, Dict, Union, Any, Optional, Tuple
+from multiprocessing.pool import ThreadPool
 import random
-from typing import Dict
-
 import cv2
+import matplotlib.pyplot as plt
+from pathlib import Path
+import hashlib
+
 import numpy as np
-import torch
-from typing import Callable
 from tqdm import tqdm
-from PIL import Image, ExifTags
-from super_gradients.training.datasets.sg_dataset import ListDataset
-from super_gradients.training.utils.detection_utils import convert_xyxy_bbox_to_xywh
-from super_gradients.training.utils.utils import get_param
-# PREVENTS THE cv2 DEADLOCK
-cv2.setNumThreads(0)
+from torch.utils.data import Dataset
 
-# GET ORIENTATION EXIF TAG
-for orientation in ExifTags.TAGS.keys():
-    if ExifTags.TAGS[orientation] == 'Orientation':
-        break
+from super_gradients.training.utils.detection_utils import get_cls_posx_in_target, DetectionTargetsFormat
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform
+from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
+
+logger = get_logger(__name__)
 
 
-class DetectionDataSet(ListDataset):
-    def __init__(self, root: str, list_file: str, img_size: int = 416, batch_size: int = 16, augment: bool = False,
-                 dataset_hyper_params: dict = None, cache_labels: bool = False, cache_images: bool = False,
-                 sample_loading_method: str = 'default', collate_fn: Callable = None, target_extension: str = '.txt',
-                 labels_offset: int = 0, class_inclusion_list=None, all_classes_list=None,
-                 with_additional_labels: bool = False, additional_labels_path: str = ""):
+class DetectionDataset(Dataset):
+    """Detection dataset.
+
+    This is a boilerplate class to facilitate the implementation of datasets.
+
+    HOW TO CREATE A DATASET THAT INHERITS FROM DetectionDataSet ?
+        - Inherit from DetectionDataSet
+        - implement the method self._load_annotation to return at least the fields "target" and "img_path"
+        - Call super().__init__ with the required params.
+                //!\\ super().__init__ will call self._load_annotation, so make sure that every required
+                      attributes are set up before calling super().__init__ (ideally just call it last)
+
+    WORKFLOW:
+        - On instantiation:
+            - All annotations are cached. If class_inclusion_list was specified, there is also subclassing at this step.
+            - If cache is True, the images are also cached
+
+        - On call (__getitem__) for a specific image index:
+            - The image and annotations are grouped together in a dict called SAMPLE
+            - the sample is processed according to th transform
+            - Only the specified fields are returned by __getitem__
+
+    TERMINOLOGY
+        - TARGET:       Groundtruth, made of bboxes. The format can vary from one dataset to another
+        - ANNOTATION:   Combination of targets (groundtruth) and metadata of the image, but without the image itself.
+                            > Has to include the fields "target" and "img_path"
+                            > Can include other fields like "crowd_target", "image_info", "segmentation", ...
+        - SAMPLE:       Outout of the dataset:
+                            > Has to include the fields "target" and "image"
+                            > Can include other fields like "crowd_target", "image_info", "segmentation", ...
+        - INDEX:        Refers to the index in the dataset.
+        - SAMPLE ID:    Refers to the id of sample before droping any annotaion.
+                            Let's imagine a situation where the downloaded data is made of 120 images but 20 were drop
+                            because they had no annotation. In that case:
+                                > We have 120 samples so sample_id will be between 0 and 119
+                                > But only 100 will be indexed so index will be between 0 and 99
+                                > Therefore, we also have len(self) = 100
+    """
+
+    def __init__(
+            self,
+            data_dir: str,
+            input_dim: tuple,
+            original_target_format: DetectionTargetsFormat,
+            max_num_samples: int = None,
+            cache: bool = False,
+            cache_path: str = None,
+            transforms: List[DetectionTransform] = [],
+            all_classes_list: Optional[List[str]] = None,
+            class_inclusion_list: Optional[List[str]] = None,
+            ignore_empty_annotations: bool = True,
+            target_fields: List[str] = None,
+            output_fields: List[str] = None,
+    ):
+        """Detection dataset.
+
+        :param data_dir:                Where the data is stored
+        :param input_dim:               Image size (when loaded, before transforms).
+        :param original_target_format:  Format of targets stored on disk. raw data format, the output format might
+                                        differ based on transforms.
+        :param max_num_samples:         If not None, set the maximum size of the dataset by only indexing the first n annotations/images.
+        :param cache:                   Whether to cache images or not.
+        :param cache_path:              Path to the directory where cached images will be stored in an optimized format.
+        :param transforms:              List of transforms to apply sequentially on sample.
+        :param all_classes_list:        All the class names.
+        :param class_inclusion_list:    If not None,every class not included will be ignored.
+        :param ignore_empty_annotations:        If True and class_inclusion_list not None, images without any target
+                                                will be ignored.
+        :param target_fields:                   List of the fields target fields. This has to include regular target,
+                                                but can also include crowd target, segmentation target, ...
+                                                It has to include at least "target" but can include other.
+        :paran output_fields:                   Fields that will be outputed by __getitem__.
+                                                It has to include at least "image" and "target" but can include other.
         """
-        DetectionDataSet
-            :param root:                    Root folder of the Data Set
-            :param list_file:
-            :param img_size:                Image size of the Model that uses this Data Set
-            :param batch_size:              Batch Size
-            :param augment:                 True / False flag to allow Augmentation
-            :param dataset_hyper_params:    Any hyper params required for the data set
-            :param cache_labels:            "Caches" the labels -> Pre-Loads to memory as a list
-                IMPORTANT NOTE: CURRENTLY OBJECTLESS IMAGES ARE DISCARDED ONLY WHEN THIS IS SET. THEREFORE A GOOD PRACTICE
-                WHEN USING SUBCLASSING IS TO SET THIS PARAMETER TO TRUE.
-            :param cache_images:            "Caches" the images -> Pre-Loads to memory as a list
-            :param sample_loading_method:   default - Normal Training... No Special Augmentation
-                                            mosaic -  Used *ONLY* for training improvement, creates a new image that is
-                                                      comprised of 4 randomly selected images that are located in random
-                                                      sizes in 4 different parts of the image (Extreme Augmentation)
-                                            rectangular - Used mainly for inference, it letterboxes the image
-                                                          for the expected image size of the model
-            :param labels_offset:           offset value to add to the labels (class numbers)
-            :param all_classes_list: list(str) containing all the class names.
-            :param class_inclusion_list: list(str) containing the subclass names or None when subclassing is disabled.
-        """
-        self.dataset_hyperparams = dataset_hyper_params
-        self.cache_labels = cache_labels
-        self.cache_images = cache_images
-        self.batch_size = batch_size
-        self.img_size = img_size
-        self.augment = augment
-        self.batch_index = None
-        self.total_batches_num = None
-        self.sample_loading_method = sample_loading_method
-        self.labels_offset = labels_offset
+        super().__init__()
 
-        self.class_inclusion_list = class_inclusion_list
+        self.data_dir = data_dir
+        if not Path(data_dir).exists():
+            raise FileNotFoundError(f"Please make sure to download the data in the data directory ({self.data_dir}).")
+
+        # Number of images that are avalaible(regardless of ignored images)
+        self.n_available_samples = self._setup_data_source()
+        if not isinstance(self.n_available_samples, int) or self.n_available_samples < 1:
+            raise ValueError(f"_setup_data_source() should return the number of available samples but got {self.n_available_samples}")
+
+        self.input_dim = input_dim
+        self.original_target_format = original_target_format
+        self.max_num_samples = max_num_samples
+
         self.all_classes_list = all_classes_list
-        self.mixup_prob = get_param(self.dataset_hyperparams, "mixup", 0)
-
-        self.with_additional_labels = with_additional_labels
-        self.additional_labels_path = additional_labels_path
-
-        super(DetectionDataSet, self).__init__(root=root, file=list_file, target_extension=target_extension,
-                                               collate_fn=collate_fn, sample_loader=self.sample_loader,
-                                               sample_transform=self.sample_transform, target_loader=self.target_loader,
-                                               target_transform=self.target_transform)
-
-    def __len__(self):
-        return len(self.img_files)
-
-    def __getitem__(self, index):
-        label_path = self.label_files[index]
-
-        if self.sample_loading_method == 'mosaic' and self.augment:
-            # LOAD 4 IMAGES AT A TIME INTO A MOSAIC (ONLY DURING TRAINING)
-            img, labels = self.load_mosaic(index)
-
-            # MixUp augmentation
-            if random.random() < self.mixup_prob:
-                img, labels = self.mixup(img, labels, *self.load_mosaic(random.randint(0, len(self.img_files) - 1)))
-
-        else:
-            # LOAD A SINGLE IMAGE
-            img_path = self.img_files[index]
-            img = self.sample_loader(img_path)
-            img = self.sample_transform(img)
-
-            # LETTERBOX
-            h, w = img.shape[:2]
-            shape = self.batch_shapes[
-                self.batch_index[index]] if self.sample_loading_method == 'rectangular' else self.img_size
-            img, ratio, pad = self.letterbox(img, shape, auto=False, scaleup=self.augment)
-
-            # LOAD LABELS
-            if self.cache_labels:
-                labels = self.labels[index]
-            else:
-                labels = self.target_loader(label_path, self.class_inclusion_list, self.all_classes_list)
-
-            labels = self.target_transform(labels, ratio, w, h, pad)
-
-        if self.augment:
-            # AUGMENT IMAGESPACE
-            if not self.sample_loading_method == 'mosaic':
-                img, labels = self.random_perspective(img, labels,
-                                                      degrees=self.dataset_hyperparams['degrees'],
-                                                      translate=self.dataset_hyperparams['translate'],
-                                                      scale=self.dataset_hyperparams['scale'],
-                                                      shear=self.dataset_hyperparams['shear'])
-
-            # AUGMENT COLORSPACE
-            img = self.augment_hsv(img, hgain=self.dataset_hyperparams['hsv_h'],
-                                   sgain=self.dataset_hyperparams['hsv_s'],
-                                   vgain=self.dataset_hyperparams['hsv_v'])
-
-        if len(labels):
-            labels = self.convert_xyxy_bbox_to_normalized_xywh(labels, img_width=img.shape[1], img_height=img.shape[0])
-
-        if self.augment:
-            # AUGMENT RANDOM UP-DOWN FLIP
-            img, labels = self._augment_random_flip(img, labels)
-
-        labels_out = self._convert_label_to_torch(labels)
-        img = self.sample_post_process(img)
-
-        if self.with_additional_labels:
-            if self.augment or self.sample_loading_method == 'mosaic':
-                raise NotImplementedError("Using additional labels is not supported when using data augmentation")
-            return img, labels_out, self._get_additional_labels(ratio=ratio, pad=pad, index=index,
-                                                                preprocess_shape=(h, w),
-                                                                postprocess_shape=img.shape[1:])
-        return img, labels_out
-
-    def _get_additional_labels(self, ratio, pad, index, preprocess_shape, postprocess_shape) -> Dict[str, torch.Tensor]:
-        """
-        Get additional labels, such as "crowd targets", that are not used for the computation of the loss but that can
-        be used to compute any metric.
-            :param ratio:             Image ratio
-            :param pad:               Image padding
-            :param index:             Image index
-            :param preprocess_shape:  Image shape before preprocessing in format (height, weight)
-            :param postprocess_shape: Image shape after preprocessing in format (height, weight)
-            :return:                  Dict with the additional labels for this image
-        """
-        raise NotImplementedError("This functionality was not implemented on this dataset")
-
-    def _load_additional_labels(self):
-        """
-        Load all the additional labels and store them for later use.
-        """
-        raise NotImplementedError("This functionality was not implemented on this dataset")
-
-    def _convert_label_to_torch(self, labels: np.array) -> torch.Tensor:
-        """
-        Utils function to convert numpy labels to torch in an appropriate format
-            :param labels:    Processed labels in numpy format (label, x, y, w, h)
-            :return:          Torch tensor in format (0, label, x, y, w, h)
-                                - Note: The 0 will be filled later on with the image id within the batch
-        """
-        labels_out = torch.zeros((len(labels), 6))
-        labels[:, 0] += self.labels_offset
-        if len(labels):
-            labels_out[:, 1:] = torch.from_numpy(labels)
-        return labels_out
-
-    @staticmethod
-    def convert_xyxy_bbox_to_normalized_xywh(labels, img_width, img_height):
-        """CONVERT XYXY TO XYWH - CHANGE THE BBOXES PARAMS AND NORMALIZE COORDINATES 0 - 1"""
-        labels[:, 1:5] = convert_xyxy_bbox_to_xywh(labels[:, 1:5])
-        labels[:, [1, 3]] /= img_width
-        labels[:, [2, 4]] /= img_height
-        return labels
-
-    @staticmethod
-    def mixup(im, labels, im2, labels2):
-        # Applies MixUp augmentation https://arxiv.org/pdf/1710.09412.pdf
-        # https://github.com/ultralytics/yolov5
-        r = np.random.beta(32.0, 32.0)  # mixup ratio, alpha=beta=32.0
-        im = (im * r + im2 * (1 - r)).astype(np.uint8)
-        labels = np.concatenate((labels, labels2), 0)
-        return im, labels
-
-    @staticmethod
-    def sample_post_process(image):
-        """
-        sample_post_process - Normalizes and orders the image to be 3 x img_size x img_size
-            :param image:
-            :return:
-        """
-        # CONVERT BGR to RGB, to 3xIMAGE_SIZExIMAGE_SIZE
-        image = image[:, :, ::-1].transpose(2, 0, 1)
-        image = np.ascontiguousarray(image)
-
-        # 0 - 255 TO 0.0 - 1.0
-        return torch.from_numpy(image) / 255.0
-
-    def _generate_samples_and_targets(self):
-        """
-        _generate_samples_and_targets
-        """
+        self.class_inclusion_list = class_inclusion_list
         self.classes = self.class_inclusion_list or self.all_classes_list
+        if len(set(self.classes) - set(all_classes_list)) > 0:
+            wrong_classes = set(self.classes) - set(all_classes_list)
+            raise ValueError(f"class_inclusion_list includes classes that are not in all_classes_list: {wrong_classes}")
 
-        if not self.samples_targets_tuples_list:
-            list_file = open(self.root + os.path.sep + self.list_file_path, "r", encoding="utf-8")
+        self.ignore_empty_annotations = ignore_empty_annotations
+        self.target_fields = target_fields or ["target"]
+        if "target" not in self.target_fields:
+            raise KeyError('"target" is expected to be in the fields to subclass but it was not included')
 
-            self.img_files = [x.replace('/', os.sep) for x in list_file.read().splitlines()
-                              if os.path.splitext(x)[-1].lower() in self.extensions]
-            self.label_files = [x.replace('images', 'labels').replace(os.path.splitext(x)[-1], self.target_extension)
-                                for x in self.img_files]
+        self.annotations = self._cache_annotations()
 
-            if self.with_additional_labels:
-                self._load_additional_labels()
+        self.cache = cache
+        self.cache_path = cache_path
+        self.cached_imgs = self._cache_images() if self.cache else None
 
+        self.transforms = transforms
+
+        self.output_fields = output_fields or ["image", "target"]
+        if len(self.output_fields) < 2 or self.output_fields[0] != "image" or self.output_fields[1] != "target":
+            raise ValueError('output_fields must start with "image" and then "target", followed by any other field')
+
+    def _setup_data_source(self) -> int:
+        """Set up the data source and store relevant objects as attributes.
+
+        :return: Number of available samples, (i.e. how many images we have, regardless of any filter we might want to use)"""
+        raise NotImplementedError
+
+    def _load_annotation(self, sample_id: int) -> Dict[str, Union[np.ndarray, Any]]:
+        """Load annotations associated to a specific sample.
+        Please note that the targets should be resized according to self.input_dim!
+
+        :param sample_id:   Id of the sample to load annotations from.
+        :return:            Annotation, a dict with any field but has to include at least "target" and "img_path".
+        """
+        raise NotImplementedError
+
+    def _cache_annotations(self) -> List[Dict[str, Union[np.ndarray, Any]]]:
+        """Load all the annotations to memory to avoid opening files back and forth.
+        :return: List of annotations
+        """
+        annotations = []
+        for sample_id, img_id in enumerate(tqdm(range(self.n_available_samples), desc="Caching annotations")):
+
+            if self.max_num_samples is not None and len(annotations) >= self.max_num_samples:
+                break
+
+            img_annotation = self._load_annotation(img_id)
+            if "target" not in img_annotation or "img_path" not in img_annotation:
+                raise KeyError('_load_annotation is expected to return at least the field "target" and "img_path"')
+
+            if self.class_inclusion_list is not None:
+                img_annotation = self._sub_class_annotation(img_annotation)
+
+            is_annotation_empty = all(len(img_annotation[field]) == 0 for field in self.target_fields)
+            if self.ignore_empty_annotations and is_annotation_empty:
+                continue
+            annotations.append(img_annotation)
+
+        if len(annotations) == 0:
+            raise EmptyDatasetException(f"Out of {self.n_available_samples} images, not a single one was found with"
+                                        f"any of these classes: {self.class_inclusion_list}")
+        return annotations
+
+    def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
+        """Subclass every field listed in self.target_fields. It could be targets, crowd_targets, ...
+
+        :param annotation: Dict representing the annotation of a specific image
+        :return:           Subclassed annotation if non empty after subclassing, otherwise None
+        """
+        cls_posx = get_cls_posx_in_target(self.original_target_format)
+        for field in self.target_fields:
+            annotation[field] = self._sub_class_target(targets=annotation[field], cls_posx=cls_posx)
+        return annotation
+
+    def _sub_class_target(self, targets: np.ndarray, cls_posx: int) -> np.ndarray:
+        """Sublass targets of a specific image.
+
+        :param targets:     Target array to subclass of shape [n_targets, 5], 5 representing a bbox
+        :param cls_posx:    Position of the class id in a bbox
+                                ex: 0 if bbox of format label_xyxy | -1 if bbox of format xyxy_label
+        :return:            Subclassed target
+        """
+        targets_kept = []
+        for target in targets:
+            cls_id = int(target[cls_posx])
+            cls_name = self.all_classes_list[cls_id]
+            if cls_name in self.class_inclusion_list:
+                # Replace the target cls_id in self.all_classes_list by cls_id in self.class_inclusion_list
+                target[cls_posx] = self.class_inclusion_list.index(cls_name)
+                targets_kept.append(target)
+
+        return np.array(targets_kept) if len(targets_kept) > 0 else np.zeros((0, 5), dtype=np.float32)
+
+    def _cache_images(self) -> np.ndarray:
+        """Cache the images. The cached image are stored in a file to be loaded faster mext time.
+        :return: Cached images
+        """
+        cache_path = Path(self.cache_path)
+        if cache_path is None:
+            raise ValueError("You must specify a cache_path if you want to cache your images."
+                             "If you did not mean to use cache, please set cache=False ")
+        cache_path.mkdir(parents=True, exist_ok=True)
+
+        logger.warning("\n********************************************************************************\n"
+                       "You are using cached images in RAM to accelerate training.\n"
+                       "This requires large system RAM.\n"
+                       "********************************************************************************")
+
+        max_h, max_w = self.input_dim[0], self.input_dim[1]
+
+        # The cache should be the same as long as the images and their sizes are the same
+        hash = hashlib.sha256()
+        for annotation in self.annotations:
+            values_to_hash = [annotation["resized_img_shape"][0], annotation["resized_img_shape"][1], Path(annotation["img_path"]).name]
+            for value in values_to_hash:
+                hash.update(str(value).encode('utf-8'))
+        cache_hash = hash.hexdigest()
+
+        img_resized_cache_path = cache_path / f"img_resized_cache_{cache_hash}.array"
+
+        if not img_resized_cache_path.exists():
+            logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
+            NUM_THREADs = min(8, os.cpu_count())
+            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_resized_img(x), iterable=range(len(self)))
+
+            # Initialize placeholder for images
+            cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
+                                    dtype=np.uint8, mode="w+")
+
+            # Store images in the placeholder
+            loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
+            for i, image in loaded_images_pbar:
+                cached_imgs[i][: image.shape[0], : image.shape[1], :] = image.copy()
+            cached_imgs.flush()
+            loaded_images_pbar.close()
         else:
-            self.img_files, self.label_files = map(list, zip(*self.samples_targets_tuples_list))
+            logger.warning("You are using cached imgs!")
 
-        samples_len = len(self.img_files)
-        self.batch_index = np.floor(np.arange(samples_len) / self.batch_size).astype(np.int)
-        self.total_batches_num = self.batch_index[-1] + 1
+        logger.info("Loading cached imgs...")
+        cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
+                                dtype=np.uint8, mode="r+")
+        return cached_imgs
 
-        # RECTANGULAR TRAINING
-        if self.sample_loading_method == 'rectangular':
-            self._rectangular_loading(samples_len=samples_len)
-
-        # PRELOAD LABELS (REQUIRED FOR WEIGHTED CE TRAINING)
-        self.imgs = [None] * samples_len
-        self.labels = [None] * samples_len
-
-        if self.cache_labels:
-            self.labels = [np.zeros((0, 5))] * samples_len
-            pbar = tqdm(self.label_files, desc='Caching labels')
-            missing_labels, found_labels, duplicate_labels = 0, 0, 0
-            image_indices_to_keep = []
-
-            for i, file in enumerate(pbar):
-                labels = self.target_loader(file, self.class_inclusion_list, self.all_classes_list)
-                if labels is None:
-                    missing_labels += 1
-                    continue
-
-                self.labels[i] = labels
-                found_labels += 1
-                image_indices_to_keep.append(i)
-
-                pbar.desc = 'Caching labels (%g found, %g missing, %g duplicate, for %g images)' % (
-                    found_labels, missing_labels, duplicate_labels, samples_len)
-            assert found_labels > 0, 'No labels found.'
-
-            image_indices_to_keep = set(image_indices_to_keep)
-            #  REMOVE THE IRRELEVANT ENTRIES FROM THE DATA
-            self.img_files = [e for i, e in enumerate(self.img_files) if i in image_indices_to_keep]
-            self.label_files = [e for i, e in enumerate(self.label_files) if i in image_indices_to_keep]
-            self.imgs = [e for i, e in enumerate(self.imgs) if i in image_indices_to_keep]
-            self.labels = [e for i, e in enumerate(self.labels) if i in image_indices_to_keep]
-
-        # CACHE IMAGES INTO MEMORY FOR FASTER TRAINING (WARNING: LARGE DATASETS MAY EXCEED SYSTEM RAM)
-        if self.cache_images:
-            cached_images_mem_in_gb = 0
-            pbar = tqdm(range(len(self.img_files)), desc='Caching images')
-            for i in pbar:
-                img_path = self.img_files[i]
-                img = self.sample_loader(img_path)
-                img = self.sample_transform(img)
-                self.imgs[i] = img
-                cached_images_mem_in_gb += self.imgs[i].nbytes
-                pbar.desc = 'Caching images (%.1fGB)' % (cached_images_mem_in_gb / 1E9)
-
-    def _rectangular_loading(self, samples_len, pad: float = 0.5):
+    def _load_resized_img(self, index: int) -> np.ndarray:
+        """Load image, and resizes it to self.input_dim
+        :param index:   Image index
+        :return:        Resized image
         """
+        img = self._load_image(index)
 
-        :param samples_len:
-        :return:
+        r = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
+        desired_size = (int(img.shape[1] * r), int(img.shape[0] * r))
+
+        resized_img = cv2.resize(src=img, dsize=desired_size, interpolation=cv2.INTER_LINEAR).astype(np.uint8)
+        return resized_img
+
+    def _load_image(self, index: int) -> np.ndarray:
+        """Loads image at index with its original resolution.
+        :param index:   Image index
+        :return:        Image in array format
         """
-        shapes_file_path = self.root + self.list_file_path.replace('.txt', '.shapes')
-        try:
-            with open(shapes_file_path, 'r') as shapes_file:
-                image_shapes = [row.split() for row in shapes_file.read().splitlines()]
-                assert len(image_shapes) == samples_len, 'Shapefile out of sync'
-        except Exception as ex:
-            print(ex)
-            image_shapes = [self.exif_size(Image.open(f)) for f in tqdm(self.img_files, desc='Reading image shapes')]
-            # np.savetxt(shapes_file_path, image_shapes, fmt='%g')
-            # TODO: we are not writing the shapes into a file since this is risky. the files list might change
-            # TODO: and then the shapes in the .shapes file will be wrong
+        img_path = self.annotations[index]["img_path"]
 
-        # SORT BY ASPECT RATIO
-        image_shapes = np.array(image_shapes, dtype=np.float64)
-        aspect_ratio = image_shapes[:, 1] / image_shapes[:, 0]
-        sorted_indices = aspect_ratio.argsort()
+        img_file = os.path.join(img_path)
+        img = cv2.imread(img_file)
 
-        self.img_files = [self.img_files[i] for i in sorted_indices]
-        self.label_files = [self.label_files[i] for i in sorted_indices]
-        self.shapes = image_shapes[sorted_indices]
-        aspect_ratio = aspect_ratio[sorted_indices]
-
-        # SET IMAGE SHAPES
-        shapes = [[1, 1]] * self.total_batches_num
-        for i in range(self.total_batches_num):
-            ari = aspect_ratio[self.batch_index == i]
-            mini, maxi = ari.min(), ari.max()
-            if maxi < 1:
-                shapes[i] = [maxi, 1]
-            elif mini > 1:
-                shapes[i] = [1, 1 / mini]
-
-        self.batch_shapes = np.ceil(np.array(shapes) * self.img_size / 32. + pad).astype(np.int) * 32
-
-    @staticmethod
-    def _augment_random_flip(image, labels) -> tuple:
-        """
-        _augment_random_flip
-            :param image:
-            :param labels:
-            :return:
-        """
-        # RANDOM LEFT-RIGHT FLIP
-        if random.random() < 0.5:
-            image = np.fliplr(image)
-            if len(labels):
-                labels[:, 1] = 1 - labels[:, 1]
-
-        return image, labels
-
-    @staticmethod
-    def sample_loader(sample_path: str):
-        """
-        sample_loader - Loads a coco dataset image from path
-            :param sample_path:
-            :return:
-        """
-        image = None
-        if sample_path is not None:
-            # BGR
-            try:
-                image = cv2.imread(sample_path)
-                if image is None:
-                    print('Image Not Found: ' + sample_path)
-
-            except Exception as ex:
-                print('Caught Exception trying to to open ' + sample_path + str(ex))
-
-        return image
-
-    def sample_transform(self, image):
-        """
-        sample_transform
-            :param image:
-            :return:
-        """
-        # RESIZE IMAGE TO IMG_SIZE
-        resize = self.img_size / max(image.shape)
-
-        # ALWAYS RESIZE DOWN, ONLY RESIZE UP IF TRAINING WITH AUGMENTATION
-        if resize != 1:
-            h, w = image.shape[:2]
-            # resize in test with AREA interpolation - according to https://github.com/ultralytics/yolov5
-            interp = cv2.INTER_AREA if resize < 1 and not self.augment else cv2.INTER_LINEAR
-            return cv2.resize(image, (int(w * resize), int(h * resize)), interpolation=interp)
-
-        return image
-
-    @staticmethod
-    def target_loader(target_path: str, class_inclusion_list=None, all_classes_list=None):
-        """
-        coco_target_loader
-            @param target_path: str, path to target.
-            @param all_classes_list: list(str) containing all the class names or None when subclassing is disabled.
-            @param class_inclusion_list: list(str) containing the subclass names or None when subclassing is disabled.
-        """
-        target = None
-        if os.path.isfile(target_path):
-            try:
-                with open(target_path, 'r') as targets_file:
-                    target = np.array([x.split() for x in targets_file.read().splitlines()], dtype=np.float32)
-
-                if target.shape[0]:
-                    assert target.shape[1] == 5, '> 5 label columns: %s' % target_path
-                    assert (target >= 0).all(), 'negative labels: %s' % target_path
-                    assert (target[:,
-                            1:] <= 1).all(), 'non-normalized or out of bounds coordinate labels: %s' % target_path
-
-            except Exception as ex:
-                print('Caught Exception trying to to open ' + target_path + str(ex))
-
-        # SUBCLASSING
-        if class_inclusion_list is not None and target is not None:
-            # FILTER THE EXCLUDED CLASSES
-            target = np.array(list(filter(lambda lbl: all_classes_list[int(lbl[0])] in class_inclusion_list, target)))
-            if len(target):
-                # MAP THE INCLUDED CLASSES TO THEIR NEW INDICES IN THE CLASSES INCLUSION LIST
-                target[:, 0] = np.array(
-                    list(map(lambda lbl: class_inclusion_list.index(all_classes_list[int(lbl[0])]), target)))
-            else:
-                # HANDLING THE CASE WHEN THERE ARE NO OBJECTS LEFT AFTER FILTERING
-                target = None
-        return target
-
-    @staticmethod
-    def target_transform(target, ratio, w, h, pad=None):
-        """
-        Convert targets from normalized xywh (0-1) to unnormalized xyxy (img_size)
-            :param target:
-            :param ratio:
-            :param w:
-            :param h:
-            :param pad:
-            :return:
-        """
-        if target is None:
-            return np.zeros((0, 5), dtype=np.float32)
-
-        # HANDLE EDGE CASE
-        if not target.size > 0:
-            labels = np.zeros((0, 5), dtype=np.float32)
-            return labels, 0, 0, (0, 0), (0, 0)
-
-        # NORMALIZED xywh TO PIXEL xyxy FORMAT
-        labels = target.copy()
-        labels[:, 1] = ratio[0] * w * (target[:, 1] - target[:, 3] / 2) + pad[0]
-        labels[:, 2] = ratio[1] * h * (target[:, 2] - target[:, 4] / 2) + pad[1]
-        labels[:, 3] = ratio[0] * w * (target[:, 1] + target[:, 3] / 2) + pad[0]
-        labels[:, 4] = ratio[1] * h * (target[:, 2] + target[:, 4] / 2) + pad[1]
-
-        return labels
-
-    @staticmethod
-    def exif_size(img):
-        """
-        exif_size
-            :param img:
-            :return:
-        """
-        # RETURNS EXIF-CORRECTED PIL SIZE (width, height)
-        image_size = img.size
-        try:
-            exif_data = img._getexif()
-            if exif_data is not None:
-                rotation = dict(exif_data.items())[orientation]
-                # ROTATION 270
-                if rotation == 6:
-                    image_size = (image_size[1], image_size[0])
-                # ROTATION 90
-                elif rotation == 8:
-                    image_size = (image_size[1], image_size[0])
-        except Exception as ex:
-            print('Caught Exception trying to rotate: ' + str(img) + str(ex))
-
-        return image_size
-
-    @staticmethod
-    def augment_hsv(img, hgain=0.5, sgain=0.5, vgain=0.5):
-        """
-        augment_hsv
-            :param img:
-            :param hgain:
-            :param sgain:
-            :param vgain:
-        :return:
-        """
-        x = (np.random.uniform(-1, 1, 3) * np.array([hgain, sgain, vgain]) + 1).astype(np.float32)  # random gains
-        img_hsv = (cv2.cvtColor(img, cv2.COLOR_BGR2HSV) * x.reshape((1, 1, 3))).clip(None, 255).astype(np.uint8)
-        cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR, dst=img)
+        if img is None:
+            raise FileNotFoundError(f"{img_file} was no found. Please make sure that the dataset was"
+                                    f"downloaded and that the path is correct")
         return img
 
-    @staticmethod
-    def letterbox(img, new_shape=(416, 416), color=(128, 128, 128), auto=True, scaleFill=False, scaleup=True,
-                  interp=cv2.INTER_AREA) -> tuple:
+    def __del__(self):
+        """Clear the cached images"""
+        if hasattr(self, "cached_imgs"):
+            del self.cached_imgs
+
+    def __len__(self):
+        """Get the length of the dataset."""
+        return len(self.annotations)
+
+    def __getitem__(self, index: int) -> Tuple:
+        """Get the sample post transforms at a specific index of the dataset.
+        The output of this function will be collated to form batches."""
+        sample = self.apply_transforms(self.get_sample(index))
+        for field in self.output_fields:
+            if field not in sample.keys():
+                raise KeyError(f'The field {field} must be present in the sample but was not found.'
+                               'Please check the output fields of your transforms.')
+        return tuple(sample[field] for field in self.output_fields)
+
+    def get_random_item(self):
+        return self[self._random_index()]
+
+    def get_sample(self, index: int) -> Dict[str, Union[np.ndarray, Any]]:
+        """Get raw sample, before any transform (beside subclassing).
+        :param index:   Image index
+        :return:        Sample, i.e. a dictionary including at least "image" and "target"
         """
-        letterbox - Resizes image to a 32-pixel-multiple rectangle
-        :param img:
-        :param new_shape:
-        :param color:
-        :param auto:
-        :param scaleFill:
-        :param scaleup:
-        :param interp:
-        :return:
+        img = self.get_resized_image(index)
+        annotation = self.annotations[index]
+        return {"image": img, **annotation}
+
+    def get_resized_image(self, index: int) -> np.ndarray:
         """
-        # CURRENT IMAGE SHAPE [HEIGHT, WIDTH]
-        shape = img.shape[:2]
-        if isinstance(new_shape, int):
-            new_shape = (new_shape, new_shape)
-
-        # ONLY SCALE DOWN, DO NOT SCALE UP (FOR BETTER TEST MAP)
-        scale_ratio = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
-        if not scaleup:
-            scale_ratio = min(scale_ratio, 1.0)
-
-        ratio = scale_ratio, scale_ratio
-        unpadded_output_shape = int(round(shape[1] * scale_ratio)), int(round(shape[0] * scale_ratio))
-        dw, dh = new_shape[1] - unpadded_output_shape[0], new_shape[0] - unpadded_output_shape[1]
-
-        # MINIMUM RECTANGLE - LEAVES BLANK SPACES IN THE IMAGE
-        if auto:
-            dw, dh = np.mod(dw, 32), np.mod(dh, 32)
-
-        # STRETCH - STRETCHES THE IMAGE FOR THE DESIRED RESOLUTION
-        elif scaleFill:
-            dw, dh = 0.0, 0.0
-            unpadded_output_shape = new_shape
-            ratio = new_shape[0] / shape[1], new_shape[1] / shape[0]
-
-        dw /= 2
-        dh /= 2
-
-        # INTER_AREA IS BETTER, INTER_LINEAR IS FASTER
-        if shape[::-1] != unpadded_output_shape:
-            img = cv2.resize(img, unpadded_output_shape, interpolation=interp)
-        top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
-        left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-
-        # ADDS BORDER
-        img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
-        return img, ratio, (dw, dh)
-
-    def random_perspective(self, img, targets=(), degrees=10, translate=.1, scale=.1, shear=10, border=0,
-                           perspective=0):
+        Get the resized image at a specific sample_id, either from cache or by loading from disk, based on self.cached_imgs
+        :param index:  Image index
+        :return:       Resized image
         """
-        random images and labels using a perspective transform
+        if self.cache:
+            return self.cached_imgs[index].copy()
+        else:
+            return self._load_resized_img(index)
+
+    def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
-        height = img.shape[0] + border * 2  # shape(h,w,c)
-        width = img.shape[1] + border * 2
+        Applies self.transforms sequentially to sample
 
-        # CENTER
-        C = np.eye(3)
-        C[0, 2] = -img.shape[1] / 2  # x translation (pixels)
-        C[1, 2] = -img.shape[0] / 2  # y translation (pixels)
+        If a transforms has the attribute 'additional_samples_count', additional samples will be loaded and stored in
+         sample["additional_samples"] prior to applying it. Combining with the attribute "non_empty_annotations" will load
+         only additional samples with objects in them.
 
-        # PERSPECTIVE
-        P = np.eye(3)
-        P[2, 0] = random.uniform(-perspective, perspective)  # x perspective (about y)
-        P[2, 1] = random.uniform(-perspective, perspective)  # y perspective (about x)
-
-        # ROTATION AND SCALE
-        R = np.eye(3)
-        a = random.uniform(-degrees, degrees)
-        # A += RANDOM.CHOICE([-180, -90, 0, 90])  # ADD 90DEG ROTATIONS TO SMALL ROTATIONS
-        s = random.uniform(1 - scale, 1 + scale)
-        # S = 2 ** RANDOM.UNIFORM(-SCALE, SCALE)
-        R[:2] = cv2.getRotationMatrix2D(angle=a, center=(0, 0), scale=s)
-
-        # SHEAR
-        S = np.eye(3)
-        S[0, 1] = math.tan(random.uniform(-shear, shear) * math.pi / 180)  # x shear (deg)
-        S[1, 0] = math.tan(random.uniform(-shear, shear) * math.pi / 180)  # y shear (deg)
-
-        # TRANSLATION
-        T = np.eye(3)
-        T[0, 2] = random.uniform(0.5 - translate, 0.5 + translate) * width  # x translation (pixels)
-        T[1, 2] = random.uniform(0.5 - translate, 0.5 + translate) * height  # y translation (pixels)
-
-        # COMBINED ROTATION MATRIX
-        M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
-        if (border != 0) or (border != 0) or (M != np.eye(3)).any():  # image changed
-            if perspective:
-                img = cv2.warpPerspective(img, M, dsize=(width, height), borderValue=(114, 114, 114))
-            else:  # affine
-                img = cv2.warpAffine(img, M[:2], dsize=(width, height), borderValue=(114, 114, 114))
-
-        # TRANSFORM LABEL COORDINATES
-        num_targets = len(targets)
-        if num_targets:
-            # WARP POINTS
-            xy = np.ones((num_targets * 4, 3))
-            xy[:, :2] = targets[:, [1, 2, 3, 4, 1, 4, 3, 2]].reshape(num_targets * 4, 2)  # x1y1, x2y2, x1y2, x2y1
-            xy = xy @ M.T  # transform
-            if perspective:
-                xy = (xy[:, :2] / xy[:, 2:3]).reshape(num_targets, 8)  # rescale
-            else:  # affine
-                xy = xy[:, :2].reshape(num_targets, 8)
-
-            # CREATE NEW BOXES
-            x = xy[:, [0, 2, 4, 6]]
-            y = xy[:, [1, 3, 5, 7]]
-            xy = np.concatenate((x.min(1), y.min(1), x.max(1), y.max(1))).reshape(4, num_targets).T
-
-            # CLIP BOXES
-            xy[:, [0, 2]] = xy[:, [0, 2]].clip(0, width)
-            xy[:, [1, 3]] = xy[:, [1, 3]].clip(0, height)
-
-            # FILTER CANDIDATES
-            i = self.box_candidates(box1=targets[:, 1:5].T * s, box2=xy.T)
-            targets = targets[i]
-            targets[:, 1:5] = xy[i]
-
-        return img, targets
-
-    @staticmethod
-    def box_candidates(box1, box2, wh_thr=2, ar_thr=20, area_thr=0.1):  # box1(4,n), box2(4,n)
+        :param sample: Sample to apply the transforms on to (loaded with self.get_sample)
+        :return: Transformed sample
         """
-        compute candidate boxes
-            :param box1:        before augment
-            :param box2:        after augment
-            :param wh_thr:      wh_thr (pixels)
-            :param ar_thr:      aspect_ratio_thr
-            :param area_thr:    area_ratio
-        :return:
+        for transform in self.transforms:
+            self._add_additional_inputs_for_transform(sample, transform)
+            sample = transform(sample)
+            sample.pop("additional_samples")  # additional_samples is not useful after the transform
+        return sample
+
+    def _add_additional_inputs_for_transform(self, sample: Dict[str, Union[np.ndarray, Any]],
+                                             transform: DetectionTransform):
+        """Add additional inputs required by a transform to the sample"""
+        additional_samples_count = transform.additional_samples_count if hasattr(transform,
+                                                                                 "additional_samples_count") else 0
+        non_empty_annotations = transform.non_empty_annotations if hasattr(transform, "non_empty_annotations") else False
+        additional_samples = self.get_random_samples(additional_samples_count, non_empty_annotations)
+        sample["additional_samples"] = additional_samples
+
+    def get_random_samples(self, count: int,
+                           non_empty_annotations_only: bool = False) -> List[Dict[str, Union[np.ndarray, Any]]]:
+        """Load random samples.
+
+        :param count: The number of samples wanted
+        :param non_empty_annotations_only: If true, only return samples with at least 1 annotation
+        :return: A list of samples satisfying input params
         """
-        w1, h1 = box1[2] - box1[0], box1[3] - box1[1]
-        w2, h2 = box2[2] - box2[0], box2[3] - box2[1]
-        ar = np.maximum(w2 / (h2 + 1e-16), h2 / (w2 + 1e-16))  # aspect ratio
-        return (w2 > wh_thr) & (h2 > wh_thr) & (w2 * h2 / (w1 * h1 + 1e-16) > area_thr) & (ar < ar_thr)  # candidates
+        return [self.get_random_sample(non_empty_annotations_only) for _ in range(count)]
 
-    def load_mosaic(self, index):
-        """
-       load_mosaic - Load images in mosaic format to improve noise handling while training
-           :param index:
-           :return:
-        """
-        mosaic_labels = []
-        image_size = self.img_size
+    def get_random_sample(self, non_empty_annotations_only: bool = False):
+        if non_empty_annotations_only:
+            return self.get_sample(self._get_random_non_empty_annotation_available_indexes())
+        else:
+            return self.get_sample(self._random_index())
 
-        # MOSAIC CENTER X, Y
-        mosaic_center_x, mosaic_center_y = [int(random.uniform(image_size * 0.5, image_size * 1.5)) for _ in range(2)]
+    def _get_random_non_empty_annotation_available_indexes(self) -> int:
+        """Get the index of a non-empty annotation.
+        :return: Image index"""
+        target, index = [], -1
+        while len(target) == 0:
+            index = self._random_index()
+            target = self.annotations[index]["target"]
+        return index
 
-        # BASE IMAGE WITH 4 TILES
-        mosaic_image = np.zeros((image_size * 2, image_size * 2, 3), dtype=np.uint8) + 128
+    def _random_index(self):
+        """Get a random index of this dataset"""
+        return random.randint(0, len(self) - 1)
 
-        # 3 ADDITIONAL RANDOM IMAGE INDICES
-        indices = [index] + [random.randint(0, len(self.label_files) - 1) for _ in range(3)]
-        for img_index, index in enumerate(indices):
-            if self.cache_images:
-                img = self.imgs[index]
-            else:
-                img_path = self.img_files[index]
-                img = self.sample_loader(img_path)
-                img = self.sample_transform(img)
+    @property
+    def output_target_format(self):
+        target_format = self.original_target_format
+        for transform in self.transforms:
+            if isinstance(transform, DetectionTargetsFormatTransform):
+                target_format = transform.output_format
+        return target_format
 
-            h, w = img.shape[:2]
+    def plot(self, max_samples_per_plot: int = 16, n_plots: int = 1, plot_transformed_data: bool = True):
+        """Combine samples of images with bbox into plots and display the result.
 
-            mosaic_image, padw, padh = self._place_image_in_mosaic(mosaic_image, img, img_index, mosaic_center_x,
-                                                                   mosaic_center_y, w, h)
-
-            # LOAD LABELS
-            if self.cache_labels:
-                labels = self.labels[index]
-            else:
-                label_path = self.label_files[index]
-                labels = self.target_loader(label_path, self.class_inclusion_list, self.all_classes_list)
-
-            labels = self.target_transform(labels, ratio=(1, 1), w=w, h=h, pad=(padw, padh))
-            mosaic_labels.append(labels)
-
-        # Concat/clip labels
-        if len(mosaic_labels):
-            mosaic_labels = np.concatenate(mosaic_labels, 0)
-            np.clip(mosaic_labels[:, 1:], 0, 2 * image_size, out=mosaic_labels[:, 1:])  # use with random_affine
-
-        # AUGMENT AND REMOVE THE BORDER
-        mosaic_image, mosaic_labels = self.random_perspective(mosaic_image, mosaic_labels,
-                                                              degrees=self.dataset_hyperparams['degrees'],
-                                                              translate=self.dataset_hyperparams['translate'],
-                                                              scale=self.dataset_hyperparams['scale'],
-                                                              shear=self.dataset_hyperparams['shear'],
-                                                              border=-image_size // 2)
-
-        return mosaic_image, mosaic_labels
-
-    def _place_image_in_mosaic(self, mosaic_image, image, image_index, center_x, center_y, w, h):
-        """
-        _place_image_in_mosaic
-            :param mosaic_image:
-            :param image:
-            :param image_index:
-            :param center_x:
-            :param center_y:
-            :param w:
-            :param h:
+            :param max_samples_per_plot:    Maximum number of images to be displayed per plot
+            :param n_plots:                 Number of plots to display (each plot being a combination of img with bbox)
+            :param plot_transformed_data:   If True, the plot will be over samples after applying transforms (i.e. on __getitem__).
+                                            If False, the plot will be over the raw samples (i.e. on get_sample)
             :return:
         """
-        image_size = self.img_size
+        plot_counter = 0
+        input_format = self.output_target_format if plot_transformed_data else self.original_target_format
+        target_format_transform = DetectionTargetsFormatTransform(input_format=input_format,
+                                                                  output_format=DetectionTargetsFormat.XYXY_LABEL)
 
-        # PLACE IMG IN IMG4
-        if image_index == 0:  # TOP LEFT
-            x1a, y1a, x2a, y2a = max(center_x - w, 0), max(center_y - h, 0), center_x, center_y
-            x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h
-        elif image_index == 1:  # TOP RIGHT
-            x1a, y1a, x2a, y2a = center_x, max(center_y - h, 0), min(center_x + w, image_size * 2), center_y
-            x1b, y1b, x2b, y2b = 0, h - (y2a - y1a), min(w, x2a - x1a), h
-        elif image_index == 2:  # BOTTOM LEFT
-            x1a, y1a, x2a, y2a = max(center_x - w, 0), center_y, center_x, min(image_size * 2, center_y + h)
-            x1b, y1b, x2b, y2b = w - (x2a - x1a), 0, max(center_x, w), min(y2a - y1a, h)
-        elif image_index == 3:  # BOTTOM RIGHT
-            x1a, y1a, x2a, y2a = center_x, center_y, min(center_x + w, image_size * 2), min(image_size * 2,
-                                                                                            center_y + h)
-            x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
+        for plot_i in range(n_plots):
+            fig = plt.figure(figsize=(10, 10))
+            n_subplot = int(np.ceil(max_samples_per_plot ** 0.5))
+            for img_i in range(max_samples_per_plot):
+                index = img_i + plot_i * 16
 
-        mosaic_image[y1a:y2a, x1a:x2a] = image[y1b:y2b, x1b:x2b]
-        padw = x1a - x1b
-        padh = y1a - y1b
+                if plot_transformed_data:
+                    image, targets, *_ = self[img_i + plot_i * 16]
+                    image = image.transpose(1, 2, 0).astype(np.int32)
+                else:
+                    sample = self.get_sample(index)
+                    image, targets = sample["image"], sample["target"]
 
-        return mosaic_image, padw, padh
+                sample = target_format_transform({"image": image, "target": targets})
+
+                # shape = [padding_size x 4] (The dataset will most likely pad the targets to a fixed dim)
+                boxes = sample["target"][:, 0:4]
+
+                # shape = [n_box x 4] (We remove padded boxes, which corresponds to boxes with only 0)
+                boxes = boxes[(boxes != 0).any(axis=1)]
+                plt.subplot(n_subplot, n_subplot, img_i + 1).imshow(image)
+                plt.plot(boxes[:, [0, 2, 2, 0, 0]].T, boxes[:, [1, 1, 3, 3, 1]].T, '.-')
+                plt.axis('off')
+            fig.tight_layout()
+            plt.show()
+            plt.close()
+
+            plot_counter += 1
+            if plot_counter == n_plots:
+                return

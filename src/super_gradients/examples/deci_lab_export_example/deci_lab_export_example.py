@@ -20,8 +20,8 @@ from deci_lab_client.models import (
 def main(architecture_name: str):
     # Empty on purpose so that it can be fit to the trainer use case
     checkpoint_dir = ""
-    
-    auth_token = YOUR_API_TOKEN_HERE
+
+    auth_token = "YOUR_API_TOKEN_HERE"
 
     trainer = Trainer(
         f"lab_optimization_{architecture_name}_example",

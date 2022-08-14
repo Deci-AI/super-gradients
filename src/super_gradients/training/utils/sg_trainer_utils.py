@@ -32,25 +32,42 @@ class MonitoredValue:
 
     The value can be a metric/loss, and the iteration can be epochs/batch.
     """
+    name: str
+    greater_is_better: bool
     current: float = None
     previous: float = None
     best: float = None
     change_from_previous: float = None
     change_from_best: float = None
-    is_better_than_previous: bool = None
-    is_best_value: bool = None
+
+    @property
+    def is_better_than_previous(self):
+        if self.greater_is_better is None or self.change_from_best is None:
+            return None
+        elif self.greater_is_better:
+            return self.change_from_previous >= 0
+        else:
+            return self.change_from_previous < 0
+
+    @property
+    def is_best_value(self):
+        if self.greater_is_better is None or self.change_from_best is None:
+            return None
+        elif self.greater_is_better:
+            return self.change_from_best >= 0
+        else:
+            return self.change_from_best < 0
 
 
-def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: float,
-                           greater_is_better: bool) -> MonitoredValue:
+def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: float) -> MonitoredValue:
     """Update the given ValueToMonitor object (could be a loss or a metric) with the new value
 
     :param previous_monitored_value: The stats about the value that is monitored throughout epochs.
     :param new_value: The value of the current epoch that will be used to update previous_monitored_value
-    :param greater_is_better: True when a greater value means better result.
     :return:
     """
     previous_value, previous_best_value = previous_monitored_value.current, previous_monitored_value.best
+    name, greater_is_better = previous_monitored_value.name, previous_monitored_value.greater_is_better
 
     if previous_best_value is None:
         previous_best_value = previous_value
@@ -62,17 +79,13 @@ def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: 
     if previous_value is None:
         change_from_previous = None
         change_from_best = None
-        is_better_than_previous = None
-        is_best_value = None
     else:
         change_from_previous = new_value - previous_value
         change_from_best = new_value - previous_best_value
-        is_better_than_previous = change_from_previous >= 0 if greater_is_better else change_from_previous <= 0
-        is_best_value = change_from_best >= 0 if greater_is_better else change_from_best <= 0
 
-    return MonitoredValue(current=new_value, previous=previous_value, best=previous_best_value,
+    return MonitoredValue(name=name, current=new_value, previous=previous_value, best=previous_best_value,
                           change_from_previous=change_from_previous, change_from_best=change_from_best,
-                          is_better_than_previous=is_better_than_previous, is_best_value=is_best_value)
+                          greater_is_better=greater_is_better)
 
 
 def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue],
@@ -87,7 +100,6 @@ def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue
         monitored_values_dict[monitored_value_name] = update_monitored_value(
             new_value=new_values_dict[monitored_value_name],
             previous_monitored_value=monitored_values_dict[monitored_value_name],
-            greater_is_better=False
         )
     return monitored_values_dict
 
