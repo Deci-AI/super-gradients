@@ -94,14 +94,6 @@ class TestTrainer(unittest.TestCase):
         weights_only = torch.load(os.path.join(trainer.checkpoints_dir_path, 'ckpt_latest_weights_only.pth'))
         self.assertListEqual(['net'], list(weights_only.keys()))
 
-    def test_predict(self):
-        trainer = self.get_classification_trainer(self.folder_names[6])
-        inputs = torch.randn((5, 3, 32, 32))
-        targets = torch.randint(0, 5, (5, 1))
-        trainer.predict(inputs=inputs, targets=targets)
-        trainer.predict(inputs=inputs, targets=targets, half=True)
-        trainer.predict(inputs=inputs, targets=targets, half=False, verbose=True)
-
 
 if __name__ == '__main__':
     unittest.main()
