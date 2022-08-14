@@ -60,9 +60,21 @@ class SelectiveQuantizer:
             float_type: QuantizedMetadata(float_source=float_type, quantized_type=quantized_type,
                                           action=QuantizedMetadata.ReplacementAction.REPLACE)
             for (float_type, quantized_type) in [
+                (nn.Conv1d, quant_nn.QuantConv1d),
                 (nn.Conv2d, quant_nn.QuantConv2d),
+                (nn.Conv3d, quant_nn.QuantConv3d),
+                (nn.ConvTranspose1d, quant_nn.QuantConvTranspose1d),
+                (nn.ConvTranspose2d, quant_nn.QuantConvTranspose2d),
+                (nn.ConvTranspose3d, quant_nn.QuantConvTranspose3d),
                 (nn.Linear, quant_nn.Linear),
+                (nn.LSTM, quant_nn.LSTM),
+                (nn.LSTMCell, quant_nn.LSTMCell),
+                (nn.AvgPool1d, quant_nn.QuantAvgPool1d),
                 (nn.AvgPool2d, quant_nn.QuantAvgPool2d),
+                (nn.AvgPool3d, quant_nn.QuantAvgPool3d),
+                (nn.AdaptiveAvgPool1d, quant_nn.QuantAdaptiveAvgPool1d),
+                (nn.AdaptiveAvgPool2d, quant_nn.QuantAdaptiveAvgPool2d),
+                (nn.AdaptiveAvgPool3d, quant_nn.QuantAdaptiveAvgPool3d),
             ]
         },
         SkipQuantization: QuantizedMetadata(float_source=SkipQuantization, quantized_type=None,
@@ -78,16 +90,15 @@ class SelectiveQuantizer:
         if custom_mappings is not None:
             self.mapping_instructions.update(custom_mappings)  # OVERRIDE DEFAULT WITH CUSTOM. CUSTOM IS PRIORITIZED
 
-    def _get_default_quant_descriptor(self):
+    def _get_default_quant_descriptor(self, for_weights=False):
         if self.default_quant_modules_calib_method in ["percentile", "mse", "entropy"]:
             calib_method_type = 'histogram'
         else:
             calib_method_type = 'max'
 
-        if self.default_per_channel_quant_modules:
-            return QuantDescriptor(calib_method=calib_method_type)
-
-        return QuantDescriptor(calib_method=calib_method_type, axis=None)
+        if self.default_per_channel_quant_modules and for_weights:
+            return QuantDescriptor(calib_method=calib_method_type, axis=(0,))
+        return QuantDescriptor(calib_method=calib_method_type)
 
     def register_skip_quantization(self, *, layer_names: Set[str]):
         self.mapping_instructions.update({
@@ -151,11 +162,13 @@ class SelectiveQuantizer:
         quant_descriptors = dict()
         if issubclass(metadata.quantized_type, (SGQuantMixin, QuantMixin, QuantInputMixin)):
             quant_descriptors = {
-                'quant_desc_input': metadata.input_quant_descriptor or self._get_default_quant_descriptor()
+                'quant_desc_input':
+                    metadata.input_quant_descriptor or self._get_default_quant_descriptor(for_weights=False)
             }
         if issubclass(metadata.quantized_type, (SGQuantMixin, QuantMixin)):
             quant_descriptors.update({
-                'quant_desc_weight': metadata.weights_quant_descriptor or self._get_default_quant_descriptor()
+                'quant_desc_weight':
+                    metadata.weights_quant_descriptor or self._get_default_quant_descriptor(for_weights=True)
             })
 
         if not hasattr(metadata.quantized_type, 'from_float'):
@@ -165,7 +178,8 @@ class SelectiveQuantizer:
 
         return metadata.quantized_type.from_float(float_module, **quant_descriptors)
 
-    def _maybe_quantize_one_layer(self, module, child_name, nesting, child_module, mapping_instructions) -> bool:
+    def _maybe_quantize_one_layer(self, module, child_name, nesting, child_module,
+                                  mapping_instructions, preserve_state_dict) -> bool:
         # if we don't have any instruction for the specific layer or the specific type - we continue
         # NOTE! IT IS IMPORTANT TO FIRST PROCESS THE NAME AND ONLY THEN THE TYPE
         if _imported_pytorch_quantization_failure is not None:
@@ -185,14 +199,24 @@ class SelectiveQuantizer:
                     child_module = child_module.float_module
                 q_instance: nn.Module = self._instantiate_quantized_from_float(float_module=child_module,
                                                                                metadata=metadata)
-                q_instance = q_instance.to(next(child_module.parameters()).device)
+                # MOVE TENSORS TO ORIGINAL DEVICE
+                if len(list(child_module.parameters(recurse=False))) > 0:
+                    q_instance = q_instance.to(next(child_module.parameters(recurse=False)).device)
+                elif len(list(child_module.buffers(recurse=False))):
+                    q_instance = q_instance.to(next(child_module.buffers(recurse=False)).device)
+
+                # COPY STATE DICT IF NEEDED
+                if preserve_state_dict:
+                    q_instance.load_state_dict(child_module.state_dict(), strict=True)
+
+                # ACTUAL REPLACEMENT
                 setattr(module, child_name, q_instance)
                 return True
             else:
                 raise NotImplementedError
         return False
 
-    def quantize_module(self, module: nn.Module, nesting: Tuple[str, ...] = ()):
+    def quantize_module(self, module: nn.Module, nesting: Tuple[str, ...] = (), preserve_state_dict=True):
         per_layer_mappings = self._preprocess_skips_and_custom_mappings(module)
         mapping_instructions = {
             **per_layer_mappings,
@@ -200,7 +224,8 @@ class SelectiveQuantizer:
         }  # we first regard the per layer mappings, and then override with the custom mappings in case there is overlap
 
         for name, child_module in module.named_children():
-            found = self._maybe_quantize_one_layer(module, name, nesting, child_module, mapping_instructions)
+            found = self._maybe_quantize_one_layer(module, name, nesting, child_module,
+                                                   mapping_instructions, preserve_state_dict)
 
             # RECURSIVE CALL, to support module_list, sequential, custom (nested) modules
             if not found and isinstance(child_module, nn.Module):
