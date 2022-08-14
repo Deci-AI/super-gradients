@@ -20,10 +20,11 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
 
 class QuantizationCalibrator:
 
-    def __init__(self) -> None:
+    def __init__(self, verbose: bool = True) -> None:
         if _imported_pytorch_quantization_failure is not None:
             raise _imported_pytorch_quantization_failure
         super().__init__()
+        self.verbose = verbose
 
     def calibrate_model(self, model: torch.nn.Module, calib_data_loader: torch.utils.data.DataLoader,
                         method: str = "percentile",
@@ -106,4 +107,6 @@ class QuantizationCalibrator:
                         module.load_calib_amax()
                     else:
                         module.load_calib_amax(**kwargs)
+                if self.verbose:
+                    print(F"{name:40}: {module}")
         model.cuda()
