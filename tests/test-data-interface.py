@@ -26,7 +26,7 @@ class TestDatasetInterface(DatasetInterface):
 arch_params = {'num_classes': 1000}
 model = resnet18()
 trainer = Trainer('Client_model_training',
-                                  model_checkpoints_location='local', device='cpu')
+                  model_checkpoints_location='local', device='cpu')
 # if a torch.nn.Module is provided when building the model, the model will be integrated into deci model class
 trainer.build_model(model, arch_params=arch_params)
 # ------------------ Loading The Dataset From Dataset.py----------------

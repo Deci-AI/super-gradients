@@ -46,7 +46,7 @@ class DataGenerator(keras.utils.Sequence):
             image = image.resize((self.dims))
             rgb_image = Image.new("RGB", image.size)
             rgb_image.paste(image)
-            X[i,] = np.array(rgb_image)
+            X[i, ] = np.array(rgb_image)
             y[i] = ID[1]
         return X, keras.utils.to_categorical(y, num_classes=self.n_classes)
 

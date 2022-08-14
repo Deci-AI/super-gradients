@@ -32,11 +32,11 @@ class KDEMATest(unittest.TestCase):
         kd_trainer = KDTrainer("test_teacher_ema_not_duplicated", device='cpu')
         kd_trainer.connect_dataset_interface(self.dataset)
         kd_trainer.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'num_classes': 1000},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"},
-                             run_teacher_on_eval=True, )
+                               teacher_architecture='resnet50',
+                               student_arch_params={'num_classes': 1000},
+                               teacher_arch_params={'num_classes': 1000},
+                               checkpoint_params={'teacher_pretrained_weights': "imagenet"},
+                               run_teacher_on_eval=True, )
 
         kd_trainer.train(self.kd_train_params)
 
@@ -50,11 +50,11 @@ class KDEMATest(unittest.TestCase):
         kd_trainer = KDTrainer("test_kd_ema_ckpt_reload", device='cpu')
         kd_trainer.connect_dataset_interface(self.dataset)
         kd_trainer.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'num_classes': 1000},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"},
-                             run_teacher_on_eval=True, )
+                               teacher_architecture='resnet50',
+                               student_arch_params={'num_classes': 1000},
+                               teacher_arch_params={'num_classes': 1000},
+                               checkpoint_params={'teacher_pretrained_weights': "imagenet"},
+                               run_teacher_on_eval=True, )
         kd_trainer.train(self.kd_train_params)
         ema_model = kd_trainer.ema_model.ema
         net = kd_trainer.net
@@ -63,11 +63,11 @@ class KDEMATest(unittest.TestCase):
         kd_trainer = KDTrainer("test_kd_ema_ckpt_reload", device='cpu')
         kd_trainer.connect_dataset_interface(self.dataset)
         kd_trainer.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'num_classes': 1000},
-                             checkpoint_params={"load_checkpoint": True, "load_ema_as_net": True},
-                             run_teacher_on_eval=True, )
+                               teacher_architecture='resnet50',
+                               student_arch_params={'num_classes': 1000},
+                               teacher_arch_params={'num_classes': 1000},
+                               checkpoint_params={"load_checkpoint": True, "load_ema_as_net": True},
+                               run_teacher_on_eval=True, )
 
         # TRAIN FOR 0 EPOCHS JUST TO SEE THAT WHEN CONTINUING TRAINING EMA MODEL HAS BEEN SAVED CORRECTLY
         kd_trainer.train(self.kd_train_params)
@@ -96,11 +96,11 @@ class KDEMATest(unittest.TestCase):
         kd_trainer = KDTrainer("test_kd_ema_ckpt_reload", device='cpu')
         kd_trainer.connect_dataset_interface(self.dataset)
         kd_trainer.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'num_classes': 1000},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"},
-                             run_teacher_on_eval=True, )
+                               teacher_architecture='resnet50',
+                               student_arch_params={'num_classes': 1000},
+                               teacher_arch_params={'num_classes': 1000},
+                               checkpoint_params={'teacher_pretrained_weights': "imagenet"},
+                               run_teacher_on_eval=True, )
         kd_trainer.train(self.kd_train_params)
         ema_model = kd_trainer.ema_model.ema
         net = kd_trainer.net
@@ -109,11 +109,11 @@ class KDEMATest(unittest.TestCase):
         kd_trainer = KDTrainer("test_kd_ema_ckpt_reload", device='cpu')
         kd_trainer.connect_dataset_interface(self.dataset)
         kd_trainer.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'num_classes': 1000},
-                             checkpoint_params={"load_checkpoint": True, "load_ema_as_net": False},
-                             run_teacher_on_eval=True, )
+                               teacher_architecture='resnet50',
+                               student_arch_params={'num_classes': 1000},
+                               teacher_arch_params={'num_classes': 1000},
+                               checkpoint_params={"load_checkpoint": True, "load_ema_as_net": False},
+                               run_teacher_on_eval=True, )
 
         # TRAIN FOR 0 EPOCHS JUST TO SEE THAT WHEN CONTINUING TRAINING EMA MODEL HAS BEEN SAVED CORRECTLY
         kd_trainer.train(self.kd_train_params)

@@ -47,8 +47,8 @@ class TestDetectionUtils(unittest.TestCase):
 
         # Create Yolo model
         trainer = Trainer('visualization_test',
-                        model_checkpoints_location='local',
-                        post_prediction_callback=YoloPostPredictionCallback())
+                          model_checkpoints_location='local',
+                          post_prediction_callback=YoloPostPredictionCallback())
         trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
         trainer.build_model("yolox_n", checkpoint_params={"pretrained_weights": "coco"})
 

@@ -30,7 +30,7 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
         ema_model = trainer.ema_model.ema
 
         net = LeNet()
-        model = Trainer("ema_ckpt_test", model_checkpoints_location='local')
+        trainer = Trainer("ema_ckpt_test", model_checkpoints_location='local')
         trainer.build_model(net, arch_params={'num_classes': 10}, checkpoint_params={'load_checkpoint': True})
         trainer.connect_dataset_interface(self.dataset)
 

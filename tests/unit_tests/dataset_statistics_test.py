@@ -54,10 +54,10 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                                                                 })
 
         trainer = Trainer('dataset_statistics_visual_test',
-                        model_checkpoints_location='local',
-                        post_prediction_callback=YoloPostPredictionCallback())
-        model.connect_dataset_interface(dataset, data_loader_num_workers=8)
-        model.build_model("yolox_s")
+                          model_checkpoints_location='local',
+                          post_prediction_callback=YoloPostPredictionCallback())
+        trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
+        trainer.build_model("yolox_s")
 
         training_params = {"max_epochs": 1,  # we dont really need the actual training to run
                            "lr_mode": "cosine",

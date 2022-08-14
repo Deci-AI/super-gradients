@@ -24,7 +24,7 @@ class EMAIntegrationTest(unittest.TestCase):
 
     def _init_model(self) -> None:
         self.trainer = Trainer("resnet18_cifar_ema_test", model_checkpoints_location='local',
-                             device='cpu', multi_gpu=MultiGPUMode.OFF)
+                               device='cpu', multi_gpu=MultiGPUMode.OFF)
         dataset_interface = ClassificationTestDatasetInterface({"batch_size": 32})
         self.trainer.connect_dataset_interface(dataset_interface, 8)
         self.trainer.build_model("resnet18_cifar")

@@ -46,8 +46,8 @@ class TestWithoutTrainTest(unittest.TestCase):
                           }
 
         trainer = Trainer(name, model_checkpoints_location='local',
-                        multi_gpu=MultiGPUMode.OFF,
-                        post_prediction_callback=YoloPostPredictionCallback())
+                          multi_gpu=MultiGPUMode.OFF,
+                          post_prediction_callback=YoloPostPredictionCallback())
         dataset_interface = DetectionTestDatasetInterface(dataset_params=dataset_params)
         trainer.connect_dataset_interface(dataset_interface, data_loader_num_workers=4)
         trainer.build_model('yolox_s')
