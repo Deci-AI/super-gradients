@@ -17,7 +17,6 @@ from super_gradients.training.exceptions.kd_trainer_exceptions import Architectu
     TeacherKnowledgeException, UndefinedNumClassesException
 from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallback
 from super_gradients.training.utils.ema import KDModelEMA
-from super_gradients.training.utils.sg_trainer_utils import scale_params_for_yolov5
 
 logger = get_logger(__name__)
 
@@ -50,10 +49,6 @@ class KDTrainer(Trainer):
                                 arch_params=cfg.arch_params, student_arch_params=cfg.student_arch_params,
                                 teacher_arch_params=cfg.teacher_arch_params,
                                 checkpoint_params=cfg.checkpoint_params, run_teacher_on_eval=cfg.run_teacher_on_eval)
-
-        # FIXME: REMOVE PARAMETER MANIPULATION SPECIFIC FOR YOLO
-        if str(cfg.architecture).startswith("yolo_v5"):
-            cfg = scale_params_for_yolov5(cfg)
 
         # TRAIN
         cfg.trainer .train(training_params=cfg.training_hyperparams)
