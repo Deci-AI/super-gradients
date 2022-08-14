@@ -1,10 +1,5 @@
-from typing import Union, Tuple, Mapping, List, Any
+from typing import Union
 import torch
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
-from super_gradients.training.metrics import Accuracy
-
-from super_gradients.training.sg_model.sg_model import SgModel
-
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
@@ -91,19 +86,4 @@ class SgNetsFactory:
 
 def get(architecture: Union[str, nn.Module], arch_params={}, checkpoint_params={}, *args, **kwargs) -> nn.Module:
     return SgNetsFactory.get(architecture, arch_params, checkpoint_params, *args, **kwargs)
-# if __name__ == '__main__':
-#
-#     net = SgNetsFactory.get("resnet18_cifar", arch_params={"num_classes": 5}, checkpoint_params={"checkpoint_path": "/home/shay.aharon/PycharmProjects/super_gradients/checkpoints/resnet18_cifar_ema_test/ckpt_best.pth"})
-#     model = SgModel("test_train_with_precise_bn_explicit_size", model_checkpoints_location='local')
-#     dataset_params = {"batch_size": 5}
-#     dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-#     model.connect_dataset_interface(dataset)
-#
-#     train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
-#                     "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
-#                     "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-#                     "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-#                     "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
-#                     "greater_metric_to_watch_is_better": True,
-#                     "precise_bn": False}
-#     model.train(net=net, training_params=train_params)
+

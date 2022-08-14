@@ -1,5 +1,5 @@
 from super_gradients import ClassificationTestDatasetInterface
-from super_gradients.training import MultiGPUMode
+from super_gradients.training import MultiGPUMode, models
 from super_gradients.training import SgModel
 from super_gradients.training.metrics import Accuracy, Top5
 import unittest
@@ -27,7 +27,7 @@ class EMAIntegrationTest(unittest.TestCase):
                              device='cpu', multi_gpu=MultiGPUMode.OFF)
         dataset_interface = ClassificationTestDatasetInterface({"batch_size": 32})
         self.model.connect_dataset_interface(dataset_interface, 8)
-        self.model.build_model("resnet18_cifar")
+        self.net = models.get("resnet18_cifar", arch_params={"num_classes": 5})
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -65,7 +65,7 @@ class EMAIntegrationTest(unittest.TestCase):
         self.model.test = CallWrapper(self.model.test, check_before=before_test)
         self.model._train_epoch = CallWrapper(self.model._train_epoch, check_before=before_train_epoch)
 
-        self.model.train(training_params=training_params)
+        self.model.train(net=self.net, training_params=training_params)
 
         self.assertIsNotNone(self.model.ema_model)
 

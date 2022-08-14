@@ -13,9 +13,7 @@ class DeciLabUploadTest(unittest.TestCase):
         self.model = SgModel("deci_lab_export_test_model", model_checkpoints_location='local')
         dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 10})
         self.model.connect_dataset_interface(dataset)
-        net = ResNet18(num_classes=5, arch_params={})
         self.optimizer = SGD(params=net.parameters(), lr=0.1)
-        self.model.build_model(net)
 
     def test_train_with_deci_lab_integration(self):
         model_meta_data = ModelMetadata(name='model_for_deci_lab_upload_test',
@@ -49,8 +47,8 @@ class DeciLabUploadTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True,
                         "phase_callbacks": [model_conversion_callback, deci_lab_callback]}
-
-        self.model.train(train_params)
+        net = ResNet18(num_classes=5, arch_params={})
+        self.model.train(net=net, training_params=train_params)
 
         # CLEANUP
 
