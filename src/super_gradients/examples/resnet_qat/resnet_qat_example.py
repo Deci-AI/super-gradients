@@ -28,8 +28,8 @@ super_gradients.init_trainer()
 
 dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params={"batch_size": 128})
 trainer = Trainer("resnet18_qat_example",
-                model_checkpoints_location='local',
-                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
+                  model_checkpoints_location='local',
+                  multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
 
 trainer.connect_dataset_interface(dataset)
 trainer.build_model("resnet18", checkpoint_params={"pretrained_weights": "imagenet"})

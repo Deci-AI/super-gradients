@@ -12,9 +12,9 @@ dataset_params = {"batch_size": 16, "test_batch_size": 16, 'dataset_dir': '/data
 
 # Define Model
 trainer = Trainer("Darknet53_Backbone_HAM10000",
-                model_checkpoints_location='local',
-                device='cuda',
-                multi_gpu=MultiGPUMode.DATA_PARALLEL)
+                  model_checkpoints_location='local',
+                  device='cuda',
+                  multi_gpu=MultiGPUMode.DATA_PARALLEL)
 
 # Connect Dataset
 dataset = ClassificationDatasetInterface(normalization_mean=(0.7483, 0.5154, 0.5353),

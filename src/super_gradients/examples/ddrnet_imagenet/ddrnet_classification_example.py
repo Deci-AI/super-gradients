@@ -23,7 +23,6 @@ import argparse
 
 from super_gradients.training.metrics import Accuracy, Top5
 
-
 parser = argparse.ArgumentParser()
 super_gradients.init_trainer()
 
@@ -61,8 +60,8 @@ dataset_params = {"batch_size": args.batch,
                   }
 
 trainer = Trainer(experiment_name=args.experiment_name,
-                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
-                device='cuda')
+                  multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
+                  device='cuda')
 
 dataset = ImageNetDatasetInterface(dataset_params=dataset_params)
 
@@ -71,5 +70,5 @@ trainer.connect_dataset_interface(dataset, data_loader_num_workers=8 * devices)
 arch_params = HpmStruct(**{"num_classes": 1000, "aux_head": False, "classification_mode": True, 'dropout_prob': 0.3})
 
 trainer.build_model(architecture="ddrnet_23_slim" if args.slim else "ddrnet_23",
-                  arch_params=arch_params)
+                    arch_params=arch_params)
 trainer.train(training_params=train_params_ddr)

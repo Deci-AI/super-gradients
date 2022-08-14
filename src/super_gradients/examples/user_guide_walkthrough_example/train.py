@@ -12,8 +12,8 @@ def main():
     model = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=arch_params['num_classes'])
 
     trainer = Trainer('client_model_training',
-                                        model_checkpoints_location='local',
-                                        multi_gpu=MultiGPUMode.OFF)
+                      model_checkpoints_location='local',
+                      multi_gpu=MultiGPUMode.OFF)
 
     # if a torch.nn.Module is provided when building the model, the model will be integrated into deci model class
     trainer.build_model(model, arch_params=arch_params)

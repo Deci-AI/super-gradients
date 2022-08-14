@@ -45,7 +45,7 @@ experiment_name_prefix = 'shelfnet_lw_'
 experiment_name_dataset_suffix = '_pascal_aug_encoding_dataset_train_250_epochs_no_batchnorm_decoder'
 experiment_name = experiment_name_prefix + model_size_str + experiment_name_dataset_suffix
 trainer = Trainer(experiment_name, model_checkpoints_location='local', multi_gpu=True,
-                ckpt_name='resnet' + model_size_str + '.pth')
+                  ckpt_name='resnet' + model_size_str + '.pth')
 
 pascal_aug_datasaet_interface = PascalAUG2012SegmentationDataSetInterface(
     dataset_params=pascal_aug_dataset_params,

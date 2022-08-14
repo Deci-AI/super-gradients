@@ -58,9 +58,9 @@ model_repo_bucket_name = AWSSecretsManagerConnector.get_secret_value_for_secret_
                                                                                     secret_name='training_secrets',
                                                                                     secret_key='S3.MODEL_REPOSITORY_BUCKET_NAME')
 trainer = Trainer("test_checkpoints_resnet_8_gpus",
-                model_checkpoints_location='s3://' + model_repo_bucket_name,
-                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
-                )
+                  model_checkpoints_location='s3://' + model_repo_bucket_name,
+                  multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
+                  )
 # FOR AWS
 dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params=dataset_params)
 trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)

@@ -67,8 +67,8 @@ experiment_name_dataset_suffix = '_coco_seg_' + str(
 experiment_name = experiment_name_prefix + model_size_str + experiment_name_dataset_suffix
 
 trainer = Trainer(experiment_name,
-                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL,
-                ckpt_name='ckpt_best.pth')
+                  multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL,
+                  ckpt_name='ckpt_best.pth')
 
 coco_seg_datasaet_interface = CoCoSegmentationDatasetInterface(dataset_params=coco_seg_dataset_tzag_params,
                                                                cache_labels=False,

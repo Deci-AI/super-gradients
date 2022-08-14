@@ -61,8 +61,8 @@ class TestTrainer(unittest.TestCase):
         # Build a model that continues the training
         trainer = self.get_classification_trainer(self.folder_names[3])
         trainer.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": False,
-                                                               "source_ckpt_folder_name": self.folder_names[2]}
-                          )
+                                                                 "source_ckpt_folder_name": self.folder_names[2]}
+                            )
         self.assertTrue(trainer.best_metric > -1)
         self.assertTrue(trainer.start_epoch != 0)
         # start_epoch is not initialized, adding to max_epochs
@@ -71,8 +71,8 @@ class TestTrainer(unittest.TestCase):
         # Build a model that loads the weights and starts from scratch
         trainer = self.get_classification_trainer(self.folder_names[4])
         trainer.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": True,
-                                                               "source_ckpt_folder_name": self.folder_names[2]}
-                          )
+                                                                 "source_ckpt_folder_name": self.folder_names[2]}
+                            )
         self.assertTrue(trainer.best_metric == -1)
         self.assertTrue(trainer.start_epoch == 0)
         self.training_params['max_epochs'] += 3

@@ -62,6 +62,7 @@ from super_gradients.training.datasets.samplers.infinite_sampler import Infinite
 
 logger = get_logger(__name__)
 
+
 class Trainer:
     """
     SuperGradient Model - Base Class for Sg Models
@@ -208,7 +209,6 @@ class Trainer:
 
         # TRAIN
         cfg.trainer.train(training_params=cfg.training_hyperparams)
-
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
@@ -824,7 +824,7 @@ class Trainer:
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
         self.metric_idx_in_results_tuple = (
-            self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+                self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
 
         # Instantiate the values to monitor (loss/metric)
         for loss in self.loss_logging_items_names:
@@ -964,7 +964,7 @@ class Trainer:
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
-        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or\
+        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or \
                                       (hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler))
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
@@ -1008,7 +1008,7 @@ class Trainer:
 
                 # IN DDP- SET_EPOCH WILL CAUSE EVERY PROCESS TO BE EXPOSED TO THE ENTIRE DATASET BY SHUFFLING WITH A
                 # DIFFERENT SEED EACH EPOCH START
-                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader, "sampler")\
+                if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and hasattr(self.train_loader, "sampler") \
                         and hasattr(self.train_loader.sampler, "set_epoch"):
                     self.train_loader.sampler.set_epoch(epoch)
 
@@ -1645,8 +1645,8 @@ class Trainer:
         if not silent_mode and evaluation_type == EvaluationType.VALIDATION:
             progress_bar_data_loader.write("===========================================================")
             sg_trainer_utils.display_epoch_summary(epoch=context.epoch, n_digits=4,
-                                                 train_monitored_values=self.train_monitored_values,
-                                                 valid_monitored_values=self.valid_monitored_values)
+                                                   train_monitored_values=self.train_monitored_values,
+                                                   valid_monitored_values=self.valid_monitored_values)
             progress_bar_data_loader.write("===========================================================")
 
         return logging_values
