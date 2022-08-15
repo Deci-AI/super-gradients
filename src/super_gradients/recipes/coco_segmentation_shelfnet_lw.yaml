@@ -36,7 +36,6 @@ multi_gpu:
   value: 'DDP'
 
 ckpt_root_dir:
-
 sg_model:
   _target_: super_gradients.SgModel
   experiment_name: ${experiment_name}

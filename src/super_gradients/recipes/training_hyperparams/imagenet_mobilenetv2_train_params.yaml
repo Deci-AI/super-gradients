@@ -6,7 +6,7 @@ max_epochs: 450
 lr_mode: step
 initial_lr: 0.032   # for total batch-size of 512
 lr_decay_factor: 0.973
-lr_updates:
+lr_updates: #FIXME: This creates a bug because a list is expected and it gets a np array
   _target_: numpy.arange
   start: 2.4
   stop: 450
