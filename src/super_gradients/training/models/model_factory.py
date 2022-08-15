@@ -22,7 +22,7 @@ class SgNetsFactory:
 
             strict_load:                See StrictLoad class documentation for details.
             load_backbone:              loads the provided checkpoint to net.backbone instead of net
-            external_checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
+            checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
                                                (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
                                                load the checkpoint even if the load_checkpoint flag is not provided.
 
@@ -87,4 +87,16 @@ class SgNetsFactory:
 
 
 def get(architecture: Union[str, nn.Module], arch_params={}, checkpoint_params={}, *args, **kwargs) -> nn.Module:
+    """
+    :param architecture:               Defines the network's architecture from models/ALL_ARCHITECTURES
+    :param arch_params:                Architecture H.P. e.g.: block, num_blocks, num_classes, etc.
+    :param checkpoint_params:          Dictionary like object with the following key:values:
+
+        strict_load:                See StrictLoad class documentation for details.
+        load_backbone:              loads the provided checkpoint to net.backbone instead of net
+        checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
+                                           (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
+                                           load the checkpoint even if the load_checkpoint flag is not provided.
+
+    """
     return SgNetsFactory.get(architecture, arch_params, checkpoint_params, *args, **kwargs)

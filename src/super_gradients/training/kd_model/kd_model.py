@@ -286,17 +286,16 @@ class KDModel(SgModel):
               *args,
               **kwargs):
         """
+        Trains the student netowrk (wrapped in KDModule network).
 
-        :param net:
-        :param training_params:
-        :param student:
-        :param teacher:
-        :param kd_architecture:
-        :param kd_arch_params:
-        :param run_teacher_on_eval:
-        :param args:
-        :param kwargs:
-        :return:
+        :param net: KDModule, network to train. When none is given will initialize KDModule according to kd_architecture,
+            student and teacher (default=None)
+        :param training_params: dict, Same as in SgModel.train()
+        :param student: SgModule - the student model
+        :param teacher: torch.nn.Module- the teacher model
+        :param kd_architecture: KDModule architecture to use, currently only 'kd_module' is supported (default='kd_module').
+        :param kd_arch_params: architecture params to pas to kd_architecture constructor.
+        :param run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
         """
         kd_net = self.net or net
         if kd_net is None:
