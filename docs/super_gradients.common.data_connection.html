@@ -38,6 +38,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
 <li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Technical Documentation</span></p>
@@ -198,6 +199,103 @@
 </section>
 <section id="module-super_gradients.common.data_connection">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-super_gradients.common.data_connection" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.data_connection.</span></span><span class="sig-name descname"><span class="pre">S3Connector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bucket_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_connection/s3_connector.html#S3Connector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="super_gradients.common.abstractions.html#super_gradients.common.abstractions.abstract_logger.ILogger" title="super_gradients.common.abstractions.abstract_logger.ILogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">super_gradients.common.abstractions.abstract_logger.ILogger</span></code></a></p>
+<p>S3Connector - S3 Connection Manager</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.check_key_exists">
+<span class="sig-name descname"><span class="pre">check_key_exists</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.check_key_exists" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.get_object_by_etag">
+<span class="sig-name descname"><span class="pre">get_object_by_etag</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.get_object_by_etag" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.create_bucket">
+<span class="sig-name descname"><span class="pre">create_bucket</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.create_bucket" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.delete_bucket">
+<span class="sig-name descname"><span class="pre">delete_bucket</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.delete_bucket" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.get_object_metadata">
+<span class="sig-name descname"><span class="pre">get_object_metadata</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.get_object_metadata" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.delete_key">
+<span class="sig-name descname"><span class="pre">delete_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.delete_key" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.upload_file_from_stream">
+<span class="sig-name descname"><span class="pre">upload_file_from_stream</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.upload_file_from_stream" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.upload_file">
+<span class="sig-name descname"><span class="pre">upload_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.upload_file" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.download_key">
+<span class="sig-name descname"><span class="pre">download_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.download_key" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.download_keys_by_prefix">
+<span class="sig-name descname"><span class="pre">download_keys_by_prefix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.download_keys_by_prefix" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.download_file_by_path">
+<span class="sig-name descname"><span class="pre">download_file_by_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.download_file_by_path" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.empty_folder_content_by_path_prefix">
+<span class="sig-name descname"><span class="pre">empty_folder_content_by_path_prefix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.empty_folder_content_by_path_prefix" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.upload_buffer">
+<span class="sig-name descname"><span class="pre">upload_buffer</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.upload_buffer" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.list_bucket_objects">
+<span class="sig-name descname"><span class="pre">list_bucket_objects</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.list_bucket_objects" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.create_presigned_upload_url">
+<span class="sig-name descname"><span class="pre">create_presigned_upload_url</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.create_presigned_upload_url" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.create_presigned_download_url">
+<span class="sig-name descname"><span class="pre">create_presigned_download_url</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.create_presigned_download_url" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.convert_content_length_to_mb">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">convert_content_length_to_mb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content_length</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_connection/s3_connector.html#S3Connector.convert_content_length_to_mb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.convert_content_length_to_mb" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.data_connection.S3Connector.copy_key">
+<span class="sig-name descname"><span class="pre">copy_key</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#super_gradients.common.data_connection.S3Connector.copy_key" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
