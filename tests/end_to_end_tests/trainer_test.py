@@ -39,7 +39,7 @@ class TestTrainer(unittest.TestCase):
     def get_classification_trainer(name=''):
         model = SgModel(name, model_checkpoints_location='local')
         dataset_params = {"batch_size": 4}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
+        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params, image_size=224)
         model.connect_dataset_interface(dataset)
         net = models.get("resnet18", arch_params={"num_classes": 5})
         return model, net
@@ -54,6 +54,7 @@ class TestTrainer(unittest.TestCase):
 
         resume_training_params = self.training_params.copy()
         resume_training_params["resume"] = True
+        resume_training_params["max_epochs"] = 2
         model, net = self.get_classification_trainer(self.folder_names[1])
         model.train(net=net, training_params=resume_training_params)
 
