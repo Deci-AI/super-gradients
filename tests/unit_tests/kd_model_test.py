@@ -1,21 +1,19 @@
-import unittest
 import os
+import unittest
+from copy import deepcopy
 
-from super_gradients.training import models
-from super_gradients.training.models.kd_modules.kd_module import KDModule
-
-from super_gradients.training.sg_model import SgModel
-from super_gradients.training.kd_model.kd_model import KDModel
 import torch
 
-from super_gradients.training.utils.callbacks import PhaseCallback, PhaseContext, Phase
-from super_gradients.training.utils.utils import check_models_have_same_weights
+from super_gradients.training import models
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
+from super_gradients.training.kd_model.kd_model import KDModel
+from super_gradients.training.losses.kd_losses import KDLogitsLoss
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models.classification_models.resnet import ResNet50, ResNet18
-from super_gradients.training.losses.kd_losses import KDLogitsLoss
-from copy import deepcopy
+from super_gradients.training.models.kd_modules.kd_module import KDModule
+from super_gradients.training.utils.callbacks import PhaseCallback, PhaseContext, Phase
 from super_gradients.training.utils.module_utils import NormalizationAdapter
+from super_gradients.training.utils.utils import check_models_have_same_weights
 
 
 class PreTrainingNetCollector(PhaseCallback):

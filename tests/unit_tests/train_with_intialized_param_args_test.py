@@ -1,18 +1,17 @@
 import unittest
 
-from super_gradients.training import models
+import numpy as np
+import torch
+from torch.optim import SGD
+from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
+from torchmetrics import F1Score
 
 from super_gradients import SgModel, \
     ClassificationTestDatasetInterface
-from super_gradients.training.metrics import Accuracy, Top5, ToyTestClassificationMetric
-from super_gradients.training.models import ResNet18
-from torch.optim import SGD
-from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
-from super_gradients.training.utils.callbacks import LRSchedulerCallback, Phase
-from torchmetrics import F1Score
-import torch
-import numpy as np
+from super_gradients.training import models
 from super_gradients.training.datasets.dataset_interfaces import DatasetInterface
+from super_gradients.training.metrics import Accuracy, Top5, ToyTestClassificationMetric
+from super_gradients.training.utils.callbacks import LRSchedulerCallback, Phase
 
 
 class TrainWithInitializedObjectsTest(unittest.TestCase):

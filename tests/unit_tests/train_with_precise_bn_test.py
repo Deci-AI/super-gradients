@@ -1,9 +1,9 @@
 import unittest
+
 from super_gradients import SgModel, \
     ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
-from super_gradients.training import models
 
 
 class TrainWithPreciseBNTest(unittest.TestCase):

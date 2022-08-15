@@ -11,4 +11,4 @@ __all__ = ['ARCHITECTURES', 'losses', 'utils', 'datasets_utils', 'DataAugmentati
            'env_sanity_check']
 
 
-#env_sanity_check()
+env_sanity_check()

@@ -1,7 +1,8 @@
 import unittest
-from super_gradients.training import SgModel, models
-from super_gradients.training.metrics import Accuracy
+
+from super_gradients.training import SgModel
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
+from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models import LeNet
 from super_gradients.training.utils.callbacks import Phase, PhaseCallback, PhaseContext
 

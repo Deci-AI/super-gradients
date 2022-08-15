@@ -5,6 +5,7 @@ from super_gradients import SgModel
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training import models
 
+
 class TestViT(unittest.TestCase):
 
     def setUp(self):

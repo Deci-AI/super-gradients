@@ -22,6 +22,7 @@ from super_gradients.training.datasets.dataset_interfaces.dataset_interface impo
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 from super_gradients.training import models
 
+
 class PretrainedModelsTest(unittest.TestCase):
     def setUp(self) -> None:
         super_gradients.init_trainer()
@@ -328,7 +329,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet50"], delta=0.001)
@@ -338,7 +339,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_resnet34_imagenet(self):
@@ -346,7 +347,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet34"], delta=0.001)
@@ -356,7 +357,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_resnet18_imagenet(self):
@@ -364,7 +365,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet18"], delta=0.001)
@@ -374,7 +375,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY800_imagenet(self):
@@ -382,7 +383,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY800"], delta=0.001)
@@ -392,7 +393,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY600_imagenet(self):
@@ -400,7 +401,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("regnetY600", arch_params=self.imagenet_pretrained_arch_params["regnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY600"], delta=0.001)
@@ -410,7 +411,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY600", arch_params=self.imagenet_pretrained_arch_params["regnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY400_imagenet(self):
@@ -418,7 +419,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("regnetY400", arch_params=self.imagenet_pretrained_arch_params["regnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY400"], delta=0.001)
@@ -428,7 +429,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY400", arch_params=self.imagenet_pretrained_arch_params["regnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY200_imagenet(self):
@@ -436,7 +437,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("regnetY200", arch_params=self.imagenet_pretrained_arch_params["regnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY200"], delta=0.001)
@@ -446,7 +447,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY200", arch_params=self.imagenet_pretrained_arch_params["regnet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_repvgg_a0_imagenet(self):
@@ -454,7 +455,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["repvgg_a0"], delta=0.001)
@@ -464,7 +465,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regseg48_cityscapes(self):
@@ -472,7 +473,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset, data_loader_num_workers=8)
         net = models.get("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.cityscapes_dataset.val_loader,
                            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
@@ -483,7 +484,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.regseg_transfer_segmentation_train_params)
 
     def test_pretrained_ddrnet23_cityscapes(self):
@@ -491,7 +492,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset, data_loader_num_workers=8)
         net = models.get("ddrnet_23", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.cityscapes_dataset.val_loader,
                            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
@@ -502,7 +503,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset, data_loader_num_workers=8)
         net = models.get("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.cityscapes_dataset.val_loader,
                            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
@@ -513,7 +514,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("ddrnet_23", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_transfer_learning_ddrnet23_slim_cityscapes(self):
@@ -521,7 +522,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_pretrained_coco_segmentation_subclass_pretrained_shelfnet34_lw(self):
@@ -529,8 +530,8 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("shelfnet34_lw",
-                            arch_params=self.coco_segmentation_subclass_pretrained_arch_params["shelfnet34_lw"],
-                            checkpoint_params=self.coco_segmentation_subclass_pretrained_ckpt_params)
+                         arch_params=self.coco_segmentation_subclass_pretrained_arch_params["shelfnet34_lw"],
+                         checkpoint_params=self.coco_segmentation_subclass_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.coco_segmentation_dataset.val_loader, test_metrics_list=[IoU(21)],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.coco_segmentation_subclass_pretrained_mious["shelfnet34_lw"], delta=0.001)
@@ -540,7 +541,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("efficientnet_b0", arch_params=self.imagenet_pretrained_arch_params["efficientnet_b0"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["efficientnet_b0"], delta=0.001)
@@ -550,7 +551,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("efficientnet_b0", arch_params=self.imagenet_pretrained_arch_params["efficientnet_b0"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_ssd_lite_mobilenet_v2_coco(self):
@@ -558,8 +559,8 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['ssd_mobilenet'], data_loader_num_workers=8)
         net = models.get("ssd_lite_mobilenet_v2",
-                            arch_params=self.coco_pretrained_arch_params["ssd_lite_mobilenet_v2"],
-                            checkpoint_params=self.coco_pretrained_ckpt_params)
+                         arch_params=self.coco_pretrained_arch_params["ssd_lite_mobilenet_v2"],
+                         checkpoint_params=self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(net=net, test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
                            test_metrics_list=[
@@ -575,8 +576,8 @@ class PretrainedModelsTest(unittest.TestCase):
         transfer_arch_params = self.coco_pretrained_arch_params['ssd_lite_mobilenet_v2'].copy()
         transfer_arch_params['num_classes'] = len(self.transfer_detection_dataset.classes)
         net = models.get("ssd_lite_mobilenet_v2",
-                            arch_params=transfer_arch_params,
-                            checkpoint_params=self.coco_pretrained_ckpt_params)
+                         arch_params=transfer_arch_params,
+                         checkpoint_params=self.coco_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_detection_train_params['ssd_lite_mobilenet_v2'])
 
     def test_pretrained_ssd_mobilenet_v1_coco(self):
@@ -584,8 +585,8 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['ssd_mobilenet'], data_loader_num_workers=8)
         net = models.get("ssd_mobilenet_v1",
-                            arch_params=self.coco_pretrained_arch_params["coco_ssd_mobilenet_v1"],
-                            checkpoint_params=self.coco_pretrained_ckpt_params)
+                         arch_params=self.coco_pretrained_arch_params["coco_ssd_mobilenet_v1"],
+                         checkpoint_params=self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(net=net, test_loader=self.coco_dataset['ssd_mobilenet'].val_loader,
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback,
@@ -599,7 +600,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['yolox'], data_loader_num_workers=8)
         net = models.get("yolox_s",
-                            checkpoint_params=self.coco_pretrained_ckpt_params)
+                         checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.coco_dataset['yolox'].val_loader,
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                num_cls=80,
@@ -611,7 +612,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['yolox'], data_loader_num_workers=8)
         net = models.get("yolox_m",
-                            checkpoint_params=self.coco_pretrained_ckpt_params)
+                         checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.coco_dataset['yolox'].val_loader,
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                num_cls=80,
@@ -623,7 +624,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['yolox'], data_loader_num_workers=8)
         net = models.get("yolox_l",
-                            checkpoint_params=self.coco_pretrained_ckpt_params)
+                         checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.coco_dataset['yolox'].val_loader,
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                num_cls=80,
@@ -635,7 +636,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['yolox'], data_loader_num_workers=8)
         net = models.get("yolox_n",
-                            checkpoint_params=self.coco_pretrained_ckpt_params)
+                         checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.coco_dataset['yolox'].val_loader,
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                num_cls=80,
@@ -647,7 +648,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['yolox'], data_loader_num_workers=8)
         net = models.get("yolox_t",
-                            checkpoint_params=self.coco_pretrained_ckpt_params)
+                         checkpoint_params=self.coco_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.coco_dataset['yolox'].val_loader,
                            test_metrics_list=[DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(),
                                                                num_cls=80,
@@ -668,7 +669,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v3_large", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_mobilenet_v3_large_imagenet(self):
@@ -676,7 +677,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v3_large", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v3_large"], delta=0.001)
@@ -687,7 +688,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v3_small", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_mobilenet_v3_small_imagenet(self):
@@ -695,7 +696,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v3_small", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v3_small"], delta=0.001)
@@ -706,7 +707,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v2", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_mobilenet_v2_imagenet(self):
@@ -714,7 +715,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v2", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.imagenet_dataset.val_loader, test_metrics_list=[Accuracy()],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v2"], delta=0.001)
@@ -724,7 +725,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
         net = models.get("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.cityscapes_dataset_rescaled50.val_loader,
                            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
@@ -735,7 +736,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_pretrained_stdc1_seg75_cityscapes(self):
@@ -743,7 +744,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
         net = models.get("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.cityscapes_dataset_rescaled75.val_loader,
                            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
@@ -754,7 +755,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_pretrained_stdc2_seg50_cityscapes(self):
@@ -762,7 +763,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
         net = models.get("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.cityscapes_dataset_rescaled50.val_loader,
                            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
@@ -773,7 +774,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_pretrained_stdc2_seg75_cityscapes(self):
@@ -781,7 +782,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
         net = models.get("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         res = trainer.test(net=net, test_loader=self.cityscapes_dataset_rescaled75.val_loader,
                            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
@@ -792,7 +793,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
-                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+                         checkpoint_params=self.cityscapes_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_transfer_learning_vit_base_imagenet21k(self):
@@ -801,7 +802,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
-                            checkpoint_params=self.imagenet21k_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet21k_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_transfer_learning_vit_large_imagenet21k(self):
@@ -810,7 +811,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("vit_large", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
-                            checkpoint_params=self.imagenet21k_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet21k_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_vit_base_imagenet(self):
@@ -818,9 +819,11 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset_05_mean_std, data_loader_num_workers=8)
         net = models.get("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        res = trainer.test(net=net, test_loader=self.imagenet_dataset_05_mean_std.val_loader, test_metrics_list=[Accuracy()],
-                           metrics_progress_verbose=True)[0].cpu().item()
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
+        res = \
+            trainer.test(net=net, test_loader=self.imagenet_dataset_05_mean_std.val_loader,
+                         test_metrics_list=[Accuracy()],
+                         metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_base"], delta=0.001)
 
     def test_pretrained_vit_large_imagenet(self):
@@ -828,9 +831,11 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset_05_mean_std, data_loader_num_workers=8)
         net = models.get("vit_large", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        res = trainer.test(net=net, test_loader=self.imagenet_dataset_05_mean_std.val_loader, test_metrics_list=[Accuracy()],
-                           metrics_progress_verbose=True)[0].cpu().item()
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
+        res = \
+            trainer.test(net=net, test_loader=self.imagenet_dataset_05_mean_std.val_loader,
+                         test_metrics_list=[Accuracy()],
+                         metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_large"], delta=0.001)
 
     def test_pretrained_beit_base_imagenet(self):
@@ -838,9 +843,11 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset_05_mean_std, data_loader_num_workers=8)
         net = models.get("beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        res = trainer.test(net=net, test_loader=self.imagenet_dataset_05_mean_std.val_loader, test_metrics_list=[Accuracy()],
-                           metrics_progress_verbose=True)[0].cpu().item()
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
+        res = \
+            trainer.test(net=net, test_loader=self.imagenet_dataset_05_mean_std.val_loader,
+                         test_metrics_list=[Accuracy()],
+                         metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["beit_base_patch16_224"], delta=0.001)
 
     def test_transfer_learning_beit_base_imagenet(self):
@@ -849,7 +856,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
-                            checkpoint_params=self.imagenet_pretrained_ckpt_params)
+                         checkpoint_params=self.imagenet_pretrained_ckpt_params)
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def tearDown(self) -> None:

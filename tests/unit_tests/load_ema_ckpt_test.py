@@ -16,7 +16,6 @@ class PreTrainingEMANetCollector(PhaseCallback):
 
     def __call__(self, context: PhaseContext):
         self.net = deepcopy(context.ema_model)
-    
 
 
 class LoadCheckpointWithEmaTest(unittest.TestCase):

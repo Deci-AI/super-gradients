@@ -523,7 +523,7 @@ class SgModel:
         self._load_checkpoint_to_model()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, net: nn.Module=None, training_params: dict = dict(), *args, **kwargs):  # noqa: C901
+    def train(self, net: nn.Module = None, training_params: dict = dict(), *args, **kwargs):  # noqa: C901
         """
 
         train - Trains the Model
@@ -1855,4 +1855,3 @@ class SgModel:
             context_methods = ContextSgMethods()
 
         return context_methods
-
