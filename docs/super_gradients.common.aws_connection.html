@@ -38,6 +38,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
 <li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Technical Documentation</span></p>
@@ -191,6 +192,72 @@
 </section>
 <section id="module-super_gradients.common.aws_connection">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-super_gradients.common.aws_connection" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.aws_connection.AWSConnector">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.aws_connection.</span></span><span class="sig-name descname"><span class="pre">AWSConnector</span></span><a class="reference internal" href="_modules/super_gradients/common/aws_connection/aws_connector.html#AWSConnector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.aws_connection.AWSConnector" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>AWSConnector - Connects to AWS using Credentials File or IAM Role</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.aws_connection.AWSConnector.get_aws_session">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_aws_session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profile_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">boto3.session.Session</span><a class="reference internal" href="_modules/super_gradients/common/aws_connection/aws_connector.html#AWSConnector.get_aws_session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.aws_connection.AWSConnector.get_aws_session" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>get_aws_session - Connects to AWS to retrieve an AWS Session</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param      profile_name</dt>
+<dd class="field-odd"><p>The Config Profile (Environment Name in Credentials file)</p>
+</dd>
+<dt class="field-even">return</dt>
+<dd class="field-even"><p>boto3 Session</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.aws_connection.AWSConnector.get_aws_client_for_service_name">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_aws_client_for_service_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profile_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">boto3.session.Session.client</span><a class="reference internal" href="_modules/super_gradients/common/aws_connection/aws_connector.html#AWSConnector.get_aws_client_for_service_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.aws_connection.AWSConnector.get_aws_client_for_service_name" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>get_aws_client_for_service_name - Connects to AWS to retrieve the relevant Client</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param      profile_name</dt>
+<dd class="field-odd"><p>The Config Profile (Environment Name in Credentials file)</p>
+</dd>
+<dt class="field-even">param      service_name</dt>
+<dd class="field-even"><p>The AWS Service name to get the Client for</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>Service client instance</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.aws_connection.AWSConnector.get_aws_resource_for_service_name">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_aws_resource_for_service_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profile_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">boto3.session.Session.resource</span><a class="reference internal" href="_modules/super_gradients/common/aws_connection/aws_connector.html#AWSConnector.get_aws_resource_for_service_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.aws_connection.AWSConnector.get_aws_resource_for_service_name" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Connects to AWS to retrieve the relevant Resource (More functionality then Client)</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param      profile_name</dt>
+<dd class="field-odd"><p>The Config Profile (Environment Name in Credentials file)</p>
+</dd>
+<dt class="field-even">param      service_name</dt>
+<dd class="field-even"><p>The AWS Service name to get the Client for</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>Service client instance</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.aws_connection.AWSConnector.is_client_error">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">is_client_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/aws_connection/aws_connector.html#AWSConnector.is_client_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.aws_connection.AWSConnector.is_client_error" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
