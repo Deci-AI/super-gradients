@@ -34,7 +34,7 @@ architecture: yolox_s
 
 multi_gpu: DDP
 
-experiment_name: $yolox_fastloss_after_fix_filter_box_candidates
+experiment_name: yolox_regular_loss_new_multiscale
 
 ckpt_root_dir:
 sg_model:
