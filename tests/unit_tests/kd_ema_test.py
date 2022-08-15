@@ -1,4 +1,7 @@
 import unittest
+
+from super_gradients.training import models
+
 from super_gradients.training.sg_model import SgModel
 from super_gradients.training.kd_model.kd_model import KDModel
 import torch
@@ -31,92 +34,39 @@ class KDEMATest(unittest.TestCase):
 
         kd_model = KDModel("test_teacher_ema_not_duplicated", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
-        kd_model.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'num_classes': 1000},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"},
-                             run_teacher_on_eval=True, )
+        student = models.get('resnet18', arch_params={'num_classes': 1000})
+        teacher = models.get('resnet50', arch_params={'num_classes': 1000},
+                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
 
-        kd_model.train(self.kd_train_params)
+        kd_model.train(student=student, teacher=teacher, training_params=self.kd_train_params)
 
         self.assertTrue(kd_model.ema_model.ema.module.teacher is kd_model.net.module.teacher)
         self.assertTrue(kd_model.ema_model.ema.module.student is not kd_model.net.module.student)
-
-    def test_kd_ckpt_reload_ema(self):
-        """Check that the KD model load correctly from checkpoint when "load_ema_as_net=True"."""
-
-        # Create a KD model and train it
-        kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
-        kd_model.connect_dataset_interface(self.dataset)
-        kd_model.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'num_classes': 1000},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"},
-                             run_teacher_on_eval=True, )
-        kd_model.train(self.kd_train_params)
-        ema_model = kd_model.ema_model.ema
-        net = kd_model.net
-
-        # Load the trained KD model
-        kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
-        kd_model.connect_dataset_interface(self.dataset)
-        kd_model.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'num_classes': 1000},
-                             checkpoint_params={"load_checkpoint": True, "load_ema_as_net": True},
-                             run_teacher_on_eval=True, )
-
-        # TRAIN FOR 0 EPOCHS JUST TO SEE THAT WHEN CONTINUING TRAINING EMA MODEL HAS BEEN SAVED CORRECTLY
-        kd_model.train(self.kd_train_params)
-        reloaded_ema_model = kd_model.ema_model.ema
-        reloaded_net = kd_model.net
-
-        # trained ema == loaded ema (Should always be true as long as "ema=True" in train_params)
-        self.assertTrue(check_models_have_same_weights(ema_model, reloaded_ema_model))
-
-        # loaded net != trained net (since load_ema_as_net = True)
-        self.assertTrue(not check_models_have_same_weights(reloaded_net, net))
-
-        # loaded net == trained ema (since load_ema_as_net = True)
-        self.assertTrue(check_models_have_same_weights(reloaded_net, ema_model))
-
-        # loaded student ema == loaded student net (since load_ema_as_net = True)
-        self.assertTrue(check_models_have_same_weights(reloaded_ema_model.module.student, reloaded_net.module.student))
-
-        # loaded teacher ema == loaded teacher net (teacher always loads ema)
-        self.assertTrue(check_models_have_same_weights(reloaded_ema_model.module.teacher, reloaded_net.module.teacher))
 
     def test_kd_ckpt_reload_net(self):
         """Check that the KD model load correctly from checkpoint when "load_ema_as_net=False"."""
 
         # Create a KD model and train it
+        train_params = self.kd_train_params.copy()
         kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
-        kd_model.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'num_classes': 1000},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"},
-                             run_teacher_on_eval=True, )
-        kd_model.train(self.kd_train_params)
+        student = models.get('resnet18', arch_params={'num_classes': 1000})
+        teacher = models.get('resnet50', arch_params={'num_classes': 1000},
+                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
+
+        kd_model.train(student=student, teacher=teacher, training_params=self.kd_train_params)
         ema_model = kd_model.ema_model.ema
         net = kd_model.net
 
         # Load the trained KD model
         kd_model = KDModel("test_kd_ema_ckpt_reload", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
-        kd_model.build_model(student_architecture='resnet18',
-                             teacher_architecture='resnet50',
-                             student_arch_params={'num_classes': 1000},
-                             teacher_arch_params={'num_classes': 1000},
-                             checkpoint_params={"load_checkpoint": True, "load_ema_as_net": False},
-                             run_teacher_on_eval=True, )
+        student = models.get('resnet18', arch_params={'num_classes': 1000})
+        teacher = models.get('resnet50', arch_params={'num_classes': 1000},
+                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
 
-        # TRAIN FOR 0 EPOCHS JUST TO SEE THAT WHEN CONTINUING TRAINING EMA MODEL HAS BEEN SAVED CORRECTLY
-        kd_model.train(self.kd_train_params)
+        train_params["resume"] = True
+        kd_model.train(student=student, teacher=teacher, training_params=train_params)
         reloaded_ema_model = kd_model.ema_model.ema
         reloaded_net = kd_model.net
 

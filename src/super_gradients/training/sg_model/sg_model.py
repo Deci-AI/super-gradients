@@ -500,7 +500,11 @@ class SgModel:
 
     def _prep_net_for_train(self):
         if self.arch_params is None:
-            self.arch_params = getattr(self.net, "arch_params", HpmStruct(sync_bn=False))
+            default_arch_params = HpmStruct(sync_bn=False)
+            arch_params = getattr(self.net, "arch_params", default_arch_params)
+            self.arch_params = default_arch_params
+            if arch_params is not None:
+                self.arch_params.override(**arch_params.to_dict())
 
         # TODO: REMOVE THE BELOW LINE (FOR BACKWARD COMPATIBILITY)
         if self.checkpoint_params is None:
@@ -519,7 +523,7 @@ class SgModel:
         self._load_checkpoint_to_model()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, net: nn.Module=None, training_params: dict = dict()):  # noqa: C901
+    def train(self, net: nn.Module=None, training_params: dict = dict(), *args, **kwargs):  # noqa: C901
         """
 
         train - Trains the Model

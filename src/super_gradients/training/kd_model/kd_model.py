@@ -1,5 +1,6 @@
-import torch.nn
+import torch.nn as nn
 
+from super_gradients.training.models import SgModule
 from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.sg_model import SgModel
@@ -7,7 +8,7 @@ from typing import Union
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import utils as core_utils
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import get_param
+from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, \
     load_checkpoint_to_model
 from super_gradients.training.exceptions.kd_model_exceptions import ArchitectureKwargsException, \
@@ -15,6 +16,7 @@ from super_gradients.training.exceptions.kd_model_exceptions import Architecture
     TeacherKnowledgeException, UndefinedNumClassesException
 from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallback
 from super_gradients.training.utils.ema import KDModelEMA
+
 logger = get_logger(__name__)
 
 
@@ -127,7 +129,8 @@ class KDModel(SgModel):
         load_kd_model_checkpoint = get_param(checkpoint_params, "load_checkpoint")
 
         # CHECK THAT TEACHER NETWORK HOLDS KNOWLEDGE FOR THE STUDENT TO LEARN FROM OR THAT WE ARE LOADING AN ENTIRE KD
-        if not (teacher_pretrained_weights or teacher_checkpoint_path or load_kd_model_checkpoint or isinstance(teacher_architecture, torch.nn.Module)):
+        if not (teacher_pretrained_weights or teacher_checkpoint_path or load_kd_model_checkpoint or isinstance(
+                teacher_architecture, nn.Module)):
             raise TeacherKnowledgeException()
 
     def _validate_num_classes(self, student_arch_params, teacher_arch_params):
@@ -189,6 +192,9 @@ class KDModel(SgModel):
 
         run_teacher_on_eval = get_param(kwargs, "run_teacher_on_eval", default_val=False)
 
+        return self._instantiate_kd_net(arch_params, architecture, run_teacher_on_eval, student, teacher)
+
+    def _instantiate_kd_net(self, arch_params, architecture, run_teacher_on_eval, student, teacher):
         if isinstance(architecture, str):
             architecture_cls = KD_ARCHITECTURES[architecture]
             net = architecture_cls(arch_params=arch_params, student=student, teacher=teacher,
@@ -198,7 +204,6 @@ class KDModel(SgModel):
                                run_teacher_on_eval=run_teacher_on_eval)
         else:
             net = architecture
-
         return net
 
     def _load_checkpoint_to_model(self):
@@ -249,7 +254,8 @@ class KDModel(SgModel):
                                    })
         return hyper_param_config
 
-    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> KDModelEMA:
+    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15,
+                               exp_activation: bool = True) -> KDModelEMA:
         """Instantiate KD ema model for KDModule.
 
         If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.
@@ -273,3 +279,19 @@ class KDModel(SgModel):
 
         state["net"] = best_net.state_dict()
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
+
+    def train(self, net: KDModule = None, training_params: dict = dict(), student: SgModule = None,
+              teacher: nn.Module = None, kd_architecture: Union[KDModule.__class__, str] = 'kd_module',
+              kd_arch_params: dict = dict(), run_teacher_on_eval=False,
+              *args,
+              **kwargs):
+        kd_net = self.net or net
+        if kd_net is None:
+            if student is None or teacher is None:
+                raise ValueError()
+            kd_net = self._instantiate_kd_net(arch_params=HpmStruct(**kd_arch_params),
+                                              architecture=kd_architecture,
+                                              run_teacher_on_eval=run_teacher_on_eval,
+                                              student=student,
+                                              teacher=teacher)
+        super(KDModel, self).train(net=kd_net, training_params=training_params)

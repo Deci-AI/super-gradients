@@ -16,6 +16,8 @@ defaults:
   - dataset_params: imagenet_dataset_params
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
+  - teacher_checkpoint_params: default_checkpoint_params
+  - student_checkpoint_params: default_checkpoint_params
 
 training_hyperparams:
   loss: kd_loss
@@ -40,6 +42,9 @@ teacher_arch_params:
   image_size: [224, 224]
   patch_size: [16, 16]
 
+teacher_checkpoint_params:
+  pretrained_weights: imagenet
+
 dataset_params:
   batch_size: 192
   val_batch_size: 256
@@ -62,9 +67,9 @@ data_loader_num_workers: 8
 
 model_checkpoints_location: local
 load_checkpoint: False
+
 checkpoint_params:
   load_checkpoint: ${load_checkpoint}
-  teacher_pretrained_weights: imagenet
 
 run_teacher_on_eval: True
 

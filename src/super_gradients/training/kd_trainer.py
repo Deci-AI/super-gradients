@@ -1,3 +1,5 @@
+from super_gradients.training import models
+
 from super_gradients.training.trainer import Trainer
 
 
@@ -8,9 +10,14 @@ class KDTrainer(Trainer):
     """
 
     @classmethod
-    def build_model(cls, cfg):
-        cfg.sg_model.build_model(student_architecture=cfg.student_architecture,
-                                 teacher_architecture=cfg.teacher_architecture,
-                                 arch_params=cfg.arch_params, student_arch_params=cfg.student_arch_params,
-                                 teacher_arch_params=cfg.teacher_arch_params,
-                                 checkpoint_params=cfg.checkpoint_params, run_teacher_on_eval=cfg.run_teacher_on_eval)
+    def build_net_and_train(cls, cfg):
+        # BUILD NETWORK
+        student = models.get(architecture=cfg.student_architecture, arch_params=cfg.student_arch_params, checkpoint_params=cfg.student_checkpoint_params)
+        teacher = models.get(architecture=cfg.teacher_architecture, arch_params=cfg.teacher_arch_params, checkpoint_params=cfg.teacher_checkpoint_params)
+
+        # TRAIN
+        cfg.sg_model.train(student=student,
+                           teacher=teacher,
+                           kd_arch_params=cfg.arch_params,
+                           run_teacher_on_eval=cfg.run_teacher_on_eval,
+                           training_params=cfg.training_hyperparams)

@@ -1,5 +1,6 @@
 from omegaconf import DictConfig
 import hydra
+from super_gradients.training import models
 
 
 class Trainer:
@@ -22,12 +23,12 @@ class Trainer:
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
         cfg.sg_model.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
-        # BUILD NETWORK
-        cls.build_model(cfg)
-
-        # TRAIN
-        cfg.sg_model.train(training_params=cfg.training_hyperparams)
+        cls.build_net_and_train(cfg)
 
     @classmethod
-    def build_model(cls, cfg):
-        cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
+    def build_net_and_train(cls, cfg):
+        # BUILD NETWORK
+        net = models.get(architecture=cfg.architecture, arch_params=cfg.arch_params,
+                         checkpoint_params=cfg.checkpoint_params)
+        # TRAIN
+        cfg.sg_model.train(net=net, training_params=cfg.training_hyperparams)

@@ -1,6 +1,8 @@
 import shutil
 import unittest
 
+from super_gradients.training import models
+
 import super_gradients
 import torch
 import os
@@ -39,51 +41,28 @@ class TestTrainer(unittest.TestCase):
         dataset_params = {"batch_size": 4}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
-        model.build_model("resnet18_cifar")
-        return model
+        net = models.get("resnet18", arch_params={"num_classes": 5})
+        return model, net
 
     def test_train(self):
-        model = self.get_classification_trainer(self.folder_names[0])
-        model.train(training_params=self.training_params)
+        model, net = self.get_classification_trainer(self.folder_names[0])
+        model.train(net=net, training_params=self.training_params)
 
     def test_save_load(self):
-        model = self.get_classification_trainer(self.folder_names[1])
-        model.train(training_params=self.training_params)
-        model.build_model("resnet18_cifar", checkpoint_params={'load_checkpoint': True})
+        model, net = self.get_classification_trainer(self.folder_names[1])
+        model.train(net=net, training_params=self.training_params)
 
-    def test_load_only_weights_from_ckpt(self):
-        # Create a checkpoint with 100% accuracy
-        model = self.get_classification_trainer(self.folder_names[2])
-        params = self.training_params.copy()
-
-        params['max_epochs'] = 3
-        model.train(training_params=params)
-        # Build a model that continues the training
-        model = self.get_classification_trainer(self.folder_names[3])
-        model.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": False,
-                                                               "source_ckpt_folder_name": self.folder_names[2]}
-                          )
-        self.assertTrue(model.best_metric > -1)
-        self.assertTrue(model.start_epoch != 0)
-        # start_epoch is not initialized, adding to max_epochs
-        self.training_params['max_epochs'] += 3
-        model.train(training_params=self.training_params)
-        # Build a model that loads the weights and starts from scratch
-        model = self.get_classification_trainer(self.folder_names[4])
-        model.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": True,
-                                                               "source_ckpt_folder_name": self.folder_names[2]}
-                          )
-        self.assertTrue(model.best_metric == -1)
-        self.assertTrue(model.start_epoch == 0)
-        self.training_params['max_epochs'] += 3
-        model.train(training_params=self.training_params)
+        resume_training_params = self.training_params.copy()
+        resume_training_params["resume"] = True
+        model, net = self.get_classification_trainer(self.folder_names[1])
+        model.train(net=net, training_params=resume_training_params)
 
     def test_checkpoint_content(self):
         """VERIFY THAT ALL CHECKPOINTS ARE SAVED AND CONTAIN ALL THE EXPECTED KEYS"""
-        model = self.get_classification_trainer(self.folder_names[5])
+        model, net = self.get_classification_trainer(self.folder_names[5])
         params = self.training_params.copy()
         params["save_ckpt_epoch_list"] = [1]
-        model.train(training_params=params)
+        model.train(net=net, training_params=params)
         ckpt_filename = ['ckpt_best.pth', 'ckpt_latest.pth', 'ckpt_epoch_1.pth']
         ckpt_paths = [os.path.join(model.checkpoints_dir_path, suf) for suf in ckpt_filename]
         for ckpt_path in ckpt_paths:
@@ -93,14 +72,6 @@ class TestTrainer(unittest.TestCase):
         model._save_checkpoint()
         weights_only = torch.load(os.path.join(model.checkpoints_dir_path, 'ckpt_latest_weights_only.pth'))
         self.assertListEqual(['net'], list(weights_only.keys()))
-
-    def test_predict(self):
-        model = self.get_classification_trainer(self.folder_names[6])
-        inputs = torch.randn((5, 3, 32, 32))
-        targets = torch.randint(0, 5, (5, 1))
-        model.predict(inputs=inputs, targets=targets)
-        model.predict(inputs=inputs, targets=targets, half=True)
-        model.predict(inputs=inputs, targets=targets, half=False, verbose=True)
 
 
 if __name__ == '__main__':
