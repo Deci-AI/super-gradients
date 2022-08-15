@@ -225,6 +225,7 @@ class SgModel:
         self.dataset_params = self.dataset_interface.get_dataset_params()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
+    @deprecated(version='2.2.0', reason="directly pass net (nn.Module) to train()")
     def build_model(self,  # noqa: C901 - too complex
                     architecture: Union[str, nn.Module],
                     arch_params={}, checkpoint_params={}, *args, **kwargs):
