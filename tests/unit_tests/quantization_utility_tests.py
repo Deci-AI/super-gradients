@@ -7,9 +7,11 @@ try:
     from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer, \
         RegisterQuantizedModule
     from pytorch_quantization.calib import MaxCalibrator, HistogramCalibrator
-    from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping
+    from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, \
+        QuantizedMetadata
     from pytorch_quantization.nn import QuantConv2d
     from pytorch_quantization.tensor_quant import QuantDescriptor
+
     _imported_pytorch_quantization_failure = False
 
 except (ImportError, NameError, ModuleNotFoundError):
@@ -635,6 +637,61 @@ class QuantizationUtilityTest(unittest.TestCase):
 
         self.assertTrue(isinstance(module.conv, SelectiveQuantizer.mapping_instructions[nn.Conv2d].quantized_type))
         self.assertTrue(isinstance(module.my_block, MyQuantizedBlock))
+
+    def test_custom_quantized_mappings_are_recursively_quantized_if_required(self):
+        # ARRANGE
+        class MyBlock(nn.Module):
+            def __init__(self, in_feats, out_feats) -> None:
+                super().__init__()
+                self.in_feats = in_feats
+                self.out_feats = out_feats
+                self.flatten = nn.Flatten()
+                self.linear = nn.Linear(in_feats, out_feats)
+
+            def forward(self, x):
+                return self.linear(self.flatten(x))
+
+        class MyQuantizedBlock(SGQuantMixin):
+            def __init__(self, in_feats, out_feats) -> None:
+                super().__init__()
+                self.flatten = nn.Flatten()
+                self.linear = nn.Linear(in_feats, out_feats)
+
+            def forward(self, x):
+                return self.linear(self.flatten(x))
+
+        class MyModel(nn.Module):
+            def __init__(self, res, n_classes) -> None:
+                super().__init__()
+                self.conv = nn.Conv2d(3, 4, kernel_size=3, padding=1)
+                self.my_block = \
+                    QuantizedMapping(float_module=MyBlock(4 * (res ** 2), n_classes),
+                                     quantized_type=MyQuantizedBlock,
+                                     action=QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILDREN)
+
+            def forward(self, x):
+                y = self.conv(x)
+                return self.my_block(y)
+
+        res = 32
+        n_clss = 10
+        module = MyModel(res, n_clss)
+
+        # TEST
+        q_util = SelectiveQuantizer()
+        q_util.quantize_module(module)
+
+        x = torch.rand(1, 3, res, res)
+
+        # ASSERT
+        with torch.no_grad():
+            y = module(x)
+            torch.testing.assert_close(y.size(), (1, n_clss))
+
+        self.assertTrue(isinstance(module.conv, SelectiveQuantizer.mapping_instructions[nn.Conv2d].quantized_type))
+        self.assertTrue(isinstance(module.my_block, MyQuantizedBlock))
+        self.assertTrue(isinstance(module.my_block.linear,
+                                   SelectiveQuantizer.mapping_instructions[nn.Linear].quantized_type))
 
 
 if __name__ == '__main__':

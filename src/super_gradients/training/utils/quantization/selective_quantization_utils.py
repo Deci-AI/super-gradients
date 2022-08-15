@@ -1,4 +1,4 @@
-from typing import Tuple, Set, Type
+from typing import Tuple, Set, Type, Dict, Union
 from torch import nn
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -40,7 +40,7 @@ class RegisterQuantizedModule(object):
                 quantized_type=quant_module,
                 input_quant_descriptor=self.input_quant_descriptor,
                 weights_quant_descriptor=self.weights_quant_descriptor,
-                action=QuantizedMetadata.ReplacementAction.REPLACE
+                action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILDREN
             )
         })
         return quant_module  # this is required since the decorator assigns the result to the `quant_module`
@@ -58,7 +58,7 @@ class SelectiveQuantizer:
     mapping_instructions = {
         **{
             float_type: QuantizedMetadata(float_source=float_type, quantized_type=quantized_type,
-                                          action=QuantizedMetadata.ReplacementAction.REPLACE)
+                                          action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILDREN)
             for (float_type, quantized_type) in [
                 (nn.Conv1d, quant_nn.QuantConv1d),
                 (nn.Conv2d, quant_nn.QuantConv2d),
@@ -97,7 +97,7 @@ class SelectiveQuantizer:
             calib_method_type = 'max'
 
         if self.default_per_channel_quant_modules and for_weights:
-            return QuantDescriptor(calib_method=calib_method_type, axis=(0,))
+            return QuantDescriptor(calib_method=calib_method_type, axis=0)
         return QuantDescriptor(calib_method=calib_method_type)
 
     def register_skip_quantization(self, *, layer_names: Set[str]):
@@ -115,7 +115,7 @@ class SelectiveQuantizer:
         self.mapping_instructions.update({
             name: QuantizedMetadata(float_source=name,
                                     quantized_type=quantized_type,
-                                    action=QuantizedMetadata.ReplacementAction.REPLACE,
+                                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILDREN,
                                     input_quant_descriptor=input_quant_descriptor,
                                     weights_quant_descriptor=weights_quant_descriptor)
             for name in layer_names
@@ -143,7 +143,7 @@ class SelectiveQuantizer:
                     quantized_type=child_module.quantized_type,
                     input_quant_descriptor=child_module.input_quant_descriptor,
                     weights_quant_descriptor=child_module.weights_quant_descriptor,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE
+                    action=child_module.action
                 )
 
             if isinstance(child_module, nn.Module):  # recursive call
@@ -151,7 +151,7 @@ class SelectiveQuantizer:
 
         return mapping_instructions
 
-    def _instantiate_quantized_from_float(self, float_module, metadata):
+    def _instantiate_quantized_from_float(self, float_module, metadata, preserve_state_dict):
         base_classes = (QuantMixin, QuantInputMixin, SGQuantMixin)
         if not issubclass(metadata.quantized_type, base_classes):
             raise AssertionError(f"Quantization suite for {type(float_module).__name__} is invalid. "
@@ -176,10 +176,39 @@ class SelectiveQuantizer:
                 f'{metadata.quantized_type.__name__} must inherit from ' \
                 f'{SGQuantMixin.__name__}, so that it would include `from_float` class method'
 
-        return metadata.quantized_type.from_float(float_module, **quant_descriptors)
+        q_instance = metadata.quantized_type.from_float(float_module, **quant_descriptors)
 
-    def _maybe_quantize_one_layer(self, module, child_name, nesting, child_module,
-                                  mapping_instructions, preserve_state_dict) -> bool:
+        # MOVE TENSORS TO ORIGINAL DEVICE
+        if len(list(float_module.parameters(recurse=False))) > 0:
+            q_instance = q_instance.to(next(float_module.parameters(recurse=False)).device)
+        elif len(list(float_module.buffers(recurse=False))):
+            q_instance = q_instance.to(next(float_module.buffers(recurse=False)).device)
+
+        # COPY STATE DICT IF NEEDED
+        if preserve_state_dict:
+            q_instance.load_state_dict(float_module.state_dict(), strict=True)
+
+        return q_instance
+
+    def _maybe_quantize_one_layer(self, module: nn.Module,
+                                  child_name: str,
+                                  nesting: Tuple[str, ...],
+                                  child_module: nn.Module,
+                                  mapping_instructions: Dict[Union[str, Type], QuantizedMetadata],
+                                  preserve_state_dict: bool) -> bool:
+        """
+        Does the heavy lifting of (maybe) quantizing a layer: creates a quantized instance based on a float instance,
+        and replaces it in the "parent" module
+
+        :param module:                  the module we'd like to quantize a specific layer in
+        :param child_name:              the attribute name of the layer in the module
+        :param nesting:                 the current nesting we're in. Needed to find the appropriate key in the mappings
+        :param child_module:            the instance of the float module we'd like to quantize
+        :param mapping_instructions:    mapping instructions: how to quantize
+        :param preserve_state_dict:     whether to copy the state dict from the float instance to the quantized instance
+
+        :return: a boolean indicates if we found a match and should not continue recursively
+        """
         # if we don't have any instruction for the specific layer or the specific type - we continue
         # NOTE! IT IS IMPORTANT TO FIRST PROCESS THE NAME AND ONLY THEN THE TYPE
         if _imported_pytorch_quantization_failure is not None:
@@ -194,23 +223,32 @@ class SelectiveQuantizer:
                 assert isinstance(child_module, SkipQuantization)
                 setattr(module, child_name, child_module.float_module)
                 return True
-            elif metadata.action == QuantizedMetadata.ReplacementAction.REPLACE:
+            elif metadata.action in (QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILDREN,
+                                     QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILDREN,
+                                     QuantizedMetadata.ReplacementAction.QUANTIZE_CHILDREN_THEN_REPLACE):
                 if isinstance(child_module, QuantizedMapping):  # UNWRAP MAPPING
                     child_module = child_module.float_module
                 q_instance: nn.Module = self._instantiate_quantized_from_float(float_module=child_module,
-                                                                               metadata=metadata)
-                # MOVE TENSORS TO ORIGINAL DEVICE
-                if len(list(child_module.parameters(recurse=False))) > 0:
-                    q_instance = q_instance.to(next(child_module.parameters(recurse=False)).device)
-                elif len(list(child_module.buffers(recurse=False))):
-                    q_instance = q_instance.to(next(child_module.buffers(recurse=False)).device)
-
-                # COPY STATE DICT IF NEEDED
-                if preserve_state_dict:
-                    q_instance.load_state_dict(child_module.state_dict(), strict=True)
+                                                                               metadata=metadata,
+                                                                               preserve_state_dict=preserve_state_dict)
 
                 # ACTUAL REPLACEMENT
-                setattr(module, child_name, q_instance)
+                def replace():
+                    setattr(module, child_name, q_instance)
+
+                def recurse_quantize():
+                    self.quantize_module(getattr(module, child_name),
+                                         nesting=nesting + (child_name,),
+                                         preserve_state_dict=preserve_state_dict)
+
+                if metadata.action == QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILDREN:
+                    replace()
+                elif metadata.action == QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILDREN:
+                    replace()
+                    recurse_quantize()
+                elif metadata.action == QuantizedMetadata.ReplacementAction.QUANTIZE_CHILDREN_THEN_REPLACE:
+                    recurse_quantize()
+                    replace()
                 return True
             else:
                 raise NotImplementedError

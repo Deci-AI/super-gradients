@@ -90,27 +90,6 @@ class SkipQuantization(nn.Module):
         self.forward = module.forward
 
 
-class QuantizedMapping(nn.Module):
-    """
-    This class wraps a float module instance, and defines a mapping from this instance to the corresponding quantized
-    class, with relevant quant descriptors.
-
-    Example:
-        self.my_block = QuantizedMapping(float_module=MyBlock(4, n_classes), quantized_type=MyQuantizedBlock)
-    """
-
-    def __init__(self, *, float_module: nn.Module,
-                 quantized_type: Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]],
-                 input_quant_descriptor: QuantDescriptor = None,
-                 weights_quant_descriptor: QuantDescriptor = None) -> None:
-        super().__init__()
-        self.float_module = float_module
-        self.quantized_type = quantized_type
-        self.input_quant_descriptor = input_quant_descriptor
-        self.weights_quant_descriptor = weights_quant_descriptor
-        self.forward = float_module.forward
-
-
 @dataclass(init=True)
 class QuantizedMetadata:
     """
@@ -122,15 +101,25 @@ class QuantizedMetadata:
         float_source:               the name of a specific layer (e.g., `module.backbone.conv1`),
                                     or a specific type (e.g., `Conv2d`) that will be later quantized
         quantized_type:             the quantized type that the source will be converted to
-        action:                     how to resolve the conversion: we either skip it,
-                                    unwrap the instance and work with the wrapped one (i.e., we wrap with a mapper),
-                                    or replace source with an instance of the quantized type
+        action:                     how to resolve the conversion, we either:
+                                    - SKIP: skip it,
+                                    - UNWRAP: unwrap the instance and work with the wrapped one
+                                      (i.e., we wrap with a mapper),
+                                    - REPLACE_AND_DONT_QUANTIZE_CHILDREN: replace source with an instance of the
+                                      quantized type
+                                    - REPLACE_THEN_QUANTIZE_CHILDREN: replace source with an instance of the quantized
+                                      type, and then try to recursively
+                                      quantize the child modules of that type
+                                    - QUANTIZE_CHILDREN_THEN_REPLACE: recursively quantize the child modules, and then
+                                      replace source with an instance of the quantized type
         input_quant_descriptor:     quantization descriptor for inputs (None will take the default one)
         weights_quant_descriptor:   quantization descriptor for weights (None will take the default one)
     """
 
     class ReplacementAction(Enum):
-        REPLACE = 'replace'
+        REPLACE_AND_DONT_QUANTIZE_CHILDREN = 'replace'
+        REPLACE_THEN_QUANTIZE_CHILDREN = 'replace_then_recurse'
+        QUANTIZE_CHILDREN_THEN_REPLACE = 'recurse_then_replace'
         UNWRAP = 'unwrap'
         SKIP = 'skip'
 
@@ -141,8 +130,33 @@ class QuantizedMetadata:
     weights_quant_descriptor: QuantDescriptor = None  # default is used if None
 
     def __post_init__(self):
-        if self.action == QuantizedMetadata.ReplacementAction.REPLACE:
+        if self.action in (QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILDREN,
+                           QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILDREN,
+                           QuantizedMetadata.ReplacementAction.QUANTIZE_CHILDREN_THEN_REPLACE):
             assert issubclass(self.quantized_type, (SGQuantMixin, QuantMixin, QuantInputMixin))
+
+
+class QuantizedMapping(nn.Module):
+    """
+    This class wraps a float module instance, and defines a mapping from this instance to the corresponding quantized
+    class, with relevant quant descriptors.
+
+    Example:
+        self.my_block = QuantizedMapping(float_module=MyBlock(4, n_classes), quantized_type=MyQuantizedBlock)
+    """
+
+    def __init__(self, *, float_module: nn.Module,
+                 quantized_type: Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]],
+                 action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILDREN,
+                 input_quant_descriptor: QuantDescriptor = None,
+                 weights_quant_descriptor: QuantDescriptor = None) -> None:
+        super().__init__()
+        self.float_module = float_module
+        self.quantized_type = quantized_type
+        self.action = action
+        self.input_quant_descriptor = input_quant_descriptor
+        self.weights_quant_descriptor = weights_quant_descriptor
+        self.forward = float_module.forward
 
 
 def _inject_class_methods_to_default_quant_types():
