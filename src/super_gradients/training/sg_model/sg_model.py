@@ -533,6 +533,9 @@ class SgModel:
           the data loaders, as dictionary. The phase context will hold the additional items, under an attribute with
           the same name as the key in this dictionary. Then such items can be accessed through phase callbacks.
 
+            :param net: torch.nn.Module, network to train. When none is given will attempt to use self.net
+             (SEE BUILD_MODEL DEPRECATION) (default=None).
+
 
             :param training_params:
                 - `max_epochs` : int

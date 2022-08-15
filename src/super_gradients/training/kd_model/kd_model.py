@@ -285,6 +285,19 @@ class KDModel(SgModel):
               kd_arch_params: dict = dict(), run_teacher_on_eval=False,
               *args,
               **kwargs):
+        """
+
+        :param net:
+        :param training_params:
+        :param student:
+        :param teacher:
+        :param kd_architecture:
+        :param kd_arch_params:
+        :param run_teacher_on_eval:
+        :param args:
+        :param kwargs:
+        :return:
+        """
         kd_net = self.net or net
         if kd_net is None:
             if student is None or teacher is None:
