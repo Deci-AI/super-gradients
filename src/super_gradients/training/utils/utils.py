@@ -413,7 +413,7 @@ def get_orientation_key() -> int:
 def exif_size(image: Image) -> Tuple[int, int]:
     """Get the size of image.
     :param image:   The image to get size from
-    :return:        (width, height)
+    :return:        (height, width)
     """
 
     orientation_key = get_orientation_key()
@@ -431,8 +431,8 @@ def exif_size(image: Image) -> Tuple[int, int]:
                 image_size = (image_size[1], image_size[0])
     except Exception as ex:
         print('Caught Exception trying to rotate: ' + str(image) + str(ex))
-    height, width = image_size
-    return width, height
+    width, height = image_size
+    return height, width
 
 
 def get_image_size_from_path(img_path: str) -> Tuple[int, int]:

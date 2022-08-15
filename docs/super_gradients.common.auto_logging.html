@@ -38,6 +38,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
 <li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Technical Documentation</span></p>
@@ -131,17 +132,52 @@ testing.</p>
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.common.auto_logging.auto_logger.AutoLoggerConfig.configure_elasticsearch_handler">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">configure_elasticsearch_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_dict</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/auto_logging/auto_logger.html#AutoLoggerConfig.configure_elasticsearch_handler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.auto_logging.auto_logger.AutoLoggerConfig.configure_elasticsearch_handler" title="Permalink to this definition"></a></dt>
-<dd><p>Configures the ElasticSearch loggeing handler through an matching library.</p>
-</dd></dl>
-
 </dd></dl>
 
 </section>
 <section id="module-super_gradients.common.auto_logging">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-super_gradients.common.auto_logging" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.auto_logging.AutoLoggerConfig">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.auto_logging.</span></span><span class="sig-name descname"><span class="pre">AutoLoggerConfig</span></span><a class="reference internal" href="_modules/super_gradients/common/auto_logging/auto_logger.html#AutoLoggerConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.auto_logging.AutoLoggerConfig" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A Class for the Automated Logging Config that is created from the JSON config file (auto_logging_conf)</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.common.auto_logging.AutoLoggerConfig.generate_config_for_module_name">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">generate_config_for_module_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_log_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'INFO'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10485760</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logs_dir_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handlers_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">dict</span><a class="reference internal" href="_modules/super_gradients/common/auto_logging/auto_logger.html#AutoLoggerConfig.generate_config_for_module_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.auto_logging.AutoLoggerConfig.generate_config_for_module_name" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>generate_config_for_module_name - Returns a Config Dict For Logging</dt><dd><dl class="field-list simple">
+<dt class="field-odd">param module_name</dt>
+<dd class="field-odd"><p>The Python Module name to create auto_logging for</p>
+</dd>
+<dt class="field-even">param log_level</dt>
+<dd class="field-even"><p>Minimal log level to set for the new auto_logging</p>
+</dd>
+<dt class="field-odd">param max_bytes</dt>
+<dd class="field-odd"><p>Max size for the log file before rotation starts</p>
+</dd>
+<dt class="field-even">param handlers_list</dt>
+<dd class="field-even"><p>A list specifying the handlers (Console, etc..) - Better Leave Empty or None</p>
+</dd>
+<dt class="field-odd">param training_log_path</dt>
+<dd class="field-odd"><p>Path to training log file which all modules of super_gradients will write to. Ignored
+when set to None.</p>
+</dd>
+<dt class="field-even">param logs_dir_path</dt>
+<dd class="field-even"><p>Path to sg_logs directory (default=None), where module logs will be saved. When set
+to None- module logs will be saved in ~/sg_logs (created if path does not exist). Main use case is for
+testing.</p>
+</dd>
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>python dict() with the new auto_logging for the module</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 
