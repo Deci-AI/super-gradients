@@ -38,6 +38,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
 <li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Technical Documentation</span></p>
@@ -93,106 +94,8 @@
 <section id="module-super_gradients.training.sg_model.sg_model">
 <span id="super-gradients-training-sg-model-sg-model-module"></span><h2>super_gradients.training.sg_model.sg_model module<a class="headerlink" href="#module-super_gradients.training.sg_model.sg_model" title="Permalink to this headline"></a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.StrictLoad">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.sg_model.</span></span><span class="sig-name descname"><span class="pre">StrictLoad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#StrictLoad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.StrictLoad" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
-<dl>
-<dt>Wrapper for adding more functionality to torch’s strict_load parameter in load_state_dict().</dt><dd><dl>
-<dt>Attributes:</dt><dd><p>OFF              - Native torch “strict_load = off” behaviour. See nn.Module.load_state_dict() documentation for more details.
-ON               - Native torch “strict_load = on” behaviour. See nn.Module.load_state_dict() documentation for more details.
-NO_KEY_MATCHING  - Allows the usage of SuperGradient’s adapt_checkpoint function, which loads a checkpoint by matching each</p>
-<blockquote>
-<div><p>layer’s shapes (and bypasses the strict matching of the names of each layer (ie: disregards the state_dict key matching)).</p>
-</div></blockquote>
-</dd>
-</dl>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.StrictLoad.OFF">
-<span class="sig-name descname"><span class="pre">OFF</span></span><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.StrictLoad.OFF" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.StrictLoad.ON">
-<span class="sig-name descname"><span class="pre">ON</span></span><em class="property"> <span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.StrictLoad.ON" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.StrictLoad.NO_KEY_MATCHING">
-<span class="sig-name descname"><span class="pre">NO_KEY_MATCHING</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'no_key_matching'</span></em><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.StrictLoad.NO_KEY_MATCHING" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.MultiGPUMode">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.sg_model.</span></span><span class="sig-name descname"><span class="pre">MultiGPUMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#MultiGPUMode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.MultiGPUMode" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
-<dl class="py attribute">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">OFF</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">-</span> <span class="pre">Single</span> <span class="pre">GPU</span> <span class="pre">Mode</span> <span class="pre">/</span> <span class="pre">CPU</span> <span class="pre">Mode</span></span></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">DATA_PARALLEL</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">-</span> <span class="pre">Multiple</span> <span class="pre">GPUs,</span> <span class="pre">Synchronous</span></span></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">DISTRIBUTED_DATA_PARALLEL</span> <span class="pre">-</span> <span class="pre">Multiple</span> <span class="pre">GPUs,</span> <span class="pre">Asynchronous</span></span></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.MultiGPUMode.OFF">
-<span class="sig-name descname"><span class="pre">OFF</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'Off'</span></em><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.MultiGPUMode.OFF" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.MultiGPUMode.DATA_PARALLEL">
-<span class="sig-name descname"><span class="pre">DATA_PARALLEL</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'DP'</span></em><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.MultiGPUMode.DATA_PARALLEL" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.MultiGPUMode.DISTRIBUTED_DATA_PARALLEL">
-<span class="sig-name descname"><span class="pre">DISTRIBUTED_DATA_PARALLEL</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'DDP'</span></em><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.MultiGPUMode.DISTRIBUTED_DATA_PARALLEL" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.MultiGPUMode.AUTO">
-<span class="sig-name descname"><span class="pre">AUTO</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'AUTO'</span></em><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.MultiGPUMode.AUTO" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.EvaluationType">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.sg_model.</span></span><span class="sig-name descname"><span class="pre">EvaluationType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#EvaluationType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.EvaluationType" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
-<p>Passed to SgModel.evaluate(..), and controls which phase callbacks should be triggered (if at all).</p>
-<blockquote>
-<div><dl class="simple">
-<dt>Attributes:</dt><dd><p>TEST
-VALIDATION</p>
-</dd>
-</dl>
-</div></blockquote>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.EvaluationType.TEST">
-<span class="sig-name descname"><span class="pre">TEST</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'TEST'</span></em><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.EvaluationType.TEST" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.EvaluationType.VALIDATION">
-<span class="sig-name descname"><span class="pre">VALIDATION</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'VALIDATION'</span></em><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.EvaluationType.VALIDATION" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.sg_model.</span></span><span class="sig-name descname"><span class="pre">SgModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">experiment_name:</span> <span class="pre">str</span></em>, <em class="sig-param"><span class="pre">device:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">multi_gpu:</span> <span class="pre">Union[super_gradients.training.sg_model.sg_model.MultiGPUMode</span></em>, <em class="sig-param"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;MultiGPUMode.OFF:</span> <span class="pre">'Off'&gt;</span></em>, <em class="sig-param"><span class="pre">model_checkpoints_location:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'local'</span></em>, <em class="sig-param"><span class="pre">overwrite_local_checkpoint:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em>, <em class="sig-param"><span class="pre">ckpt_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'ckpt_latest.pth'</span></em>, <em class="sig-param"><span class="pre">post_prediction_callback:</span> <span class="pre">Optional[super_gradients.training.utils.detection_utils.DetectionPostPredictionCallback]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">ckpt_root_dir=None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.sg_model.</span></span><span class="sig-name descname"><span class="pre">SgModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">experiment_name:</span> <span class="pre">str</span></em>, <em class="sig-param"><span class="pre">device:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">multi_gpu:</span> <span class="pre">Union[super_gradients.common.data_types.enum.multi_gpu_mode.MultiGPUMode</span></em>, <em class="sig-param"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;MultiGPUMode.OFF:</span> <span class="pre">'Off'&gt;</span></em>, <em class="sig-param"><span class="pre">model_checkpoints_location:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'local'</span></em>, <em class="sig-param"><span class="pre">overwrite_local_checkpoint:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em>, <em class="sig-param"><span class="pre">ckpt_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'ckpt_latest.pth'</span></em>, <em class="sig-param"><span class="pre">post_prediction_callback:</span> <span class="pre">Optional[super_gradients.training.utils.detection_utils.DetectionPostPredictionCallback]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">ckpt_root_dir:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">train_loader:</span> <span class="pre">Optional[torch.utils.data.dataloader.DataLoader]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">valid_loader:</span> <span class="pre">Optional[torch.utils.data.dataloader.DataLoader]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">test_loader:</span> <span class="pre">Optional[torch.utils.data.dataloader.DataLoader]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">classes:</span> <span class="pre">Optional[List[Any]]</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>SuperGradient Model - Base Class for Sg Models</p>
 <dl class="py method">
@@ -250,25 +153,6 @@ load the checkpoint even if the load_checkpoint flag is not provided.</p>
 </ul>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.backward_step">
-<span class="sig-name descname"><span class="pre">backward_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.PhaseContext" title="super_gradients.training.utils.callbacks.PhaseContext"><span class="pre">super_gradients.training.utils.callbacks.PhaseContext</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.backward_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.backward_step" title="Permalink to this definition"></a></dt>
-<dd><p>Run backprop on the loss and perform a step
-:param loss: The value computed by the loss function
-:param optimizer: An object that can perform a gradient step and zeroize model gradient
-:param epoch: number of epoch the training is on
-:param batch_idx: number of iteration inside the current epoch
-:param context: current phase context
-:return:</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.save_checkpoint">
-<span class="sig-name descname"><span class="pre">save_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_results_tuple</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.PhaseContext" title="super_gradients.training.utils.callbacks.PhaseContext"><span class="pre">super_gradients.training.utils.callbacks.PhaseContext</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.save_checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.save_checkpoint" title="Permalink to this definition"></a></dt>
-<dd><p>Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
-params)</p>
 </dd></dl>
 
 <dl class="py method">
@@ -341,7 +225,6 @@ One of SuperGradient’s built in options:</p>
 “detection_loss”: YoLoV3DetectionLoss,
 “shelfnet_ohem_loss”: ShelfNetOHEMLoss,
 “shelfnet_se_loss”: ShelfNetSemanticEncodingLoss,
-“yolo_v5_loss”: YoLoV5DetectionLoss,
 “ssd_loss”: SSDLoss,</p>
 </div></blockquote>
 <p>or user defined nn.module loss function.</p>
@@ -536,6 +419,48 @@ or support remote storage.</p>
 <li><p><cite>clip_grad_norm</cite> : float</p>
 <p>Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped</p>
 </li>
+<li><p><cite>lr_cooldown_epochs</cite> : int (default=0)</p>
+<p>Number of epochs to cooldown LR (i.e the last epoch from scheduling view point=max_epochs-cooldown).</p>
+</li>
+<li><p><cite>pre_prediction_callback</cite> : Callable (default=None)</p>
+<blockquote>
+<div><dl class="simple">
+<dt>When not None, this callback will be applied to images and targets, and returning them to be used</dt><dd><p>for the forward pass, and further computations. Args for this callable should be in the order
+(inputs, targets, batch_idx) returning modified_inputs, modified_targets</p>
+</dd>
+</dl>
+</div></blockquote>
+</li>
+<li><p><cite>ckpt_best_name</cite> : str (default=’ckpt_best.pth’)</p>
+<p>The best checkpoint (according to metric_to_watch) will be saved under this filename in the checkpoints directory.</p>
+</li>
+<li><p><cite>enable_qat</cite>: bool (default=False)</p>
+<dl class="simple">
+<dt>Adds a QATCallback to the phase callbacks, that triggers quantization aware training starting from</dt><dd><p>qat_params[“start_epoch”]</p>
+</dd>
+</dl>
+</li>
+<li><p><cite>qat_params</cite>: dict-like object with the following key/values:</p>
+<blockquote>
+<div><p>start_epoch: int, first epoch to start QAT.</p>
+<dl class="simple">
+<dt>quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax</dt><dd><p>computation of the quantized modules (default=percentile).</p>
+</dd>
+</dl>
+<p>per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).</p>
+<p>calibrate: bool, whether to perfrom calibration (default=False).</p>
+<p>calibrated_model_path: str, path to a calibrated checkpoint (default=None).</p>
+<dl class="simple">
+<dt>calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset. When None,</dt><dd><p>context.train_loader will be used (default=None).</p>
+</dd>
+</dl>
+<p>num_calib_batches: int, number of batches to collect the statistics from.</p>
+<dl class="simple">
+<dt>percentile: float, percentile value to use when SgModel,quant_modules_calib_method=’percentile’.</dt><dd><p>Discarded when other methods are used (Default=99.99).</p>
+</dd>
+</dl>
+</div></blockquote>
+</li>
 </ul>
 </dd>
 </dl>
@@ -577,46 +502,19 @@ networks predictions, accuracy calculation, forward pass net time, function gros
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.compute_model_runtime">
-<span class="sig-name descname"><span class="pre">compute_model_runtime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dims</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_sizes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">,</span> </span><span class="pre">list</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">(1,</span> <span class="pre">8,</span> <span class="pre">16,</span> <span class="pre">32,</span> <span class="pre">64)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.compute_model_runtime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.compute_model_runtime" title="Permalink to this definition"></a></dt>
-<dd><p>Compute the “atomic” inference time and throughput.
-Atomic refers to calculating the forward pass independently, discarding effects such as data augmentation,
-data upload to device, multi-gpu distribution etc.
-:param input_dims: tuple</p>
-<blockquote>
-<div><p>shape of a basic input to the network (without the first index) e.g. (3, 224, 224)
-if None uses an input from the test loader</p>
-</div></blockquote>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>batch_sizes</strong> – int or list
-Batch sizes for latency calculation</p></li>
-<li><p><strong>verbose</strong> – bool
-Prints results to screen</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>log: dict
-Latency and throughput for each tested batch size</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.get_arch_params">
-<span class="sig-name descname"><span class="pre">get_arch_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.get_arch_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.get_arch_params" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_arch_params</span></span><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.get_arch_params" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.get_structure">
-<span class="sig-name descname"><span class="pre">get_structure</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.get_structure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.get_structure" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_structure</span></span><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.get_structure" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.get_architecture">
-<span class="sig-name descname"><span class="pre">get_architecture</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.get_architecture"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.get_architecture" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_architecture</span></span><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.get_architecture" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -624,41 +522,9 @@ Latency and throughput for each tested batch size</p>
 <span class="sig-name descname"><span class="pre">set_experiment_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">experiment_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.set_experiment_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.set_experiment_name" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.re_build_model">
-<span class="sig-name descname"><span class="pre">re_build_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arch_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.re_build_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.re_build_model" title="Permalink to this definition"></a></dt>
-<dd><dl class="simple">
-<dt>arch_params<span class="classifier">dict</span></dt><dd><p>Architecture H.P. e.g.: block, num_blocks, num_classes, etc.</p>
-</dd>
-</dl>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.update_architecture">
-<span class="sig-name descname"><span class="pre">update_architecture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">structure</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.update_architecture"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.update_architecture" title="Permalink to this definition"></a></dt>
-<dd><dl class="simple">
-<dt>architecture<span class="classifier">str</span></dt><dd><p>Defines the network’s architecture according to the options in models/all_architectures</p>
-</dd>
-<dt>load_checkpoint<span class="classifier">bool</span></dt><dd><p>Loads a checkpoint according to experiment_name</p>
-</dd>
-<dt>arch_params<span class="classifier">dict</span></dt><dd><p>Architecture H.P. e.g.: block, num_blocks, num_classes, etc.</p>
-</dd>
-</dl>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.get_module">
-<span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.get_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.get_module" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_module</span></span><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.get_module" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -697,7 +563,7 @@ Latency and throughput for each tested batch size</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.evaluate">
-<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_loader</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.utils.data.dataloader.DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torchmetrics.collections.MetricCollection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#super_gradients.training.sg_model.sg_model.EvaluationType" title="super_gradients.training.sg_model.sg_model.EvaluationType"><span class="pre">super_gradients.training.sg_model.sg_model.EvaluationType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics_progress_verbose</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.evaluate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.evaluate" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_loader</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.utils.data.dataloader.DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torchmetrics.collections.MetricCollection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="super_gradients.common.data_types.enum.html#super_gradients.common.data_types.enum.EvaluationType" title="super_gradients.common.data_types.enum.evaluation_type.EvaluationType"><span class="pre">super_gradients.common.data_types.enum.evaluation_type.EvaluationType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics_progress_verbose</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.evaluate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.evaluate" title="Permalink to this definition"></a></dt>
 <dd><p>Evaluates the model on given dataloader and metrics.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -718,24 +584,45 @@ Slows down the program significantly.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.get_net">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_net</span></span><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.get_net" title="Permalink to this definition"></a></dt>
+<dd><p>Getter for network.
+:return: torch.nn.Module, self.net</p>
+</dd></dl>
+
 <dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.instantiate_net">
-<span class="sig-name descname"><span class="pre">instantiate_net</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">architecture</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.nn.modules.module.Module</span><span class="p"><span class="pre">,</span> </span><span class="pre">type</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arch_params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tuple</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.instantiate_net"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.instantiate_net" title="Permalink to this definition"></a></dt>
-<dd><dl class="simple">
-<dt>Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required</dt><dd><p>module manipulation (i.e head replacement).</p>
-</dd>
-</dl>
+<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.set_net">
+<span class="sig-name descname"><span class="pre">set_net</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.nn.modules.module.Module</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.set_net"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.set_net" title="Permalink to this definition"></a></dt>
+<dd><p>Setter for network.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>architecture</strong> – String, torch.nn.Module or uninstantiated SgModule class describing the netowrks architecture.</p></li>
-<li><p><strong>arch_params</strong> – Architecture’s parameters passed to networks c’tor.</p></li>
-<li><p><strong>checkpoint_params</strong> – checkpoint loading related parameters dictionary with ‘pretrained_weights’ key,
-s.t it’s value is a string describing the dataset of the pretrained weights (for example “imagenent”).</p></li>
-</ul>
+<dd class="field-odd"><p><strong>net</strong> – torch.nn.Module, value to set net</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>instantiated netowrk i.e torch.nn.Module, architecture_class (will be none when architecture is not str)</p>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.set_ckpt_best_name">
+<span class="sig-name descname"><span class="pre">set_ckpt_best_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ckpt_best_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.set_ckpt_best_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.set_ckpt_best_name" title="Permalink to this definition"></a></dt>
+<dd><p>Setter for best checkpoint filename.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ckpt_best_name</strong> – str, value to set ckpt_best_name</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.sg_model.sg_model.SgModel.set_ema">
+<span class="sig-name descname"><span class="pre">set_ema</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.set_ema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.sg_model.SgModel.set_ema" title="Permalink to this definition"></a></dt>
+<dd><p>Setter for self.ema</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>val</strong> – bool, value to set ema</p>
 </dd>
 </dl>
 </dd></dl>
@@ -747,7 +634,7 @@ s.t it’s value is a string describing the dataset of the pretrained weights (f
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-super_gradients.training.sg_model" title="Permalink to this headline"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.</span></span><span class="sig-name descname"><span class="pre">SgModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">experiment_name:</span> <span class="pre">str</span></em>, <em class="sig-param"><span class="pre">device:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">multi_gpu:</span> <span class="pre">Union[super_gradients.training.sg_model.sg_model.MultiGPUMode</span></em>, <em class="sig-param"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;MultiGPUMode.OFF:</span> <span class="pre">'Off'&gt;</span></em>, <em class="sig-param"><span class="pre">model_checkpoints_location:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'local'</span></em>, <em class="sig-param"><span class="pre">overwrite_local_checkpoint:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em>, <em class="sig-param"><span class="pre">ckpt_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'ckpt_latest.pth'</span></em>, <em class="sig-param"><span class="pre">post_prediction_callback:</span> <span class="pre">Optional[super_gradients.training.utils.detection_utils.DetectionPostPredictionCallback]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">ckpt_root_dir=None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.</span></span><span class="sig-name descname"><span class="pre">SgModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">experiment_name:</span> <span class="pre">str</span></em>, <em class="sig-param"><span class="pre">device:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">multi_gpu:</span> <span class="pre">Union[super_gradients.common.data_types.enum.multi_gpu_mode.MultiGPUMode</span></em>, <em class="sig-param"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;MultiGPUMode.OFF:</span> <span class="pre">'Off'&gt;</span></em>, <em class="sig-param"><span class="pre">model_checkpoints_location:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'local'</span></em>, <em class="sig-param"><span class="pre">overwrite_local_checkpoint:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></em>, <em class="sig-param"><span class="pre">ckpt_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'ckpt_latest.pth'</span></em>, <em class="sig-param"><span class="pre">post_prediction_callback:</span> <span class="pre">Optional[super_gradients.training.utils.detection_utils.DetectionPostPredictionCallback]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">ckpt_root_dir:</span> <span class="pre">Optional[str]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">train_loader:</span> <span class="pre">Optional[torch.utils.data.dataloader.DataLoader]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">valid_loader:</span> <span class="pre">Optional[torch.utils.data.dataloader.DataLoader]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">test_loader:</span> <span class="pre">Optional[torch.utils.data.dataloader.DataLoader]</span> <span class="pre">=</span> <span class="pre">None</span></em>, <em class="sig-param"><span class="pre">classes:</span> <span class="pre">Optional[List[Any]]</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>SuperGradient Model - Base Class for Sg Models</p>
 <dl class="py method">
@@ -805,25 +692,6 @@ load the checkpoint even if the load_checkpoint flag is not provided.</p>
 </ul>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.backward_step">
-<span class="sig-name descname"><span class="pre">backward_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.PhaseContext" title="super_gradients.training.utils.callbacks.PhaseContext"><span class="pre">super_gradients.training.utils.callbacks.PhaseContext</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.backward_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.backward_step" title="Permalink to this definition"></a></dt>
-<dd><p>Run backprop on the loss and perform a step
-:param loss: The value computed by the loss function
-:param optimizer: An object that can perform a gradient step and zeroize model gradient
-:param epoch: number of epoch the training is on
-:param batch_idx: number of iteration inside the current epoch
-:param context: current phase context
-:return:</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.save_checkpoint">
-<span class="sig-name descname"><span class="pre">save_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_results_tuple</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.PhaseContext" title="super_gradients.training.utils.callbacks.PhaseContext"><span class="pre">super_gradients.training.utils.callbacks.PhaseContext</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.save_checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.save_checkpoint" title="Permalink to this definition"></a></dt>
-<dd><p>Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
-params)</p>
 </dd></dl>
 
 <dl class="py method">
@@ -896,7 +764,6 @@ One of SuperGradient’s built in options:</p>
 “detection_loss”: YoLoV3DetectionLoss,
 “shelfnet_ohem_loss”: ShelfNetOHEMLoss,
 “shelfnet_se_loss”: ShelfNetSemanticEncodingLoss,
-“yolo_v5_loss”: YoLoV5DetectionLoss,
 “ssd_loss”: SSDLoss,</p>
 </div></blockquote>
 <p>or user defined nn.module loss function.</p>
@@ -1091,6 +958,48 @@ or support remote storage.</p>
 <li><p><cite>clip_grad_norm</cite> : float</p>
 <p>Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped</p>
 </li>
+<li><p><cite>lr_cooldown_epochs</cite> : int (default=0)</p>
+<p>Number of epochs to cooldown LR (i.e the last epoch from scheduling view point=max_epochs-cooldown).</p>
+</li>
+<li><p><cite>pre_prediction_callback</cite> : Callable (default=None)</p>
+<blockquote>
+<div><dl class="simple">
+<dt>When not None, this callback will be applied to images and targets, and returning them to be used</dt><dd><p>for the forward pass, and further computations. Args for this callable should be in the order
+(inputs, targets, batch_idx) returning modified_inputs, modified_targets</p>
+</dd>
+</dl>
+</div></blockquote>
+</li>
+<li><p><cite>ckpt_best_name</cite> : str (default=’ckpt_best.pth’)</p>
+<p>The best checkpoint (according to metric_to_watch) will be saved under this filename in the checkpoints directory.</p>
+</li>
+<li><p><cite>enable_qat</cite>: bool (default=False)</p>
+<dl class="simple">
+<dt>Adds a QATCallback to the phase callbacks, that triggers quantization aware training starting from</dt><dd><p>qat_params[“start_epoch”]</p>
+</dd>
+</dl>
+</li>
+<li><p><cite>qat_params</cite>: dict-like object with the following key/values:</p>
+<blockquote>
+<div><p>start_epoch: int, first epoch to start QAT.</p>
+<dl class="simple">
+<dt>quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax</dt><dd><p>computation of the quantized modules (default=percentile).</p>
+</dd>
+</dl>
+<p>per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).</p>
+<p>calibrate: bool, whether to perfrom calibration (default=False).</p>
+<p>calibrated_model_path: str, path to a calibrated checkpoint (default=None).</p>
+<dl class="simple">
+<dt>calib_data_loader: torch.utils.data.DataLoader, data loader of the calibration dataset. When None,</dt><dd><p>context.train_loader will be used (default=None).</p>
+</dd>
+</dl>
+<p>num_calib_batches: int, number of batches to collect the statistics from.</p>
+<dl class="simple">
+<dt>percentile: float, percentile value to use when SgModel,quant_modules_calib_method=’percentile’.</dt><dd><p>Discarded when other methods are used (Default=99.99).</p>
+</dd>
+</dl>
+</div></blockquote>
+</li>
 </ul>
 </dd>
 </dl>
@@ -1132,46 +1041,19 @@ networks predictions, accuracy calculation, forward pass net time, function gros
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.compute_model_runtime">
-<span class="sig-name descname"><span class="pre">compute_model_runtime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dims</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_sizes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">,</span> </span><span class="pre">list</span><span class="p"><span class="pre">,</span> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">(1,</span> <span class="pre">8,</span> <span class="pre">16,</span> <span class="pre">32,</span> <span class="pre">64)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.compute_model_runtime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.compute_model_runtime" title="Permalink to this definition"></a></dt>
-<dd><p>Compute the “atomic” inference time and throughput.
-Atomic refers to calculating the forward pass independently, discarding effects such as data augmentation,
-data upload to device, multi-gpu distribution etc.
-:param input_dims: tuple</p>
-<blockquote>
-<div><p>shape of a basic input to the network (without the first index) e.g. (3, 224, 224)
-if None uses an input from the test loader</p>
-</div></blockquote>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>batch_sizes</strong> – int or list
-Batch sizes for latency calculation</p></li>
-<li><p><strong>verbose</strong> – bool
-Prints results to screen</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>log: dict
-Latency and throughput for each tested batch size</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.get_arch_params">
-<span class="sig-name descname"><span class="pre">get_arch_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.get_arch_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.get_arch_params" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_arch_params</span></span><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.get_arch_params" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.get_structure">
-<span class="sig-name descname"><span class="pre">get_structure</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.get_structure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.get_structure" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_structure</span></span><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.get_structure" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.get_architecture">
-<span class="sig-name descname"><span class="pre">get_architecture</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.get_architecture"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.get_architecture" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_architecture</span></span><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.get_architecture" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -1179,41 +1061,9 @@ Latency and throughput for each tested batch size</p>
 <span class="sig-name descname"><span class="pre">set_experiment_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">experiment_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.set_experiment_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.set_experiment_name" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.re_build_model">
-<span class="sig-name descname"><span class="pre">re_build_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arch_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.re_build_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.re_build_model" title="Permalink to this definition"></a></dt>
-<dd><dl class="simple">
-<dt>arch_params<span class="classifier">dict</span></dt><dd><p>Architecture H.P. e.g.: block, num_blocks, num_classes, etc.</p>
-</dd>
-</dl>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.update_architecture">
-<span class="sig-name descname"><span class="pre">update_architecture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">structure</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.update_architecture"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.update_architecture" title="Permalink to this definition"></a></dt>
-<dd><dl class="simple">
-<dt>architecture<span class="classifier">str</span></dt><dd><p>Defines the network’s architecture according to the options in models/all_architectures</p>
-</dd>
-<dt>load_checkpoint<span class="classifier">bool</span></dt><dd><p>Loads a checkpoint according to experiment_name</p>
-</dd>
-<dt>arch_params<span class="classifier">dict</span></dt><dd><p>Architecture H.P. e.g.: block, num_blocks, num_classes, etc.</p>
-</dd>
-</dl>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
+<dl class="py property">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.get_module">
-<span class="sig-name descname"><span class="pre">get_module</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.get_module"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.get_module" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_module</span></span><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.get_module" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -1252,7 +1102,7 @@ Latency and throughput for each tested batch size</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.evaluate">
-<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_loader</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.utils.data.dataloader.DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torchmetrics.collections.MetricCollection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#super_gradients.training.sg_model.sg_model.EvaluationType" title="super_gradients.training.sg_model.sg_model.EvaluationType"><span class="pre">super_gradients.training.sg_model.sg_model.EvaluationType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics_progress_verbose</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.evaluate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.evaluate" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_loader</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.utils.data.dataloader.DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torchmetrics.collections.MetricCollection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluation_type</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="super_gradients.common.data_types.enum.html#super_gradients.common.data_types.enum.EvaluationType" title="super_gradients.common.data_types.enum.evaluation_type.EvaluationType"><span class="pre">super_gradients.common.data_types.enum.evaluation_type.EvaluationType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics_progress_verbose</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.evaluate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.evaluate" title="Permalink to this definition"></a></dt>
 <dd><p>Evaluates the model on given dataloader and metrics.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1273,24 +1123,45 @@ Slows down the program significantly.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.get_net">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">get_net</span></span><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.get_net" title="Permalink to this definition"></a></dt>
+<dd><p>Getter for network.
+:return: torch.nn.Module, self.net</p>
+</dd></dl>
+
 <dl class="py method">
-<dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.instantiate_net">
-<span class="sig-name descname"><span class="pre">instantiate_net</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">architecture</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.nn.modules.module.Module</span><span class="p"><span class="pre">,</span> </span><span class="pre">type</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arch_params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_params</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tuple</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.instantiate_net"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.instantiate_net" title="Permalink to this definition"></a></dt>
-<dd><dl class="simple">
-<dt>Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required</dt><dd><p>module manipulation (i.e head replacement).</p>
-</dd>
-</dl>
+<dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.set_net">
+<span class="sig-name descname"><span class="pre">set_net</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">torch.nn.modules.module.Module</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.set_net"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.set_net" title="Permalink to this definition"></a></dt>
+<dd><p>Setter for network.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>architecture</strong> – String, torch.nn.Module or uninstantiated SgModule class describing the netowrks architecture.</p></li>
-<li><p><strong>arch_params</strong> – Architecture’s parameters passed to networks c’tor.</p></li>
-<li><p><strong>checkpoint_params</strong> – checkpoint loading related parameters dictionary with ‘pretrained_weights’ key,
-s.t it’s value is a string describing the dataset of the pretrained weights (for example “imagenent”).</p></li>
-</ul>
+<dd class="field-odd"><p><strong>net</strong> – torch.nn.Module, value to set net</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>instantiated netowrk i.e torch.nn.Module, architecture_class (will be none when architecture is not str)</p>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.set_ckpt_best_name">
+<span class="sig-name descname"><span class="pre">set_ckpt_best_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ckpt_best_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.set_ckpt_best_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.set_ckpt_best_name" title="Permalink to this definition"></a></dt>
+<dd><p>Setter for best checkpoint filename.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ckpt_best_name</strong> – str, value to set ckpt_best_name</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="super_gradients.training.sg_model.SgModel.set_ema">
+<span class="sig-name descname"><span class="pre">set_ema</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#SgModel.set_ema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.SgModel.set_ema" title="Permalink to this definition"></a></dt>
+<dd><p>Setter for self.ema</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>val</strong> – bool, value to set ema</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1299,7 +1170,7 @@ s.t it’s value is a string describing the dataset of the pretrained weights (f
 
 <dl class="py class">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.MultiGPUMode">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.</span></span><span class="sig-name descname"><span class="pre">MultiGPUMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#MultiGPUMode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.MultiGPUMode" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.</span></span><span class="sig-name descname"><span class="pre">MultiGPUMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_types/enum/multi_gpu_mode.html#MultiGPUMode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.MultiGPUMode" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
 <dl class="py attribute">
 <dt class="sig sig-object py">
@@ -1340,7 +1211,7 @@ s.t it’s value is a string describing the dataset of the pretrained weights (f
 
 <dl class="py class">
 <dt class="sig sig-object py" id="super_gradients.training.sg_model.StrictLoad">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.</span></span><span class="sig-name descname"><span class="pre">StrictLoad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/sg_model/sg_model.html#StrictLoad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.StrictLoad" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.sg_model.</span></span><span class="sig-name descname"><span class="pre">StrictLoad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_types/enum/strict_load.html#StrictLoad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.sg_model.StrictLoad" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
 <dl>
 <dt>Wrapper for adding more functionality to torch’s strict_load parameter in load_state_dict().</dt><dd><dl>
