@@ -6,7 +6,9 @@ warmup_initial_lr: # Initial lr for linear_step. When none is given, initial_lr/
 step_lr_update_freq: # (float) update frequency in epoch units for computing lr_updates when lr_mode=`step`.
 cosine_final_lr_ratio: 0.01 # final learning rate ratio (only relevant when `lr_mode`='cosine')
 warmup_mode: linear_step # learning rate warmup scheme, currently only 'linear_step' is supported
-lr_updates: []
+lr_updates:
+  _target_: super_gradients.training.utils.utils.empty_list   # This is a workaround to intantiate a list as a function call. If we would instantiate as "lr_updates: []",
+                                                              # we would get an error every time we would want to overwrite lr_updates with a numpy array.
 pre_prediction_callback: # callback modifying images and targets right before forward pass.
 
 optimizer: SGD # Optimization algorithm. One of ['Adam','SGD','RMSProp'] corresponding to the torch.optim optimizers
