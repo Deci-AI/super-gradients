@@ -40,7 +40,7 @@ val_collate_fn: # collate function for valset
 train_collate_fn: # collate function for trainset
   _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
 
-cache_dir_path: # path to a directory that will be used for caching (with numpy.memmap).
+cache_dir: # path to a directory that will be used for caching (with numpy.memmap).
 cache_train_images: False
 cache_val_images: False
 
