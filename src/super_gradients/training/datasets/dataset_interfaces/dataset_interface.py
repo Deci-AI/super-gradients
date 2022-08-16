@@ -758,7 +758,7 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         testset2007 = PascalVOCDetectionDataset(data_dir=self.data_dir,
                                                 input_dim=val_input_dim,
                                                 cache=self.dataset_params.cache_val_images,
-                                                cache_path=self.dataset_params.cache_dir + "cache_valid",
+                                                cache_dir=self.dataset_params.cache_dir,
                                                 transforms=self.dataset_params.val_transforms,
                                                 images_sub_directory='images/test2007/',
                                                 class_inclusion_list=self.dataset_params.class_inclusion_list,
@@ -782,12 +782,15 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
         local_rank = get_local_rank()
         with wait_for_the_master(local_rank):
             self.trainset = COCODetectionDataset(data_dir=self.dataset_params.data_dir,
-                                                 name=self.dataset_params.train_subdir,
+                                                 subdir=self.dataset_params.train_subdir,
                                                  json_file=self.dataset_params.train_json_file,
-                                                 img_size=self.dataset_params.train_input_dim,
+                                                 input_dim=self.dataset_params.train_input_dim,
                                                  cache=self.dataset_params.cache_train_images,
-                                                 cache_dir_path=self.dataset_params.cache_dir_path,
+                                                 cache_dir=self.dataset_params.cache_dir,
                                                  transforms=self.dataset_params.train_transforms,
+                                                 tight_box_rotation=self.dataset_params.tight_box_rotation,
+                                                 class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                 max_num_samples=self.dataset_params.train_max_num_samples,
                                                  with_crowd=False)
 
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
@@ -795,10 +798,12 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
             self.valset = COCODetectionDataset(
                 data_dir=self.dataset_params.data_dir,
                 json_file=self.dataset_params.val_json_file,
-                name=self.dataset_params.val_subdir,
-                img_size=self.dataset_params.val_input_dim,
-                transforms=self.dataset_params.val_transforms,
+                subdir=self.dataset_params.val_subdir,
+                cache_dir=self.dataset_params.cache_dir,
                 cache=self.dataset_params.cache_val_images,
-                cache_dir_path=self.dataset_params.cache_dir_path,
+                input_dim=self.dataset_params.val_input_dim,
+                transforms=self.dataset_params.val_transforms,
+                class_inclusion_list=self.dataset_params.class_inclusion_list,
+                max_num_samples=self.dataset_params.val_max_num_samples,
                 with_crowd=self.dataset_params.with_crowd)
         self.classes = COCO_DETECTION_CLASSES_LIST

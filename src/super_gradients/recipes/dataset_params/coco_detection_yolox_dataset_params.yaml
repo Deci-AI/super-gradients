@@ -18,7 +18,7 @@ targets_format:
   _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
   value: LABEL_CXCYWH
 
-
+tight_box_rotation: False
 train_transforms:
   - _target_: super_gradients.training.transforms.transforms.DetectionMosaic
     input_dim: ${dataset_params.train_input_dim}
@@ -63,6 +63,7 @@ val_collate_fn: # collate function for valset
 train_collate_fn: # collate function for trainset
   _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
 
-with_crowd: False # whether to return "crowd" labels in validation
+class_inclusion_list: # If not None,every class not included will be ignored.
+with_crowd: False     # Whether to return "crowd" labels in validation
 
 _convert_: all
