@@ -396,9 +396,9 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
 | DDRNet 23   | Cityscapes |1024x2048   |80.26 |**7.62ms** |**25.94ms**|
 | DDRNet 23 slim   | Cityscapes |1024x2048 |78.01 |**3.56ms** |**22.80ms**|
-| STDC 1-Seg50   | Cityscapes | 512x1024 |75.07 |**2.83ms** |**12.57ms**|
+| STDC 1-Seg50   | Cityscapes | 512x1024 |75.11 |**2.83ms** |**12.57ms**|
 | STDC 1-Seg75   | Cityscapes | 768x1536 |77.8  |**5.71ms** |**26.70ms**|
-| STDC 2-Seg50   | Cityscapes | 512x1024 |75.79 |**3.74ms** |**13.89ms**
+| STDC 2-Seg50   | Cityscapes | 512x1024 |76.44 |**3.74ms** |**13.89ms**
 | STDC 2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**28.18ms**|
 | RegSeg (exp48)   | Cityscapes | 1024x2048 |78.15 |**13.09ms** |**41.88ms**|
 | Larger RegSeg (exp53)   | Cityscapes | 1024x2048 |79.2|**24.82ms** |**51.87ms**|
