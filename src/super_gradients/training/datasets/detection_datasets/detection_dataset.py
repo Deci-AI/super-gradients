@@ -66,7 +66,7 @@ class DetectionDataset(Dataset):
             original_target_format: DetectionTargetsFormat,
             max_num_samples: int = None,
             cache: bool = False,
-            cache_dir: str = None,
+            cache_path: str = None,
             transforms: List[DetectionTransform] = [],
             all_classes_list: Optional[List[str]] = None,
             class_inclusion_list: Optional[List[str]] = None,
