@@ -1,8 +1,9 @@
 from collections import OrderedDict
 import copy
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 import torch
 from torch import nn
+from enum import Enum
 
 
 class MultiOutputModule(nn.Module):
@@ -219,3 +220,30 @@ class NormalizationAdapter(torch.nn.Module):
     def forward(self, x):
         x = (x + self.additive) * self.multiplier
         return x
+
+
+class UpsampleMode(Enum):
+    NEAREST = "nearest"
+    BILINEAR = "bilinear"
+    BICUBIC = "bicubic"
+    SNPE_BILINEAR = "snpe_bilinear"
+
+
+def make_upsample_module(scale_factor: int,
+                         upsample_mode: Union[str, UpsampleMode],
+                         align_corners: Optional[bool] = None):
+    """
+    Factory method for creating upsampling modules.
+    :param scale_factor: upsample scale factor
+    :param upsample_mode: see UpsampleMode for supported options.
+    :return: nn.Module
+    """
+    upsample_mode = upsample_mode.value if isinstance(upsample_mode, UpsampleMode) else upsample_mode
+    if upsample_mode == UpsampleMode.NEAREST.value:
+        # Prevent ValueError when passing align_corners with nearest mode.
+        module = nn.Upsample(scale_factor=scale_factor, mode=upsample_mode)
+    elif upsample_mode in [UpsampleMode.BILINEAR.value, UpsampleMode.BICUBIC.value]:
+        module = nn.Upsample(scale_factor=scale_factor, mode=upsample_mode, align_corners=align_corners)
+    else:
+        raise NotImplementedError(f"Upsample mode: `{upsample_mode}` is not supported.")
+    return module
