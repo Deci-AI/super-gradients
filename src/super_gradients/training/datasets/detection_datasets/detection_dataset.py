@@ -66,7 +66,7 @@ class DetectionDataset(Dataset):
             original_target_format: DetectionTargetsFormat,
             max_num_samples: int = None,
             cache: bool = False,
-            cache_path: str = None,
+            cache_dir: str = None,
             transforms: List[DetectionTransform] = [],
             all_classes_list: Optional[List[str]] = None,
             class_inclusion_list: Optional[List[str]] = None,
@@ -82,7 +82,7 @@ class DetectionDataset(Dataset):
                                         differ based on transforms.
         :param max_num_samples:         If not None, set the maximum size of the dataset by only indexing the first n annotations/images.
         :param cache:                   Whether to cache images or not.
-        :param cache_path:              Path to the directory where cached images will be stored in an optimized format.
+        :param cache_dir:              Path to the directory where cached images will be stored in an optimized format.
         :param transforms:              List of transforms to apply sequentially on sample.
         :param all_classes_list:        All the class names.
         :param class_inclusion_list:    If not None,every class not included will be ignored.
@@ -125,7 +125,7 @@ class DetectionDataset(Dataset):
         self.annotations = self._cache_annotations()
 
         self.cache = cache
-        self.cache_path = cache_path
+        self.cache_dir = cache_dir
         self.cached_imgs_padded = self._cache_images() if self.cache else None
 
         self.transforms = transforms
@@ -211,11 +211,11 @@ class DetectionDataset(Dataset):
         """Cache the images. The cached image are stored in a file to be loaded faster mext time.
         :return: Cached images
         """
-        cache_path = Path(self.cache_path)
-        if cache_path is None:
-            raise ValueError("You must specify a cache_path if you want to cache your images."
+        cache_dir = Path(self.cache_dir)
+        if cache_dir is None:
+            raise ValueError("You must specify a cache_dir if you want to cache your images."
                              "If you did not mean to use cache, please set cache=False ")
-        cache_path.mkdir(parents=True, exist_ok=True)
+        cache_dir.mkdir(parents=True, exist_ok=True)
 
         logger.warning("\n********************************************************************************\n"
                        "You are using cached images in RAM to accelerate training.\n"
@@ -232,7 +232,7 @@ class DetectionDataset(Dataset):
                 hash.update(str(value).encode('utf-8'))
         cache_hash = hash.hexdigest()
 
-        img_resized_cache_path = cache_path / f"img_resized_cache_{cache_hash}.array"
+        img_resized_cache_path = cache_dir / f"img_resized_cache_{cache_hash}.array"
 
         if not img_resized_cache_path.exists():
             logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")

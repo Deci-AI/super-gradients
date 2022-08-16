@@ -26,8 +26,8 @@ class PascalVOCDetectionDataset(DetectionDataset):
         self.images_sub_directory = images_sub_directory
         self.img_and_target_path_list = None
 
-        kwargs['all_classes_list'] = PASCAL_VOC_2012_CLASSES_LIST
         kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
+        kwargs['all_classes_list'] = PASCAL_VOC_2012_CLASSES_LIST
         super().__init__(*args, **kwargs)
 
     def _setup_data_source(self):

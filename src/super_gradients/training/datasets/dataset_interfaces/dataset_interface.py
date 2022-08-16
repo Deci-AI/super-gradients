@@ -18,7 +18,6 @@ from super_gradients.training import utils as core_utils
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 
 from super_gradients.training.utils import get_param
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
@@ -35,9 +34,6 @@ from super_gradients.training.datasets.segmentation_datasets.supervisely_persons
 
 from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
-
-from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine,\
-    DetectionTargetsFormatTransform, DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
 
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 
@@ -752,7 +748,7 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         train_sets = [PascalVOCDetectionDataset(data_dir=self.data_dir,
                                                 input_dim=train_input_dim,
                                                 cache=self.dataset_params.cache_train_images,
-                                                cache_path=self.dataset_params.cache_dir + "cache_train",
+                                                cache_dir=self.dataset_params.cache_dir,
                                                 transforms=self.dataset_params.train_transforms,
                                                 images_sub_directory='images/' + trainset_name + '/',
                                                 class_inclusion_list=self.dataset_params.class_inclusion_list,
@@ -762,7 +758,7 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         testset2007 = PascalVOCDetectionDataset(data_dir=self.data_dir,
                                                 input_dim=val_input_dim,
                                                 cache=self.dataset_params.cache_val_images,
-                                                cache_path=self.dataset_params.cache_dir + "cache_valid",
+                                                cache_dir=self.dataset_params.cache_dir,
                                                 transforms=self.dataset_params.val_transforms,
                                                 images_sub_directory='images/test2007/',
                                                 class_inclusion_list=self.dataset_params.class_inclusion_list,
@@ -782,60 +778,32 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
     def __init__(self, dataset_params={}):
         super(CoCoDetectionDatasetInterface, self).__init__(dataset_params=dataset_params)
 
-        train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
-        targets_format = get_param(self.dataset_params, "targets_format", DetectionTargetsFormat.LABEL_CXCYWH)
-
-        train_transforms = [DetectionMosaic(input_dim=train_input_dim,
-                                            prob=self.dataset_params.mosaic_prob),
-                            DetectionRandomAffine(degrees=self.dataset_params.degrees,
-                                                  translate=self.dataset_params.translate,
-                                                  scales=self.dataset_params.mosaic_scale,
-                                                  shear=self.dataset_params.shear,
-                                                  target_size=train_input_dim,
-                                                  filter_box_candidates=self.dataset_params.filter_box_candidates,
-                                                  wh_thr=self.dataset_params.wh_thr,
-                                                  area_thr=self.dataset_params.area_thr,
-                                                  ar_thr=self.dataset_params.ar_thr
-                                                  ),
-                            DetectionMixup(input_dim=train_input_dim,
-                                           mixup_scale=self.dataset_params.mixup_scale,
-                                           prob=self.dataset_params.mixup_prob,
-                                           flip_prob=self.dataset_params.flip_prob),
-                            DetectionHSV(prob=self.dataset_params.hsv_prob,
-                                         hgain=self.dataset_params.hgain,
-                                         sgain=self.dataset_params.sgain,
-                                         vgain=self.dataset_params.vgain
-                                         ),
-                            DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
-                            DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
-                            DetectionTargetsFormatTransform(output_format=targets_format)
-                            ]
-
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
         local_rank = get_local_rank()
         with wait_for_the_master(local_rank):
             self.trainset = COCODetectionDataset(data_dir=self.dataset_params.data_dir,
-                                                 name=self.dataset_params.train_subdir,
+                                                 subdir=self.dataset_params.train_subdir,
                                                  json_file=self.dataset_params.train_json_file,
-                                                 img_size=train_input_dim,
+                                                 input_dim=self.dataset_params.train_input_dim,
                                                  cache=self.dataset_params.cache_train_images,
-                                                 cache_dir_path=self.dataset_params.cache_dir_path,
-                                                 transforms=train_transforms,
+                                                 cache_dir=self.dataset_params.cache_dir,
+                                                 transforms=self.dataset_params.train_transforms,
+                                                 tight_box_rotation=self.dataset_params.tight_box_rotation,
+                                                 class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                 max_num_samples=self.dataset_params.train_max_num_samples,
                                                  with_crowd=False)
-
-        val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
-        with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=True)
 
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
         with wait_for_the_master(local_rank):
             self.valset = COCODetectionDataset(
                 data_dir=self.dataset_params.data_dir,
                 json_file=self.dataset_params.val_json_file,
-                name=self.dataset_params.val_subdir,
-                img_size=val_input_dim,
-                transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
-                            DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)],
+                subdir=self.dataset_params.val_subdir,
+                cache_dir=self.dataset_params.cache_dir,
                 cache=self.dataset_params.cache_val_images,
-                cache_dir_path=self.dataset_params.cache_dir_path,
-                with_crowd=with_crowd)
+                input_dim=self.dataset_params.val_input_dim,
+                transforms=self.dataset_params.val_transforms,
+                class_inclusion_list=self.dataset_params.class_inclusion_list,
+                max_num_samples=self.dataset_params.val_max_num_samples,
+                with_crowd=self.dataset_params.with_crowd)
         self.classes = COCO_DETECTION_CLASSES_LIST

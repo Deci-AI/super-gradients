@@ -82,40 +82,55 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_pretrained_arch_params = {'ssd_lite_mobilenet_v2': {'num_classes': 80},
                                             'coco_ssd_mobilenet_v1': {'num_classes': 80}}
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
+
+        from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine, \
+            DetectionTargetsFormatTransform, DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
+
+        yolox_train_transforms = [DetectionMosaic(input_dim=(640, 640), prob=1.0),
+                                  DetectionRandomAffine(degrees=10., translate=0.1, scales=[0.1, 2], shear=2.0, target_size=(640, 640),
+                                                        filter_box_candidates=False, wh_thr=0, area_thr=0, ar_thr=0),
+                                  DetectionMixup(input_dim=(640, 640), mixup_scale=[0.5, 1.5], prob=1.0, flip_prob=0.5),
+                                  DetectionHSV(prob=1.0, hgain=5, sgain=30, vgain=30),
+                                  DetectionHorizontalFlip(prob=0.5),
+                                  DetectionPaddedRescale(input_dim=(640, 640), max_targets=120),
+                                  DetectionTargetsFormatTransform(output_format=DetectionTargetsFormat.LABEL_CXCYWH)]
+        yolox_val_transforms = [DetectionPaddedRescale(input_dim=(640, 640)),
+                                DetectionTargetsFormatTransform(max_targets=50, output_format=DetectionTargetsFormat.LABEL_CXCYWH)]
+
+        ssd_train_transforms = [DetectionMosaic(input_dim=(640, 640), prob=1.0),
+                                DetectionRandomAffine(degrees=0., translate=0.1, scales=[0.5, 1.5], shear=.0, target_size=(640, 640),
+                                                      filter_box_candidates=True, wh_thr=2, area_thr=0.1, ar_thr=20),
+                                DetectionMixup(input_dim=(640, 640), mixup_scale=[0.5, 1.5], prob=0., flip_prob=0.),
+                                DetectionHSV(prob=.0, hgain=5, sgain=30, vgain=30),
+                                DetectionHorizontalFlip(prob=0.),
+                                DetectionPaddedRescale(input_dim=(640, 640), max_targets=120),
+                                DetectionTargetsFormatTransform(output_format=DetectionTargetsFormat.LABEL_CXCYWH)]
+        ssd_val_transforms = [DetectionPaddedRescale(input_dim=(640, 640)),
+                              DetectionTargetsFormatTransform(max_targets=50, output_format=DetectionTargetsFormat.LABEL_CXCYWH)]
+
         self.coco_dataset = {
-            'yolox': CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
-                                                                   "train_subdir": "images/train2017",
-                                                                   "val_subdir": "images/val2017",
-                                                                   "train_json_file": "instances_train2017.json",
-                                                                   "val_json_file": "instances_val2017.json",
-                                                                   "batch_size": 16,
-                                                                   "val_batch_size": 128,
-                                                                   "val_image_size": 640,
-                                                                   "train_image_size": 640,
-                                                                   "hgain": 5,
-                                                                   "sgain": 30,
-                                                                   "vgain": 30,
-                                                                   "mixup_prob": 1.0,
-                                                                   "degrees": 10.,
-                                                                   "shear": 2.0,
-                                                                   "flip_prob": 0.5,
-                                                                   "hsv_prob": 1.0,
-                                                                   "mosaic_scale": [0.1, 2],
-                                                                   "mixup_scale": [0.5, 1.5],
-                                                                   "mosaic_prob": 1.,
-                                                                   "translate": 0.1,
-                                                                   "val_collate_fn": CrowdDetectionCollateFN(),
-                                                                   "train_collate_fn": DetectionCollateFN(),
-                                                                   "cache_dir_path": None,
-                                                                   "cache_train_images": False,
-                                                                   "cache_val_images": False,
-                                                                   "targets_format": DetectionTargetsFormat.LABEL_CXCYWH,
-                                                                   "with_crowd": True,
-                                                                   "filter_box_candidates": False,
-                                                                   "wh_thr": 0,
-                                                                   "ar_thr": 0,
-                                                                   "area_thr": 0
-                                                                   }),
+            'yolox': CoCoDetectionDatasetInterface(
+                dataset_params={"data_dir": "/data/coco",
+                                "train_subdir": "images/train2017",
+                                "val_subdir": "images/val2017",
+                                "train_json_file": "instances_train2017.json",
+                                "val_json_file": "instances_val2017.json",
+                                "batch_size": 16,
+                                "val_batch_size": 128,
+                                "val_image_size": 640,
+                                "train_image_size": 640,
+                                "train_transforms": yolox_train_transforms,
+                                "val_transforms": yolox_val_transforms,
+
+                                "val_collate_fn": CrowdDetectionCollateFN(),
+                                "train_collate_fn": DetectionCollateFN(),
+                                "cache_dir_path": None,
+                                "cache_train_images": False,
+                                "cache_val_images": False,
+                                "with_crowd": True}),
+
+
+
 
             'ssd_mobilenet': CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
                                                                            "train_subdir": "images/train2017",
@@ -126,30 +141,15 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                            "val_batch_size": 128,
                                                                            "val_image_size": 320,
                                                                            "train_image_size": 320,
-                                                                           "hgain": 5,
-                                                                           "sgain": 30,
-                                                                           "vgain": 30,
-                                                                           "mixup_prob": .0,
-                                                                           "degrees": 0.,
-                                                                           "shear": 0.,
-                                                                           "flip_prob": 0.,
-                                                                           "hsv_prob": 0.,
-                                                                           "mosaic_scale": [0.5, 1.5],
-                                                                           "mixup_scale": [0.5, 1.5],
-                                                                           "mosaic_prob": 1.,
-                                                                           "translate": 0.1,
+                                                                           "train_transforms": ssd_train_transforms,
+                                                                           "val_transforms": ssd_val_transforms,
+
                                                                            "val_collate_fn": CrowdDetectionCollateFN(),
                                                                            "train_collate_fn": DetectionCollateFN(),
                                                                            "cache_dir_path": None,
                                                                            "cache_train_images": False,
                                                                            "cache_val_images": False,
-                                                                           "targets_format": DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
-                                                                           "with_crowd": True,
-                                                                           "filter_box_candidates": True,
-                                                                           "wh_thr": 2,
-                                                                           "ar_thr": 20,
-                                                                           "area_thr": 0.1
-                                                                           })
+                                                                           "with_crowd": True})
         }
 
         self.coco_pretrained_maps = {'ssd_lite_mobilenet_v2': 0.2052,
