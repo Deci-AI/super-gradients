@@ -782,54 +782,17 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
     def __init__(self, dataset_params={}):
         super(CoCoDetectionDatasetInterface, self).__init__(dataset_params=dataset_params)
 
-        train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
-        targets_format = get_param(self.dataset_params, "targets_format", DetectionTargetsFormat.LABEL_CXCYWH)
-
-        train_transforms = core_utils.get_param(self.dataset_params, 'train_transforms')
-        # train_transforms = [DetectionMosaic(input_dim=train_input_dim,
-        #                                     prob=self.dataset_params.mosaic_prob),
-        #                     DetectionRandomAffine(degrees=self.dataset_params.degrees,
-        #                                           translate=self.dataset_params.translate,
-        #                                           scales=self.dataset_params.mosaic_scale,
-        #                                           shear=self.dataset_params.shear,
-        #                                           target_size=train_input_dim,
-        #                                           filter_box_candidates=self.dataset_params.filter_box_candidates,
-        #                                           wh_thr=self.dataset_params.wh_thr,
-        #                                           area_thr=self.dataset_params.area_thr,
-        #                                           ar_thr=self.dataset_params.ar_thr
-        #                                           ),
-        #                     DetectionMixup(input_dim=train_input_dim,
-        #                                    mixup_scale=self.dataset_params.mixup_scale,
-        #                                    prob=self.dataset_params.mixup_prob,
-        #                                    flip_prob=self.dataset_params.flip_prob),
-        #                     DetectionHSV(prob=self.dataset_params.hsv_prob,
-        #                                  hgain=self.dataset_params.hgain,
-        #                                  sgain=self.dataset_params.sgain,
-        #                                  vgain=self.dataset_params.vgain
-        #                                  ),
-        #                     DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
-        #                     DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
-        #                     DetectionTargetsFormatTransform(output_format=targets_format)
-        #                     ]
-
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
         local_rank = get_local_rank()
         with wait_for_the_master(local_rank):
             self.trainset = COCODetectionDataset(data_dir=self.dataset_params.data_dir,
                                                  name=self.dataset_params.train_subdir,
                                                  json_file=self.dataset_params.train_json_file,
-                                                 img_size=train_input_dim,
+                                                 img_size=self.dataset_params.train_input_dim,
                                                  cache=self.dataset_params.cache_train_images,
                                                  cache_dir_path=self.dataset_params.cache_dir_path,
-                                                 transforms=train_transforms,
+                                                 transforms=self.dataset_params.train_transforms,
                                                  with_crowd=False)
-
-        val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
-        with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=True)
-
-        val_transforms = core_utils.get_param(self.dataset_params, 'val_transforms')
-            # [DetectionPaddedRescale(input_dim=val_input_dim),
-            #               DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)]
 
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
         with wait_for_the_master(local_rank):
@@ -837,9 +800,9 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
                 data_dir=self.dataset_params.data_dir,
                 json_file=self.dataset_params.val_json_file,
                 name=self.dataset_params.val_subdir,
-                img_size=val_input_dim,
-                transforms=val_transforms,
+                img_size=self.dataset_params.val_input_dim,
+                transforms=self.dataset_params.val_transforms,
                 cache=self.dataset_params.cache_val_images,
                 cache_dir_path=self.dataset_params.cache_dir_path,
-                with_crowd=with_crowd)
+                with_crowd=self.dataset_params.with_crowd)
         self.classes = COCO_DETECTION_CLASSES_LIST
