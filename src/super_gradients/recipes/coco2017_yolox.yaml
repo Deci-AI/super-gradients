@@ -32,7 +32,7 @@ checkpoint_params:
 
 architecture: yolox_s
 
-multi_gpu: Off
+multi_gpu: DDP
 
 experiment_name: ${architecture}_coco2017_${dataset_params.train_input_dim}
 
@@ -44,5 +44,4 @@ sg_model:
   multi_gpu: ${multi_gpu}
   ckpt_root_dir: ${ckpt_root_dir}
 
-a: "ok"
-b: ${a}
+
