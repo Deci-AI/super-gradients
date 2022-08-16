@@ -748,7 +748,7 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         train_sets = [PascalVOCDetectionDataset(data_dir=self.data_dir,
                                                 input_dim=train_input_dim,
                                                 cache=self.dataset_params.cache_train_images,
-                                                cache_path=self.dataset_params.cache_dir + "cache_train",
+                                                cache_dir=self.dataset_params.cache_dir,
                                                 transforms=self.dataset_params.train_transforms,
                                                 images_sub_directory='images/' + trainset_name + '/',
                                                 class_inclusion_list=self.dataset_params.class_inclusion_list,
