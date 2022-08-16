@@ -18,7 +18,6 @@ from super_gradients.training import utils as core_utils
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 
 from super_gradients.training.utils import get_param
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
 
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
@@ -35,9 +34,6 @@ from super_gradients.training.datasets.segmentation_datasets.supervisely_persons
 
 from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
-
-from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine,\
-    DetectionTargetsFormatTransform, DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
 
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
 
