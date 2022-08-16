@@ -5,6 +5,7 @@ import random
 import cv2
 import matplotlib.pyplot as plt
 from pathlib import Path
+from copy import deepcopy
 import hashlib
 
 import numpy as np
@@ -120,11 +121,12 @@ class DetectionDataset(Dataset):
         if "target" not in self.target_fields:
             raise KeyError('"target" is expected to be in the fields to subclass but it was not included')
 
+        self._required_annotation_fields = {"target", "img_path", "resized_img_shape"}
         self.annotations = self._cache_annotations()
 
         self.cache = cache
         self.cache_path = cache_path
-        self.cached_imgs = self._cache_images() if self.cache else None
+        self.cached_imgs_padded = self._cache_images() if self.cache else None
 
         self.transforms = transforms
 
@@ -143,7 +145,7 @@ class DetectionDataset(Dataset):
         Please note that the targets should be resized according to self.input_dim!
 
         :param sample_id:   Id of the sample to load annotations from.
-        :return:            Annotation, a dict with any field but has to include at least "target" and "img_path".
+        :return:            Annotation, a dict with any field but has to include at least the fields specified in self._required_annotation_fields.
         """
         raise NotImplementedError
 
@@ -158,8 +160,9 @@ class DetectionDataset(Dataset):
                 break
 
             img_annotation = self._load_annotation(img_id)
-            if "target" not in img_annotation or "img_path" not in img_annotation:
-                raise KeyError('_load_annotation is expected to return at least the field "target" and "img_path"')
+            if not self._required_annotation_fields.issubset(set(img_annotation.keys())):
+                raise KeyError(f'_load_annotation is expected to return at least the fields {self._required_annotation_fields} '
+                               f'but got {set(img_annotation.keys())}')
 
             if self.class_inclusion_list is not None:
                 img_annotation = self._sub_class_annotation(img_annotation)
@@ -284,8 +287,8 @@ class DetectionDataset(Dataset):
 
     def __del__(self):
         """Clear the cached images"""
-        if hasattr(self, "cached_imgs"):
-            del self.cached_imgs
+        if hasattr(self, "cached_imgs_padded"):
+            del self.cached_imgs_padded
 
     def __len__(self):
         """Get the length of the dataset."""
@@ -310,17 +313,21 @@ class DetectionDataset(Dataset):
         :return:        Sample, i.e. a dictionary including at least "image" and "target"
         """
         img = self.get_resized_image(index)
-        annotation = self.annotations[index]
+        annotation = deepcopy(self.annotations[index])
         return {"image": img, **annotation}
 
     def get_resized_image(self, index: int) -> np.ndarray:
         """
-        Get the resized image at a specific sample_id, either from cache or by loading from disk, based on self.cached_imgs
+        Get the resized image (i.e. either width or height reaches its input_dim) at a specific sample_id,
+        either from cache or by loading from disk, based on self.cached_imgs_padded
         :param index:  Image index
         :return:       Resized image
         """
         if self.cache:
-            return self.cached_imgs[index].copy()
+            padded_image = self.cached_imgs_padded[index]
+            resized_height, resized_width = self.annotations[index]["resized_img_shape"]
+            resized_image = padded_image[:resized_height, :resized_width, :]
+            return resized_image.copy()
         else:
             return self._load_resized_img(index)
 
