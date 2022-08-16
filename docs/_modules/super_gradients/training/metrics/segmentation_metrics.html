@@ -35,11 +35,30 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#supergradients">SuperGradients</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -71,9 +90,12 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torchmetrics</span>
 <span class="kn">from</span> <span class="nn">torchmetrics</span> <span class="kn">import</span> <span class="n">Metric</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">torchmetrics.utilities.distributed</span> <span class="kn">import</span> <span class="n">reduce</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
 
 
-<div class="viewcode-block" id="batch_pix_accuracy"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.batch_pix_accuracy">[docs]</a><span class="k">def</span> <span class="nf">batch_pix_accuracy</span><span class="p">(</span><span class="n">predict</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+<div class="viewcode-block" id="batch_pix_accuracy"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.batch_pix_accuracy">[docs]</a><span class="k">def</span> <span class="nf">batch_pix_accuracy</span><span class="p">(</span><span class="n">predict</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Batch Pixel Accuracy</span>
 <span class="sd">    Args:</span>
 <span class="sd">        predict: input 4D tensor</span>
@@ -89,7 +111,7 @@
     <span class="k">return</span> <span class="n">pixel_correct</span><span class="p">,</span> <span class="n">pixel_labeled</span></div>
 
 
-<div class="viewcode-block" id="batch_intersection_union"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.batch_intersection_union">[docs]</a><span class="k">def</span> <span class="nf">batch_intersection_union</span><span class="p">(</span><span class="n">predict</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">nclass</span><span class="p">):</span>
+<div class="viewcode-block" id="batch_intersection_union"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.batch_intersection_union">[docs]</a><span class="k">def</span> <span class="nf">batch_intersection_union</span><span class="p">(</span><span class="n">predict</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">nclass</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Batch Intersection of Union</span>
 <span class="sd">    Args:</span>
 <span class="sd">        predict: input 4D tensor</span>
@@ -116,7 +138,7 @@
 
 
 <span class="c1"># ref https://github.com/CSAILVision/sceneparsing/blob/master/evaluationCode/utils_eval.py</span>
-<div class="viewcode-block" id="pixel_accuracy"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.pixel_accuracy">[docs]</a><span class="k">def</span> <span class="nf">pixel_accuracy</span><span class="p">(</span><span class="n">im_pred</span><span class="p">,</span> <span class="n">im_lab</span><span class="p">):</span>
+<div class="viewcode-block" id="pixel_accuracy"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.pixel_accuracy">[docs]</a><span class="k">def</span> <span class="nf">pixel_accuracy</span><span class="p">(</span><span class="n">im_pred</span><span class="p">,</span> <span class="n">im_lab</span><span class="p">):</span>
     <span class="n">im_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">im_pred</span><span class="p">)</span>
     <span class="n">im_lab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">im_lab</span><span class="p">)</span>
 
@@ -128,7 +150,52 @@
     <span class="k">return</span> <span class="n">pixel_correct</span><span class="p">,</span> <span class="n">pixel_labeled</span></div>
 
 
-<div class="viewcode-block" id="intersection_and_union"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.intersection_and_union">[docs]</a><span class="k">def</span> <span class="nf">intersection_and_union</span><span class="p">(</span><span class="n">im_pred</span><span class="p">,</span> <span class="n">im_lab</span><span class="p">,</span> <span class="n">num_class</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_dice_from_confmat</span><span class="p">(</span>
+    <span class="n">confmat</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">ignore_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">absent_score</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;elementwise_mean&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Computes Dice coefficient from confusion matrix.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        confmat: Confusion matrix without normalization</span>
+<span class="sd">        num_classes: Number of classes for a given prediction and target tensor</span>
+<span class="sd">        ignore_index: optional int specifying a target class to ignore. If given, this class index does not contribute</span>
+<span class="sd">            to the returned score, regardless of reduction method.</span>
+<span class="sd">        absent_score: score to use for an individual class, if no instances of the class index were present in `pred`</span>
+<span class="sd">            AND no instances of the class index were present in `target`.</span>
+<span class="sd">        reduction: a method to reduce metric score over labels.</span>
+
+<span class="sd">            - ``&#39;elementwise_mean&#39;``: takes the mean (default)</span>
+<span class="sd">            - ``&#39;sum&#39;``: takes the sum</span>
+<span class="sd">            - ``&#39;none&#39;``: no reduction will be applied</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Remove the ignored class index from the scores.</span>
+    <span class="k">if</span> <span class="n">ignore_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">ignore_index</span> <span class="o">&lt;</span> <span class="n">num_classes</span><span class="p">:</span>
+        <span class="n">confmat</span><span class="p">[</span><span class="n">ignore_index</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="n">intersection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">confmat</span><span class="p">)</span>
+    <span class="n">denominator</span> <span class="o">=</span> <span class="n">confmat</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">confmat</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># If this class is absent in both target AND pred (union == 0), then use the absent_score for this class.</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">intersection</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="n">denominator</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+    <span class="n">scores</span><span class="p">[</span><span class="n">denominator</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">absent_score</span>
+
+    <span class="k">if</span> <span class="n">ignore_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">ignore_index</span> <span class="o">&lt;</span> <span class="n">num_classes</span><span class="p">:</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">scores</span><span class="p">[:</span><span class="n">ignore_index</span><span class="p">],</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">ignore_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:],</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="intersection_and_union"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.intersection_and_union">[docs]</a><span class="k">def</span> <span class="nf">intersection_and_union</span><span class="p">(</span><span class="n">im_pred</span><span class="p">,</span> <span class="n">im_lab</span><span class="p">,</span> <span class="n">num_class</span><span class="p">):</span>
     <span class="n">im_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">im_pred</span><span class="p">)</span>
     <span class="n">im_lab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">im_lab</span><span class="p">)</span>
     <span class="c1"># Remove classes from unlabeled pixels in gt image.</span>
@@ -146,40 +213,143 @@
     <span class="k">return</span> <span class="n">area_inter</span><span class="p">,</span> <span class="n">area_union</span></div>
 
 
-<div class="viewcode-block" id="PixelAccuracy"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.PixelAccuracy">[docs]</a><span class="k">class</span> <span class="nc">PixelAccuracy</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ignore_label</span><span class="o">=-</span><span class="mi">100</span><span class="p">,</span> <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="AbstractMetricsArgsPrepFn"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.AbstractMetricsArgsPrepFn">[docs]</a><span class="k">class</span> <span class="nc">AbstractMetricsArgsPrepFn</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract preprocess metrics arguments class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        All base classes must implement this function and return a tuple of torch tensors (predictions, target).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PreprocessSegmentationMetricsArgs"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.PreprocessSegmentationMetricsArgs">[docs]</a><span class="k">class</span> <span class="nc">PreprocessSegmentationMetricsArgs</span><span class="p">(</span><span class="n">AbstractMetricsArgsPrepFn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Default segmentation inputs preprocess function before updating segmentation metrics, handles multiple inputs and</span>
+<span class="sd">    apply normalizations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">apply_arg_max</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">apply_sigmoid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param apply_arg_max: Whether to apply argmax on predictions tensor.</span>
+<span class="sd">        :param apply_sigmoid:  Whether to apply sigmoid on predictions tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_arg_max</span> <span class="o">=</span> <span class="n">apply_arg_max</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_sigmoid</span> <span class="o">=</span> <span class="n">apply_sigmoid</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="c1"># WHEN DEALING WITH MULTIPLE OUTPUTS- OUTPUTS[0] IS THE MAIN SEGMENTATION MAP</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_arg_max</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">preds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_sigmoid</span><span class="p">:</span>
+            <span class="n">preds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">preds</span><span class="p">)</span>
+
+        <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">preds</span><span class="p">,</span> <span class="n">target</span></div>
+
+
+<div class="viewcode-block" id="PixelAccuracy"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.PixelAccuracy">[docs]</a><span class="k">class</span> <span class="nc">PixelAccuracy</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">ignore_label</span><span class="o">=-</span><span class="mi">100</span><span class="p">,</span>
+                 <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">metrics_args_prep_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbstractMetricsArgsPrepFn</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dist_sync_on_step</span><span class="o">=</span><span class="n">dist_sync_on_step</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="o">=</span> <span class="n">ignore_label</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_state</span><span class="p">(</span><span class="s2">&quot;total_correct&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">),</span> <span class="n">dist_reduce_fx</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_state</span><span class="p">(</span><span class="s2">&quot;total_label&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.</span><span class="p">),</span> <span class="n">dist_reduce_fx</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics_args_prep_fn</span> <span class="o">=</span> <span class="n">metrics_args_prep_fn</span> <span class="ow">or</span> <span class="n">PreprocessSegmentationMetricsArgs</span><span class="p">(</span><span class="n">apply_arg_max</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<div class="viewcode-block" id="PixelAccuracy.update"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.PixelAccuracy.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-            <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">predict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<div class="viewcode-block" id="PixelAccuracy.update"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.PixelAccuracy.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">predict</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_args_prep_fn</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+
         <span class="n">labeled_mask</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span><span class="p">)</span>
         <span class="n">pixel_labeled</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">labeled_mask</span><span class="p">)</span>
         <span class="n">pixel_correct</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">predict</span> <span class="o">==</span> <span class="n">target</span><span class="p">)</span> <span class="o">*</span> <span class="n">labeled_mask</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">total_correct</span> <span class="o">+=</span> <span class="n">pixel_correct</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">total_label</span> <span class="o">+=</span> <span class="n">pixel_labeled</span></div>
 
-<div class="viewcode-block" id="PixelAccuracy.compute"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.PixelAccuracy.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="PixelAccuracy.compute"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.PixelAccuracy.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">_total_correct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_correct</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int64&#39;</span><span class="p">)</span>
         <span class="n">_total_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_label</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;int64&#39;</span><span class="p">)</span>
         <span class="n">pix_acc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">_total_correct</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">spacing</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">+</span> <span class="n">_total_label</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">pix_acc</span></div></div>
 
 
-<div class="viewcode-block" id="IoU"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.IoU">[docs]</a><span class="k">class</span> <span class="nc">IoU</span><span class="p">(</span><span class="n">torchmetrics</span><span class="o">.</span><span class="n">IoU</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="n">dist_sync_on_step</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="n">ignore_index</span><span class="p">)</span>
+<div class="viewcode-block" id="IoU"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.IoU">[docs]</a><span class="k">class</span> <span class="nc">IoU</span><span class="p">(</span><span class="n">torchmetrics</span><span class="o">.</span><span class="n">JaccardIndex</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">dist_sync_on_step</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">ignore_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;elementwise_mean&quot;</span><span class="p">,</span>
+                 <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+                 <span class="n">metrics_args_prep_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbstractMetricsArgsPrepFn</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="n">dist_sync_on_step</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="n">ignore_index</span><span class="p">,</span>
+                         <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics_args_prep_fn</span> <span class="o">=</span> <span class="n">metrics_args_prep_fn</span> <span class="ow">or</span> <span class="n">PreprocessSegmentationMetricsArgs</span><span class="p">(</span><span class="n">apply_arg_max</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<div class="viewcode-block" id="IoU.update"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.IoU.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="c1"># WHEN DEALING WITH MULTIPLE OUTPUTS- OUTPUTS[0] IS THE MAIN SEGMENTATION MAP</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-            <span class="n">preds</span> <span class="o">=</span> <span class="n">preds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">preds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<div class="viewcode-block" id="IoU.update"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.IoU.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">preds</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_args_prep_fn</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">preds</span><span class="o">=</span><span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="Dice"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.Dice">[docs]</a><span class="k">class</span> <span class="nc">Dice</span><span class="p">(</span><span class="n">torchmetrics</span><span class="o">.</span><span class="n">JaccardIndex</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">dist_sync_on_step</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">ignore_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;elementwise_mean&quot;</span><span class="p">,</span>
+                 <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+                 <span class="n">metrics_args_prep_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbstractMetricsArgsPrepFn</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="n">dist_sync_on_step</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="n">ignore_index</span><span class="p">,</span>
+                         <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics_args_prep_fn</span> <span class="o">=</span> <span class="n">metrics_args_prep_fn</span> <span class="ow">or</span> <span class="n">PreprocessSegmentationMetricsArgs</span><span class="p">(</span><span class="n">apply_arg_max</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Dice.update"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.Dice.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">preds</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_args_prep_fn</span><span class="p">(</span><span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">preds</span><span class="o">=</span><span class="n">preds</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Dice.compute"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.Dice.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Computes Dice coefficient&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_dice_from_confmat</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">confmat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">absent_score</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="BinaryIOU"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.BinaryIOU">[docs]</a><span class="k">class</span> <span class="nc">BinaryIOU</span><span class="p">(</span><span class="n">IoU</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">ignore_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+                 <span class="n">metrics_args_prep_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbstractMetricsArgsPrepFn</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">metrics_args_prep_fn</span> <span class="o">=</span> <span class="n">metrics_args_prep_fn</span> <span class="ow">or</span> <span class="n">PreprocessSegmentationMetricsArgs</span><span class="p">(</span><span class="n">apply_sigmoid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="n">dist_sync_on_step</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="n">ignore_index</span><span class="p">,</span>
+                         <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span> <span class="n">metrics_args_prep_fn</span><span class="o">=</span><span class="n">metrics_args_prep_fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;target_IOU&quot;</span><span class="p">,</span> <span class="s2">&quot;background_IOU&quot;</span><span class="p">,</span> <span class="s2">&quot;mean_IOU&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="BinaryIOU.compute"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.BinaryIOU.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ious</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BinaryIOU</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;target_IOU&quot;</span><span class="p">:</span> <span class="n">ious</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;background_IOU&quot;</span><span class="p">:</span> <span class="n">ious</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;mean_IOU&quot;</span><span class="p">:</span> <span class="n">ious</span><span class="o">.</span><span class="n">mean</span><span class="p">()}</span></div></div>
+
+
+<div class="viewcode-block" id="BinaryDice"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.BinaryDice">[docs]</a><span class="k">class</span> <span class="nc">BinaryDice</span><span class="p">(</span><span class="n">Dice</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">ignore_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+                 <span class="n">metrics_args_prep_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbstractMetricsArgsPrepFn</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">metrics_args_prep_fn</span> <span class="o">=</span> <span class="n">metrics_args_prep_fn</span> <span class="ow">or</span> <span class="n">PreprocessSegmentationMetricsArgs</span><span class="p">(</span><span class="n">apply_sigmoid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dist_sync_on_step</span><span class="o">=</span><span class="n">dist_sync_on_step</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="n">ignore_index</span><span class="p">,</span>
+                         <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span> <span class="n">metrics_args_prep_fn</span><span class="o">=</span><span class="n">metrics_args_prep_fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;target_Dice&quot;</span><span class="p">,</span> <span class="s2">&quot;background_Dice&quot;</span><span class="p">,</span> <span class="s2">&quot;mean_Dice&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="BinaryDice.compute"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.BinaryDice.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">dices</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;target_Dice&quot;</span><span class="p">:</span> <span class="n">dices</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;background_Dice&quot;</span><span class="p">:</span> <span class="n">dices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;mean_Dice&quot;</span><span class="p">:</span> <span class="n">dices</span><span class="o">.</span><span class="n">mean</span><span class="p">()}</span></div></div>
 </pre></div>
 
            </div>
