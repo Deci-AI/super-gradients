@@ -201,7 +201,7 @@ class IoU(torchmetrics.JaccardIndex):
                  threshold: float = 0.5,
                  metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
 
-        if num_classes > 1:
+        if num_classes <= 1:
             raise ValueError(f"IoU class only for multi-class usage! For binary usage, please call {BinaryIOU.__name__}")
 
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
@@ -222,7 +222,7 @@ class Dice(torchmetrics.JaccardIndex):
                  threshold: float = 0.5,
                  metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
 
-        if num_classes > 1:
+        if num_classes <= 1:
             raise ValueError(f"Dice class only for multi-class usage! For binary usage, please call {BinaryDice.__name__}")
 
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
