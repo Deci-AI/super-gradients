@@ -785,7 +785,6 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
         targets_format = get_param(self.dataset_params, "targets_format", DetectionTargetsFormat.LABEL_CXCYWH)
 
         train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
-        train_tight_box_rotation = get_param(self.dataset_params, "train_tight_box_rotation", False)
         train_max_num_samples = get_param(self.dataset_params, "train_max_num_samples")
 
         train_transforms = [DetectionMosaic(input_dim=train_input_dim,
@@ -824,13 +823,12 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
                                                  cache=self.dataset_params.cache_train_images,
                                                  cache_dir=self.dataset_params.cache_dir,
                                                  transforms=train_transforms,
-                                                 tight_box_rotation=train_tight_box_rotation,
+                                                 tight_box_rotation=self.dataset_params.train_tight_box_rotation,
                                                  class_inclusion_list=self.dataset_params.class_inclusion_list,
                                                  max_num_samples=train_max_num_samples,
                                                  with_crowd=False)
 
         val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
-        val_tight_box_rotation = get_param(self.dataset_params, "val_tight_box_rotation", False)
         val_max_num_samples = get_param(self.dataset_params, "val_max_num_samples")
         with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=True)
 
@@ -847,7 +845,6 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
                 cache=self.dataset_params.cache_val_images,
                 input_dim=val_input_dim,
                 transforms=val_transforms,
-                tight_box_rotation=val_tight_box_rotation,
                 class_inclusion_list=self.dataset_params.class_inclusion_list,
                 max_num_samples=val_max_num_samples,
                 with_crowd=with_crowd,)
