@@ -26,12 +26,14 @@ filter_box_candidates: False # whether to filter out transformed bboxes by edge 
 wh_thr: 2 # edge size threshold when filter_box_candidates = True (pixels)
 ar_thr: 20 # aspect ratio threshold when filter_box_candidates = True
 area_thr: 0.1 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
+tight_box_rotation: False
 
 targets_format:
   _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
   value: LABEL_CXCYWH
 
-with_crowd: False # whether to return "crowd" labels in validation
+class_inclusion_list: # If not None,every class not included will be ignored.
+with_crowd: False     # Whether to return "crowd" labels in validation
 
 val_collate_fn: # collate function for valset
   _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN

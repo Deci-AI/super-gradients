@@ -823,7 +823,7 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
                                                  cache=self.dataset_params.cache_train_images,
                                                  cache_dir=self.dataset_params.cache_dir,
                                                  transforms=train_transforms,
-                                                 tight_box_rotation=self.dataset_params.train_tight_box_rotation,
+                                                 tight_box_rotation=self.dataset_params.tight_box_rotation,
                                                  class_inclusion_list=self.dataset_params.class_inclusion_list,
                                                  max_num_samples=train_max_num_samples,
                                                  with_crowd=False)
