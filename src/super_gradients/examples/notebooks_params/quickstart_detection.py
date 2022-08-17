@@ -1,22 +1,22 @@
 from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
+from super_gradients.training.utils.detection_utils import (
+    DetectionCollateFN,
+    CrowdDetectionCollateFN
+)
 
-DEFAULT_TRANSFORMS = {"mixup_prob": .0,  # probability to apply per-sample mixup
-                      "degrees": 0.,  # rotation degrees, randomly sampled from [-degrees, degrees]
-                      "shear": 0.,  # shear degrees, randomly sampled from [-degrees, degrees]
-                      "flip_prob": 0.,  # probability to apply horizontal flip
-                      "hsv_prob": 0.,  # probability to apply HSV transform
-                      "hgain": 1,  # HSV transform hue gain (randomly sampled from [-hgain, hgain])
-                      "sgain": 1,  # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
-                      "vgain": 1,  # HSV transform value gain (randomly sampled from [-vgain, vgain])
-                      "mosaic_scale": [0.5, 1.5],  # random rescale range (keeps size by padding/cropping) after mosaic transform.
-                      "mixup_scale": [1., 1.],  # random rescale range for the additional sample in mixup
-                      "mosaic_prob": 0.5,  # probability to apply mosaic
-                      "translate": 0.,  # image translation fraction
-                      "filter_box_candidates": False,  # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
-                      "wh_thr": 2,  # edge size threshold when filter_box_candidates = True (pixels)
-                      "ar_thr": 20,  # aspect ratio threshold when filter_box_candidates = True
-                      "area_thr": 0.1}  # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
-
+DEFAULT_DATASET_PARAM = {
+    "train_transforms": [],
+    "val_transforms": [],
+    "train_collate_fn": DetectionCollateFN(),
+    "val_collate_fn": CrowdDetectionCollateFN(),
+    "tight_box_rotation": True,
+    "class_inclusion_list": None,
+    "train_max_num_samples": None,
+    "val_max_num_samples": None,
+    "cache_train_images": False,
+    "cache_val_images": False,
+    "with_crowd": True
+}
 
 DEFAULT_TRAINING_PARAMS = {"max_epochs": 20,
                            "lr_mode": "cosine",
