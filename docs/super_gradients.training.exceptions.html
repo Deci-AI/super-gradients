@@ -38,6 +38,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
 <li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Technical Documentation</span></p>
@@ -105,6 +106,18 @@
 </dd></dl>
 
 <dl class="py exception">
+<dt class="sig sig-object py" id="super_gradients.training.exceptions.dataset_exceptions.EmptyDatasetException">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.exceptions.dataset_exceptions.</span></span><span class="sig-name descname"><span class="pre">EmptyDatasetException</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">desc</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/training/exceptions/dataset_exceptions.html#EmptyDatasetException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.exceptions.dataset_exceptions.EmptyDatasetException" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Exception raised when a dataset does not have any image for a specific config</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">message</span> <span class="pre">--</span> <span class="pre">explanation</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">error</span></span></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
 <dt class="sig sig-object py" id="super_gradients.training.exceptions.dataset_exceptions.UnsupportedBatchItemsFormat">
 <em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.exceptions.dataset_exceptions.</span></span><span class="sig-name descname"><span class="pre">UnsupportedBatchItemsFormat</span></span><a class="reference internal" href="_modules/super_gradients/training/exceptions/dataset_exceptions.html#UnsupportedBatchItemsFormat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.exceptions.dataset_exceptions.UnsupportedBatchItemsFormat" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></p>
@@ -141,6 +154,13 @@
 <span class="sig-name descname"><span class="pre">message</span> <span class="pre">--</span> <span class="pre">explanation</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">error</span></span></dt>
 <dd></dd></dl>
 
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="super_gradients.training.exceptions.sg_model_exceptions.IllegalDataloaderInitialization">
+<em class="property"><span class="pre">exception</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.training.exceptions.sg_model_exceptions.</span></span><span class="sig-name descname"><span class="pre">IllegalDataloaderInitialization</span></span><a class="reference internal" href="_modules/super_gradients/training/exceptions/sg_model_exceptions.html#IllegalDataloaderInitialization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.training.exceptions.sg_model_exceptions.IllegalDataloaderInitialization" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Exception raised illegal data loaders.</p>
 </dd></dl>
 
 </section>

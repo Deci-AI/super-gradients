@@ -21,7 +21,7 @@ class DummyDetectionDataset(DetectionDataset):
 
     def _load_annotation(self, sample_id: int) -> dict:
         """Load dummy annotation"""
-        return {"img_path": "", "target": torch.zeros(10, 6)}
+        return {"img_path": "", "resized_img_shape": None, "target": torch.zeros(10, 6)}
 
     # DetectionDatasetV2 will call _load_image but since we don't have any image we patch this method with
     # tensor of image shape

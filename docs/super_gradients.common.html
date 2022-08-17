@@ -20,6 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Training package" href="super_gradients.training.html" />
+    <link rel="prev" title="Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey" href="welcome.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -39,6 +40,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
 <li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Technical Documentation</span></p>
@@ -336,6 +338,146 @@ and prepares the super_gradients environment.</p>
 <span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">is_distributed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="reference internal" href="_modules/super_gradients/common/environment/env_helpers.html#is_distributed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.is_distributed" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.StrictLoad">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">StrictLoad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_types/enum/strict_load.html#StrictLoad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.StrictLoad" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<dl>
+<dt>Wrapper for adding more functionality to torch’s strict_load parameter in load_state_dict().</dt><dd><dl>
+<dt>Attributes:</dt><dd><p>OFF              - Native torch “strict_load = off” behaviour. See nn.Module.load_state_dict() documentation for more details.
+ON               - Native torch “strict_load = on” behaviour. See nn.Module.load_state_dict() documentation for more details.
+NO_KEY_MATCHING  - Allows the usage of SuperGradient’s adapt_checkpoint function, which loads a checkpoint by matching each</p>
+<blockquote>
+<div><p>layer’s shapes (and bypasses the strict matching of the names of each layer (ie: disregards the state_dict key matching)).</p>
+</div></blockquote>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.StrictLoad.OFF">
+<span class="sig-name descname"><span class="pre">OFF</span></span><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#super_gradients.common.StrictLoad.OFF" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.StrictLoad.ON">
+<span class="sig-name descname"><span class="pre">ON</span></span><em class="property"> <span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#super_gradients.common.StrictLoad.ON" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.StrictLoad.NO_KEY_MATCHING">
+<span class="sig-name descname"><span class="pre">NO_KEY_MATCHING</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'no_key_matching'</span></em><a class="headerlink" href="#super_gradients.common.StrictLoad.NO_KEY_MATCHING" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.DeepLearningTask">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">DeepLearningTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_types/enum/deep_learning_task.html#DeepLearningTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.DeepLearningTask" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<p>An enumeration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.DeepLearningTask.CLASSIFICATION">
+<span class="sig-name descname"><span class="pre">CLASSIFICATION</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'classification'</span></em><a class="headerlink" href="#super_gradients.common.DeepLearningTask.CLASSIFICATION" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.DeepLearningTask.SEMANTIC_SEGMENTATION">
+<span class="sig-name descname"><span class="pre">SEMANTIC_SEGMENTATION</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'semantic_segmentation'</span></em><a class="headerlink" href="#super_gradients.common.DeepLearningTask.SEMANTIC_SEGMENTATION" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.DeepLearningTask.OBJECT_DETECTION">
+<span class="sig-name descname"><span class="pre">OBJECT_DETECTION</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'object_detection'</span></em><a class="headerlink" href="#super_gradients.common.DeepLearningTask.OBJECT_DETECTION" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.DeepLearningTask.DEPTH_ESTIMATION">
+<span class="sig-name descname"><span class="pre">DEPTH_ESTIMATION</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'depth_estimation'</span></em><a class="headerlink" href="#super_gradients.common.DeepLearningTask.DEPTH_ESTIMATION" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.DeepLearningTask.POSE_ESTIMATION">
+<span class="sig-name descname"><span class="pre">POSE_ESTIMATION</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'pose_estimation'</span></em><a class="headerlink" href="#super_gradients.common.DeepLearningTask.POSE_ESTIMATION" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.DeepLearningTask.NLP">
+<span class="sig-name descname"><span class="pre">NLP</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'nlp'</span></em><a class="headerlink" href="#super_gradients.common.DeepLearningTask.NLP" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.DeepLearningTask.OTHER">
+<span class="sig-name descname"><span class="pre">OTHER</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'other'</span></em><a class="headerlink" href="#super_gradients.common.DeepLearningTask.OTHER" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.EvaluationType">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">EvaluationType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_types/enum/evaluation_type.html#EvaluationType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.EvaluationType" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<p>Passed to SgModel.evaluate(..), and controls which phase callbacks should be triggered (if at all).</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Attributes:</dt><dd><p>TEST
+VALIDATION</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.EvaluationType.TEST">
+<span class="sig-name descname"><span class="pre">TEST</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'TEST'</span></em><a class="headerlink" href="#super_gradients.common.EvaluationType.TEST" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.EvaluationType.VALIDATION">
+<span class="sig-name descname"><span class="pre">VALIDATION</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'VALIDATION'</span></em><a class="headerlink" href="#super_gradients.common.EvaluationType.VALIDATION" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="super_gradients.common.MultiGPUMode">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">super_gradients.common.</span></span><span class="sig-name descname"><span class="pre">MultiGPUMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/super_gradients/common/data_types/enum/multi_gpu_mode.html#MultiGPUMode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#super_gradients.common.MultiGPUMode" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">OFF</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">-</span> <span class="pre">Single</span> <span class="pre">GPU</span> <span class="pre">Mode</span> <span class="pre">/</span> <span class="pre">CPU</span> <span class="pre">Mode</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">DATA_PARALLEL</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">-</span> <span class="pre">Multiple</span> <span class="pre">GPUs,</span> <span class="pre">Synchronous</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">DISTRIBUTED_DATA_PARALLEL</span> <span class="pre">-</span> <span class="pre">Multiple</span> <span class="pre">GPUs,</span> <span class="pre">Asynchronous</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.MultiGPUMode.OFF">
+<span class="sig-name descname"><span class="pre">OFF</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'Off'</span></em><a class="headerlink" href="#super_gradients.common.MultiGPUMode.OFF" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.MultiGPUMode.DATA_PARALLEL">
+<span class="sig-name descname"><span class="pre">DATA_PARALLEL</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'DP'</span></em><a class="headerlink" href="#super_gradients.common.MultiGPUMode.DATA_PARALLEL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.MultiGPUMode.DISTRIBUTED_DATA_PARALLEL">
+<span class="sig-name descname"><span class="pre">DISTRIBUTED_DATA_PARALLEL</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'DDP'</span></em><a class="headerlink" href="#super_gradients.common.MultiGPUMode.DISTRIBUTED_DATA_PARALLEL" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="super_gradients.common.MultiGPUMode.AUTO">
+<span class="sig-name descname"><span class="pre">AUTO</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'AUTO'</span></em><a class="headerlink" href="#super_gradients.common.MultiGPUMode.AUTO" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <section id="module-contents">
 <h2>Module contents<a class="headerlink" href="#module-contents" title="Permalink to this headline"></a></h2>
 </section>
@@ -345,6 +487,7 @@ and prepares the super_gradients environment.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="welcome.html" class="btn btn-neutral float-left" title="Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="super_gradients.training.html" class="btn btn-neutral float-right" title="Training package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

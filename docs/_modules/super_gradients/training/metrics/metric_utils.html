@@ -35,11 +35,30 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#supergradients">SuperGradients</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -67,45 +86,9 @@
            <div itemprop="articleBody">
              
   <h1>Source code for super_gradients.training.metrics.metric_utils</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">torch</span>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torchmetrics</span> <span class="kn">import</span> <span class="n">MetricCollection</span>
-<span class="kn">from</span> <span class="nn">super_gradients.training.metrics.detection_metrics</span> <span class="kn">import</span> <span class="n">ap_per_class</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.utils.utils</span> <span class="kn">import</span> <span class="n">AverageMeter</span>
-
-
-<div class="viewcode-block" id="calc_batch_prediction_detection_metrics_per_class"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.metric_utils.calc_batch_prediction_detection_metrics_per_class">[docs]</a><span class="k">def</span> <span class="nf">calc_batch_prediction_detection_metrics_per_class</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">dataset_interface</span><span class="p">,</span> <span class="n">iou_thres</span><span class="p">,</span> <span class="n">silent_mode</span><span class="p">,</span> <span class="n">images_counter</span><span class="p">,</span>
-                                                      <span class="n">per_class_verbosity</span><span class="p">,</span> <span class="n">class_names</span><span class="p">,</span> <span class="n">test_loss</span><span class="p">):</span>
-
-    <span class="n">metrics</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">metrics</span><span class="p">))]</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
-        <span class="n">precision</span><span class="p">,</span> <span class="n">recall</span><span class="p">,</span> <span class="n">average_precision</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">ap_class</span> <span class="o">=</span> <span class="n">ap_per_class</span><span class="p">(</span><span class="o">*</span><span class="n">metrics</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">iou_thres</span><span class="o">.</span><span class="n">is_range</span><span class="p">():</span>
-            <span class="n">precision</span><span class="p">,</span> <span class="n">recall</span><span class="p">,</span> <span class="n">average_precision</span><span class="p">,</span> <span class="n">f1</span> <span class="o">=</span> <span class="n">precision</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">recall</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">average_precision</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
-                <span class="mi">1</span><span class="p">),</span> <span class="n">average_precision</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
-        <span class="n">mean_precision</span><span class="p">,</span> <span class="n">mean_recall</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="n">mf1</span> <span class="o">=</span> <span class="n">precision</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">recall</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">average_precision</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">f1</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-        <span class="n">targets_per_class</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
-                                        <span class="n">minlength</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset_interface</span><span class="o">.</span><span class="n">testset</span><span class="o">.</span><span class="n">classes</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">targets_per_class</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">silent_mode</span><span class="p">:</span>
-        <span class="c1"># PRINT RESULTS</span>
-        <span class="n">map_str</span> <span class="o">=</span> <span class="s1">&#39;mAP@</span><span class="si">%.1f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">iou_thres</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">iou_thres</span><span class="o">.</span><span class="n">is_range</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;mAP@</span><span class="si">%.2f</span><span class="s1">:</span><span class="si">%.2f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">iou_thres</span>
-        <span class="nb">print</span><span class="p">((</span><span class="s1">&#39;</span><span class="si">%15s</span><span class="s1">&#39;</span> <span class="o">*</span> <span class="mi">7</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;Class&#39;</span><span class="p">,</span> <span class="s1">&#39;Images&#39;</span><span class="p">,</span> <span class="s1">&#39;Targets&#39;</span><span class="p">,</span> <span class="s1">&#39;Precision&#39;</span><span class="p">,</span> <span class="s1">&#39;Recall&#39;</span><span class="p">,</span> <span class="n">map_str</span><span class="p">,</span> <span class="s1">&#39;F1&#39;</span><span class="p">))</span>
-        <span class="n">pf</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%15s</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="si">%15.3g</span><span class="s1">&#39;</span> <span class="o">*</span> <span class="mi">6</span>  <span class="c1"># print format</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">pf</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">images_counter</span><span class="p">,</span> <span class="n">targets_per_class</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">mean_precision</span><span class="p">,</span> <span class="n">mean_recall</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="n">mf1</span><span class="p">))</span>
-
-        <span class="c1"># PRINT RESULTS PER CLASS</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset_interface</span><span class="o">.</span><span class="n">testset</span><span class="o">.</span><span class="n">classes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span> <span class="ow">and</span> <span class="n">per_class_verbosity</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ap_class</span><span class="p">):</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">pf</span> <span class="o">%</span> <span class="p">(</span>
-                    <span class="n">class_names</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">images_counter</span><span class="p">,</span> <span class="n">targets_per_class</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">precision</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">recall</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                    <span class="n">average_precision</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                    <span class="n">f1</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
-
-    <span class="n">results_tuple</span> <span class="o">=</span> <span class="p">(</span><span class="n">mean_precision</span><span class="p">,</span> <span class="n">mean_recall</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="n">mf1</span><span class="p">,</span> <span class="o">*</span><span class="n">test_loss</span><span class="o">.</span><span class="n">average</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">results_tuple</span></div>
 
 
 <div class="viewcode-block" id="get_logging_values"><a class="viewcode-back" href="../../../../super_gradients.training.metrics.html#super_gradients.training.metrics.metric_utils.get_logging_values">[docs]</a><span class="k">def</span> <span class="nf">get_logging_values</span><span class="p">(</span><span class="n">loss_loggings</span><span class="p">:</span> <span class="n">AverageMeter</span><span class="p">,</span> <span class="n">metrics</span><span class="p">:</span> <span class="n">MetricCollection</span><span class="p">,</span> <span class="n">criterion</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

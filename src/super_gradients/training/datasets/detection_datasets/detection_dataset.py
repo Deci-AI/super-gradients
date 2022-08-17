@@ -5,6 +5,8 @@ import random
 import cv2
 import matplotlib.pyplot as plt
 from pathlib import Path
+from copy import deepcopy
+import hashlib
 
 import numpy as np
 from tqdm import tqdm
@@ -64,7 +66,7 @@ class DetectionDataset(Dataset):
             original_target_format: DetectionTargetsFormat,
             max_num_samples: int = None,
             cache: bool = False,
-            cache_path: str = None,
+            cache_dir: str = None,
             transforms: List[DetectionTransform] = [],
             all_classes_list: Optional[List[str]] = None,
             class_inclusion_list: Optional[List[str]] = None,
@@ -80,7 +82,7 @@ class DetectionDataset(Dataset):
                                         differ based on transforms.
         :param max_num_samples:         If not None, set the maximum size of the dataset by only indexing the first n annotations/images.
         :param cache:                   Whether to cache images or not.
-        :param cache_path:              Path to the directory where cached images will be stored in an optimized format.
+        :param cache_dir:              Path to the directory where cached images will be stored in an optimized format.
         :param transforms:              List of transforms to apply sequentially on sample.
         :param all_classes_list:        All the class names.
         :param class_inclusion_list:    If not None,every class not included will be ignored.
@@ -119,11 +121,12 @@ class DetectionDataset(Dataset):
         if "target" not in self.target_fields:
             raise KeyError('"target" is expected to be in the fields to subclass but it was not included')
 
+        self._required_annotation_fields = {"target", "img_path", "resized_img_shape"}
         self.annotations = self._cache_annotations()
 
         self.cache = cache
-        self.cache_path = cache_path
-        self.cached_imgs = self._cache_images() if self.cache else None
+        self.cache_dir = cache_dir
+        self.cached_imgs_padded = self._cache_images() if self.cache else None
 
         self.transforms = transforms
 
@@ -142,7 +145,7 @@ class DetectionDataset(Dataset):
         Please note that the targets should be resized according to self.input_dim!
 
         :param sample_id:   Id of the sample to load annotations from.
-        :return:            Annotation, a dict with any field but has to include at least "target" and "img_path".
+        :return:            Annotation, a dict with any field but has to include at least the fields specified in self._required_annotation_fields.
         """
         raise NotImplementedError
 
@@ -157,8 +160,9 @@ class DetectionDataset(Dataset):
                 break
 
             img_annotation = self._load_annotation(img_id)
-            if "target" not in img_annotation or "img_path" not in img_annotation:
-                raise KeyError('_load_annotation is expected to return at least the field "target" and "img_path"')
+            if not self._required_annotation_fields.issubset(set(img_annotation.keys())):
+                raise KeyError(f'_load_annotation is expected to return at least the fields {self._required_annotation_fields} '
+                               f'but got {set(img_annotation.keys())}')
 
             if self.class_inclusion_list is not None:
                 img_annotation = self._sub_class_annotation(img_annotation)
@@ -207,24 +211,33 @@ class DetectionDataset(Dataset):
         """Cache the images. The cached image are stored in a file to be loaded faster mext time.
         :return: Cached images
         """
-        cache_path = Path(self.cache_path)
-        if cache_path is None:
-            raise ValueError("You must specify a cache_path if you want to cache your images."
+        cache_dir = Path(self.cache_dir)
+        if cache_dir is None:
+            raise ValueError("You must specify a cache_dir if you want to cache your images."
                              "If you did not mean to use cache, please set cache=False ")
-        cache_path.mkdir(parents=True, exist_ok=True)
+        cache_dir.mkdir(parents=True, exist_ok=True)
 
         logger.warning("\n********************************************************************************\n"
                        "You are using cached images in RAM to accelerate training.\n"
                        "This requires large system RAM.\n"
-                       "********************************************************************************\n")
+                       "********************************************************************************")
 
         max_h, max_w = self.input_dim[0], self.input_dim[1]
-        img_resized_cache_path = cache_path / "img_resized_cache.array"
+
+        # The cache should be the same as long as the images and their sizes are the same
+        hash = hashlib.sha256()
+        for annotation in self.annotations:
+            values_to_hash = [annotation["resized_img_shape"][0], annotation["resized_img_shape"][1], Path(annotation["img_path"]).name]
+            for value in values_to_hash:
+                hash.update(str(value).encode('utf-8'))
+        cache_hash = hash.hexdigest()
+
+        img_resized_cache_path = cache_dir / f"img_resized_cache_{cache_hash}.array"
 
         if not img_resized_cache_path.exists():
-            logger.info("Caching images for the first time.")
+            logger.info("Caching images for the first time. Be aware that this will stay in the disk until you delete it yourself.")
             NUM_THREADs = min(8, os.cpu_count())
-            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_image(x), iterable=range(len(self)))
+            loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_resized_img(x), iterable=range(len(self)))
 
             # Initialize placeholder for images
             cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
@@ -237,9 +250,7 @@ class DetectionDataset(Dataset):
             cached_imgs.flush()
             loaded_images_pbar.close()
         else:
-            logger.warning("You are using cached imgs! Make sure your dataset is not changed!!\n"
-                           "Everytime the self.input_size is changed in your exp file, you need to delete\n"
-                           "the cached data and re-generate them.\n")
+            logger.warning("You are using cached imgs!")
 
         logger.info("Loading cached imgs...")
         cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
@@ -276,8 +287,8 @@ class DetectionDataset(Dataset):
 
     def __del__(self):
         """Clear the cached images"""
-        if hasattr(self, "cached_imgs"):
-            del self.cached_imgs
+        if hasattr(self, "cached_imgs_padded"):
+            del self.cached_imgs_padded
 
     def __len__(self):
         """Get the length of the dataset."""
@@ -302,17 +313,21 @@ class DetectionDataset(Dataset):
         :return:        Sample, i.e. a dictionary including at least "image" and "target"
         """
         img = self.get_resized_image(index)
-        annotation = self.annotations[index]
+        annotation = deepcopy(self.annotations[index])
         return {"image": img, **annotation}
 
     def get_resized_image(self, index: int) -> np.ndarray:
         """
-        Get the resized image at a specific sample_id, either from cache or by loading from disk, based on self.cached_imgs
+        Get the resized image (i.e. either width or height reaches its input_dim) at a specific sample_id,
+        either from cache or by loading from disk, based on self.cached_imgs_padded
         :param index:  Image index
         :return:       Resized image
         """
         if self.cache:
-            return self.cached_imgs[index].copy()
+            padded_image = self.cached_imgs_padded[index]
+            resized_height, resized_width = self.annotations[index]["resized_img_shape"]
+            resized_image = padded_image[:resized_height, :resized_width, :]
+            return resized_image.copy()
         else:
             return self._load_resized_img(index)
 
