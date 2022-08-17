@@ -25,13 +25,13 @@ class KDModule(SgModule):
 
     """
 
-    def __init__(self, arch_params: HpmStruct, student: SgModule, teacher: torch.nn.Module, run_teacher_on_eval=False):
+    def __init__(self, arch_params: HpmStruct, student: SgModule, teacher: torch.nn.Module, run_teacher_on_eval=False, ignore_teacher_input_adapter: bool = False):
         super(KDModule, self).__init__()
         self.arch_params = arch_params
         self.student = student
         self.teacher = teacher
         teacher_input_adapter = get_param(self.arch_params, "teacher_input_adapter")
-        if teacher_input_adapter is not None:
+        if not ignore_teacher_input_adapter and teacher_input_adapter is not None:
             self.teacher = torch.nn.Sequential(teacher_input_adapter, self.teacher)
         self.run_teacher_on_eval = run_teacher_on_eval
         self._freeze_teacher()
