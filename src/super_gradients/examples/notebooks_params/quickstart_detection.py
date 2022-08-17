@@ -1,21 +1,15 @@
-from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
-from super_gradients.training.utils.detection_utils import (
-    DetectionCollateFN,
-    CrowdDetectionCollateFN
-)
+from super_gradients.training.utils.detection_utils import DetectionCollateFN
 
 DEFAULT_DATASET_PARAM = {
-    "train_transforms": [],
-    "val_transforms": [],
     "train_collate_fn": DetectionCollateFN(),
-    "val_collate_fn": CrowdDetectionCollateFN(),
+    "val_collate_fn": DetectionCollateFN(),
     "tight_box_rotation": True,
     "class_inclusion_list": None,
     "train_max_num_samples": None,
     "val_max_num_samples": None,
     "cache_train_images": False,
     "cache_val_images": False,
-    "with_crowd": True
+    "with_crowd": False
 }
 
 DEFAULT_TRAINING_PARAMS = {"max_epochs": 20,
@@ -32,7 +26,6 @@ DEFAULT_TRAINING_PARAMS = {"max_epochs": 20,
                            "loss_logging_items_names": ["iou", "obj", "cls", "l1", "num_fg", "loss"],
                            "metric_to_watch": "mAP@0.50:0.95",
                            "greater_metric_to_watch_is_better": True,
-                           "forward_pass_prep_fn": DetectionMultiscalePrePredictionCallback(),
                            "loss": "yolox_loss",
                            "criterion_params": {"strides": [8, 16, 32], "num_classes": 80},
                            "optimizer": "SGD",
