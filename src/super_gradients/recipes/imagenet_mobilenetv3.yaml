@@ -2,6 +2,8 @@
 
 defaults:
   - training_hyperparams: imagenet_mobilenetv3_train_params
+  - dataset_params: imagenet_dataset_params
+  - arch_params: mobilenet_v3_arch_params
   - checkpoint_params: default_checkpoint_params
 
 dataset_params:
