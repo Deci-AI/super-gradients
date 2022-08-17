@@ -38,7 +38,7 @@ valid_metrics_list:
         conf: 0.01
       num_cls: 80
 
-pre_prediction_callback: DetectionMultiscalePrePredictionCallback
+pre_prediction_callback:
 
 phase_callbacks:
   - YoloXTrainingStageSwitchCallback:

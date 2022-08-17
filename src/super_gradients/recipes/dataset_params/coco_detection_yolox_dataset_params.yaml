@@ -13,6 +13,7 @@ val_batch_size: 64 # batch size for valset
 train_input_dim: [640, 640]
 val_input_dim: [640, 640]
 
+filter_box_candidates: False
 targets_format:
   _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
   value: LABEL_CXCYWH
@@ -28,7 +29,7 @@ train_transforms:
     scales: [0.1, 2]              # random rescale range (keeps size by padding/cropping) after mosaic transform.
     shear: 2.0                    # shear degrees, randomly sampled from [-degrees, degrees]
     target_size: ${dataset_params.train_input_dim}
-    filter_box_candidates: False  # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
+    filter_box_candidates: ${dataset_params.filter_box_candidates}   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
     wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
     area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
     ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
