@@ -87,13 +87,14 @@ class TestDatasetInterface(unittest.TestCase):
             "wh_thr": 2,  # edge size threshold when filter_box_candidates = True (pixels)
             "ar_thr": 20,  # aspect ratio threshold when filter_box_candidates = True
             "area_thr": 0.1,  # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
+            "tight_box_rotation": False,
 
             "download": False,
             "train_collate_fn": DetectionCollateFN(),
             "val_collate_fn": DetectionCollateFN(),
             "cache_train_images": False,
             "cache_val_images": False,
-            "cache_dir": "/home/louis.dupont/data/cache",
+            "cache_dir": "/home/data/cache",  # Depends on the user
             "class_inclusion_list": None
             # "with_crowd": True
         }
