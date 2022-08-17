@@ -1,6 +1,9 @@
 import logging
 from os import environ
 
+import pkg_resources
+
+PKG_CHECKPOINTS_DIR = pkg_resources.resource_filename("checkpoints", "")
 AWS_ENV_NAME = environ.get("ENVIRONMENT_NAME")
 
 AWS_ENVIRONMENTS = ["development", "staging", "production"]
@@ -13,7 +16,7 @@ if AWS_ENV_NAME not in AWS_ENVIRONMENTS:
             )
         else:
             print(
-                f'Bad AWS environment name: {AWS_ENV_NAME}. Please set an environment variable named ENVIRONMENT_NAME '
+                f"Bad AWS environment name: {AWS_ENV_NAME}. Please set an environment variable named ENVIRONMENT_NAME "
                 f'with one of the values: {",".join(AWS_ENVIRONMENTS)}'
             )
 
