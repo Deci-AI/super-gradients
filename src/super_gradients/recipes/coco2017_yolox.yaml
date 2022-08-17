@@ -34,7 +34,7 @@ architecture: yolox_s
 
 multi_gpu: DDP
 
-experiment_name: yolox_regular_loss_new_multiscale
+experiment_name: yolox_fast_loss_filter_no_multiscale
 
 ckpt_root_dir:
 sg_model:
