@@ -124,5 +124,4 @@ class KDModelEMA(ModelEMA):
         self.ema = core_utils.WrappedModel(KDModule(arch_params=kd_model.module.arch_params,
                                                     student=self.ema.module,
                                                     teacher=kd_model.module.teacher,
-                                                    run_teacher_on_eval=kd_model.module.run_teacher_on_eval,
-                                                    ignore_teacher_input_adapter=True))
+                                                    run_teacher_on_eval=kd_model.module.run_teacher_on_eval))

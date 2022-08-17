@@ -18,7 +18,6 @@ class KDModule(SgModule):
         teacher: torch.nn.Module- the teacher model
         run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
         arch_params: HpmStruct- Architecture H.P.
-        ignore_teacher_input_adapter: bool - When True, the no teacher adapter will be used even if specified in the archs_params
 
         Additionally, by passing teacher_input_adapter (torch.nn.Module) one can modify the teacher net s.t
         teacher = torch.nn.Sequential(teacher_input_adapter, teacher). This is useful when teacher net expects a
@@ -26,15 +25,12 @@ class KDModule(SgModule):
 
     """
 
-    def __init__(self, arch_params: HpmStruct, student: SgModule, teacher: torch.nn.Module,
-                 run_teacher_on_eval: bool = False, ignore_teacher_input_adapter: bool = False):
+    def __init__(self, arch_params: HpmStruct, student: SgModule, teacher: torch.nn.Module, run_teacher_on_eval=False):
         super(KDModule, self).__init__()
         self.arch_params = arch_params
         self.student = student
         self.teacher = teacher
-        teacher_input_adapter = get_param(self.arch_params, "teacher_input_adapter")
-        if not ignore_teacher_input_adapter and teacher_input_adapter is not None:
-            self.teacher = torch.nn.Sequential(teacher_input_adapter, self.teacher)
+        self.teacher_input_adapter = get_param(self.arch_params, "teacher_input_adapter")
         self.run_teacher_on_eval = run_teacher_on_eval
         self._freeze_teacher()
 
@@ -56,8 +52,12 @@ class KDModule(SgModule):
         self.teacher.eval()
 
     def forward(self, x):
-        return KDOutput(student_output=self.student(x),
-                        teacher_output=self.teacher(x))
+        if self.teacher_input_adapter is not None:
+            return KDOutput(student_output=self.student(x),
+                            teacher_output=self.teacher(self.teacher_input_adapter(x)))
+        else:
+            return KDOutput(student_output=self.student(x),
+                            teacher_output=self.teacher(x))
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         return self.student.initialize_param_groups(lr, training_params)
