@@ -11,6 +11,8 @@ defaults:
   - dataset_params: cifar10_dataset_params
   - arch_params: resnet18_cifar_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
+
 
 dataset_interface:
   cifar_10:
@@ -32,4 +34,9 @@ sg_model:
   multi_gpu: Off
 
 architecture: resnet18_cifar
+
+pkg_checkpoints_dir:
+hydra:
+  run:
+    dir: ${pkg_checkpoints_dir}/${sg_model.experiment_name}
 
