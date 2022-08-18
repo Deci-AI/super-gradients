@@ -2,18 +2,16 @@ from super_gradients.training.models.detection_models.yolo_base import YoloPostP
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.utils.detection_utils import DetectionCollateFN
 
-DEFAULT_DATASET_PARAM = {
-    "cache_dir": "",
-    "train_collate_fn": DetectionCollateFN(),
-    "val_collate_fn": DetectionCollateFN(),
-    "tight_box_rotation": True,
-    "class_inclusion_list": None,
-    "train_max_num_samples": None,
-    "val_max_num_samples": None,
-    "cache_train_images": False,
-    "cache_val_images": False,
-    "with_crowd": False
-}
+DEFAULT_DATASET_PARAM = {"cache_dir": "",
+                         "train_collate_fn": DetectionCollateFN(),
+                         "val_collate_fn": DetectionCollateFN(),
+                         "tight_box_rotation": True,
+                         "class_inclusion_list": None,
+                         "train_max_num_samples": None,
+                         "val_max_num_samples": None,
+                         "cache_train_images": False,
+                         "cache_val_images": False,
+                         "with_crowd": False}
 
 DEFAULT_TRAINING_PARAMS = {"max_epochs": 50,
                            "lr_mode": "cosine",
