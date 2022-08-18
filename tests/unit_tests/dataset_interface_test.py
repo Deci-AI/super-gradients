@@ -116,7 +116,7 @@ class TestDatasetInterface(unittest.TestCase):
             batch_items = next(iter(loader))
             batch_items = core_utils.tensor_container_to_device(batch_items, 'cuda', non_blocking=True)
 
-            inputs, targets, additional_batch_items = sg_model_utils.unpack_batch_items(batch_items)
+            inputs, targets, additional_batch_items = sg_trainer_utils.unpack_batch_items(batch_items)
             self.assertListEqual([batch_size, 3, image_size, image_size], list(inputs.shape))
 
     def test_pascal_voc(self):
