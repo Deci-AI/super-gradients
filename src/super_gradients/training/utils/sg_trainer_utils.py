@@ -345,6 +345,6 @@ def parse_args(cfg, arg_names: Union[List[str], callable]) -> dict:
 
     kwargs_dict = {}
     for arg_name in arg_names:
-        if hasattr(cfg, arg_name):
+        if hasattr(cfg, arg_name) and getattr(cfg, arg_name) is not None:
             kwargs_dict[arg_name] = getattr(cfg, arg_name)
     return kwargs_dict

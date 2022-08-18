@@ -200,7 +200,7 @@ class Trainer:
 
         kwargs = parse_args(cfg, cls.__init__)
 
-        trainer = Trainer(kwargs)
+        trainer = Trainer(**kwargs)
 
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
         trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)

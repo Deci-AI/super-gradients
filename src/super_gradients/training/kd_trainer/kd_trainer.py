@@ -43,7 +43,7 @@ class KDTrainer(Trainer):
 
         kwargs = parse_args(cfg, cls.__init__)
 
-        trainer = KDTrainer(kwargs)
+        trainer = KDTrainer(**kwargs)
 
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
         trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
