@@ -68,7 +68,7 @@ def init_trainer():
     by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
     and prepares the super_gradients environment.
     """
-    OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver)
+    OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
     args, _ = parser.parse_known_args()

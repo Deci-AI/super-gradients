@@ -35,8 +35,7 @@ sg_model:
 
 architecture: resnet18_cifar
 
-pkg_checkpoints_dir:
 hydra:
   run:
-    dir: ${pkg_checkpoints_dir}/${sg_model.experiment_name}
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
 
