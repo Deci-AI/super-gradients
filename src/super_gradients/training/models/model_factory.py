@@ -20,6 +20,7 @@ class SgNetsFactory:
             checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
                                                (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
                                                load the checkpoint even if the load_checkpoint flag is not provided.
+            pretrained_weights: a string describing the dataset of the pretrained weights (for example "imagenent").
 
 
         """
@@ -86,11 +87,12 @@ def get(name: str, arch_params: dict = {}, checkpoint_params: dict = {}, *args, 
     :param arch_params:                Architecture hyper parameters. e.g.: block, num_blocks, num_classes, etc.
     :param checkpoint_params:          Dictionary like object with the following key:values:
 
-        strict_load:                See StrictLoad class documentation for details.
-        load_backbone:              loads the provided checkpoint to net.backbone instead of net
-        checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
-                                           (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
-                                           load the checkpoint even if the load_checkpoint flag is not provided.
+            strict_load:                See StrictLoad class documentation for details.
+            load_backbone:              loads the provided checkpoint to net.backbone instead of net
+            checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
+                                               (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
+                                               load the checkpoint even if the load_checkpoint flag is not provided.
+            pretrained_weights: a string describing the dataset of the pretrained weights (for example "imagenent").
 
     """
     return SgNetsFactory.get(name, arch_params, checkpoint_params, *args, **kwargs)
