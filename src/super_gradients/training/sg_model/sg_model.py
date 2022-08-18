@@ -8,7 +8,7 @@ import numpy as np
 import pkg_resources
 import torch
 import torchvision.transforms as transforms
-from deprecated import deprecated
+from deprecate import deprecated
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler
 from torch.cuda.amp import GradScaler, autocast
@@ -225,7 +225,7 @@ class SgModel:
         self.dataset_params = self.dataset_interface.get_dataset_params()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    @deprecated(version='2.2.0', reason="directly pass net (nn.Module) to train()")
+    @deprecated(remove_in='3.0.0', deprecated_in="2.3.0")
     def build_model(self,  # noqa: C901 - too complex
                     architecture: Union[str, nn.Module],
                     arch_params={}, checkpoint_params={}, *args, **kwargs):
@@ -1177,7 +1177,6 @@ class SgModel:
                 self.model_weight_averaging.cleanup()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    @deprecated(version='0.1', reason="directly predict using the nn_module")  # noqa: C901
     def predict(self, inputs, targets=None, half=False, normalize=False, verbose=False,
                 move_outputs_to_cpu=True):
         """
