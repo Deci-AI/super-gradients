@@ -91,9 +91,13 @@ jobs:
             coverage run --source=super_gradients -m unittest tests/deci_core_unit_test_suite_runner.py
             coverage report
             coverage html  # open htmlcov/index.html in a browser
+            coverage xml  # open test of circle ci job in a browser
 
       - store_artifacts:
           path: htmlcov
+      
+      - store_test_results:
+          path: coverage.xml
 
       - store_artifacts:
           path: ~/sg_logs
