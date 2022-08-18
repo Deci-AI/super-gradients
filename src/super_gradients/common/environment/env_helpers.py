@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 from functools import wraps
+from omegaconf import OmegaConf
 
 from super_gradients.common.environment import environment_config
 
@@ -51,13 +52,23 @@ def get_environ_as_type(
     return
 
 
+def hydra_output_dir_resolver(ckpt_root_dir, experiment_name):
+    if ckpt_root_dir is None:
+        output_dir_path = (
+            environment_config.PKG_CHECKPOINTS_DIR + os.path.sep + experiment_name
+        )
+    else:
+        output_dir_path = ckpt_root_dir + os.path.sep + experiment_name
+    return output_dir_path
+
+
 def init_trainer():
     """
     a function to initialize the super_gradients environment. This function should be the first thing to be called
     by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
     and prepares the super_gradients environment.
     """
-    sys.argv.append(f"pkg_checkpoints_dir={environment_config.PKG_CHECKPOINTS_DIR}")
+    OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver)
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
     args, _ = parser.parse_known_args()
