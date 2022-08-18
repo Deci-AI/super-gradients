@@ -8,9 +8,6 @@ from super_gradients.training.kd_trainer import KDTrainer
 from sg_model import SGModel
 from super_gradients.common import MultiGPUMode, StrictLoad, EvaluationType
 
-__all__ = ['SGModel', 'MultiGPUMode', 'StrictLoad', 'EvaluationType']
-
-
 __all__ = ['distributed_training_utils', 'datasets_utils', 'DataAugmentation', 'TestDatasetInterface',
            'ARCHITECTURES', 'Trainer', 'KDTrainer', 'MultiGPUMode', 'TestDatasetInterface', 'SegmentationTestDatasetInterface', 'DetectionTestDatasetInterface',
-           'ClassificationTestDatasetInterface', 'StrictLoad']
+           'ClassificationTestDatasetInterface', 'StrictLoad', 'SGModel', 'EvaluationType']
