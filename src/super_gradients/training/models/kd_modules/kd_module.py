@@ -30,9 +30,7 @@ class KDModule(SgModule):
         self.arch_params = arch_params
         self.student = student
         self.teacher = teacher
-        teacher_input_adapter = get_param(self.arch_params, "teacher_input_adapter")
-        if teacher_input_adapter is not None:
-            self.teacher = torch.nn.Sequential(teacher_input_adapter, self.teacher)
+        self.teacher_input_adapter = get_param(self.arch_params, "teacher_input_adapter")
         self.run_teacher_on_eval = run_teacher_on_eval
         self._freeze_teacher()
 
@@ -54,8 +52,12 @@ class KDModule(SgModule):
         self.teacher.eval()
 
     def forward(self, x):
-        return KDOutput(student_output=self.student(x),
-                        teacher_output=self.teacher(x))
+        if self.teacher_input_adapter is not None:
+            return KDOutput(student_output=self.student(x),
+                            teacher_output=self.teacher(self.teacher_input_adapter(x)))
+        else:
+            return KDOutput(student_output=self.student(x),
+                            teacher_output=self.teacher(x))
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         return self.student.initialize_param_groups(lr, training_params)
