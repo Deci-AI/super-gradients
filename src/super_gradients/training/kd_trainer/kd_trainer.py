@@ -1,7 +1,7 @@
 import hydra
 import torch.nn
-from compression.api import DataLoader
 from omegaconf import DictConfig
+from torch.utils.data import DataLoader
 
 from super_gradients.common import MultiGPUMode
 from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
