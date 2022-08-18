@@ -4,13 +4,11 @@
 # (trained with stride_16_plus_big)
 # Hardware: 8 NVIDIA RTX 3090
 # Training time: ±17 hours
-
-# Instructions:
-# Set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
-# export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/src:"YOUR_LOCAL_PATH"/super_gradients/
 #
-# Run with:
-# python3 -m torch.distributed.launch --nproc_per_node=8 train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2.yaml
+# Instructions:
+#   1. move the the project root (where you will find the ReadMe and src folder)
+#   2. run the command:
+#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2
 
 
 # NOTE:

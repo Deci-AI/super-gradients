@@ -1,10 +1,9 @@
 # Cifar10 Classification Training:
 # Reaches ~94.9 Accuracy after 250 Epochs
 # Instructions:
-# running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
-#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
-# Then:
-#   python train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet
+#   1. move the the project root (where you will find the ReadMe and src folder)
+#   2. run the command:
+#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet +experiment_name=cifar10
 
 defaults:
   - training_hyperparams: cifar10_resnet_train_params
@@ -32,4 +31,3 @@ sg_model:
   multi_gpu: Off
 
 architecture: resnet18_cifar
-

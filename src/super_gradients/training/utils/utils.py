@@ -8,6 +8,7 @@ import os
 from jsonschema import validate
 import tarfile
 from PIL import Image, ExifTags
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -23,6 +24,50 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
 
+
+# def hydra_target_wrapper(value: Any) -> Any:
+#     """Identity function. This is a workaround for hydra to build for instance a basic python list of string using _target_.
+#     Ex:
+#         my_list: [1, 2, 3]
+#
+#         AND
+#
+#         my_list:
+#             _target_: super_gradients.training.utils.utils.hydra_wrapper
+#             element_to_wrap: [1, 2, 3]
+#
+#         > Both will instantiate the exact same python list my_list=[1, 2, 3], but the first one will be generated through builtin func, while the second one with _target_.
+#           The second case is useful when my_list could either be a list or numpy array for instance. This fixes the scenario below:
+#
+#     CASE 1: DOES NOT WORK
+#
+#         # > default.yaml
+#             my_list: [1, 2, 3]
+#
+#         # > main.yaml
+#         default:
+#             - default.yaml
+#         my_list:
+#             _target_: numpy.arange
+#             start: 0
+#             stop: 10
+#
+#     CASE 2: WORKS
+#         # > default.yaml
+#             my_list:
+#                 _target_: super_gradients.training.utils.utils.hydra_wrapper
+#                 element_to_wrap: [1, 2, 3]
+#
+#         # > main.yaml
+#         default:
+#             - default.yaml
+#         my_list:
+#             _target_: numpy.arange
+#             start: 0
+#             stop: 10
+#     """
+#     return value
+#
 
 def empty_list():
     """Instantiate an empty list. This is a workaround to generate a list with a function call in hydra, instead of the "[]"."""

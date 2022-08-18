@@ -1,9 +1,10 @@
 #  RegSeg segmentation training example with Cityscapes dataset.
 #  Reproduction of paper: Rethink Dilated Convolution for Real-time Semantic Segmentation.
 #
-#  Usage RegSeg48:
-#      python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=regseg48_cityscapes
-#
+# Instructions:
+#   1. move the the project root (where you will find the ReadMe and src folder)
+#   2. run the command:
+#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=regseg48_cityscapes
 #
 #  Validation mIoU - Cityscapes, training time:
 #      RegSeg48:    input-size: [1024, 2048]     mIoU: 78.15  using 4 GeForce RTX 2080 Ti with DDP, ~2 minutes / epoch
