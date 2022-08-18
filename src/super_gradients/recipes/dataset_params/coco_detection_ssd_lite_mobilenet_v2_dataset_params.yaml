@@ -1,7 +1,7 @@
 defaults:
   - coco_detection_yolox_dataset_params
 
-cache_dir_path: # path to a directory that will be used for caching (with numpy.memmap).
+cache_dir: # path to a directory that will be used for caching (with numpy.memmap).
 cache_train_images: False
 cache_val_images: False
 
@@ -58,6 +58,8 @@ train_collate_fn: # collate function for trainset
   _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
 
 class_inclusion_list: # If not None,every class not included will be ignored.
+train_max_num_samples: # If not None, only specified number of samples will be loaded in train dataset
+val_max_num_samples:   # If not None, only specified number of samples will be loaded in test dataset
 with_crowd: False # whether to return "crowd" labels in validation
 
 _convert_: all
