@@ -12,8 +12,8 @@ class KDTrainer(Trainer):
     @classmethod
     def build_net_and_train(cls, cfg):
         # BUILD NETWORK
-        student = models.get(architecture=cfg.student_architecture, arch_params=cfg.student_arch_params, checkpoint_params=cfg.student_checkpoint_params)
-        teacher = models.get(architecture=cfg.teacher_architecture, arch_params=cfg.teacher_arch_params, checkpoint_params=cfg.teacher_checkpoint_params)
+        student = models.get(name=cfg.student_architecture, arch_params=cfg.student_arch_params, checkpoint_params=cfg.student_checkpoint_params)
+        teacher = models.get(name=cfg.teacher_architecture, arch_params=cfg.teacher_arch_params, checkpoint_params=cfg.teacher_checkpoint_params)
 
         # TRAIN
         cfg.sg_model.train(student=student,
