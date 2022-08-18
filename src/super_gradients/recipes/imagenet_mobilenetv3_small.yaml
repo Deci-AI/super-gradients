@@ -1,0 +1,15 @@
+# MobileNetV3 Small Imagenet classification training:
+# TODO: Add metrics
+# python -m torch.distributed.launch --nproc_per_node=2 --master_port=1234 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_small
+
+defaults:
+  - imagenet_mobilenetv3_base
+  - arch_params: mobilenet_v3_small_arch_params
+
+arch_params:
+  num_classes: 1000
+  dropout: 0.2
+
+experiment_name: mobileNetv3_small_training
+
+architecture: mobilenet_v3_small

@@ -1,9 +1,8 @@
-# TODO: PRODUCE RESULTS AND ADD TENSORBOARDS, LOGS, TRAINING TIME ETC.
+# Base recipe of mobilenetV3. This is used by imagenet_mobilenetv3_small and imagenet_mobilenetv3_large
 
 defaults:
   - training_hyperparams: imagenet_mobilenetv3_train_params
   - dataset_params: imagenet_dataset_params
-  - arch_params: mobilenet_v3_arch_params
   - checkpoint_params: default_checkpoint_params
 
 dataset_params:
@@ -21,8 +20,6 @@ load_checkpoint: False
 checkpoint_params:
   load_checkpoint: ${load_checkpoint}
 
-experiment_name: mobileNetv3_large_training
-
 ckpt_root_dir:
 
 multi_gpu:
@@ -35,5 +32,3 @@ sg_model:
   model_checkpoints_location: ${model_checkpoints_location}
   ckpt_root_dir: ${ckpt_root_dir}
   multi_gpu: ${multi_gpu}
-
-architecture: mobilenet_v3_large
