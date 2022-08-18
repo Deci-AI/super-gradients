@@ -207,16 +207,16 @@ class KDTrainerTest(unittest.TestCase):
         kd_trainer.train(self.kd_train_params)
 
     def test_build_model_with_input_adapter(self):
+        adapter = NormalizationAdapter(mean_original=[0.485, 0.456, 0.406],
+                                       std_original=[0.229, 0.224, 0.225],
+                                       mean_required=[0.5, 0.5, 0.5],
+                                       std_required=[0.5, 0.5, 0.5])
         kd_trainer = KDTrainer("build_kd_module_with_with_input_adapter", device='cpu')
         kd_trainer.build_model(student_architecture='resnet18', teacher_architecture='resnet50',
                              student_arch_params={'num_classes': 1000}, teacher_arch_params={'num_classes': 1000},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"},
-                             arch_params={
-                                 "teacher_input_adapter": NormalizationAdapter(mean_original=[0.485, 0.456, 0.406],
-                                                                               std_original=[0.229, 0.224, 0.225],
-                                                                               mean_required=[0.5, 0.5, 0.5],
-                                                                               std_required=[0.5, 0.5, 0.5])})
-        self.assertTrue(isinstance(kd_trainer.net.module.teacher[0], NormalizationAdapter))
+                             arch_params={"teacher_input_adapter": adapter})
+        self.assertEqual(kd_trainer.net.module.teacher_input_adapter, adapter)
 
     def test_load_ckpt_best_for_student(self):
         kd_trainer = KDTrainer("test_load_ckpt_best", device='cpu')
