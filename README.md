@@ -107,6 +107,7 @@ ________________________________________________________________________________
   - [Pretrained Object Detection PyTorch Checkpoints](#pretrained-object-detection-pytorch-checkpoints)
   - [Pretrained Semantic Segmentation PyTorch Checkpoints](#pretrained-semantic-segmentation-pytorch-checkpoints)
 - [Implemented Model Architectures](#implemented-model-architectures)
+- [Training Recipes](#Training-Recipes)
 - [Contributing](#contributing)
 - [Citation](#citation)
 - [Community](#community)
@@ -449,7 +450,30 @@ Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
 - [STDC](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/stdc.py) - Rethinking BiSeNet For Real-time Semantic Segmentation [https://arxiv.org/pdf/2104.13188](https://arxiv.org/pdf/2104.13188)
   
 </details>
-  
+
+## Training Recipes
+
+We defined recipes to ensure that anyone can reproduce our results in the most simple way.
+
+**How to run a recipe**
+
+The recipes are defined in .yaml format and we use the hydra library to allow you to easily customize the parameters.
+The basic syntax is as follow:
+```bash
+python -m torch.distributed.launch --nproc_per_node=<N-NODES> src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=<CONFIG-NAME>
+```
+*Note: this script needs to be launched fron the root folder of super_gradients*
+
+**Explore our recipes**
+
+You can find all of our recipes [here](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes).
+You will find information about the performance of a recipe as well as the command to execute it in the header of its config file.
+
+*Example: [Training of YoloX Small on Coco 2017](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_yolox.yaml), using 8 GPU* 
+```bash
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s
+```
+
 ## Documentation
 
 Check SuperGradients [Docs](https://deci-ai.github.io/super-gradients/welcome.html) for full documentation, user guide, and examples.
