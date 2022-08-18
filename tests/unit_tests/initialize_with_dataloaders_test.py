@@ -59,11 +59,9 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                 classes=self.testcase_classes)
 
     def test_train_with_dataloaders(self):
-        model = SgModel(experiment_name="test_name", model_checkpoints_location="local",
-                        train_loader=self.testcase_trainloader, valid_loader=self.testcase_validloader,
-                        classes=self.testcase_classes)
+        model = SgModel(experiment_name="test_name", model_checkpoints_location="local")
 
-        model.build_model("resnet18")
+        model.build_model("resnet18", arch_params={"num_classes": self.testcase_classes})
         model.train(training_params={"max_epochs": 2,
                                      "lr_updates": [5, 6, 12],
                                      "lr_decay_factor": 0.01,
@@ -75,7 +73,10 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                                      "train_metrics_list": [Accuracy()],
                                      "valid_metrics_list": [Accuracy()],
                                      "metric_to_watch": "Accuracy",
-                                     "greater_metric_to_watch_is_better": True})
+                                     "greater_metric_to_watch_is_better": True},
+                    train_loader=self.testcase_trainloader,
+                    valid_loader=self.testcase_validloader,
+                    )
         self.assertTrue(0 < model.best_metric.item() < 1)
 
 

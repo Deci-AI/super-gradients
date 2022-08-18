@@ -104,7 +104,7 @@
 <span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
 <span class="kn">from</span> <span class="nn">piptools.scripts.sync</span> <span class="kn">import</span> <span class="n">_get_installed_distributions</span>
 
-<span class="kn">from</span> <span class="nn">super_gradients.common.factories.callbacks_factory</span> <span class="kn">import</span> <span class="n">CallbacksFactory</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.factories.callbacks_factory</span> <span class="kn">import</span> <span class="n">SamplersFactory</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.models.all_architectures</span> <span class="kn">import</span> <span class="n">ARCHITECTURES</span>
 <span class="kn">from</span> <span class="nn">super_gradients.common.decorators.factory_decorator</span> <span class="kn">import</span> <span class="n">resolve_param</span>
 <span class="kn">from</span> <span class="nn">super_gradients.common.environment</span> <span class="kn">import</span> <span class="n">env_helpers</span>
@@ -945,7 +945,7 @@
         <span class="n">load_opt_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">load_opt_params</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">phase_callbacks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">phase_callbacks</span> <span class="ow">or</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">phase_callbacks</span> <span class="o">=</span> <span class="n">ListFactory</span><span class="p">(</span><span class="n">CallbacksFactory</span><span class="p">())</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">phase_callbacks</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phase_callbacks</span> <span class="o">=</span> <span class="n">ListFactory</span><span class="p">(</span><span class="n">SamplersFactory</span><span class="p">())</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">phase_callbacks</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">sg_lr_callback_cls</span> <span class="o">=</span> <span class="n">LR_SCHEDULERS_CLS_DICT</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">lr_mode</span><span class="p">]</span>
@@ -1026,7 +1026,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_checkpoint</span> <span class="ow">and</span> <span class="n">load_opt_params</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;optimizer_state_dict&#39;</span><span class="p">])</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">pre_prediction_callback</span> <span class="o">=</span> <span class="n">CallbacksFactory</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">pre_prediction_callback</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_prediction_callback</span> <span class="o">=</span> <span class="n">SamplersFactory</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">pre_prediction_callback</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_mixed_precision</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training_params</span><span class="o">.</span><span class="n">mixed_precision</span><span class="p">)</span>
 
