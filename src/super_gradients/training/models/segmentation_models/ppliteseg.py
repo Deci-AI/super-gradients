@@ -29,8 +29,34 @@ class PPLiteSegEncoder(nn.Module):
 
 
 class PPLiteSegDecoder(nn.Module):
-    def __init__(self):
+    def __init__(self,
+                 encoder_channels: List[int],
+                 up_factors: List[int],
+                 out_channels: List[int],
+                 upsample_mode,
+                 align_corners: bool):
         super().__init__()
+        encoder_channels.reverse()
+        in_channels = encoder_channels.pop(0)
+        # TODO - assert argument length
+        self.up_stages = nn.ModuleList()
+        for skip_ch, up_factor, out_ch in zip(encoder_channels, up_factors, out_channels):
+            self.up_stages.append(UAFM(
+                in_channels=in_channels,
+                skip_channels=skip_ch,
+                out_channels=out_ch,
+                up_factor=up_factor,
+                upsample_mode=upsample_mode,
+                align_corners=align_corners
+            ))
+            in_channels = out_ch
+
+    def forward(self, feats: List[torch.Tensor]):
+        feats.reverse()
+        x = feats.pop(0)
+        for up_stage, skip in zip(self.up_stages, feats):
+            x = up_stage(x, skip)
+        return x
 
 
 class PPLiteSegBase(nn.Module):
@@ -69,6 +95,12 @@ class PPLiteSegBase(nn.Module):
                  sppm_pool_sizes: List[int],
                  sppm_upsample_mode: Union[UpsampleMode, str],
                  align_corners: bool,
+                 decoder_up_factors: List[int],
+                 decoder_channels: List[int],
+                 decoder_upsample_mode: Union[UpsampleMode, str],
+                 head_upsample_mode: Union[UpsampleMode, str],
+                 head_mid_channels: int,
+                 dropout: float,
                  # backbone_indices=[2, 3, 4],
                  # cm_bin_sizes=[1, 2, 4],
                  # cm_out_ch=128,
@@ -98,7 +130,19 @@ class PPLiteSegBase(nn.Module):
         self.encoder = PPLiteSegEncoder(backbone=backbone,
                                         context_module=context,
                                         projection_channels_list=projection_channels_list)
-
+        encoder_channels = projection_channels_list + [sppm_out_channels]
+        self.decoder = PPLiteSegDecoder(encoder_channels=encoder_channels,
+                                        up_factors=decoder_up_factors,
+                                        out_channels=decoder_channels,
+                                        upsample_mode=decoder_upsample_mode,
+                                        align_corners=align_corners)
+        self.seg_head = nn.Sequential(
+            SegmentationHead(in_channels=decoder_channels[-1],
+                             mid_channels=head_mid_channels,
+                             num_classes=num_classes,
+                             dropout=dropout),
+            nn.Upsample(scale_factor=8, mode=head_upsample_mode, align_corners=align_corners)
+        )
         # assert len(backbone_indices) > 1, "The lenght of backbone_indices " \
         #     "should be greater than 1"
         # self.backbone_indices = backbone_indices  # [..., x16_id, x32_id]
@@ -128,7 +172,9 @@ class PPLiteSegBase(nn.Module):
 
     def forward(self, x):
         feats = self.encoder(x)
-        return feats
+        x = self.decoder(feats)
+        x = self.seg_head(x)
+        return x
         # x_hw = paddle.shape(x)[2:]
         #
         # feats_backbone = self.backbone(x)  # [x2, x4, x8, x16, x32]
@@ -376,6 +422,7 @@ class UAFM(nn.Module):
                  in_channels: int,
                  skip_channels: int,
                  out_channels: int,
+                 up_factor: int,
                  upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
                  align_corners: bool = False):
         """
@@ -386,8 +433,11 @@ class UAFM(nn.Module):
             ConvBNReLU(4, 2, kernel_size=3, padding=1, bias=False),
             ConvBNReLU(2, 1, kernel_size=3, padding=1, bias=False, use_activation=False)
         )
-        self.proj_skip = ConvBNReLU(skip_channels, in_channels, kernel_size=3, padding=1, bias=False)
-        self.up_x = make_upsample_module(scale_factor=2, upsample_mode=upsample_mode, align_corners=align_corners)
+
+        self.proj_skip = nn.Identity() if skip_channels == in_channels else \
+            ConvBNReLU(skip_channels, in_channels, kernel_size=3, padding=1, bias=False)
+        self.up_x = nn.Identity() if up_factor == 1 else \
+            make_upsample_module(scale_factor=up_factor, upsample_mode=upsample_mode, align_corners=align_corners)
         self.conv_out = ConvBNReLU(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
 
     def forward(self, x, skip):
@@ -432,12 +482,37 @@ class PPLiteSegB(PPLiteSegBase):
                          sppm_out_channels=128,
                          sppm_pool_sizes=[1, 2, 4],
                          sppm_upsample_mode="bilinear",
-                         align_corners=False)
+                         align_corners=False,
+                         decoder_up_factors=[1, 2, 2],
+                         decoder_channels=[128, 96, 64],
+                         decoder_upsample_mode="bilinear",
+                         head_upsample_mode="bilinear",
+                         head_mid_channels=64,
+                         dropout=get_param(arch_params, "dropout", 0.))
+
+
+class PPLiteSegT(PPLiteSegBase):
+    def __init__(self, arch_params: HpmStruct):
+        backbone = STDC1Backbone(in_channels=3, out_down_ratios=[8, 16, 32])
+        super().__init__(num_classes=get_param(arch_params, "num_classes"),
+                         backbone=backbone,
+                         projection_channels_list=[64, 128, 128],
+                         sppm_inter_channels=128,
+                         sppm_out_channels=128,
+                         sppm_pool_sizes=[1, 2, 4],
+                         sppm_upsample_mode="bilinear",
+                         align_corners=False,
+                         decoder_up_factors=[1, 2, 2],
+                         decoder_channels=[128, 64, 32],
+                         decoder_upsample_mode="bilinear",
+                         head_upsample_mode="bilinear",
+                         head_mid_channels=32,
+                         dropout=get_param(arch_params, "dropout", 0.))
 
 
 if __name__ == '__main__':
-    m = PPLiteSegB(HpmStruct(num_classes=19))
+    m = PPLiteSegT(HpmStruct(num_classes=19))
     x = torch.randn(2, 3, 1024, 2048)
-    # print(m(x, y).shape)
+    print(m(x).shape)
 
     torch.onnx.export(m, x, "/Users/liork/Downloads/tmp.onnx", opset_version=11)
