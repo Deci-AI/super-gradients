@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from typing import Union, Optional, List, Tuple
 from super_gradients.training.utils.module_utils import ConvBNReLU, UpsampleMode, make_upsample_module
 from super_gradients.training.models.segmentation_models.stdc import SegmentationHead, AbstractSTDCBackbone, STDC1Backbone, STDC2Backbone
+from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import HpmStruct, get_param
 
 
@@ -14,16 +15,22 @@ class PPLiteSegEncoder(nn.Module):
                  context_module: nn.Module):
         super().__init__()
         self.backbone = backbone
-        self.context = context_module
+        self.context_module = context_module
         feats_channels = backbone.get_backbone_output_number_of_channels()
         self.proj_convs = nn.ModuleList([
             ConvBNReLU(feat_ch, proj_ch, kernel_size=3, padding=1, bias=False)
             for feat_ch, proj_ch in zip(feats_channels, projection_channels_list)
         ])
 
+    def get_output_number_of_channels(self) -> List[int]:
+        channels_list = self.backbone.get_backbone_output_number_of_channels()
+        if hasattr(self.context_module, "output_channels"):
+            channels_list[-1] = self.context_module.output_channels()
+        return channels_list
+
     def forward(self, x):
         feats = self.backbone(x)
-        y = self.context(feats[-1])
+        y = self.context_module(feats[-1])
         feats = [conv(f) for conv, f in zip(self.proj_convs, feats)]
         return feats + [y]
 
@@ -59,33 +66,14 @@ class PPLiteSegDecoder(nn.Module):
         return x
 
 
-class PPLiteSegBase(nn.Module):
+class PPLiteSegBase(SegmentationModule):
     """
     The PP_LiteSeg implementation based on PaddlePaddle.
-
     The original article refers to "Juncai Peng, Yi Liu, Shiyu Tang, Yuying Hao, Lutao Chu,
     Guowei Chen, Zewu Wu, Zeyu Chen, Zhiliang Yu, Yuning Du, Qingqing Dang,Baohua Lai,
     Qiwen Liu, Xiaoguang Hu, Dianhai Yu, Yanjun Ma. PP-LiteSeg: A Superior Real-Time Semantic
     Segmentation Model. https://arxiv.org/abs/2204.02681".
-
-    Args:
-        num_classes (int): The number of target classes.
-        backbone(nn.Layer): Backbone network, such as stdc1net and resnet18. The backbone must
-            has feat_channels, of which the length is 5.
-        backbone_indices (List(int), optional): The values indicate the indices of output of backbone.
-            Default: [2, 3, 4].
-        arm_type (str, optional): The type of attention refinement module. Default: ARM_Add_SpAttenAdd3.
-        cm_bin_sizes (List(int), optional): The bin size of context module. Default: [1,2,4].
-        cm_out_ch (int, optional): The output channel of the last context module. Default: 128.
-        arm_out_chs (List(int), optional): The out channels of each arm module. Default: [64, 96, 128].
-        seg_head_inter_chs (List(int), optional): The intermediate channels of segmentation head.
-            Default: [64, 64, 64].
-        resize_mode (str, optional): The resize mode for the upsampling operation in decoder.
-            Default: bilinear.
-        pretrained (str, optional): The path or url of pretrained model. Default: None.
-
     """
-
     def __init__(self,
                  num_classes,
                  backbone: AbstractSTDCBackbone,
@@ -101,15 +89,11 @@ class PPLiteSegBase(nn.Module):
                  head_upsample_mode: Union[UpsampleMode, str],
                  head_mid_channels: int,
                  dropout: float,
-                 # backbone_indices=[2, 3, 4],
-                 # cm_bin_sizes=[1, 2, 4],
-                 # cm_out_ch=128,
-                 # arm_out_chs=[64, 96, 128],
-                 # seg_head_inter_chs=[64, 64, 64],
-                 # resize_mode='bilinear',
-                 # pretrained=None
+                 use_aux_heads: bool,
+                 aux_hidden_channels: List[int],
+                 aux_scale_factors: List[int]
                  ):
-        super().__init__()
+        super().__init__(use_aux_heads=use_aux_heads)
 
         # backbone
         # assert hasattr(backbone, 'feat_channels'), \
@@ -120,7 +104,6 @@ class PPLiteSegBase(nn.Module):
         # assert len(backbone.feat_channels) > max(backbone_indices), \
         #     f"The max value ({max(backbone_indices)}) of backbone_indices should be " \
         #     f"less than the length of feat_channels ({len(backbone.feat_channels)})."
-
         context = SPPM(in_channels=backbone.get_backbone_output_number_of_channels()[-1],
                        inter_channels=sppm_inter_channels,
                        out_channels=sppm_out_channels,
@@ -141,69 +124,40 @@ class PPLiteSegBase(nn.Module):
                              mid_channels=head_mid_channels,
                              num_classes=num_classes,
                              dropout=dropout),
-            nn.Upsample(scale_factor=8, mode=head_upsample_mode, align_corners=align_corners)
+            make_upsample_module(scale_factor=8, upsample_mode=head_upsample_mode, align_corners=align_corners)
         )
-        # assert len(backbone_indices) > 1, "The lenght of backbone_indices " \
-        #     "should be greater than 1"
-        # self.backbone_indices = backbone_indices  # [..., x16_id, x32_id]
-        # backbone_out_chs = [backbone.feat_channels[i] for i in backbone_indices]
-        #
-        # # head
-        # if len(arm_out_chs) == 1:
-        #     arm_out_chs = arm_out_chs * len(backbone_indices)
-        # assert len(arm_out_chs) == len(backbone_indices), "The length of " \
-        #     "arm_out_chs and backbone_indices should be equal"
-        #
-        # self.ppseg_head = PPLiteSegHead(backbone_out_chs, arm_out_chs,
-        #                                 cm_bin_sizes, cm_out_ch, arm_type,
-        #                                 resize_mode)
-        #
-        # if len(seg_head_inter_chs) == 1:
-        #     seg_head_inter_chs = seg_head_inter_chs * len(backbone_indices)
-        # assert len(seg_head_inter_chs) == len(backbone_indices), "The length of " \
-        #     "seg_head_inter_chs and backbone_indices should be equal"
-        # self.seg_heads = nn.LayerList()  # [..., head_16, head32]
-        # for in_ch, mid_ch in zip(arm_out_chs, seg_head_inter_chs):
-        #     self.seg_heads.append(SegHead(in_ch, mid_ch, num_classes))
-        #
-        # # pretrained
-        # self.pretrained = pretrained
-        # self.init_weight()
+        # Auxiliary heads
+        if self.use_aux_heads:
+            encoder_out_channels = projection_channels_list
+            self.aux_heads = nn.ModuleList([
+                nn.Sequential(
+                    SegmentationHead(backbone_ch, hidden_ch, num_classes, dropout=dropout),
+                    make_upsample_module(scale_factor=scale_factor, upsample_mode=head_upsample_mode,
+                                         align_corners=align_corners)
+                ) for backbone_ch, hidden_ch, scale_factor in zip(encoder_out_channels, aux_hidden_channels,
+                                                                  aux_scale_factors)
+            ])
+        self.init_params()
+
+    def _remove_auxiliary_heads(self):
+        if hasattr(self, "aux_heads"):
+            del self.aux_heads
+
+    @property
+    def backbone(self) -> nn.Module:
+        return self.encoder.backbone
 
     def forward(self, x):
         feats = self.encoder(x)
+        if self.use_aux_heads:
+            enc_feats = feats[:-1]
         x = self.decoder(feats)
         x = self.seg_head(x)
-        return x
-        # x_hw = paddle.shape(x)[2:]
-        #
-        # feats_backbone = self.backbone(x)  # [x2, x4, x8, x16, x32]
-        # assert len(feats_backbone) >= len(self.backbone_indices), \
-        #     f"The nums of backbone feats ({len(feats_backbone)}) should be greater or " \
-        #     f"equal than the nums of backbone_indices ({len(self.backbone_indices)})"
-        #
-        # feats_selected = [feats_backbone[i] for i in self.backbone_indices]
-        #
-        # feats_head = self.ppseg_head(feats_selected)  # [..., x8, x16, x32]
-        #
-        # if self.training:
-        #     logit_list = []
-        #
-        #     for x, seg_head in zip(feats_head, self.seg_heads):
-        #         x = seg_head(x)
-        #         logit_list.append(x)
-        #
-        #     logit_list = [
-        #         F.interpolate(
-        #             x, x_hw, mode='bilinear', align_corners=False)
-        #         for x in logit_list
-        #     ]
-        # else:
-        #     x = self.seg_heads[0](feats_head[0])
-        #     x = F.interpolate(x, x_hw, mode='bilinear', align_corners=False)
-        #     logit_list = [x]
-        #
-        # return logit_list
+        if not self.use_aux_heads:
+            return x
+        aux_feats = [aux_head(feat) for feat, aux_head in zip(enc_feats, self.aux_heads)]
+        return tuple([x] + aux_feats)
+
 
 class PPLiteSeg(nn.Module):
     """
@@ -400,8 +354,12 @@ class SPPM(nn.Module):
             ) for pool_size in pool_sizes
         ])
         self.conv_out = ConvBNReLU(inter_channels, out_channels, kernel_size=3, padding=1, bias=False)
+        self.out_channels = out_channels
         self.upsample_mode = upsample_mode
         self.align_corners = align_corners
+
+    def output_channels(self):
+        return self.out_channels
 
     def forward(self, x):
         out = None
@@ -488,7 +446,10 @@ class PPLiteSegB(PPLiteSegBase):
                          decoder_upsample_mode="bilinear",
                          head_upsample_mode="bilinear",
                          head_mid_channels=64,
-                         dropout=get_param(arch_params, "dropout", 0.))
+                         dropout=get_param(arch_params, "dropout", 0.),
+                         use_aux_heads=get_param(arch_params, "use_aux_heads", False),
+                         aux_hidden_channels=[32, 64, 64],
+                         aux_scale_factors=[8, 16, 32])
 
 
 class PPLiteSegT(PPLiteSegBase):
@@ -507,12 +468,23 @@ class PPLiteSegT(PPLiteSegBase):
                          decoder_upsample_mode="bilinear",
                          head_upsample_mode="bilinear",
                          head_mid_channels=32,
-                         dropout=get_param(arch_params, "dropout", 0.))
+                         dropout=get_param(arch_params, "dropout", 0.),
+                         use_aux_heads=get_param(arch_params, "use_aux_heads", False),
+                         aux_hidden_channels=[32, 64, 64],
+                         aux_scale_factors=[8, 16, 32])
 
 
 if __name__ == '__main__':
-    m = PPLiteSegT(HpmStruct(num_classes=19))
+    m = PPLiteSegT(HpmStruct(num_classes=19, use_aux_heads=True))
     x = torch.randn(2, 3, 1024, 2048)
-    print(m(x).shape)
+
+    def print_outputs(y):
+        if isinstance(y, torch.Tensor):
+            print(y.shape)
+        else:
+            for ys in y:
+                print(ys.shape)
+
+    print_outputs(m(x))
 
     torch.onnx.export(m, x, "/Users/liork/Downloads/tmp.onnx", opset_version=11)
