@@ -158,6 +158,39 @@ class PPLiteSegBase(SegmentationModule):
         aux_feats = [aux_head(feat) for feat, aux_head in zip(enc_feats, self.aux_heads)]
         return tuple([x] + aux_feats)
 
+    def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
+        """
+        Custom param groups for training:
+            - Different lr for backbone and the rest, if `multiply_head_lr` key is in `training_params`.
+        """
+        multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
+        multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
+        param_groups = [{"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
+                        {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"}]
+        return param_groups
+
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
+                            total_batch: int) -> list:
+        multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
+        for param_group in param_groups:
+            param_group['lr'] = lr
+            if param_group["name"] == "multiply_lr_params":
+                param_group['lr'] *= multiply_head_lr
+        return param_groups
+
+    def _separate_lr_multiply_params(self):
+        """
+        Separate backbone params from the rest.
+        :return: iterators of groups named_parameters.
+        """
+        multiply_lr_params, no_multiply_params = {}, {}
+        for name, param in self.named_parameters():
+            if "encoder.backbone" in name:
+                no_multiply_params[name] = param
+            else:
+                multiply_lr_params[name] = param
+        return multiply_lr_params.items(), no_multiply_params.items()
+
 
 class SPPM(nn.Module):
     """
@@ -305,6 +338,7 @@ class PPLiteSegT(PPLiteSegBase):
 
 if __name__ == '__main__':
     m = PPLiteSegT(HpmStruct(num_classes=19, use_aux_heads=True))
+    m._separate_lr_multiply_params()
     x = torch.randn(2, 3, 1024, 2048)
 
     def print_outputs(y):
