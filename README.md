@@ -455,14 +455,16 @@ Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
 
 We defined recipes to ensure that anyone can reproduce our results in the most simple way.
 
+
 **How to run a recipe**
 
 The recipes are defined in .yaml format and we use the hydra library to allow you to easily customize the parameters.
 The basic syntax is as follow:
-```bash
-python -m torch.distributed.launch --nproc_per_node=<N-NODES> src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=<CONFIG-NAME>
+```
+python -m torch.distributed.launch --nproc_per_node=<N-NODES> src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=<CONFIG-NAME> dataset_params.data_dir=<PATH-TO-DATASET>
 ```
 *Note: this script needs to be launched from the root folder of super_gradients*
+
 
 **Explore our recipes**
 
@@ -470,8 +472,8 @@ You can find all of our recipes [here](https://github.com/Deci-AI/super-gradient
 You will find information about the performance of a recipe as well as the command to execute it in the header of its config file.
 
 *Example: [Training of YoloX Small on Coco 2017](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_yolox.yaml), using 8 GPU* 
-```bash
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s
+```
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s dataset_params.data_dir=/home/coco2017
 ```
 
 
@@ -479,6 +481,7 @@ python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/exampl
 **List of commands**
 
 All the commands to launch the recipes described [here](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes) are listed below.
+Please make to  
 
 **- Classification**
 <details>
@@ -551,31 +554,31 @@ python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/exampl
 
 ssd_lite_mobilenet_v2
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2.yaml dataset_params.data_dir=<YOUR_COCO_LOCAL_PATH>
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2.yaml
 ```
 yolox_n
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n dataset_params.data_dir=<YOUR_COCO_LOCAL_PATH>
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n
 ```
 yolox_t
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t dataset_params.data_dir=<YOUR_COCO_LOCAL_PATH>
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t
 ```
 yolox_s
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s dataset_params.data_dir=<YOUR_COCO_LOCAL_PATH>
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s
 ```
 yolox_m
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m dataset_params.data_dir=<YOUR_COCO_LOCAL_PATH>
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m
 ```
 yolox_l
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l dataset_params.data_dir=<YOUR_COCO_LOCAL_PATH>
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l
 ```
 yolox_x
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_x dataset_params.data_dir=<YOUR_COCO_LOCAL_PATH>
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_x
 ```
 
 </details>
