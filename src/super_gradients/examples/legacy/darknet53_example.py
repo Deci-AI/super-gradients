@@ -1,6 +1,6 @@
 # Darknet53 Backbone Training on HAM10000 Dataset
 from super_gradients.training import MultiGPUMode
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationDatasetInterface
 
 # Define Parameters
@@ -11,10 +11,10 @@ arch_params = {'backbone_mode': False, 'num_classes': 7}
 dataset_params = {"batch_size": 16, "test_batch_size": 16, 'dataset_dir': '/data/HAM10000'}
 
 # Define Model
-model = SgModel("Darknet53_Backbone_HAM10000",
-                model_checkpoints_location='local',
-                device='cuda',
-                multi_gpu=MultiGPUMode.DATA_PARALLEL)
+trainer = Trainer("Darknet53_Backbone_HAM10000",
+                  model_checkpoints_location='local',
+                  device='cuda',
+                  multi_gpu=MultiGPUMode.DATA_PARALLEL)
 
 # Connect Dataset
 dataset = ClassificationDatasetInterface(normalization_mean=(0.7483, 0.5154, 0.5353),
@@ -22,10 +22,10 @@ dataset = ClassificationDatasetInterface(normalization_mean=(0.7483, 0.5154, 0.5
                                          resolution=416,
                                          dataset_params=dataset_params)
 
-model.connect_dataset_interface(dataset, data_loader_num_workers=8)
+trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
 
 # Build Model
-model.build_model("darknet53", arch_params=arch_params)
+trainer.build_model("darknet53", arch_params=arch_params)
 
 # Start Training
-model.train(training_params=train_params)
+trainer.train(training_params=train_params)

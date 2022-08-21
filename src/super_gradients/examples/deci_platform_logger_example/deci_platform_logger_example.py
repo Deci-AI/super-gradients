@@ -1,12 +1,12 @@
 import os
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.datasets.dataset_interfaces import Cifar10DatasetInterface
 from super_gradients.training.metrics.classification_metrics import Accuracy, Top5
 
 os.environ["DECI_PLATFORM_TOKEN"] = "XXX"  # Replace XXX with your token
 
 
-trainer = SgModel(experiment_name='demo-deci-platform-logger')
+trainer = Trainer(experiment_name='demo-deci-platform-logger')
 dataset = Cifar10DatasetInterface(dataset_params={"batch_size": 256, "val_batch_size": 512})
 trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
 trainer.build_model("resnet18")

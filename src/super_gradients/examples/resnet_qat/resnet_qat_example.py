@@ -18,7 +18,7 @@ Finally, once training is over- we trigger a pos-training callback that will exp
 """
 
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface
-from super_gradients.training import SgModel, MultiGPUMode
+from super_gradients.training import Trainer, MultiGPUMode
 from super_gradients.training.metrics.classification_metrics import Accuracy
 
 import super_gradients
@@ -27,12 +27,12 @@ from super_gradients.training.utils.quantization_utils import PostQATConversionC
 super_gradients.init_trainer()
 
 dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params={"batch_size": 128})
-model = SgModel("resnet18_qat_example",
-                model_checkpoints_location='local',
-                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
+trainer = Trainer("resnet18_qat_example",
+                  model_checkpoints_location='local',
+                  multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
 
-model.connect_dataset_interface(dataset)
-model.build_model("resnet18", checkpoint_params={"pretrained_weights": "imagenet"})
+trainer.connect_dataset_interface(dataset)
+trainer.build_model("resnet18", checkpoint_params={"pretrained_weights": "imagenet"})
 
 train_params = {"max_epochs": 1,
                 "lr_mode": "step",
@@ -53,9 +53,9 @@ train_params = {"max_epochs": 1,
                     # statistics method for amax computation (one of [percentile, mse, entropy, max]).
                     "calibrate": True,  # whether to perform calibration.
                     "num_calib_batches": 2,  # number of batches to collect the statistics from.
-                    "percentile": 99.99  # percentile value to use when SgModel,
+                    "percentile": 99.99  # percentile value to use when Trainer,
                 },
                 "phase_callbacks": [PostQATConversionCallback(dummy_input_size=(1, 3, 224, 224))]
                 }
 
-model.train(training_params=train_params)
+trainer.train(training_params=train_params)
