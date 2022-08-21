@@ -6,8 +6,9 @@ from super_gradients.training.models import ARCHITECTURES
 from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.kd_trainer import KDTrainer
 from super_gradients.training.sg_model import SgModel
+from super_gradients.training.kd_model import KDModel
 from super_gradients.common import MultiGPUMode, StrictLoad, EvaluationType
 
 __all__ = ['distributed_training_utils', 'datasets_utils', 'DataAugmentation', 'TestDatasetInterface',
            'ARCHITECTURES', 'Trainer', 'KDTrainer', 'MultiGPUMode', 'TestDatasetInterface', 'SegmentationTestDatasetInterface', 'DetectionTestDatasetInterface',
-           'ClassificationTestDatasetInterface', 'StrictLoad', 'SgModel', 'EvaluationType']
+           'ClassificationTestDatasetInterface', 'StrictLoad', 'SgModel', 'EvaluationType', 'KDModel']
