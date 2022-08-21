@@ -58,10 +58,10 @@ class KDTrainer(Trainer):
 
         # BUILD NETWORK
         trainer.build_model(student_architecture=cfg.student_architecture,
-                                teacher_architecture=cfg.teacher_architecture,
-                                arch_params=cfg.arch_params, student_arch_params=cfg.student_arch_params,
-                                teacher_arch_params=cfg.teacher_arch_params,
-                                checkpoint_params=cfg.checkpoint_params, run_teacher_on_eval=cfg.run_teacher_on_eval)
+                            teacher_architecture=cfg.teacher_architecture,
+                            arch_params=cfg.arch_params, student_arch_params=cfg.student_arch_params,
+                            teacher_arch_params=cfg.teacher_arch_params,
+                            checkpoint_params=cfg.checkpoint_params, run_teacher_on_eval=cfg.run_teacher_on_eval)
 
         # TRAIN
         trainer.train(training_params=cfg.training_hyperparams)
