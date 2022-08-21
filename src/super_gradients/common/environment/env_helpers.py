@@ -3,6 +3,8 @@ import os
 import sys
 from functools import wraps
 
+from omegaconf import OmegaConf
+
 from super_gradients.common.environment import environment_config
 
 
@@ -47,13 +49,23 @@ def get_environ_as_type(environment_variable_name: str, default=None, cast_to_ty
     return
 
 
+def hydra_output_dir_resolver(ckpt_root_dir, experiment_name):
+    if ckpt_root_dir is None:
+        output_dir_path = (environment_config.PKG_CHECKPOINTS_DIR + os.path.sep + experiment_name)
+    else:
+        output_dir_path = ckpt_root_dir + os.path.sep + experiment_name
+    return output_dir_path
+
+
 def init_trainer():
     """
     a function to initialize the super_gradients environment. This function should be the first thing to be called
     by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
     and prepares the super_gradients environment.
     """
-
+    OmegaConf.register_new_resolver(
+        "hydra_output_dir", hydra_output_dir_resolver, replace=True
+    )
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
     args, _ = parser.parse_known_args()
@@ -78,6 +90,7 @@ def multi_process_safe(func):
     If in DDP mode, the function will run only in the main process (local_rank = 0)
     This works only for functions with no return value
     """
+
     def do_nothing(*args, **kwargs):
         pass
 
