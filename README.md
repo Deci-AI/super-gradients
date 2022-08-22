@@ -464,7 +464,7 @@ The basic syntax is as follow:
 python -m torch.distributed.launch --nproc_per_node=<N-NODES> src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=<CONFIG-NAME> dataset_params.data_dir=<PATH-TO-DATASET>
 ```
 *Note: this script needs to be launched from the root folder of super_gradients*
-
+*Note: if you stored your dataset in the path specified by the recipe you can drop "dataset_params.data_dir=<PATH-TO-DATASET>".*
 
 **Explore our recipes**
 
@@ -481,7 +481,7 @@ python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/exampl
 **List of commands**
 
 All the commands to launch the recipes described [here](https://github.com/Deci-AI/super-gradients/tree/master/src/super_gradients/recipes) are listed below.
-Please make to  
+Please make to "dataset_params.data_dir=<PATH-TO-DATASET>" if you did not store the dataset in the path specified by the recipe (as showed in the example above).
 
 **- Classification**
 <details>
@@ -504,9 +504,13 @@ mobilenetv2
 ```
 python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2
 ```
-mobilenetv3
+mobilenetv3 small
 ```
-python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3
+python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_small
+```
+mobilenetv3 large
+```
+python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_large
 ```
 regnetY200
 ```
@@ -528,7 +532,6 @@ repvgg
 ```
 python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
 ```
-
 resnet50
 ```
 python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
