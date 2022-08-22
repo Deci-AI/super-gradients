@@ -434,7 +434,7 @@ class Trainer:
         """
         Run backprop on the loss and perform a step
         :param loss: The value computed by the loss function
-        :param optimizer: An object that can perform a gradient step and zeroize model gradient
+        :param optimizer: An object that can perform a gradient step and zeroize trainer gradient
         :param epoch: number of epoch the training is on
         :param batch_idx: number of iteration inside the current epoch
         :param context: current phase context
@@ -622,7 +622,7 @@ class Trainer:
 
                     When training, set the loss_logging_items_names parameter in train_params to be a list of
                     strings, of length n_items who's ith element is the name of the ith entry in loss_items. Then
-                    each item will be logged, rendered on tensorboard and "watched" (i.e saving model checkpoints
+                    each item will be logged, rendered on tensorboard and "watched" (i.e saving trainer checkpoints
                     according to it).
 
                     Since running logs will save the loss_items in some internal state, it is recommended that
@@ -663,7 +663,7 @@ class Trainer:
 
                 - `metric_to_watch` : str (default="Accuracy")
 
-                    will be the metric which the model checkpoint will be saved according to, and can be set to any
+                    will be the metric which the trainer checkpoint will be saved according to, and can be set to any
                     of the following:
 
                         a metric name (str) of one of the metric objects from the valid_metrics_list
@@ -679,7 +679,7 @@ class Trainer:
 
                 - `greater_metric_to_watch_is_better` : bool
 
-                    When choosing a model's checkpoint to be saved, the best achieved model is the one that maximizes the
+                    When choosing a trainer's checkpoint to be saved, the best achieved trainer is the one that maximizes the
                      metric_to_watch when this parameter is set to True, and a one that minimizes it otherwise.
 
                 - `ema` : bool (default=False)
@@ -693,7 +693,7 @@ class Trainer:
 
                 - `ema_params` : dict
 
-                    Parameters for the ema model.
+                    Parameters for the ema trainer.
 
                 - `zero_weight_decay_on_bias_and_bn` : bool (default=False)
 
@@ -703,7 +703,7 @@ class Trainer:
 
                 - `load_opt_params` : bool (default=True)
 
-                    Whether to load the optimizers parameters as well when loading a model's checkpoint.
+                    Whether to load the optimizers parameters as well when loading a trainer's checkpoint.
 
                 - `run_validation_freq` : int (default=1)
 
@@ -712,7 +712,7 @@ class Trainer:
 
                 - `save_model` : bool (default=True)
 
-                    Whether to save the model checkpoints.
+                    Whether to save the trainer checkpoints.
 
                 - `silent_mode` : bool
 
@@ -728,7 +728,7 @@ class Trainer:
 
                 - `average_best_models` : bool (default=False)
 
-                    If set, a snapshot dictionary file and the average model will be saved / updated at every epoch
+                    If set, a snapshot dictionary file and the average trainer will be saved / updated at every epoch
                     and evaluated only when training is completed. The snapshot file will only be deleted upon
                     completing the training. The snapshot dict will be managed on cpu.
 
@@ -738,7 +738,7 @@ class Trainer:
 
                 - `precise_bn_batch_size` : int (default=None)
 
-                    The effective batch size we want to calculate the batchnorm on. For example, if we are training a model
+                    The effective batch size we want to calculate the batchnorm on. For example, if we are training a trainer
                     on 8 gpus, with a batch of 128 on each gpu, a good rule of thumb would be to give it 8192
                     (ie: effective_batch_size * num_gpus = batch_per_gpu * num_gpus * num_gpus).
                     If precise_bn_batch_size is not provided in the training_params, the latter heuristic will be taken.
@@ -1059,7 +1059,7 @@ class Trainer:
                                                  precise_bn_batch_size=self.precise_bn_batch_size,
                                                  num_gpus=self.num_devices)
 
-                # model switch - we replace self.net.module with the ema model for the testing and saving part
+                # trainer switch - we replace self.net.module with the ema trainer for the testing and saving part
                 # and then switch it back before the next training epoch
                 if self.ema:
                     self.ema_model.update_attr(self.net)
@@ -1088,7 +1088,7 @@ class Trainer:
                     self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch,
                                                    context)
 
-            # Evaluating the average model and removing snapshot averaging file if training is completed
+            # Evaluating the average trainer and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
                 self._validate_final_average_model(cleanup_snapshots_pkl_file=True)
 
@@ -1149,14 +1149,14 @@ class Trainer:
                 scaler_state_dict = core_utils.get_param(self.checkpoint, 'scaler_state_dict')
                 if scaler_state_dict is None:
                     logger.warning(
-                        'Mixed Precision - scaler state_dict not found in loaded model. This may case issues '
+                        'Mixed Precision - scaler state_dict not found in loaded trainer. This may case issues '
                         'with loss scaling')
                 else:
                     self.scaler.load_state_dict(scaler_state_dict)
 
     def _validate_final_average_model(self, cleanup_snapshots_pkl_file=False):
         """
-        Testing the averaged model by loading the last saved average checkpoint and running test.
+        Testing the averaged trainer by loading the last saved average checkpoint and running test.
         Will be loaded to each of DDP processes
         :param cleanup_pkl_file: a flag for deleting the 10 best snapshots dictionary
         """
@@ -1168,15 +1168,15 @@ class Trainer:
         average_model_sd = read_ckpt_state_dict(average_model_ckpt_path)['net']
 
         self.net.load_state_dict(average_model_sd)
-        # testing the averaged model and save instead of best model if needed
+        # testing the averaged trainer and save instead of best trainer if needed
         averaged_model_results_tuple = self._validate_epoch(epoch=self.max_epochs)
 
-        # Reverting the current model
+        # Reverting the current trainer
         self.net.load_state_dict(keep_state_dict)
 
         if not self.ddp_silent_mode:
             # Adding values to sg_logger
-            # looping over last titles which corresponds to validation (and average model) metrics.
+            # looping over last titles which corresponds to validation (and average trainer) metrics.
             all_titles = self.results_titles[-1 * len(averaged_model_results_tuple):]
             result_dict = {all_titles[i]: averaged_model_results_tuple[i] for i in
                            range(len(averaged_model_results_tuple))}
@@ -1245,7 +1245,7 @@ class Trainer:
 
     def _initialize_device(self, requested_device: str, requested_multi_gpu: Union[MultiGPUMode, str]):
         """
-        _initialize_device - Initializes the device for the model - Default is CUDA
+        _initialize_device - Initializes the device for the trainer - Default is CUDA
             :param requested_device:        Device to initialize ('cuda' / 'cpu')
             :param requested_multi_gpu:     Get Multiple GPU
         """
@@ -1340,7 +1340,7 @@ class Trainer:
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def _load_checkpoint_to_model(self):  # noqa: C901 - too complex
         """
-        Copies the source checkpoint to a local folder and loads the checkpoint's data to the model using the
+        Copies the source checkpoint to a local folder and loads the checkpoint's data to the trainer using the
          attributes:
 
          strict:           See StrictLoad class documentation for details.
@@ -1384,7 +1384,7 @@ class Trainer:
     def _prep_for_test(self, test_loader: torch.utils.data.DataLoader = None, loss=None, post_prediction_callback=None,
                        test_metrics_list=None,
                        loss_logging_items_names=None, test_phase_callbacks=None):
-        """Run commands that are common to all SgModels"""
+        """Run commands that are common to all Trainers"""
         # SET THE MODEL IN evaluation STATE
         self.net.eval()
 
@@ -1516,7 +1516,7 @@ class Trainer:
              loss_logging_items_names=None, metrics_progress_verbose=False, test_phase_callbacks=None,
              use_ema_net=True) -> tuple:
         """
-        Evaluates the model on given dataloader and metrics.
+        Evaluates the trainer on given dataloader and metrics.
         :param net: net to perfrom test on. When none is given, will try to use self.net (defalut=None).
         :param test_loader: dataloader to perform test on.
         :param test_metrics_list: (list(torchmetrics.Metric)) metrics list for evaluation.
@@ -1526,7 +1526,7 @@ class Trainer:
             otherwise self.net will be tested) (default=True)
         :return: results tuple (tuple) containing the loss items and metric values.
 
-        All of the above args will override SgModel's corresponding attribute when not equal to None. Then evaluation
+        All of the above args will override Trainer's corresponding attribute when not equal to None. Then evaluation
          is ran on self.test_loader with self.test_metrics.
         """
 
@@ -1579,7 +1579,7 @@ class Trainer:
                  evaluation_type: EvaluationType, epoch: int = None, silent_mode: bool = False,
                  metrics_progress_verbose: bool = False):
         """
-        Evaluates the model on given dataloader and metrics.
+        Evaluates the trainer on given dataloader and metrics.
 
         :param data_loader: dataloader to perform evaluataion on
         :param metrics: (MetricCollection) metrics for evaluation
@@ -1719,7 +1719,7 @@ class Trainer:
         return net
 
     def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> ModelEMA:
-        """Instantiate ema model for standard SgModule.
+        """Instantiate ema trainer for standard SgModule.
         :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value
                       until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
         :param beta: the exponent coefficient. The higher the beta, the sooner in the training the decay will saturate to

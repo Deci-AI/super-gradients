@@ -1,6 +1,6 @@
 """
-Repvgg Pytorch Implementation. This model trains a vgg with residual blocks
-but during inference (in deployment mode) will convert the model to vgg model.
+Repvgg Pytorch Implementation. This trainer trains a vgg with residual blocks
+but during inference (in deployment mode) will convert the trainer to vgg trainer.
 Pretrained models: https://drive.google.com/drive/folders/1Avome4KvNp0Lqh2QwhXO6L5URQjzCjUq
 Refrerences:
     [1] https://github.com/DingXiaoH/RepVGG
@@ -189,7 +189,7 @@ class RepVGGBlock(nn.Module):
 
     def fuse_block_residual_branches(self):
         """
-        converts a repvgg block from training model (with branches) to deployment mode (vgg like model)
+        converts a repvgg block from training trainer (with branches) to deployment mode (vgg like trainer)
         :return:
         :rtype:
         """
@@ -269,7 +269,7 @@ class RepVGG(SgModule):
             self.linear = nn.Linear(int(512 * width_multiplier[3]), num_classes)
 
         if not build_residual_branches:
-            self.eval()  # fusing has to be made in eval mode. When called in init, model will be built in eval mode
+            self.eval()  # fusing has to be made in eval mode. When called in init, trainer will be built in eval mode
             fuse_repvgg_blocks_residual_branches(self)
 
         self.final_width_mult = width_multiplier[3]
@@ -313,8 +313,8 @@ class RepVGG(SgModule):
     def train(self, mode: bool = True):
 
         assert not mode or self.build_residual_branches, (
-            "Trying to train a model without residual branches, "
-            "set arch_params.build_residual_branches to True and retrain the model"
+            "Trying to train a trainer without residual branches, "
+            "set arch_params.build_residual_branches to True and retrain the trainer"
         )
         super(RepVGG, self).train(mode=mode)
 

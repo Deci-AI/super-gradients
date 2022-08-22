@@ -11,7 +11,7 @@ from super_gradients.training.utils.detection_utils import non_max_suppression, 
 
 class DefaultBoxes(object):
     """
-    Default Boxes, (aka: anchor boxes or priors boxes) used by SSD model
+    Default Boxes, (aka: anchor boxes or priors boxes) used by SSD trainer
     """
 
     def __init__(self, fig_size: int, feat_size: List[int], scales: List[int], aspect_ratios: List[List[int]],

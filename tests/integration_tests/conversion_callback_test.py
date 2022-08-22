@@ -70,13 +70,13 @@ class ConversionCallbackTest(unittest.TestCase):
                 "phase_callbacks": phase_callbacks,
             }
 
-            model = Trainer(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
+            trainer = Trainer(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
             dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 10})
 
-            model.connect_dataset_interface(dataset, data_loader_num_workers=0)
+            trainer.connect_dataset_interface(dataset, data_loader_num_workers=0)
             net = models.get(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
             try:
-                model.train(net=net, training_params=train_params)
+                trainer.train(net=net, training_params=train_params)
             except Exception as e:
                 self.fail(f"Model training didn't succeed due to {e}")
             else:
@@ -105,8 +105,8 @@ class ConversionCallbackTest(unittest.TestCase):
         for architecture in SEMANTIC_SEGMENTATION:
             model_meta_data = generate_model_metadata(architecture=architecture, task=Task.SEMANTIC_SEGMENTATION)
             dataset = SegmentationTestDatasetInterface(dataset_params={"batch_size": 10})
-            model = Trainer(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
-            model.connect_dataset_interface(dataset, data_loader_num_workers=0)
+            trainer = Trainer(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
+            trainer.connect_dataset_interface(dataset, data_loader_num_workers=0)
             net = models.get(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
 
             phase_callbacks = [
@@ -131,7 +131,7 @@ class ConversionCallbackTest(unittest.TestCase):
             train_params.update(custom_config)
 
             try:
-                model.train(net=net, training_params=train_params)
+                trainer.train(net=net, training_params=train_params)
             except Exception as e:
                 self.fail(f"Model training didn't succeed for {architecture} due to {e}")
             else:

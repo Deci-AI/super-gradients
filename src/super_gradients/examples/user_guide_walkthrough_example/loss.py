@@ -10,7 +10,7 @@ entries in loss_items).
 
 -When training, set the "loss_logging_items_names" parameter in train_params to be a list of strings, of length
 n_items who's ith element is the name of the ith entry in loss_items. Then each item will be logged, rendered on
-tensorboard and "watched" (i.e saving model checkpoints according to it).
+tensorboard and "watched" (i.e saving trainer checkpoints according to it).
 
 -Since running logs will save the loss_items in some internal state, it is recommended that loss_items are detached
 from their computational graph for memory efficiency.

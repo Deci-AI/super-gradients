@@ -34,8 +34,8 @@ class ForwardpassPrepFNTest(unittest.TestCase):
 
     def test_resizing_with_forward_pass_prep_fn(self):
         # Define Model
-        model = Trainer("ForwardpassPrepFNTest")
-        model.connect_dataset_interface(self.dataset)
+        trainer = Trainer("ForwardpassPrepFNTest")
+        trainer.connect_dataset_interface(self.dataset)
         net = models.get("resnet18", arch_params=self.arch_params)
 
         sizes = []
@@ -49,7 +49,7 @@ class ForwardpassPrepFNTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks,
                         "pre_prediction_callback": test_forward_pass_prep_fn}
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
 
         # ALTHOUGH NOT SEEN IN HERE, THE 4TH EPOCH USES LR=1, SO THIS IS THE EXPECTED LIST AS WE COLLECT
         # THE LRS AFTER THE UPDATE

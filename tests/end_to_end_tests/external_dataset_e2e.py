@@ -123,12 +123,12 @@ class TestExternalDatasetInterface(unittest.TestCase):
                         "greater_metric_to_watch_is_better": True}
 
         arch_params = {'num_classes': 1000}
-        model = Trainer("test", model_checkpoints_location='local',
+        trainer = Trainer("test", model_checkpoints_location='local',
                         multi_gpu=MultiGPUMode.OFF)
-        model.connect_dataset_interface(dataset_interface=self.test_external_dataset_interface,
+        trainer.connect_dataset_interface(dataset_interface=self.test_external_dataset_interface,
                                         data_loader_num_workers=8)
         net = models.get("resnet50", arch_params)
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
 
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@ https://arxiv.org/pdf/1801.04381
 Code taken from https://github.com/tonylins/pytorch-mobilenet-v2
 License: Apache Version 2.0, January 2004 http://www.apache.org/licenses/
 
-Pre-trained ImageNet model: 'deci-model-repository/mobilenet_v2/ckpt_best.pth'
+Pre-trained ImageNet trainer: 'deci-trainer-repository/mobilenet_v2/ckpt_best.pth'
 """
 import numpy as np
 import torch

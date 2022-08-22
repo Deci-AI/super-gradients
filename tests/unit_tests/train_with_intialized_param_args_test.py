@@ -20,10 +20,10 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
     """
 
     def test_train_with_external_criterion(self):
-        model = Trainer("external_criterion_test", model_checkpoints_location='local')
+        trainer = Trainer("external_criterion_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
 
         net = models.get("resnet18", arch_params={"num_classes": 5})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
@@ -33,13 +33,13 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
                         "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
 
     def test_train_with_external_optimizer(self):
-        model = Trainer("external_optimizer_test", model_checkpoints_location='local')
+        trainer = Trainer("external_optimizer_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
 
         net = models.get("resnet18", arch_params={"num_classes": 5})
         optimizer = SGD(params=net.parameters(), lr=0.1)
@@ -49,13 +49,13 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
 
     def test_train_with_external_scheduler(self):
-        model = Trainer("external_scheduler_test", model_checkpoints_location='local')
+        trainer = Trainer("external_scheduler_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
 
         lr = 0.3
         net = models.get("resnet18", arch_params={"num_classes": 5})
@@ -69,14 +69,14 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
         assert lr_scheduler.get_last_lr()[0] == lr * 0.1 * 0.1
 
     def test_train_with_external_scheduler_class(self):
-        model = Trainer("external_scheduler_test", model_checkpoints_location='local')
+        trainer = Trainer("external_scheduler_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
 
         net = models.get("resnet18", arch_params={"num_classes": 5})
         optimizer = SGD  # a class - not an instance
@@ -87,13 +87,13 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
 
     def test_train_with_reduce_on_plateau(self):
-        model = Trainer("external_reduce_on_plateau_scheduler_test", model_checkpoints_location='local')
+        trainer = Trainer("external_reduce_on_plateau_scheduler_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
 
         lr = 0.3
         net = models.get("resnet18", arch_params={"num_classes": 5})
@@ -108,14 +108,14 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "valid_metrics_list": [Accuracy(), Top5(), ToyTestClassificationMetric()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
         assert lr_scheduler._last_lr[0] == lr * 0.1
 
     def test_train_with_external_metric(self):
-        model = Trainer("external_metric_test", model_checkpoints_location='local')
+        trainer = Trainer("external_metric_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
 
         net = models.get("resnet18", arch_params={"num_classes": 5})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
@@ -124,10 +124,10 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
 
     def test_train_with_external_dataloaders(self):
-        model = Trainer("external_data_loader_test", model_checkpoints_location='local')
+        trainer = Trainer("external_data_loader_test", model_checkpoints_location='local')
 
         batch_size = 5
         trainset = torch.utils.data.TensorDataset(torch.Tensor(np.random.random((10, 3, 32, 32))),
@@ -141,7 +141,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size)
 
         dataset_interface = DatasetInterface(train_loader=train_loader, val_loader=val_loader, classes=classes)
-        model.connect_dataset_interface(dataset_interface)
+        trainer.connect_dataset_interface(dataset_interface)
 
         net = models.get("resnet18", arch_params={"num_classes": 5})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
@@ -150,7 +150,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
 
 
 if __name__ == '__main__':

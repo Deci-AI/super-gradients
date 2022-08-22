@@ -21,7 +21,7 @@ class AbstractSGLogger(ABC):
     @abstractmethod
     def add(self, tag: str, obj: Any, global_step: int = None):
         """
-        A generic function for adding any type of data to the SGLogger. By default, this function is not called by the SGModel, BaseSGLogger
+        A generic function for adding any type of data to the SGLogger. By default, this function is not called by the Trainer, BaseSGLogger
         does nothing with this type of data. But if you need to pass a data type which is not supported by any of the following abstract methods, use this
         method.
         """
@@ -125,8 +125,8 @@ class AbstractSGLogger(ABC):
         Typically, this function will write a torch file to disk, upload it to remote storage or to experiment management framework.
 
         :param tag: Data identifier
-        :param state_dict: the state dict to save. The state dict includes more than just the model weight and may include any of:
-                net: model weights
+        :param state_dict: the state dict to save. The state dict includes more than just the trainer weight and may include any of:
+                net: trainer weights
                 acc: current accuracy (depends on metrics)
                 epoch: current epoch
                 optimizer_state_dict: optimizer state

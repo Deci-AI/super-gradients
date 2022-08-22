@@ -72,9 +72,9 @@ def scaled_all_reduce(tensors: torch.Tensor, num_gpus: int):
 @torch.no_grad()
 def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoader, precise_bn_batch_size: int, num_gpus: int):
     '''
-    :param model:                   The model being trained (ie: Trainer.net)
+    :param model:                   The trainer being trained (ie: Trainer.net)
     :param loader:                  Training dataloader (ie: Trainer.train_loader)
-    :param precise_bn_batch_size:   The effective batch size we want to calculate the batchnorm on. For example, if we are training a model
+    :param precise_bn_batch_size:   The effective batch size we want to calculate the batchnorm on. For example, if we are training a trainer
                                     on 8 gpus, with a batch of 128 on each gpu, a good rule of thumb would be to give it 8192
                                     (ie: effective_batch_size * num_gpus = batch_per_gpu * num_gpus * num_gpus).
                                     If precise_bn_batch_size is not provided in the training_params, the latter heuristic

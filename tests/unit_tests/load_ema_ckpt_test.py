@@ -31,23 +31,23 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
     def test_ema_ckpt_reload(self):
         # Define Model
         net = LeNet()
-        model = Trainer("ema_ckpt_test", model_checkpoints_location='local')
+        trainer = Trainer("ema_ckpt_test", model_checkpoints_location='local')
 
-        model.connect_dataset_interface(self.dataset)
+        trainer.connect_dataset_interface(self.dataset)
 
-        model.train(net=net, training_params=self.train_params)
+        trainer.train(net=net, training_params=self.train_params)
 
-        ema_model = model.ema_model.ema
+        ema_model = trainer.ema_model.ema
 
         # TRAIN FOR 1 MORE EPOCH AND COMPARE THE NET AT THE BEGINNING OF EPOCH 3 AND THE END OF EPOCH NUMBER 2
         net = LeNet()
-        model = Trainer("ema_ckpt_test", model_checkpoints_location='local')
-        model.connect_dataset_interface(self.dataset)
+        trainer = Trainer("ema_ckpt_test", model_checkpoints_location='local')
+        trainer.connect_dataset_interface(self.dataset)
         net_collector = PreTrainingEMANetCollector()
         self.train_params["resume"] = True
         self.train_params["max_epochs"] = 3
         self.train_params["phase_callbacks"] = [net_collector]
-        model.train(net=net, training_params=self.train_params)
+        trainer.train(net=net, training_params=self.train_params)
 
         reloaded_ema_model = net_collector.net.ema
 

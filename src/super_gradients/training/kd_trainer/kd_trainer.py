@@ -267,7 +267,7 @@ class KDTrainer(Trainer):
             if teacher_pretrained_weights:
                 logger.warning(
                     teacher_checkpoint_path + " checkpoint is "
-                                              "overriding " + teacher_pretrained_weights + " for teacher model")
+                                              "overriding " + teacher_pretrained_weights + " for teacher trainer")
 
             # ALWAYS LOAD ITS EMA IF IT EXISTS
             load_teachers_ema = 'ema_net' in read_ckpt_state_dict(teacher_checkpoint_path).keys()
@@ -301,9 +301,9 @@ class KDTrainer(Trainer):
         return hyper_param_config
 
     def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> KDModelEMA:
-        """Instantiate KD ema model for KDModule.
+        """Instantiate KD ema trainer for KDModule.
 
-        If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.
+        If the trainer is of class KDModule, the instance will be adapted to work on knowledge distillation.
         :param decay:           the maximum decay value. as the training process advances, the decay will climb towards
                                 this value until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
         :param beta:            the exponent coefficient. The higher the beta, the sooner in the training the decay will
@@ -335,9 +335,9 @@ class KDTrainer(Trainer):
 
         :param net: KDModule, network to train. When none is given will initialize KDModule according to kd_architecture,
             student and teacher (default=None)
-        :param training_params: dict, Same as in SgModel.train()
-        :param student: SgModule - the student model
-        :param teacher: torch.nn.Module- the teacher model
+        :param training_params: dict, Same as in Trainer.train()
+        :param student: SgModule - the student trainer
+        :param teacher: torch.nn.Module- the teacher trainer
         :param kd_architecture: KDModule architecture to use, currently only 'kd_module' is supported (default='kd_module').
         :param kd_arch_params: architecture params to pas to kd_architecture constructor.
         :param run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)

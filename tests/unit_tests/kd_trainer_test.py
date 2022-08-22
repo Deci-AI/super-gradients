@@ -84,71 +84,73 @@ class KDTrainerTest(unittest.TestCase):
             check_models_have_same_weights(student_model, sg_model.net.module.student))
 
     def test_train_model_with_input_adapter(self):
-        kd_model = KDTrainer("train_kd_module_with_with_input_adapter", device='cpu')
-        kd_model.connect_dataset_interface(self.dataset)
+        kd_trainer = KDTrainer("train_kd_module_with_with_input_adapter", device='cpu')
+        kd_trainer.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"})
-        kd_arch_params = {
-            "teacher_input_adapter": NormalizationAdapter(mean_original=[0.485, 0.456, 0.406],
+
+        adapter = NormalizationAdapter(mean_original=[0.485, 0.456, 0.406],
                                                           std_original=[0.229, 0.224, 0.225],
                                                           mean_required=[0.5, 0.5, 0.5],
-                                                          std_required=[0.5, 0.5, 0.5])}
-        kd_model.train(student=student,
+                                                          std_required=[0.5, 0.5, 0.5])
+
+        kd_arch_params = {
+            "teacher_input_adapter": adapter}
+        kd_trainer.train(student=student,
                        teacher=teacher,
                        training_params=self.kd_train_params,
                        kd_arch_params=kd_arch_params)
 
-        self.assertTrue(isinstance(kd_model.net.module.teacher[0], NormalizationAdapter))
-
+        self.assertEqual(kd_trainer.net.module.teacher_input_adapter, adapter)
     def test_load_ckpt_best_for_student(self):
-        kd_model = KDTrainer("test_load_ckpt_best", device='cpu')
-        kd_model.connect_dataset_interface(self.dataset)
+        kd_trainer = KDTrainer("test_load_ckpt_best", device='cpu')
+        kd_trainer.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"})
         train_params = self.kd_train_params.copy()
         train_params["max_epochs"] = 1
-        kd_model.train(student=student, teacher=teacher, training_params=train_params)
-        best_student_ckpt = os.path.join(kd_model.checkpoints_dir_path, "ckpt_best.pth")
+        kd_trainer.train(student=student, teacher=teacher, training_params=train_params)
+        best_student_ckpt = os.path.join(kd_trainer.checkpoints_dir_path, "ckpt_best.pth")
 
         student_reloaded = models.get('resnet18', arch_params={'num_classes': 5},
                                       checkpoint_params={"checkpoint_path": best_student_ckpt})
 
         self.assertTrue(
-            check_models_have_same_weights(student_reloaded, kd_model.net.module.student))
+            check_models_have_same_weights(student_reloaded, kd_trainer.net.module.student))
 
     def test_load_ckpt_best_for_student_with_ema(self):
-        kd_model = KDTrainer("test_load_ckpt_best", device='cpu')
-        kd_model.connect_dataset_interface(self.dataset)
+        kd_trainer = KDTrainer("test_load_ckpt_best", device='cpu')
+        kd_trainer.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"})
         train_params = self.kd_train_params.copy()
         train_params["max_epochs"] = 1
         train_params["ema"] = True
-        kd_model.train(student=student, teacher=teacher, training_params=train_params)
-        best_student_ckpt = os.path.join(kd_model.checkpoints_dir_path, "ckpt_best.pth")
+        kd_trainer.train(student=student, teacher=teacher, training_params=train_params)
+        best_student_ckpt = os.path.join(kd_trainer.checkpoints_dir_path, "ckpt_best.pth")
 
         student_reloaded = models.get('resnet18', arch_params={'num_classes': 5},
                                       checkpoint_params={"checkpoint_path": best_student_ckpt})
 
         self.assertTrue(
-            check_models_have_same_weights(student_reloaded, kd_model.ema_model.ema.module.student))
+            check_models_have_same_weights(student_reloaded, kd_trainer.ema_model.ema.module.student))
 
     def test_resume_kd_training(self):
-        kd_model = KDTrainer("test_resume_training_start", device='cpu')
-        kd_model.connect_dataset_interface(self.dataset)
+        kd_trainer = KDTrainer("test_resume_training_start", device='cpu')
+        kd_trainer.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"})
         train_params = self.kd_train_params.copy()
         train_params["max_epochs"] = 1
-        kd_model.train(student=student, teacher=teacher, training_params=train_params)
-        latest_net = deepcopy(kd_model.net)
+        kd_trainer.train(student=student, teacher=teacher, training_params=train_params)
+        latest_net = deepcopy(kd_trainer.net)
 
-        kd_model = KDTrainer("test_resume_training_start", device='cpu')
-        kd_model.connect_dataset_interface(self.dataset)
+        kd_trainer = KDTrainer("test_resume_training_start", device='cpu')
+        kd_trainer.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"})
@@ -157,7 +159,7 @@ class KDTrainerTest(unittest.TestCase):
         train_params["resume"] = True
         collector = PreTrainingNetCollector()
         train_params["phase_callbacks"] = [collector]
-        kd_model.train(student=student, teacher=teacher, training_params=train_params)
+        kd_trainer.train(student=student, teacher=teacher, training_params=train_params)
 
         self.assertTrue(
             check_models_have_same_weights(collector.net, latest_net))

@@ -112,15 +112,15 @@ class PhaseCallback:
 
 class ModelConversionCheckCallback(PhaseCallback):
     """
-    Pre-training callback that verifies model conversion to onnx given specified conversion parameters.
+    Pre-training callback that verifies trainer conversion to onnx given specified conversion parameters.
 
-    The model is converted, then inference is applied with onnx runtime.
+    The trainer is converted, then inference is applied with onnx runtime.
 
     Use this callback wit hthe same args as DeciPlatformCallback to prevent conversion fails at the end of training.
 
     Attributes:
 
-        model_meta_data: (ModelMetadata) model's meta-data object.
+        model_meta_data: (ModelMetadata) trainer's meta-data object.
 
         The following parameters may be passed as kwargs in order to control the conversion to onnx:
         :param opset_version (default=11)
@@ -155,7 +155,7 @@ class ModelConversionCheckCallback(PhaseCallback):
     def __call__(self, context: PhaseContext):
         model = copy.deepcopy(context.net.module)
         model = model.cpu()
-        model.eval()  # Put model into eval mode
+        model.eval()  # Put trainer into eval mode
 
         if hasattr(model, "prep_model_for_conversion"):
             model.prep_model_for_conversion(input_size=self.model_meta_data.input_dimensions)
@@ -172,8 +172,8 @@ class ModelConversionCheckCallback(PhaseCallback):
         torch.onnx.export(
             model,  # Model being run
             x,  # Model input (or a tuple for multiple inputs)
-            tmp_model_path,  # Where to save the model (can be a file or file-like object)
-            export_params=True,  # Store the trained parameter weights inside the model file
+            tmp_model_path,  # Where to save the trainer (can be a file or file-like object)
+            export_params=True,  # Store the trained parameter weights inside the trainer file
             opset_version=self.opset_version,
             do_constant_folding=self.do_constant_folding,
             input_names=self.input_names,
@@ -200,17 +200,17 @@ class ModelConversionCheckCallback(PhaseCallback):
 
         os.remove(tmp_model_path)
 
-        logger.info("Exported model has been tested with ONNXRuntime, and the result looks good!")
+        logger.info("Exported trainer has been tested with ONNXRuntime, and the result looks good!")
 
 
 class DeciLabUploadCallback(PhaseCallback):
     """
-    Post-training callback for uploading and optimizing a model.
+    Post-training callback for uploading and optimizing a trainer.
 
     Attributes:
 
         email: (str) username for Deci platform.
-        model_meta_data: (ModelMetadata) model's meta-data object.
+        model_meta_data: (ModelMetadata) trainer's meta-data object.
         optimization_request_form: (dict) optimization request form object.
         password: (str) default=None, should only be used for testing.
         ckpt_name: (str) default="ckpt_best" refers to the filename of the checkpoint, inside the checkpoint directory.
@@ -236,14 +236,14 @@ class DeciLabUploadCallback(PhaseCallback):
 
     @staticmethod
     def log_optimization_failed():
-        logger.info("We couldn't finish your model optimization. Visit https://console.deci.ai for details")
+        logger.info("We couldn't finish your trainer optimization. Visit https://console.deci.ai for details")
 
     def upload_model(self, model):
         """
-            This function will upload the trained model to the Deci Lab
+            This function will upload the trained trainer to the Deci Lab
 
             Args:
-                model: The resulting model from the training process
+                model: The resulting trainer from the training process
         """
         self.platform_client.add_model(
             add_model_request=self.model_meta_data,
@@ -253,13 +253,13 @@ class DeciLabUploadCallback(PhaseCallback):
 
     def get_optimization_status(self, optimized_model_name: str):
         """
-            This function will do fetch the optimized version of the trained model and check on its benchmark status.
+            This function will do fetch the optimized version of the trained trainer and check on its benchmark status.
             The status will be checked against the server every 30 seconds and the process will timeout after 30 minutes
             or log about the successful optimization - whichever happens first.
             Args:
-                optimized_model_name (str): Optimized model name
+                optimized_model_name (str): Optimized trainer name
             Returns:
-                bool: whether or not the optimized model has been benchmarked
+                bool: whether or not the optimized trainer has been benchmarked
         """
 
         def handler(_signum, _frame):
@@ -282,11 +282,11 @@ class DeciLabUploadCallback(PhaseCallback):
 
     def __call__(self, context: PhaseContext):
         """
-            This function will attempt to upload the trained model and schedule an optimization for it.
+            This function will attempt to upload the trained trainer and schedule an optimization for it.
             Args:
                 context (PhaseContext): Training phase context
             Returns:
-                bool: whether or not the optimized model has been benchmarked
+                bool: whether or not the optimized trainer has been benchmarked
             """
         try:
             model = copy.deepcopy(context.net)
@@ -300,13 +300,13 @@ class DeciLabUploadCallback(PhaseCallback):
 
             self.upload_model(model=model)
             model_name = self.model_meta_data.name
-            logger.info(f"Successfully added {model_name} to the model repository")
+            logger.info(f"Successfully added {model_name} to the trainer repository")
 
             optimized_model_name = f"{model_name}_1_1"
             logger.info("We'll wait for the scheduled optimization to finish. Please don't close this window")
             success = self.get_optimization_status(optimized_model_name=optimized_model_name)
             if success:
-                logger.info("Successfully finished your model optimization. Visit https://console.deci.ai for details")
+                logger.info("Successfully finished your trainer optimization. Visit https://console.deci.ai for details")
             else:
                 DeciLabUploadCallback.log_optimization_failed()
         except Exception as ex:

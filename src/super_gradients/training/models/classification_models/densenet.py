@@ -5,7 +5,7 @@ from torch import Tensor
 from collections import OrderedDict
 from super_gradients.training.models.sg_module import SgModule
 
-"""Densenet-BC model class, based on
+"""Densenet-BC trainer class, based on
 "Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`_
 Code source: https://github.com/pytorch/vision/blob/master/torchvision/models/densenet.py
 Performance reproducibility (4 GPUs):

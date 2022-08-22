@@ -7,8 +7,8 @@ anchors:
   strides: [8, 16, 32]
 
 num_classes: 80  # Number of classes to predict
-depth_mult_factor: 1.0  # depth multiplier for the entire model, overridden for predefined YoloV5S, YoloV5M, YoloV5L
-width_mult_factor: 1.0  # width multiplier for the entire model, overridden for predefined YoloV5S, YoloV5M, YoloV5L
+depth_mult_factor: 1.0  # depth multiplier for the entire trainer, overridden for predefined YoloV5S, YoloV5M, YoloV5L
+width_mult_factor: 1.0  # width multiplier for the entire trainer, overridden for predefined YoloV5S, YoloV5M, YoloV5L
 channels_in: 3  # Number of channels in the input image
 skip_connections_list: [[12, [6]], [16, [4]], [19, [14]], [22, [10]], [24, [17, 20]]]
 # A list defining skip connections. format is [target: [source1, source2, ...]]. Each item defines a skip
@@ -26,7 +26,7 @@ nms_iou: 0.45  # When add_nms is True IoU threshold for NMS algorithm
 yolo_type: 'yolox'   # Type of yolo to build: 'yoloX' is th only type currently supported.
 stem_type:  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
 
-depthwise: False  # use depthwise separable convolutions all over the model
+depthwise: False  # use depthwise separable convolutions all over the trainer
 xhead_inter_channels:  # (has an impact only if yolo_type is yoloX)
 # Channels in classification and regression branches of the detecting blocks
 # if is None the first of input channels will be used by default

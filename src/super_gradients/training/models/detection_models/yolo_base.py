@@ -21,8 +21,8 @@ ANCHORSLESS_DUMMY_ANCHORS = Anchors([[0, 0], [0, 0], [0, 0]], strides=[8, 16, 32
 
 DEFAULT_YOLO_ARCH_PARAMS = {
     'num_classes': 80,  # Number of classes to predict
-    'depth_mult_factor': 1.0,  # depth multiplier for the entire model
-    'width_mult_factor': 1.0,  # width multiplier for the entire model
+    'depth_mult_factor': 1.0,  # depth multiplier for the entire trainer
+    'width_mult_factor': 1.0,  # width multiplier for the entire trainer
     'channels_in': 3,  # Number of channels in the input image
     'skip_connections_list': [(12, [6]), (16, [4]), (19, [14]), (22, [10]), (24, [17, 20])],
     # A list defining skip connections. format is '[target: [source1, source2, ...]]'. Each item defines a skip
@@ -39,7 +39,7 @@ DEFAULT_YOLO_ARCH_PARAMS = {
     # (with smaller value more boxed will be considered "the same" and removed)
     'yolo_type': 'yoloX',  # Type of yolo to build: 'yoloX' is only supported currently
     'stem_type': None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
-    'depthwise': False,  # use depthwise separable convolutions all over the model
+    'depthwise': False,  # use depthwise separable convolutions all over the trainer
     'xhead_inter_channels': None,  # (has an impact only if yolo_type is yoloX)
     # Channels in classification and regression branches of the detecting blocks;
     # if is None the first of input channels will be used by default
@@ -360,7 +360,7 @@ class YoLoBase(SgModule):
         stride = torch.tensor([s / x.shape[-2] for x in self.forward(dummy_input)])
         stride = stride.to(m.stride.device)
         if not torch.equal(m.stride, stride):
-            raise RuntimeError('Provided anchor strides do not match the model strides')
+            raise RuntimeError('Provided anchor strides do not match the trainer strides')
 
         self.register_buffer('stride', m.stride)  # USED ONLY FOR CONVERSION
 
@@ -388,11 +388,11 @@ class YoLoBase(SgModule):
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
-        A method for preparing the Yolo model for conversion to other frameworks (ONNX, CoreML etc)
+        A method for preparing the Yolo trainer for conversion to other frameworks (ONNX, CoreML etc)
         :param input_size: expected input size
         :return:
         """
-        assert not self.training, 'model has to be in eval mode to be converted'
+        assert not self.training, 'trainer has to be in eval mode to be converted'
 
         # Verify dummy_input from converter is of multiple of the grid size
         max_stride = int(max(self.stride))

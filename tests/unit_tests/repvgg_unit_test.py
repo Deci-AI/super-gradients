@@ -8,7 +8,7 @@ import copy
 
 class BackboneBasedModel(torch.nn.Module):
     """
-    Auxiliary model which will use repvgg as backbone
+    Auxiliary trainer which will use repvgg as backbone
     """
     def __init__(self, backbone, backbone_output_channel, num_classes=1000):
         super(BackboneBasedModel, self).__init__()

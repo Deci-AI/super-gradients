@@ -10,9 +10,9 @@ from deci_lab_client.models import Metric, QuantizationLevel, ModelMetadata, Opt
 
 class DeciLabUploadTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.model = Trainer("deci_lab_export_test_model", model_checkpoints_location='local')
+        self.trainer = Trainer("deci_lab_export_test_model", model_checkpoints_location='local')
         dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 10})
-        self.model.connect_dataset_interface(dataset)
+        self.trainer.connect_dataset_interface(dataset)
 
     def test_train_with_deci_lab_integration(self):
         model_meta_data = ModelMetadata(name='model_for_deci_lab_upload_test',
@@ -49,7 +49,7 @@ class DeciLabUploadTest(unittest.TestCase):
                         "phase_callbacks": [model_conversion_callback, deci_lab_callback]}
         self.optimizer = SGD(params=net.parameters(), lr=0.1)
 
-        self.model.train(net=net, training_params=train_params)
+        self.trainer.train(net=net, training_params=train_params)
 
         # CLEANUP
 

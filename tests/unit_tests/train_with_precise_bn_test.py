@@ -12,10 +12,10 @@ class TrainWithPreciseBNTest(unittest.TestCase):
     """
 
     def test_train_with_precise_bn_explicit_size(self):
-        model = Trainer("test_train_with_precise_bn_explicit_size", model_checkpoints_location='local')
+        trainer = Trainer("test_train_with_precise_bn_explicit_size", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
@@ -25,13 +25,13 @@ class TrainWithPreciseBNTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True,
                         "precise_bn": True, "precise_bn_batch_size": 100}
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
 
     def test_train_with_precise_bn_implicit_size(self):
-        model = Trainer("test_train_with_precise_bn_implicit_size", model_checkpoints_location='local')
+        trainer = Trainer("test_train_with_precise_bn_implicit_size", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
@@ -41,7 +41,7 @@ class TrainWithPreciseBNTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True,
                         "precise_bn": True}
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
 
 
 if __name__ == '__main__':

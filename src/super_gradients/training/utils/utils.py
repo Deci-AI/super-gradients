@@ -209,8 +209,8 @@ def print_once(s: str):
 
 def move_state_dict_to_device(model_sd, device):
     """
-    Moving model state dict tensors to target device (cuda or cpu)
-    :param model_sd: model state dict
+    Moving trainer state dict tensors to target device (cuda or cpu)
+    :param model_sd: trainer state dict
     :param device: either cuda or cpu
     """
     for k, v in model_sd.items():

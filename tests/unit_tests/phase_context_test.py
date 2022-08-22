@@ -11,10 +11,10 @@ from torchmetrics import MetricCollection
 
 class PhaseContextTest(unittest.TestCase):
     def context_information_in_train_test(self):
-        model = Trainer("context_information_in_train_test", model_checkpoints_location='local')
+        trainer = Trainer("context_information_in_train_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
 
@@ -31,8 +31,8 @@ class PhaseContextTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Top5",
                         "greater_metric_to_watch_is_better": True, "phase_callbacks": phase_callbacks}
 
-        model.train(net=net, training_params=train_params)
-        context_callbacks = list(filter(lambda cb: isinstance(cb, PhaseContextTestCallback), model.phase_callbacks))
+        trainer.train(net=net, training_params=train_params)
+        context_callbacks = list(filter(lambda cb: isinstance(cb, PhaseContextTestCallback), trainer.phase_callbacks))
 
         # CHECK THAT PHASE CONTEXES HAVE THE EXACT INFORMATION THERY'RE SUPPOSE TO HOLD
         for phase_callback in context_callbacks:

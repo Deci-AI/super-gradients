@@ -36,8 +36,8 @@ class ContextMethodsTest(unittest.TestCase):
 
     def test_access_to_methods_by_phase(self):
         net = LeNet()
-        model = Trainer("test_access_to_methods_by_phase", model_checkpoints_location='local')
-        model.connect_dataset_interface(self.dataset)
+        trainer = Trainer("test_access_to_methods_by_phase", model_checkpoints_location='local')
+        trainer.connect_dataset_interface(self.dataset)
 
         phase_callbacks = []
         for phase in Phase:
@@ -68,7 +68,7 @@ class ContextMethodsTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks}
 
-        model.train(net=net, training_params=train_params)
+        trainer.train(net=net, training_params=train_params)
         for phase_callback in phase_callbacks:
             if isinstance(phase_callback, ContextMethodsCheckerCallback):
                 self.assertTrue(phase_callback.result)

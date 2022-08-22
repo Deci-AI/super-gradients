@@ -8,8 +8,8 @@ from super_gradients.training.utils.utils import move_state_dict_to_device
 
 class ModelWeightAveraging:
     """
-    Utils class for managing the averaging of the best several snapshots into a single model.
-    A snapshot dictionary file and the average model will be saved / updated at every epoch and evaluated only when
+    Utils class for managing the averaging of the best several snapshots into a single trainer.
+    A snapshot dictionary file and the average trainer will be saved / updated at every epoch and evaluated only when
     training is completed. The snapshot file will only be deleted upon completing the training.
     The snapshot dict will be managed on cpu.
     """
@@ -60,9 +60,9 @@ class ModelWeightAveraging:
 
     def update_snapshots_dict(self, model, validation_results_tuple):
         """
-        Update the snapshot dict and returns the updated average model for saving
-        :param model: the latest model
-        :param validation_results_tuple: performance of the latest model
+        Update the snapshot dict and returns the updated average trainer for saving
+        :param model: the latest trainer
+        :param validation_results_tuple: performance of the latest trainer
         """
         averaging_snapshots_dict = self._get_averaging_snapshots_dict()
 
@@ -80,13 +80,13 @@ class ModelWeightAveraging:
 
     def get_average_model(self, model, validation_results_tuple=None):
         """
-        Returns the averaged model
+        Returns the averaged trainer
         :param model: will be used to determine arch
-        :param validation_results_tuple: if provided, will update the average model before returning
+        :param validation_results_tuple: if provided, will update the average trainer before returning
         :param target_device: if provided, return sd on target device
 
         """
-        # If validation tuple is provided, update the average model
+        # If validation tuple is provided, update the average trainer
         if validation_results_tuple is not None:
             averaging_snapshots_dict = self.update_snapshots_dict(model, validation_results_tuple)
         else:
@@ -113,9 +113,9 @@ class ModelWeightAveraging:
 
     def _is_better(self, averaging_snapshots_dict, validation_results_tuple):
         """
-        Determines if the new model is better according to the specified metrics
+        Determines if the new trainer is better according to the specified metrics
         :param averaging_snapshots_dict: snapshot dict
-        :param validation_results_tuple: latest model performance
+        :param validation_results_tuple: latest trainer performance
         """
         snapshot_metric_array = averaging_snapshots_dict['snapshots_metric']
         val = validation_results_tuple[self.metric_idx]

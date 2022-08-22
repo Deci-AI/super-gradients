@@ -1,4 +1,4 @@
-"""EfficientNet model class, based on
+"""EfficientNet trainer class, based on
 "EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks" <https://arxiv.org/abs/1905.11946>`
 Code source: https://github.com/lukemelas/EfficientNet-PyTorch
 Pre-trained checkpoints converted to Deci's code base with the reported accuracy can be found in S3 repo
@@ -9,7 +9,7 @@ Pre-trained checkpoints converted to Deci's code base with the reported accuracy
 #         b5 - (456, 520), b6 - (528, 602), b7 - (600, 684), b8 - (672, 768), l2 - (800, 914)
 #         You should build the DataSetInterface with the following dictionary:
 #           ImageNetDatasetInterface(dataset_params = {'crop': 260, 'resize':  298})
-#   2. Pre-trained ImageNet models can be found in S3://deci-model-repository-research/efficientnet_b#/ckpt_best.pth
+#   2. Pre-trained ImageNet models can be found in S3://deci-trainer-repository-research/efficientnet_b#/ckpt_best.pth
 #   3. See example code in experimental/efficientnet/efficientnet_example.py
 #######################################################################################################################
 
@@ -25,7 +25,7 @@ from collections import OrderedDict
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
-# Parameters for an individual model block
+# Parameters for an individual trainer block
 BlockArgs = collections.namedtuple('BlockArgs', [
     'num_repeat', 'kernel_size', 'stride', 'expand_ratio',
     'input_filters', 'output_filters', 'se_ratio', 'id_skip'])
@@ -40,9 +40,9 @@ def round_filters(filters, width_coefficient, depth_divisor, min_depth):
     Args:
         filters (int): Filters number to be calculated.
         Params from arch_params:
-        width_coefficient (int): model's width coefficient. Used as the multiplier.
-        depth_divisor (int): model's depth divisor. Used as the divisor.
-        and min_depth (int): model's minimal depth, if given.
+        width_coefficient (int): trainer's width coefficient. Used as the multiplier.
+        depth_divisor (int): trainer's depth divisor. Used as the divisor.
+        and min_depth (int): trainer's minimal depth, if given.
     Returns:
         new_filters: New filters number after calculating.
     """
@@ -63,7 +63,7 @@ def round_repeats(repeats, depth_coefficient):
        Use depth_coefficient.
     Args:
         repeats (int): num_repeat to be calculated.
-        depth_coefficient (int): the depth coefficient of the model. this func uses it as the multiplier.
+        depth_coefficient (int): the depth coefficient of the trainer. this func uses it as the multiplier.
     Returns:
         new repeat: New repeat number after calculating.
     """
@@ -399,7 +399,7 @@ class MBConvBlock(nn.Module):
 
 
 class EfficientNet(SgModule):
-    """EfficientNet model.
+    """EfficientNet trainer.
     Args:
         blocks_args (list[namedtuple]): A list of BlockArgs to construct blocks.
         arch_params (HpmStruct): A set of global params shared between blocks.
@@ -476,7 +476,7 @@ class EfficientNet(SgModule):
             inputs (tensor): Input tensor.
         Returns:
             Output of the final convolution.
-            layer in the efficientnet model.
+            layer in the efficientnet trainer.
         """
 
         # Stem
@@ -500,7 +500,7 @@ class EfficientNet(SgModule):
         Args:
             inputs (tensor): Input tensor.
         Returns:
-            Output of this model after processing.
+            Output of this trainer after processing.
         """
         bs = inputs.size(0)
 
@@ -563,8 +563,8 @@ def build_efficientnet(width, depth, res, dropout, arch_params):
     """
     print(f"\nNOTICE: \nachieving EfficientNet\'s reported accuracy requires specific image resolution."
           f"\nPlease verify image size is {res}x{res} for this specific EfficientNet configuration\n")
-    # Blocks args for the whole model(efficientnet-b0 by default)
-    # It will be modified in the construction of EfficientNet Class according to model
+    # Blocks args for the whole trainer(efficientnet-b0 by default)
+    # It will be modified in the construction of EfficientNet Class according to trainer
     blocks_args = BlockDecoder.decode(['r1_k3_s11_e1_i32_o16_se0.25', 'r2_k3_s22_e6_i16_o24_se0.25',
                                        'r2_k5_s22_e6_i24_o40_se0.25', 'r3_k3_s22_e6_i40_o80_se0.25',
                                        'r3_k5_s11_e6_i80_o112_se0.25', 'r4_k5_s22_e6_i112_o192_se0.25',

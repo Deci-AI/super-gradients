@@ -185,7 +185,7 @@ class DetectionPostPredictionCallback(ABC, nn.Module):
     def forward(self, x, device: str):
         """
 
-        :param x:       the output of your model
+        :param x:       the output of your trainer
         :param device:  the device to move all output tensors into
         :return:        a list with length batch_size, each item in the list is a detections
                         with shape: nx6 (x1, y1, x2, y2, confidence, class) where x and y are in range [0,1]
@@ -238,7 +238,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6,
                         multi_label_per_box: bool = True, with_confidence: bool = False):
     """
     Performs Non-Maximum Suppression (NMS) on inference results
-        :param prediction: raw model prediction
+        :param prediction: raw trainer prediction
         :param conf_thres: below the confidence threshold - prediction are discarded
         :param iou_thres: IoU threshold for the nms algorithm
         :param multi_label_per_box: whether to use re-use each box with all possible labels
@@ -289,7 +289,7 @@ def matrix_non_max_suppression(pred, conf_thres: float = 0.1, kernel: str = 'gau
                                sigma: float = 3.0, max_num_of_detections: int = 500):
     """Performs Matrix Non-Maximum Suppression (NMS) on inference results
         https://arxiv.org/pdf/1912.04488.pdf
-        :param pred: raw model prediction (in test mode) - a Tensor of shape [batch, num_predictions, 85]
+        :param pred: raw trainer prediction (in test mode) - a Tensor of shape [batch, num_predictions, 85]
         where each item format is (x, y, w, h, object_conf, class_conf, ... 80 classes score ...)
         :param conf_thres: below the confidence threshold - prediction are discarded
         :param kernel: type of kernel to use ['gaussian', 'linear']
@@ -509,7 +509,7 @@ class Anchors(nn.Module):
         """
         :param anchors_list: of the shape [[w1,h1,w2,h2,w3,h3], [w4,h4,w5,h5,w6,h6] .... where each sublist holds
             the width and height of the anchors of a specific detection layer.
-            i.e. for a model with 3 detection layers, each containing 5 anchors the format will be a of 3 sublists of 10 numbers each
+            i.e. for a trainer with 3 detection layers, each containing 5 anchors the format will be a of 3 sublists of 10 numbers each
             The width and height are in pixels (not relative to image size)
         :param strides: a list containing the stride of the layers from which the detection heads are fed.
             i.e. if the firs detection head is connected to the backbone after the input dimensions were reduces by 8, the first number will be 8

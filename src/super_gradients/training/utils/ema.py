@@ -22,18 +22,18 @@ def copy_attr(a: nn.Module, b: nn.Module, include: Union[list, tuple] = (), excl
 
 class ModelEMA:
     """ Model Exponential Moving Average from https://github.com/rwightman/pytorch-image-models
-    Keep a moving average of everything in the model state_dict (parameters and buffers).
+    Keep a moving average of everything in the trainer state_dict (parameters and buffers).
     This is intended to allow functionality like
     https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage
     A smoothed version of the weights is necessary for some training schemes to perform well.
-    This class is sensitive where it is initialized in the sequence of model init,
+    This class is sensitive where it is initialized in the sequence of trainer init,
     GPU assignment and distributed training wrappers.
     """
 
     def __init__(self, model, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True):
         """
         Init the EMA
-        :param model: Union[SgModule, nn.Module], the training model to construct the EMA model by
+        :param model: Union[SgModule, nn.Module], the training trainer to construct the EMA trainer by
                     IMPORTANT: WHEN THE APPLICATION OF EMA ONLY ON A SUBSET OF ATTRIBUTES IS DESIRED, WRAP THE NN.MODULE
                     AS SgModule AND OVERWRITE get_include_attributes() AND get_exclude_attributes() AS DESIRED.
         :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value
@@ -50,7 +50,7 @@ class ModelEMA:
             self.decay_function = lambda x: decay  # always return the same decay factor
 
         """"
-        we hold a list of model attributes (not wights and biases) which we would like to include in each
+        we hold a list of trainer attributes (not wights and biases) which we would like to include in each
         attribute update or exclude from each update. a SgModule declare these attribute using
         get_include_attributes and get_exclude_attributes functions. for a nn.Module which is not a SgModule
         all non-private (not starting with '_') attributes will be updated (and only them).
@@ -59,7 +59,7 @@ class ModelEMA:
             self.include_attributes = model.module.get_include_attributes()
             self.exclude_attributes = model.module.get_exclude_attributes()
         else:
-            warnings.warn("Warning: EMA should be used with SgModule instance. All attributes of the model will be "
+            warnings.warn("Warning: EMA should be used with SgModule instance. All attributes of the trainer will be "
                           "included in EMA")
             self.include_attributes = []
             self.exclude_attributes = []
@@ -68,8 +68,8 @@ class ModelEMA:
 
     def update(self, model, training_percent: float):
         """
-        Update the state of the EMA model.
-        :param model: current training model
+        Update the state of the EMA trainer.
+        :param model: current training trainer
         :param training_percent: the percentage of the training process [0,1]. i.e 0.4 means 40% of the training have passed
         """
         # Update EMA parameters
@@ -82,30 +82,30 @@ class ModelEMA:
 
     def update_attr(self, model):
         """
-        This function updates model attributes (not weight and biases) from original model to the ema model.
-        attributes of the original model, such as anchors and grids (of detection models), may be crucial to the
-        model operation and need to be updated.
+        This function updates trainer attributes (not weight and biases) from original trainer to the ema trainer.
+        attributes of the original trainer, such as anchors and grids (of detection models), may be crucial to the
+        trainer operation and need to be updated.
         If include_attributes and exclude_attributes lists were not defined, all non-private (not starting with '_')
         attributes will be updated (and only them).
-        :param model: the source model
+        :param model: the source trainer
         """
         copy_attr(self.ema.module, model.module, self.include_attributes, self.exclude_attributes)
 
 
 class KDModelEMA(ModelEMA):
     """ Model Exponential Moving Average from https://github.com/rwightman/pytorch-image-models
-    Keep a moving average of everything in the model state_dict (parameters and buffers).
+    Keep a moving average of everything in the trainer state_dict (parameters and buffers).
     This is intended to allow functionality like
     https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage
     A smoothed version of the weights is necessary for some training schemes to perform well.
-    This class is sensitive where it is initialized in the sequence of model init,
+    This class is sensitive where it is initialized in the sequence of trainer init,
     GPU assignment and distributed training wrappers.
     """
 
     def __init__(self, kd_model: KDModule, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True):
         """
         Init the EMA
-        :param kd_model: KDModule, the training Knowledge distillation model to construct the EMA model by
+        :param kd_model: KDModule, the training Knowledge distillation trainer to construct the EMA trainer by
                     IMPORTANT: WHEN THE APPLICATION OF EMA ONLY ON A SUBSET OF ATTRIBUTES IS DESIRED, WRAP THE NN.MODULE
                     AS SgModule AND OVERWRITE get_include_attributes() AND get_exclude_attributes() AS DESIRED.
         :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value
@@ -119,7 +119,7 @@ class KDModelEMA(ModelEMA):
                          beta=beta,
                          exp_activation=exp_activation)
 
-        # Overwrite current ema attribute with combination of the student model EMA (current self.ema)
+        # Overwrite current ema attribute with combination of the student trainer EMA (current self.ema)
         # with already the instantiated teacher, to have the final KD EMA
         self.ema = core_utils.WrappedModel(KDModule(arch_params=kd_model.module.arch_params,
                                                     student=self.ema.module,

@@ -11,12 +11,12 @@ class QATIntegrationTest(unittest.TestCase):
     def _get_trainer(self, experiment_name):
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model = Trainer(experiment_name,
+        trainer = Trainer(experiment_name,
                         model_checkpoints_location='local',
                         multi_gpu=MultiGPUMode.OFF)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
         net = models.get("resnet18", checkpoint_params={"pretrained_weights": "imagenet"})
-        return model, net
+        return trainer, net
 
     def _get_train_params(self, qat_params):
         train_params = {"max_epochs": 2,

@@ -4,8 +4,8 @@ Reference:
 [1] Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
     Deep Residual Learning for Image Recognition. arXiv:1512.03385
 
-Pre-trained ImageNet models: 'deci-model-repository/resnet?/ckpt_best.pth' => ? = the type of resnet (e.g. 18, 34...)
-Pre-trained CIFAR10 models: 'deci-model-repository/CIFAR_NAS_#?_????_?/ckpt_best.pth' => ? = num of model, structure, width_mult
+Pre-trained ImageNet models: 'deci-trainer-repository/resnet?/ckpt_best.pth' => ? = the type of resnet (e.g. 18, 34...)
+Pre-trained CIFAR10 models: 'deci-trainer-repository/CIFAR_NAS_#?_????_?/ckpt_best.pth' => ? = num of trainer, structure, width_mult
 
 Code adapted from https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
 """

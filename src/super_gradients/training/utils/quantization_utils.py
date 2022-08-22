@@ -58,7 +58,7 @@ def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tup
     """
     Method for exporting onnx after QAT.
 
-    :param model: torch.nn.Module, model to export
+    :param model: torch.nn.Module, trainer to export
     :param onnx_filename: str, target path for the onnx file,
     :param input_shape: tuple, input shape (usually BCHW)
     """
@@ -81,9 +81,9 @@ def export_qat_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tup
 def calibrate_model(model: torch.nn.Module, calib_data_loader: torch.utils.data.DataLoader, method: str = "percentile",
                     num_calib_batches: int = 2, percentile: float = 99.99):
     """
-    Calibrates torch model with quantized modules.
+    Calibrates torch trainer with quantized modules.
 
-    :param model:               torch.nn.Module, model to perfrom the calibration on.
+    :param model:               torch.nn.Module, trainer to perfrom the calibration on.
     :param calib_data_loader:   torch.utils.data.DataLoader, data loader of the calibration dataset.
     :param method:              str, One of [percentile, mse, entropy, max]. Statistics method for amax computation of the quantized modules
                                 (Default=percentile).
@@ -197,14 +197,14 @@ class QATCallback(PhaseCallback):
     """
     A callback for transitioning training into QAT.
 
-    Rebuilds the model with QAT layers then either:
+    Rebuilds the trainer with QAT layers then either:
         1. loads the best checkpoint then performs calibration.
-        2. loads an external calibrated model (makes sense when start_epoch=0).
+        2. loads an external calibrated trainer (makes sense when start_epoch=0).
 
     Additionally, resets Trainer's best_metric and sets ckpt_best_name to 'qat_ckpt_best.pth' so best QAT checkpoints
      will be saved separately.
 
-    If performing calibration- the calibrated model is evaluated, and the metric_to_watch is logged under
+    If performing calibration- the calibrated trainer is evaluated, and the metric_to_watch is logged under
      calibrated_model_{metric_to_watch}. The calibrated checkpoint is saved under ckpt_calibrated_{calibration_method}.pth
 
 
@@ -257,7 +257,7 @@ class QATCallback(PhaseCallback):
                     self.quant_modules_calib_method) + ".")
         if not calibrate and calibrated_model_path is None:
             logger.warning(
-                "calibrate=False and no calibrated_model_path is given. QAT will be on an uncalibrated model.")
+                "calibrate=False and no calibrated_model_path is given. QAT will be on an uncalibrated trainer.")
 
     def __call__(self, context: PhaseContext):
         if context.epoch == self.start_epoch:
@@ -302,7 +302,7 @@ class QATCallback(PhaseCallback):
 
     def _calibrate_model(self, context: PhaseContext):
         """
-        Performs model calibration (collecting stats and setting amax for the fake quantized moduls)
+        Performs trainer calibration (collecting stats and setting amax for the fake quantized moduls)
 
         :param context: PhaseContext, current phase context.
         """
@@ -316,13 +316,13 @@ class QATCallback(PhaseCallback):
             self.percentile) if self.quant_modules_calib_method == 'percentile' else self.quant_modules_calib_method
 
         if not context.ddp_silent_mode:
-            logger.info("Performing additional validation on calibrated model...")
+            logger.info("Performing additional validation on calibrated trainer...")
 
         calibrated_valid_results = context.context_methods.validate_epoch(epoch=self.start_epoch, silent_mode=True)
         calibrated_acc = calibrated_valid_results[context.metric_idx_in_results_tuple]
 
         if not context.ddp_silent_mode:
-            logger.info("Calibrate model " + context.metric_to_watch + ": " + str(calibrated_acc))
+            logger.info("Calibrate trainer " + context.metric_to_watch + ": " + str(calibrated_acc))
             context.sg_logger.add_checkpoint(tag='ckpt_calibrated_' + method_desc + '.pth',
                                              state_dict={"net": context.net.state_dict(), "acc": calibrated_acc})
             context.sg_logger.add_scalar("Calibrated_Model_" + context.metric_to_watch,

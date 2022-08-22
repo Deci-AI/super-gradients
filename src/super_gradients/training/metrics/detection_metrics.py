@@ -67,7 +67,7 @@ class DetectionMetrics(Metric):
         """
         Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
 
-        :param preds :        Raw output of the model, the format might change from one model to another, but has to fit
+        :param preds :        Raw output of the trainer, the format might change from one trainer to another, but has to fit
                                 the input format of the post_prediction_callback
         :param target:        Targets for all images of shape (total_num_targets, 6)
                                 format:  (index, x, y, w, h, label) where x,y,w,h are in range [0,1]

@@ -22,10 +22,10 @@ class TestViT(unittest.TestCase):
         """
         Validate vit_base
         """
-        model = Trainer("test_vit_base", device='cpu')
-        model.connect_dataset_interface(self.dataset, data_loader_num_workers=8)
+        trainer = Trainer("test_vit_base", device='cpu')
+        trainer.connect_dataset_interface(self.dataset, data_loader_num_workers=8)
         net = models.get('vit_base', arch_params={"num_classes": 5})
-        model.train(net=net, training_params=self.train_params)
+        trainer.train(net=net, training_params=self.train_params)
 
 
 if __name__ == '__main__':

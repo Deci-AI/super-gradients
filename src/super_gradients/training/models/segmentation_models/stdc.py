@@ -171,7 +171,7 @@ class STDCBackbone(AbstractSTDCBackbone):
 
 class STDCClassificationBase(SgModule):
     """
-    Base module for classification model based on STDCs backbones
+    Base module for classification trainer based on STDCs backbones
     """
 
     def __init__(self,
@@ -440,7 +440,7 @@ class STDCSegmentationBase(SgModule):
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
-        Prepare model for conversion, force use_aux_heads mode False and delete auxiliary and detail heads. Replace
+        Prepare trainer for conversion, force use_aux_heads mode False and delete auxiliary and detail heads. Replace
         ContextEmbeddingOnline which cause compilation issues and not supported in some compilations,
         to ContextEmbeddingFixedSize.
         """

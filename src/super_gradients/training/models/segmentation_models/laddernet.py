@@ -73,7 +73,7 @@ class LadderResNet(nn.Module):
     classes : int, default 1000
         Number of classification classes.
     dilated : bool, default False
-        Applying dilation strategy to pretrained ResNet yielding a stride-8 model,
+        Applying dilation strategy to pretrained ResNet yielding a stride-8 trainer,
         typically used in Semantic Segmentation.
     norm_layer : object
         Normalization layer used in backbone network (default: :class:`mxnet.gluon.nn.BatchNorm`;

@@ -68,13 +68,13 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
     def load_remote_checkpoints_file(self, ckpt_source_remote_dir: str, ckpt_destination_local_dir: str,
                                      ckpt_file_name: str, overwrite_local_checkpoints_file: bool = False) -> str:
         """
-        load_remote_checkpoints_file - Loads a model's checkpoint from local/cloud file
+        load_remote_checkpoints_file - Loads a trainer's checkpoint from local/cloud file
             :param ckpt_source_remote_dir:               The source folder to download from
             :param ckpt_destination_local_dir:           The destination folder to save the checkpoint at
             :param ckpt_file_name:                       Filename to load from Remote Repo
             :param overwrite_local_checkpoints_file:     Use Only for Cloud-Stored Model Checkpoints if required behavior
                                                             is to overwrite a previous version of the same files
-            :return: Model Checkpoint File Path -> Depends on model architecture
+            :return: Model Checkpoint File Path -> Depends on trainer architecture
         """
         ckpt_file_local_full_path = ckpt_destination_local_dir + '/' + ckpt_file_name
 
@@ -173,6 +173,6 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
 
         upload_success = self.s3_connector.upload_file(local_file_path, s3_key_path)
         if not upload_success:
-            self._logger.error('Failed to upload model checkpoint')
+            self._logger.error('Failed to upload trainer checkpoint')
 
         return upload_success

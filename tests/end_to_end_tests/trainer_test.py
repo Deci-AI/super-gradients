@@ -37,12 +37,12 @@ class TestTrainer(unittest.TestCase):
 
     @staticmethod
     def get_classification_trainer(name=''):
-        model = Trainer(name, model_checkpoints_location='local')
+        trainer = Trainer(name, model_checkpoints_location='local')
         dataset_params = {"batch_size": 4}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params, image_size=224)
-        model.connect_dataset_interface(dataset)
+        trainer.connect_dataset_interface(dataset)
         net = models.get("resnet18", arch_params={"num_classes": 5})
-        return model, net
+        return trainer, net
 
     def test_train(self):
         model, net = self.get_classification_trainer(self.folder_names[0])
