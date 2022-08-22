@@ -10,9 +10,9 @@
 # P.S. - Use the relevant training params dict if you are running on TZAG or on V100
 
 import torch
-from super_gradients.training import SgModel, MultiGPUMode
+from super_gradients.training import Trainer, MultiGPUMode
 from super_gradients.training.datasets import CoCoSegmentationDatasetInterface
-from super_gradients.training.sg_model.sg_model import StrictLoad
+from super_gradients.training.sg_trainer.sg_trainer import StrictLoad
 from super_gradients.training.metrics.segmentation_metrics import PixelAccuracy, IoU
 
 model_size_str = '34'
@@ -66,16 +66,16 @@ experiment_name_dataset_suffix = '_coco_seg_' + str(
 
 experiment_name = experiment_name_prefix + model_size_str + experiment_name_dataset_suffix
 
-model = SgModel(experiment_name,
-                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL,
-                ckpt_name='ckpt_best.pth')
+trainer = Trainer(experiment_name,
+                  multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL,
+                  ckpt_name='ckpt_best.pth')
 
 coco_seg_datasaet_interface = CoCoSegmentationDatasetInterface(dataset_params=coco_seg_dataset_tzag_params,
                                                                cache_labels=False,
                                                                dataset_classes_inclusion_tuples_list=coco_sub_classes_inclusion_tuples_list)
 
-model.connect_dataset_interface(coco_seg_datasaet_interface, data_loader_num_workers=data_loader_num_workers)
-model.build_model('shelfnet' + model_size_str, arch_params=shelfnet_lw_arch_params)
+trainer.connect_dataset_interface(coco_seg_datasaet_interface, data_loader_num_workers=data_loader_num_workers)
+trainer.build_model('shelfnet' + model_size_str, arch_params=shelfnet_lw_arch_params)
 
 print('Training ShelfNet-LW model: ' + experiment_name)
-model.train(training_params=shelfnet_coco_training_params)
+trainer.train(training_params=shelfnet_coco_training_params)

@@ -1,6 +1,10 @@
 import logging
 from os import environ
 
+import pkg_resources
+
+PKG_CHECKPOINTS_DIR = pkg_resources.resource_filename("checkpoints", "")
+
 AWS_ENV_NAME = environ.get("ENVIRONMENT_NAME")
 
 AWS_ENVIRONMENTS = ["development", "staging", "production"]

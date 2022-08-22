@@ -26,8 +26,8 @@
 """
 import super_gradients
 import torch.distributed
-from super_gradients.training.sg_model import MultiGPUMode
-from super_gradients.training import SgModel
+from super_gradients.training.sg_trainer import MultiGPUMode
+from super_gradients.training import Trainer
 from super_gradients.training.datasets.dataset_interfaces import ImageNetDatasetInterface
 from super_gradients.common.aws_connection.aws_secrets_manager_connector import AWSSecretsManagerConnector
 from super_gradients.training.metrics.classification_metrics import Accuracy, Top5
@@ -57,12 +57,12 @@ dataset_params = {"batch_size": 128}
 model_repo_bucket_name = AWSSecretsManagerConnector.get_secret_value_for_secret_key(aws_env='research',
                                                                                     secret_name='training_secrets',
                                                                                     secret_key='S3.MODEL_REPOSITORY_BUCKET_NAME')
-model = SgModel("test_checkpoints_resnet_8_gpus",
-                model_checkpoints_location='s3://' + model_repo_bucket_name,
-                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
-                )
+trainer = Trainer("test_checkpoints_resnet_8_gpus",
+                  model_checkpoints_location='s3://' + model_repo_bucket_name,
+                  multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
+                  )
 # FOR AWS
 dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params=dataset_params)
-model.connect_dataset_interface(dataset, data_loader_num_workers=8)
-model.build_model("resnet50")
-model.train(training_params=train_params)
+trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
+trainer.build_model("resnet50")
+trainer.train(training_params=train_params)
