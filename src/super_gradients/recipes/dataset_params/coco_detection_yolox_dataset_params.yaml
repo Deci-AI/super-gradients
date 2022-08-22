@@ -8,12 +8,18 @@ cache_dir: # path to a directory that will be used for caching (with numpy.memma
 cache_train_images: False
 cache_val_images: False
 
-
 batch_size: 16 # batch size for trainset
 val_batch_size: 64 # batch size for valset
-train_input_dim: [640, 640]
-val_input_dim: [640, 640]
+train_image_size: 640
+val_image_size: 640
+train_input_dim:
+  - ${dataset_params.train_image_size}
+  - ${dataset_params.train_image_size}
+val_input_dim:
+  - ${dataset_params.val_image_size}
+  - ${dataset_params.val_image_size}
 
+filter_box_candidates: False
 targets_format:
   _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
   value: LABEL_CXCYWH
