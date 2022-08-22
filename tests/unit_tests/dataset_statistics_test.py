@@ -74,7 +74,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                            "loss_logging_items_names": ["iou", "obj", "cls", "l1", "num_fg", "Loss"],
                            "metric_to_watch": "mAP@0.50:0.95",
                            }
-        trainer.train(net=net, training_params=training_params)
+        trainer.train(model=net, training_params=training_params)
 
 
 if __name__ == '__main__':

@@ -30,7 +30,7 @@ class LRCooldownTest(unittest.TestCase):
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks}
 
         expected_lrs = [0.25, 0.5, 0.75, 0.9236067977499791, 0.4763932022500211, 0.4763932022500211, 0.4763932022500211]
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
         # ALTHOUGH NOT SEEN IN HERE, THE 4TH EPOCH USES LR=1, SO THIS IS THE EXPECTED LIST AS WE COLLECT
         # THE LRS AFTER THE UPDATE

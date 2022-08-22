@@ -57,7 +57,7 @@ class LRWarmupTest(unittest.TestCase):
                         "warmup_mode": "linear_step"}
 
         expected_lrs = [0.25, 0.5, 0.75, 1.0, 1.0]
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
         self.assertListEqual(lrs, expected_lrs)
 
     def test_lr_warmup_with_lr_scheduling(self):
@@ -78,7 +78,7 @@ class LRWarmupTest(unittest.TestCase):
                         "warmup_mode": "linear_step"}
 
         expected_lrs = [0.25, 0.5, 0.75, 0.9236067977499791, 0.4763932022500211]
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
         # ALTHOUGH NOT SEEN IN HERE, THE 4TH EPOCH USES LR=1, SO THIS IS THE EXPECTED LIST AS WE COLLECT
         # THE LRS AFTER THE UPDATE
@@ -102,7 +102,7 @@ class LRWarmupTest(unittest.TestCase):
                         "warmup_mode": "linear_step", "initial_lr": 1, "warmup_initial_lr": 4.}
 
         expected_lrs = [4., 3., 2., 1., 1.]
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
         self.assertListEqual(lrs, expected_lrs)
 
     def test_custom_lr_warmup(self):
@@ -123,7 +123,7 @@ class LRWarmupTest(unittest.TestCase):
                         "warmup_mode": ExponentialWarmupLRCallback, "initial_lr": 1., "warmup_initial_lr": 0.1}
 
         expected_lrs = [0.1, 0.18102751585334242, 0.40128313980266034, 1.0, 1.0]
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
         self.assertListEqual(lrs, expected_lrs)
 
 

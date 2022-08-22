@@ -76,7 +76,7 @@ class ConversionCallbackTest(unittest.TestCase):
             trainer.connect_dataset_interface(dataset, data_loader_num_workers=0)
             net = models.get(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
             try:
-                trainer.train(net=net, training_params=train_params)
+                trainer.train(model=net, training_params=train_params)
             except Exception as e:
                 self.fail(f"Model training didn't succeed due to {e}")
             else:
@@ -131,7 +131,7 @@ class ConversionCallbackTest(unittest.TestCase):
             train_params.update(custom_config)
 
             try:
-                trainer.train(net=net, training_params=train_params)
+                trainer.train(model=net, training_params=train_params)
             except Exception as e:
                 self.fail(f"Model training didn't succeed for {architecture} due to {e}")
             else:

@@ -68,7 +68,7 @@ class ContextMethodsTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks}
 
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
         for phase_callback in phase_callbacks:
             if isinstance(phase_callback, ContextMethodsCheckerCallback):
                 self.assertTrue(phase_callback.result)

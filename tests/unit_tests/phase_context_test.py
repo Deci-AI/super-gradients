@@ -31,7 +31,7 @@ class PhaseContextTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Top5",
                         "greater_metric_to_watch_is_better": True, "phase_callbacks": phase_callbacks}
 
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
         context_callbacks = list(filter(lambda cb: isinstance(cb, PhaseContextTestCallback), trainer.phase_callbacks))
 
         # CHECK THAT PHASE CONTEXES HAVE THE EXACT INFORMATION THERY'RE SUPPOSE TO HOLD

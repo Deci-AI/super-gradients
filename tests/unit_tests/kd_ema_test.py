@@ -37,7 +37,7 @@ class KDEMATest(unittest.TestCase):
         teacher = models.get('resnet50', arch_params={'num_classes': 1000},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"})
 
-        kd_model.train(student=student, teacher=teacher, training_params=self.kd_train_params)
+        kd_model.train(training_params=self.kd_train_params, student=student, teacher=teacher)
 
         self.assertTrue(kd_model.ema_model.ema.module.teacher is kd_model.net.module.teacher)
         self.assertTrue(kd_model.ema_model.ema.module.student is not kd_model.net.module.student)
@@ -53,7 +53,7 @@ class KDEMATest(unittest.TestCase):
         teacher = models.get('resnet50', arch_params={'num_classes': 1000},
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"})
 
-        kd_model.train(student=student, teacher=teacher, training_params=self.kd_train_params)
+        kd_model.train(training_params=self.kd_train_params, student=student, teacher=teacher)
         ema_model = kd_model.ema_model.ema
         net = kd_model.net
 
@@ -65,7 +65,7 @@ class KDEMATest(unittest.TestCase):
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"})
 
         train_params["resume"] = True
-        kd_model.train(student=student, teacher=teacher, training_params=train_params)
+        kd_model.train(training_params=train_params, student=student, teacher=teacher)
         reloaded_ema_model = kd_model.ema_model.ema
         reloaded_net = kd_model.net
 

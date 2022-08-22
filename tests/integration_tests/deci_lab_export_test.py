@@ -49,7 +49,7 @@ class DeciLabUploadTest(unittest.TestCase):
                         "phase_callbacks": [model_conversion_callback, deci_lab_callback]}
         self.optimizer = SGD(params=net.parameters(), lr=0.1)
 
-        self.trainer.train(net=net, training_params=train_params)
+        self.trainer.train(model=net, training_params=train_params)
 
         # CLEANUP
 

@@ -65,7 +65,7 @@ class EMAIntegrationTest(unittest.TestCase):
         self.trainer.test = CallWrapper(self.trainer.test, check_before=before_test)
         self.trainer._train_epoch = CallWrapper(self.trainer._train_epoch, check_before=before_train_epoch)
 
-        self.trainer.train(net=self.net, training_params=training_params)
+        self.trainer.train(model=self.net, training_params=training_params)
 
         self.assertIsNotNone(self.trainer.ema_model)
 

@@ -49,7 +49,7 @@ class ForwardpassPrepFNTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks,
                         "pre_prediction_callback": test_forward_pass_prep_fn}
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
         # ALTHOUGH NOT SEEN IN HERE, THE 4TH EPOCH USES LR=1, SO THIS IS THE EXPECTED LIST AS WE COLLECT
         # THE LRS AFTER THE UPDATE

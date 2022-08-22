@@ -47,7 +47,7 @@ class QATIntegrationTest(unittest.TestCase):
             "percentile": 99.99
         })
 
-        model.train(net=net, training_params=train_params)
+        model.train(model=net, training_params=train_params)
 
     def test_qat_transition(self):
         model, net = self._get_trainer("test_qat_transition")
@@ -59,7 +59,7 @@ class QATIntegrationTest(unittest.TestCase):
             "percentile": 99.99
         })
 
-        model.train(net=net, training_params=train_params)
+        model.train(model=net, training_params=train_params)
 
     def test_qat_from_calibrated_ckpt(self):
         model, net = self._get_trainer("generate_calibrated_model")
@@ -71,7 +71,7 @@ class QATIntegrationTest(unittest.TestCase):
             "percentile": 99.99
         })
 
-        model.train(net=net, training_params=train_params)
+        model.train(model=net, training_params=train_params)
 
         calibrated_model_path = os.path.join(model.checkpoints_dir_path, "ckpt_calibrated_percentile_99.99.pth")
 
@@ -85,7 +85,7 @@ class QATIntegrationTest(unittest.TestCase):
             "percentile": 99.99
         })
 
-        model.train(net=net, training_params=train_params)
+        model.train(model=net, training_params=train_params)
 
 
 if __name__ == '__main__':

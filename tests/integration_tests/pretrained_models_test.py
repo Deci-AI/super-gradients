@@ -340,7 +340,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_resnet34_imagenet(self):
         trainer = Trainer('imagenet_pretrained_resnet34', model_checkpoints_location='local',
@@ -358,7 +358,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_resnet18_imagenet(self):
         trainer = Trainer('imagenet_pretrained_resnet18', model_checkpoints_location='local',
@@ -376,7 +376,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY800_imagenet(self):
         trainer = Trainer('imagenet_pretrained_regnetY800', model_checkpoints_location='local',
@@ -394,7 +394,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnet"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY600_imagenet(self):
         trainer = Trainer('imagenet_pretrained_regnetY600', model_checkpoints_location='local',
@@ -412,7 +412,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY600", arch_params=self.imagenet_pretrained_arch_params["regnet"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY400_imagenet(self):
         trainer = Trainer('imagenet_pretrained_regnetY400', model_checkpoints_location='local',
@@ -430,7 +430,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY400", arch_params=self.imagenet_pretrained_arch_params["regnet"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY200_imagenet(self):
         trainer = Trainer('imagenet_pretrained_regnetY200', model_checkpoints_location='local',
@@ -448,7 +448,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY200", arch_params=self.imagenet_pretrained_arch_params["regnet"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_repvgg_a0_imagenet(self):
         trainer = Trainer('imagenet_pretrained_repvgg_a0', model_checkpoints_location='local',
@@ -466,7 +466,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regseg48_cityscapes(self):
         trainer = Trainer('cityscapes_pretrained_regseg48', model_checkpoints_location='local',
@@ -485,7 +485,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"],
                          checkpoint_params=self.cityscapes_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.regseg_transfer_segmentation_train_params)
+        trainer.train(model=net, training_params=self.regseg_transfer_segmentation_train_params)
 
     def test_pretrained_ddrnet23_cityscapes(self):
         trainer = Trainer('cityscapes_pretrained_ddrnet23', model_checkpoints_location='local',
@@ -515,7 +515,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("ddrnet_23", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"],
                          checkpoint_params=self.cityscapes_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.ddrnet_transfer_segmentation_train_params)
+        trainer.train(model=net, training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_transfer_learning_ddrnet23_slim_cityscapes(self):
         trainer = Trainer('cityscapes_pretrained_ddrnet23_slim_transfer_learning', model_checkpoints_location='local',
@@ -523,7 +523,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"],
                          checkpoint_params=self.cityscapes_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.ddrnet_transfer_segmentation_train_params)
+        trainer.train(model=net, training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_pretrained_coco_segmentation_subclass_pretrained_shelfnet34_lw(self):
         trainer = Trainer('coco_segmentation_subclass_pretrained_shelfnet34_lw', model_checkpoints_location='local',
@@ -552,7 +552,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("efficientnet_b0", arch_params=self.imagenet_pretrained_arch_params["efficientnet_b0"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_ssd_lite_mobilenet_v2_coco(self):
         trainer = Trainer('coco_ssd_lite_mobilenet_v2', model_checkpoints_location='local',
@@ -578,7 +578,7 @@ class PretrainedModelsTest(unittest.TestCase):
         net = models.get("ssd_lite_mobilenet_v2",
                          arch_params=transfer_arch_params,
                          checkpoint_params=self.coco_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_detection_train_params['ssd_lite_mobilenet_v2'])
+        trainer.train(model=net, training_params=self.transfer_detection_train_params['ssd_lite_mobilenet_v2'])
 
     def test_pretrained_ssd_mobilenet_v1_coco(self):
         trainer = Trainer('coco_ssd_mobilenet_v1', model_checkpoints_location='local',
@@ -661,7 +661,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_detection_dataset, data_loader_num_workers=8)
         net = models.get("yolox_n", checkpoint_params=self.coco_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_detection_train_params["yolox"])
+        trainer.train(model=net, training_params=self.transfer_detection_train_params["yolox"])
 
     def test_transfer_learning_mobilenet_v3_large_imagenet(self):
         trainer = Trainer('imagenet_pretrained_mobilenet_v3_large_transfer_learning',
@@ -670,7 +670,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v3_large", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_mobilenet_v3_large_imagenet(self):
         trainer = Trainer('imagenet_mobilenet_v3_large', model_checkpoints_location='local',
@@ -689,7 +689,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v3_small", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_mobilenet_v3_small_imagenet(self):
         trainer = Trainer('imagenet_mobilenet_v3_small', model_checkpoints_location='local',
@@ -708,7 +708,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v2", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_mobilenet_v2_imagenet(self):
         trainer = Trainer('imagenet_mobilenet_v2', model_checkpoints_location='local',
@@ -737,7 +737,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
                          checkpoint_params=self.cityscapes_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
+        trainer.train(model=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_pretrained_stdc1_seg75_cityscapes(self):
         trainer = Trainer('cityscapes_pretrained_stdc1_seg75', model_checkpoints_location='local',
@@ -756,7 +756,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
                          checkpoint_params=self.cityscapes_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
+        trainer.train(model=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_pretrained_stdc2_seg50_cityscapes(self):
         trainer = Trainer('cityscapes_pretrained_stdc2_seg50', model_checkpoints_location='local',
@@ -775,7 +775,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
                          checkpoint_params=self.cityscapes_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
+        trainer.train(model=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_pretrained_stdc2_seg75_cityscapes(self):
         trainer = Trainer('cityscapes_pretrained_stdc2_seg75', model_checkpoints_location='local',
@@ -794,7 +794,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
                          checkpoint_params=self.cityscapes_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
+        trainer.train(model=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_transfer_learning_vit_base_imagenet21k(self):
         trainer = Trainer('imagenet21k_pretrained_vit_base',
@@ -803,7 +803,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
                          checkpoint_params=self.imagenet21k_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_transfer_learning_vit_large_imagenet21k(self):
         trainer = Trainer('imagenet21k_pretrained_vit_large',
@@ -812,7 +812,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("vit_large", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
                          checkpoint_params=self.imagenet21k_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_vit_base_imagenet(self):
         trainer = Trainer('imagenet_pretrained_vit_base', model_checkpoints_location='local',
@@ -857,7 +857,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
                          checkpoint_params=self.imagenet_pretrained_ckpt_params)
-        trainer.train(net=net, training_params=self.transfer_classification_train_params)
+        trainer.train(model=net, training_params=self.transfer_classification_train_params)
 
     def tearDown(self) -> None:
         if os.path.exists('~/.cache/torch/hub/'):

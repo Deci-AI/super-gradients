@@ -33,7 +33,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
                         "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
     def test_train_with_external_optimizer(self):
         trainer = Trainer("external_optimizer_test", model_checkpoints_location='local')
@@ -49,7 +49,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
     def test_train_with_external_scheduler(self):
         trainer = Trainer("external_scheduler_test", model_checkpoints_location='local')
@@ -69,7 +69,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
         assert lr_scheduler.get_last_lr()[0] == lr * 0.1 * 0.1
 
     def test_train_with_external_scheduler_class(self):
@@ -87,7 +87,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
     def test_train_with_reduce_on_plateau(self):
         trainer = Trainer("external_reduce_on_plateau_scheduler_test", model_checkpoints_location='local')
@@ -108,7 +108,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "valid_metrics_list": [Accuracy(), Top5(), ToyTestClassificationMetric()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
         assert lr_scheduler._last_lr[0] == lr * 0.1
 
     def test_train_with_external_metric(self):
@@ -124,7 +124,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
     def test_train_with_external_dataloaders(self):
         trainer = Trainer("external_data_loader_test", model_checkpoints_location='local')
@@ -150,7 +150,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
 
 if __name__ == '__main__':

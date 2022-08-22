@@ -44,7 +44,7 @@ class LRTest(unittest.TestCase):
 
         # test if we are able that lr_function supports functions with this structure
         training_params = {**self.training_params, "lr_mode": "function", "lr_schedule_function": test_lr_function}
-        model.train(net=net, training_params=training_params)
+        model.train(model=net, training_params=training_params)
 
         # test that we assert lr_function is callable
         training_params = {**self.training_params, "lr_mode": "function"}
@@ -54,12 +54,12 @@ class LRTest(unittest.TestCase):
     def test_cosine_lr(self):
         model, net = self.get_trainer(self.folder_name)
         training_params = {**self.training_params, "lr_mode": "cosine", "cosine_final_lr_ratio": 0.01}
-        model.train(net=net, training_params=training_params)
+        model.train(model=net, training_params=training_params)
 
     def test_step_lr(self):
         model, net = self.get_trainer(self.folder_name)
         training_params = {**self.training_params, "lr_mode": "step", "lr_decay_factor": 0.1, "lr_updates": [4]}
-        model.train(net=net, training_params=training_params)
+        model.train(model=net, training_params=training_params)
 
 
 if __name__ == '__main__':

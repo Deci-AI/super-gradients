@@ -209,7 +209,7 @@ class Trainer:
         net = models.get(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
 
         # TRAIN
-        trainer.train(net=net, training_params=cfg.training_hyperparams)
+        trainer.train(model=net, training_params=cfg.training_hyperparams)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
@@ -546,7 +546,7 @@ class Trainer:
         self._load_checkpoint_to_model()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, net: nn.Module = None, training_params: dict = dict(), *args, **kwargs):  # noqa: C901
+    def train(self, model: nn.Module = None, training_params: dict = dict(), *args, **kwargs):  # noqa: C901
         """
 
         train - Trains the Model
@@ -555,7 +555,7 @@ class Trainer:
           the data loaders, as dictionary. The phase context will hold the additional items, under an attribute with
           the same name as the key in this dictionary. Then such items can be accessed through phase callbacks.
 
-            :param net: torch.nn.Module, network to train. When none is given will attempt to use self.net
+            :param model: torch.nn.Module, network to train. When none is given will attempt to use self.net
              (SEE BUILD_MODEL DEPRECATION) (default=None).
 
             :param training_params:
@@ -831,7 +831,7 @@ class Trainer:
         self.training_params.override(**training_params)
 
         if self.net is None:
-            self.net = net
+            self.net = model
             self._prep_net_for_train()
 
         # SET RANDOM SEED

@@ -25,7 +25,7 @@ class SgTrainerLoggingTest(unittest.TestCase):
                         "greater_metric_to_watch_is_better": True,
                         "save_full_train_log": True}
 
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
         logfile_path = trainer.log_file.replace('.txt', 'full_train_log.log')
         assert os.path.exists(logfile_path) and os.path.getsize(logfile_path) > 0

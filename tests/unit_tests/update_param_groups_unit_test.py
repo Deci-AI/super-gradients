@@ -52,6 +52,6 @@ class UpdateParamGroupsTest(unittest.TestCase):
                         }
 
         expected_lrs = np.array([0.1, 0.2, 0.3])
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
         self.assertTrue(np.allclose(np.array(lrs), expected_lrs, rtol=0.0000001))

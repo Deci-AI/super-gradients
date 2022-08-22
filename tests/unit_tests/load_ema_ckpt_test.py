@@ -35,7 +35,7 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
 
         trainer.connect_dataset_interface(self.dataset)
 
-        trainer.train(net=net, training_params=self.train_params)
+        trainer.train(model=net, training_params=self.train_params)
 
         ema_model = trainer.ema_model.ema
 
@@ -47,7 +47,7 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
         self.train_params["resume"] = True
         self.train_params["max_epochs"] = 3
         self.train_params["phase_callbacks"] = [net_collector]
-        trainer.train(net=net, training_params=self.train_params)
+        trainer.train(model=net, training_params=self.train_params)
 
         reloaded_ema_model = net_collector.net.ema
 

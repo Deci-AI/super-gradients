@@ -68,12 +68,8 @@ class KDTrainer(Trainer):
         teacher = models.get(cfg.teacher_architecture, arch_params=cfg.teacher_arch_params, checkpoint_params=cfg.teacher_checkpoint_params)
 
         # TRAIN
-        trainer.train(kd_architecture=cfg.architecture,
-                      student=student, teacher=teacher,
-                      training_params=cfg.training_hyperparams,
-                      kd_arch_params=cfg.arch_params,
-                      run_teacher_on_eval=cfg.run_teacher_on_eval
-                      )
+        trainer.train(training_params=cfg.training_hyperparams, kd_architecture=cfg.architecture, student=student,
+                      teacher=teacher, kd_arch_params=cfg.arch_params, run_teacher_on_eval=cfg.run_teacher_on_eval)
 
     def build_model(self,
                     # noqa: C901 - too complex
@@ -325,24 +321,15 @@ class KDTrainer(Trainer):
         state["net"] = best_net.state_dict()
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
-    def train(self, net: KDModule = None, training_params: dict = dict(), student: SgModule = None,
-              teacher: torch.nn.Module = None, kd_architecture: Union[KDModule.__class__, str] = 'kd_module',
-              kd_arch_params: dict = dict(), run_teacher_on_eval=False,
-              *args,
-              **kwargs):
+    def train(self, model: KDModule = None, training_params: dict = dict(), *args: SgModule, **kwargs: torch.nn.Module):
         """
         Trains the student netowrk (wrapped in KDModule network).
 
-        :param net: KDModule, network to train. When none is given will initialize KDModule according to kd_architecture,
+        :param model: KDModule, network to train. When none is given will initialize KDModule according to kd_architecture,
             student and teacher (default=None)
         :param training_params: dict, Same as in Trainer.train()
-        :param student: SgModule - the student trainer
-        :param teacher: torch.nn.Module- the teacher trainer
-        :param kd_architecture: KDModule architecture to use, currently only 'kd_module' is supported (default='kd_module').
-        :param kd_arch_params: architecture params to pas to kd_architecture constructor.
-        :param run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
         """
-        kd_net = self.net or net
+        kd_net = self.net or model
         if kd_net is None:
             if student is None or teacher is None:
                 raise ValueError("Must pass student and teacher models or net (KDModule).")
@@ -351,4 +338,4 @@ class KDTrainer(Trainer):
                                               run_teacher_on_eval=run_teacher_on_eval,
                                               student=student,
                                               teacher=teacher)
-        super(KDTrainer, self).train(net=kd_net, training_params=training_params)
+        super(KDTrainer, self).train(model=kd_net, training_params=training_params)

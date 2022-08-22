@@ -71,7 +71,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(net=self.net, training_params=train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 5
 
@@ -96,7 +96,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params.update(
             {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(net=self.net, training_params=train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 6
 
@@ -117,7 +117,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(net=self.net, training_params=train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 5
         # count divided by 2, because loss counter used for both train and eval.
@@ -140,7 +140,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params.update(
             {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(net=self.net, training_params=train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 7
 
@@ -163,7 +163,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(net=self.net, training_params=train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 2
 
@@ -182,7 +182,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(net=self.net, training_params=train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 3
         # count divided by 2, because loss counter used for both train and eval.
@@ -206,7 +206,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params.update(
             {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(net=self.net, training_params=train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 5
 

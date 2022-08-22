@@ -25,7 +25,7 @@ class TrainWithPreciseBNTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True,
                         "precise_bn": True, "precise_bn_batch_size": 100}
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
     def test_train_with_precise_bn_implicit_size(self):
         trainer = Trainer("test_train_with_precise_bn_implicit_size", model_checkpoints_location='local')
@@ -41,7 +41,7 @@ class TrainWithPreciseBNTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True,
                         "precise_bn": True}
-        trainer.train(net=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params)
 
 
 if __name__ == '__main__':
