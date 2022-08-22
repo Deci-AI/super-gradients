@@ -55,13 +55,13 @@ class TestDetectionDatasetCaching(unittest.TestCase):
 
         datasets = [
             DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=False, class_inclusion_list=class_inclusion_list,
-                                  cache=True, cache_path=self.temp_cache_dir, data_dir='/home/')
+                                  cache=True, cache_dir=self.temp_cache_dir, data_dir='/home/')
             for class_inclusion_list in [["class_0", "class_1", "class_2"], ["class_0"], ["class_1"], ["class_2"], ["class_1", "class_2"]]
         ]
 
         self.assertEqual(1, self._count_cached_array())
         for first_dataset, second_dataset in zip(datasets[:-1], datasets[1:]):
-            self.assertTrue(np.array_equal(first_dataset.cached_imgs, second_dataset.cached_imgs))
+            self.assertTrue(np.array_equal(first_dataset.cached_imgs_padded, second_dataset.cached_imgs_padded))
 
         self._empty_cache()
 
@@ -70,13 +70,13 @@ class TestDetectionDatasetCaching(unittest.TestCase):
 
         datasets = [
             DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True, class_inclusion_list=class_inclusion_list,
-                                  cache=True, cache_path=self.temp_cache_dir, data_dir='/home/')
+                                  cache=True, cache_dir=self.temp_cache_dir, data_dir='/home/')
             for class_inclusion_list in [["class_0", "class_1", "class_2"], ["class_0"], ["class_1"], ["class_2"], ["class_1", "class_2"]]
         ]
 
         self.assertEqual(5, self._count_cached_array())
         for first_dataset, second_dataset in zip(datasets[:-1], datasets[1:]):
-            self.assertFalse(np.array_equal(first_dataset.cached_imgs, second_dataset.cached_imgs))
+            self.assertFalse(np.array_equal(first_dataset.cached_imgs_padded, second_dataset.cached_imgs_padded))
 
         self._empty_cache()
 
@@ -87,12 +87,12 @@ class TestDetectionDatasetCaching(unittest.TestCase):
         self.assertEqual(0, self._count_cached_array())
 
         _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
-                                  cache=True, cache_path=self.temp_cache_dir, data_dir='/home/')
+                                  cache=True, cache_dir=self.temp_cache_dir, data_dir='/home/')
         self.assertEqual(1, self._count_cached_array())
 
         for _ in range(5):
             _ = DummyDetectionDataset(input_dim=(640, 512), ignore_empty_annotations=True,
-                                      cache=True, cache_path=self.temp_cache_dir, data_dir='/home/')
+                                      cache=True, cache_dir=self.temp_cache_dir, data_dir='/home/')
             self.assertEqual(1, self._count_cached_array())
 
         self._empty_cache()

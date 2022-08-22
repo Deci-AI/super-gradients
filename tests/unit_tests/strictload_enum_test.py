@@ -3,12 +3,15 @@ import shutil
 import tempfile
 import unittest
 
+from super_gradients.common.sg_loggers import BaseSGLogger
+from super_gradients.training import Trainer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from super_gradients.training import models
-from super_gradients.training.sg_model.sg_model import StrictLoad
+from super_gradients.training.sg_trainer.sg_trainer import StrictLoad
+from super_gradients.training.utils import HpmStruct
 
 
 class Net(nn.Module):
@@ -37,6 +40,26 @@ class StrictLoadEnumTest(unittest.TestCase):
         cls.temp_working_file_dir = tempfile.TemporaryDirectory(prefix='strict_load_test').name
         if not os.path.isdir(cls.temp_working_file_dir):
             os.mkdir(cls.temp_working_file_dir)
+
+        cls.experiment_name = 'load_checkpoint_test'
+
+        cls.checkpoint_diff_keys_name = 'strict_load_test_diff_keys.pth'
+        cls.checkpoint_diff_keys_path = cls.temp_working_file_dir + '/' + cls.checkpoint_diff_keys_name
+
+        # Setup the model
+        cls.original_torch_net = Net()
+
+        # Save the model's state_dict checkpoint with different keys
+        torch.save(cls.change_state_dict_keys(cls.original_torch_net.state_dict()), cls.checkpoint_diff_keys_path)
+
+        # Save the model's state_dict checkpoint in Trainer format
+        cls.sg_model = Trainer("load_checkpoint_test", model_checkpoints_location='local')  # Saves in /checkpoints
+        cls.sg_model.build_model(cls.original_torch_net, arch_params={'num_classes': 10})
+        # FIXME: after uniting init and build_model we should remove this
+        cls.sg_model.sg_logger = BaseSGLogger('project_name', 'load_checkpoint_test', 'local', resumed=False,
+                                              training_params=HpmStruct(max_epochs=10),
+                                              checkpoints_dir_path=cls.sg_model.checkpoints_dir_path)
+        cls.sg_model._save_checkpoint()
 
     @classmethod
     def tearDownClass(cls):

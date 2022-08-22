@@ -1,5 +1,5 @@
 import unittest
-from super_gradients.training import SgModel, models
+from super_gradients.training import Trainer, models
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
@@ -34,7 +34,7 @@ class ForwardpassPrepFNTest(unittest.TestCase):
 
     def test_resizing_with_forward_pass_prep_fn(self):
         # Define Model
-        model = SgModel("ForwardpassPrepFNTest")
+        model = Trainer("ForwardpassPrepFNTest")
         model.connect_dataset_interface(self.dataset)
         net = models.get("resnet18", arch_params=self.arch_params)
 

@@ -34,14 +34,10 @@ architecture: yolox_s
 
 multi_gpu: DDP
 
-experiment_name: ${architecture}_coco2017_${dataset_params.train_image_size}
+experiment_suffix: res${dataset_params.train_image_size}
+experiment_name: ${architecture}_coco2017_${experiment_suffix}
 
 ckpt_root_dir:
-sg_model:
-  _target_: super_gradients.SgModel
-  experiment_name: ${experiment_name}
-  model_checkpoints_location: ${model_checkpoints_location}
-  multi_gpu: ${multi_gpu}
-  ckpt_root_dir: ${ckpt_root_dir}
+
 
 

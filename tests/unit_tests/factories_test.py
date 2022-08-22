@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from super_gradients import ClassificationTestDatasetInterface, SgModel
+from super_gradients import ClassificationTestDatasetInterface, Trainer
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
 
@@ -10,12 +10,13 @@ from super_gradients.training.models import ResNet18
 class FactoriesTest(unittest.TestCase):
 
     def test_training_with_factories(self):
-        model = SgModel("test_train_with_factories", model_checkpoints_location='local')
+        model = Trainer("test_train_with_factories", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = {"classification_test_dataset": {"dataset_params": dataset_params}}
         model.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
+        model.build_model(net)
         train_params = {"max_epochs": 2,
                         "lr_updates": [1],
                         "lr_decay_factor": 0.1,

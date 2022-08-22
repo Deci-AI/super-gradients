@@ -1,5 +1,5 @@
 import unittest
-from super_gradients import SgModel, \
+from super_gradients import Trainer, \
     ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
@@ -11,7 +11,7 @@ import shutil
 
 class SgTrainerLoggingTest(unittest.TestCase):
     def test_train_logging(self):
-        model = SgModel("test_train_with_full_log", model_checkpoints_location='local')
+        model = Trainer("test_train_with_full_log", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)

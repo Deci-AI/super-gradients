@@ -1,5 +1,5 @@
 import unittest
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
@@ -33,7 +33,7 @@ class UpdateParamGroupsTest(unittest.TestCase):
     def test_lr_scheduling_with_update_param_groups(self):
         # Define Model
         net = TestNet()
-        model = SgModel("lr_warmup_test", model_checkpoints_location='local')
+        model = Trainer("lr_warmup_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         lrs = []

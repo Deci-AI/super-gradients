@@ -124,14 +124,14 @@ The most simple and straightforward way to start training SOTA performance model
 python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
-Want to try our pre-trained models on your machine? Import SuperGradients, initialize your SgModel, and load your desired architecture and pre-trained weights from our [SOTA model zoo](#computer-vision-models---pretrained-checkpoints)
-    
+Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](#computer-vision-models---pretrained-checkpoints)
+
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
 # This is an example of loading COCO-2017 pre-trained weights for a YOLOX Nano object detection model
     
 import super_gradients
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 
 trainer = SgModel(experiment_name="yoloxn_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
 trainer.build_model(architecture="yolox_n", arch_params={"pretrained_weights": "coco", num_classes": 80})
@@ -396,9 +396,9 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
 | DDRNet 23   | Cityscapes |1024x2048   |80.26 |**7.62ms** |**25.94ms**|
 | DDRNet 23 slim   | Cityscapes |1024x2048 |78.01 |**3.56ms** |**22.80ms**|
-| STDC 1-Seg50   | Cityscapes | 512x1024 |75.07 |**2.83ms** |**12.57ms**|
+| STDC 1-Seg50   | Cityscapes | 512x1024 |75.11 |**2.83ms** |**12.57ms**|
 | STDC 1-Seg75   | Cityscapes | 768x1536 |77.8  |**5.71ms** |**26.70ms**|
-| STDC 2-Seg50   | Cityscapes | 512x1024 |75.79 |**3.74ms** |**13.89ms**
+| STDC 2-Seg50   | Cityscapes | 512x1024 |76.44 |**3.74ms** |**13.89ms**
 | STDC 2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**28.18ms**|
 | RegSeg (exp48)   | Cityscapes | 1024x2048 |78.15 |**13.09ms** |**41.88ms**|
 | Larger RegSeg (exp53)   | Cityscapes | 1024x2048 |79.2|**24.82ms** |**51.87ms**|

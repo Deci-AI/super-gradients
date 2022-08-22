@@ -1,6 +1,6 @@
 import unittest
 
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models import LeNet
@@ -9,7 +9,7 @@ from super_gradients.training.utils.callbacks import Phase, PhaseCallback, Phase
 
 class ContextMethodsCheckerCallback(PhaseCallback):
     """
-    Callback for checking that at a certain phase specific SgModel methods are accessible.
+    Callback for checking that at a certain phase specific Trainer methods are accessible.
     """
 
     def __init__(self, phase: Phase, accessible_method_names: list, non_accessible_method_names: list):
@@ -36,7 +36,7 @@ class ContextMethodsTest(unittest.TestCase):
 
     def test_access_to_methods_by_phase(self):
         net = LeNet()
-        model = SgModel("test_access_to_methods_by_phase", model_checkpoints_location='local')
+        model = Trainer("test_access_to_methods_by_phase", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         phase_callbacks = []

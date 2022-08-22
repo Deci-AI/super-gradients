@@ -1,6 +1,6 @@
 from super_gradients import ClassificationTestDatasetInterface
 from super_gradients.training import MultiGPUMode, models
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.metrics import Accuracy, Top5
 import unittest
 
@@ -23,7 +23,7 @@ class CallWrapper:
 class EMAIntegrationTest(unittest.TestCase):
 
     def _init_model(self) -> None:
-        self.model = SgModel("resnet18_cifar_ema_test", model_checkpoints_location='local',
+        self.model = Trainer("resnet18_cifar_ema_test", model_checkpoints_location='local',
                              device='cpu', multi_gpu=MultiGPUMode.OFF)
         dataset_interface = ClassificationTestDatasetInterface({"batch_size": 32})
         self.model.connect_dataset_interface(dataset_interface, 8)

@@ -1,5 +1,5 @@
 import unittest
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
@@ -15,7 +15,7 @@ class LRCooldownTest(unittest.TestCase):
     def test_lr_cooldown_with_lr_scheduling(self):
         # Define Model
         net = LeNet()
-        model = SgModel("lr_warmup_test", model_checkpoints_location='local')
+        model = Trainer("lr_warmup_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         lrs = []

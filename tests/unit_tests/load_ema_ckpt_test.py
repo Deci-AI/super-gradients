@@ -1,12 +1,11 @@
 import unittest
-from copy import deepcopy
-
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
 from super_gradients.training.utils.utils import check_models_have_same_weights
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
+from copy import deepcopy
 
 
 class PreTrainingEMANetCollector(PhaseCallback):
@@ -32,7 +31,7 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
     def test_ema_ckpt_reload(self):
         # Define Model
         net = LeNet()
-        model = SgModel("ema_ckpt_test", model_checkpoints_location='local')
+        model = Trainer("ema_ckpt_test", model_checkpoints_location='local')
 
         model.connect_dataset_interface(self.dataset)
 
@@ -42,7 +41,7 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
 
         # TRAIN FOR 1 MORE EPOCH AND COMPARE THE NET AT THE BEGINNING OF EPOCH 3 AND THE END OF EPOCH NUMBER 2
         net = LeNet()
-        model = SgModel("ema_ckpt_test", model_checkpoints_location='local')
+        model = Trainer("ema_ckpt_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
         net_collector = PreTrainingEMANetCollector()
         self.train_params["resume"] = True

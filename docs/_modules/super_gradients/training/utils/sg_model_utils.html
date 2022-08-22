@@ -35,11 +35,30 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#supergradients">SuperGradients</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -71,16 +90,170 @@
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">socket</span>
 <span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Process</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">import</span> <span class="nn">random</span>
 
+<span class="kn">from</span> <span class="nn">treelib</span> <span class="kn">import</span> <span class="n">Tree</span>
+<span class="kn">from</span> <span class="nn">termcolor</span> <span class="kn">import</span> <span class="n">colored</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
 
 <span class="kn">from</span> <span class="nn">super_gradients.training.exceptions.dataset_exceptions</span> <span class="kn">import</span> <span class="n">UnsupportedBatchItemsFormat</span>
 
+
 <span class="c1"># TODO: These utils should move to sg_model package as internal (private) helper functions</span>
+
+<span class="n">IS_BETTER_COLOR</span> <span class="o">=</span> <span class="p">{</span><span class="kc">True</span><span class="p">:</span> <span class="s2">&quot;green&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">:</span> <span class="s2">&quot;red&quot;</span><span class="p">}</span>
+<span class="n">IS_GREATER_SYMBOLS</span> <span class="o">=</span> <span class="p">{</span><span class="kc">True</span><span class="p">:</span> <span class="s2">&quot;↗&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">:</span> <span class="s2">&quot;↘&quot;</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="MonitoredValue"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.sg_model_utils.MonitoredValue">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">MonitoredValue</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Store a value and some indicators relative to its past iterations.</span>
+
+<span class="sd">    The value can be a metric/loss, and the iteration can be epochs/batch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">greater_is_better</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">current</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">previous</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">best</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">change_from_previous</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">change_from_best</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_better_than_previous</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">greater_is_better</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_from_best</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">greater_is_better</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_from_previous</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_from_previous</span> <span class="o">&lt;</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_best_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">greater_is_better</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_from_best</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">greater_is_better</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_from_best</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_from_best</span> <span class="o">&lt;</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="update_monitored_value"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.sg_model_utils.update_monitored_value">[docs]</a><span class="k">def</span> <span class="nf">update_monitored_value</span><span class="p">(</span><span class="n">previous_monitored_value</span><span class="p">:</span> <span class="n">MonitoredValue</span><span class="p">,</span> <span class="n">new_value</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MonitoredValue</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Update the given ValueToMonitor object (could be a loss or a metric) with the new value</span>
+
+<span class="sd">    :param previous_monitored_value: The stats about the value that is monitored throughout epochs.</span>
+<span class="sd">    :param new_value: The value of the current epoch that will be used to update previous_monitored_value</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">previous_value</span><span class="p">,</span> <span class="n">previous_best_value</span> <span class="o">=</span> <span class="n">previous_monitored_value</span><span class="o">.</span><span class="n">current</span><span class="p">,</span> <span class="n">previous_monitored_value</span><span class="o">.</span><span class="n">best</span>
+    <span class="n">name</span><span class="p">,</span> <span class="n">greater_is_better</span> <span class="o">=</span> <span class="n">previous_monitored_value</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">previous_monitored_value</span><span class="o">.</span><span class="n">greater_is_better</span>
+
+    <span class="k">if</span> <span class="n">previous_best_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">previous_best_value</span> <span class="o">=</span> <span class="n">previous_value</span>
+    <span class="k">elif</span> <span class="n">greater_is_better</span><span class="p">:</span>
+        <span class="n">previous_best_value</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">previous_value</span><span class="p">,</span> <span class="n">previous_best_value</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">previous_best_value</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">previous_value</span><span class="p">,</span> <span class="n">previous_best_value</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">previous_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">change_from_previous</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">change_from_best</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">change_from_previous</span> <span class="o">=</span> <span class="n">new_value</span> <span class="o">-</span> <span class="n">previous_value</span>
+        <span class="n">change_from_best</span> <span class="o">=</span> <span class="n">new_value</span> <span class="o">-</span> <span class="n">previous_best_value</span>
+
+    <span class="k">return</span> <span class="n">MonitoredValue</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">current</span><span class="o">=</span><span class="n">new_value</span><span class="p">,</span> <span class="n">previous</span><span class="o">=</span><span class="n">previous_value</span><span class="p">,</span> <span class="n">best</span><span class="o">=</span><span class="n">previous_best_value</span><span class="p">,</span>
+                          <span class="n">change_from_previous</span><span class="o">=</span><span class="n">change_from_previous</span><span class="p">,</span> <span class="n">change_from_best</span><span class="o">=</span><span class="n">change_from_best</span><span class="p">,</span>
+                          <span class="n">greater_is_better</span><span class="o">=</span><span class="n">greater_is_better</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="update_monitored_values_dict"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.sg_model_utils.update_monitored_values_dict">[docs]</a><span class="k">def</span> <span class="nf">update_monitored_values_dict</span><span class="p">(</span><span class="n">monitored_values_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MonitoredValue</span><span class="p">],</span>
+                                 <span class="n">new_values_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MonitoredValue</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Update the given ValueToMonitor object (could be a loss or a metric) with the new value</span>
+
+<span class="sd">    :param monitored_values_dict: Dict mapping value names to their stats throughout epochs.</span>
+<span class="sd">    :param new_values_dict: Dict mapping value names to their new (i.e. current epoch) value.</span>
+<span class="sd">    :return: Updated monitored_values_dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">monitored_value_name</span> <span class="ow">in</span> <span class="n">monitored_values_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">monitored_values_dict</span><span class="p">[</span><span class="n">monitored_value_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">update_monitored_value</span><span class="p">(</span>
+            <span class="n">new_value</span><span class="o">=</span><span class="n">new_values_dict</span><span class="p">[</span><span class="n">monitored_value_name</span><span class="p">],</span>
+            <span class="n">previous_monitored_value</span><span class="o">=</span><span class="n">monitored_values_dict</span><span class="p">[</span><span class="n">monitored_value_name</span><span class="p">],</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">monitored_values_dict</span></div>
+
+
+<div class="viewcode-block" id="display_epoch_summary"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.sg_model_utils.display_epoch_summary">[docs]</a><span class="k">def</span> <span class="nf">display_epoch_summary</span><span class="p">(</span><span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_digits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                          <span class="n">train_monitored_values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MonitoredValue</span><span class="p">],</span>
+                          <span class="n">valid_monitored_values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MonitoredValue</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Display a summary of loss/metric of interest, for a given epoch.</span>
+
+<span class="sd">        :param epoch: the number of epoch.</span>
+<span class="sd">        :param n_digits: number of digits to display on screen for float values</span>
+<span class="sd">        :param train_monitored_values: mapping of loss/metric with their stats that will be displayed</span>
+<span class="sd">        :param valid_monitored_values: mapping of loss/metric with their stats that will be displayed</span>
+<span class="sd">        :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_format_to_str</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">n_digits</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_generate_tree</span><span class="p">(</span><span class="n">value_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">monitored_value</span><span class="p">:</span> <span class="n">MonitoredValue</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tree</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Generate a tree that represents the stats of a given loss/metric.&quot;&quot;&quot;</span>
+
+        <span class="n">current</span> <span class="o">=</span> <span class="n">_format_to_str</span><span class="p">(</span><span class="n">monitored_value</span><span class="o">.</span><span class="n">current</span><span class="p">)</span>
+        <span class="n">root_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">hash</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">value_name</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">current</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">())</span>
+
+        <span class="n">tree</span> <span class="o">=</span> <span class="n">Tree</span><span class="p">()</span>
+        <span class="n">tree</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">value_name</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">current</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">identifier</span><span class="o">=</span><span class="n">root_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">monitored_value</span><span class="o">.</span><span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">previous</span> <span class="o">=</span> <span class="n">_format_to_str</span><span class="p">(</span><span class="n">monitored_value</span><span class="o">.</span><span class="n">previous</span><span class="p">)</span>
+            <span class="n">best</span> <span class="o">=</span> <span class="n">_format_to_str</span><span class="p">(</span><span class="n">monitored_value</span><span class="o">.</span><span class="n">best</span><span class="p">)</span>
+            <span class="n">change_from_previous</span> <span class="o">=</span> <span class="n">_format_to_str</span><span class="p">(</span><span class="n">monitored_value</span><span class="o">.</span><span class="n">change_from_previous</span><span class="p">)</span>
+            <span class="n">change_from_best</span> <span class="o">=</span> <span class="n">_format_to_str</span><span class="p">(</span><span class="n">monitored_value</span><span class="o">.</span><span class="n">change_from_best</span><span class="p">)</span>
+
+            <span class="n">diff_with_prev_colored</span> <span class="o">=</span> <span class="n">colored</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">IS_GREATER_SYMBOLS</span><span class="p">[</span><span class="n">monitored_value</span><span class="o">.</span><span class="n">change_from_previous</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">change_from_previous</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">color</span><span class="o">=</span><span class="n">IS_BETTER_COLOR</span><span class="p">[</span><span class="n">monitored_value</span><span class="o">.</span><span class="n">is_better_than_previous</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">diff_with_best_colored</span> <span class="o">=</span> <span class="n">colored</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">IS_GREATER_SYMBOLS</span><span class="p">[</span><span class="n">monitored_value</span><span class="o">.</span><span class="n">change_from_best</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">change_from_best</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">color</span><span class="o">=</span><span class="n">IS_BETTER_COLOR</span><span class="p">[</span><span class="n">monitored_value</span><span class="o">.</span><span class="n">is_best_value</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="n">tree</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span>
+                <span class="n">tag</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Epoch N-1      = </span><span class="si">{</span><span class="n">previous</span><span class="si">:</span><span class="s2">6</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">diff_with_prev_colored</span><span class="si">:</span><span class="s2">8</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span>
+                <span class="n">identifier</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;0_previous_</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="n">root_id</span>
+            <span class="p">)</span>
+            <span class="n">tree</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span>
+                <span class="n">tag</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Best until now = </span><span class="si">{</span><span class="n">best</span><span class="si">:</span><span class="s2">6</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">diff_with_best_colored</span><span class="si">:</span><span class="s2">8</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span>
+                <span class="n">identifier</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;1_best_</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="n">root_id</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">tree</span>
+
+    <span class="n">train_tree</span> <span class="o">=</span> <span class="n">Tree</span><span class="p">()</span>
+    <span class="n">train_tree</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span><span class="s2">&quot;Training&quot;</span><span class="p">,</span> <span class="s2">&quot;Training&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">train_monitored_values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">train_tree</span><span class="o">.</span><span class="n">paste</span><span class="p">(</span><span class="s1">&#39;Training&#39;</span><span class="p">,</span> <span class="n">new_tree</span><span class="o">=</span><span class="n">_generate_tree</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">monitored_value</span><span class="o">=</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="n">valid_tree</span> <span class="o">=</span> <span class="n">Tree</span><span class="p">()</span>
+    <span class="n">valid_tree</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span><span class="s2">&quot;Validation&quot;</span><span class="p">,</span> <span class="s2">&quot;Validation&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">valid_monitored_values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">valid_tree</span><span class="o">.</span><span class="n">paste</span><span class="p">(</span><span class="s1">&#39;Validation&#39;</span><span class="p">,</span> <span class="n">new_tree</span><span class="o">=</span><span class="n">_generate_tree</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">monitored_value</span><span class="o">=</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="n">summary_tree</span> <span class="o">=</span> <span class="n">Tree</span><span class="p">()</span>
+    <span class="n">summary_tree</span><span class="o">.</span><span class="n">create_node</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SUMMARY OF EPOCH </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;Summary&quot;</span><span class="p">)</span>
+    <span class="n">summary_tree</span><span class="o">.</span><span class="n">paste</span><span class="p">(</span><span class="s2">&quot;Summary&quot;</span><span class="p">,</span> <span class="n">train_tree</span><span class="p">)</span>
+    <span class="n">summary_tree</span><span class="o">.</span><span class="n">paste</span><span class="p">(</span><span class="s2">&quot;Summary&quot;</span><span class="p">,</span> <span class="n">valid_tree</span><span class="p">)</span>
+    <span class="n">summary_tree</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="try_port"><a class="viewcode-back" href="../../../../super_gradients.training.utils.html#super_gradients.training.utils.sg_model_utils.try_port">[docs]</a><span class="k">def</span> <span class="nf">try_port</span><span class="p">(</span><span class="n">port</span><span class="p">):</span>

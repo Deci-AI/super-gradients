@@ -4,7 +4,7 @@ import unittest
 
 from super_gradients.training.utils.early_stopping import EarlyStop
 from super_gradients.training.utils.callbacks import Phase
-from super_gradients.training.sg_model import SgModel
+from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.datasets.dataset_interfaces import ClassificationTestDatasetInterface
 from super_gradients.training.models.classification_models.resnet import ResNet18
 from super_gradients.training.metrics import Accuracy, Top5
@@ -60,7 +60,7 @@ class EarlyStopTest(unittest.TestCase):
         Test for mode=min metric, test that training stops after no improvement in metric value for amount of `patience`
         epochs.
         """
-        model = SgModel("early_stop_test", model_checkpoints_location='local')
+        model = Trainer("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
@@ -83,7 +83,7 @@ class EarlyStopTest(unittest.TestCase):
         Test for mode=max metric, test that training stops after no improvement in metric value for amount of `patience`
         epochs.
         """
-        model = SgModel("early_stop_test", model_checkpoints_location='local')
+        model = Trainer("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=3,
@@ -106,7 +106,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         Test for mode=min metric, test that training stops after metric value reaches the `threshold` value.
         """
-        model = SgModel("early_stop_test", model_checkpoints_location='local')
+        model = Trainer("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", threshold=0.1, verbose=True)
@@ -127,7 +127,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         Test for mode=max metric, test that training stops after metric value reaches the `threshold` value.
         """
-        model = SgModel("early_stop_test", model_checkpoints_location='local')
+        model = Trainer("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", threshold=0.94,
@@ -151,8 +151,9 @@ class EarlyStopTest(unittest.TestCase):
         Test that training stops when monitor value is not a finite number. Test case of NaN and Inf values.
         """
         # test Nan value
-        model = SgModel("early_stop_test", model_checkpoints_location='local')
+        model = Trainer("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
+        model.build_model(self.net)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", check_finite=True,
                                     verbose=True)
@@ -163,15 +164,16 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        model.train(net=self.net, training_params=train_params)
+        model.train(train_params)
 
         excepted_end_epoch = 2
 
         self.assertEqual(excepted_end_epoch, fake_loss.count // 2)
 
         # test Inf value
-        model = SgModel("early_stop_test", model_checkpoints_location='local')
+        model = Trainer("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
+        model.build_model(self.net)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -181,7 +183,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        model.train(net=self.net, training_params=train_params)
+        model.train(train_params)
 
         excepted_end_epoch = 3
         # count divided by 2, because loss counter used for both train and eval.
@@ -192,7 +194,7 @@ class EarlyStopTest(unittest.TestCase):
         Test for `min_delta` argument, metric value is considered an improvement only if
         current_value - min_delta > best_value
         """
-        model = SgModel("early_stop_test", model_checkpoints_location='local')
+        model = Trainer("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=2,

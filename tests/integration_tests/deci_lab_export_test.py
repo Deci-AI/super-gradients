@@ -1,5 +1,5 @@
 import unittest
-from super_gradients import SgModel, \
+from super_gradients import Trainer, \
     ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
@@ -10,7 +10,7 @@ from deci_lab_client.models import Metric, QuantizationLevel, ModelMetadata, Opt
 
 class DeciLabUploadTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.model = SgModel("deci_lab_export_test_model", model_checkpoints_location='local')
+        self.model = Trainer("deci_lab_export_test_model", model_checkpoints_location='local')
         dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 10})
         self.model.connect_dataset_interface(dataset)
 

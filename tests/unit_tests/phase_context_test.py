@@ -1,6 +1,6 @@
 import unittest
 from super_gradients.training.utils.callbacks import PhaseContextTestCallback, Phase
-from super_gradients import SgModel, \
+from super_gradients import Trainer, \
     ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
@@ -11,7 +11,7 @@ from torchmetrics import MetricCollection
 
 class PhaseContextTest(unittest.TestCase):
     def context_information_in_train_test(self):
-        model = SgModel("context_information_in_train_test", model_checkpoints_location='local')
+        model = Trainer("context_information_in_train_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)

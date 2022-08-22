@@ -14,7 +14,7 @@ from super_gradients.training.kd_trainer import KDTrainer
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""))
 def main(cfg: DictConfig) -> None:
-    KDTrainer.train(cfg)
+    KDTrainer.train_from_config(cfg)
 
 
 if __name__ == "__main__":

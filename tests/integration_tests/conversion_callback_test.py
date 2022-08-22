@@ -5,7 +5,7 @@ import re
 from super_gradients.training import models
 
 from super_gradients import (
-    SgModel,
+    Trainer,
     ClassificationTestDatasetInterface,
     SegmentationTestDatasetInterface,
 )
@@ -70,7 +70,7 @@ class ConversionCallbackTest(unittest.TestCase):
                 "phase_callbacks": phase_callbacks,
             }
 
-            model = SgModel(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
+            model = Trainer(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
             dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 10})
 
             model.connect_dataset_interface(dataset, data_loader_num_workers=0)
@@ -105,7 +105,7 @@ class ConversionCallbackTest(unittest.TestCase):
         for architecture in SEMANTIC_SEGMENTATION:
             model_meta_data = generate_model_metadata(architecture=architecture, task=Task.SEMANTIC_SEGMENTATION)
             dataset = SegmentationTestDatasetInterface(dataset_params={"batch_size": 10})
-            model = SgModel(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
+            model = Trainer(f"{architecture}_example", model_checkpoints_location="local", ckpt_root_dir=checkpoint_dir)
             model.connect_dataset_interface(dataset, data_loader_num_workers=0)
             net = models.get(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
 

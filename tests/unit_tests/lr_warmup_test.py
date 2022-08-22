@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
@@ -42,7 +42,7 @@ class LRWarmupTest(unittest.TestCase):
     def test_lr_warmup(self):
         # Define Model
         net = LeNet()
-        model = SgModel("lr_warmup_test", model_checkpoints_location='local')
+        model = Trainer("lr_warmup_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         lrs = []
@@ -63,7 +63,7 @@ class LRWarmupTest(unittest.TestCase):
     def test_lr_warmup_with_lr_scheduling(self):
         # Define Model
         net = LeNet()
-        model = SgModel("lr_warmup_test", model_checkpoints_location='local')
+        model = Trainer("lr_warmup_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         lrs = []
@@ -87,7 +87,7 @@ class LRWarmupTest(unittest.TestCase):
     def test_warmup_initial_lr(self):
         # Define Model
         net = LeNet()
-        model = SgModel("test_warmup_initial_lr", model_checkpoints_location='local')
+        model = Trainer("test_warmup_initial_lr", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         lrs = []
@@ -108,7 +108,7 @@ class LRWarmupTest(unittest.TestCase):
     def test_custom_lr_warmup(self):
         # Define Model
         net = LeNet()
-        model = SgModel("custom_lr_warmup_test", model_checkpoints_location='local')
+        model = Trainer("custom_lr_warmup_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
 
         lrs = []

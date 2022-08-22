@@ -3,7 +3,7 @@ import unittest
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 
-from super_gradients.training import SgModel, models
+from super_gradients.training import Trainer, models
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN, DetectionCollateFN, \
     DetectionTargetsFormat
@@ -53,10 +53,10 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                                                                 "area_thr": 0
                                                                 })
 
-        model = SgModel('dataset_statistics_visual_test',
-                        model_checkpoints_location='local',
-                        post_prediction_callback=YoloPostPredictionCallback())
-        model.connect_dataset_interface(dataset, data_loader_num_workers=8)
+        trainer = Trainer('dataset_statistics_visual_test',
+                          model_checkpoints_location='local',
+                          post_prediction_callback=YoloPostPredictionCallback())
+        trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
         net = models.get("yolox_s")
 
         training_params = {"max_epochs": 1,  # we dont really need the actual training to run
@@ -74,7 +74,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                            "loss_logging_items_names": ["iou", "obj", "cls", "l1", "num_fg", "Loss"],
                            "metric_to_watch": "mAP@0.50:0.95",
                            }
-        model.train(net=net, training_params=training_params)
+        trainer.train(net=net, training_params=training_params)
 
 
 if __name__ == '__main__':

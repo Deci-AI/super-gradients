@@ -6,7 +6,7 @@ from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
 from torchmetrics import F1Score
 
-from super_gradients import SgModel, \
+from super_gradients import Trainer, \
     ClassificationTestDatasetInterface
 from super_gradients.training import models
 from super_gradients.training.datasets.dataset_interfaces import DatasetInterface
@@ -20,7 +20,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
     """
 
     def test_train_with_external_criterion(self):
-        model = SgModel("external_criterion_test", model_checkpoints_location='local')
+        model = Trainer("external_criterion_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
@@ -36,7 +36,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         model.train(net=net, training_params=train_params)
 
     def test_train_with_external_optimizer(self):
-        model = SgModel("external_optimizer_test", model_checkpoints_location='local')
+        model = Trainer("external_optimizer_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
@@ -52,7 +52,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         model.train(net=net, training_params=train_params)
 
     def test_train_with_external_scheduler(self):
-        model = SgModel("external_scheduler_test", model_checkpoints_location='local')
+        model = Trainer("external_scheduler_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
@@ -73,7 +73,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         assert lr_scheduler.get_last_lr()[0] == lr * 0.1 * 0.1
 
     def test_train_with_external_scheduler_class(self):
-        model = SgModel("external_scheduler_test", model_checkpoints_location='local')
+        model = Trainer("external_scheduler_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
@@ -90,7 +90,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         model.train(net=net, training_params=train_params)
 
     def test_train_with_reduce_on_plateau(self):
-        model = SgModel("external_reduce_on_plateau_scheduler_test", model_checkpoints_location='local')
+        model = Trainer("external_reduce_on_plateau_scheduler_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
@@ -112,7 +112,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         assert lr_scheduler._last_lr[0] == lr * 0.1
 
     def test_train_with_external_metric(self):
-        model = SgModel("external_metric_test", model_checkpoints_location='local')
+        model = Trainer("external_metric_test", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
@@ -127,7 +127,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         model.train(net=net, training_params=train_params)
 
     def test_train_with_external_dataloaders(self):
-        model = SgModel("external_data_loader_test", model_checkpoints_location='local')
+        model = Trainer("external_data_loader_test", model_checkpoints_location='local')
 
         batch_size = 5
         trainset = torch.utils.data.TensorDataset(torch.Tensor(np.random.random((10, 3, 32, 32))),

@@ -35,11 +35,30 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#supergradients">SuperGradients</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -72,7 +91,7 @@
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
 
-<div class="viewcode-block" id="onehot"><a class="viewcode-back" href="../../../../super_gradients.training.losses.html#super_gradients.training.losses.label_smoothing_cross_entropy_loss.onehot">[docs]</a><span class="k">def</span> <span class="nf">onehot</span><span class="p">(</span><span class="n">indexes</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="onehot"><a class="viewcode-back" href="../../../../super_gradients.training.losses.html#super_gradients.training.losses.onehot">[docs]</a><span class="k">def</span> <span class="nf">onehot</span><span class="p">(</span><span class="n">indexes</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a one-hot representation of indexes with N possible entries</span>
 <span class="sd">    if N is not specified, it will suit the maximum index appearing.</span>
@@ -95,7 +114,7 @@
     <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="cross_entropy"><a class="viewcode-back" href="../../../../super_gradients.training.losses.html#super_gradients.training.losses.label_smoothing_cross_entropy_loss.cross_entropy">[docs]</a><span class="k">def</span> <span class="nf">cross_entropy</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=-</span><span class="mi">100</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span>  <span class="c1"># noqa: C901</span>
+<div class="viewcode-block" id="cross_entropy"><a class="viewcode-back" href="../../../../super_gradients.training.losses.html#super_gradients.training.losses.cross_entropy">[docs]</a><span class="k">def</span> <span class="nf">cross_entropy</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=-</span><span class="mi">100</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span>  <span class="c1"># noqa: C901</span>
                   <span class="n">smooth_eps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">smooth_dist</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">from_logits</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;cross entropy loss, with support for target distributions and label smoothing https://arxiv.org/abs/1512.00567&quot;&quot;&quot;</span>
     <span class="n">smooth_eps</span> <span class="o">=</span> <span class="n">smooth_eps</span> <span class="ow">or</span> <span class="mi">0</span>
@@ -150,7 +169,7 @@
     <span class="k">return</span> <span class="n">loss</span></div>
 
 
-<div class="viewcode-block" id="LabelSmoothingCrossEntropyLoss"><a class="viewcode-back" href="../../../../super_gradients.training.losses.html#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss">[docs]</a><span class="k">class</span> <span class="nc">LabelSmoothingCrossEntropyLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">):</span>
+<div class="viewcode-block" id="LabelSmoothingCrossEntropyLoss"><a class="viewcode-back" href="../../../../super_gradients.training.losses.html#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss">[docs]</a><span class="k">class</span> <span class="nc">LabelSmoothingCrossEntropyLoss</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;CrossEntropyLoss - with ability to recieve distrbution as targets, and optional label smoothing&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=-</span><span class="mi">100</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">smooth_eps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">smooth_dist</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -161,7 +180,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">smooth_dist</span> <span class="o">=</span> <span class="n">smooth_dist</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">from_logits</span> <span class="o">=</span> <span class="n">from_logits</span>
 
-<div class="viewcode-block" id="LabelSmoothingCrossEntropyLoss.forward"><a class="viewcode-back" href="../../../../super_gradients.training.losses.html#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">smooth_dist</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="LabelSmoothingCrossEntropyLoss.forward"><a class="viewcode-back" href="../../../../super_gradients.training.losses.html#super_gradients.training.losses.LabelSmoothingCrossEntropyLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">smooth_dist</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">smooth_dist</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">smooth_dist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">smooth_dist</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="n">cross_entropy</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_index</span><span class="p">,</span>

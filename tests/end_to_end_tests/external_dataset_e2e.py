@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 import tensorflow.keras as keras
 from super_gradients.training import MultiGPUMode, models
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ExternalDatasetInterface, \
     ImageNetDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
@@ -123,7 +123,7 @@ class TestExternalDatasetInterface(unittest.TestCase):
                         "greater_metric_to_watch_is_better": True}
 
         arch_params = {'num_classes': 1000}
-        model = SgModel("test", model_checkpoints_location='local',
+        model = Trainer("test", model_checkpoints_location='local',
                         multi_gpu=MultiGPUMode.OFF)
         model.connect_dataset_interface(dataset_interface=self.test_external_dataset_interface,
                                         data_loader_num_workers=8)

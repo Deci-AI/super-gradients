@@ -4,7 +4,7 @@ import os
 
 from super_gradients.training import models
 
-from super_gradients import SgModel, ClassificationTestDatasetInterface
+from super_gradients import Trainer, ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 
 
@@ -29,7 +29,7 @@ class LRTest(unittest.TestCase):
 
     @staticmethod
     def get_trainer(name=''):
-        model = SgModel(name, model_checkpoints_location='local')
+        model = Trainer(name, model_checkpoints_location='local')
         dataset_params = {"batch_size": 4}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)

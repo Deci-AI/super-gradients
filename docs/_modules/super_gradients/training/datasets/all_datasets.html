@@ -35,11 +35,30 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#supergradients">SuperGradients</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -73,10 +92,10 @@
 <span class="kn">from</span> <span class="nn">super_gradients.training.datasets.dataset_interfaces</span> <span class="kn">import</span> <span class="n">DatasetInterface</span><span class="p">,</span> <span class="n">TestDatasetInterface</span><span class="p">,</span> \
     <span class="n">LibraryDatasetInterface</span><span class="p">,</span> \
     <span class="n">ClassificationDatasetInterface</span><span class="p">,</span> <span class="n">Cifar10DatasetInterface</span><span class="p">,</span> <span class="n">Cifar100DatasetInterface</span><span class="p">,</span> \
-    <span class="n">ImageNetDatasetInterface</span><span class="p">,</span> <span class="n">TinyImageNetDatasetInterface</span><span class="p">,</span> \
-    <span class="n">CoCoDetectionDatasetInterface</span><span class="p">,</span> <span class="n">CoCoSegmentationDatasetInterface</span><span class="p">,</span> <span class="n">CoCo2014DetectionDatasetInterface</span><span class="p">,</span> \
+    <span class="n">ImageNetDatasetInterface</span><span class="p">,</span> <span class="n">TinyImageNetDatasetInterface</span><span class="p">,</span> <span class="n">CoCoSegmentationDatasetInterface</span><span class="p">,</span>\
     <span class="n">PascalAUG2012SegmentationDataSetInterface</span><span class="p">,</span> <span class="n">PascalVOC2012SegmentationDataSetInterface</span>
 <span class="kn">from</span> <span class="nn">super_gradients.common.data_types.enum.deep_learning_task</span> <span class="kn">import</span> <span class="n">DeepLearningTask</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.datasets.dataset_interfaces.dataset_interface</span> <span class="kn">import</span> <span class="n">CoCoDetectionDatasetInterface</span>
 
 <span class="n">CLASSIFICATION_DATASETS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;test_dataset&quot;</span><span class="p">:</span> <span class="n">TestDatasetInterface</span><span class="p">,</span>
@@ -90,7 +109,6 @@
 
 <span class="n">OBJECT_DETECTION_DATASETS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;coco&quot;</span><span class="p">:</span> <span class="n">CoCoDetectionDatasetInterface</span><span class="p">,</span>
-    <span class="s2">&quot;coco2014&quot;</span><span class="p">:</span> <span class="n">CoCo2014DetectionDatasetInterface</span>
 <span class="p">}</span>
 
 <span class="n">SEMANTIC_SEGMENTATION_DATASETS</span> <span class="o">=</span> <span class="p">{</span>

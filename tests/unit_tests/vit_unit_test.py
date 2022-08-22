@@ -1,7 +1,7 @@
 import unittest
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
-from super_gradients import SgModel
+from super_gradients import Trainer
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training import models
 
@@ -22,7 +22,7 @@ class TestViT(unittest.TestCase):
         """
         Validate vit_base
         """
-        model = SgModel("test_vit_base", device='cpu')
+        model = Trainer("test_vit_base", device='cpu')
         model.connect_dataset_interface(self.dataset, data_loader_num_workers=8)
         net = models.get('vit_base', arch_params={"num_classes": 5})
         model.train(net=net, training_params=self.train_params)

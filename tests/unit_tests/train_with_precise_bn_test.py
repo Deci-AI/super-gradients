@@ -1,6 +1,6 @@
 import unittest
 
-from super_gradients import SgModel, \
+from super_gradients import Trainer, \
     ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
@@ -12,7 +12,7 @@ class TrainWithPreciseBNTest(unittest.TestCase):
     """
 
     def test_train_with_precise_bn_explicit_size(self):
-        model = SgModel("test_train_with_precise_bn_explicit_size", model_checkpoints_location='local')
+        model = Trainer("test_train_with_precise_bn_explicit_size", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)
@@ -28,7 +28,7 @@ class TrainWithPreciseBNTest(unittest.TestCase):
         model.train(net=net, training_params=train_params)
 
     def test_train_with_precise_bn_implicit_size(self):
-        model = SgModel("test_train_with_precise_bn_implicit_size", model_checkpoints_location='local')
+        model = Trainer("test_train_with_precise_bn_implicit_size", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         model.connect_dataset_interface(dataset)

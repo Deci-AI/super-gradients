@@ -1,12 +1,11 @@
 import os
 import unittest
 from copy import deepcopy
-
+from super_gradients.training.kd_trainer.kd_trainer import KDTrainer
 import torch
 
 from super_gradients.training import models
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
-from super_gradients.training.kd_model.kd_model import KDModel
 from super_gradients.training.losses.kd_losses import KDLogitsLoss
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models.classification_models.resnet import ResNet50, ResNet18
@@ -34,7 +33,7 @@ class PreTrainingEMANetCollector(PhaseCallback):
         self.net = deepcopy(context.ema_model)
 
 
-class KDModelTest(unittest.TestCase):
+class KDTrainerTest(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls.dataset_params = {"batch_size": 5}
@@ -67,7 +66,7 @@ class KDModelTest(unittest.TestCase):
         self.assertTrue(initial_param_groups[0]['lr'] == 0.2 == updated_param_groups[0]['lr'])
 
     def test_train_kd_module_external_models(self):
-        sg_model = KDModel("test_train_kd_module_external_models", device='cpu')
+        sg_model = KDTrainer("test_train_kd_module_external_models", device='cpu')
         teacher_model = ResNet50(arch_params={}, num_classes=5)
         student_model = ResNet18(arch_params={}, num_classes=5)
         sg_model.connect_dataset_interface(self.dataset)
@@ -85,7 +84,7 @@ class KDModelTest(unittest.TestCase):
             check_models_have_same_weights(student_model, sg_model.net.module.student))
 
     def test_train_model_with_input_adapter(self):
-        kd_model = KDModel("train_kd_module_with_with_input_adapter", device='cpu')
+        kd_model = KDTrainer("train_kd_module_with_with_input_adapter", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
@@ -103,7 +102,7 @@ class KDModelTest(unittest.TestCase):
         self.assertTrue(isinstance(kd_model.net.module.teacher[0], NormalizationAdapter))
 
     def test_load_ckpt_best_for_student(self):
-        kd_model = KDModel("test_load_ckpt_best", device='cpu')
+        kd_model = KDTrainer("test_load_ckpt_best", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
@@ -120,7 +119,7 @@ class KDModelTest(unittest.TestCase):
             check_models_have_same_weights(student_reloaded, kd_model.net.module.student))
 
     def test_load_ckpt_best_for_student_with_ema(self):
-        kd_model = KDModel("test_load_ckpt_best", device='cpu')
+        kd_model = KDTrainer("test_load_ckpt_best", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
@@ -138,7 +137,7 @@ class KDModelTest(unittest.TestCase):
             check_models_have_same_weights(student_reloaded, kd_model.ema_model.ema.module.student))
 
     def test_resume_kd_training(self):
-        kd_model = KDModel("test_resume_training_start", device='cpu')
+        kd_model = KDTrainer("test_resume_training_start", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
@@ -148,7 +147,7 @@ class KDModelTest(unittest.TestCase):
         kd_model.train(student=student, teacher=teacher, training_params=train_params)
         latest_net = deepcopy(kd_model.net)
 
-        kd_model = KDModel("test_resume_training_start", device='cpu')
+        kd_model = KDTrainer("test_resume_training_start", device='cpu')
         kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},

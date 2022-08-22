@@ -1,7 +1,7 @@
 import unittest
 
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
-from super_gradients.training import SgModel, MultiGPUMode, models
+from super_gradients.training import Trainer, MultiGPUMode, models
 from super_gradients.training.metrics.classification_metrics import Accuracy
 import os
 from super_gradients.training.utils.quantization_utils import PostQATConversionCallback
@@ -11,7 +11,7 @@ class QATIntegrationTest(unittest.TestCase):
     def _get_trainer(self, experiment_name):
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model = SgModel(experiment_name,
+        model = Trainer(experiment_name,
                         model_checkpoints_location='local',
                         multi_gpu=MultiGPUMode.OFF)
         model.connect_dataset_interface(dataset)

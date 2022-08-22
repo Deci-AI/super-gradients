@@ -1,7 +1,7 @@
 import unittest
 import super_gradients
 from super_gradients.training import MultiGPUMode
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface, \
     ClassificationTestDatasetInterface, CityscapesDatasetInterface, SegmentationTestDatasetInterface, \
     CoCoSegmentationDatasetInterface, DetectionTestDatasetInterface
@@ -83,40 +83,55 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_pretrained_arch_params = {'ssd_lite_mobilenet_v2': {'num_classes': 80},
                                             'coco_ssd_mobilenet_v1': {'num_classes': 80}}
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
+
+        from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine, \
+            DetectionTargetsFormatTransform, DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
+
+        yolox_train_transforms = [DetectionMosaic(input_dim=(640, 640), prob=1.0),
+                                  DetectionRandomAffine(degrees=10., translate=0.1, scales=[0.1, 2], shear=2.0, target_size=(640, 640),
+                                                        filter_box_candidates=False, wh_thr=0, area_thr=0, ar_thr=0),
+                                  DetectionMixup(input_dim=(640, 640), mixup_scale=[0.5, 1.5], prob=1.0, flip_prob=0.5),
+                                  DetectionHSV(prob=1.0, hgain=5, sgain=30, vgain=30),
+                                  DetectionHorizontalFlip(prob=0.5),
+                                  DetectionPaddedRescale(input_dim=(640, 640), max_targets=120),
+                                  DetectionTargetsFormatTransform(output_format=DetectionTargetsFormat.LABEL_CXCYWH)]
+        yolox_val_transforms = [DetectionPaddedRescale(input_dim=(640, 640)),
+                                DetectionTargetsFormatTransform(max_targets=50, output_format=DetectionTargetsFormat.LABEL_CXCYWH)]
+
+        ssd_train_transforms = [DetectionMosaic(input_dim=(640, 640), prob=1.0),
+                                DetectionRandomAffine(degrees=0., translate=0.1, scales=[0.5, 1.5], shear=.0, target_size=(640, 640),
+                                                      filter_box_candidates=True, wh_thr=2, area_thr=0.1, ar_thr=20),
+                                DetectionMixup(input_dim=(640, 640), mixup_scale=[0.5, 1.5], prob=0., flip_prob=0.),
+                                DetectionHSV(prob=.0, hgain=5, sgain=30, vgain=30),
+                                DetectionHorizontalFlip(prob=0.),
+                                DetectionPaddedRescale(input_dim=(640, 640), max_targets=120),
+                                DetectionTargetsFormatTransform(output_format=DetectionTargetsFormat.LABEL_CXCYWH)]
+        ssd_val_transforms = [DetectionPaddedRescale(input_dim=(640, 640)),
+                              DetectionTargetsFormatTransform(max_targets=50, output_format=DetectionTargetsFormat.LABEL_CXCYWH)]
+
         self.coco_dataset = {
-            'yolox': CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
-                                                                   "train_subdir": "images/train2017",
-                                                                   "val_subdir": "images/val2017",
-                                                                   "train_json_file": "instances_train2017.json",
-                                                                   "val_json_file": "instances_val2017.json",
-                                                                   "batch_size": 16,
-                                                                   "val_batch_size": 128,
-                                                                   "val_image_size": 640,
-                                                                   "train_image_size": 640,
-                                                                   "hgain": 5,
-                                                                   "sgain": 30,
-                                                                   "vgain": 30,
-                                                                   "mixup_prob": 1.0,
-                                                                   "degrees": 10.,
-                                                                   "shear": 2.0,
-                                                                   "flip_prob": 0.5,
-                                                                   "hsv_prob": 1.0,
-                                                                   "mosaic_scale": [0.1, 2],
-                                                                   "mixup_scale": [0.5, 1.5],
-                                                                   "mosaic_prob": 1.,
-                                                                   "translate": 0.1,
-                                                                   "val_collate_fn": CrowdDetectionCollateFN(),
-                                                                   "train_collate_fn": DetectionCollateFN(),
-                                                                   "cache_dir_path": None,
-                                                                   "cache_train_images": False,
-                                                                   "cache_val_images": False,
-                                                                   "targets_format": DetectionTargetsFormat.LABEL_CXCYWH,
-                                                                   "with_crowd": True,
-                                                                   "filter_box_candidates": False,
-                                                                   "wh_thr": 0,
-                                                                   "ar_thr": 0,
-                                                                   "area_thr": 0
-                                                                   }),
+            'yolox': CoCoDetectionDatasetInterface(
+                dataset_params={"data_dir": "/data/coco",
+                                "train_subdir": "images/train2017",
+                                "val_subdir": "images/val2017",
+                                "train_json_file": "instances_train2017.json",
+                                "val_json_file": "instances_val2017.json",
+                                "batch_size": 16,
+                                "val_batch_size": 128,
+                                "val_image_size": 640,
+                                "train_image_size": 640,
+                                "train_transforms": yolox_train_transforms,
+                                "val_transforms": yolox_val_transforms,
+
+                                "val_collate_fn": CrowdDetectionCollateFN(),
+                                "train_collate_fn": DetectionCollateFN(),
+                                "cache_dir_path": None,
+                                "cache_train_images": False,
+                                "cache_val_images": False,
+                                "with_crowd": True}),
+
+
+
 
             'ssd_mobilenet': CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
                                                                            "train_subdir": "images/train2017",
@@ -127,30 +142,15 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                            "val_batch_size": 128,
                                                                            "val_image_size": 320,
                                                                            "train_image_size": 320,
-                                                                           "hgain": 5,
-                                                                           "sgain": 30,
-                                                                           "vgain": 30,
-                                                                           "mixup_prob": .0,
-                                                                           "degrees": 0.,
-                                                                           "shear": 0.,
-                                                                           "flip_prob": 0.,
-                                                                           "hsv_prob": 0.,
-                                                                           "mosaic_scale": [0.5, 1.5],
-                                                                           "mixup_scale": [0.5, 1.5],
-                                                                           "mosaic_prob": 1.,
-                                                                           "translate": 0.1,
+                                                                           "train_transforms": ssd_train_transforms,
+                                                                           "val_transforms": ssd_val_transforms,
+
                                                                            "val_collate_fn": CrowdDetectionCollateFN(),
                                                                            "train_collate_fn": DetectionCollateFN(),
                                                                            "cache_dir_path": None,
                                                                            "cache_train_images": False,
                                                                            "cache_val_images": False,
-                                                                           "targets_format": DetectionTargetsFormat.LABEL_NORMALIZED_CXCYWH,
-                                                                           "with_crowd": True,
-                                                                           "filter_box_candidates": True,
-                                                                           "wh_thr": 2,
-                                                                           "ar_thr": 20,
-                                                                           "area_thr": 0.1
-                                                                           })
+                                                                           "with_crowd": True})
         }
 
         self.coco_pretrained_maps = {'ssd_lite_mobilenet_v2': 0.2052,
@@ -325,7 +325,7 @@ class PretrainedModelsTest(unittest.TestCase):
         }
 
     def test_pretrained_resnet50_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_resnet50', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_resnet50', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"],
@@ -335,7 +335,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet50"], delta=0.001)
 
     def test_transfer_learning_resnet50_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_resnet50_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_resnet50_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"],
@@ -343,7 +343,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_resnet34_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_resnet34', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_resnet34', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"],
@@ -353,7 +353,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet34"], delta=0.001)
 
     def test_transfer_learning_resnet34_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_resnet34_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_resnet34_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"],
@@ -361,7 +361,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_resnet18_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_resnet18', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_resnet18', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"],
@@ -371,7 +371,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet18"], delta=0.001)
 
     def test_transfer_learning_resnet18_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_resnet18_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_resnet18_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"],
@@ -379,7 +379,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY800_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_regnetY800', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_regnetY800', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnet"],
@@ -389,7 +389,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY800"], delta=0.001)
 
     def test_transfer_learning_regnetY800_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_regnetY800_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_regnetY800_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY800", arch_params=self.imagenet_pretrained_arch_params["regnet"],
@@ -397,7 +397,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY600_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_regnetY600', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_regnetY600', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("regnetY600", arch_params=self.imagenet_pretrained_arch_params["regnet"],
@@ -407,7 +407,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY600"], delta=0.001)
 
     def test_transfer_learning_regnetY600_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_regnetY600_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_regnetY600_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY600", arch_params=self.imagenet_pretrained_arch_params["regnet"],
@@ -415,7 +415,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY400_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_regnetY400', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_regnetY400', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("regnetY400", arch_params=self.imagenet_pretrained_arch_params["regnet"],
@@ -425,7 +425,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY400"], delta=0.001)
 
     def test_transfer_learning_regnetY400_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_regnetY400_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_regnetY400_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY400", arch_params=self.imagenet_pretrained_arch_params["regnet"],
@@ -433,7 +433,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regnetY200_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_regnetY200', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_regnetY200', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("regnetY200", arch_params=self.imagenet_pretrained_arch_params["regnet"],
@@ -443,7 +443,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["regnetY200"], delta=0.001)
 
     def test_transfer_learning_regnetY200_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_regnetY200_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_regnetY200_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("regnetY200", arch_params=self.imagenet_pretrained_arch_params["regnet"],
@@ -451,7 +451,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_repvgg_a0_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_repvgg_a0', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_repvgg_a0', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"],
@@ -461,7 +461,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["repvgg_a0"], delta=0.001)
 
     def test_transfer_learning_repvgg_a0_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_repvgg_a0_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_repvgg_a0_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("repvgg_a0", arch_params=self.imagenet_pretrained_arch_params["repvgg_a0"],
@@ -469,7 +469,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_regseg48_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_regseg48', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_regseg48', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset, data_loader_num_workers=8)
         net = models.get("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"],
@@ -480,7 +480,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["regseg48"], delta=0.001)
 
     def test_transfer_learning_regseg48_cityscapes(self):
-        trainer = SgModel('regseg48_cityscapes_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('regseg48_cityscapes_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("regseg48", arch_params=self.cityscapes_pretrained_arch_params["regseg48"],
@@ -488,7 +488,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.regseg_transfer_segmentation_train_params)
 
     def test_pretrained_ddrnet23_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_ddrnet23', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_ddrnet23', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset, data_loader_num_workers=8)
         net = models.get("ddrnet_23", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"],
@@ -499,7 +499,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23"], delta=0.001)
 
     def test_pretrained_ddrnet23_slim_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_ddrnet23_slim', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_ddrnet23_slim', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset, data_loader_num_workers=8)
         net = models.get("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"],
@@ -510,7 +510,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["ddrnet_23_slim"], delta=0.001)
 
     def test_transfer_learning_ddrnet23_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_ddrnet23_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_ddrnet23_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("ddrnet_23", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"],
@@ -518,7 +518,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_transfer_learning_ddrnet23_slim_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_ddrnet23_slim_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_ddrnet23_slim_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("ddrnet_23_slim", arch_params=self.cityscapes_pretrained_arch_params["ddrnet_23"],
@@ -526,7 +526,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.ddrnet_transfer_segmentation_train_params)
 
     def test_pretrained_coco_segmentation_subclass_pretrained_shelfnet34_lw(self):
-        trainer = SgModel('coco_segmentation_subclass_pretrained_shelfnet34_lw', model_checkpoints_location='local',
+        trainer = Trainer('coco_segmentation_subclass_pretrained_shelfnet34_lw', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("shelfnet34_lw",
@@ -537,7 +537,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.coco_segmentation_subclass_pretrained_mious["shelfnet34_lw"], delta=0.001)
 
     def test_pretrained_efficientnet_b0_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_efficientnet_b0', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_efficientnet_b0', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("efficientnet_b0", arch_params=self.imagenet_pretrained_arch_params["efficientnet_b0"],
@@ -547,7 +547,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["efficientnet_b0"], delta=0.001)
 
     def test_transfer_learning_efficientnet_b0_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_efficientnet_b0_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_efficientnet_b0_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
         net = models.get("efficientnet_b0", arch_params=self.imagenet_pretrained_arch_params["efficientnet_b0"],
@@ -555,7 +555,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_ssd_lite_mobilenet_v2_coco(self):
-        trainer = SgModel('coco_ssd_lite_mobilenet_v2', model_checkpoints_location='local',
+        trainer = Trainer('coco_ssd_lite_mobilenet_v2', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['ssd_mobilenet'], data_loader_num_workers=8)
         net = models.get("ssd_lite_mobilenet_v2",
@@ -569,7 +569,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
 
     def test_transfer_learning_ssd_lite_mobilenet_v2_coco(self):
-        trainer = SgModel('coco_ssd_lite_mobilenet_v2_transfer_learning',
+        trainer = Trainer('coco_ssd_lite_mobilenet_v2_transfer_learning',
                           model_checkpoints_location='local', multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_detection_dataset,
                                           data_loader_num_workers=8)
@@ -581,7 +581,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_detection_train_params['ssd_lite_mobilenet_v2'])
 
     def test_pretrained_ssd_mobilenet_v1_coco(self):
-        trainer = SgModel('coco_ssd_mobilenet_v1', model_checkpoints_location='local',
+        trainer = Trainer('coco_ssd_mobilenet_v1', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['ssd_mobilenet'], data_loader_num_workers=8)
         net = models.get("ssd_mobilenet_v1",
@@ -596,7 +596,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.coco_pretrained_maps["coco_ssd_mobilenet_v1"], delta=0.001)
 
     def test_pretrained_yolox_s_coco(self):
-        trainer = SgModel('yolox_s', model_checkpoints_location='local',
+        trainer = Trainer('yolox_s', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['yolox'], data_loader_num_workers=8)
         net = models.get("yolox_s",
@@ -608,7 +608,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_s"], delta=0.001)
 
     def test_pretrained_yolox_m_coco(self):
-        trainer = SgModel('yolox_m', model_checkpoints_location='local',
+        trainer = Trainer('yolox_m', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['yolox'], data_loader_num_workers=8)
         net = models.get("yolox_m",
@@ -620,7 +620,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_m"], delta=0.001)
 
     def test_pretrained_yolox_l_coco(self):
-        trainer = SgModel('yolox_l', model_checkpoints_location='local',
+        trainer = Trainer('yolox_l', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['yolox'], data_loader_num_workers=8)
         net = models.get("yolox_l",
@@ -632,7 +632,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_l"], delta=0.001)
 
     def test_pretrained_yolox_n_coco(self):
-        trainer = SgModel('yolox_n', model_checkpoints_location='local',
+        trainer = Trainer('yolox_n', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['yolox'], data_loader_num_workers=8)
         net = models.get("yolox_n",
@@ -644,7 +644,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_n"], delta=0.001)
 
     def test_pretrained_yolox_t_coco(self):
-        trainer = SgModel('yolox_t', model_checkpoints_location='local',
+        trainer = Trainer('yolox_t', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.coco_dataset['yolox'], data_loader_num_workers=8)
         net = models.get("yolox_t",
@@ -656,7 +656,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.coco_pretrained_maps["yolox_t"], delta=0.001)
 
     def test_transfer_learning_yolox_n_coco(self):
-        trainer = SgModel('test_transfer_learning_yolox_n_coco',
+        trainer = Trainer('test_transfer_learning_yolox_n_coco',
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_detection_dataset, data_loader_num_workers=8)
@@ -664,7 +664,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_detection_train_params["yolox"])
 
     def test_transfer_learning_mobilenet_v3_large_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_mobilenet_v3_large_transfer_learning',
+        trainer = Trainer('imagenet_pretrained_mobilenet_v3_large_transfer_learning',
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
@@ -673,7 +673,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_mobilenet_v3_large_imagenet(self):
-        trainer = SgModel('imagenet_mobilenet_v3_large', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_mobilenet_v3_large', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v3_large", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
@@ -683,7 +683,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v3_large"], delta=0.001)
 
     def test_transfer_learning_mobilenet_v3_small_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_mobilenet_v3_small_transfer_learning',
+        trainer = Trainer('imagenet_pretrained_mobilenet_v3_small_transfer_learning',
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
@@ -692,7 +692,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_mobilenet_v3_small_imagenet(self):
-        trainer = SgModel('imagenet_mobilenet_v3_small', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_mobilenet_v3_small', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v3_small", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
@@ -702,7 +702,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v3_small"], delta=0.001)
 
     def test_transfer_learning_mobilenet_v2_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_mobilenet_v2_transfer_learning',
+        trainer = Trainer('imagenet_pretrained_mobilenet_v2_transfer_learning',
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
@@ -711,7 +711,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_mobilenet_v2_imagenet(self):
-        trainer = SgModel('imagenet_mobilenet_v2', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_mobilenet_v2', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset, data_loader_num_workers=8)
         net = models.get("mobilenet_v2", arch_params=self.imagenet_pretrained_arch_params["mobilenet"],
@@ -721,7 +721,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["mobilenet_v2"], delta=0.001)
 
     def test_pretrained_stdc1_seg50_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_stdc1_seg50', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_stdc1_seg50', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
         net = models.get("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
@@ -732,7 +732,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc1_seg50"], delta=0.001)
 
     def test_transfer_learning_stdc1_seg50_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_stdc1_seg50_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_stdc1_seg50_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc1_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
@@ -740,7 +740,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_pretrained_stdc1_seg75_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_stdc1_seg75', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_stdc1_seg75', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
         net = models.get("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
@@ -751,7 +751,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc1_seg75"], delta=0.001)
 
     def test_transfer_learning_stdc1_seg75_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_stdc1_seg75_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_stdc1_seg75_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc1_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
@@ -759,7 +759,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_pretrained_stdc2_seg50_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_stdc2_seg50', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_stdc2_seg50', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
         net = models.get("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
@@ -770,7 +770,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc2_seg50"], delta=0.001)
 
     def test_transfer_learning_stdc2_seg50_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_stdc2_seg50_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_stdc2_seg50_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc2_seg50", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
@@ -778,7 +778,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_pretrained_stdc2_seg75_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_stdc2_seg75', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_stdc2_seg75', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
         net = models.get("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
@@ -789,7 +789,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc2_seg75"], delta=0.001)
 
     def test_transfer_learning_stdc2_seg75_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_stdc2_seg75_transfer_learning', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_stdc2_seg75_transfer_learning', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_segmentation_dataset, data_loader_num_workers=8)
         net = models.get("stdc2_seg75", arch_params=self.cityscapes_pretrained_arch_params["stdc"],
@@ -797,7 +797,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.stdc_transfer_segmentation_train_params)
 
     def test_transfer_learning_vit_base_imagenet21k(self):
-        trainer = SgModel('imagenet21k_pretrained_vit_base',
+        trainer = Trainer('imagenet21k_pretrained_vit_base',
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
@@ -806,7 +806,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_transfer_learning_vit_large_imagenet21k(self):
-        trainer = SgModel('imagenet21k_pretrained_vit_large',
+        trainer = Trainer('imagenet21k_pretrained_vit_large',
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
@@ -815,7 +815,7 @@ class PretrainedModelsTest(unittest.TestCase):
         trainer.train(net=net, training_params=self.transfer_classification_train_params)
 
     def test_pretrained_vit_base_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_vit_base', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_vit_base', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset_05_mean_std, data_loader_num_workers=8)
         net = models.get("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
@@ -827,7 +827,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_base"], delta=0.001)
 
     def test_pretrained_vit_large_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_vit_large', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_vit_large', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset_05_mean_std, data_loader_num_workers=8)
         net = models.get("vit_large", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
@@ -839,7 +839,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_large"], delta=0.001)
 
     def test_pretrained_beit_base_imagenet(self):
-        trainer = SgModel('imagenet_pretrained_beit_base', model_checkpoints_location='local',
+        trainer = Trainer('imagenet_pretrained_beit_base', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.imagenet_dataset_05_mean_std, data_loader_num_workers=8)
         net = models.get("beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
@@ -851,7 +851,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["beit_base_patch16_224"], delta=0.001)
 
     def test_transfer_learning_beit_base_imagenet(self):
-        trainer = SgModel('test_transfer_learning_beit_base_imagenet',
+        trainer = Trainer('test_transfer_learning_beit_base_imagenet',
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.transfer_classification_dataset, data_loader_num_workers=8)
