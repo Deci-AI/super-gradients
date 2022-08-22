@@ -19,7 +19,9 @@ defaults:
   - teacher_checkpoint_params: default_checkpoint_params
   - student_checkpoint_params: default_checkpoint_params
 
+resume: False
 training_hyperparams:
+  resume: ${resume}
   loss: kd_loss
   criterion_params:
     distillation_loss_coeff: 0.8
@@ -66,10 +68,7 @@ dataset_interface:
 data_loader_num_workers: 8
 
 model_checkpoints_location: local
-load_checkpoint: False
 
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
 
 run_teacher_on_eval: True
 

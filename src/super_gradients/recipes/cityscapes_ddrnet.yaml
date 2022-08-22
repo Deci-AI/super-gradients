@@ -100,9 +100,8 @@ arch_params:
 load_checkpoint: False
 checkpoint_params:
   load_checkpoint: ${load_checkpoint}
-  external_checkpoint_path:
+  checkpoint_path:
   load_backbone: True
-  load_weights_only: True
   strict_load: no_key_matching
 
 architecture: ddrnet_23
