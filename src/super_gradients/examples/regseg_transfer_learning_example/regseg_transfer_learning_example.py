@@ -1,5 +1,5 @@
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import SuperviselyPersonsDatasetInterface
-from super_gradients.training.sg_model import SgModel
+from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.metrics import BinaryIOU
 from super_gradients.training.transforms.transforms import ResizeSeg, RandomFlip, RandomRescale, CropImageAndMask, \
     PadShortToCropSize, ColorJitterSeg
@@ -19,15 +19,15 @@ dataset_params = {
 
 dataset_interface = SuperviselyPersonsDatasetInterface(dataset_params)
 
-model = SgModel("regseg48_transfer_learning_old_dice_diff_lrs_head_fixed_50_epochs")
+trainer = Trainer("regseg48_transfer_learning_old_dice_diff_lrs_head_fixed_50_epochs")
 
 # CONNECTING THE DATASET INTERFACE WILL SET SGMODEL'S CLASSES ATTRIBUTE ACCORDING TO SUPERVISELY
-model.connect_dataset_interface(dataset_interface)
+trainer.connect_dataset_interface(dataset_interface)
 
 # THIS IS WHERE THE MAGIC HAPPENS- SINCE SGMODEL'S CLASSES ATTRIBUTE WAS SET TO BE DIFFERENT FROM CITYSCAPES'S, AFTER
 # LOADING THE PRETRAINED REGSET, IT WILL CALL IT'S REPLACE_HEAD METHOD AND CHANGE IT'S SEGMENTATION HEAD LAYER ACCORDING
 # TO OUR BINARY SEGMENTATION DATASET
-model.build_model("regseg48", arch_params={"pretrained_weights": "cityscapes"})
+trainer.build_model("regseg48", arch_params={"pretrained_weights": "cityscapes"})
 
 # DEFINE TRAINING PARAMS. SEE DOCS FOR THE FULL LIST.
 train_params = {"max_epochs": 50,
@@ -55,4 +55,4 @@ train_params = {"max_epochs": 50,
                                                                             last_img_idx_in_batch=4)],
                 }
 
-model.train(train_params)
+trainer.train(train_params)

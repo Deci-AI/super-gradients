@@ -2,11 +2,11 @@ import shutil
 import tempfile
 import unittest
 import os
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from super_gradients.training.sg_model.sg_model import StrictLoad
+from super_gradients.training.sg_trainer.sg_trainer import StrictLoad
 
 
 class Net(nn.Module):
@@ -55,15 +55,15 @@ class LoadCheckpointFromDirectPathTest(unittest.TestCase):
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(new_torch_net, self.original_torch_net)
 
-        # Build the SgModel and load the checkpoint
-        model = SgModel("load_checkpoint_test", model_checkpoints_location='local')
-        model.build_model(new_torch_net, arch_params={'num_classes': 10},
-                          checkpoint_params={'external_checkpoint_path': self.checkpoint_path,
-                                             'load_checkpoint': True,
-                                             'strict_load': StrictLoad.NO_KEY_MATCHING})
+        # Build the Trainer and load the checkpoint
+        trainer = Trainer("load_checkpoint_test", model_checkpoints_location='local')
+        trainer.build_model(new_torch_net, arch_params={'num_classes': 10},
+                            checkpoint_params={'external_checkpoint_path': self.checkpoint_path,
+                                               'load_checkpoint': True,
+                                               'strict_load': StrictLoad.NO_KEY_MATCHING})
 
         # Assert the weights were loaded correctly
-        assert self.check_models_have_same_weights(model.net, self.original_torch_net)
+        assert self.check_models_have_same_weights(trainer.net, self.original_torch_net)
 
     def check_models_have_same_weights(self, model_1, model_2):
         model_1, model_2 = model_1.to('cpu'), model_2.to('cpu')

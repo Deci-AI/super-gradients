@@ -17,12 +17,11 @@ import torch
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface
 
 import super_gradients
-from super_gradients.training import SgModel, MultiGPUMode
+from super_gradients.training import Trainer, MultiGPUMode
 from super_gradients.training.models import HpmStruct
 import argparse
 
 from super_gradients.training.metrics import Accuracy, Top5
-
 
 parser = argparse.ArgumentParser()
 super_gradients.init_trainer()
@@ -60,16 +59,16 @@ dataset_params = {"batch_size": args.batch,
                   "auto_augment_config_string": 'rand-m9-mstd0.5'
                   }
 
-model = SgModel(experiment_name=args.experiment_name,
-                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
-                device='cuda')
+trainer = Trainer(experiment_name=args.experiment_name,
+                  multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
+                  device='cuda')
 
 dataset = ImageNetDatasetInterface(dataset_params=dataset_params)
 
-model.connect_dataset_interface(dataset, data_loader_num_workers=8 * devices)
+trainer.connect_dataset_interface(dataset, data_loader_num_workers=8 * devices)
 
 arch_params = HpmStruct(**{"num_classes": 1000, "aux_head": False, "classification_mode": True, 'dropout_prob': 0.3})
 
-model.build_model(architecture="ddrnet_23_slim" if args.slim else "ddrnet_23",
-                  arch_params=arch_params)
-model.train(training_params=train_params_ddr)
+trainer.build_model(architecture="ddrnet_23_slim" if args.slim else "ddrnet_23",
+                    arch_params=arch_params)
+trainer.train(training_params=train_params_ddr)
