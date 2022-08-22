@@ -11,6 +11,7 @@
 #   2. Run the command:
 #       python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
 
+# TODO: Fix: "RuntimeError: Unable to find a valid cuDNN algorithm to run convolution"
 
 defaults:
   - training_hyperparams: imagenet_vit_train_params

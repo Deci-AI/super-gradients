@@ -500,7 +500,7 @@ efficientnet
 ```
 python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet
 ```
-mobilenetv2
+mobilenetv2 #TODO: check in big tzag
 ```
 python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2
 ```
@@ -557,7 +557,7 @@ python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/exampl
 
 ssd_lite_mobilenet_v2
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2.yaml
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2 anchors_name=stride_16_plus
 ```
 yolox_n
 ```
