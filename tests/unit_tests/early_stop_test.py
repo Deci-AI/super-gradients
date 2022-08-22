@@ -153,7 +153,6 @@ class EarlyStopTest(unittest.TestCase):
         # test Nan value
         model = Trainer("early_stop_test", model_checkpoints_location='local')
         model.connect_dataset_interface(self.dataset)
-        model.build_model(self.net)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", check_finite=True,
                                     verbose=True)
@@ -164,7 +163,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        model.train(train_params)
+        model.train(net=self.net, training_params=train_params)
 
         excepted_end_epoch = 2
 
@@ -183,7 +182,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        model.train(train_params)
+        model.train(net=self.net, training_params=train_params)
 
         excepted_end_epoch = 3
         # count divided by 2, because loss counter used for both train and eval.
