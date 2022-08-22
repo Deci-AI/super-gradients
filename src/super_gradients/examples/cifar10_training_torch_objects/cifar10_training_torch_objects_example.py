@@ -11,7 +11,7 @@ Cifar10 training with SuperGradients training with the following initialized tor
 Main purpose is to demonstrate training in SG with minimal abstraction and maximal flexibility
 """
 
-from super_gradients import SgModel
+from super_gradients import Trainer
 from super_gradients.training.metrics.classification_metrics import Accuracy, Top5
 from super_gradients.training import MultiGPUMode
 from torch.optim import ASGD
@@ -48,10 +48,10 @@ loss_fn = CrossEntropyLoss()
 phase_callbacks = [LRSchedulerCallback(scheduler=rop_lr_scheduler, phase=Phase.VALIDATION_EPOCH_END, metric_name="Accuracy"),
                    LRSchedulerCallback(scheduler=step_lr_scheduler, phase=Phase.TRAIN_EPOCH_END)]
 
-# Bring everything together with SgModel and start training
-model = SgModel("Cifar10_external_objects_example", multi_gpu=MultiGPUMode.OFF,
-                train_loader=train_loader, valid_loader=valid_loader, classes=train_dataset.classes)
-model.build_model(net)
+# Bring everything together with Trainer and start training
+trainer = Trainer("Cifar10_external_objects_example", multi_gpu=MultiGPUMode.OFF,
+                  train_loader=train_loader, valid_loader=valid_loader, classes=train_dataset.classes)
+trainer.build_model(net)
 
 train_params = {"max_epochs": 300,
                 "phase_callbacks": phase_callbacks,
@@ -65,4 +65,4 @@ train_params = {"max_epochs": 300,
                 "greater_metric_to_watch_is_better": True,
                 "lr_scheduler_step_type": "epoch"}
 
-model.train(training_params=train_params)
+trainer.train(training_params=train_params)

@@ -1,5 +1,5 @@
 import unittest
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
@@ -33,9 +33,9 @@ class UpdateParamGroupsTest(unittest.TestCase):
     def test_lr_scheduling_with_update_param_groups(self):
         # Define Model
         net = TestNet()
-        model = SgModel("lr_warmup_test", model_checkpoints_location='local')
-        model.connect_dataset_interface(self.dataset)
-        model.build_model(net, arch_params=self.arch_params)
+        trainer = Trainer("lr_warmup_test", model_checkpoints_location='local')
+        trainer.connect_dataset_interface(self.dataset)
+        trainer.build_model(net, arch_params=self.arch_params)
 
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
@@ -53,6 +53,6 @@ class UpdateParamGroupsTest(unittest.TestCase):
                         }
 
         expected_lrs = np.array([0.1, 0.2, 0.3])
-        model.train(train_params)
+        trainer.train(train_params)
 
         self.assertTrue(np.allclose(np.array(lrs), expected_lrs, rtol=0.0000001))
