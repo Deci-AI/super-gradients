@@ -60,15 +60,6 @@ class KDTrainer(Trainer):
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
         trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
-        models.get(cfg.architecture,
-                   num_classes=cfg.arch_params.num_classes,
-                   arch_params=cfg.arch_params,
-                   strict_load=cfg.checkpoint_params.strict_load,
-                   pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-                   checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-                   load_backbone=cfg.checkpoint_params.load_backbone
-                   )
-
         student = models.get(cfg.student_architecture, arch_params=cfg.student_arch_params,
                              strict_load=cfg.student_checkpoint_params.strict_load,
                              pretrained_weights=cfg.student_checkpoint_params.pretrained_weights,

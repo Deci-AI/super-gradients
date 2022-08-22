@@ -16,8 +16,7 @@ defaults:
   - dataset_params: imagenet_dataset_params
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
-  - teacher_checkpoint_params: default_checkpoint_params
-  - student_checkpoint_params: default_checkpoint_params
+
 
 resume: False
 training_hyperparams:
@@ -45,7 +44,20 @@ teacher_arch_params:
   patch_size: [16, 16]
 
 teacher_checkpoint_params:
+  load_backbone: False # whether to load only backbone part of checkpoint
+  checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
+  strict_load: # key matching strictness for loading checkpoint's weights
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: True
   pretrained_weights: imagenet
+
+student_checkpoint_params:
+  load_backbone: False # whether to load only backbone part of checkpoint
+  checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
+  strict_load: # key matching strictness for loading checkpoint's weights
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: True
+  pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
 
 dataset_params:
   batch_size: 192

@@ -206,7 +206,7 @@ class Trainer:
         trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
         # BUILD NETWORK
-        net = models.get(cfg.architecture,
+        net = models.get(name=cfg.architecture,
                          num_classes=cfg.arch_params.num_classes,
                          arch_params=cfg.arch_params,
                          strict_load=cfg.checkpoint_params.strict_load,
