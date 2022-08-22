@@ -545,7 +545,6 @@ class Trainer:
         self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
         self._load_checkpoint_to_model()
 
-
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def train(self, net: nn.Module = None, training_params: dict = dict(), *args, **kwargs):  # noqa: C901
         """
@@ -825,7 +824,6 @@ class Trainer:
         """
         global logger
 
-
         if self.dataset_interface is None and self.train_loader is None:
             raise Exception('Data', 'No dataset found')
 
@@ -835,7 +833,6 @@ class Trainer:
         if self.net is None:
             self.net = net
             self._prep_net_for_train()
-
 
         # SET RANDOM SEED
         random_seed(is_ddp=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL,
