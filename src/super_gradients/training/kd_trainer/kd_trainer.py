@@ -10,7 +10,7 @@ from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.sg_trainer import Trainer
 from typing import Union, List, Any
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training import utils as core_utils
+from super_gradients.training import utils as core_utils, models
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, \
@@ -64,8 +64,16 @@ class KDTrainer(Trainer):
                             teacher_arch_params=cfg.teacher_arch_params,
                             checkpoint_params=cfg.checkpoint_params, run_teacher_on_eval=cfg.run_teacher_on_eval)
 
+        student = models.get(cfg.student_architecture, arch_params=cfg.student_arch_params, checkpoint_params=cfg.student_checkpoint_params)
+        teacher = models.get(cfg.teacher_architecture, arch_params=cfg.teacher_arch_params, checkpoint_params=cfg.teacher_checkpoint_params)
+
         # TRAIN
-        trainer.train(training_params=cfg.training_hyperparams)
+        trainer.train(kd_architecture=cfg.architecture,
+                      student=student, teacher=teacher,
+                      training_params=cfg.training_hyperparams,
+                      kd_arch_params=cfg.arch_params,
+                      run_teacher_on_eval=cfg.run_teacher_on_eval
+                      )
 
     def build_model(self,
                     # noqa: C901 - too complex
@@ -337,7 +345,7 @@ class KDTrainer(Trainer):
         kd_net = self.net or net
         if kd_net is None:
             if student is None or teacher is None:
-                raise ValueError()
+                raise ValueError("Must pass student and teacher models or net (KDModule).")
             kd_net = self._instantiate_kd_net(arch_params=HpmStruct(**kd_arch_params),
                                               architecture=kd_architecture,
                                               run_teacher_on_eval=run_teacher_on_eval,

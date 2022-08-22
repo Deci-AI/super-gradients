@@ -29,7 +29,7 @@ from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
-from super_gradients.training import utils as core_utils
+from super_gradients.training import utils as core_utils, models
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
@@ -206,10 +206,10 @@ class Trainer:
         trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
         # BUILD NETWORK
-        trainer.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
+        net = models.get(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
 
         # TRAIN
-        trainer.train(training_params=cfg.training_hyperparams)
+        trainer.train(net=net, training_params=cfg.training_hyperparams)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
