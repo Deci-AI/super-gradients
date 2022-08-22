@@ -12,8 +12,8 @@ class QATIntegrationTest(unittest.TestCase):
         dataset_params = {"batch_size": 10}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         trainer = Trainer(experiment_name,
-                        model_checkpoints_location='local',
-                        multi_gpu=MultiGPUMode.OFF)
+                          model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(dataset)
         net = models.get("resnet18", checkpoint_params={"pretrained_weights": "imagenet"})
         return trainer, net

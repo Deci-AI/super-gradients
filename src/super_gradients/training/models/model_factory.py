@@ -6,7 +6,6 @@ from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_m
     read_ckpt_state_dict
 
 
-
 class SgNetsFactory:
     @classmethod
     def get(cls, name: str, arch_params: dict = {}, checkpoint_params: dict = {}, *args,
@@ -71,8 +70,9 @@ class SgNetsFactory:
             architecture_cls = ARCHITECTURES[name]
             net = architecture_cls(arch_params=arch_params)
         else:
-            raise ValueError("Unsupported network name " + str(name) + ", see docs or all_architectures.py for supported "
-                                                                       "nets.")
+            raise ValueError(
+                "Unsupported network name " + str(name) + ", see docs or all_architectures.py for supported "
+                                                          "nets.")
         if pretrained_weights:
             load_pretrained_weights(net, name, pretrained_weights)
             if num_classes_new_head != arch_params.num_classes:

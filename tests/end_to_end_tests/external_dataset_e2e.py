@@ -124,9 +124,9 @@ class TestExternalDatasetInterface(unittest.TestCase):
 
         arch_params = {'num_classes': 1000}
         trainer = Trainer("test", model_checkpoints_location='local',
-                        multi_gpu=MultiGPUMode.OFF)
+                          multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(dataset_interface=self.test_external_dataset_interface,
-                                        data_loader_num_workers=8)
+                                          data_loader_num_workers=8)
         net = models.get("resnet50", arch_params)
         trainer.train(net=net, training_params=train_params)
 

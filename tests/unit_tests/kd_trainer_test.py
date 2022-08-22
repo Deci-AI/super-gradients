@@ -91,18 +91,19 @@ class KDTrainerTest(unittest.TestCase):
                              checkpoint_params={'teacher_pretrained_weights': "imagenet"})
 
         adapter = NormalizationAdapter(mean_original=[0.485, 0.456, 0.406],
-                                                          std_original=[0.229, 0.224, 0.225],
-                                                          mean_required=[0.5, 0.5, 0.5],
-                                                          std_required=[0.5, 0.5, 0.5])
+                                       std_original=[0.229, 0.224, 0.225],
+                                       mean_required=[0.5, 0.5, 0.5],
+                                       std_required=[0.5, 0.5, 0.5])
 
         kd_arch_params = {
             "teacher_input_adapter": adapter}
         kd_trainer.train(student=student,
-                       teacher=teacher,
-                       training_params=self.kd_train_params,
-                       kd_arch_params=kd_arch_params)
+                         teacher=teacher,
+                         training_params=self.kd_train_params,
+                         kd_arch_params=kd_arch_params)
 
         self.assertEqual(kd_trainer.net.module.teacher_input_adapter, adapter)
+
     def test_load_ckpt_best_for_student(self):
         kd_trainer = KDTrainer("test_load_ckpt_best", device='cpu')
         kd_trainer.connect_dataset_interface(self.dataset)

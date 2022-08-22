@@ -46,8 +46,8 @@ class TestWithoutTrainTest(unittest.TestCase):
                           }
 
         trainer = Trainer(name, model_checkpoints_location='local',
-                        multi_gpu=MultiGPUMode.OFF,
-                        post_prediction_callback=YoloPostPredictionCallback())
+                          multi_gpu=MultiGPUMode.OFF,
+                          post_prediction_callback=YoloPostPredictionCallback())
         dataset_interface = DetectionTestDatasetInterface(dataset_params=dataset_params)
         trainer.connect_dataset_interface(dataset_interface, data_loader_num_workers=4)
         net = models.get("yolox_s", arch_params={"num_classes": 5})
@@ -78,16 +78,20 @@ class TestWithoutTrainTest(unittest.TestCase):
 
     def test_test_on_valid_loader_without_train(self):
         trainer, net = self.get_classification_trainer(self.folder_names[0])
-        assert isinstance(trainer.test(net=net, test_loader=trainer.valid_loader, silent_mode=True, test_metrics_list=[Accuracy(), Top5()]), tuple)
+        assert isinstance(trainer.test(net=net, test_loader=trainer.valid_loader, silent_mode=True,
+                                       test_metrics_list=[Accuracy(), Top5()]), tuple)
 
         trainer, net = self.get_detection_trainer(self.folder_names[1])
 
         test_metrics = [DetectionMetrics(post_prediction_callback=trainer.post_prediction_callback, num_cls=5)]
 
-        assert isinstance(trainer.test(net=net, test_loader=trainer.valid_loader, silent_mode=True, test_metrics_list=test_metrics), tuple)
+        assert isinstance(
+            trainer.test(net=net, test_loader=trainer.valid_loader, silent_mode=True, test_metrics_list=test_metrics),
+            tuple)
 
         trainer, net = self.get_segmentation_trainer(self.folder_names[2])
-        assert isinstance(trainer.test(net=net, test_loader=trainer.valid_loader, silent_mode=True, test_metrics_list=[IoU(21), PixelAccuracy()]), tuple)
+        assert isinstance(trainer.test(net=net, test_loader=trainer.valid_loader, silent_mode=True,
+                                       test_metrics_list=[IoU(21), PixelAccuracy()]), tuple)
 
 
 if __name__ == '__main__':
