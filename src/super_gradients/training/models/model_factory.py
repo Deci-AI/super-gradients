@@ -113,7 +113,7 @@ def get(name: str, arch_params: dict = {}, num_classes: int = None,
                          "checkpoint_path": checkpoint_path,
                          "load_backbone": load_backbone,
                          "pretrained_weights": pretrained_weights}
-    
+
     if num_classes is not None:
         arch_params["num_classes"] = num_classes
 

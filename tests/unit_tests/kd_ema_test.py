@@ -35,7 +35,7 @@ class KDEMATest(unittest.TestCase):
         kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 1000})
         teacher = models.get('resnet50', arch_params={'num_classes': 1000},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
+                             pretrained_weights="imagenet")
 
         kd_model.train(training_params=self.kd_train_params, student=student, teacher=teacher)
 
@@ -51,7 +51,7 @@ class KDEMATest(unittest.TestCase):
         kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 1000})
         teacher = models.get('resnet50', arch_params={'num_classes': 1000},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
+                             pretrained_weights="imagenet")
 
         kd_model.train(training_params=self.kd_train_params, student=student, teacher=teacher)
         ema_model = kd_model.ema_model.ema
@@ -62,7 +62,7 @@ class KDEMATest(unittest.TestCase):
         kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 1000})
         teacher = models.get('resnet50', arch_params={'num_classes': 1000},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
+                             pretrained_weights="imagenet")
 
         train_params["resume"] = True
         kd_model.train(training_params=train_params, student=student, teacher=teacher)

@@ -52,7 +52,7 @@ class KDTrainerTest(unittest.TestCase):
     def test_teacher_sg_module_methods(self):
         student = models.get('resnet18', arch_params={'num_classes': 1000})
         teacher = models.get('resnet50', arch_params={'num_classes': 1000},
-                             checkpoint_params={"pretrained_weights": "imagenet"})
+                             pretrained_weights="imagenet")
         kd_module = KDModule(arch_params={},
                              student=student,
                              teacher=teacher
@@ -86,7 +86,7 @@ class KDTrainerTest(unittest.TestCase):
         kd_trainer.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
+                             pretrained_weights="imagenet")
 
         adapter = NormalizationAdapter(mean_original=[0.485, 0.456, 0.406],
                                        std_original=[0.229, 0.224, 0.225],
@@ -105,14 +105,14 @@ class KDTrainerTest(unittest.TestCase):
         kd_trainer.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
+                             pretrained_weights="imagenet")
         train_params = self.kd_train_params.copy()
         train_params["max_epochs"] = 1
         kd_trainer.train(training_params=train_params, student=student, teacher=teacher)
         best_student_ckpt = os.path.join(kd_trainer.checkpoints_dir_path, "ckpt_best.pth")
 
         student_reloaded = models.get('resnet18', arch_params={'num_classes': 5},
-                                      checkpoint_params={"checkpoint_path": best_student_ckpt})
+                                      checkpoint_path=best_student_ckpt)
 
         self.assertTrue(
             check_models_have_same_weights(student_reloaded, kd_trainer.net.module.student))
@@ -122,7 +122,7 @@ class KDTrainerTest(unittest.TestCase):
         kd_trainer.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
+                             pretrained_weights="imagenet")
         train_params = self.kd_train_params.copy()
         train_params["max_epochs"] = 1
         train_params["ema"] = True
@@ -130,7 +130,7 @@ class KDTrainerTest(unittest.TestCase):
         best_student_ckpt = os.path.join(kd_trainer.checkpoints_dir_path, "ckpt_best.pth")
 
         student_reloaded = models.get('resnet18', arch_params={'num_classes': 5},
-                                      checkpoint_params={"checkpoint_path": best_student_ckpt})
+                                      checkpoint_path=best_student_ckpt)
 
         self.assertTrue(
             check_models_have_same_weights(student_reloaded, kd_trainer.ema_model.ema.module.student))
@@ -140,7 +140,7 @@ class KDTrainerTest(unittest.TestCase):
         kd_trainer.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
+                             pretrained_weights="imagenet")
         train_params = self.kd_train_params.copy()
         train_params["max_epochs"] = 1
         kd_trainer.train(training_params=train_params, student=student, teacher=teacher)
@@ -150,7 +150,7 @@ class KDTrainerTest(unittest.TestCase):
         kd_trainer.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 5})
         teacher = models.get('resnet50', arch_params={'num_classes': 5},
-                             checkpoint_params={'teacher_pretrained_weights': "imagenet"})
+                             pretrained_weights="imagenet")
 
         train_params["max_epochs"] = 2
         train_params["resume"] = True

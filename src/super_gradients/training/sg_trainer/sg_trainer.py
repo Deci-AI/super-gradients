@@ -1514,17 +1514,13 @@ class Trainer:
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
-    def test(self,  # noqa: C901
-             net: nn.Module = None,
-             test_loader: torch.utils.data.DataLoader = None,
-             loss: torch.nn.modules.loss._Loss = None,
-             silent_mode: bool = False,
-             test_metrics_list=None,
+    def test(self, model: nn.Module = None, test_loader: torch.utils.data.DataLoader = None,
+             loss: torch.nn.modules.loss._Loss = None, silent_mode: bool = False, test_metrics_list=None,
              loss_logging_items_names=None, metrics_progress_verbose=False, test_phase_callbacks=None,
              use_ema_net=True) -> tuple:
         """
         Evaluates the trainer on given dataloader and metrics.
-        :param net: net to perfrom test on. When none is given, will try to use self.net (defalut=None).
+        :param model: net to perfrom test on. When none is given, will try to use self.net (defalut=None).
         :param test_loader: dataloader to perform test on.
         :param test_metrics_list: (list(torchmetrics.Metric)) metrics list for evaluation.
         :param silent_mode: (bool) controls verbosity
@@ -1537,7 +1533,7 @@ class Trainer:
          is ran on self.test_loader with self.test_metrics.
         """
 
-        self.net = net or self.net
+        self.net = model or self.net
 
         # IN CASE TRAINING WAS PERFROMED BEFORE TEST- MAKE SURE TO TEST THE EMA MODEL (UNLESS SPECIFIED OTHERWISE BY
         # use_ema_net)

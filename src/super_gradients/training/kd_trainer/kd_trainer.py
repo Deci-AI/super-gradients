@@ -362,4 +362,4 @@ class KDTrainer(Trainer):
                                               run_teacher_on_eval=run_teacher_on_eval,
                                               student=student,
                                               teacher=teacher)
-        super(KDTrainer, self).train(net=kd_net, training_params=training_params)
+        super(KDTrainer, self).train(model=kd_net, training_params=training_params)

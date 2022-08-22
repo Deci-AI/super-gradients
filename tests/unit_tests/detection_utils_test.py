@@ -50,7 +50,7 @@ class TestDetectionUtils(unittest.TestCase):
                           model_checkpoints_location='local',
                           post_prediction_callback=YoloPostPredictionCallback())
         trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
-        net = models.get("yolox_n", checkpoint_params={"pretrained_weights": "coco"})
+        net = models.get("yolox_n", pretrained_weights="coco")
 
         # Simulate one iteration of validation subset
         valid_loader = trainer.valid_loader
