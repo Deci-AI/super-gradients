@@ -8,6 +8,7 @@ import hydra
 import numpy as np
 import pkg_resources
 import torch
+from deprecate import deprecated
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler
@@ -255,6 +256,7 @@ class Trainer:
         self.dataset_params = self.dataset_interface.get_dataset_params()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
+    @deprecated(target=None, deprecated_in='2.3.0', remove_in='3.0.0')
     def build_model(self,  # noqa: C901 - too complex
                     architecture: Union[str, nn.Module],
                     arch_params={}, checkpoint_params={}, *args, **kwargs):
