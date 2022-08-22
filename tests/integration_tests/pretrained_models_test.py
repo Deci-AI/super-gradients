@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import unittest
 import super_gradients
 from super_gradients.training import MultiGPUMode
