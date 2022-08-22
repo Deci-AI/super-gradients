@@ -203,7 +203,7 @@ class Trainer:
         trainer = Trainer(**kwargs)
 
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
-        trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workersלר)
+        trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
         # BUILD NETWORK
         net = models.get(cfg.architecture,
