@@ -6,7 +6,7 @@ class KDModelException(Exception):
     """
 
     def __init__(self, desc):
-        self.message = "KDModel: " + desc
+        self.message = "KDTrainer: " + desc
         super().__init__(self.message)
 
 
@@ -48,7 +48,7 @@ class InconsistentParamsException(KDModelException):
 
 
 class UnsupportedKDModelArgException(KDModelException):
-    """Exception raised for unsupported args that might be supported for SgModel but not for KDModel.
+    """Exception raised for unsupported args that might be supported for Trainer but not for KDTrainer.
 
     Attributes:
         message -- explanation of the error
@@ -66,7 +66,7 @@ class TeacherKnowledgeException(KDModelException):
     """
 
     def __init__(self):
-        super().__init__("Expected: at least one of: teacher_pretrained_weights, teacher_checkpoint_path or load_kd_model_checkpoint=True")
+        super().__init__("Expected: at least one of: teacher_pretrained_weights, teacher_checkpoint_path or load_kd_trainer_checkpoint=True")
 
 
 class UndefinedNumClassesException(KDModelException):

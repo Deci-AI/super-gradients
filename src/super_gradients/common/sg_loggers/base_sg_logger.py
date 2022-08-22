@@ -15,7 +15,7 @@ from super_gradients.common import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.environment.env_helpers import multi_process_safe
-from super_gradients.training.utils import sg_model_utils
+from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.training.params import TrainingParams
 
 logger = get_logger(__name__)
@@ -89,11 +89,11 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def _launch_tensorboard(self, port):
-        self.tensor_board_process, _ = sg_model_utils.launch_tensorboard_process(self._local_dir, port=port)
+        self.tensor_board_process, _ = sg_trainer_utils.launch_tensorboard_process(self._local_dir, port=port)
 
     @multi_process_safe
     def _init_tensorboard(self, resumed, tb_files_user_prompt):
-        self.tensorboard_writer = sg_model_utils.init_summary_writer(self._local_dir, resumed, tb_files_user_prompt)
+        self.tensorboard_writer = sg_trainer_utils.init_summary_writer(self._local_dir, resumed, tb_files_user_prompt)
 
     @multi_process_safe
     def _make_dir(self):
