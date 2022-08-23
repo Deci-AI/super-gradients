@@ -5,6 +5,9 @@ from hydra import compose, initialize_config_dir
 import hydra
 from hydra.core.global_hydra import GlobalHydra
 from typing import Dict
+
+import torchvision.datasets as torch_datasets
+
 import super_gradients
 from torch.utils.data import BatchSampler, DataLoader
 from super_gradients.training.utils import get_param
@@ -111,3 +114,30 @@ def coco2017_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
                            )
+
+
+def imagenet_train(dataset_params={}, dataloader_params={}):
+    return _get_data_loader(config_name="coco2017_yolox",
+                            dataset_cls=torch_datasets.ImageFolder,
+                            train=True,
+                            dataset_params=dataset_params,
+                            dataloader_params=dataloader_params
+                            )
+
+
+def imagenet_val(dataset_params={}, dataloader_params={}):
+    return _get_data_loader(config_name="coco2017_yolox",
+                            dataset_cls=torch_datasets.ImageFolder,
+                            train=False,
+                            dataset_params=dataset_params,
+                            dataloader_params=dataloader_params
+                            )
+
+
+# self.trainset = torch_datasets.ImageFolder(root=traindir, transform=transforms.Compose(train_transformation_list))
+# self.valset = torch_datasets.ImageFolder(valdir, transforms.Compose([
+#     transforms.Resize(resize_size),
+#     transforms.CenterCrop(crop_size),
+#     transforms.ToTensor(),
+#     normalize,
+# ]))

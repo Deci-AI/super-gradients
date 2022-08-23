@@ -13,3 +13,54 @@ train_interpolation: default # interpolation mode
 rand_augment_config_string: # randaugment config string (see super_gradients/training/datasets/auto_augment.py)
 random_erase_prob: 0.0 # random erase probability (applied only to trainset)
 aug_repeat_count: 0 # amount of repetitions (each repetition of an example is augmented differently) for a trainset example.
+
+train_dataset_params:
+  root: ${dataset_params.dataset_dir}
+  transform:
+    - RandomResizedCropAndInterpolation:
+      size: crop_size
+      interpolation: train_interpolation
+    - RandomHorizontalFlip
+    - get_color_augmentation:
+      rand_augment_config_string: rand_augment_config_string
+      color_jitter: (color_jitter, color_jitter, color_jitter)
+    - ToTensor
+    - Lighting:
+      alphastd: imagenet_pca_aug
+    - Normalize
+
+val_dataset_params:
+  root: ${dataset_params.dataset_dir}
+  transform:
+    - Resize:
+      size: resize_size
+    - CenterCrop:
+      size: crop_size
+    - ToTensor
+    - Normalize
+
+#
+#train_dataloader_params:
+#  sampler: BatchSampler
+#    sampler:
+#            sampler=train_sampler,
+#            batch_size=self.dataset_params.batch_size,
+#            drop_last=False,
+#        )
+
+train_dataloader_params:
+  batch_size: 16
+  num_workers: 8
+  batch_sampler: True
+  sampler:
+    InfiniteSampler:
+      seed: 0
+  drop_last: False
+  pin_memory: True
+  worker_init_fn:
+    _target_: super_gradients.training.utils.utils.load_func
+    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
+  collate_fn: # collate function for trainset
+    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+
+val_dataloader_params:
