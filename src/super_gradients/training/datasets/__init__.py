@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import cv2
 
 from super_gradients.training.datasets.data_augmentation import DataAugmentation
 from super_gradients.training.datasets.sg_dataset import ListDataset, DirectoryDataSet
@@ -14,6 +15,9 @@ from super_gradients.training.datasets.dataset_interfaces.dataset_interface impo
     PascalVOC2012SegmentationDataSetInterface, PascalAUG2012SegmentationDataSetInterface, \
     TestYoloDetectionDatasetInterface, SegmentationTestDatasetInterface, DetectionTestDatasetInterface, \
     ClassificationTestDatasetInterface, ImageNetDatasetInterface
+
+cv2.setNumThreads(0)
+
 
 __all__ = ['DataAugmentation', 'ListDataset', 'DirectoryDataSet', 'CLASSIFICATION_DATASETS', 'OBJECT_DETECTION_DATASETS',
            'SEMANTIC_SEGMENTATION_DATASETS', 'SegmentationDataSet',
