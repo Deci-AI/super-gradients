@@ -555,9 +555,9 @@ python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/exampl
 <details>
 <summary>Coco2017</summary>
 
-ssd_lite_mobilenet_v2
+ssd_lite_mobilenet_v2 #TODO: RETEST
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2 anchors_name=stride_16_plus
+python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2
 ```
 yolox_n
 ```

@@ -11,23 +11,14 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#       python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2.yaml
+#       python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2
 
-
-# Instructions:
-#   1. move the the project root (where you will find the ReadMe and src folder)
-#   2. run the command:
-#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2 anchors_name=stride_16_plus
-# ----------------------------------------------
-# ----------------------------------------------
-# ----------------------------------------------
 
 # NOTE:
 # Anchors will be selected based on validation resolution and anchors_name
 # To switch between anchors, set anchors_name to something else defined in the anchors section
 # e.g.
-# python3 -m torch.distributed.launch --nproc_per_node=4 train_from_recipe_example/train_from_recipe.py \
-# --config-name=coco_ssd_lite_mobilenet_v2.yaml anchors_name=stride_16_plus
+# python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2 anchors_name=stride_16_plus
 
 
 defaults:
@@ -43,12 +34,6 @@ data_loader_num_workers: 8
 model_checkpoints_location: local
 experiment_suffix: res${dataset_params.train_image_size}
 experiment_name: ${architecture}_coco_${experiment_suffix}
-
-sg_model:
-  _target_: super_gradients.SgModel
-  experiment_name: ${experiment_name}
-  model_checkpoints_location: ${model_checkpoints_location}
-  multi_gpu: DDP
 
 anchors_resolution: ${dataset_params.val_image_size}x${dataset_params.val_image_size}
 anchors_name: stride_16_plus_big
