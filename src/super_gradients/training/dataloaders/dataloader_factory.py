@@ -1,7 +1,7 @@
 from hydra import initialize, compose
 import hydra
 from hydra.core.global_hydra import GlobalHydra
-
+from typing import Dict
 import super_gradients
 from torch.utils.data import BatchSampler, DataLoader
 from super_gradients.training.utils import get_param
@@ -13,7 +13,21 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
-def _get_data_loader(config_name, dataset_cls, train, dataset_params={}, dataloader_params={}):
+def get_data_loader(config_name, dataset_cls, train, dataset_params={}, dataloader_params={}):
+    """
+    Class for creating dataloaders for taking defaults from yaml files in src/super_gradients/recipes.
+
+    :param config_name: yaml config filename in recipes (for example coco2017_yolox).
+    :param dataset_cls: torch dataset uninitialized class.
+    :param train: controls whether to take
+        cfg.dataset_params.train_dataloader_params or cfg.dataset_params.valid_dataloader_params as defaults for the dataset constructor
+     and
+        cfg.dataset_params.train_dataset_params or cfg.dataset_params.valid_dataset_params as defaults for DataLoader contructor.
+
+    :param dataset_params: dataset params that override the yaml configured defaults, then passed to the dataset_cls.__init__.
+    :param dataloader_params: DataLoader params that override the yaml configured defaults, then passed to the DataLoader.__init__
+    :return: DataLoader
+    """
     GlobalHydra.instance().clear()
     with initialize(config_path="../../recipes"):
         # config is relative to a module
@@ -72,19 +86,19 @@ def _instantiate_sampler(dataset, dataloader_params):
     dataloader_params["sampler"] = SamplersFactory().get(dataloader_params["sampler"])
 
 
-def coco2017_train(dataset_params={}, dataloader_params={}):
-    return _get_data_loader(config_name="coco2017_yolox",
-                            dataset_cls=COCODetectionDataset,
-                            train=True,
-                            dataset_params=dataset_params,
-                            dataloader_params=dataloader_params
-                            )
+def coco2017_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="coco2017_yolox",
+                           dataset_cls=COCODetectionDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
 
 
-def coco2017_val(dataset_params={}, dataloader_params={}):
-    return _get_data_loader(config_name="coco2017_yolox",
-                            dataset_cls=COCODetectionDataset,
-                            train=False,
-                            dataset_params=dataset_params,
-                            dataloader_params=dataloader_params
-                            )
+def coco2017_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="coco2017_yolox",
+                           dataset_cls=COCODetectionDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
