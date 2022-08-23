@@ -522,7 +522,7 @@ class Trainer:
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, train_loader: DataLoader = None, valid_loader: DataLoader = None, training_params: dict = dict()):  # noqa: C901
+    def train(self, training_params: dict = dict(), train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
         """
 
         train - Trains the Model
