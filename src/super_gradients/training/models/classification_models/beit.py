@@ -2,7 +2,7 @@
 
 Model from official source: https://github.com/microsoft/unilm/tree/master/beit
 
-At this point only the 1k fine-tuned classification weights and trainer configs have been added,
+At this point only the 1k fine-tuned classification weights and model configs have been added,
 see original source above for pre-training models and procedure.
 
 Modifications by / Copyright 2021 Ross Wightman, original copyrights below

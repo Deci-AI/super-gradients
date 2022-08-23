@@ -226,7 +226,7 @@ class BasicDDRBackBone(DDRBackBoneBase):
 
 class RegnetDDRBackBone(DDRBackBoneBase):
     """
-    Translation of Regnet to fit DDR trainer
+    Translation of Regnet to fit DDR model
     """
 
     def __init__(self, regnet_module: nn.Module.__class__):

@@ -137,7 +137,7 @@ class YoloXDetectionLoss(_Loss):
         :return: loss, all losses separately in a detached tensor
         """
         if isinstance(model_output, tuple) and len(model_output) == 2:
-            # in test/eval mode the Yolo trainer outputs a tuple where the second item is the raw predictions
+            # in test/eval mode the Yolo model outputs a tuple where the second item is the raw predictions
             _, predictions = model_output
         else:
             predictions = model_output

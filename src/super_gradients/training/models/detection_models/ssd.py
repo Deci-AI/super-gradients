@@ -23,7 +23,7 @@ DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
     "expand_ratios": [0.2, 0.25, 0.5, 0.25],
     "lite": True,
     "width_mult": 1.0,
-    # "output_paths": [[7,'conv',2], [14, 'conv', 2]], output paths for a trainer with output levels of stride 8 plus
+    # "output_paths": [[7,'conv',2], [14, 'conv', 2]], output paths for a model with output levels of stride 8 plus
     "output_paths": [[14, 'conv', 2], 18],
     "anchors": DefaultBoxes(fig_size=320, feat_size=[20, 10, 5, 3, 2, 1], scales=[32, 82, 133, 184, 235, 285, 336],
                             aspect_ratios=[[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]], scale_xy=0.1, scale_wh=0.2)
@@ -61,7 +61,7 @@ class SSD(SgModule):
             self.backbone = backbone
 
         # num classes in a dataset
-        # the trainer will predict self.num_classes + 1 values to also include background
+        # the model will predict self.num_classes + 1 values to also include background
         self.num_classes = self.arch_params.num_classes
         self.dboxes_xy = nn.Parameter(self.arch_params.anchors('xywh')[:, :2], requires_grad=False)
         self.dboxes_wh = nn.Parameter(self.arch_params.anchors('xywh')[:, 2:], requires_grad=False)

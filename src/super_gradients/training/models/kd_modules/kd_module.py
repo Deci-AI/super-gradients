@@ -14,8 +14,8 @@ class KDModule(SgModule):
     class implementing Knowledge Distillation logic as an SgModule
 
     attributes:
-        student: SgModule - the student trainer
-        teacher: torch.nn.Module- the teacher trainer
+        student: SgModule - the student model
+        teacher: torch.nn.Module- the teacher model
         run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
         arch_params: HpmStruct- Architecture H.P.
 

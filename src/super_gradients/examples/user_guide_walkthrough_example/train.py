@@ -15,7 +15,7 @@ def main():
                       model_checkpoints_location='local',
                       multi_gpu=MultiGPUMode.OFF)
 
-    # if a torch.nn.Module is provided when building the trainer, the trainer will be integrated into deci trainer class
+    # if a torch.nn.Module is provided when building the model, the model will be integrated into deci model class
     trainer.build_model(model, arch_params=arch_params)
 
     # ------------------ Loading The Dataset From Dataset.py----------------

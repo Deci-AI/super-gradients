@@ -133,11 +133,11 @@ def replace_activations(module: nn.Module, new_activation: nn.Module, activation
 
 def fuse_repvgg_blocks_residual_branches(model: nn.Module):
     '''
-    Call fuse_block_residual_branches for all repvgg blocks in the trainer
+    Call fuse_block_residual_branches for all repvgg blocks in the model
     :param model: torch.nn.Module with repvgg blocks. Doesn't have to be entirely consists of repvgg.
     :type model: torch.nn.Module
     '''
-    assert not model.training, "To fuse RepVGG block residual branches, trainer must be on eval mode"
+    assert not model.training, "To fuse RepVGG block residual branches, model must be on eval mode"
     for module in model.modules():
         if hasattr(module, 'fuse_block_residual_branches'):
             module.fuse_block_residual_branches()

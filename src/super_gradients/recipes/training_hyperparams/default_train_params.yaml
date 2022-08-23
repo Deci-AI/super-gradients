@@ -12,7 +12,7 @@ pre_prediction_callback: # callback modifying images and targets right before fo
 
 optimizer: SGD # Optimization algorithm. One of ['Adam','SGD','RMSProp'] corresponding to the torch.optim optimizers
 optimizer_params: {} # when `optimizer` is one of ['Adam','SGD','RMSProp'], it will be initialized with optimizer_params.
-load_opt_params: True # Whether to load the optimizers parameters as well when loading a trainer's checkpoint
+load_opt_params: True # Whether to load the optimizers parameters as well when loading a model's checkpoint
 zero_weight_decay_on_bias_and_bn: False # whether to apply weight decay on batch normalization parameters or not
 
 
@@ -21,7 +21,7 @@ criterion_params: {} # when `loss` is one of SuperGradient's built in options, i
 
 
 ema: False # whether to use Model Exponential Moving Average
-ema_params: # parameters for the ema trainer.
+ema_params: # parameters for the ema model.
   decay: 0.9999
   beta: 15
   exp_activation: True
@@ -30,8 +30,8 @@ ema_params: # parameters for the ema trainer.
 train_metrics_list: [] # Metrics to log during training. For more information on torchmetrics see https://torchmetrics.rtfd.io/en/latest/.
 valid_metrics_list: [] # Metrics to log during validation. For more information on torchmetrics see https://torchmetrics.rtfd.io/en/latest/
 loss_logging_items_names: [Loss] # the list of names/titles for the outputs returned from the loss functions forward pass
-metric_to_watch: Accuracy # will be the metric which the trainer checkpoint will be saved according to
-greater_metric_to_watch_is_better: True # When choosing a trainer's checkpoint to be saved, the best achieved trainer is the one that maximizes the metric_to_watch when this parameter is set to True
+metric_to_watch: Accuracy # will be the metric which the model checkpoint will be saved according to
+greater_metric_to_watch_is_better: True # When choosing a model's checkpoint to be saved, the best achieved model is the one that maximizes the metric_to_watch when this parameter is set to True
 
 
 launch_tensorboard: False # Whether to launch a TensorBoard process.
@@ -53,7 +53,7 @@ mixed_precision: False # Whether to use mixed precision or not.
 save_ckpt_epoch_list: []  # indices where the ckpt will save automatically
 
 
-average_best_models: True # If set, a snapshot dictionary file and the average trainer will be saved
+average_best_models: True # If set, a snapshot dictionary file and the average model will be saved
 
 
 dataset_statistics: False  # add a dataset statistical analysis and sample images to tensorboard

@@ -94,7 +94,7 @@ ________________________________________________________________________________
 <!-- - [Quick Start Notebook - Object detection example](#quick-start-notebook---object-detection)
 - [Walkthrough Notebook](#supergradients-complete-walkthrough-notebook)
 - [Transfer Learning with SG Notebook - Object detection example](#transfer-learning-with-sg-notebook---object-detection)
-    - [Quick Start Notebook - Upload to Deci Platform example](#quick-start-notebook---upload-your-trainer-to-deci-platform) -->
+    - [Quick Start Notebook - Upload to Deci Platform example](#quick-start-notebook---upload-your-model-to-deci-platform) -->
 - [Transfer Learning](#transfer-learning)  
     - [Transfer Learning with SG Notebook - Semantic segmentation example](#transfer-learning-with-sg-notebook---semantic-segmentation)
 - [Knowledge Distillation Training](#knowledge-distillation-training)  
@@ -128,7 +128,7 @@ Want to try our pre-trained models on your machine? Import SuperGradients, initi
     
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
-# This is an example of loading COCO-2017 pre-trained weights for a YOLOX Nano object detection trainer
+# This is an example of loading COCO-2017 pre-trained weights for a YOLOX Nano object detection model
     
 import super_gradients
 from super_gradients.training import SgModel
@@ -190,9 +190,9 @@ Get started with our quick start notebook for object detection tasks on Google C
 </table>
  </br></br>
  
-### Quick Start Notebook - Upload your trainer to Deci Platform
+### Quick Start Notebook - Upload your model to Deci Platform
 
-Get Started with an example of how to upload your trained trainer to Deci Platform for runtime optimization and compilation to your target deployment HW.
+Get Started with an example of how to upload your trained model to Deci Platform for runtime optimization and compilation to your target deployment HW.
 <table class="tfo-notebook-buttons" align="left">
   <tbody>
     <tr>

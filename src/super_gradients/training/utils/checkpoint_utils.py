@@ -136,9 +136,9 @@ def read_ckpt_state_dict(ckpt_path: str, device="cpu"):
 def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckpt: dict,
                                               exclude: list = [], solver: callable = None):
     """
-    Given a trainer state dict and source checkpoints, the method tries to correct the keys in the model_state_dict to fit
-    the ckpt in order to properly load the weights into the trainer. If unsuccessful - returns None
-        :param model_state_dict:               the trainer state_dict
+    Given a model state dict and source checkpoints, the method tries to correct the keys in the model_state_dict to fit
+    the ckpt in order to properly load the weights into the model. If unsuccessful - returns None
+        :param model_state_dict:               the model state_dict
         :param source_ckpt:                         checkpoint dict
         :param exclude                  optional list for excluded layers
         :param solver:                  callable with signature (ckpt_key, ckpt_val, model_key, model_val)
@@ -154,14 +154,14 @@ def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckp
             ckpt_val = solver(ckpt_key, ckpt_val, model_key, model_val)
         if ckpt_val.shape != model_val.shape:
             raise ValueError(f'ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}'
-                             f' with shape {model_val.shape} in the trainer')
+                             f' with shape {model_val.shape} in the model')
         new_ckpt_dict[model_key] = ckpt_val
     return {'net': new_ckpt_dict}
 
 
 def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
     """
-    Given a trainer state dict and source checkpoints, the method calls "adapt_state_dict_to_fit_model_layer_names"
+    Given a model state dict and source checkpoints, the method calls "adapt_state_dict_to_fit_model_layer_names"
     and enhances the exception_msg if loading the checkpoint_dict via the conversion method is possible
     """
     try:
@@ -171,7 +171,7 @@ def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
         exception_msg = f"\n{'=' * 200}\n{str(exception_msg)} \nconvert ckpt via the utils.adapt_state_dict_to_fit_" \
                         f"model_layer_names method\na converted checkpoint file was saved in the path {temp_file}\n{'=' * 200}"
     except ValueError as ex:  # IN CASE adapt_state_dict_to_fit_model_layer_names WAS UNSUCCESSFUL
-        exception_msg = f"\n{'=' * 200} \nThe checkpoint and trainer shapes do no fit, e.g.: {ex}\n{'=' * 200}"
+        exception_msg = f"\n{'=' * 200} \nThe checkpoint and model shapes do no fit, e.g.: {ex}\n{'=' * 200}"
     finally:
         raise RuntimeError(exception_msg)
 
@@ -219,7 +219,7 @@ def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: tor
 
 
 class MissingPretrainedWeightsException(Exception):
-    """Exception raised by unsupported pretrianed trainer.
+    """Exception raised by unsupported pretrianed model.
 
     Attributes:
         message -- explanation of the error
@@ -251,9 +251,9 @@ def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
 def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretrained_weights: str):
 
     """
-    Loads pretrained weights from the MODEL_URLS dictionary to trainer
-    @param architecture: name of the trainer's architecture
-    @param model: trainer to load pretrinaed weights for
+    Loads pretrained weights from the MODEL_URLS dictionary to model
+    @param architecture: name of the model's architecture
+    @param model: model to load pretrinaed weights for
     @param pretrained_weights: name for the pretrianed weights (i.e imagenet)
     @return: None
     """

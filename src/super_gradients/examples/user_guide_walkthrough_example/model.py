@@ -1,5 +1,5 @@
 """
-This file is used to define the trainer used for training. For example, in this template, we define ResNet50.
+This file is used to define the model used for training. For example, in this template, we define ResNet50.
 One may use existing models from torchvision as well (e.g., torchvision.models.resnet50)
 """
 

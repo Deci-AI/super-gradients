@@ -77,5 +77,5 @@ coco_seg_datasaet_interface = CoCoSegmentationDatasetInterface(dataset_params=co
 trainer.connect_dataset_interface(coco_seg_datasaet_interface, data_loader_num_workers=data_loader_num_workers)
 trainer.build_model('shelfnet' + model_size_str, arch_params=shelfnet_lw_arch_params)
 
-print('Training ShelfNet-LW trainer: ' + experiment_name)
+print('Training ShelfNet-LW model: ' + experiment_name)
 trainer.train(training_params=shelfnet_coco_training_params)

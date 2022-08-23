@@ -4,9 +4,9 @@ import torch.nn as nn
 
 def fuse_conv_bn(model: nn.Module, replace_bn_with_identity: bool = False):
     """
-    Fuses consecutive nn.Conv2d and nn.BatchNorm2d layers recursively inplace in all of the trainer
+    Fuses consecutive nn.Conv2d and nn.BatchNorm2d layers recursively inplace in all of the model
     :param replace_bn_with_identity: if set to true, bn will be replaced with identity. otherwise, bn will be removed
-    :param model: the target trainer
+    :param model: the target model
     :return: the number of fuses executed
     """
     children = list(model.named_children())

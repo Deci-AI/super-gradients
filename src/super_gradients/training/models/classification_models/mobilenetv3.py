@@ -184,7 +184,7 @@ class MobileNetV3(MobileNetBase):
 
 def mobilenetv3_large(arch_params):
     """
-    Constructs a MobileNetV3-Large trainer
+    Constructs a MobileNetV3-Large model
     """
     width_mult = arch_params.width_mult if hasattr(arch_params, 'width_mult') else 1.
     cfgs = [
@@ -211,7 +211,7 @@ def mobilenetv3_large(arch_params):
 
 def mobilenetv3_small(arch_params):
     """
-    Constructs a MobileNetV3-Small trainer
+    Constructs a MobileNetV3-Small model
     """
     width_mult = arch_params.width_mult if hasattr(arch_params, 'width_mult') else 1.
     cfgs = [
@@ -235,7 +235,7 @@ def mobilenetv3_small(arch_params):
 
 def mobilenetv3_custom(arch_params):
     """
-    Constructs a MobileNetV3-Customized trainer
+    Constructs a MobileNetV3-Customized model
     """
     return MobileNetV3(cfgs=arch_params.structure, mode=arch_params.mode, num_classes=arch_params.num_classes,
                        width_mult=arch_params.width_mult,

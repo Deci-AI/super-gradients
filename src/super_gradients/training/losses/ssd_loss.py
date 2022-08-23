@@ -63,7 +63,7 @@ class SSDLoss(_Loss):
 
     def __init__(self, dboxes: DefaultBoxes, alpha: float = 1.0, iou_thresh: float = 0.5, neg_pos_ratio: float = 3.):
         """
-        :param dboxes:          trainer anchors, shape [Num Grid Cells * Num anchors x 4]
+        :param dboxes:          model anchors, shape [Num Grid Cells * Num anchors x 4]
         :param alpha:           a weighting factor between classification and regression loss
         :param iou_thresh:      a threshold for matching of anchors in each grid cell to GTs
                                 (a match should have IoU > iou_thresh)

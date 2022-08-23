@@ -183,12 +183,12 @@ class BaseSGLogger(AbstractSGLogger):
     @multi_process_safe
     def add_model_graph(self, tag: str, model: torch.nn.Module, dummy_input: torch.Tensor):
         """
-        Add a pytorch trainer graph to the SGLogger.
-        Only the trainer structure/architecture will be preserved and collected, NOT the trainer weights.
+        Add a pytorch model graph to the SGLogger.
+        Only the model structure/architecture will be preserved and collected, NOT the model weights.
 
         :param tag: Data identifier
-        :param model: the trainer to be added
-        :param dummy_input: an input to be used for a forward call on the trainer
+        :param model: the model to be added
+        :param dummy_input: an input to be used for a forward call on the model
         """
         self.tensorboard_writer.add_graph(model=model, input_to_model=dummy_input)
 

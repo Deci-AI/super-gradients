@@ -1,7 +1,7 @@
 """
-Deci-lab trainer export example.
+Deci-lab model export example.
 
-The main purpose of this code is to demonstrate how to upload the trainer to the platform, optimize and download it
+The main purpose of this code is to demonstrate how to upload the model to the platform, optimize and download it
  after training is complete, using DeciPlatformCallback.
 """
 from super_gradients import Trainer, ClassificationTestDatasetInterface

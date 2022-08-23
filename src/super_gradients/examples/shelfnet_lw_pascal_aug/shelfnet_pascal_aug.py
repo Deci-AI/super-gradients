@@ -52,5 +52,5 @@ pascal_aug_datasaet_interface = PascalAUG2012SegmentationDataSetInterface(
     cache_labels=False)
 trainer.connect_dataset_interface(pascal_aug_datasaet_interface, data_loader_num_workers=data_loader_num_workers)
 trainer.build_model('shelfnet' + model_size_str, arch_params=shelfnet_lw_arch_params, checkpoint_params=checkpoint_params)
-print('Training ShelfNet-LW trainer: ' + experiment_name)
+print('Training ShelfNet-LW model: ' + experiment_name)
 trainer.train(training_params=shelfnet_lw_pascal_aug_training_params)

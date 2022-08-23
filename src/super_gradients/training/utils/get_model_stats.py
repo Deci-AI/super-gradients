@@ -11,7 +11,7 @@ def get_model_stats(model: nn.Module, input_dims: Union[list, tuple], high_verbo
                     device: str = 'cuda',  # noqa: C901
                     dtypes=None, iterations: int = 100):
     """
-    return the trainer summary as a string
+    return the model summary as a string
     The block(type) column represents the lines (layers) above
         :param dtypes:          The input types (list of inputs types)
         :param high_verbosity:  prints layer by layer information

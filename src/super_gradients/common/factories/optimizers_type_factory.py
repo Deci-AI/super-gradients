@@ -12,7 +12,7 @@ class OptimizersTypeFactory(AbstractFactory):
     """
     This is a special factory for torch.optim.Optimizer.
     This factory does not instantiate an object but rather return the type, since optimizer instantiation
-    requires the trainer to be instantiated first
+    requires the model to be instantiated first
     """
 
     def __init__(self):

@@ -27,31 +27,31 @@ class SgModule(nn.Module):
 
     def get_include_attributes(self) -> list:
         """
-        This function is used by the EMA. When updating the EMA trainer, some attributes of the main trainer (used in training)
-        are updated to the EMA trainer along with the trainer weights.
+        This function is used by the EMA. When updating the EMA model, some attributes of the main model (used in training)
+        are updated to the EMA model along with the model weights.
         By default, all attributes are updated except for private attributes (starting with '_')
         You can either set include_attributes or exclude_attributes. By returning a non empty list from this function,
         you override the default behaviour and only attributes named in this list will be updated.
         Note: This will also override the get_exclude_attributes list.
-            :return: list of attributes to update from main trainer to EMA trainer
+            :return: list of attributes to update from main model to EMA model
         """
         return []
 
     def get_exclude_attributes(self) -> list:
         """
-        This function is used by the EMA. When updating the EMA trainer, some attributes of the main trainer (used in training)
-        are updated to the EMA trainer along with the trainer weights.
+        This function is used by the EMA. When updating the EMA model, some attributes of the main model (used in training)
+        are updated to the EMA model along with the model weights.
         By default, all attributes are updated except for private attributes (starting with '_')
         You can either set include_attributes or exclude_attributes. By returning a non empty list from this function,
         you override the default behaviour and attributes named in this list will also be excluded from update.
         Note: if get_include_attributes is not empty, it will override this list.
-            :return: list of attributes to not update from main trainer to EMA mode
+            :return: list of attributes to not update from main model to EMA mode
         """
         return []
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         """
-        Prepare the trainer to be converted to ONNX or other frameworks.
+        Prepare the model to be converted to ONNX or other frameworks.
         Typically, this function will freeze the size of layers which is otherwise flexible, replace some modules
         with convertible substitutes and remove all auxiliary or training related parts.
         :param input_size: [H,W]

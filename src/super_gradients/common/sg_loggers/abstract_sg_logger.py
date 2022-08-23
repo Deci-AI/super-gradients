@@ -125,8 +125,8 @@ class AbstractSGLogger(ABC):
         Typically, this function will write a torch file to disk, upload it to remote storage or to experiment management framework.
 
         :param tag: Data identifier
-        :param state_dict: the state dict to save. The state dict includes more than just the trainer weight and may include any of:
-                net: trainer weights
+        :param state_dict: the state dict to save. The state dict includes more than just the model weight and may include any of:
+                net: model weights
                 acc: current accuracy (depends on metrics)
                 epoch: current epoch
                 optimizer_state_dict: optimizer state

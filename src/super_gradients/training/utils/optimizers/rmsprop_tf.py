@@ -65,7 +65,7 @@ class RMSpropTF(Optimizer):
     def step(self, closure=None):  # noqa: C901
         """Performs a single optimization step.
         Arguments:
-            closure (callable, optional): A closure that reevaluates the trainer
+            closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
         """
         loss = None

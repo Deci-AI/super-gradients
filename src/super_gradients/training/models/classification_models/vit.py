@@ -121,8 +121,8 @@ class ViT(SgModule):
     def __init__(self, image_size: tuple, patch_size: tuple, num_classes: int, hidden_dim: int, depth: int, heads: int,
                  mlp_dim: int, in_channels=3, dropout_prob=0., emb_dropout_prob=0., backbone_mode=False):
         '''
-        :param image_size: Image size tuple for data processing into patches done within the trainer.
-        :param patch_size: Patch size tuple for data processing into patches done within the trainer.
+        :param image_size: Image size tuple for data processing into patches done within the model.
+        :param patch_size: Patch size tuple for data processing into patches done within the model.
         :param num_classes: Number of classes for the classification head.
         :param hidden_dim: Output dimension of each transformer block.
         :param depth: Number of transformer blocks

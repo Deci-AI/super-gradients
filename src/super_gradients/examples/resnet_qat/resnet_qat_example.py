@@ -6,12 +6,12 @@ The purpose of this example is to demonstrate the usage of QAT in super_gradient
 Behind the scenes, when passing enable_qat=True, a callback for QAT will be added.
 
 Once triggered, the following will happen:
-- The trainer will be rebuilt with quantized nn.modules.
+- The model will be rebuilt with quantized nn.modules.
 - The pretrained imagenet weights will be loaded to it.
 - We perform calibration with 2 batches from our training set (1024 samples = 8 gpus X 128 samples_per_batch).
-- We evaluate the calibrated trainer (accuracy is logged under calibrated_model_accuracy).
+- We evaluate the calibrated model (accuracy is logged under calibrated_model_accuracy).
 - The calibrated checkpoint prior to QAT is saved under ckpt_calibrated_{calibration_method}.pth.
-- We fine tune the calibrated trainer for 1 epoch.
+- We fine tune the calibrated model for 1 epoch.
 
 Finally, once training is over- we trigger a pos-training callback that will export the ONNX files.
 

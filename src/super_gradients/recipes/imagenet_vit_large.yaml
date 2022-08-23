@@ -1,7 +1,7 @@
 #  ViT Imagenet1K fine tuning from Imagenet21K classification training:
 #  This example trains with batch_size = 32 * 8 GPUs, total 256.
 #  Training time on 8 x GeForce RTX A5000 is 52min / epoch.
-#  ViT Large : 85.64 (Final averaged trainer)
+#  ViT Large : 85.64 (Final averaged model)
 #
 #  Log and tensorboard at s3://deci-pretrained-models/vit_large_cutmix_randaug_v2_lr=0.03/
 
