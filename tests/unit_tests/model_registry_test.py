@@ -35,6 +35,10 @@ class ModelRegistryTest(unittest.TestCase):
         def myconvnet_for_cifar10():
             return MyConvNet(num_classes=10)
 
+    def tearDown(self):
+        ARCHITECTURES.pop('MyConvNet', None)
+        ARCHITECTURES.pop('myconvnet_for_cifar10', None)
+
     def test_cls_is_registered(self):
         assert ARCHITECTURES['MyConvNet']
 
@@ -54,6 +58,12 @@ class ModelRegistryTest(unittest.TestCase):
         x = model_1(dummy_input)
         y = model_2(dummy_input)
         assert torch.equal(x, y)
+
+    def test_existing_key(self):
+        with self.assertRaises(Exception):
+            @register
+            def myconvnet_for_cifar10():
+                return
 
 
 if __name__ == '__main__':
