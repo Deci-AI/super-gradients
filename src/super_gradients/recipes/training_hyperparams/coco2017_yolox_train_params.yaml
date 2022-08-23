@@ -38,7 +38,7 @@ valid_metrics_list:
         conf: 0.01
       num_cls: 80
 
-pre_prediction_callback:
+pre_prediction_callback: # DetectionMultiscalePrePredictionCallback
 
 phase_callbacks:
   - YoloXTrainingStageSwitchCallback:
@@ -50,7 +50,7 @@ greater_metric_to_watch_is_better: True
 
 sg_logger: "wandb_sg_logger"
 sg_logger_params:
-  project_name: yolox_loss
+  project_name: yolox_sg
   entity: algo
   api_server: "https://wandb.research.deci.ai"
   save_checkpoints_remote: True

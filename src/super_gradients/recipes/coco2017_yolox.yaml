@@ -10,7 +10,7 @@
 # yolox_s: 1d 17h 40m 30s on 8 NVIDIA RTX A5000, mAP: 40.47
 # yolox_m: 1d 22h 23m 43s on 8 NVIDIA GeForce RTX 3090, mAP: 46.40
 # yolox_l: 2d 14h 11m 41s on 8 NVIDIA GeForce RTX 3090, mAP: 49.25
-
+# python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s experiment_name=test training_hyperparams.loss=yolox_fast_loss training_hyperparams.pre_prediction_callback=DetectionMultiscalePrePredictionCallback dataset_params.filter_box_candidates=True
 defaults:
   - training_hyperparams: coco2017_yolox_train_params
   - dataset_params: coco_detection_yolox_dataset_params
