@@ -522,7 +522,7 @@ class Trainer:
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, training_params: dict = dict()):  # noqa: C901
+    def train(self, train_loader: DataLoader = None, valid_loader: DataLoader = None, training_params: dict = dict()):  # noqa: C901
         """
 
         train - Trains the Model
@@ -531,7 +531,8 @@ class Trainer:
           the data loaders, as dictionary. The phase context will hold the additional items, under an attribute with
           the same name as the key in this dictionary. Then such items can be accessed through phase callbacks.
 
-
+            :param train_loader: Dataloader for train set.
+            :param valid_loader: Dataloader for validation.
             :param training_params:
                 - `max_epochs` : int
 
@@ -797,6 +798,9 @@ class Trainer:
         :return:
         """
         global logger
+
+        self.train_loader = train_loader or self.train_loader
+        self.valid_loader = valid_loader or self.valid_loader
 
         if self.net is None:
             raise Exception('Model', 'No model found')
