@@ -839,11 +839,6 @@ class Trainer:
         self.train_loader = train_loader or self.train_loader
         self.valid_loader = valid_loader or self.valid_loader
 
-        if self.net is None:
-            raise Exception('Model', 'No model found')
-        if self.dataset_interface is None and self.train_loader is None:
-            raise Exception('Data', 'No dataset found')
-
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
