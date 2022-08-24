@@ -65,13 +65,13 @@ class TestTrainer(unittest.TestCase):
         params["save_ckpt_epoch_list"] = [1]
         trainer.train(model=model, training_params=params)
         ckpt_filename = ['ckpt_best.pth', 'ckpt_latest.pth', 'ckpt_epoch_1.pth']
-        ckpt_paths = [os.path.join(model.checkpoints_dir_path, suf) for suf in ckpt_filename]
+        ckpt_paths = [os.path.join(trainer.checkpoints_dir_path, suf) for suf in ckpt_filename]
         for ckpt_path in ckpt_paths:
             ckpt = torch.load(ckpt_path)
             self.assertListEqual(['net', 'acc', 'epoch', 'optimizer_state_dict', 'scaler_state_dict'],
                                  list(ckpt.keys()))
-        model._save_checkpoint()
-        weights_only = torch.load(os.path.join(model.checkpoints_dir_path, 'ckpt_latest_weights_only.pth'))
+        trainer._save_checkpoint()
+        weights_only = torch.load(os.path.join(trainer.checkpoints_dir_path, 'ckpt_latest_weights_only.pth'))
         self.assertListEqual(['net'], list(weights_only.keys()))
 
 
