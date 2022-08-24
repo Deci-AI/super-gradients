@@ -45,7 +45,7 @@ class TestDetectionUtils(unittest.TestCase):
                                                                 "area_thr": 0
                                                                 })
 
-        # Create Yolo trainer
+        # Create Yolo model
         trainer = Trainer('visualization_test',
                           model_checkpoints_location='local',
                           post_prediction_callback=YoloPostPredictionCallback())
