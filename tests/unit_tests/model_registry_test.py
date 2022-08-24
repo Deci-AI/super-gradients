@@ -11,7 +11,7 @@ from super_gradients.training.models.model_registry import register
 class ModelRegistryTest(unittest.TestCase):
 
     def setUp(self):
-        @register
+        @register('myconvnet')
         class MyConvNet(nn.Module):
             def __init__(self, num_classes):
                 super().__init__()
@@ -31,29 +31,29 @@ class ModelRegistryTest(unittest.TestCase):
                 x = self.fc3(x)
                 return x
 
-        @register
+        @register()
         def myconvnet_for_cifar10():
             return MyConvNet(num_classes=10)
 
     def tearDown(self):
-        ARCHITECTURES.pop('MyConvNet', None)
+        ARCHITECTURES.pop('myconvnet', None)
         ARCHITECTURES.pop('myconvnet_for_cifar10', None)
 
     def test_cls_is_registered(self):
-        assert ARCHITECTURES['MyConvNet']
+        assert ARCHITECTURES['myconvnet']
 
     def test_fn_is_registered(self):
         assert ARCHITECTURES['myconvnet_for_cifar10']
 
     def test_model_is_instantiable(self):
         assert ARCHITECTURES['myconvnet_for_cifar10']()
-        assert ARCHITECTURES['MyConvNet'](num_classes=10)
+        assert ARCHITECTURES['myconvnet'](num_classes=10)
 
     def test_model_outputs(self):
         torch.manual_seed(0)
         model_1 = ARCHITECTURES['myconvnet_for_cifar10']()
         torch.manual_seed(0)
-        model_2 = ARCHITECTURES['MyConvNet'](num_classes=10)
+        model_2 = ARCHITECTURES['myconvnet'](num_classes=10)
         dummy_input = torch.randn(1, 3, 32, 32, requires_grad=False)
         x = model_1(dummy_input)
         y = model_2(dummy_input)
@@ -61,7 +61,7 @@ class ModelRegistryTest(unittest.TestCase):
 
     def test_existing_key(self):
         with self.assertRaises(Exception):
-            @register
+            @register()
             def myconvnet_for_cifar10():
                 return
 

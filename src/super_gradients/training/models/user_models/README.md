@@ -2,14 +2,18 @@
   <img src="docs/assets/SG_img/SG - Horizontal.png" width="600"/>
  <br/><br/>
 
+## Introduction
+This page demonstrates how you can register your own models, so that SuperGradients can access it with a name `str`, for
+example, when training from a recipe config `architecture: my_custom_model`.
+
 ## Usage
 1. Create a new Python module in this folder (e.g. `.../user_models/my_model.py`).
 2. Define your PyTorch model (`torch.nn.Module`) in the new module.
 3. Import the `@register` decorator 
-`from super_gradients.training.models.model_registry import register` and apply it to your model
+`from super_gradients.training.models.model_registry import register` and apply it to your model.
    * The decorator can be applied directly to the class or to a function returning the class.
-4. SuperGradients can now access your model in config recipes via `str` name of your function or class (e.g. `architecture: YourNetName`)
-
+   * The decorator takes an optional `name: str` argument. If not specified, the decorated class/function name will be registered.
+   
 ## Example
 ```python
 import torch.nn as nn
@@ -17,7 +21,7 @@ import torch.nn.functional as F
 
 from super_gradients.training.models.model_registry import register
 
-@register # will be registered as "MyConvNet"
+@register('my_conv_net') # will be registered as "my_conv_net"
 class MyConvNet(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
@@ -39,7 +43,7 @@ class MyConvNet(nn.Module):
 ```
 or
 ```python
-@register
+@register()
 def myconvnet_for_cifar10(): # will be registered as "myconvnet_for_cifar10"
     return MyConvNet(num_classes=10)
 ```
