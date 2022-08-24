@@ -32,9 +32,9 @@ dataset_interface:
 data_loader_num_workers: 8
 
 model_checkpoints_location: local
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: mobileNetv2_training
 

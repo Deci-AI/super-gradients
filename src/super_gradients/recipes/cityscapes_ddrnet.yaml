@@ -100,9 +100,8 @@ arch_params:
 load_checkpoint: False
 checkpoint_params:
   load_checkpoint: ${load_checkpoint}
-  external_checkpoint_path:
+  checkpoint_path:
   load_backbone: True
-  load_weights_only: True
   strict_load: no_key_matching
 
 architecture: ddrnet_23
@@ -112,7 +111,7 @@ model_checkpoints_location: local
 ckpt_root_dir:
 
 multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
+  _target_: super_gradients.training.sg_trainer.MultiGPUMode
   value: 'DDP'
 
 

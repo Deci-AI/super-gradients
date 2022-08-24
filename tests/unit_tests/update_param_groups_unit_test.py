@@ -35,7 +35,6 @@ class UpdateParamGroupsTest(unittest.TestCase):
         net = TestNet()
         trainer = Trainer("lr_warmup_test", model_checkpoints_location='local')
         trainer.connect_dataset_interface(self.dataset)
-        trainer.build_model(net, arch_params=self.arch_params)
 
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
@@ -53,6 +52,6 @@ class UpdateParamGroupsTest(unittest.TestCase):
                         }
 
         expected_lrs = np.array([0.1, 0.2, 0.3])
-        trainer.train(train_params)
+        trainer.train(model=net, training_params=train_params)
 
         self.assertTrue(np.allclose(np.array(lrs), expected_lrs, rtol=0.0000001))

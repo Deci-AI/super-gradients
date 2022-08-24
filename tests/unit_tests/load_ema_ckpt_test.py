@@ -1,9 +1,20 @@
 import unittest
 from super_gradients.training import Trainer
 from super_gradients.training.metrics import Accuracy, Top5
+from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
 from super_gradients.training.utils.utils import check_models_have_same_weights
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
+from copy import deepcopy
+
+
+class PreTrainingEMANetCollector(PhaseCallback):
+    def __init__(self):
+        super(PreTrainingEMANetCollector, self).__init__(phase=Phase.PRE_TRAINING)
+        self.net = None
+
+    def __call__(self, context: PhaseContext):
+        self.net = deepcopy(context.ema_model)
 
 
 class LoadCheckpointWithEmaTest(unittest.TestCase):
@@ -23,21 +34,22 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
         trainer = Trainer("ema_ckpt_test", model_checkpoints_location='local')
 
         trainer.connect_dataset_interface(self.dataset)
-        trainer.build_model(net, arch_params={'num_classes': 10})
 
-        trainer.train(self.train_params)
+        trainer.train(model=net, training_params=self.train_params)
 
         ema_model = trainer.ema_model.ema
 
+        # TRAIN FOR 1 MORE EPOCH AND COMPARE THE NET AT THE BEGINNING OF EPOCH 3 AND THE END OF EPOCH NUMBER 2
         net = LeNet()
         trainer = Trainer("ema_ckpt_test", model_checkpoints_location='local')
-        trainer.build_model(net, arch_params={'num_classes': 10}, checkpoint_params={'load_checkpoint': True})
         trainer.connect_dataset_interface(self.dataset)
+        net_collector = PreTrainingEMANetCollector()
+        self.train_params["resume"] = True
+        self.train_params["max_epochs"] = 3
+        self.train_params["phase_callbacks"] = [net_collector]
+        trainer.train(model=net, training_params=self.train_params)
 
-        # TRAIN FOR 0 EPOCHS JUST TO SEE THAT WHEN CONTINUING TRAINING EMA MODEL HAS BEEN SAVED CORRECTLY
-        trainer.train(self.train_params)
-
-        reloaded_ema_model = trainer.ema_model.ema
+        reloaded_ema_model = net_collector.net.ema
 
         # ASSERT RELOADED EMA MODEL HAS THE SAME WEIGHTS AS THE EMA MODEL SAVED IN FIRST PART OF TRAINING
         assert check_models_have_same_weights(ema_model, reloaded_ema_model)
