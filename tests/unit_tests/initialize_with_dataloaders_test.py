@@ -62,23 +62,26 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                 classes=self.testcase_classes)
 
     def test_train_with_dataloaders(self):
-        trainer = Trainer(experiment_name="test_name", model_checkpoints_location="local",
-                          train_loader=self.testcase_trainloader, valid_loader=self.testcase_validloader,
-                          classes=self.testcase_classes)
+        trainer = Trainer(experiment_name="test_name", model_checkpoints_location="local")
 
+        trainer.build_model("resnet18")
         model = models.get("resnet18", arch_params={"num_classes": 5})
-        trainer.train(model=model, training_params={"max_epochs": 2,
-                                                    "lr_updates": [5, 6, 12],
-                                                    "lr_decay_factor": 0.01,
-                                                    "lr_mode": "step",
-                                                    "initial_lr": 0.01,
-                                                    "loss": "cross_entropy",
-                                                    "optimizer": "SGD",
-                                                    "optimizer_params": {"weight_decay": 1e-5, "momentum": 0.9},
-                                                    "train_metrics_list": [Accuracy()],
-                                                    "valid_metrics_list": [Accuracy()],
-                                                    "metric_to_watch": "Accuracy",
-                                                    "greater_metric_to_watch_is_better": True})
+        trainer.train(model=model,
+                      training_params={"max_epochs": 2,
+                                       "lr_updates": [5, 6, 12],
+                                       "lr_decay_factor": 0.01,
+                                       "lr_mode": "step",
+                                       "initial_lr": 0.01,
+                                       "loss": "cross_entropy",
+                                       "optimizer": "SGD",
+                                       "optimizer_params": {"weight_decay": 1e-5, "momentum": 0.9},
+                                       "train_metrics_list": [Accuracy()],
+                                       "valid_metrics_list": [Accuracy()],
+                                       "metric_to_watch": "Accuracy",
+                                       "greater_metric_to_watch_is_better": True},
+                      train_loader=self.testcase_trainloader,
+                      valid_loader=self.testcase_validloader,
+                      )
         self.assertTrue(0 < trainer.best_metric.item() < 1)
 
 

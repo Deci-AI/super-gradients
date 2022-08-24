@@ -556,7 +556,7 @@ class Trainer:
         self._load_checkpoint_to_model()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, model: nn.Module = None, training_params: dict = dict(), *args, **kwargs):  # noqa: C901
+    def train(self, model: nn.Module = None, training_params: dict = dict(), train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
         """
 
         train - Trains the Model
@@ -568,6 +568,8 @@ class Trainer:
             :param model: torch.nn.Module, model to train. When none is given will attempt to use self.net
              (SEE BUILD_MODEL DEPRECATION) (default=None).
 
+            :param train_loader: Dataloader for train set.
+            :param valid_loader: Dataloader for validation.
             :param training_params:
                 - `max_epochs` : int
 
@@ -834,8 +836,8 @@ class Trainer:
         """
         global logger
 
-        if self.dataset_interface is None and self.train_loader is None:
-            raise Exception('Data', 'No dataset found')
+        self.train_loader = train_loader or self.train_loader
+        self.valid_loader = valid_loader or self.valid_loader
 
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
