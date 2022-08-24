@@ -7,8 +7,13 @@ from hydra.core.global_hydra import GlobalHydra
 from typing import Dict
 
 import torchvision.datasets as torch_datasets
+import torchvision.transforms as torch_transforms
 
 import super_gradients
+
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.transforms_factory import TransformsFactory
+
 from torch.utils.data import BatchSampler, DataLoader
 from super_gradients.training.utils import get_param
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
@@ -107,6 +112,7 @@ def coco2017_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
                            )
 
 
+<<<<<<< HEAD
 def coco2017_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="coco_detection_dataset_params",
                            dataset_cls=COCODetectionDataset,
@@ -114,11 +120,25 @@ def coco2017_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
                            )
+=======
+def coco2017_val(dataset_params={}, dataloader_params={}):
+    return _get_data_loader(config_name="coco_detection_yolox_dataset_params",
+                            dataset_cls=COCODetectionDataset,
+                            train=False,
+                            dataset_params=dataset_params,
+                            dataloader_params=dataloader_params
+                            )
+>>>>>>> 55e97b4f (base working)
+
+class ImageFolder(torch_datasets.ImageFolder):
+    @resolve_param('transform', factory=TransformsFactory())
+    def __init__(self, root: str, transform: torch_transforms.Compose = None, *args, **kwargs):
+        super(ImageFolder, self).__init__(root, transform, *args, **kwargs)
 
 
 def imagenet_train(dataset_params={}, dataloader_params={}):
-    return _get_data_loader(config_name="coco2017_yolox",
-                            dataset_cls=torch_datasets.ImageFolder,
+    return _get_data_loader(config_name="imagenet_base",
+                            dataset_cls=ImageFolder,
                             train=True,
                             dataset_params=dataset_params,
                             dataloader_params=dataloader_params
@@ -126,8 +146,8 @@ def imagenet_train(dataset_params={}, dataloader_params={}):
 
 
 def imagenet_val(dataset_params={}, dataloader_params={}):
-    return _get_data_loader(config_name="coco2017_yolox",
-                            dataset_cls=torch_datasets.ImageFolder,
+    return _get_data_loader(config_name="imagenet_base",
+                            dataset_cls=ImageFolder,
                             train=False,
                             dataset_params=dataset_params,
                             dataloader_params=dataloader_params

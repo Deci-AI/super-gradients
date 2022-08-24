@@ -1,66 +1,67 @@
-batch_size: 64 # batch size for trainset in DatasetInterface
-val_batch_size: 200 # batch size for valset in DatasetInterface
 dataset_dir: /data/Imagenet # path to imagenet directory (local)
-traindir: train # dirname inside dataset_dir holding trainset files
-valdir: val # dirname inside dataset_dir holding valset files
 img_mean: [0.485, 0.456, 0.406] # mean for normalization
 img_std: [0.229, 0.224, 0.225] # std for normalization
-crop_size: 224 # crop size (size of net's input)
-resize_size: 256 # loaded image resize size (appplied first among preprocessing transforms)
-color_jitter: 0.0 # color jitter augmentation (applied only to trainset)
-imagenet_pca_aug: 0.0 # imagenet pca augmentation (applied only to trainset)
-train_interpolation: default # interpolation mode
-rand_augment_config_string: # randaugment config string (see super_gradients/training/datasets/auto_augment.py)
-random_erase_prob: 0.0 # random erase probability (applied only to trainset)
+
 aug_repeat_count: 0 # amount of repetitions (each repetition of an example is augmented differently) for a trainset example.
 
 train_dataset_params:
-  root: ${dataset_params.dataset_dir}
+  root: ${dataset_params.dataset_dir}/train
   transform:
-    - RandomResizedCropAndInterpolation:
-      size: crop_size
-      interpolation: train_interpolation
-    - RandomHorizontalFlip
-    - get_color_augmentation:
-      rand_augment_config_string: rand_augment_config_string
-      color_jitter: (color_jitter, color_jitter, color_jitter)
-    - ToTensor
-    - Lighting:
-      alphastd: imagenet_pca_aug
-    - Normalize
+    Compose:
+      transforms:
+        - RandomResizedCropAndInterpolation:
+            size: 224 # crop size (size of net's input)
+            interpolation: default # interpolation mode
+        - RandomHorizontalFlip
+        - color_augmentation:
+            rand_augment_config_string: # randaugment config string (see super_gradients/training/datasets/auto_augment.py)
+            color_jitter: [0., 0., 0.]
+            crop_size: 224 # crop size (size of net's input)
+            img_mean: ${dataset_params.img_mean}
+        - ToTensor
+        - Lighting:
+            alphastd: 0. # imagenet pca augmentation (applied only to trainset)
+        - Normalize:
+            mean: ${dataset_params.img_mean}
+            std: ${dataset_params.img_std}
+        - RandomErase:
+            probability: 0. # random erase probability (applied only to trainset)
+            value: 0.
 
 val_dataset_params:
-  root: ${dataset_params.dataset_dir}
+  root: ${dataset_params.dataset_dir}/val
   transform:
-    - Resize:
-      size: resize_size
-    - CenterCrop:
-      size: crop_size
-    - ToTensor
-    - Normalize
-
-#
-#train_dataloader_params:
-#  sampler: BatchSampler
-#    sampler:
-#            sampler=train_sampler,
-#            batch_size=self.dataset_params.batch_size,
-#            drop_last=False,
-#        )
+    Compose:
+      transforms:
+        - Resize:
+            size: 256 # loaded image resize size (appplied first among preprocessing transforms)
+        - CenterCrop:
+            size: 224 # crop size (size of net's input)
+        - ToTensor
+        - Normalize:
+            mean: ${dataset_params.img_mean}
+            std: ${dataset_params.img_std}
 
 train_dataloader_params:
-  batch_size: 16
+  batch_size: 64
   num_workers: 8
-  batch_sampler: True
-  sampler:
-    InfiniteSampler:
-      seed: 0
   drop_last: False
   pin_memory: True
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
-  collate_fn: # collate function for trainset
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+#  collate_fn:
+#    _target_: torch.utils.data._utils.collate.default_collate
 
 val_dataloader_params:
+  batch_size: 200
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+  worker_init_fn:
+    _target_: super_gradients.training.utils.utils.load_func
+    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
+#  collate_fn:
+#    _target_: torch.utils.data._utils.collate.default_collate
+
+_convert_: all
