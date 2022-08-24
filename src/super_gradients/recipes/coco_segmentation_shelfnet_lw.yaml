@@ -32,9 +32,7 @@ training_hyperparams:
 
 experiment_name: coco_segmentation_21_subclass_shelfnet34
 
-multi_gpu:
-  _target_: super_gradients.training.sg_trainer.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 
 ckpt_root_dir:
 

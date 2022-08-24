@@ -35,8 +35,6 @@ training_hyperparams:
 
 experiment_name: repvgg_a0_imagenet_reproduce_fix
 
-multi_gpu:
-  _target_: super_gradients.training.sg_trainer.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 
 architecture: repvgg_a0
