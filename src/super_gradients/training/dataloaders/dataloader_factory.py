@@ -35,13 +35,13 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params={}, dataload
         # config is relative to a module
         cfg = compose(config_name=os.path.join("dataset_params", config_name))
 
-        _process_dataset_params(cfg, dataset_params, train)
+        dataset_params = _process_dataset_params(cfg, dataset_params, train)
 
         local_rank = get_local_rank()
         with wait_for_the_master(local_rank):
             dataset = dataset_cls(**dataset_params)
 
-        _process_dataloader_params(cfg, dataloader_params, dataset, train)
+        dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
 
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
         return dataloader
@@ -53,6 +53,8 @@ def _process_dataset_params(cfg, dataset_params, train):
     for key, val in default_dataset_params.items():
         if key not in dataset_params.keys() or dataset_params[key] is None:
             dataset_params[key] = val
+
+    return dataset_params
 
 
 def _process_dataloader_params(cfg, dataloader_params, dataset, train):
@@ -74,6 +76,8 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
         sampler = dataloader_params.pop("sampler")
         batch_size = dataloader_params.pop("batch_size")
         dataloader_params["batch_sampler"] = BatchSampler(sampler=sampler, batch_size=batch_size, drop_last=False)
+
+    return dataloader_params
 
 
 def _override_default_params_without_nones(params, default_params):
