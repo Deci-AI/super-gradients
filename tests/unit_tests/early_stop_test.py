@@ -62,7 +62,6 @@ class EarlyStopTest(unittest.TestCase):
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
         trainer.connect_dataset_interface(self.dataset)
-        trainer.build_model(self.net)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -72,7 +71,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 5
 
@@ -86,7 +85,6 @@ class EarlyStopTest(unittest.TestCase):
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
         trainer.connect_dataset_interface(self.dataset)
-        trainer.build_model(self.net)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=3,
                                    verbose=True)
@@ -98,7 +96,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params.update(
             {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 6
 
@@ -110,7 +108,6 @@ class EarlyStopTest(unittest.TestCase):
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
         trainer.connect_dataset_interface(self.dataset)
-        trainer.build_model(self.net)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", threshold=0.1, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -120,7 +117,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 5
         # count divided by 2, because loss counter used for both train and eval.
@@ -132,7 +129,6 @@ class EarlyStopTest(unittest.TestCase):
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
         trainer.connect_dataset_interface(self.dataset)
-        trainer.build_model(self.net)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", threshold=0.94,
                                    verbose=True)
@@ -144,7 +140,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params.update(
             {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 7
 
@@ -157,7 +153,6 @@ class EarlyStopTest(unittest.TestCase):
         # test Nan value
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
         trainer.connect_dataset_interface(self.dataset)
-        trainer.build_model(self.net)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", check_finite=True,
                                     verbose=True)
@@ -168,7 +163,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 2
 
@@ -187,7 +182,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 3
         # count divided by 2, because loss counter used for both train and eval.
@@ -200,7 +195,6 @@ class EarlyStopTest(unittest.TestCase):
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
         trainer.connect_dataset_interface(self.dataset)
-        trainer.build_model(self.net)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=2,
                                    min_delta=0.1, verbose=True)
@@ -212,7 +206,7 @@ class EarlyStopTest(unittest.TestCase):
         train_params.update(
             {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(train_params)
+        trainer.train(model=self.net, training_params=train_params)
 
         excepted_end_epoch = 5
 

@@ -52,8 +52,9 @@ arch_params:
 dataset_interface:
   coco2017_detection:
     dataset_params: ${dataset_params}
-
+resume: False
 training_hyperparams:
+  resume: ${resume}
   criterion_params:
     alpha: 1.0
     dboxes: ${dboxes}
