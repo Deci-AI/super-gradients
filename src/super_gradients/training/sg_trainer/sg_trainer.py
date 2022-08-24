@@ -564,7 +564,7 @@ class Trainer:
           the data loaders, as dictionary. The phase context will hold the additional items, under an attribute with
           the same name as the key in this dictionary. Then such items can be accessed through phase callbacks.
 
-            :param model: torch.nn.Module, network to train. When none is given will attempt to use self.net
+            :param model: torch.nn.Module, model to train. When none is given will attempt to use self.net
              (SEE BUILD_MODEL DEPRECATION) (default=None).
 
             :param training_params:
@@ -1521,7 +1521,7 @@ class Trainer:
              use_ema_net=True) -> tuple:
         """
         Evaluates the model on given dataloader and metrics.
-        :param model: net to perfrom test on. When none is given, will try to use self.net (defalut=None).
+        :param model: model to perfrom test on. When none is given, will try to use self.net (defalut=None).
         :param test_loader: dataloader to perform test on.
         :param test_metrics_list: (list(torchmetrics.Metric)) metrics list for evaluation.
         :param silent_mode: (bool) controls verbosity

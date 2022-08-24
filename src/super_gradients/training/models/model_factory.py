@@ -10,7 +10,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
-def instantiate_net(name: str, arch_params: dict, pretrained_weights: str = None) -> SgModule:
+def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = None) -> SgModule:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
         module manipulation (i.e head replacement).
@@ -19,7 +19,7 @@ def instantiate_net(name: str, arch_params: dict, pretrained_weights: str = None
     :param arch_params: Architecture's parameters passed to models c'tor.
     :param pretrained_weights: string describing the dataset of the pretrained weights (for example "imagenent")
 
-    :return: instantiated netowrk i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
+    :return: instantiated model i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
 
     """
 
@@ -79,7 +79,7 @@ def get(name: str, arch_params: dict = {}, num_classes: int = None,
         arch_params["num_classes"] = num_classes
 
     arch_params = core_utils.HpmStruct(**arch_params)
-    net = instantiate_net(name, arch_params, )
+    net = instantiate_model(name, arch_params, pretrained_weights)
 
     if checkpoint_path:
         load_ema_as_net = 'ema_net' in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
