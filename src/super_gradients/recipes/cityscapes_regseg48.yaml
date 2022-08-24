@@ -6,14 +6,8 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet
-
-
-
-# Instructions:
-#   1. move the the project root (where you will find the ReadMe and src folder)
-#   2. run the command:
-#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=regseg48_cityscapes
+#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_regseg48
+#
 #
 #  Validation mIoU - Cityscapes, training time:
 #      RegSeg48:    input-size: [1024, 2048]     mIoU: 78.15  using 4 GeForce RTX 2080 Ti with DDP, ~2 minutes / epoch

@@ -536,7 +536,7 @@ resnet50
 ```
 python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
 ```
-resnet50_kd
+resnet50_kd #TODO: retest (CUDA OUT OF MEMORY)
 ```
 python -m torch.distributed.launch --nproc_per_node=4  src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
 ```
@@ -544,7 +544,7 @@ vit_base
 ```
 python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
 ```
-vit_large
+vit_large #TODO: retest (RuntimeError: Unable to find a valid cuDNN algorithm to run convolution)
 ```
 python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_large
 ```
@@ -555,7 +555,7 @@ python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/exampl
 <details>
 <summary>Coco2017</summary>
 
-ssd_lite_mobilenet_v2 #TODO: RETEST
+ssd_lite_mobilenet_v2 #TODO: RETEST (RuntimeError: Unable to find a valid cuDNN algorithm to run convolution)
 ```
 python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2
 ```
@@ -594,11 +594,11 @@ python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/exampl
 
 DDRNet23
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path>
+python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet
 ```
 DDRNet23-Slim
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path> architecture=ddrnet_23_slim
+python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim
 ```
 RegSeg48
 ```
@@ -606,29 +606,21 @@ python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/exampl
 ```
 STDC1-Seg50
 ```
-python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path>
+python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50
 ```
 STDC2-Seg50
 ```
-python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path> architecture=stdc2_seg
+python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50 architecture=stdc2_seg
 ```
 STDC1-Seg75
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc1-backbone-pretrained-path>
+python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75
 ```
 STDC2-Seg75
 ```
 python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
 ```
 
-</details>
-<details>
-<summary>Coco2017</summary>
-
-coco_segmentation_shelfnet_lw
-```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco_segmentation_shelfnet_lw --model_checkpoints_location=<checkpoint-location>
-```
 </details>
 
 
