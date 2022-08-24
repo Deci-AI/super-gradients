@@ -88,9 +88,7 @@ experiment_name: resnet50_imagenet_KD_Model
 
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_trainer.MultiGPUMode
-  value: DDP
+multi_gpu: DDP
 
 architecture: kd_module
 student_architecture: resnet50

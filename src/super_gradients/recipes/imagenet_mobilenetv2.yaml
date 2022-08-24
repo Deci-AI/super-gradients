@@ -41,8 +41,6 @@ experiment_name: mobileNetv2_training
 
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_trainer.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 
 architecture: mobilenet_v2
