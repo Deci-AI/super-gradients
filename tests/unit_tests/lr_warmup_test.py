@@ -61,7 +61,7 @@ class LRWarmupTest(unittest.TestCase):
         self.assertListEqual(lrs, expected_lrs)
 
     def test_lr_warmup_with_lr_scheduling(self):
-        # Define trainer
+        # Define model
         net = LeNet()
         trainer = Trainer("lr_warmup_test", model_checkpoints_location='local')
         trainer.connect_dataset_interface(self.dataset)
@@ -85,7 +85,7 @@ class LRWarmupTest(unittest.TestCase):
         self.assertListEqual(lrs, expected_lrs)
 
     def test_warmup_initial_lr(self):
-        # Define trainer
+        # Define model
         net = LeNet()
         trainer = Trainer("test_warmup_initial_lr", model_checkpoints_location='local')
         trainer.connect_dataset_interface(self.dataset)
@@ -106,7 +106,7 @@ class LRWarmupTest(unittest.TestCase):
         self.assertListEqual(lrs, expected_lrs)
 
     def test_custom_lr_warmup(self):
-        # Define trainer
+        # Define model
         net = LeNet()
         trainer = Trainer("custom_lr_warmup_test", model_checkpoints_location='local')
         trainer.connect_dataset_interface(self.dataset)

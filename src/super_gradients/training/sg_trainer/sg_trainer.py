@@ -207,17 +207,17 @@ class Trainer:
         trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
         # BUILD NETWORK
-        net = models.get(name=cfg.architecture,
-                         num_classes=cfg.arch_params.num_classes,
-                         arch_params=cfg.arch_params,
-                         strict_load=cfg.checkpoint_params.strict_load,
-                         pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-                         checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-                         load_backbone=cfg.checkpoint_params.load_backbone
-                         )
+        model = models.get(name=cfg.architecture,
+                           num_classes=cfg.arch_params.num_classes,
+                           arch_params=cfg.arch_params,
+                           strict_load=cfg.checkpoint_params.strict_load,
+                           pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+                           checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+                           load_backbone=cfg.checkpoint_params.load_backbone
+                           )
 
         # TRAIN
-        trainer.train(model=net, training_params=cfg.training_hyperparams)
+        trainer.train(model=model, training_params=cfg.training_hyperparams)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
@@ -233,7 +233,8 @@ class Trainer:
             if not all([isinstance(train_loader.sampler, DistributedSampler),
                         isinstance(valid_loader.sampler, DistributedSampler),
                         test_loader is None or isinstance(test_loader.sampler, DistributedSampler)]):
-                logger.warning("DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
+                logger.warning(
+                    "DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
 
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
@@ -982,7 +983,8 @@ class Trainer:
             load_opt_params = False
 
         if isinstance(self.training_params.optimizer, str) or \
-                (inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)):
+                (inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer,
+                                                                                torch.optim.Optimizer)):
             self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr,
                                              training_params=self.training_params)
         elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
@@ -1001,8 +1003,10 @@ class Trainer:
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
-        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or \
-                                      (hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler))
+        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler,
+                                                                                            InfiniteSampler)) or \
+                                      (hasattr(self.train_loader, "batch_sampler") and isinstance(
+                                          self.train_loader.batch_sampler.sampler, InfiniteSampler))
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 

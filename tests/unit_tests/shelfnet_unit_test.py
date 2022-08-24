@@ -7,7 +7,7 @@ from super_gradients.training.models import ShelfNet18_LW, ShelfNet34_LW, ShelfN
 class TestShelfNet(unittest.TestCase):
     def test_shelfnet_creation(self):
         """
-        test_shelfnet_creation - Tests the creation of the trainer class itself
+        test_shelfnet_creation - Tests the creation of the model class itself
             :return:
         """
         dummy_input = torch.randn(1, 3, 512, 512)

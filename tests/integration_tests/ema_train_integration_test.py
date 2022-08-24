@@ -27,7 +27,7 @@ class EMAIntegrationTest(unittest.TestCase):
                                device='cpu', multi_gpu=MultiGPUMode.OFF)
         dataset_interface = ClassificationTestDatasetInterface({"batch_size": 32})
         self.trainer.connect_dataset_interface(dataset_interface, 8)
-        self.net = models.get("resnet18_cifar", arch_params={"num_classes": 5})
+        self.model = models.get("resnet18_cifar", arch_params={"num_classes": 5})
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -65,7 +65,7 @@ class EMAIntegrationTest(unittest.TestCase):
         self.trainer.test = CallWrapper(self.trainer.test, check_before=before_test)
         self.trainer._train_epoch = CallWrapper(self.trainer._train_epoch, check_before=before_train_epoch)
 
-        self.trainer.train(model=self.net, training_params=training_params)
+        self.trainer.train(model=self.model, training_params=training_params)
 
         self.assertIsNotNone(self.trainer.ema_model)
 

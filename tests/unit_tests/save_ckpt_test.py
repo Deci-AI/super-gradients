@@ -25,10 +25,10 @@ class SaveCkptListUnitTest(unittest.TestCase):
         trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
 
         # Build Model
-        net = models.get("resnet18_cifar", arch_params={"num_classes": 10})
+        model = models.get("resnet18_cifar", arch_params={"num_classes": 10})
 
         # Train Model (and save ckpt_epoch_list)
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=model, training_params=train_params)
 
         dir_path = trainer.checkpoints_dir_path
         self.file_names_list = [dir_path + f'/ckpt_epoch_{epoch}.pth' for epoch in train_params["save_ckpt_epoch_list"]]

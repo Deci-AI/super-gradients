@@ -50,14 +50,14 @@ class TestDetectionUtils(unittest.TestCase):
                           model_checkpoints_location='local',
                           post_prediction_callback=YoloPostPredictionCallback())
         trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
-        net = models.get("yolox_n", pretrained_weights="coco")
+        model = models.get("yolox_n", pretrained_weights="coco")
 
         # Simulate one iteration of validation subset
         valid_loader = trainer.valid_loader
         batch_i, (imgs, targets) = 0, next(iter(valid_loader))
         imgs = core_utils.tensor_container_to_device(imgs, trainer.device)
         targets = core_utils.tensor_container_to_device(targets, trainer.device)
-        output = net(imgs)
+        output = model(imgs)
         output = trainer.post_prediction_callback(output)
         # Visualize the batch
         DetectionVisualization.visualize_batch(imgs, output, targets, batch_i,

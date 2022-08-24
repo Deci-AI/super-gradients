@@ -25,7 +25,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         trainer.connect_dataset_interface(dataset)
 
-        net = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get("resnet18", arch_params={"num_classes": 5})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": torch.nn.CrossEntropyLoss(),
                         "optimizer": "SGD",
@@ -33,7 +33,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
                         "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=model, training_params=train_params)
 
     def test_train_with_external_optimizer(self):
         trainer = Trainer("external_optimizer_test", model_checkpoints_location='local')
@@ -41,15 +41,15 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         trainer.connect_dataset_interface(dataset)
 
-        net = models.get("resnet18", arch_params={"num_classes": 5})
-        optimizer = SGD(params=net.parameters(), lr=0.1)
+        model = models.get("resnet18", arch_params={"num_classes": 5})
+        optimizer = SGD(params=model.parameters(), lr=0.1)
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": optimizer,
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=model, training_params=train_params)
 
     def test_train_with_external_scheduler(self):
         trainer = Trainer("external_scheduler_test", model_checkpoints_location='local')
@@ -58,8 +58,8 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         trainer.connect_dataset_interface(dataset)
 
         lr = 0.3
-        net = models.get("resnet18", arch_params={"num_classes": 5})
-        optimizer = SGD(params=net.parameters(), lr=lr)
+        model = models.get("resnet18", arch_params={"num_classes": 5})
+        optimizer = SGD(params=model.parameters(), lr=lr)
         lr_scheduler = MultiStepLR(optimizer=optimizer, milestones=[1, 2], gamma=0.1)
         phase_callbacks = [LRSchedulerCallback(lr_scheduler, Phase.TRAIN_EPOCH_END)]
 
@@ -69,7 +69,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=model, training_params=train_params)
         assert lr_scheduler.get_last_lr()[0] == lr * 0.1 * 0.1
 
     def test_train_with_external_scheduler_class(self):
@@ -78,7 +78,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         trainer.connect_dataset_interface(dataset)
 
-        net = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get("resnet18", arch_params={"num_classes": 5})
         optimizer = SGD  # a class - not an instance
 
         train_params = {"max_epochs": 2,
@@ -87,7 +87,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=model, training_params=train_params)
 
     def test_train_with_reduce_on_plateau(self):
         trainer = Trainer("external_reduce_on_plateau_scheduler_test", model_checkpoints_location='local')
@@ -96,8 +96,8 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         trainer.connect_dataset_interface(dataset)
 
         lr = 0.3
-        net = models.get("resnet18", arch_params={"num_classes": 5})
-        optimizer = SGD(params=net.parameters(), lr=lr)
+        model = models.get("resnet18", arch_params={"num_classes": 5})
+        optimizer = SGD(params=model.parameters(), lr=lr)
         lr_scheduler = ReduceLROnPlateau(optimizer=optimizer, patience=0)
         phase_callbacks = [LRSchedulerCallback(lr_scheduler, Phase.VALIDATION_EPOCH_END, "ToyTestClassificationMetric")]
 
@@ -108,7 +108,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "valid_metrics_list": [Accuracy(), Top5(), ToyTestClassificationMetric()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=model, training_params=train_params)
         assert lr_scheduler._last_lr[0] == lr * 0.1
 
     def test_train_with_external_metric(self):
@@ -117,14 +117,14 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         trainer.connect_dataset_interface(dataset)
 
-        net = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get("resnet18", arch_params={"num_classes": 5})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=model, training_params=train_params)
 
     def test_train_with_external_dataloaders(self):
         trainer = Trainer("external_data_loader_test", model_checkpoints_location='local')
@@ -143,14 +143,14 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         dataset_interface = DatasetInterface(train_loader=train_loader, val_loader=val_loader, classes=classes)
         trainer.connect_dataset_interface(dataset_interface)
 
-        net = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get("resnet18", arch_params={"num_classes": 5})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=model, training_params=train_params)
 
 
 if __name__ == '__main__':

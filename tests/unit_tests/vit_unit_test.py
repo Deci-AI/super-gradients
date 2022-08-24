@@ -24,8 +24,8 @@ class TestViT(unittest.TestCase):
         """
         trainer = Trainer("test_vit_base", device='cpu')
         trainer.connect_dataset_interface(self.dataset, data_loader_num_workers=8)
-        net = models.get('vit_base', arch_params={"num_classes": 5})
-        trainer.train(model=net, training_params=self.train_params)
+        model = models.get('vit_base', arch_params={"num_classes": 5})
+        trainer.train(model=model, training_params=self.train_params)
 
 
 if __name__ == '__main__':

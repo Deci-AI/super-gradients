@@ -15,8 +15,8 @@ class QATIntegrationTest(unittest.TestCase):
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(dataset)
-        net = models.get("resnet18", pretrained_weights="imagenet")
-        return trainer, net
+        model = models.get("resnet18", pretrained_weights="imagenet")
+        return trainer, model
 
     def _get_train_params(self, qat_params):
         train_params = {"max_epochs": 2,

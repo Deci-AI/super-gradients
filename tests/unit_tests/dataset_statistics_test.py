@@ -57,7 +57,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                           model_checkpoints_location='local',
                           post_prediction_callback=YoloPostPredictionCallback())
         trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
-        net = models.get("yolox_s")
+        model = models.get("yolox_s")
 
         training_params = {"max_epochs": 1,  # we dont really need the actual training to run
                            "lr_mode": "cosine",
@@ -74,7 +74,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                            "loss_logging_items_names": ["iou", "obj", "cls", "l1", "num_fg", "Loss"],
                            "metric_to_watch": "mAP@0.50:0.95",
                            }
-        trainer.train(model=net, training_params=training_params)
+        trainer.train(model=model, training_params=training_params)
 
 
 if __name__ == '__main__':

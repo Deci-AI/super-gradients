@@ -41,29 +41,29 @@ class TestTrainer(unittest.TestCase):
         dataset_params = {"batch_size": 4}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params, image_size=224)
         trainer.connect_dataset_interface(dataset)
-        net = models.get("resnet18", arch_params={"num_classes": 5})
-        return trainer, net
+        model = models.get("resnet18", arch_params={"num_classes": 5})
+        return trainer, model
 
     def test_train(self):
-        model, net = self.get_classification_trainer(self.folder_names[0])
-        model.train(model=net, training_params=self.training_params)
+        trainer, model = self.get_classification_trainer(self.folder_names[0])
+        trainer.train(model=model, training_params=self.training_params)
 
     def test_save_load(self):
-        model, net = self.get_classification_trainer(self.folder_names[1])
-        model.train(model=net, training_params=self.training_params)
+        trainer, model = self.get_classification_trainer(self.folder_names[1])
+        trainer.train(model=model, training_params=self.training_params)
 
         resume_training_params = self.training_params.copy()
         resume_training_params["resume"] = True
         resume_training_params["max_epochs"] = 2
-        model, net = self.get_classification_trainer(self.folder_names[1])
-        model.train(model=net, training_params=resume_training_params)
+        trainer, model = self.get_classification_trainer(self.folder_names[1])
+        trainer.train(model=model, training_params=resume_training_params)
 
     def test_checkpoint_content(self):
         """VERIFY THAT ALL CHECKPOINTS ARE SAVED AND CONTAIN ALL THE EXPECTED KEYS"""
-        model, net = self.get_classification_trainer(self.folder_names[5])
+        trainer, model = self.get_classification_trainer(self.folder_names[5])
         params = self.training_params.copy()
         params["save_ckpt_epoch_list"] = [1]
-        model.train(model=net, training_params=params)
+        trainer.train(model=model, training_params=params)
         ckpt_filename = ['ckpt_best.pth', 'ckpt_latest.pth', 'ckpt_epoch_1.pth']
         ckpt_paths = [os.path.join(model.checkpoints_dir_path, suf) for suf in ckpt_filename]
         for ckpt_path in ckpt_paths:

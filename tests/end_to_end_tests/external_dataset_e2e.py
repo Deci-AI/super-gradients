@@ -127,8 +127,8 @@ class TestExternalDatasetInterface(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(dataset_interface=self.test_external_dataset_interface,
                                           data_loader_num_workers=8)
-        net = models.get("resnet50", arch_params)
-        trainer.train(model=net, training_params=train_params)
+        model = models.get("resnet50", arch_params)
+        trainer.train(model=model, training_params=train_params)
 
 
 if __name__ == '__main__':
