@@ -9,13 +9,7 @@
 #       STDC1-Seg75: python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75
 #       STDC2-Seg75: python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 architecture=stdc2_seg
 # Note: add "external_checkpoint_path=<stdc1-backbone-pretrained-path>" to use pretrained backbone
-
-
-
-#  Usage STDC1-Seg75:
-#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc1-backbone-pretrained-path>
-#  Usage STDC2-Seg75:
-#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
+#
 #
 #
 #  Validation mIoU - Cityscapes, training time:

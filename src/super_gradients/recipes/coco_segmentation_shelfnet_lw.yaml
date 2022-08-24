@@ -12,9 +12,6 @@
 #       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco_segmentation_shelfnet_lw --model_checkpoints_location=<checkpoint-location>
 
 
-
-# python train_from_recipe_example/train_from_recipe.py --config-name=coco_segmentation_shelfnet_lw
-
 # /!\ THIS RECIPE IS NOT SUPPORTED AT THE MOMENT /!\
 
 defaults:
