@@ -95,45 +95,54 @@ class QuantizedMetadata:
     """
     This dataclass is responsible for holding the information regarding float->quantized module relation.
     It can be both layer-grained and module-grained, e.g.,
-    `module.backbone.conv1 -> QuantConv2d`, `Linear -> QuantLinear`, etc...
+    `module.backbone.conv1 -> QuantConv2d`, `nn.Linear -> QuantLinear`, etc...
 
     Args:
         float_source:               the name of a specific layer (e.g., `module.backbone.conv1`),
                                     or a specific type (e.g., `Conv2d`) that will be later quantized
-        quantized_type:             the quantized type that the source will be converted to
+        quantized_target_class:     the quantized type that the source will be converted to
         action:                     how to resolve the conversion, we either:
                                     - SKIP: skip it,
                                     - UNWRAP: unwrap the instance and work with the wrapped one
                                       (i.e., we wrap with a mapper),
-                                    - REPLACE_AND_DONT_QUANTIZE_CHILDREN: replace source with an instance of the
+                                    - REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES: replace source with an instance of the
                                       quantized type
-                                    - REPLACE_THEN_QUANTIZE_CHILDREN: replace source with an instance of the quantized
-                                      type, and then try to recursively
-                                      quantize the child modules of that type
-                                    - QUANTIZE_CHILDREN_THEN_REPLACE: recursively quantize the child modules, and then
+                                    - REPLACE_THEN_QUANTIZE_CHILD_MODULES: replace source with an instance of the
+                                      quantized type, then try to recursively quantize the child modules of that type
+                                    - QUANTIZE_CHILD_MODULES_THEN_REPLACE: recursively quantize the child modules, then
                                       replace source with an instance of the quantized type
         input_quant_descriptor:     quantization descriptor for inputs (None will take the default one)
         weights_quant_descriptor:   quantization descriptor for weights (None will take the default one)
     """
 
     class ReplacementAction(Enum):
-        REPLACE_AND_DONT_QUANTIZE_CHILDREN = 'replace'
-        REPLACE_THEN_QUANTIZE_CHILDREN = 'replace_then_recurse'
-        QUANTIZE_CHILDREN_THEN_REPLACE = 'recurse_then_replace'
+        REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES = 'replace'
+        REPLACE_THEN_QUANTIZE_CHILD_MODULES = 'replace_then_quantize_children'
+        QUANTIZE_CHILD_MODULES_THEN_REPLACE = 'quantize_children_then_replace'
         UNWRAP = 'unwrap'
         SKIP = 'skip'
 
     float_source: Union[str, Type]
-    quantized_type: Optional[Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]]]
+    quantized_target_class: Optional[Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]]]
     action: ReplacementAction
     input_quant_descriptor: QuantDescriptor = None  # default is used if None
     weights_quant_descriptor: QuantDescriptor = None  # default is used if None
 
     def __post_init__(self):
-        if self.action in (QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILDREN,
-                           QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILDREN,
-                           QuantizedMetadata.ReplacementAction.QUANTIZE_CHILDREN_THEN_REPLACE):
-            assert issubclass(self.quantized_type, (SGQuantMixin, QuantMixin, QuantInputMixin))
+        if self.action in (QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+                           QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILD_MODULES,
+                           QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE):
+            assert issubclass(self.quantized_target_class, (SGQuantMixin, QuantMixin, QuantInputMixin))
+
+    @staticmethod
+    def from_dict(d: dict):
+        return QuantizedMetadata(
+            float_source=d['float_source'],
+            quantized_target_class=d['quantized_target_class'],
+            action=QuantizedMetadata.ReplacementAction(d['action']),
+            input_quant_descriptor=d.get('input_quant_descriptor'),  # these have defaults
+            weights_quant_descriptor=d.get('weights_quant_descriptor'),  # these have defaults
+        )
 
 
 class QuantizedMapping(nn.Module):
@@ -142,17 +151,17 @@ class QuantizedMapping(nn.Module):
     class, with relevant quant descriptors.
 
     Example:
-        self.my_block = QuantizedMapping(float_module=MyBlock(4, n_classes), quantized_type=MyQuantizedBlock)
+        self.my_block = QuantizedMapping(float_module=MyBlock(4, n_classes), quantized_target_class=MyQuantizedBlock)
     """
 
     def __init__(self, *, float_module: nn.Module,
-                 quantized_type: Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]],
-                 action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILDREN,
+                 quantized_target_class: Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]],
+                 action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
                  input_quant_descriptor: QuantDescriptor = None,
                  weights_quant_descriptor: QuantDescriptor = None) -> None:
         super().__init__()
         self.float_module = float_module
-        self.quantized_type = quantized_type
+        self.quantized_target_class = quantized_target_class
         self.action = action
         self.input_quant_descriptor = input_quant_descriptor
         self.weights_quant_descriptor = weights_quant_descriptor

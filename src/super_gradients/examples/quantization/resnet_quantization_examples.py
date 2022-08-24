@@ -87,7 +87,7 @@ def sg_resnet50_custom_quantization():
 
     mappings = {
         Bottleneck: QuantizedMetadata(float_source=Bottleneck, quantized_type=quantized_type,
-                                      action=QuantizedMetadata.ReplacementAction.QUANTIZE_CHILDREN_THEN_REPLACE),
+                                      action=QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE),
         nn.AdaptiveAvgPool2d: QuantizedMetadata(float_source=nn.AdaptiveAvgPool2d,
                                                 quantized_type=None,
                                                 action=QuantizedMetadata.ReplacementAction.SKIP)
