@@ -4,7 +4,7 @@ from super_gradients.training.datasets.dataset_interfaces.dataset_interface impo
 from super_gradients.training import SgModel, MultiGPUMode
 from super_gradients.training.metrics.classification_metrics import Accuracy
 import os
-from super_gradients.training.utils.quantization_utils import PostQATConversionCallback
+from super_gradients.training.utils.quantization_callbacks import PostQATConversionCallback
 
 
 class QATIntegrationTest(unittest.TestCase):

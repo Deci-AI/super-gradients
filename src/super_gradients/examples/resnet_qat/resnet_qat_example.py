@@ -22,7 +22,7 @@ from super_gradients.training import SgModel, MultiGPUMode
 from super_gradients.training.metrics.classification_metrics import Accuracy
 
 import super_gradients
-from super_gradients.training.utils.quantization_utils import PostQATConversionCallback
+from super_gradients.training.utils.quantization_callbacks import PostQATConversionCallback
 
 super_gradients.init_trainer()
 

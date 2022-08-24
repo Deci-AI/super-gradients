@@ -1,3 +1,12 @@
+"""
+Quantization utilities
+
+Methods are based on:
+https://github.com/NVIDIA/TensorRT/blob/51a4297753d3e12d0eed864be52400f429a6a94c/tools/pytorch-quantization/examples/torchvision/classification_flow.py#L385
+
+(Licensed under the Apache License, Version 2.0)
+"""
+
 import torch
 from tqdm import tqdm
 

@@ -33,7 +33,7 @@ from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
-from super_gradients.training.utils.quantization_utils import QATCallback
+from super_gradients.training.utils.quantization_callbacks import QATCallback
 from super_gradients.training.utils.sg_model_utils import MonitoredValue
 from super_gradients.training import metrics
 from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, \

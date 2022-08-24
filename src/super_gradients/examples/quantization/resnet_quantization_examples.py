@@ -86,10 +86,10 @@ def sg_resnet50_custom_quantization():
     # quantized_type = QuantBottleneck2  # CAN ALSO USE QuantBottleneck2
 
     mappings = {
-        Bottleneck: QuantizedMetadata(float_source=Bottleneck, quantized_type=quantized_type,
+        Bottleneck: QuantizedMetadata(float_source=Bottleneck, quantized_target_class=quantized_type,
                                       action=QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE),
         nn.AdaptiveAvgPool2d: QuantizedMetadata(float_source=nn.AdaptiveAvgPool2d,
-                                                quantized_type=None,
+                                                quantized_target_class=None,
                                                 action=QuantizedMetadata.ReplacementAction.SKIP)
     }
     sq_util = SelectiveQuantizer(custom_mappings=mappings, default_quant_modules_calib_method='max',
