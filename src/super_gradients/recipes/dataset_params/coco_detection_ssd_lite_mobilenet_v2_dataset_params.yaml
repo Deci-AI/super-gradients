@@ -1,5 +1,5 @@
 defaults:
-  - coco_detection_yolox_dataset_params
+  - coco_detection_dataset_params
 
 cache_dir: # path to a directory that will be used for caching (with numpy.memmap).
 cache_train_images: False

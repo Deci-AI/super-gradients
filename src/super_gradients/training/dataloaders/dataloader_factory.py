@@ -1,3 +1,5 @@
+import os.path
+
 from hydra import initialize, compose
 import hydra
 from hydra.core.global_hydra import GlobalHydra
@@ -31,7 +33,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params={}, dataload
     GlobalHydra.instance().clear()
     with initialize(config_path="../../recipes"):
         # config is relative to a module
-        cfg = compose(config_name=config_name)
+        cfg = compose(config_name=os.path.join("dataset_params", config_name))
 
         _process_dataset_params(cfg, dataset_params, train)
 
@@ -87,7 +89,7 @@ def _instantiate_sampler(dataset, dataloader_params):
 
 
 def coco2017_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
-    return get_data_loader(config_name="coco2017_yolox",
+    return get_data_loader(config_name="coco_detection_yolox_dataset_params",
                            dataset_cls=COCODetectionDataset,
                            train=True,
                            dataset_params=dataset_params,
@@ -96,7 +98,7 @@ def coco2017_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
 
 
 def coco2017_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
-    return get_data_loader(config_name="coco2017_yolox",
+    return get_data_loader(config_name="coco_detection_yolox_dataset_params",
                            dataset_cls=COCODetectionDataset,
                            train=False,
                            dataset_params=dataset_params,
