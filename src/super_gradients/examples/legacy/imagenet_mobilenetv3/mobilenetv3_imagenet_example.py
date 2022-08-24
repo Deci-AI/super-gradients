@@ -22,7 +22,7 @@ def train(cfg: DictConfig) -> None:
     cfg.trainer .build_model(cfg.architecture, load_checkpoint=cfg.load_checkpoint)
 
     # TRAIN
-    cfg.trainer .train(training_params=cfg.training_params)
+    cfg.trainer.train(training_params=cfg.training_params)
 
 
 if __name__ == "__main__":

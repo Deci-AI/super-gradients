@@ -4,14 +4,15 @@ from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 
 from super_gradients.common import MultiGPUMode
+from super_gradients.training.models import SgModule
 from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.sg_trainer import Trainer
 from typing import Union, List, Any
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training import utils as core_utils
+from super_gradients.training import utils as core_utils, models
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import get_param
+from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.training.utils.checkpoint_utils import read_ckpt_state_dict, \
     load_checkpoint_to_model
 from super_gradients.training.exceptions.kd_trainer_exceptions import ArchitectureKwargsException, \
@@ -27,11 +28,14 @@ logger = get_logger(__name__)
 
 class KDTrainer(Trainer):
     def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF,
-                 model_checkpoints_location: str = 'local', overwrite_local_checkpoint: bool = True, ckpt_name: str = 'ckpt_latest.pth',
-                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir: str = None, train_loader: DataLoader = None,
+                 model_checkpoints_location: str = 'local', overwrite_local_checkpoint: bool = True,
+                 ckpt_name: str = 'ckpt_latest.pth',
+                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir: str = None,
+                 train_loader: DataLoader = None,
                  valid_loader: DataLoader = None, test_loader: DataLoader = None, classes: List[Any] = None):
 
-        super().__init__(experiment_name, device, multi_gpu, model_checkpoints_location, overwrite_local_checkpoint, ckpt_name, post_prediction_callback,
+        super().__init__(experiment_name, device, multi_gpu, model_checkpoints_location, overwrite_local_checkpoint,
+                         ckpt_name, post_prediction_callback,
                          ckpt_root_dir, train_loader, valid_loader, test_loader, classes)
         self.student_architecture = None
         self.teacher_architecture = None
@@ -56,15 +60,22 @@ class KDTrainer(Trainer):
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
         trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
-        # BUILD NETWORK
-        trainer.build_model(student_architecture=cfg.student_architecture,
-                            teacher_architecture=cfg.teacher_architecture,
-                            arch_params=cfg.arch_params, student_arch_params=cfg.student_arch_params,
-                            teacher_arch_params=cfg.teacher_arch_params,
-                            checkpoint_params=cfg.checkpoint_params, run_teacher_on_eval=cfg.run_teacher_on_eval)
+        student = models.get(cfg.student_architecture, arch_params=cfg.student_arch_params,
+                             strict_load=cfg.student_checkpoint_params.strict_load,
+                             pretrained_weights=cfg.student_checkpoint_params.pretrained_weights,
+                             checkpoint_path=cfg.student_checkpoint_params.checkpoint_path,
+                             load_backbone=cfg.student_checkpoint_params.load_backbone)
+
+        teacher = models.get(cfg.teacher_architecture, arch_params=cfg.teacher_arch_params,
+                             strict_load=cfg.teacher_checkpoint_params.strict_load,
+                             pretrained_weights=cfg.teacher_checkpoint_params.pretrained_weights,
+                             checkpoint_path=cfg.teacher_checkpoint_params.checkpoint_path,
+                             load_backbone=cfg.teacher_checkpoint_params.load_backbone)
 
         # TRAIN
-        trainer.train(training_params=cfg.training_hyperparams)
+        trainer.train(training_params=cfg.training_hyperparams, student=student, teacher=teacher,
+                      kd_architecture=cfg.architecture, kd_arch_params=cfg.arch_params,
+                      run_teacher_on_eval=cfg.run_teacher_on_eval)
 
     def build_model(self,
                     # noqa: C901 - too complex
@@ -167,7 +178,8 @@ class KDTrainer(Trainer):
         load_kd_model_checkpoint = get_param(checkpoint_params, "load_checkpoint")
 
         # CHECK THAT TEACHER NETWORK HOLDS KNOWLEDGE FOR THE STUDENT TO LEARN FROM OR THAT WE ARE LOADING AN ENTIRE KD
-        if not (teacher_pretrained_weights or teacher_checkpoint_path or load_kd_model_checkpoint or isinstance(teacher_architecture, torch.nn.Module)):
+        if not (teacher_pretrained_weights or teacher_checkpoint_path or load_kd_model_checkpoint or isinstance(
+                teacher_architecture, torch.nn.Module)):
             raise TeacherKnowledgeException()
 
     def _validate_num_classes(self, student_arch_params, teacher_arch_params):
@@ -229,6 +241,9 @@ class KDTrainer(Trainer):
 
         run_teacher_on_eval = get_param(kwargs, "run_teacher_on_eval", default_val=False)
 
+        return self._instantiate_kd_net(arch_params, architecture, run_teacher_on_eval, student, teacher)
+
+    def _instantiate_kd_net(self, arch_params, architecture, run_teacher_on_eval, student, teacher):
         if isinstance(architecture, str):
             architecture_cls = KD_ARCHITECTURES[architecture]
             net = architecture_cls(arch_params=arch_params, student=student, teacher=teacher,
@@ -238,7 +253,6 @@ class KDTrainer(Trainer):
                                run_teacher_on_eval=run_teacher_on_eval)
         else:
             net = architecture
-
         return net
 
     def _load_checkpoint_to_model(self):
@@ -313,3 +327,29 @@ class KDTrainer(Trainer):
 
         state["net"] = best_net.state_dict()
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
+
+    def train(self, model: KDModule = None, training_params: dict = dict(), student: SgModule = None,
+              teacher: torch.nn.Module = None, kd_architecture: Union[KDModule.__class__, str] = 'kd_module',
+              kd_arch_params: dict = dict(), run_teacher_on_eval=False, *args, **kwargs):
+        """
+        Trains the student network (wrapped in KDModule network).
+
+        :param model: KDModule, network to train. When none is given will initialize KDModule according to kd_architecture,
+            student and teacher (default=None)
+        :param training_params: dict, Same as in Trainer.train()
+        :param student: SgModule - the student trainer
+        :param teacher: torch.nn.Module- the teacher trainer
+        :param kd_architecture: KDModule architecture to use, currently only 'kd_module' is supported (default='kd_module').
+        :param kd_arch_params: architecture params to pas to kd_architecture constructor.
+        :param run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
+        """
+        kd_net = self.net or model
+        if kd_net is None:
+            if student is None or teacher is None:
+                raise ValueError("Must pass student and teacher models or net (KDModule).")
+            kd_net = self._instantiate_kd_net(arch_params=HpmStruct(**kd_arch_params),
+                                              architecture=kd_architecture,
+                                              run_teacher_on_eval=run_teacher_on_eval,
+                                              student=student,
+                                              teacher=teacher)
+        super(KDTrainer, self).train(model=kd_net, training_params=training_params)

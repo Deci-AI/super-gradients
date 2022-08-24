@@ -1,4 +1,7 @@
 import unittest
+
+from super_gradients.training import models
+
 from super_gradients import Trainer, ClassificationTestDatasetInterface
 import torch
 from torch.utils.data import TensorDataset, DataLoader
@@ -29,7 +32,7 @@ class InitializeWithDataloadersTest(unittest.TestCase):
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         trainer.connect_dataset_interface(dataset)
 
-        trainer.build_model("efficientnet_b0")
+        model = models.get("efficientnet_b0", arch_params={"num_classes": 5})
         train_params = {"max_epochs": 1, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": torch.nn.CrossEntropyLoss(),
                         "optimizer": "SGD",
@@ -37,7 +40,7 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
                         "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
-        trainer.train(train_params)
+        trainer.train(model=model, training_params=train_params)
 
     def test_initialization_rules(self):
         self.assertRaises(IllegalDataloaderInitialization, Trainer, "test_name", model_checkpoints_location='local',
@@ -63,19 +66,19 @@ class InitializeWithDataloadersTest(unittest.TestCase):
                           train_loader=self.testcase_trainloader, valid_loader=self.testcase_validloader,
                           classes=self.testcase_classes)
 
-        trainer.build_model("resnet18")
-        trainer.train(training_params={"max_epochs": 2,
-                                       "lr_updates": [5, 6, 12],
-                                       "lr_decay_factor": 0.01,
-                                       "lr_mode": "step",
-                                       "initial_lr": 0.01,
-                                       "loss": "cross_entropy",
-                                       "optimizer": "SGD",
-                                       "optimizer_params": {"weight_decay": 1e-5, "momentum": 0.9},
-                                       "train_metrics_list": [Accuracy()],
-                                       "valid_metrics_list": [Accuracy()],
-                                       "metric_to_watch": "Accuracy",
-                                       "greater_metric_to_watch_is_better": True})
+        model = models.get("resnet18", arch_params={"num_classes": 5})
+        trainer.train(model=model, training_params={"max_epochs": 2,
+                                                    "lr_updates": [5, 6, 12],
+                                                    "lr_decay_factor": 0.01,
+                                                    "lr_mode": "step",
+                                                    "initial_lr": 0.01,
+                                                    "loss": "cross_entropy",
+                                                    "optimizer": "SGD",
+                                                    "optimizer_params": {"weight_decay": 1e-5, "momentum": 0.9},
+                                                    "train_metrics_list": [Accuracy()],
+                                                    "valid_metrics_list": [Accuracy()],
+                                                    "metric_to_watch": "Accuracy",
+                                                    "greater_metric_to_watch_is_better": True})
         self.assertTrue(0 < trainer.best_metric.item() < 1)
 
 

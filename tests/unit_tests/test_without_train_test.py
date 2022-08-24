@@ -5,7 +5,7 @@ from super_gradients import Trainer, \
     ClassificationTestDatasetInterface, \
     SegmentationTestDatasetInterface, DetectionTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.training import MultiGPUMode
+from super_gradients.training import MultiGPUMode, models
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import DetectionCollateFN
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
@@ -31,8 +31,8 @@ class TestWithoutTrainTest(unittest.TestCase):
         dataset_params = {"batch_size": 4}
         dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         trainer.connect_dataset_interface(dataset)
-        trainer.build_model("resnet18_cifar")
-        return trainer
+        model = models.get("resnet18", arch_params={"num_classes": 5})
+        return trainer, model
 
     @staticmethod
     def get_detection_trainer(name=''):
@@ -50,8 +50,8 @@ class TestWithoutTrainTest(unittest.TestCase):
                           post_prediction_callback=YoloPostPredictionCallback())
         dataset_interface = DetectionTestDatasetInterface(dataset_params=dataset_params)
         trainer.connect_dataset_interface(dataset_interface, data_loader_num_workers=4)
-        trainer.build_model('yolox_s')
-        return trainer
+        model = models.get("yolox_s", arch_params={"num_classes": 5})
+        return trainer, model
 
     @staticmethod
     def get_segmentation_trainer(name=''):
@@ -60,34 +60,38 @@ class TestWithoutTrainTest(unittest.TestCase):
 
         dataset_interface = SegmentationTestDatasetInterface()
         trainer.connect_dataset_interface(dataset_interface, data_loader_num_workers=8)
-        trainer.build_model('shelfnet34_lw', arch_params=shelfnet_lw_arch_params)
-        return trainer
+        model = models.get('shelfnet34_lw', arch_params=shelfnet_lw_arch_params)
+        return trainer, model
 
     def test_test_without_train(self):
-        trainer = self.get_classification_trainer(self.folder_names[0])
-        assert isinstance(trainer.test(silent_mode=True, test_metrics_list=[Accuracy(), Top5()]), tuple)
+        trainer, model = self.get_classification_trainer(self.folder_names[0])
+        assert isinstance(trainer.test(model=model, silent_mode=True, test_metrics_list=[Accuracy(), Top5()]), tuple)
 
-        trainer = self.get_detection_trainer(self.folder_names[1])
+        trainer, model = self.get_detection_trainer(self.folder_names[1])
 
         test_metrics = [DetectionMetrics(post_prediction_callback=trainer.post_prediction_callback, num_cls=5)]
 
-        assert isinstance(trainer.test(silent_mode=True, test_metrics_list=test_metrics), tuple)
+        assert isinstance(trainer.test(model=model, silent_mode=True, test_metrics_list=test_metrics), tuple)
 
-        trainer = self.get_segmentation_trainer(self.folder_names[2])
-        assert isinstance(trainer.test(silent_mode=True, test_metrics_list=[IoU(21), PixelAccuracy()]), tuple)
+        trainer, model = self.get_segmentation_trainer(self.folder_names[2])
+        assert isinstance(trainer.test(model=model, silent_mode=True, test_metrics_list=[IoU(21), PixelAccuracy()]), tuple)
 
     def test_test_on_valid_loader_without_train(self):
-        trainer = self.get_classification_trainer(self.folder_names[0])
-        assert isinstance(trainer.test(test_loader=trainer.valid_loader, silent_mode=True, test_metrics_list=[Accuracy(), Top5()]), tuple)
+        trainer, model = self.get_classification_trainer(self.folder_names[0])
+        assert isinstance(trainer.test(model=model, test_loader=trainer.valid_loader, silent_mode=True,
+                                       test_metrics_list=[Accuracy(), Top5()]), tuple)
 
-        trainer = self.get_detection_trainer(self.folder_names[1])
+        trainer, model = self.get_detection_trainer(self.folder_names[1])
 
         test_metrics = [DetectionMetrics(post_prediction_callback=trainer.post_prediction_callback, num_cls=5)]
 
-        assert isinstance(trainer.test(test_loader=trainer.valid_loader, silent_mode=True, test_metrics_list=test_metrics), tuple)
+        assert isinstance(
+            trainer.test(model=model, test_loader=trainer.valid_loader, silent_mode=True, test_metrics_list=test_metrics),
+            tuple)
 
-        model = self.get_segmentation_trainer(self.folder_names[2])
-        assert isinstance(model.test(test_loader=model.valid_loader, silent_mode=True, test_metrics_list=[IoU(21), PixelAccuracy()]), tuple)
+        trainer, model = self.get_segmentation_trainer(self.folder_names[2])
+        assert isinstance(trainer.test(model=model, test_loader=trainer.valid_loader, silent_mode=True,
+                                       test_metrics_list=[IoU(21), PixelAccuracy()]), tuple)
 
 
 if __name__ == '__main__':
