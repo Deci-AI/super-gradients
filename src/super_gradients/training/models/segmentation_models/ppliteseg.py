@@ -191,6 +191,11 @@ class PPLiteSegBase(SegmentationModule):
                 multiply_lr_params[name] = param
         return multiply_lr_params.items(), no_multiply_params.items()
 
+    def prep_model_for_conversion(self, input_size: Union[tuple, list], stride_ratio: int = 32, **kwargs):
+        super().prep_model_for_conversion(input_size, **kwargs)
+        if isinstance(self.encoder.context_module, SPPM):
+            self.encoder.context_module.prep_model_for_conversion(input_size=input_size, stride_ratio=stride_ratio)
+
 
 class SPPM(nn.Module):
     """
@@ -208,6 +213,7 @@ class SPPM(nn.Module):
         :param out_channels: The number of output channels after pyramid pooling module.
         :param pool_sizes: output sizes of the pooled feature maps.
         """
+        # TODO - replace adaptive with average pooling
         super().__init__()
         self.branches = nn.ModuleList([
             nn.Sequential(
@@ -219,6 +225,7 @@ class SPPM(nn.Module):
         self.out_channels = out_channels
         self.upsample_mode = upsample_mode
         self.align_corners = align_corners
+        self.pool_sizes = pool_sizes
 
     def output_channels(self):
         return self.out_channels
@@ -233,6 +240,14 @@ class SPPM(nn.Module):
         out = self.conv_out(out)
         return out
 
+    def prep_model_for_conversion(self, input_size: Union[tuple, list], stride_ratio: int = 32, **kwargs):
+        input_size = [x / stride_ratio for x in input_size[-2:]]
+        for branch in self.branches:
+            global_pool: nn.AdaptiveAvgPool2d = branch[0]
+            out_size = global_pool.output_size
+            out_size = out_size if isinstance(out_size, (tuple, list)) else (out_size, out_size)
+            kernel_size = [int(i / o) for i, o in zip(input_size, out_size)]
+            branch[0] = nn.AvgPool2d(kernel_size=kernel_size, stride=kernel_size)
 
 class UAFM(nn.Module):
     """
@@ -337,9 +352,16 @@ class PPLiteSegT(PPLiteSegBase):
 
 
 if __name__ == '__main__':
-    m = PPLiteSegT(HpmStruct(num_classes=19, use_aux_heads=True))
-    m._separate_lr_multiply_params()
-    x = torch.randn(2, 3, 1024, 2048)
+    scale = 4 / 3
+    in_size = [1, 3, 1024, 2048]
+    model_in_size = [1, 3, int(in_size[2] / scale), int(in_size[3] / scale)]
+    m = nn.Sequential(
+        nn.Upsample(scale_factor=1/scale, mode="bilinear", align_corners=False),
+        PPLiteSegT(HpmStruct(num_classes=19, use_aux_heads=False))
+    ).eval()
+    m[-1].seg_head[-1].scale_factor = m[-1].seg_head[-1].scale_factor * scale
+
+    x = torch.randn(*in_size)
 
     def print_outputs(y):
         if isinstance(y, torch.Tensor):
@@ -350,4 +372,23 @@ if __name__ == '__main__':
 
     print_outputs(m(x))
 
-    torch.onnx.export(m, x, "/Users/liork/Downloads/tmp.onnx", opset_version=11)
+    m[-1].prep_model_for_conversion(input_size=model_in_size)
+    onnx_path = "/Users/liork/Downloads/pp_lite_t_seg75.onnx"
+    torch.onnx.export(m, x, onnx_path, opset_version=11)
+
+    import onnx
+    from onnxsim import simplify
+    def onnx_simplify(onnx_path: str, onnx_sim_path: str):
+        """
+        onnx simplifier method, same as `python -m onnxsim onnx_path onnx_sim_path
+        :param onnx_path: path to onnx model
+        :param onnx_sim_path: path for output onnx simplified model
+        """
+        model_sim, check = simplify(model=onnx_path)
+        assert check, "Simplified ONNX model could not be validated"
+        onnx.save_model(model_sim, onnx_sim_path)
+        return onnx_sim_path
+
+    onnx_simplify(onnx_path, onnx_path)
+
+

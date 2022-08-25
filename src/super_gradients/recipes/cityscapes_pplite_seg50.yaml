@@ -1,0 +1,71 @@
+#  STDC segmentation training example with Cityscapes dataset.
+#  Reproduction and refinement of paper: Rethinking BiSeNet For Real-time Semantic Segmentation.
+#
+#  Usage STDC1-Seg50:
+#      python -m torch.distributed.launch --nproc_per_node=2 train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path>
+#  Usage STDC2-Seg50:
+#      python -m torch.distributed.launch --nproc_per_node=2 train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path> architecture=stdc2_seg
+#
+#
+#  Validation mIoU - Cityscapes, training time:
+#      STDC1-Seg50:    input-size: [512, 1024]     mIoU: 75.11     2 X RTX A5000, 20 H
+#      STDC2-Seg50:    input-size: [512, 1024]     mIoU: 76.44     2 X RTX A5000, 23 H
+#
+#  Official git repo:
+#      https://github.com/MichaelFan01/STDC-Seg
+#  Paper:
+#      https://arxiv.org/abs/2104.13188
+#
+#  Pretrained checkpoints:
+#      Backbones- downloaded from the author's official repo.
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc1_imagenet_pretrained.pth
+#       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc2_imagenet_pretrained.pth
+#
+#      Logs, tensorboards and network checkpoints:
+#       STDC1-Seg50: https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc1_seg50_dice_edge/
+#       STDC2-Seg50: https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc2_seg50_dice_edge/
+#
+#  Learning rate and batch size parameters, using 2 RTX A5000 with DDP:
+#      STDC1-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 16 * 2gpus = 32
+#      STDC2-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 16 * 2gpus = 32
+#
+#  Comments:
+#      * Pretrained backbones were used.
+
+defaults:
+  - cityscapes_stdc_base
+  - _self_
+
+dataset_params:
+  _convert_: all
+  batch_size: 8
+  val_batch_size: 8
+  crop_size: [1024, 512]
+  eval_scale: 0.5
+  random_scales: [ 0.125, 1.5 ]
+
+training_hyperparams:
+  max_epochs: 800
+  loss:
+    dice_ce_edge_loss:
+      num_classes: 19
+      ignore_index: 19
+      num_aux_heads: 3
+      num_detail_heads: 0
+      weights: [ 1., 1., 1., 1. ]
+      dice_ce_weights: [ 1., 1. ]
+      ce_edge_weights: [ .5, .5 ]
+      edge_kernel: 5
+  loss_logging_items_names: [main_loss, aux_loss1, aux_loss2, aux_loss3, loss]
+
+  sg_logger: wandb_sg_logger
+  sg_logger_params:
+    project_name: PPLiteSeg
+    entity: algo
+    api_server: https://wandb.research.deci.ai
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
+
+architecture: pp_liteseg_t
+experiment_name: ${architecture}_50_cityscapes
