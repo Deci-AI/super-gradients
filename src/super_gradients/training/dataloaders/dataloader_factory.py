@@ -5,7 +5,6 @@ from hydra import compose, initialize_config_dir
 import hydra
 from hydra.core.global_hydra import GlobalHydra
 from typing import Dict
-import super_gradients
 
 import torchvision.datasets as torch_datasets
 import torchvision.transforms as torch_transforms
@@ -121,7 +120,9 @@ def coco2017_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
                            dataloader_params=dataloader_params
                            )
 
+
 class ImageFolder(torch_datasets.ImageFolder):
+
     @resolve_param('transform', factory=TransformsFactory())
     def __init__(self, root: str, transform: torch_transforms.Compose = None, *args, **kwargs):
         super(ImageFolder, self).__init__(root, transform, *args, **kwargs)
@@ -129,11 +130,11 @@ class ImageFolder(torch_datasets.ImageFolder):
 
 def imagenet_train(dataset_params={}, dataloader_params={}):
     return get_data_loader(config_name="imagenet_vit_base_dataset_params",
-                            dataset_cls=ImageFolder,
-                            train=True,
-                            dataset_params=dataset_params,
-                            dataloader_params=dataloader_params
-                            )
+                           dataset_cls=ImageFolder,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
 
 
 def coco2017_train_yolox(dataset_params: Dict = {}, dataloader_params: Dict = {}):
@@ -161,19 +162,11 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_par
                            dataloader_params=dataloader_params
                            )
 
+
 def imagenet_val(dataset_params={}, dataloader_params={}):
     return get_data_loader(config_name="imagenet_vit_base_dataset_params",
-                            dataset_cls=ImageFolder,
-                            train=False,
-                            dataset_params=dataset_params,
-                            dataloader_params=dataloader_params
-                            )
-
-
-# self.trainset = torch_datasets.ImageFolder(root=traindir, transform=transforms.Compose(train_transformation_list))
-# self.valset = torch_datasets.ImageFolder(valdir, transforms.Compose([
-#     transforms.Resize(resize_size),
-#     transforms.CenterCrop(crop_size),
-#     transforms.ToTensor(),
-#     normalize,
-# ]))
+                           dataset_cls=ImageFolder,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
