@@ -14,30 +14,12 @@
 
 defaults:
   - training_hyperparams: imagenet_resnet50_train_params
-  - dataset_params: imagenet_dataset_params
+  - dataset_params: imagenet_resnet50_dataset_params
   - arch_params: resnet50_arch_params
   - checkpoint_params: default_checkpoint_params
 
 arch_params:
   droppath_prob: 0.05
-
-dataset_params:
-  resize_size: 236
-  random_erase_prob: 0
-  random_erase_value: random
-  train_interpolation: random
-  rand_augment_config_string: rand-m7-mstd0.5
-  cutmix: True
-  cutmix_params:
-    mixup_alpha: 0.2
-    cutmix_alpha: 1.0
-    label_smoothing: 0.1
-
-dataset_interface:
-  imagenet:
-    dataset_params: ${dataset_params}
-
-data_loader_num_workers: 8
 
 model_checkpoints_location: local
 load_checkpoint: False

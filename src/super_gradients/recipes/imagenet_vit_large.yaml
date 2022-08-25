@@ -15,7 +15,6 @@
 defaults:
   - imagenet_vit_base
 
-
 dataset_params:
   batch_size: 32
 

@@ -24,7 +24,7 @@
 
 defaults:
   - training_hyperparams: imagenet_regnetY_train_params
-  - dataset_params: imagenet_dataset_params
+  - dataset_params: imagenet_regnetY_dataset_params
   - arch_params: regnetY_arch_params
   - checkpoint_params: default_checkpoint_params
 
@@ -33,20 +33,6 @@ arch_params:
   dropout_prob: 0.5
   droppath_prob: 0.0
 
-dataset_params:
-  batch_size: 256
-  color_jitter: 0.4
-  random_erase_prob: 0.2
-  random_erase_value: random
-  train_interpolation: random
-  auto_augment_config_string: rand-m9-mstd0.5
-
-dataset_interface:
-  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
-  dataset_params: ${dataset_params}
-  data_dir: /data/Imagenet
-
-data_loader_num_workers: 8
 
 model_checkpoints_location: local
 load_checkpoint: False

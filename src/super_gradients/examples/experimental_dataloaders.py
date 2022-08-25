@@ -1,4 +1,4 @@
-from super_gradients.training import SgModel, MultiGPUMode
+from super_gradients.training import Trainer, MultiGPUMode
 from super_gradients.training.dataloaders.dataloader_factory import imagenet_train, imagenet_val
 import super_gradients
 
@@ -8,7 +8,7 @@ from hydra.core.global_hydra import GlobalHydra
 from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN
 
 super_gradients.init_trainer()
-sm = SgModel("sanity_checkdl", multi_gpu=MultiGPUMode.OFF)
+sm = Trainer("sanity_checkdl", multi_gpu=MultiGPUMode.OFF)
 dltrain = imagenet_train()
 dlval = imagenet_val()
 print(dlval)

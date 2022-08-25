@@ -59,17 +59,10 @@ class TransformsFactory(BaseFactory):
             'color_augmentation': datasets_utils.get_color_augmentation,
             # 'ToTensor': transforms.ToTensor,
             'Lighting': Lighting,
-<<<<<<< HEAD
-            'Normalize': transforms.Normalize,
-            'Resize': transforms.Resize,
-            'CenterCrop': transforms.CenterCrop,
-
-=======
             'RandomErase': RandomErase
             # 'Normalize': transforms.Normalize,
             # 'Resize': transforms.Resize,
             # 'CenterCrop': transforms.CenterCrop,
->>>>>>> 55e97b4f (base working)
         }
         for name, obj in inspect.getmembers(transforms, inspect.isclass):
             if name in type_dict:

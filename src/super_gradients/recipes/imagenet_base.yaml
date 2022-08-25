@@ -1,2 +1,0 @@
-defaults:
-  - dataset_params: imagenet_dataset_params

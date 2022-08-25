@@ -1,0 +1,23 @@
+# RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.
+
+defaults:
+  - imagenet_dataset_params
+
+train_args:
+  batch_size: 236
+  interpolation: random
+  color_jitter: [0.4, 0.4, 0.4]
+  random_erase_prob: 0.
+  random_erase_value: random
+  auto_augment_config_string: rand-m7-mstd0.5
+  collate_fn:
+    _target_: super_gradients.training.datasets.mixup.CollateMixup
+    mixup_alpha: 0.2
+    cutmix_alpha: 1.0
+    label_smoothing: 0.1
+  sampler:
+    RepeatAugSampler:
+        num_repeats: 3
+
+val_args:
+  sampler: DistributedSampler

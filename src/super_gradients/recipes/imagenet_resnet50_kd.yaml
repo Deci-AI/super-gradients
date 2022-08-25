@@ -40,26 +40,6 @@ teacher_arch_params:
   image_size: [224, 224]
   patch_size: [16, 16]
 
-dataset_params:
-  batch_size: 192
-  val_batch_size: 256
-  random_erase_prob: 0
-  random_erase_value: random
-  train_interpolation: random
-  rand_augment_config_string: rand-m7-mstd0.5
-  cutmix: True
-  cutmix_params:
-    mixup_alpha: 0.2
-    cutmix_alpha: 1.0
-    label_smoothing: 0.1
-  aug_repeat_count: 3
-
-dataset_interface:
-  imagenet:
-    dataset_params: ${dataset_params}
-
-data_loader_num_workers: 8
-
 model_checkpoints_location: local
 load_checkpoint: False
 checkpoint_params:

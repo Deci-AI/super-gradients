@@ -1,0 +1,11 @@
+defaults:
+  - imagenet_dataset_params
+
+train_args:
+  drop_last: True
+  batch_size: 256
+  interpolation: random
+  color_jitter: [0.4, 0.4, 0.4]
+  random_erase_prob: 0.2
+  random_erase_value: random
+  auto_augment_config_string: rand-m9-mstd0.5

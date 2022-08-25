@@ -112,7 +112,6 @@ def coco2017_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
                            )
 
 
-<<<<<<< HEAD
 def coco2017_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="coco_detection_dataset_params",
                            dataset_cls=COCODetectionDataset,
@@ -120,15 +119,6 @@ def coco2017_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
                            )
-=======
-def coco2017_val(dataset_params={}, dataloader_params={}):
-    return _get_data_loader(config_name="coco_detection_yolox_dataset_params",
-                            dataset_cls=COCODetectionDataset,
-                            train=False,
-                            dataset_params=dataset_params,
-                            dataloader_params=dataloader_params
-                            )
->>>>>>> 55e97b4f (base working)
 
 class ImageFolder(torch_datasets.ImageFolder):
     @resolve_param('transform', factory=TransformsFactory())
@@ -137,7 +127,7 @@ class ImageFolder(torch_datasets.ImageFolder):
 
 
 def imagenet_train(dataset_params={}, dataloader_params={}):
-    return _get_data_loader(config_name="imagenet_base",
+    return get_data_loader(config_name="imagenet_vit_base_dataset_params",
                             dataset_cls=ImageFolder,
                             train=True,
                             dataset_params=dataset_params,
@@ -146,7 +136,7 @@ def imagenet_train(dataset_params={}, dataloader_params={}):
 
 
 def imagenet_val(dataset_params={}, dataloader_params={}):
-    return _get_data_loader(config_name="imagenet_base",
+    return get_data_loader(config_name="imagenet_vit_base_dataset_params",
                             dataset_cls=ImageFolder,
                             train=False,
                             dataset_params=dataset_params,
