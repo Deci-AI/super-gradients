@@ -46,10 +46,8 @@ arch_params:
   use_aux_heads: True
   sync_bn: True
 
-load_checkpoint: False
 checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
-  external_checkpoint_path:
+  checkpoint_path:
   load_backbone: True
   load_weights_only: True
   strict_load: no_key_matching
@@ -60,7 +58,5 @@ experiment_name: ${architecture}_cityscapes
 model_checkpoints_location: local
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 

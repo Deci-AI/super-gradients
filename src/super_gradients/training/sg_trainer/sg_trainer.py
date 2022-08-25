@@ -8,6 +8,7 @@ import hydra
 import numpy as np
 import pkg_resources
 import torch
+from deprecate import deprecated
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler
@@ -29,7 +30,7 @@ from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
-from super_gradients.training import utils as core_utils
+from super_gradients.training import utils as core_utils, models
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
@@ -206,10 +207,17 @@ class Trainer:
         trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
         # BUILD NETWORK
-        trainer.build_model(cfg.architecture, arch_params=cfg.arch_params, checkpoint_params=cfg.checkpoint_params)
+        model = models.get(name=cfg.architecture,
+                           num_classes=cfg.arch_params.num_classes,
+                           arch_params=cfg.arch_params,
+                           strict_load=cfg.checkpoint_params.strict_load,
+                           pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+                           checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+                           load_backbone=cfg.checkpoint_params.load_backbone
+                           )
 
         # TRAIN
-        trainer.train(training_params=cfg.training_hyperparams)
+        trainer.train(model=model, training_params=cfg.training_hyperparams)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
@@ -225,7 +233,8 @@ class Trainer:
             if not all([isinstance(train_loader.sampler, DistributedSampler),
                         isinstance(valid_loader.sampler, DistributedSampler),
                         test_loader is None or isinstance(test_loader.sampler, DistributedSampler)]):
-                logger.warning("DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
+                logger.warning(
+                    "DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
 
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
@@ -248,6 +257,7 @@ class Trainer:
         self.dataset_params = self.dataset_interface.get_dataset_params()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
+    @deprecated(target=None, deprecated_in='2.3.0', remove_in='3.0.0')
     def build_model(self,  # noqa: C901 - too complex
                     architecture: Union[str, nn.Module],
                     arch_params={}, checkpoint_params={}, *args, **kwargs):
@@ -521,8 +531,32 @@ class Trainer:
     def _save_best_checkpoint(self, epoch, state):
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
 
+    def _prep_net_for_train(self):
+        if self.arch_params is None:
+            default_arch_params = HpmStruct(sync_bn=False)
+            arch_params = getattr(self.net, "arch_params", default_arch_params)
+            self.arch_params = default_arch_params
+            if arch_params is not None:
+                self.arch_params.override(**arch_params.to_dict())
+
+        # TODO: REMOVE THE BELOW LINE (FOR BACKWARD COMPATIBILITY)
+        if self.checkpoint_params is None:
+            self.checkpoint_params = HpmStruct(load_checkpoint=self.training_params.resume)
+
+        self._net_to_device()
+
+        # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
+        self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
+
+        self.checkpoint = {}
+        self.strict_load = core_utils.get_param(self.training_params, "resume_strict_load", StrictLoad.ON)
+        self.load_ema_as_net = False
+        self.load_checkpoint = core_utils.get_param(self.training_params, "resume", False)
+        self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
+        self._load_checkpoint_to_model()
+
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, training_params: dict = dict(), train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
+    def train(self, model: nn.Module = None, training_params: dict = dict(), train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
         """
 
         train - Trains the Model
@@ -530,6 +564,9 @@ class Trainer:
         IMPORTANT NOTE: Additional batch parameters can be added as a third item (optional) if a tuple is returned by
           the data loaders, as dictionary. The phase context will hold the additional items, under an attribute with
           the same name as the key in this dictionary. Then such items can be accessed through phase callbacks.
+
+            :param model: torch.nn.Module, model to train. When none is given will attempt to use self.net
+             (SEE BUILD_MODEL DEPRECATION) (default=None).
 
             :param train_loader: Dataloader for train set.
             :param valid_loader: Dataloader for validation.
@@ -802,13 +839,12 @@ class Trainer:
         self.train_loader = train_loader or self.train_loader
         self.valid_loader = valid_loader or self.valid_loader
 
-        if self.net is None:
-            raise Exception('Model', 'No model found')
-        if self.dataset_interface is None and self.train_loader is None:
-            raise Exception('Data', 'No dataset found')
-
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
+
+        if self.net is None:
+            self.net = model
+            self._prep_net_for_train()
 
         # SET RANDOM SEED
         random_seed(is_ddp=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL,
@@ -949,7 +985,8 @@ class Trainer:
             load_opt_params = False
 
         if isinstance(self.training_params.optimizer, str) or \
-                (inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)):
+                (inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer,
+                                                                                torch.optim.Optimizer)):
             self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr,
                                              training_params=self.training_params)
         elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
@@ -968,8 +1005,10 @@ class Trainer:
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
-        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or \
-                                      (hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler))
+        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler,
+                                                                                            InfiniteSampler)) or \
+                                      (hasattr(self.train_loader, "batch_sampler") and isinstance(
+                                          self.train_loader.batch_sampler.sampler, InfiniteSampler))
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
 
@@ -990,9 +1029,8 @@ class Trainer:
                                metric_idx_in_results_tuple=self.metric_idx_in_results_tuple,
                                metric_to_watch=self.metric_to_watch,
                                device=self.device,
-                               context_methods=self._get_context_methods(Phase.PRE_TRAINING)
-                               )
-
+                               context_methods=self._get_context_methods(Phase.PRE_TRAINING),
+                               ema_model=self.ema_model)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
         try:
@@ -1483,16 +1521,13 @@ class Trainer:
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
-    def test(self,  # noqa: C901
-             test_loader: torch.utils.data.DataLoader = None,
-             loss: torch.nn.modules.loss._Loss = None,
-             silent_mode: bool = False,
-             test_metrics_list=None,
+    def test(self, model: nn.Module = None, test_loader: torch.utils.data.DataLoader = None,
+             loss: torch.nn.modules.loss._Loss = None, silent_mode: bool = False, test_metrics_list=None,
              loss_logging_items_names=None, metrics_progress_verbose=False, test_phase_callbacks=None,
              use_ema_net=True) -> tuple:
         """
         Evaluates the model on given dataloader and metrics.
-
+        :param model: model to perfrom test on. When none is given, will try to use self.net (defalut=None).
         :param test_loader: dataloader to perform test on.
         :param test_metrics_list: (list(torchmetrics.Metric)) metrics list for evaluation.
         :param silent_mode: (bool) controls verbosity
@@ -1504,6 +1539,8 @@ class Trainer:
         All of the above args will override Trainer's corresponding attribute when not equal to None. Then evaluation
          is ran on self.test_loader with self.test_metrics.
         """
+
+        self.net = model or self.net
 
         # IN CASE TRAINING WAS PERFROMED BEFORE TEST- MAKE SURE TO TEST THE EMA MODEL (UNLESS SPECIFIED OTHERWISE BY
         # use_ema_net)

@@ -77,7 +77,7 @@ train_dataset_params:
         translate: 0.1                # image translation fraction
         scales: [0.5, 1.5]            # random rescale range (keeps size by padding/cropping) after mosaic transform.
         shear: 0.                     # shear degrees, randomly sampled from [-degrees, degrees]
-        target_size: ${dataset_params.train_dataset_params.train_input_dim}
+        target_size: ${dataset_params.train_dataset_params.input_dim}
         filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
         wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
         area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
@@ -90,7 +90,7 @@ train_dataset_params:
     - DetectionHorizontalFlip:
         prob: 0.5                       # probability to apply horizontal flip
     - DetectionPaddedRescale:
-        input_dim: ${dataset_params.train_dataset_params.train_input_dim}
+        input_dim: ${dataset_params.train_dataset_params.input_dim}
         max_targets: 120
     - DetectionTargetsFormatTransform:
         output_format:
@@ -126,10 +126,12 @@ val_dataset_params:
   cache: False
   transforms:
     - DetectionPaddedRescale:
-      input_dim: ${dataset_params.val_input_dim}
-  - DetectionTargetsFormatTransform:
-      max_targets: 50
-      output_format: ${dataset_params.targets_format}
+      input_dim: ${dataset_params.val_dataset_params.input_dim}
+    - DetectionTargetsFormatTransform:
+        max_targets: 50
+        output_format:
+          _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat
+          value: LABEL_NORMALIZED_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:

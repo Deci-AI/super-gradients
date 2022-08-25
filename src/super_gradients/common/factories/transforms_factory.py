@@ -18,7 +18,10 @@ from typing import Union, Mapping
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.training.transforms.transforms import RandomFlip, Rescale, RandomRescale, RandomRotate, \
-    CropImageAndMask, RandomGaussianBlur, PadShortToCropSize, ColorJitterSeg
+    CropImageAndMask, RandomGaussianBlur, PadShortToCropSize, ColorJitterSeg, DetectionMosaic, DetectionRandomAffine, \
+    DetectionMixup, DetectionHSV, \
+    DetectionHorizontalFlip, DetectionTargetsFormat, DetectionPaddedRescale, \
+    DetectionTargetsFormatTransform
 
 from super_gradients.training.datasets import datasets_utils
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
@@ -28,10 +31,6 @@ from super_gradients.training.datasets.datasets_utils import RandomResizedCropAn
 
 from torchvision import transforms
 import inspect
-
-
-
-
 
 
 class TransformsFactory(BaseFactory):
@@ -46,6 +45,15 @@ class TransformsFactory(BaseFactory):
             'RandomGaussianBlurSeg': RandomGaussianBlur,
             'PadShortToCropSizeSeg': PadShortToCropSize,
             'ColorJitterSeg': ColorJitterSeg,
+            "DetectionMosaic": DetectionMosaic,
+            "DetectionRandomAffine": DetectionRandomAffine,
+            "DetectionMixup": DetectionMixup,
+            "DetectionHSV": DetectionHSV,
+            "DetectionHorizontalFlip": DetectionHorizontalFlip,
+            "DetectionPaddedRescale": DetectionPaddedRescale,
+            "DetectionTargetsFormat": DetectionTargetsFormat,
+            "DetectionTargetsFormatTransform": DetectionTargetsFormatTransform
+
             "DetectionMosaic": DetectionMosaic,
             "DetectionRandomAffine": DetectionRandomAffine,
             "DetectionMixup": DetectionMixup,

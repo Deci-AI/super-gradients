@@ -17,6 +17,8 @@ defaults:
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
 
+
+resume: False
 training_hyperparams:
   loss: kd_loss
   criterion_params:
@@ -40,11 +42,25 @@ teacher_arch_params:
   image_size: [224, 224]
   patch_size: [16, 16]
 
+teacher_checkpoint_params:
+  load_backbone: False # whether to load only backbone part of checkpoint
+  checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
+  strict_load: # key matching strictness for loading checkpoint's weights
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: True
+  pretrained_weights: imagenet
+
+student_checkpoint_params:
+  load_backbone: False # whether to load only backbone part of checkpoint
+  checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
+  strict_load: # key matching strictness for loading checkpoint's weights
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: True
+  pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
+
+
 model_checkpoints_location: local
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
-  teacher_pretrained_weights: imagenet
+
 
 run_teacher_on_eval: True
 
@@ -52,9 +68,7 @@ experiment_name: resnet50_imagenet_KD_Model
 
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_trainer.MultiGPUMode
-  value: DDP
+multi_gpu: DDP
 
 architecture: kd_module
 student_architecture: resnet50

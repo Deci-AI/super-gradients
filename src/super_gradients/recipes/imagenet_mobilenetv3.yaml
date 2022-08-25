@@ -6,16 +6,14 @@ defaults:
   - checkpoint_params: default_checkpoint_params
 
 model_checkpoints_location: local
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: mobileNetv3_large_training
 
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_trainer.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 
 architecture: mobilenet_v3_large

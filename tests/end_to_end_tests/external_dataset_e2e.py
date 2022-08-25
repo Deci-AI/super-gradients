@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 from PIL import Image
 import tensorflow.keras as keras
-from super_gradients.training import MultiGPUMode
+from super_gradients.training import MultiGPUMode, models
 from super_gradients.training import Trainer
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ExternalDatasetInterface, \
     ImageNetDatasetInterface
@@ -127,8 +127,8 @@ class TestExternalDatasetInterface(unittest.TestCase):
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(dataset_interface=self.test_external_dataset_interface,
                                           data_loader_num_workers=8)
-        trainer.build_model("resnet50", arch_params)
-        trainer.train(training_params=train_params)
+        model = models.get("resnet50", arch_params)
+        trainer.train(model=model, training_params=train_params)
 
 
 if __name__ == '__main__':

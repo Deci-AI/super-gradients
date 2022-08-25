@@ -5,6 +5,7 @@ from hydra import compose, initialize_config_dir
 import hydra
 from hydra.core.global_hydra import GlobalHydra
 from typing import Dict
+import super_gradients
 
 import torchvision.datasets as torch_datasets
 import torchvision.transforms as torch_transforms
@@ -134,6 +135,31 @@ def imagenet_train(dataset_params={}, dataloader_params={}):
                             dataloader_params=dataloader_params
                             )
 
+
+def coco2017_train_yolox(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return coco2017_train(dataset_params, dataloader_params)
+
+
+def coco2017_val_yolox(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return coco2017_val(dataset_params, dataloader_params)
+
+
+def coco2017_train_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="coco_detection_ssd_lite_mobilenet_v2_dataset_params",
+                           dataset_cls=COCODetectionDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="coco_detection_ssd_lite_mobilenet_v2_dataset_params",
+                           dataset_cls=COCODetectionDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
 
 def imagenet_val(dataset_params={}, dataloader_params={}):
     return get_data_loader(config_name="imagenet_vit_base_dataset_params",

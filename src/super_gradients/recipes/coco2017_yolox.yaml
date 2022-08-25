@@ -27,8 +27,9 @@ data_loader_num_workers: 8
 model_checkpoints_location: local
 
 load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 architecture: yolox_s
 

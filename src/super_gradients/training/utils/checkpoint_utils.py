@@ -62,7 +62,7 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str
     @return:
     """
     try:
-        net.load_state_dict(state_dict['net'], strict=strict)
+        net.load_state_dict(state_dict['net'] if 'net' in state_dict.keys() else state_dict, strict=strict)
     except (RuntimeError, ValueError, KeyError) as ex:
         if strict == 'no_key_matching':
             adapted_state_dict = adapt_state_dict_to_fit_model_layer_names(net.state_dict(), state_dict)
