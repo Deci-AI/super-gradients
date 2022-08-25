@@ -1,10 +1,12 @@
 defaults:
   - imagenet_dataset_params
 
-train_args:
-  batch_size: 64
+train_transform_args:
   interpolation: random
   color_jitter: [0.4, 0.4, 0.4]
   random_erase_prob: 0.2
   random_erase_value: random
   auto_augment_config_string: rand-m9-mstd0.5
+
+train_dataloader_params:
+  batch_size: 64

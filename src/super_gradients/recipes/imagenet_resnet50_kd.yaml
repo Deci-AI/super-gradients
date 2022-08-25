@@ -13,7 +13,7 @@
 
 defaults:
   - training_hyperparams: imagenet_resnet50_kd_train_params
-  - dataset_params: imagenet_dataset_params
+  - dataset_params: imagenet_resnet50_kd_dataset_params
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
 
