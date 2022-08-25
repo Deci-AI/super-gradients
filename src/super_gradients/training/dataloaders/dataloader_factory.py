@@ -1,21 +1,16 @@
 import os.path
 
 import pkg_resources
-from hydra import compose, initialize_config_dir
 import hydra
+from hydra import compose, initialize_config_dir
 from hydra.core.global_hydra import GlobalHydra
 from typing import Dict
 
-import torchvision.datasets as torch_datasets
-import torchvision.transforms as torch_transforms
+from torch.utils.data import BatchSampler, DataLoader
 
 import super_gradients
-
-from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories.transforms_factory import TransformsFactory
-
-from torch.utils.data import BatchSampler, DataLoader
 from super_gradients.training.utils import get_param
+from super_gradients.training.datasets import ImageNet
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
@@ -121,22 +116,6 @@ def coco2017_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
                            )
 
 
-class ImageFolder(torch_datasets.ImageFolder):
-
-    @resolve_param('transform', factory=TransformsFactory())
-    def __init__(self, root: str, transform: torch_transforms.Compose = None, *args, **kwargs):
-        super(ImageFolder, self).__init__(root, transform, *args, **kwargs)
-
-
-def imagenet_train(dataset_params={}, dataloader_params={}):
-    return get_data_loader(config_name="imagenet_vit_base_dataset_params",
-                           dataset_cls=ImageFolder,
-                           train=True,
-                           dataset_params=dataset_params,
-                           dataloader_params=dataloader_params
-                           )
-
-
 def coco2017_train_yolox(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return coco2017_train(dataset_params, dataloader_params)
 
@@ -165,8 +144,17 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_par
 
 def imagenet_val(dataset_params={}, dataloader_params={}):
     return get_data_loader(config_name="imagenet_vit_base_dataset_params",
-                           dataset_cls=ImageFolder,
+                           dataset_cls=ImageNet,
                            train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def imagenet_train(dataset_params={}, dataloader_params={}):
+    return get_data_loader(config_name="imagenet_vit_base_dataset_params",
+                           dataset_cls=ImageNet,
+                           train=True,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
                            )
