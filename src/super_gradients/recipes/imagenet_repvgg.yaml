@@ -29,14 +29,12 @@ data_loader_num_workers: 8
 
 
 model_checkpoints_location: local
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: repvgg_a0_imagenet_reproduce_fix
 
-multi_gpu:
-  _target_: super_gradients.training.sg_trainer.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 
 architecture: repvgg_a0

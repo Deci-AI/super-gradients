@@ -42,8 +42,10 @@ dataset_interface:
 data_loader_num_workers: 8
 
 model_checkpoints_location: local
-load_checkpoint: True
-load_weights_only: True
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: vit_base_imagenet1k
 

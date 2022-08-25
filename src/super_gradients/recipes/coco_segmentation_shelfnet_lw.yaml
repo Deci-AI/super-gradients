@@ -30,19 +30,18 @@ dataset_interface:
 
 data_loader_num_workers: 8
 
-load_checkpoint: True
 checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
   strict_load: True
-  load_weights_only: True
   load_backbone: True
-  source_ckpt_folder_name: resnet_34
+  checkpoint_path:
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: coco_segmentation_21_subclass_shelfnet34
 
-multi_gpu:
-  _target_: super_gradients.training.sg_trainer.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 
 ckpt_root_dir:
 

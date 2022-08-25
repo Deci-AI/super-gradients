@@ -32,17 +32,15 @@ dataset_interface:
 
 data_loader_num_workers: 8
 
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: efficientnet_b0_imagenet
 
 model_checkpoints_location: local
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_trainer.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 
 architecture: efficientnet_b0

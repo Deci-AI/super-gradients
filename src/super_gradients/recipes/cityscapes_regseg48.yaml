@@ -89,8 +89,10 @@ dataset_interface:
 data_loader_num_workers: 8
 
 
+resume: False
 
 training_hyperparams:
+  resume: ${resume}
   max_epochs: 800
   lr_mode: poly
   initial_lr: 0.02   # for effective batch_size=16
@@ -125,8 +127,7 @@ training_hyperparams:
 
   _convert_: all
 load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+
 
 model_checkpoints_location: local
 ckpt_root_dir:
