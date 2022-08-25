@@ -21,6 +21,12 @@ defaults:
 arch_params:
   droppath_prob: 0.05
 
+dataset_interface:
+  imagenet:
+    dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+
 model_checkpoints_location: local
 resume: False
 training_hyperparams:

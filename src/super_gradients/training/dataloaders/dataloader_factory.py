@@ -66,14 +66,13 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
     default_dataloader_params = hydra.utils.instantiate(default_dataloader_params)
     is_dist = super_gradients.is_distributed()
 
-    if get_param(default_dataloader_params, "sampler") is not None:
+    if get_param(dataloader_params, "sampler") is not None:
+        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+    elif get_param(default_dataloader_params, "sampler") is not None:
         default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
     elif is_dist:
         default_dataloader_params["sampler"] = {"DistributedSampler": {}}
         default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
-
-    if get_param(dataloader_params, "sampler") is not None:
-        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
 
     dataloader_params = _override_default_params_without_nones(dataloader_params, default_dataloader_params)
     if get_param(dataloader_params, "batch_sampler"):
@@ -93,6 +92,8 @@ def _override_default_params_without_nones(params, default_params):
 
 def _instantiate_sampler(dataset, dataloader_params):
     sampler_name = list(dataloader_params["sampler"].keys())[0]
+    print("---")
+    print(sampler_name)
     dataloader_params["sampler"][sampler_name]["dataset"] = dataset
     dataloader_params["sampler"] = SamplersFactory().get(dataloader_params["sampler"])
     return dataloader_params
@@ -142,19 +143,73 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_par
                            )
 
 
-def imagenet_val(dataset_params={}, dataloader_params={}):
-    return get_data_loader(config_name="imagenet_vit_base_dataset_params",
-                           dataset_cls=ImageNet,
-                           train=False,
-                           dataset_params=dataset_params,
-                           dataloader_params=dataloader_params
-                           )
-
-
-def imagenet_train(dataset_params={}, dataloader_params={}):
-    return get_data_loader(config_name="imagenet_vit_base_dataset_params",
+def imagenet_train(dataset_params={}, dataloader_params={}, config_name="imagenet_dataset_params"):
+    return get_data_loader(config_name=config_name,
                            dataset_cls=ImageNet,
                            train=True,
                            dataset_params=dataset_params,
-                           dataloader_params=dataloader_params
-                           )
+                           dataloader_params=dataloader_params)
+
+
+def imagenet_val(dataset_params={}, dataloader_params={}, config_name="imagenet_dataset_params"):
+    return get_data_loader(config_name=config_name,
+                           dataset_cls=ImageNet,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params)
+
+
+def imagenet_efficientnet_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_efficientnet_dataset_params")
+
+
+def imagenet_efficientnet_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_efficientnet_dataset_params")
+
+
+def imagenet_mobilenetv2_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_mobilenetv2_dataset_params")
+
+
+def imagenet_mobilenetv2_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_mobilenetv2_dataset_params")
+
+
+def imagenet_mobilenetv3_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_mobilenetv3_dataset_params")
+
+
+def imagenet_mobilenetv3_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_mobilenetv3_dataset_params")
+
+
+def imagenet_regnetY_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_regnetY_dataset_params")
+
+
+def imagenet_regnetY_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_regnetY_dataset_params")
+
+
+def imagenet_resnet50_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_resnet50_dataset_params")
+
+
+def imagenet_resnet50_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_resnet50_dataset_params")
+
+
+def imagenet_resnet50_kd_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_resnet50_kd_dataset_params")
+
+
+def imagenet_resnet50_kd_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_resnet50_kd_dataset_params")
+
+
+def imagenet_vit_base_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_vit_base_dataset_params")
+
+
+def imagenet_vit_base_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_vit_base_dataset_params")

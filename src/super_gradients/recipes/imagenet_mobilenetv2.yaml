@@ -15,6 +15,13 @@ arch_params:
   num_classes: 1000
   dropout: 0.2
 
+dataset_interface:
+  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
+  dataset_params: ${dataset_params}
+  data_dir: /data/Imagenet
+
+data_loader_num_workers: 8
+
 model_checkpoints_location: local
 resume: False
 training_hyperparams:

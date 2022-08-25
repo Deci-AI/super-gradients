@@ -19,6 +19,12 @@ defaults:
   - arch_params: vit_base_arch_params
   - checkpoint_params: vit_base_imagenet_checkpoint_params
 
+dataset_interface:
+  imagenet:
+    dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+
 model_checkpoints_location: local
 
 resume: False

@@ -59,6 +59,12 @@ student_checkpoint_params:
   pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
 
 
+dataset_interface:
+  imagenet:
+    dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+
 model_checkpoints_location: local
 
 
