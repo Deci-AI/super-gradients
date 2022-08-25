@@ -6,7 +6,7 @@ initial_lr: 5e-3
 lr_mode: cosine
 lr_warmup_epochs: 5
 lr_cooldown_epochs: 10
-ema: True
+ema: False
 mixed_precision: True
 zero_weight_decay_on_bias_and_bn: True
 optimizer: Lamb

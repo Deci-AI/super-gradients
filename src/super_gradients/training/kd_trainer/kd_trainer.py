@@ -72,6 +72,8 @@ class KDTrainer(Trainer):
                              checkpoint_path=cfg.teacher_checkpoint_params.checkpoint_path,
                              load_backbone=cfg.teacher_checkpoint_params.load_backbone)
 
+        student.to("cpu")
+        teacher.to("cpu")
         # TRAIN
         trainer.train(training_params=cfg.training_hyperparams, student=student, teacher=teacher,
                       kd_architecture=cfg.architecture, kd_arch_params=cfg.arch_params,
