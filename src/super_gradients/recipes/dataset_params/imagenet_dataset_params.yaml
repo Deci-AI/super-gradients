@@ -2,15 +2,9 @@ dataset_dir: /data/Imagenet     # path to imagenet directory (local)
 img_mean: [0.485, 0.456, 0.406] # mean for normalization
 img_std: [0.229, 0.224, 0.225]  # std  for normalization
 
-# You can see train_args and val_args as the input of the yaml,
-# i.e. by overwriting the following args you will change the dataset_params and dataloader_params
+# train_transform_args and val_transform_args allow us to easily modify the transform ars without needing to redifine
+# the whole list of transform everytime
 train_transform_args:
-  batch_size: 64
-  collate_fn: # Uses the default collate_fn
-  batch_sampler: # No batch_sampler by default
-  sampler: # Uses the default sampler
-  num_workers: 8
-  drop_last: False
   crop_size: 224
   interpolation: default
   auto_augment_config_string:
@@ -19,13 +13,7 @@ train_transform_args:
   random_erase_prob: 0.
   random_erase_value: 0.
 
-val_args:
-  batch_size: 200
-  collate_fn: # Uses the default collate_fn
-  batch_sampler: # No batch_sampler by default
-  sampler: # Uses the default sampler
-  num_workers: 8
-  drop_last: False
+val_transform_args:
   resize_size: 256 # loaded image resize size (appplied first among preprocessing transforms)
   crop_size: 224 # crop size (size of net's input)
 
@@ -37,23 +25,23 @@ train_dataset_params:
     Compose:
       transforms:
         - RandomResizedCropAndInterpolation:
-            size: ${dataset_params.train_args.crop_size}
-            interpolation: ${dataset_params.train_args.interpolation}
+            size: ${dataset_params.train_transform_args.crop_size}
+            interpolation: ${dataset_params.train_transform_args.interpolation}
         - RandomHorizontalFlip
         - color_augmentation:
-            rand_augment_config_string: ${dataset_params.train_args.auto_augment_config_string}
-            color_jitter: ${dataset_params.train_args.color_jitter}
-            crop_size: ${dataset_params.train_args.crop_size}
+            rand_augment_config_string: ${dataset_params.train_transform_args.auto_augment_config_string}
+            color_jitter: ${dataset_params.train_transform_args.color_jitter}
+            crop_size: ${dataset_params.train_transform_args.crop_size}
             img_mean: ${dataset_params.img_mean}
         - ToTensor
         - Lighting:
-            alphastd: ${dataset_params.train_args.alphastd}
+            alphastd: ${dataset_params.train_transform_args.alphastd}
         - Normalize:
             mean: ${dataset_params.img_mean}
             std: ${dataset_params.img_std}
         - RandomErase:
-            probability: ${dataset_params.train_args.random_erase_prob}
-            value: ${dataset_params.train_args.random_erase_value}
+            probability: ${dataset_params.train_transform_args.random_erase_prob}
+            value: ${dataset_params.train_transform_args.random_erase_value}
 
 val_dataset_params:
   root: ${dataset_params.dataset_dir}/val
@@ -61,33 +49,27 @@ val_dataset_params:
     Compose:
       transforms:
         - Resize:
-            size: ${dataset_params.val_args.resize_size}
+            size: ${dataset_params.val_transform_args.resize_size}
         - CenterCrop:
-            size: ${dataset_params.val_args.crop_size}
+            size: ${dataset_params.val_transform_args.crop_size}
         - ToTensor
         - Normalize:
             mean: ${dataset_params.img_mean}
             std: ${dataset_params.img_std}
 
 train_dataloader_params:
-  batch_size: ${dataset_params.train_args.batch_size}
-  collate_fn: ${dataset_params.train_args.collate_fn}
-  batch_sampler: ${dataset_params.train_args.batch_sampler}
-  sampler: ${dataset_params.train_args.sampler}
-  num_workers: ${dataset_params.train_args.num_workers}
-  drop_last: ${dataset_params.train_args.drop_last}
+  batch_size: 64
+  num_workers: 8
+  drop_last: False
   pin_memory: True
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
 
 val_dataloader_params:
-  batch_size: ${dataset_params.val_args.batch_size}
-  collate_fn: ${dataset_params.val_args.collate_fn}
-  batch_sampler: ${dataset_params.val_args.batch_sampler}
-  sampler: ${dataset_params.val_args.sampler}
-  num_workers: ${dataset_params.val_args.num_workers}
-  drop_last: ${dataset_params.val_args.drop_last}
+  batch_size: 200
+  num_workers: 8
+  drop_last: False
   pin_memory: True
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
