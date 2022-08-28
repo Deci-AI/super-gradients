@@ -1,0 +1,38 @@
+train_dataset_params:
+  root: /data/pascal_voc_2012/VOCdevkit/VOC2012/
+  list_file: ImageSets/Segmentation/train.txt
+  samples_sub_directory: JPEGImages
+  targets_sub_directory: SegmentationClass
+  dataset_hyper_params:
+  augment: True
+  cache_labels: False
+  cache_images: False
+
+val_dataset_params:
+  root: /data/pascal_voc_2012/VOCdevkit/VOC2012/
+  list_file: ImageSets/Segmentation/val.txt
+  samples_sub_directory: JPEGImages
+  targets_sub_directory: SegmentationClass
+  dataset_hyper_params:
+  augment: True
+  cache_labels: False
+  cache_images: False
+
+
+train_dataloader_params:
+  batch_size: 64
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+  worker_init_fn:
+    _target_: super_gradients.training.utils.utils.load_func
+    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
+
+val_dataloader_params:
+  batch_size: 200
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+  worker_init_fn:
+    _target_: super_gradients.training.utils.utils.load_func
+    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
