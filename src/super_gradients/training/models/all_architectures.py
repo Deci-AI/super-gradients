@@ -114,8 +114,12 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "vit_huge": vit_huge,
                  "beit_base_patch16_224": beit_base_patch16_224,
                  "beit_large_patch16_224": beit_large_patch16_224,
-                 "pp_liteseg_t": PPLiteSegT,
-                 "pp_liteseg_b": PPLiteSegB,
+                 "pp_lite_t_seg": PPLiteSegT,
+                 "pp_lite_t_seg50": PPLiteSegT,
+                 "pp_lite_t_seg75": PPLiteSegT,
+                 "pp_lite_b_seg": PPLiteSegB,
+                 "pp_lite_b_seg50": PPLiteSegB,
+                 "pp_lite_b_seg75": PPLiteSegB,
                  }
 
 KD_ARCHITECTURES = {

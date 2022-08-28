@@ -229,7 +229,9 @@ class PretrainedModelsTest(unittest.TestCase):
         self.cityscapes_pretrained_arch_params = {
             "ddrnet_23": {"aux_head": True, "sync_bn": True},
             "regseg48": {},
-            "stdc": {"use_aux_heads": True, "aux_head": True}}
+            "stdc": {"use_aux_heads": True, "aux_head": True},
+            "pplite_seg": {"use_aux_heads": True},
+        }
 
         self.cityscapes_pretrained_ckpt_params = {"pretrained_weights": "cityscapes"}
         self.cityscapes_pretrained_mious = {"ddrnet_23": 0.8026,
@@ -238,7 +240,11 @@ class PretrainedModelsTest(unittest.TestCase):
                                             "stdc1_seg75": 0.7687,
                                             "stdc2_seg50": 0.7644,
                                             "stdc2_seg75": 0.7893,
-                                            "regseg48": 0.7815}
+                                            "regseg48": 0.7815,
+                                            "pp_lite_t_seg50": 0.7492,
+                                            "pp_lite_t_seg75": 0.7756,
+                                            "pp_lite_b_seg50": 0.7648,
+                                            "pp_lite_b_seg75": 0.7852}
 
         self.cityscapes_dataset = CityscapesDatasetInterface(dataset_params={
             "batch_size": 3,
@@ -786,6 +792,50 @@ class PretrainedModelsTest(unittest.TestCase):
                            test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
                            metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc2_seg75"], delta=0.001)
+
+    def test_pretrained_pplite_t_seg50_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_pplite_t_seg50', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
+        trainer.build_model("pp_lite_t_seg50", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"],
+                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled50.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_t_seg50"], delta=0.001)
+
+    def test_pretrained_pplite_t_seg75_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_pplite_t_seg75', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
+        trainer.build_model("pp_lite_t_seg75", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"],
+                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled75.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_t_seg75"], delta=0.001)
+
+    def test_pretrained_pplite_b_seg50_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_pplite_b_seg50', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
+        trainer.build_model("pp_lite_b_seg50", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"],
+                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled50.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_b_seg50"], delta=0.001)
+
+    def test_pretrained_pplite_b_seg75_cityscapes(self):
+        trainer = SgModel('cityscapes_pretrained_pplite_b_seg75', model_checkpoints_location='local',
+                          multi_gpu=MultiGPUMode.OFF)
+        trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
+        trainer.build_model("pp_lite_b_seg75", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"],
+                            checkpoint_params=self.cityscapes_pretrained_ckpt_params)
+        res = trainer.test(test_loader=self.cityscapes_dataset_rescaled75.val_loader,
+                           test_metrics_list=[IoU(num_classes=20, ignore_index=19)],
+                           metrics_progress_verbose=True)[0].cpu().item()
+        self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_b_seg75"], delta=0.001)
 
     def test_transfer_learning_stdc2_seg75_cityscapes(self):
         trainer = SgModel('cityscapes_pretrained_stdc2_seg75_transfer_learning', model_checkpoints_location='local',

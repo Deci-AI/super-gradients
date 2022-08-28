@@ -5,9 +5,9 @@
 #     PP-LiteSeg: A Superior Real-Time Semantic Segmentation Model.
 #
 #  Usage PPLite-T-Seg50:
-#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_pplite_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path> architecture=pp_liteseg_t
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_pplite_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path> architecture=pp_lite_t_seg
 #  Usage PPLite-B-Seg50:
-#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_pplite_seg50 checkpoint_params.external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=pp_liteseg_b
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_pplite_seg50 checkpoint_params.external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=pp_lite_b_seg
 #
 #
 #  Validation mIoU - Cityscapes, training time:
@@ -70,5 +70,5 @@ training_hyperparams:
     save_tensorboard_remote: True
     save_logs_remote: True
 
-architecture: pp_liteseg_t
+architecture: pp_lite_t_seg
 experiment_name: ${architecture}_50_cityscapes
