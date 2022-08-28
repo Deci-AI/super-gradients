@@ -113,19 +113,7 @@ class PretrainedModelsTest(unittest.TestCase):
         ssd_val_transforms = [DetectionPaddedRescale(input_dim=(640, 640)),
                               DetectionTargetsFormatTransform(max_targets=50,
                                                               output_format=DetectionTargetsFormat.LABEL_CXCYWH)]
-# """
-# data_dir=self.dataset_params.data_dir,
-#                                                  subdir=self.dataset_params.train_subdir,
-#                                                  json_file=self.dataset_params.train_json_file,
-#                                                  input_dim=self.dataset_params.train_input_dim,
-#                                                  cache=self.dataset_params.cache_train_images,
-#                                                  cache_dir=self.dataset_params.cache_dir,
-#                                                  transforms=self.dataset_params.train_transforms,
-#                                                  tight_box_rotation=self.dataset_params.tight_box_rotation,
-#                                                  class_inclusion_list=self.dataset_params.class_inclusion_list,
-#                                                  max_num_samples=self.dataset_params.train_max_num_samples,
-#                                                  with_crowd=False)
-# """
+
         self.coco_dataset = {
             'yolox': CoCoDetectionDatasetInterface(
                 dataset_params={"data_dir": "/data/coco",
