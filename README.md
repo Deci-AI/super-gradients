@@ -500,7 +500,7 @@ efficientnet
 ```
 python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet
 ```
-mobilenetv2 #TODO: check in big tzag
+mobilenetv2
 ```
 python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2
 ```
@@ -536,7 +536,7 @@ resnet50
 ```
 python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
 ```
-resnet50_kd # ERROR (CUDA OUT OF MEMORY)
+resnet50_kd
 ```
 python -m torch.distributed.launch --nproc_per_node=4  src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
 ```
@@ -544,7 +544,7 @@ vit_base
 ```
 python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
 ```
-vit_large # ERROR (RuntimeError: Unable to find a valid cuDNN algorithm to run convolution)
+vit_large
 ```
 python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_large
 ```
@@ -555,7 +555,7 @@ python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/exampl
 <details>
 <summary>Coco2017</summary>
 
-ssd_lite_mobilenet_v2 #TODO: RETEST (RuntimeError: Unable to find a valid cuDNN algorithm to run convolution)
+ssd_lite_mobilenet_v2
 ```
 python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2
 ```
@@ -579,7 +579,7 @@ yolox_l
 ```
 python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l
 ```
-yolox_x # ERROR (CUDA OUT OF MEMORY)
+yolox_x
 ```
 python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_x
 ```
