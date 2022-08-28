@@ -141,7 +141,7 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_par
 
 
 def pascal_voc_segmentation_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
-    return get_data_loader(config_name="pascalVOC_segmentation",
+    return get_data_loader(config_name="pascal_voc_segmentation",
                            dataset_cls=PascalVOC2012SegmentationDataSet,
                            train=True,
                            dataset_params=dataset_params,
@@ -150,7 +150,7 @@ def pascal_voc_segmentation_train(dataset_params: Dict = {}, dataloader_params: 
 
 
 def pascal_voc_segmentation_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
-    return get_data_loader(config_name="pascalVOC_segmentation",
+    return get_data_loader(config_name="pascal_voc_segmentation",
                            dataset_cls=PascalVOC2012SegmentationDataSet,
                            train=False,
                            dataset_params=dataset_params,
