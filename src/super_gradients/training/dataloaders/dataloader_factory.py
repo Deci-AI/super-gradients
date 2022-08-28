@@ -92,8 +92,6 @@ def _override_default_params_without_nones(params, default_params):
 
 def _instantiate_sampler(dataset, dataloader_params):
     sampler_name = list(dataloader_params["sampler"].keys())[0]
-    print("---")
-    print(sampler_name)
     dataloader_params["sampler"][sampler_name]["dataset"] = dataset
     dataloader_params["sampler"] = SamplersFactory().get(dataloader_params["sampler"])
     return dataloader_params
