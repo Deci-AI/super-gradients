@@ -113,7 +113,19 @@ class PretrainedModelsTest(unittest.TestCase):
         ssd_val_transforms = [DetectionPaddedRescale(input_dim=(640, 640)),
                               DetectionTargetsFormatTransform(max_targets=50,
                                                               output_format=DetectionTargetsFormat.LABEL_CXCYWH)]
-
+# """
+# data_dir=self.dataset_params.data_dir,
+#                                                  subdir=self.dataset_params.train_subdir,
+#                                                  json_file=self.dataset_params.train_json_file,
+#                                                  input_dim=self.dataset_params.train_input_dim,
+#                                                  cache=self.dataset_params.cache_train_images,
+#                                                  cache_dir=self.dataset_params.cache_dir,
+#                                                  transforms=self.dataset_params.train_transforms,
+#                                                  tight_box_rotation=self.dataset_params.tight_box_rotation,
+#                                                  class_inclusion_list=self.dataset_params.class_inclusion_list,
+#                                                  max_num_samples=self.dataset_params.train_max_num_samples,
+#                                                  with_crowd=False)
+# """
         self.coco_dataset = {
             'yolox': CoCoDetectionDatasetInterface(
                 dataset_params={"data_dir": "/data/coco",
@@ -123,17 +135,21 @@ class PretrainedModelsTest(unittest.TestCase):
                                 "val_json_file": "instances_val2017.json",
                                 "batch_size": 16,
                                 "val_batch_size": 128,
-                                "val_image_size": 640,
-                                "train_image_size": 640,
+                                "val_input_dim": (640, 640),
+                                "train_input_dim": (640, 640),
                                 "train_transforms": yolox_train_transforms,
                                 "val_transforms": yolox_val_transforms,
 
                                 "val_collate_fn": CrowdDetectionCollateFN(),
                                 "train_collate_fn": DetectionCollateFN(),
-                                "cache_dir_path": None,
+                                "cache_dir": None,
                                 "cache_train_images": False,
                                 "cache_val_images": False,
-                                "with_crowd": True}),
+                                "with_crowd": True,
+                                "tight_box_rotation": False,
+                                "class_inclusion_list": None,
+                                "train_max_num_samples": None,
+                                "val_max_num_samples": None}),
 
             'ssd_mobilenet': CoCoDetectionDatasetInterface(dataset_params={"data_dir": "/data/coco",
                                                                            "train_subdir": "images/train2017",
@@ -142,18 +158,21 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                            "val_json_file": "instances_val2017.json",
                                                                            "batch_size": 16,
                                                                            "val_batch_size": 128,
-                                                                           "val_image_size": 320,
-                                                                           "train_image_size": 320,
+                                                                           "val_input_dim": (320, 320),
+                                                                           "train_input_dim": (320, 320),
                                                                            "train_transforms": ssd_train_transforms,
                                                                            "val_transforms": ssd_val_transforms,
 
                                                                            "val_collate_fn": CrowdDetectionCollateFN(),
                                                                            "train_collate_fn": DetectionCollateFN(),
-                                                                           "cache_dir_path": None,
+                                                                           "cache_dir": None,
                                                                            "cache_train_images": False,
                                                                            "cache_val_images": False,
-                                                                           "with_crowd": True})
-        }
+                                                                           "with_crowd": True,
+                                                                           "tight_box_rotation": False,
+                                                                           "class_inclusion_list": None,
+                                                                           "train_max_num_samples": None,
+                                                                           "val_max_num_samples": None})}
 
         self.coco_pretrained_maps = {'ssd_lite_mobilenet_v2': 0.2052,
                                      'coco_ssd_mobilenet_v1': 0.243,
