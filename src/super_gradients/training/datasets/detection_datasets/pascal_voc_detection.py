@@ -1,11 +1,15 @@
 import os
 import glob
 from pathlib import Path
+from typing import List, Optional
 from xml.etree import ElementTree
+
+from torch.utils.data import ConcatDataset
 from tqdm import tqdm
 
 import numpy as np
 
+from super_gradients.training.transforms.transforms import DetectionTransform
 from super_gradients.training.utils.utils import download_and_untar_from_url, get_image_size_from_path
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
@@ -18,13 +22,16 @@ logger = get_logger(__name__)
 class PascalVOCDetectionDataset(DetectionDataset):
     """Dataset for Pascal VOC object detection"""
 
-    def __init__(self, images_sub_directory: str, *args, **kwargs):
+    def __init__(self, images_sub_directory: str, download: bool = False, *args, **kwargs):
         """Dataset for Pascal VOC object detection
 
         :param images_sub_directory:    Sub directory of data_dir that includes images.
         """
+
         self.images_sub_directory = images_sub_directory
         self.img_and_target_path_list = None
+        if download:
+            PascalVOCDetectionDataset.download(kwargs.get("data_dir"))
 
         kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
         kwargs['all_classes_list'] = PASCAL_VOC_2012_CLASSES_LIST
@@ -87,6 +94,7 @@ class PascalVOCDetectionDataset(DetectionDataset):
 
         Data extracted form http://host.robots.ox.ac.uk/pascal/VOC/
         """
+
         def _parse_and_save_labels(path, new_label_path, year, image_id):
             """Parse and save the labels of an image in XYXY_LABEL format."""
 
@@ -132,3 +140,29 @@ class PascalVOCDetectionDataset(DetectionDataset):
                 new_label_path = (dest_labels_path / img_path.name).with_suffix('.txt')
                 img_path.rename(new_img_path)  # Move image to dest folder
                 _parse_and_save_labels(data_path, new_label_path, year, id)
+
+
+class PascalVOCUnifiedDetectionTrainDataset(ConcatDataset):
+    def __init__(self, data_dir, input_dim: tuple, cache: bool = False, cache_dir: str = None,
+                 transforms: List[DetectionTransform] = [], class_inclusion_list: Optional[List[str]] = None,
+                 max_num_samples: int = None, download: bool = False):
+        if download:
+            PascalVOCDetectionDataset.download(data_dir=data_dir)
+
+        train_dataset_names = ["train2007", "val2007", "train2012", "val2012"]
+        # We divide train_max_num_samples between the datasets
+        if max_num_samples:
+            max_num_samples_per_train_dataset = [len(segment) for segment in
+                                                 np.array_split(range(max_num_samples), len(train_dataset_names))]
+        else:
+            max_num_samples_per_train_dataset = [None] * len(train_dataset_names)
+        train_sets = [PascalVOCDetectionDataset(data_dir=data_dir,
+                                                input_dim=input_dim,
+                                                cache=cache,
+                                                cache_dir=cache_dir,
+                                                transforms=transforms,
+                                                images_sub_directory='images/' + trainset_name + '/',
+                                                class_inclusion_list=class_inclusion_list,
+                                                max_num_samples=max_num_samples_per_train_dataset[i])
+                      for i, trainset_name in enumerate(train_dataset_names)]
+        super(PascalVOCUnifiedDetectionTrainDataset, self).__init__(train_sets)
