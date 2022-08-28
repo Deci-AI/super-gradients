@@ -1,36 +1,39 @@
-#  STDC segmentation training example with Cityscapes dataset.
-#  Reproduction and refinement of paper: Rethinking BiSeNet For Real-time Semantic Segmentation.
+#  PPLiteSeg segmentation training example with Cityscapes dataset.
+#  Torch implementation of the paper:
+#     Juncai Peng, Yi Liu, Shiyu Tang, Yuying Hao, Lutao Chu, Guowei Chen, Zewu Wu, Zeyu Chen, Zhiliang Yu, Yuning Du,
+#     Qingqing Dang,Baohua Lai, Qiwen Liu, Xiaoguang Hu, Dianhai Yu, Yanjun Ma.
+#     PP-LiteSeg: A Superior Real-Time Semantic Segmentation Model.
 #
-#  Usage STDC1-Seg50:
-#      python -m torch.distributed.launch --nproc_per_node=2 train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path>
-#  Usage STDC2-Seg50:
-#      python -m torch.distributed.launch --nproc_per_node=2 train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path> architecture=stdc2_seg
+#  Usage PPLite-T-Seg75:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_pplite_seg75 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path> architecture=pp_liteseg_t
+#  Usage PPLite-B-Seg75:
+#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_pplite_seg75 checkpoint_params.external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=pp_liteseg_b
 #
 #
 #  Validation mIoU - Cityscapes, training time:
-#      STDC1-Seg50:    input-size: [512, 1024]     mIoU: 75.11     2 X RTX A5000, 20 H
-#      STDC2-Seg50:    input-size: [512, 1024]     mIoU: 76.44     2 X RTX A5000, 23 H
+#      PPLite-T-Seg75:    input-size: [768, 1536]     mIoU: 77.56     4 X RTX A5000, 13 H
+#      PPLite-B-Seg75:    input-size: [768, 1536]     mIoU: 78.52     4 X RTX A5000, 14 H
 #
 #  Official git repo:
-#      https://github.com/MichaelFan01/STDC-Seg
+#      https://github.com/PaddlePaddle/PaddleSeg/
 #  Paper:
-#      https://arxiv.org/abs/2104.13188
+#      https://arxiv.org/abs/2204.02681
 #
 #  Pretrained checkpoints:
-#      Backbones- downloaded from the author's official repo.
-#       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc1_imagenet_pretrained.pth
-#       https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc2_imagenet_pretrained.pth
+#      Backbones- downloaded from the STDC author's official repo.
+#       PPLite-T-Seg75, (STDC1-backbone):   https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc1_imagenet_pretrained.pth
+#       PPLite-B-Seg75, (STDC2-backbone):   https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc2_imagenet_pretrained.pth
 #
 #      Logs, tensorboards and network checkpoints:
-#       STDC1-Seg50: https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc1_seg50_dice_edge/
-#       STDC2-Seg50: https://deci-pretrained-models.s3.amazonaws.com/cityscapes_stdc2_seg50_dice_edge/
+#       PPLite-T-Seg75: https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_t_seg75/
+#       PPLite-B-Seg75: https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_b_seg75/
 #
 #  Learning rate and batch size parameters, using 2 RTX A5000 with DDP:
-#      STDC1-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 16 * 2gpus = 32
-#      STDC2-Seg50:    input-size: [512, 1024]     initial_lr: 0.01    batch-size: 16 * 2gpus = 32
+#      PPLite-T-Seg75:    input-size: [768, 768]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
+#      PPLite-B-Seg75:    input-size: [768, 768]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
 #
 #  Comments:
-#      * Pretrained backbones were used.
+#      * ImageNet Pretrained backbones were used.
 
 defaults:
   - cityscapes_pplite_seg50
