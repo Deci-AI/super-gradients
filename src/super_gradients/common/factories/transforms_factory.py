@@ -40,7 +40,7 @@ class TransformsFactory(BaseFactory):
             "DetectionTargetsFormatTransform": DetectionTargetsFormatTransform,
 
             'RandomResizedCropAndInterpolation': RandomResizedCropAndInterpolation,
-            'RandAugment': datasets_utils.rand_augment_transform,
+            'color_augmentation': datasets_utils.get_color_augmentation,
             'Lighting': Lighting,
             'RandomErase': RandomErase
         }
