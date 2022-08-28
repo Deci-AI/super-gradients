@@ -538,7 +538,7 @@ python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/exampl
 ```
 resnet50_kd
 ```
-python -m torch.distributed.launch --nproc_per_node=4  src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
+python -m torch.distributed.launch --nproc_per_node=8  src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
 ```
 vit_base
 ```

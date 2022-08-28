@@ -26,3 +26,4 @@ training_hyperparams:
 architecture: vit_large
 
 experiment_name: vit_large_imagenet1k
+multi_gpu: DDP

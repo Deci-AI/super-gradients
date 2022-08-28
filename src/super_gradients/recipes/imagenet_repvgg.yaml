@@ -14,10 +14,11 @@
 defaults:
   - training_hyperparams: imagenet_repvgg_train_params
   - dataset_params: imagenet_dataset_params
-  - arch_params: default_arch_params
+  - arch_params: repvgg_arch_params
   - checkpoint_params: default_checkpoint_params
 
 arch_params:
+  num_classes: 1000
   build_residual_branches: True
 
 dataset_interface:
