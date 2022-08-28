@@ -1,6 +1,6 @@
 '''SENet in PyTorch.
 
-SENet is the winner of ImageNet-2017. The paper is not released yet.
+SENet is the winner of ImageNetDataset-2017. The paper is not released yet.
 
 Code adapted from https://github.com/fastai/imagenet-fast/blob/master/cifar10/models/cifar10/senet.py
 '''

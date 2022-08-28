@@ -10,7 +10,7 @@ from torch.utils.data import BatchSampler, DataLoader
 
 import super_gradients
 from super_gradients.training.utils import get_param
-from super_gradients.training.datasets import ImageNet
+from super_gradients.training.datasets import ImageNetDataset
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
@@ -143,7 +143,7 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_par
 
 def imagenet_train(dataset_params={}, dataloader_params={}, config_name="imagenet_dataset_params"):
     return get_data_loader(config_name=config_name,
-                           dataset_cls=ImageNet,
+                           dataset_cls=ImageNetDataset,
                            train=True,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params)
@@ -151,7 +151,7 @@ def imagenet_train(dataset_params={}, dataloader_params={}, config_name="imagene
 
 def imagenet_val(dataset_params={}, dataloader_params={}, config_name="imagenet_dataset_params"):
     return get_data_loader(config_name=config_name,
-                           dataset_cls=ImageNet,
+                           dataset_cls=ImageNetDataset,
                            train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params)

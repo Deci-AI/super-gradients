@@ -36,7 +36,7 @@ def generate_model_metadata(architecture: str, task: Task):
         dl_task=task.value,
         input_dimensions=(3, 320, 320),
         primary_hardware=HardwareType.K80,
-        dataset_name="ImageNet",
+        dataset_name="ImageNetDataset",
         description=f"{model_name} deci.ai Test",
         tags=["imagenet", model_name],
     )

@@ -1,7 +1,7 @@
 """
 TODO: REFACTOR AS YAML FILES RECIPE
 
-Train DDRNet23 backbone in ImageNet according to the paper
+Train DDRNet23 backbone in ImageNetDataset according to the paper
 
 Training backbone on imagenet:
 python -m torch.distributed.launch --nproc_per_node=4 ddrnet_segmentation_example.py [-s for slim]
