@@ -9,6 +9,7 @@ train_interpolation: random
 auto_augment_config_string: rand-m9-mstd0.5
 
 # TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
+# TODO: UNCOMMENT BELOW WHEN ABOVE IS REMOVED
 #defaults:
 #  - imagenet_dataset_params
 

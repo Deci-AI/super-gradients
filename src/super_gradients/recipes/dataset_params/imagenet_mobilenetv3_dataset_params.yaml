@@ -4,6 +4,7 @@ defaults:
 batch_size: 128
 
 # TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
+# TODO: UNCOMMENT BELOW WHEN ABOVE IS REMOVED
 #defaults:
 #  - imagenet_dataset_params
 

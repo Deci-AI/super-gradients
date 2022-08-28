@@ -16,7 +16,7 @@ aug_repeat_count: 0 # amount of repetitions (each repetition of an example is au
 
 
 # TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
-#dataset_dir: /data/Imagenet     # path to imagenet directory (local)
+# TODO: UNCOMMENT BELOW WHEN ABOVE IS REMOVED
 #img_mean: [0.485, 0.456, 0.406] # mean for normalization
 #img_std: [0.229, 0.224, 0.225]  # std  for normalization
 
@@ -38,7 +38,7 @@ val_transform_args:
 
 # The following will directly be used to instantiate datasets and dataloaders.
 train_dataset_params:
-  root: ${dataset_params.dataset_dir}/train
+  root: /data/Imagenet/train
   transform:
     Compose:
       transforms:
@@ -62,7 +62,7 @@ train_dataset_params:
             value: ${dataset_params.train_transform_args.random_erase_value}
 
 val_dataset_params:
-  root: ${dataset_params.dataset_dir}/val
+  root: /data/Imagenet/val
   transform:
     Compose:
       transforms:

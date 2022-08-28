@@ -17,8 +17,7 @@ img_std: [0.5, 0.5, 0.5]
 
 
 # TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
-
-# RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.
+# TODO: UNCOMMENT BELOW WHEN ABOVE IS REMOVED
 #defaults:
 #  - imagenet_dataset_params
 
