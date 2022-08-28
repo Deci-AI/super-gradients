@@ -16,6 +16,7 @@ defaults:
   - imagenet_vit_base
 
 dataset_params:
+  batch_size: 32
   train_dataloader_params:
     batch_size: 32
 
