@@ -23,6 +23,8 @@ from super_gradients.training.dataloaders.dataloader_factory import (
     imagenet_resnet50_kd_val,
     imagenet_vit_base_train,
     imagenet_vit_base_val,
+    tiny_imagenet_train,
+    tiny_imagenet_val
 )
 from super_gradients.training.datasets import COCODetectionDataset, ImageNetDataset
 
@@ -129,6 +131,15 @@ class DataLoaderFactoryTest(unittest.TestCase):
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
 
+    def test_tiny_imagenet_train_train_creation(self):
+        dl = tiny_imagenet_train()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
+
+    def test_tiny_imagenet_train_val_creation(self):
+        dl = tiny_imagenet_val()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
 
 if __name__ == '__main__':
     unittest.main()

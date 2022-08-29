@@ -211,3 +211,19 @@ def imagenet_vit_base_train(dataset_params={}, dataloader_params={}):
 
 def imagenet_vit_base_val(dataset_params={}, dataloader_params={}):
     return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_vit_base_dataset_params")
+
+
+def tiny_imagenet_train(dataset_params={}, dataloader_params={}, config_name="tiny_imagenet_dataset_params"):
+    return get_data_loader(config_name=config_name,
+                           dataset_cls=ImageNetDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params)
+
+
+def tiny_imagenet_val(dataset_params={}, dataloader_params={}, config_name="tiny_imagenet_dataset_params"):
+    return get_data_loader(config_name=config_name,
+                           dataset_cls=ImageNetDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params)
