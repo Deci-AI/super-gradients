@@ -10,7 +10,7 @@ from super_gradients.training.transforms.transforms import RandomFlip, Rescale, 
     CropImageAndMask, RandomGaussianBlur, PadShortToCropSize, ColorJitterSeg, DetectionMosaic, DetectionRandomAffine, \
     DetectionMixup, DetectionHSV, \
     DetectionHorizontalFlip, DetectionTargetsFormat, DetectionPaddedRescale, \
-    DetectionTargetsFormatTransform, NormalizeSeg, ToTensorSeg
+    DetectionTargetsFormatTransform, NormalizeSeg, ToTensorSeg, ResizeSeg
 
 
 class TransformsFactory(BaseFactory):
@@ -33,9 +33,9 @@ class TransformsFactory(BaseFactory):
             "DetectionPaddedRescale": DetectionPaddedRescale,
             "DetectionTargetsFormat": DetectionTargetsFormat,
             "DetectionTargetsFormatTransform": DetectionTargetsFormatTransform,
+            "ResizeSeg": ResizeSeg,
             'NormalizeSeg': NormalizeSeg,
             'ToTensorSeg': ToTensorSeg
-
         }
         for name, obj in inspect.getmembers(transforms, inspect.isclass):
             if name in type_dict:
