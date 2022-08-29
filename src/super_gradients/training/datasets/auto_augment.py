@@ -408,8 +408,8 @@ def rand_augment_transform(config_str, crop_size: int, img_mean: List[float]):
     Ex 'rand-m9-n3-mstd0.5' results in RandAugment with magnitude 9, num_layers 3, magnitude_std 0.5
     'rand-mstd1-w0' results in magnitude_std 1.0, weights 0, default magnitude of 10 and num_layers 2
 
-    :param crop_size:
-    :param img_mean:
+    :param crop_size: The size of crop image
+    :param img_mean:  Average per channel
 
     :return: A PyTorch compatible Transform
     """
