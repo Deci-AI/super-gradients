@@ -98,6 +98,20 @@ jobs:
       - store_artifacts:
           path: ~/sg_logs
 
+  integration_test:
+    description: "running integration test on the code"
+    machine: true 
+    executor: 
+      name: deci on prem
+      resource_class: deci/research-standard  
+    steps:
+        - checkout
+        - run:
+           name: integration test
+           #command: docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deci1/super-gradients:test python3 ./tests/integration_tests/pretrained_models_test.py
+           command: docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deci1/super-gradients:test python3 -c 'print("it works!")'
+
+
 
   release_candidate:
     parameters:
@@ -172,6 +186,8 @@ jobs:
           directory_to_cd_into: "."
           tag: $CIRCLE_TAG
           notes: "This GitHub Release was done automatically by CircleCI"
+
+    
 
 
 
