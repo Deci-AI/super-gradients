@@ -141,5 +141,6 @@ class DataLoaderFactoryTest(unittest.TestCase):
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
 
+
 if __name__ == '__main__':
     unittest.main()
