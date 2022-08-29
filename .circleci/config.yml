@@ -106,8 +106,8 @@ jobs:
         - checkout
         - run:
            name: integration test
-           #command: docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deci1/super-gradients:test python3 ./tests/integration_tests/pretrained_models_test.py
-           command: docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deci1/super-gradients:test python3 -c 'print("it works!")'
+           #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deci1/super-gradients:test python3 ./tests/integration_tests/pretrained_models_test.py
+           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deci1/super-gradients:test python3 -c 'print("it works!")'
 
 
 
