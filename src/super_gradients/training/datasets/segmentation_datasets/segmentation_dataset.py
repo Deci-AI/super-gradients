@@ -35,7 +35,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             :param sample_loader:               A function that specifies how to load a sample
             :param target_loader:               A function that specifies how to load a target
             :param collate_fn:                  collate_fn func to process batches for the Data Loader
-            :param target_extension:            file extension of the targets (defualt is .png for PASCAL VOC 2012)
+            :param target_extension:            file extension of the targets (default is .png for PASCAL VOC 2012)
             :param transforms:                  transforms to be applied on image and mask
 
         """

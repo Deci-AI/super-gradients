@@ -1,17 +1,19 @@
 import os.path
+from typing import Dict
 
+import hydra
 import pkg_resources
 from hydra import compose, initialize_config_dir
-import hydra
 from hydra.core.global_hydra import GlobalHydra
-from typing import Dict
-import super_gradients
 from torch.utils.data import BatchSampler, DataLoader
-from super_gradients.training.utils import get_param
-from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
-from super_gradients.common.factories.samplers_factory import SamplersFactory
-from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
+
+import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.factories.samplers_factory import SamplersFactory
+from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
+from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset
+from super_gradients.training.utils import get_param
+from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 
 logger = get_logger(__name__)
 
@@ -133,6 +135,24 @@ def coco2017_train_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_p
 def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="coco_detection_ssd_lite_mobilenet_v2_dataset_params",
                            dataset_cls=COCODetectionDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_dataset_params",
+                           dataset_cls=CityscapesDataset,
                            train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params

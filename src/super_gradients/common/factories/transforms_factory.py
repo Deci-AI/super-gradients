@@ -1,6 +1,7 @@
 import inspect
 from typing import Union, Mapping
 
+from omegaconf import ListConfig
 from torchvision import transforms
 
 from super_gradients.common.factories.base_factory import BaseFactory
@@ -49,6 +50,6 @@ class TransformsFactory(BaseFactory):
         # SPECIAL HANDLING FOR COMPOSE
         if isinstance(conf, Mapping) and 'Compose' in conf:
             conf['Compose']['transforms'] = ListFactory(TransformsFactory()).get(conf['Compose']['transforms'])
-        elif isinstance(conf, list):
+        elif isinstance(conf, (list, ListConfig)):
             conf = ListFactory(TransformsFactory()).get(conf)
         return super().get(conf)
