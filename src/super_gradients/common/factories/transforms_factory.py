@@ -1,4 +1,7 @@
+import inspect
 from typing import Union, Mapping
+
+from torchvision import transforms
 
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.common.factories.list_factory import ListFactory
@@ -6,10 +9,7 @@ from super_gradients.training.transforms.transforms import RandomFlip, Rescale, 
     CropImageAndMask, RandomGaussianBlur, PadShortToCropSize, ColorJitterSeg, DetectionMosaic, DetectionRandomAffine, \
     DetectionMixup, DetectionHSV, \
     DetectionHorizontalFlip, DetectionTargetsFormat, DetectionPaddedRescale, \
-    DetectionTargetsFormatTransform
-
-from torchvision import transforms
-import inspect
+    DetectionTargetsFormatTransform, NormalizeSeg, ToTensorSeg
 
 
 class TransformsFactory(BaseFactory):
@@ -31,7 +31,9 @@ class TransformsFactory(BaseFactory):
             "DetectionHorizontalFlip": DetectionHorizontalFlip,
             "DetectionPaddedRescale": DetectionPaddedRescale,
             "DetectionTargetsFormat": DetectionTargetsFormat,
-            "DetectionTargetsFormatTransform": DetectionTargetsFormatTransform
+            "DetectionTargetsFormatTransform": DetectionTargetsFormatTransform,
+            'NormalizeSeg': NormalizeSeg,
+            'ToTensorSeg': ToTensorSeg
 
         }
         for name, obj in inspect.getmembers(transforms, inspect.isclass):
@@ -47,4 +49,6 @@ class TransformsFactory(BaseFactory):
         # SPECIAL HANDLING FOR COMPOSE
         if isinstance(conf, Mapping) and 'Compose' in conf:
             conf['Compose']['transforms'] = ListFactory(TransformsFactory()).get(conf['Compose']['transforms'])
+        elif isinstance(conf, list):
+            conf = ListFactory(TransformsFactory()).get(conf)
         return super().get(conf)
