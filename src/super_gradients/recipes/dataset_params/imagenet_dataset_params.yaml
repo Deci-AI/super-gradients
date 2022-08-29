@@ -17,24 +17,9 @@ aug_repeat_count: 0 # amount of repetitions (each repetition of an example is au
 
 # TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
 # TODO: UNCOMMENT BELOW WHEN ABOVE IS REMOVED
+# Base recipe for ImageNet Datasets amd Dataloaders.
 #img_mean: [0.485, 0.456, 0.406] # mean for normalization
 #img_std: [0.229, 0.224, 0.225]  # std  for normalization
-
-# train_transform_args and val_transform_args allow us to easily modify the transform ars without needing to redifine
-# the whole list of transform everytime
-#train_transform_args:
-#  crop_size: 224
-#  interpolation: default
-#  auto_augment_config_string:
-#  color_jitter: [0., 0., 0.]
-#  alphastd: 0.
-#  random_erase_prob: 0.
-#  random_erase_value: 0.
-#
-#val_transform_args:
-#  resize_size: 256 # loaded image resize size (appplied first among preprocessing transforms)
-#  crop_size: 224 # crop size (size of net's input)
-
 
 train_dataset_params:
   root: /data/Imagenet/train

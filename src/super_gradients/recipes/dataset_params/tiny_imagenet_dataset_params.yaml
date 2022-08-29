@@ -1,3 +1,6 @@
+defaults:
+  - imagenet_dataset_params
+
 train_dataset_params:
   root: /data/TinyImagenet/train
   transform:
@@ -24,24 +27,5 @@ val_dataset_params:
         - Normalize:
             mean: [0.4802, 0.4481, 0.3975]
             std: [0.2770, 0.2691, 0.2821]
-
-train_dataloader_params:
-  batch_size: 64
-  num_workers: 8
-  drop_last: False
-  pin_memory: True
-  worker_init_fn:
-    _target_: super_gradients.training.utils.utils.load_func
-    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
-
-val_dataloader_params:
-  batch_size: 200
-  num_workers: 8
-  drop_last: False
-  pin_memory: True
-  worker_init_fn:
-    _target_: super_gradients.training.utils.utils.load_func
-    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
-
 
 _convert_: all

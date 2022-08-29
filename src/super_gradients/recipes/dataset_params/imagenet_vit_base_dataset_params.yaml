@@ -21,9 +21,6 @@ img_std: [0.5, 0.5, 0.5]
 #defaults:
 #  - imagenet_dataset_params
 
-#img_mean: [0.5, 0.5, 0.5]
-#img_std: [0.5, 0.5, 0.5]
-
 train_dataset_params:
   root: /data/Imagenet/train
   transform:
@@ -36,11 +33,11 @@ train_dataset_params:
         - RandomAugmentation:
             config_str: rand-m7-mstd0.5
             crop_size: 224
-            img_mean: ${dataset_params.img_mean}
+            img_mean: [0.5, 0.5, 0.5]
         - ToTensor
         - Normalize:
-            mean: ${dataset_params.img_mean}
-            std: ${dataset_params.img_std}
+            mean: [0.5, 0.5, 0.5]
+            std: [0.5, 0.5, 0.5]
 
 val_dataset_params:
   root: /data/Imagenet/val
@@ -48,13 +45,13 @@ val_dataset_params:
     Compose:
       transforms:
         - Resize:
-            size: 249 # This is changed compared to default
+            size: 249
         - CenterCrop:
             size: 224
         - ToTensor
         - Normalize:
-            mean: ${dataset_params.img_mean}
-            std: ${dataset_params.img_std}
+            mean: [0.5, 0.5, 0.5]
+            std: [0.5, 0.5, 0.5]
 
 train_dataloader_params:
   batch_size: 64
