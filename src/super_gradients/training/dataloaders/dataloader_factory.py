@@ -11,7 +11,7 @@ import super_gradients
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
-from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset
+from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset, SuperviselyPersonsDataset
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 
@@ -151,9 +151,25 @@ def cityscapes_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
 
 
 def cityscapes_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
-    return get_data_loader(config_name="cityscapes_dataset_params",
+    return get_data_loader(config_name="supervisely_persons_dataset_params",
                            dataset_cls=CityscapesDataset,
                            train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
                            )
+
+
+def supervisely_persons_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="supervisely_persons_dataset_params",
+                           dataset_cls=SuperviselyPersonsDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params)
+
+
+def supervisely_persons_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="supervisely_persons_dataset_params",
+                           dataset_cls=SuperviselyPersonsDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params)

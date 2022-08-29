@@ -3,7 +3,8 @@ import unittest
 from torch.utils.data import DataLoader
 
 from super_gradients.training.dataloaders.dataloader_factory import coco2017_train, coco2017_val, \
-    coco2017_train_ssd_lite_mobilenet_v2, coco2017_val_ssd_lite_mobilenet_v2, cityscapes_train, cityscapes_val
+    coco2017_train_ssd_lite_mobilenet_v2, coco2017_val_ssd_lite_mobilenet_v2, cityscapes_train, cityscapes_val,\
+    supervisely_persons_train, supervisely_persons_val
 from super_gradients.training.datasets import COCODetectionDataset
 from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset
 
@@ -54,6 +55,22 @@ class DataLoaderFactoryTest(unittest.TestCase):
         self.assertTrue(isinstance(dl_val, DataLoader))
         self.assertTrue(isinstance(dl_val.dataset, CityscapesDataset))
         it = iter(dl_val)
+        for _ in range(10):
+            next(it)
+
+    def test_supervisely_persons_train_creation(self):
+        dl = supervisely_persons_train()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, CityscapesDataset))
+        it = iter(dl)
+        for _ in range(10):
+            next(it)
+
+    def test_supervisely_persons_val_creation(self):
+        dl = supervisely_persons_val()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, CityscapesDataset))
+        it = iter(dl)
         for _ in range(10):
             next(it)
 
