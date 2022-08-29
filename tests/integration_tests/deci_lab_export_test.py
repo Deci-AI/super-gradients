@@ -1,5 +1,5 @@
 import unittest
-from super_gradients import SgModel, \
+from super_gradients import Trainer, \
     ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
@@ -10,12 +10,9 @@ from deci_lab_client.models import Metric, QuantizationLevel, ModelMetadata, Opt
 
 class DeciLabUploadTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.model = SgModel("deci_lab_export_test_model", model_checkpoints_location='local')
+        self.trainer = Trainer("deci_lab_export_test_model", model_checkpoints_location='local')
         dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 10})
-        self.model.connect_dataset_interface(dataset)
-        net = ResNet18(num_classes=5, arch_params={})
-        self.optimizer = SGD(params=net.parameters(), lr=0.1)
-        self.model.build_model(net)
+        self.trainer.connect_dataset_interface(dataset)
 
     def test_train_with_deci_lab_integration(self):
         model_meta_data = ModelMetadata(name='model_for_deci_lab_upload_test',
@@ -42,6 +39,7 @@ class DeciLabUploadTest(unittest.TestCase):
                                                   model_meta_data=model_meta_data,
                                                   optimization_request_form=optimization_request_form)
 
+        net = ResNet18(num_classes=5, arch_params={})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": self.optimizer,
                         "criterion_params": {},
@@ -49,8 +47,9 @@ class DeciLabUploadTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True,
                         "phase_callbacks": [model_conversion_callback, deci_lab_callback]}
+        self.optimizer = SGD(params=net.parameters(), lr=0.1)
 
-        self.model.train(train_params)
+        self.trainer.train(model=net, training_params=train_params)
 
         # CLEANUP
 

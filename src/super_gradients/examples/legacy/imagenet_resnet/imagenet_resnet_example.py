@@ -28,13 +28,13 @@ def train(cfg: DictConfig) -> None:
     cfg = hydra.utils.instantiate(cfg)
 
     # CONNECT THE DATASET INTERFACE WITH DECI MODEL
-    cfg.sg_model.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
+    cfg.trainer .connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
 
     # BUILD NETWORK
-    cfg.sg_model.build_model(cfg.architecture, arch_params=cfg.arch_params, load_checkpoint=cfg.load_checkpoint)
+    cfg.trainer .build_model(cfg.architecture, arch_params=cfg.arch_params, load_checkpoint=cfg.load_checkpoint)
 
     # TRAIN
-    cfg.sg_model.train(training_params=cfg.training_params)
+    cfg.trainer.train(training_params=cfg.training_params)
 
 
 if __name__ == "__main__":

@@ -60,7 +60,10 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                                "calib_data_loader": None,
                                "num_calib_batches": 2,
                                "percentile": 99.99
-                           }
+                           },
+                           "resume": False,
+                           "resume_path": None,
+                           "resume_strict_load": False
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}

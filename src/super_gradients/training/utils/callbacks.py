@@ -20,7 +20,6 @@ logger = get_logger(__name__)
 try:
     from deci_lab_client.client import DeciPlatformClient
     from deci_lab_client.models import ModelBenchmarkState
-    from deci_lab_client.models.model_metadata import ModelMetadata
 
     _imported_deci_lab_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
@@ -44,7 +43,7 @@ class Phase(Enum):
 
 class ContextSgMethods:
     """
-    Class for delegating SgModel's methods, so that only the relevant ones are ("phase wise") are accessible.
+    Class for delegating Trainer's methods, so that only the relevant ones are ("phase wise") are accessible.
     """
     def __init__(self, **methods):
         for attr, attr_val in methods.items():
@@ -63,7 +62,7 @@ class PhaseContext:
                  train_loader=None, valid_loader=None,
                  training_params=None, ddp_silent_mode=None, checkpoint_params=None, architecture=None,
                  arch_params=None, metric_idx_in_results_tuple=None,
-                 metric_to_watch=None, valid_metrics=None, context_methods=None):
+                 metric_to_watch=None, valid_metrics=None, context_methods=None, ema_model=None):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -93,6 +92,7 @@ class PhaseContext:
         self.metric_to_watch = metric_to_watch
         self.valid_metrics = valid_metrics
         self.context_methods = context_methods
+        self.ema_model = ema_model
 
     def update_context(self, **kwargs):
         for attr, attr_val in kwargs.items():
@@ -137,7 +137,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         :param atol (default=1e-05)
     """
 
-    def __init__(self, model_meta_data: ModelMetadata, **kwargs):
+    def __init__(self, model_meta_data, **kwargs):
         super(ModelConversionCheckCallback, self).__init__(phase=Phase.PRE_TRAINING)
         self.model_meta_data = model_meta_data
 
