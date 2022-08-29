@@ -101,9 +101,7 @@ jobs:
   integration_test:
     description: "running integration test on the code"
     machine: true 
-    executor: 
-      name: deci on prem
-      resource_class: deci/research-standard  
+    resource_class: deci-ai/research-standard
     steps:
         - checkout
         - run:
@@ -236,6 +234,7 @@ workflows:
           requires:
             - deci-common/persist_version_info
             - deci-common/codeartifact_login
+      - integration_test
       - release_candidate: # happens on merge
           py_version: "3.7"
           requires:
