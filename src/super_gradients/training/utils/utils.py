@@ -24,6 +24,11 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
+def empty_list():
+    """Instantiate an empty list. This is a workaround to generate a list with a function call in hydra, instead of the "[]"."""
+    return list()
+
+
 def convert_to_tensor(array):
     """Converts numpy arrays and lists to Torch tensors before calculation losses
     :param array: torch.tensor / Numpy array / List
