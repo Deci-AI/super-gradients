@@ -9,7 +9,7 @@ Pre-trained checkpoints converted to Deci's code base with the reported accuracy
 #         b5 - (456, 520), b6 - (528, 602), b7 - (600, 684), b8 - (672, 768), l2 - (800, 914)
 #         You should build the DataSetInterface with the following dictionary:
 #           ImageNetDatasetInterface(dataset_params = {'crop': 260, 'resize':  298})
-#   2. Pre-trained ImageNetDataset models can be found in S3://deci-model-repository-research/efficientnet_b#/ckpt_best.pth
+#   2. Pre-trained ImageNet models can be found in S3://deci-model-repository-research/efficientnet_b#/ckpt_best.pth
 #   3. See example code in experimental/efficientnet/efficientnet_example.py
 #######################################################################################################################
 
