@@ -14,7 +14,7 @@ import torch.distributed as dist
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from deprecated import deprecated
+from deprecate import deprecated
 from matplotlib.patches import Rectangle
 from torchvision.datasets import ImageFolder
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
@@ -75,7 +75,7 @@ def get_mean_and_std_torch(data_dir=None, dataloader=None, num_workers=4, Random
     return mean.view(-1).cpu().numpy().tolist(), std.view(-1).cpu().numpy().tolist()
 
 
-@deprecated(reason='Use get_mean_and_std_torch() instead. It is faster and more accurate')
+@deprecated(target=get_mean_and_std_torch, deprecated_in="2.1.0", remove_in="3.0.0")
 def get_mean_and_std(dataset):
     '''Compute the mean and std value of dataset.'''
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1)

@@ -29,4 +29,4 @@ class IllegalDataloaderInitialization(Exception):
 
     def __init__(self):
         super().__init__(
-            "train_loader, valid_loader and class parameters are required when initializing SgModel with data loaders")
+            "train_loader, valid_loader and class parameters are required when initializing Trainer with data loaders")

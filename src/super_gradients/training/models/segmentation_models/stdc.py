@@ -480,7 +480,7 @@ class STDCSegmentationBase(SgModule):
     @property
     def backbone(self):
         """
-        For SgModel load_backbone compatibility.
+        For Trainer load_backbone compatibility.
         """
         return self.cp.backbone
 

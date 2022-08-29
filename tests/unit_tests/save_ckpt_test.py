@@ -1,6 +1,6 @@
 import unittest
 import os
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer, models
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 
@@ -18,19 +18,19 @@ class SaveCkptListUnitTest(unittest.TestCase):
                         "greater_metric_to_watch_is_better": True}
 
         # Define Model
-        model = SgModel("save_ckpt_test", model_checkpoints_location='local')
+        trainer = Trainer("save_ckpt_test", model_checkpoints_location='local')
 
         # Connect Dataset
         dataset = ClassificationTestDatasetInterface()
-        model.connect_dataset_interface(dataset, data_loader_num_workers=8)
+        trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
 
         # Build Model
-        model.build_model("resnet18_cifar")
+        model = models.get("resnet18_cifar", arch_params={"num_classes": 10})
 
         # Train Model (and save ckpt_epoch_list)
-        model.train(training_params=train_params)
+        trainer.train(model=model, training_params=train_params)
 
-        dir_path = model.checkpoints_dir_path
+        dir_path = trainer.checkpoints_dir_path
         self.file_names_list = [dir_path + f'/ckpt_epoch_{epoch}.pth' for epoch in train_params["save_ckpt_epoch_list"]]
 
     def test_save_ckpt_epoch_list(self):

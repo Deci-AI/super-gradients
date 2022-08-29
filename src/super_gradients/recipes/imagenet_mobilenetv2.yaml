@@ -2,8 +2,12 @@
 # Top1-Accuracy:  73.08
 # Learning rate and batch size parameters, using 2 GPUs with DDP:
 #     initial_lr: 0.032    batch-size: 256 * 2gpus = 512
-# Usage:
-#     python -m torch.distributed.launch --nproc_per_node=2 --master_port=1234 examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2
+#
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2
 
 defaults:
   - training_hyperparams: imagenet_mobilenetv2_train_params
@@ -32,24 +36,15 @@ dataset_interface:
 data_loader_num_workers: 8
 
 model_checkpoints_location: local
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: mobileNetv2_training
 
 
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
-
-sg_model:
-  _target_: super_gradients.SgModel
-  experiment_name: ${experiment_name}
-  model_checkpoints_location: ${model_checkpoints_location}
-  ckpt_root_dir: ${ckpt_root_dir}
-  multi_gpu: ${multi_gpu}
+multi_gpu: DDP
 
 architecture: mobilenet_v2

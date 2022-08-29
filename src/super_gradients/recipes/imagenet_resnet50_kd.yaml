@@ -6,10 +6,11 @@
 #  Log and tensorboard at s3://deci-pretrained-models/KD_ResNet50_Beit_Base_ImageNet/average_model.pth
 
 # Instructions:
-# running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
-#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/:"YOUR_LOCAL_PATH"/super_gradients/src/
-# Then:
-#   python train_from_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python -m torch.distributed.launch --nproc_per_node=8  src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
+
 
 defaults:
   - training_hyperparams: imagenet_resnet50_kd_train_params
@@ -17,7 +18,10 @@ defaults:
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
 
+
+resume: False
 training_hyperparams:
+  resume: ${resume}
   loss: kd_loss
   criterion_params:
     distillation_loss_coeff: 0.8
@@ -26,7 +30,7 @@ training_hyperparams:
 
 arch_params:
   teacher_input_adapter:
-    _target_: super_gradients.training.utils.kd_model_utils.NormalizationAdapter
+    _target_: super_gradients.training.utils.kd_trainer_utils.NormalizationAdapter
     mean_original: [0.485, 0.456, 0.406]
     std_original: [0.229, 0.224, 0.225]
     mean_required: [0.5, 0.5, 0.5]
@@ -39,6 +43,22 @@ teacher_arch_params:
   num_classes: 1000
   image_size: [224, 224]
   patch_size: [16, 16]
+
+teacher_checkpoint_params:
+  load_backbone: False # whether to load only backbone part of checkpoint
+  checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
+  strict_load: # key matching strictness for loading checkpoint's weights
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: True
+  pretrained_weights: imagenet
+
+student_checkpoint_params:
+  load_backbone: False # whether to load only backbone part of checkpoint
+  checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
+  strict_load: # key matching strictness for loading checkpoint's weights
+    _target_: super_gradients.training.sg_trainer.StrictLoad
+    value: True
+  pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
 
 dataset_params:
   batch_size: 192
@@ -61,10 +81,7 @@ dataset_interface:
 data_loader_num_workers: 8
 
 model_checkpoints_location: local
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
-  teacher_pretrained_weights: imagenet
+
 
 run_teacher_on_eval: True
 
@@ -72,16 +89,7 @@ experiment_name: resnet50_imagenet_KD_Model
 
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: DDP
-
-sg_model:
-  _target_: super_gradients.KDModel
-  experiment_name: ${experiment_name}
-  model_checkpoints_location: ${model_checkpoints_location}
-  ckpt_root_dir: ${ckpt_root_dir}
-  multi_gpu: ${multi_gpu}
+multi_gpu: DDP
 
 architecture: kd_module
 student_architecture: resnet50

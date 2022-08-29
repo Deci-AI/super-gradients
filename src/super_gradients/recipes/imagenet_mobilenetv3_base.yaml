@@ -2,6 +2,7 @@
 
 defaults:
   - training_hyperparams: imagenet_mobilenetv3_train_params
+  - dataset_params: imagenet_dataset_params
   - checkpoint_params: default_checkpoint_params
 
 dataset_params:
@@ -15,23 +16,14 @@ dataset_interface:
 data_loader_num_workers: 16
 
 model_checkpoints_location: local
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: mobileNetv3_large_training
 
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
-
-sg_model:
-  _target_: super_gradients.SgModel
-  experiment_name: ${experiment_name}
-  model_checkpoints_location: ${model_checkpoints_location}
-  ckpt_root_dir: ${ckpt_root_dir}
-  multi_gpu: ${multi_gpu}
+multi_gpu: DDP
 
 architecture: mobilenet_v3_large

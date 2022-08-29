@@ -22,7 +22,7 @@ class InfiniteSampler(Sampler):
 
     def __init__(
         self,
-        size: int,
+        dataset,
         shuffle: bool = True,
         seed: Optional[int] = 0,
         rank=0,
@@ -36,8 +36,8 @@ class InfiniteSampler(Sampler):
                 across all workers. If None, will use a random seed shared
                 among workers (require synchronization among all workers).
         """
-        self._size = size
-        assert size > 0
+        self._size = len(dataset)
+        assert len(dataset) > 0
         self._shuffle = shuffle
         self._seed = int(seed)
 

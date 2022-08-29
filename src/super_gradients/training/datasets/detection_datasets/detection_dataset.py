@@ -12,10 +12,13 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset
 
+from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.training.utils.detection_utils import get_cls_posx_in_target, DetectionTargetsFormat
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform
 from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
+from super_gradients.common.factories.list_factory import ListFactory
+from super_gradients.common.factories.transforms_factory import TransformsFactory
 
 logger = get_logger(__name__)
 
@@ -58,7 +61,7 @@ class DetectionDataset(Dataset):
                                 > But only 100 will be indexed so index will be between 0 and 99
                                 > Therefore, we also have len(self) = 100
     """
-
+    @resolve_param("transforms", ListFactory(TransformsFactory()))
     def __init__(
             self,
             data_dir: str,
