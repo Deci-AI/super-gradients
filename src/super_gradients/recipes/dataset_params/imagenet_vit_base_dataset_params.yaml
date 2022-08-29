@@ -6,7 +6,7 @@ batch_size: 64
 random_erase_prob: 0
 random_erase_value: random
 train_interpolation: random
-rand_augment_config_string: rand-m7-mstd0.5
+config_string: rand-m7-mstd0.5
 cutmix: True
 cutmix_params:
   mixup_alpha: 0.2
@@ -24,12 +24,37 @@ img_std: [0.5, 0.5, 0.5]
 #img_mean: [0.5, 0.5, 0.5]
 #img_std: [0.5, 0.5, 0.5]
 
-train_transform_args:
-  interpolation: random
-  color_jitter: [0.4, 0.4, 0.4]
-  random_erase_prob: 0.
-  random_erase_value: random
-  auto_augment_config_string: rand-m7-mstd0.5
+train_dataset_params:
+  root: /data/Imagenet/train
+  transform:
+    Compose:
+      transforms:
+        - RandomResizedCropAndInterpolation:
+            size: 224
+            interpolation: random
+        - RandomHorizontalFlip
+        - RandomAugmentation:
+            config_str: rand-m7-mstd0.5
+            crop_size: 224
+            img_mean: ${dataset_params.img_mean}
+        - ToTensor
+        - Normalize:
+            mean: ${dataset_params.img_mean}
+            std: ${dataset_params.img_std}
+
+val_dataset_params:
+  root: /data/Imagenet/val
+  transform:
+    Compose:
+      transforms:
+        - Resize:
+            size: 249 # This is changed compared to default
+        - CenterCrop:
+            size: 224
+        - ToTensor
+        - Normalize:
+            mean: ${dataset_params.img_mean}
+            std: ${dataset_params.img_std}
 
 train_dataloader_params:
   batch_size: 64
@@ -38,6 +63,3 @@ train_dataloader_params:
     mixup_alpha: 0.2
     cutmix_alpha: 1.0
     label_smoothing: 0.1
-
-val_transform_args:
-  resize_size: 249

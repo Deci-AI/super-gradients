@@ -7,18 +7,33 @@ val_batch_size: 256
 random_erase_prob: 0.2
 random_erase_value: random
 train_interpolation: random
-rand_augment_config_string: rand-m9-mstd0.5
+config_string: rand-m9-mstd0.5
 
 # TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
 # TODO: UNCOMMENT BELOW WHEN ABOVE IS REMOVED
 #defaults:
 #  - imagenet_dataset_params
 
-train_transform_args:
-  interpolation: random
-  random_erase_prob: 0.2
-  random_erase_value: random
-  auto_augment_config_string: rand-m9-mstd0.5
+train_dataset_params:
+  root: /data/Imagenet/train
+  transform:
+    Compose:
+      transforms:
+        - RandomResizedCropAndInterpolation:
+            size: 224
+            interpolation: random
+        - RandomHorizontalFlip
+        - RandomAugmentation:
+            config_str: rand-m9-mstd0.5
+            crop_size: 224
+            img_mean: ${dataset_params.img_mean}
+        - ToTensor
+        - Normalize:
+            mean: ${dataset_params.img_mean}
+            std: ${dataset_params.img_std}
+        - RandomErase:
+            probability: 0.2
+            value: random
 
 train_dataloader_params:
   drop_last: True

@@ -8,10 +8,9 @@ from super_gradients.training.transforms.transforms import RandomFlip, Rescale, 
     DetectionHorizontalFlip, DetectionTargetsFormat, DetectionPaddedRescale, \
     DetectionTargetsFormatTransform
 
-from super_gradients.training.datasets import datasets_utils
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
 
-from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation
+from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, rand_augment_transform
 
 
 from torchvision import transforms
@@ -40,7 +39,7 @@ class TransformsFactory(BaseFactory):
             "DetectionTargetsFormatTransform": DetectionTargetsFormatTransform,
 
             'RandomResizedCropAndInterpolation': RandomResizedCropAndInterpolation,
-            'color_augmentation': datasets_utils.get_color_augmentation,
+            'RandomAugmentation': rand_augment_transform,
             'Lighting': Lighting,
             'RandomErase': RandomErase
         }

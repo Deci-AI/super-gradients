@@ -22,44 +22,33 @@ aug_repeat_count: 0 # amount of repetitions (each repetition of an example is au
 
 # train_transform_args and val_transform_args allow us to easily modify the transform ars without needing to redifine
 # the whole list of transform everytime
-train_transform_args:
-  crop_size: 224
-  interpolation: default
-  auto_augment_config_string:
-  color_jitter: [0., 0., 0.]
-  alphastd: 0.
-  random_erase_prob: 0.
-  random_erase_value: 0.
+#train_transform_args:
+#  crop_size: 224
+#  interpolation: default
+#  auto_augment_config_string:
+#  color_jitter: [0., 0., 0.]
+#  alphastd: 0.
+#  random_erase_prob: 0.
+#  random_erase_value: 0.
+#
+#val_transform_args:
+#  resize_size: 256 # loaded image resize size (appplied first among preprocessing transforms)
+#  crop_size: 224 # crop size (size of net's input)
 
-val_transform_args:
-  resize_size: 256 # loaded image resize size (appplied first among preprocessing transforms)
-  crop_size: 224 # crop size (size of net's input)
 
-
-# The following will directly be used to instantiate datasets and dataloaders.
 train_dataset_params:
   root: /data/Imagenet/train
   transform:
     Compose:
       transforms:
         - RandomResizedCropAndInterpolation:
-            size: ${dataset_params.train_transform_args.crop_size}
-            interpolation: ${dataset_params.train_transform_args.interpolation}
+            size: 224
+            interpolation: default
         - RandomHorizontalFlip
-        - color_augmentation:
-            rand_augment_config_string: ${dataset_params.train_transform_args.auto_augment_config_string}
-            color_jitter: ${dataset_params.train_transform_args.color_jitter}
-            crop_size: ${dataset_params.train_transform_args.crop_size}
-            img_mean: ${dataset_params.img_mean}
         - ToTensor
-        - Lighting:
-            alphastd: ${dataset_params.train_transform_args.alphastd}
         - Normalize:
             mean: ${dataset_params.img_mean}
             std: ${dataset_params.img_std}
-        - RandomErase:
-            probability: ${dataset_params.train_transform_args.random_erase_prob}
-            value: ${dataset_params.train_transform_args.random_erase_value}
 
 val_dataset_params:
   root: /data/Imagenet/val
@@ -67,9 +56,9 @@ val_dataset_params:
     Compose:
       transforms:
         - Resize:
-            size: ${dataset_params.val_transform_args.resize_size}
+            size: 256
         - CenterCrop:
-            size: ${dataset_params.val_transform_args.crop_size}
+            size: 224
         - ToTensor
         - Normalize:
             mean: ${dataset_params.img_mean}
@@ -80,18 +69,11 @@ train_dataloader_params:
   num_workers: 8
   drop_last: False
   pin_memory: True
-  worker_init_fn:
-    _target_: super_gradients.training.utils.utils.load_func
-    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
 
 val_dataloader_params:
   batch_size: 200
   num_workers: 8
   drop_last: False
   pin_memory: True
-  worker_init_fn:
-    _target_: super_gradients.training.utils.utils.load_func
-    dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
-
 
 _convert_: all

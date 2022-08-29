@@ -11,6 +11,7 @@ Papers:
 """
 import random
 import re
+from typing import List
 from PIL import Image, ImageOps, ImageEnhance
 import numpy as np
 
@@ -392,7 +393,7 @@ class RandAugment:
         return img
 
 
-def rand_augment_transform(config_str, hparams):
+def rand_augment_transform(config_str, crop_size: int, img_mean: List[float]):
     """
     Create a RandAugment transform
 
@@ -407,10 +408,14 @@ def rand_augment_transform(config_str, hparams):
     Ex 'rand-m9-n3-mstd0.5' results in RandAugment with magnitude 9, num_layers 3, magnitude_std 0.5
     'rand-mstd1-w0' results in magnitude_std 1.0, weights 0, default magnitude of 10 and num_layers 2
 
-    :param hparams: Other hparams (kwargs) for the RandAugmentation scheme
+    :param crop_size:
+    :param img_mean:
 
     :return: A PyTorch compatible Transform
     """
+    hparams = dict(translate_const=int(crop_size * 0.45),
+                   img_mean=tuple([min(255, round(255 * channel_mean)) for channel_mean in img_mean]))
+
     magnitude = _MAX_MAGNITUDE  # default to _MAX_MAGNITUDE for magnitude (currently 10)
     num_layers = 2  # default to 2 ops per image
     weight_idx = None  # default to no probability weights for op choice
