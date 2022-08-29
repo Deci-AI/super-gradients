@@ -29,17 +29,17 @@ class DataLoaderFactoryTest(unittest.TestCase):
         self.assertTrue(isinstance(dl_train, DataLoader))
         self.assertTrue(isinstance(dl_train.dataset, COCODetectionDataset))
 
-    def test_classification_test_creation(self):
+    def test_classification_test_dataloader_creation(self):
         dl = classification_test_dataloader()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, TensorDataset))
 
-    def test_detection_test_creation(self):
+    def test_detection_test_dataloader_creation(self):
         dl = detection_test_dataloader()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, TensorDataset))
 
-    def test_segmentation_test_creation(self):
+    def test_segmentation_test_dataloader_creation(self):
         dl = segmentation_test_dataloader()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, TensorDataset))
