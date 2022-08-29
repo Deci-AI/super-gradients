@@ -468,9 +468,9 @@ You then need to move to the root of the clone project (where you find "requirem
 pip install -e .
 ```
 
-Finally, set the PYTHONPATH environment variable: (Replace "YOUR-LOCAL-PATH" with the path to the downloaded repo):
+Finally, append super-gradients to the python path: (Replace "YOUR-LOCAL-PATH" with the path to the downloaded repo)
 ```
-export PYTHONPATH=<YOUR-LOCAL-PATH>/super_gradients/
+export PYTHONPATH=$PYTHONPATH:<YOUR-LOCAL-PATH>/super-gradients/
 ```
 
 
@@ -481,7 +481,7 @@ The basic basic syntax is as follow:
 ```
 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=<CONFIG-NAME> dataset_params.data_dir=<PATH-TO-DATASET>
 ```
-But in most cases you will want to train on multiple GPU using this syntax:
+But in most cases you will want to train on multiple GPU's using this syntax:
 ```
 python -m torch.distributed.launch --nproc_per_node=<N-NODES> src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=<CONFIG-NAME> dataset_params.data_dir=<PATH-TO-DATASET>
 ```
