@@ -43,7 +43,7 @@ def main(architecture_name: str):
         dl_task="classification",
         input_dimensions=(3, 320, 320),
         primary_hardware=HardwareType.K80,
-        dataset_name="ImageNetDataset",
+        dataset_name="ImageNet",
         description=f"{architecture_name} deci.ai Test",
         tags=["imagenet", architecture_name],
     )

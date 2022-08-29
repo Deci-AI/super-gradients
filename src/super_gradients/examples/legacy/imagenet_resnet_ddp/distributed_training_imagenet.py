@@ -15,7 +15,7 @@
     Should be checked with. (2) The training protocol specified in this file for 8 GPUs are far from optimal.
     The best protocol should use cosine schedule.
 
-    In the example below: for ImageNetDataset training using Resnet50, when applied with n=8 should compute an Eopch in about
+    In the example below: for ImageNet training using Resnet50, when applied with n=8 should compute an Eopch in about
     5min20sec with 8 V100 GPUs.
 
     Todo: (1) the code is more or less ready for multiple nodes, but I have not experimented with it at all.
