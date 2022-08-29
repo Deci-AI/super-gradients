@@ -4,7 +4,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from super_gradients.training.dataloaders.dataloader_factory import coco2017_train, coco2017_val, \
-    coco2017_train_ssd_lite_mobilenet_v2, coco2017_val_ssd_lite_mobilenet_v2, classification_test_train, detection_test_train, segmentation_test_train
+    coco2017_train_ssd_lite_mobilenet_v2, coco2017_val_ssd_lite_mobilenet_v2, classification_test_train, detection_test_train, segmentation_test_train,\
+    yolo_detection_test_train
 from super_gradients.training.datasets import COCODetectionDataset
 
 
@@ -41,6 +42,11 @@ class DataLoaderFactoryTest(unittest.TestCase):
 
     def test_segmentation_test_creation(self):
         dl = segmentation_test_train()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, torch.utils.data.TensorDataset))
+
+    def test_yolo_detection_test_creation(self):
+        dl = yolo_detection_test_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, torch.utils.data.TensorDataset))
 
