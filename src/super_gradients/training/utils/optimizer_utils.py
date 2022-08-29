@@ -85,7 +85,7 @@ def build_optimizer(net, lr, training_params):
         optimizer_cls = training_params.optimizer
     default_optimizer_params = OPTIMIZERS_DEFAULT_PARAMS[optimizer_cls] if optimizer_cls in OPTIMIZERS_DEFAULT_PARAMS else {}
     training_params.optimizer_params = get_param(training_params, 'optimizer_params', default_optimizer_params)
-    
+
     weight_decay = training_params.optimizer_params['weight_decay']
     # OPTIMIZER PARAM GROUPS ARE SET USING DEFAULT OR MODEL SPECIFIC INIT
     if hasattr(net.module, 'initialize_param_groups'):
