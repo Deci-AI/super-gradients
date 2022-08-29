@@ -136,7 +136,7 @@ def coco2017_train_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_p
 def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="coco_detection_ssd_lite_mobilenet_v2_dataset_params",
                            dataset_cls=COCODetectionDataset,
-                           train=True,
+                           train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
                            )
