@@ -628,8 +628,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         num_fg = max(matched_gt_ids.shape[0], 1)
         total_num_anchors = max(transformed_outputs.shape[0] * transformed_outputs.shape[1], 1)
 
-        cls_targets = F.one_hot(matched_gt_classes.to(torch.int64), self.num_classes) * \
-                      matched_ious.unsqueeze(dim=1)
+        cls_targets = F.one_hot(matched_gt_classes.to(torch.int64), self.num_classes) * matched_ious.unsqueeze(dim=1)
         obj_targets = transformed_outputs.new_zeros((transformed_outputs.shape[0], transformed_outputs.shape[1]))
         obj_targets[matched_img_ids, matched_fg_ids] = 1
         reg_targets = flattened_gts[matched_gt_ids][:, 1:]
@@ -642,8 +641,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
             dist.all_reduce(num_fg, op=torch._C._distributed_c10d.ReduceOp.AVG)
 
         loss_iou = self.iou_loss(bbox_preds[matched_img_ids, matched_fg_ids], reg_targets).sum() / num_fg
-        loss_obj = self.bcewithlog_loss(obj_preds.squeeze(-1), obj_targets).sum() \
-                   / (total_num_anchors if self.obj_loss_fix else num_fg)
+        loss_obj = self.bcewithlog_loss(obj_preds.squeeze(-1), obj_targets).sum() / (total_num_anchors if self.obj_loss_fix else num_fg)
         loss_cls = self.bcewithlog_loss(cls_preds[matched_img_ids, matched_fg_ids], cls_targets).sum() / num_fg
         if self.use_l1:
             loss_l1 = self.l1_loss(raw_outputs[matched_img_ids, matched_fg_ids], l1_targets).sum() / num_fg
@@ -659,8 +657,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
                                 loss.unsqueeze(0))).detach()
 
     def _get_initial_matching(self, gt_bboxes: torch.Tensor, expanded_strides: torch.Tensor,
-                             x_shifts: torch.Tensor, y_shifts: torch.Tensor) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                              x_shifts: torch.Tensor, y_shifts: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Get candidates using a mask for all cells.
         Mask in only foreground cells that have a center located:
@@ -703,8 +700,8 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
 
     @torch.no_grad()
     def _compute_matching(self, bbox_preds: torch.Tensor, cls_preds: torch.Tensor, obj_preds: torch.Tensor,
-                         expanded_strides: torch.Tensor, x_shifts: torch.Tensor, y_shifts: torch.Tensor,
-                         labels: torch.Tensor, ious_loss_cost_coeff: float = 3.0, outside_boxes_and_center_cost_coeff: float = 100000.0) \
+                          expanded_strides: torch.Tensor, x_shifts: torch.Tensor, y_shifts: torch.Tensor,
+                          labels: torch.Tensor, ious_loss_cost_coeff: float = 3.0, outside_boxes_and_center_cost_coeff: float = 100000.0) \
             -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Match cells to ground truth:
@@ -737,15 +734,14 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
 
         # COMPUTE DYNAMIC KS
         candidate_ious = self._calculate_pairwise_bbox_iou(candidate_gts_bbox, candidate_det_bbox, xyxy=False)
-        dynamic_ks, matching_index_to_dynamic_k_index = self._compute_dynamic_ks(candidate_gt_ids, candidate_ious,
-                                                                           self.dynamic_ks_bias)
+        dynamic_ks, matching_index_to_dynamic_k_index = self._compute_dynamic_ks(candidate_gt_ids, candidate_ious, self.dynamic_ks_bias)
         del candidate_gts_bbox, candidate_det_bbox
 
         # ORDER CANDIDATES BY COST
         candidate_gt_classes = flattened_gts[candidate_gt_ids, 0]
         cost_order = self._compute_cost_order(self.num_classes, candidate_img_ids, candidate_gt_classes,
-                                        candidate_fg_ids, candidate_ious,
-                                        cls_preds, obj_preds, strong_candidate_mask, ious_loss_cost_coeff, outside_boxes_and_center_cost_coeff)
+                                              candidate_fg_ids, candidate_ious,
+                                              cls_preds, obj_preds, strong_candidate_mask, ious_loss_cost_coeff, outside_boxes_and_center_cost_coeff)
 
         candidate_gt_ids = candidate_gt_ids[cost_order]
         candidate_gt_classes = candidate_gt_classes[cost_order]
@@ -776,8 +772,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         candidate_img_ids = candidate_img_ids[top1_mask]
         candidate_ious = candidate_ious[top1_mask]
 
-        return candidate_fg_ids, candidate_gt_classes, candidate_gt_ids, candidate_img_ids, candidate_ious, \
-               flattened_gts
+        return candidate_fg_ids, candidate_gt_classes, candidate_gt_ids, candidate_img_ids, candidate_ious, flattened_gts
 
     def _combine_candidates_img_id_fg_id(self, candidate_img_ids, candidate_anchor_ids):
         """
@@ -837,15 +832,10 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
             -> torch.Tensor:
         gt_cls_per_image = F.one_hot(candidate_gt_classes.to(torch.int64), num_classes).float()
         with torch.cuda.amp.autocast(enabled=False):
-            cls_preds_ = (
-                    cls_preds[candidate_gt_img_ids, candidate_anchor_ids]
-                    .float().sigmoid_()
-                    * obj_preds[candidate_gt_img_ids, candidate_anchor_ids]
-                    .float().sigmoid_()
-            )
-            pair_wise_cls_cost = F.binary_cross_entropy(
-                cls_preds_.sqrt_(), gt_cls_per_image, reduction="none"
-            ).sum(-1)
+            cls_preds_ = cls_preds[candidate_gt_img_ids, candidate_anchor_ids].float().sigmoid_() \
+                * obj_preds[candidate_gt_img_ids, candidate_anchor_ids].float().sigmoid_()
+            pair_wise_cls_cost = F.binary_cross_entropy(cls_preds_.sqrt_(), gt_cls_per_image, reduction="none").sum(-1)
+
         ious_cost = -torch.log(candidate_ious + 1e-8)
         cost = pair_wise_cls_cost + ious_loss_cost_coeff * ious_cost + outside_boxes_and_center_cost_coeff * strong_candidate_mask.logical_not()
         return cost.argsort()
