@@ -52,6 +52,9 @@ teacher_checkpoint_params:
     value: True
   pretrained_weights: imagenet
 
+checkpoint_params:
+  teacher_pretrained_weights: imagenet
+
 student_checkpoint_params:
   load_backbone: False # whether to load only backbone part of checkpoint
   checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
