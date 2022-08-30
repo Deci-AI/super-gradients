@@ -3,7 +3,8 @@ import unittest
 from torch.utils.data import DataLoader
 
 from super_gradients.training.dataloaders.dataloader_factory import coco2017_train, coco2017_val, \
-    coco2017_train_ssd_lite_mobilenet_v2, coco2017_val_ssd_lite_mobilenet_v2, cityscapes_train, cityscapes_val
+    coco2017_train_ssd_lite_mobilenet_v2, coco2017_val_ssd_lite_mobilenet_v2, cityscapes_train, cityscapes_val, \
+    cityscapes_stdc_seg50_train, cityscapes_stdc_seg50_val
 from super_gradients.training.datasets import COCODetectionDataset
 from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset
 
@@ -51,6 +52,22 @@ class DataLoaderFactoryTest(unittest.TestCase):
 
     def test_cityscapes_val_creation(self):
         dl_val = cityscapes_val()
+        self.assertTrue(isinstance(dl_val, DataLoader))
+        self.assertTrue(isinstance(dl_val.dataset, CityscapesDataset))
+        it = iter(dl_val)
+        for _ in range(10):
+            next(it)
+
+    def test_cityscapes_stdc_reg50_train_creation(self):
+        dl_train = cityscapes_stdc_seg50_train()
+        self.assertTrue(isinstance(dl_train, DataLoader))
+        self.assertTrue(isinstance(dl_train.dataset, CityscapesDataset))
+        it = iter(dl_train)
+        for _ in range(10):
+            next(it)
+
+    def test_cityscapes_stdc_reg50_val_creation(self):
+        dl_val = cityscapes_stdc_seg50_val()
         self.assertTrue(isinstance(dl_val, DataLoader))
         self.assertTrue(isinstance(dl_val.dataset, CityscapesDataset))
         it = iter(dl_val)

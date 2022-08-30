@@ -34,7 +34,7 @@ class TransformsFactory(BaseFactory):
             "DetectionTargetsFormat": DetectionTargetsFormat,
             "DetectionTargetsFormatTransform": DetectionTargetsFormatTransform,
             'NormalizeSeg': NormalizeSeg,
-            'ToTensorSeg': ToTensorSeg
+            'ToTensorSeg': ToTensorSeg,
 
         }
         for name, obj in inspect.getmembers(transforms, inspect.isclass):

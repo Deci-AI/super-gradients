@@ -1,8 +1,6 @@
 import os
 from typing import Callable, Iterable
 
-import numpy as np
-import torch
 import torchvision.transforms as transform
 from PIL import Image
 from tqdm import tqdm
@@ -17,9 +15,8 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
     @resolve_param('transforms', factory=TransformsFactory())
     def __init__(self, root: str, list_file: str = None, samples_sub_directory: str = None,
                  targets_sub_directory: str = None,
-                 img_size: int = 608, crop_size: int = 512, batch_size: int = 16,
-                 cache_labels: bool = False, cache_images: bool = False, sample_loader: Callable = None,
-                 target_loader: Callable = None, collate_fn: Callable = None, target_extension: str = '.png',
+                 cache_labels: bool = False, cache_images: bool = False,
+                 collate_fn: Callable = None, target_extension: str = '.png',
                  transforms: Iterable = None):
         """
         SegmentationDataSet
@@ -27,13 +24,8 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             :param list_file:                   Path to the file with the samples list
             :param samples_sub_directory:       name of the samples sub-directory
             :param targets_sub_directory:       name of the targets sub-directory
-            :param img_size:                    Image size of the Model that uses this Data Set
-            :param crop_size:                   The size of the cropped image
-            :param batch_size:                  Batch Size of the Model that uses this Data Set
             :param cache_labels:                "Caches" the labels -> Pre-Loads to memory as a list
             :param cache_images:                "Caches" the images -> Pre-Loads to memory as a list
-            :param sample_loader:               A function that specifies how to load a sample
-            :param target_loader:               A function that specifies how to load a target
             :param collate_fn:                  collate_fn func to process batches for the Data Loader
             :param target_extension:            file extension of the targets (default is .png for PASCAL VOC 2012)
             :param transforms:                  transforms to be applied on image and mask
@@ -43,32 +35,21 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         self.targets_sub_directory = targets_sub_directory
         self.cache_labels = cache_labels
         self.cache_images = cache_images
-        self.batch_size = batch_size
-        self.img_size = img_size
-        self.crop_size = crop_size
-        self.batch_index = None
-        self.total_batches_num = None
-
-        # ENABLES USING CUSTOM SAMPLE/TARGET LOADERS
-        if sample_loader is not None:
-            self.sample_loader = sample_loader
-        if target_loader is not None:
-            self.target_loader = target_loader
 
         # CREATE A DIRECTORY DATASET OR A LIST DATASET BASED ON THE list_file INPUT VARIABLE
         if list_file is not None:
             ListDataset.__init__(self, root=root, file=list_file, target_extension=target_extension,
-                                 sample_loader=self.sample_loader, sample_transform=self.sample_transform,
-                                 target_loader=self.target_loader, target_transform=self.target_transform,
+                                 sample_loader=self.sample_loader,
+                                 target_loader=self.target_loader,
                                  collate_fn=collate_fn)
         else:
             DirectoryDataSet.__init__(self, root=root, samples_sub_directory=samples_sub_directory,
                                       targets_sub_directory=targets_sub_directory, target_extension=target_extension,
-                                      sample_loader=self.sample_loader, sample_transform=self.sample_transform,
-                                      target_loader=self.target_loader, target_transform=self.target_transform,
+                                      sample_loader=self.sample_loader,
+                                      target_loader=self.target_loader,
                                       collate_fn=collate_fn)
 
-        self.transforms = transform.Compose(transforms)
+        self.transforms = transform.Compose(transforms) if transforms else []
 
     def __getitem__(self, index):
         sample_path, target_path = self.samples_targets_tuples_list[index]
@@ -88,7 +69,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         # MAKE SURE THE TRANSFORM WORKS ON BOTH IMAGE AND MASK TO ALIGN THE AUGMENTATIONS
         sample, target = self._transform_image_and_mask(sample, target)
 
-        return self.sample_transform(sample), self.target_transform(target)
+        return self.transform_sample(sample), self.transform_target(target)
 
     @staticmethod
     def sample_loader(sample_path: str) -> Image:
@@ -101,12 +82,6 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         return image
 
     @staticmethod
-    def sample_transform(image):
-        # FIXME: No need for this method but code is broken if it is not defined. See how this method is inherited:
-        #  VisionDataset -> BaseSgVisionDataset -> ListDataset/DirectoryDataSet -> SegmentationDataset
-        return image
-
-    @staticmethod
     def target_loader(target_path: str) -> Image:
         """
         target_loader
@@ -116,16 +91,6 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         target = Image.open(target_path)
         return target
 
-    @staticmethod
-    def target_transform(target):
-        """
-        target_transform - Transforms the sample image
-
-            :param target: The target mask to transform
-            :return:       The transformed target mask
-        """
-        return torch.from_numpy(np.array(target)).long()
-
     def _generate_samples_and_targets(self):
         """
         _generate_samples_and_targets
@@ -133,9 +98,6 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         # IF THE DERIVED CLASS DID NOT IMPLEMENT AN EXPLICIT _generate_samples_and_targets CHILD METHOD
         if not self.samples_targets_tuples_list:
             super()._generate_samples_and_targets()
-
-        self.batch_index = np.floor(np.arange(len(self)) / self.batch_size).astype(np.int)
-        self.total_batches_num = self.batch_index[-1] + 1
 
         # EXTRACT THE LABELS FROM THE TUPLES LIST
         image_files, label_files = map(list, zip(*self.samples_targets_tuples_list))
@@ -191,8 +153,15 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             :param mask:            The input mask
             :return:                The transformed image, mask
         """
-        if self.transforms is None:
-            return image, mask
-        else:
-            transformed = self.transforms({"image": image, "mask": mask})
-            return transformed["image"], transformed["mask"]
+        transformed = self.transforms({"image": image, "mask": mask})
+        return transformed["image"], transformed["mask"]
+
+    @staticmethod
+    def transform_sample(sample):
+        """ Helper method for inheritance (override) purposes. Make changes to sample after all config transforms """
+        return sample
+
+    @staticmethod
+    def transform_target(target):
+        """ Helper method for inheritance (override) purposes. Make changes to target after all config transforms """
+        return target

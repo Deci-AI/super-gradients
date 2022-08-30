@@ -5,6 +5,7 @@ from typing import Optional, Union, Tuple, List, Sequence, Dict
 import cv2
 import math
 import numpy as np
+import torch
 import torchvision
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
@@ -71,7 +72,7 @@ class ToTensorSeg(SegmentationTransform):
 
     def __call__(self, sample: dict):
         sample["image"] = self.to_tensor(sample["image"])
-        sample["mask"] = self.to_tensor(sample["mask"])
+        sample["mask"] = torch.from_numpy(np.array(sample["mask"])).long()
         return sample
 
 

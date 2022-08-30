@@ -157,3 +157,21 @@ def cityscapes_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
                            )
+
+
+def cityscapes_stdc_seg50_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_stdc_seg50_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_stdc_seg50_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_stdc_seg50_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
