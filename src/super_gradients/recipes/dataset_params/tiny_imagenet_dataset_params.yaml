@@ -3,29 +3,25 @@ defaults:
 
 train_dataset_params:
   root: /data/TinyImagenet/train
-  transform:
-    Compose:
-      transforms:
-        - RandomResizedCropAndInterpolation:
-            size: 56
-        - RandomHorizontalFlip
-        - ToTensor
-        - Normalize:
-            mean: [0.4802, 0.4481, 0.3975]
-            std: [0.2770, 0.2691, 0.2821]
+  transforms:
+    - RandomResizedCropAndInterpolation:
+        size: 56
+    - RandomHorizontalFlip
+    - ToTensor
+    - Normalize:
+        mean: [0.4802, 0.4481, 0.3975]
+        std: [0.2770, 0.2691, 0.2821]
 
 val_dataset_params:
   root: /data/TinyImagenet/val
-  transform:
-    Compose:
-      transforms:
-        - Resize:
-            size: 64
-        - CenterCrop:
-            size: 56
-        - ToTensor
-        - Normalize:
-            mean: [0.4802, 0.4481, 0.3975]
-            std: [0.2770, 0.2691, 0.2821]
+  transforms:
+    - Resize:
+        size: 64
+    - CenterCrop:
+        size: 56
+    - ToTensor
+    - Normalize:
+        mean: [0.4802, 0.4481, 0.3975]
+        std: [0.2770, 0.2691, 0.2821]
 
 _convert_: all

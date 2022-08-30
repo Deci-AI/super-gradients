@@ -23,35 +23,31 @@ img_std: [0.5, 0.5, 0.5]
 
 train_dataset_params:
   root: /data/Imagenet/train
-  transform:
-    Compose:
-      transforms:
-        - RandomResizedCropAndInterpolation:
-            size: 224
-            interpolation: random
-        - RandomHorizontalFlip
-        - RandomAugmentation:
-            config_str: rand-m7-mstd0.5
-            crop_size: 224
-            img_mean: [0.5, 0.5, 0.5]
-        - ToTensor
-        - Normalize:
-            mean: [0.5, 0.5, 0.5]
-            std: [0.5, 0.5, 0.5]
+  transforms:
+    - RandomResizedCropAndInterpolation:
+        size: 224
+        interpolation: random
+    - RandomHorizontalFlip
+    - RandAugmentTransform:
+        config_str: rand-m7-mstd0.5
+        crop_size: 224
+        img_mean: [0.5, 0.5, 0.5]
+    - ToTensor
+    - Normalize:
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
 
 val_dataset_params:
   root: /data/Imagenet/val
-  transform:
-    Compose:
-      transforms:
-        - Resize:
-            size: 249
-        - CenterCrop:
-            size: 224
-        - ToTensor
-        - Normalize:
-            mean: [0.5, 0.5, 0.5]
-            std: [0.5, 0.5, 0.5]
+  transforms:
+    - Resize:
+        size: 249
+    - CenterCrop:
+        size: 224
+    - ToTensor
+    - Normalize:
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
 
 train_dataloader_params:
   batch_size: 64
