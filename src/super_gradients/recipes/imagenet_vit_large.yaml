@@ -15,9 +15,10 @@
 defaults:
   - imagenet_vit_base
 
-
 dataset_params:
   batch_size: 32
+  train_dataloader_params:
+    batch_size: 32
 
 training_hyperparams:
   initial_lr: 0.06

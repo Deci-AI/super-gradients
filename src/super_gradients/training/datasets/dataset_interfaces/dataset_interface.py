@@ -434,8 +434,7 @@ class ImageNetDatasetInterface(DatasetInterface):
         valdir = os.path.join(data_dir, 'val')
         img_mean = core_utils.get_param(self.dataset_params, 'img_mean', default_val=[0.485, 0.456, 0.406])
         img_std = core_utils.get_param(self.dataset_params, 'img_std', default_val=[0.229, 0.224, 0.225])
-        normalize = transforms.Normalize(mean=img_mean,
-                                         std=img_std)
+        normalize = transforms.Normalize(mean=img_mean, std=img_std)
 
         crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=224)
         resize_size = core_utils.get_param(self.dataset_params, 'resize_size', default_val=256)
