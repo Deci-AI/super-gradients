@@ -4,20 +4,21 @@
 #  Reach => 72.05 Top1 accuracy.
 #
 #  Log and tensorboard at s3://deci-pretrained-models/repvggg-a0-imagenet-tensorboard/
-
+#
 # Instructions:
-# Set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
-#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
-# Then for 320x320 image size for training:
-#   python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
 
 defaults:
   - training_hyperparams: imagenet_repvgg_train_params
   - dataset_params: imagenet_dataset_params
-  - arch_params: default_arch_params
+  - arch_params: repvgg_arch_params
   - checkpoint_params: default_checkpoint_params
 
 arch_params:
+  num_classes: 1000
   build_residual_branches: True
 
 dataset_interface:
