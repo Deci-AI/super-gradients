@@ -672,11 +672,12 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
                                    strong candidate is a cell from is_in_boxes & is_in_centers.
                                    shape: [num_candidates].
         """
-        cell_x_centers = (x_shifts * (expanded_strides + 0.5))
-        cell_y_centers = (y_shifts * (expanded_strides + 0.5))
+        cell_x_centers = (x_shifts + 0.5) * expanded_strides
+        cell_y_centers = (y_shifts + 0.5) * expanded_strides
 
         gt_bboxes_x_centers = gt_bboxes[:, 0].unsqueeze(1)
         gt_bboxes_y_centers = gt_bboxes[:, 1].unsqueeze(1)
+
         gt_bboxes_half_w = (0.5 * gt_bboxes[:, 2]).unsqueeze(1)
         gt_bboxes_half_h = (0.5 * gt_bboxes[:, 3]).unsqueeze(1)
 
