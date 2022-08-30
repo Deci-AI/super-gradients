@@ -23,70 +23,24 @@
 
 defaults:
   - training_hyperparams: default_train_params
-  - dataset_params: cityscapes_dataset_params
+  - dataset_params: cityscapes_regseg48_dataset_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
-hydra:
-  searchpath:
-    - pkg://super_gradients.recipes
+cityscapes_ignored_label: 19    # convenience parameter since it is used in many places in the YAML
 
-project_name: RegSeg
 architecture: regseg48
-experiment_name: ${architecture}_cityscapes
-multi_gpu: AUTO
 
 arch_params:
   num_classes: 19
   sync_bn: True
   strict_load: no_key_matching
 
-dataset_params:
-  _convert_: all
-  batch_size: 4
-  val_batch_size: 4
-  crop_size: 1024
-  img_size: 1024
-  random_scales:
-    - 0.4
-    - 1.6
-  image_mask_transforms_aug:
-    Compose:
-      transforms:
-        - ColorJitterSeg:
-            brightness: 0.1
-            contrast: 0.1
-            saturation: 0.1
-
-        - RandomFlipSeg
-
-        - RandomRescaleSeg:
-            scales: ${dataset_params.random_scales}
-
-        - PadShortToCropSizeSeg:
-            crop_size: ${dataset_params.crop_size}
-            fill_image:
-              - ${dataset_params.cityscapes_ignored_label}
-              - 0
-              - 0
-            fill_mask: ${dataset_params.cityscapes_ignored_label}
-
-        - CropImageAndMaskSeg:
-            crop_size: ${dataset_params.crop_size}
-            mode: random
-
-  image_mask_transforms:
-    Compose:
-      transforms: [ ]
-
-dataset_interface:
-  cityscapes:
-    dataset_params: ${dataset_params}
-
-data_loader_num_workers: 8
-
+load_checkpoint: False
+model_checkpoints_location: local
+ckpt_root_dir:
 
 resume: False
-
 training_hyperparams:
   resume: ${resume}
   max_epochs: 800
@@ -102,28 +56,34 @@ training_hyperparams:
 
   loss: cross_entropy
   criterion_params:
-    ignore_index: ${dataset_params.cityscapes_ignored_label}
+    ignore_index: ${cityscapes_ignored_label}
 
   train_metrics_list:
     - PixelAccuracy:
-        ignore_label: ${dataset_params.cityscapes_ignored_label}
+        ignore_label: ${cityscapes_ignored_label}
     - IoU:
         num_classes: 20
-        ignore_index: ${dataset_params.cityscapes_ignored_label}
+        ignore_index: ${cityscapes_ignored_label}
 
   valid_metrics_list:
     - PixelAccuracy:
-        ignore_label: ${dataset_params.cityscapes_ignored_label}
+        ignore_label: ${cityscapes_ignored_label}
     - IoU:
         num_classes: 20
-        ignore_index: ${dataset_params.cityscapes_ignored_label}
+        ignore_index: ${cityscapes_ignored_label}
 
   metric_to_watch: IoU
   greater_metric_to_watch_is_better: True
 
   _convert_: all
-load_checkpoint: False
 
+project_name: RegSeg
+experiment_name: ${architecture}_cityscapes
 
-model_checkpoints_location: local
-ckpt_root_dir:
+multi_gpu: "Off"
+
+hydra:
+  searchpath:
+    - pkg://super_gradients.recipes
+  run:
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

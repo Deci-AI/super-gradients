@@ -33,9 +33,11 @@
 
 defaults:
   - training_hyperparams: cityscapes_default_train_params
-  - dataset_params: cityscapes_dataset_params
+  - dataset_params: cityscapes_ddrnet_dataset_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
+architecture: ddrnet_23
 
 training_hyperparams:
   max_epochs: 500
@@ -50,52 +52,14 @@ training_hyperparams:
       dice_ce_weights: [ 1., 1. ]
       ce_edge_weights: [ .5, .5 ]
       edge_kernel: 5
-  loss_logging_items_names: [main_loss, aux_loss1, loss]
+  loss_logging_items_names: [ main_loss, aux_loss1, loss ]
 
-dataset_params:
-  batch_size: 6
-  val_batch_size: 6
-  crop_size: [ 1024, 1024 ]
-  eval_scale: 1.
-  random_scales: [ 0.5, 2. ]
-  color_jitter: 0.5
-  image_mask_transforms_aug:
-    Compose:
-      transforms:
-        - ColorJitterSeg:
-            brightness: ${dataset_params.color_jitter}
-            contrast: ${dataset_params.color_jitter}
-            saturation: ${dataset_params.color_jitter}
-
-        - RandomFlipSeg
-
-        - RandomRescaleSeg:
-            scales: ${dataset_params.random_scales}
-
-        - PadShortToCropSizeSeg:
-            crop_size: ${dataset_params.crop_size}
-            fill_mask: ${dataset_params.cityscapes_ignored_label}
-
-        - CropImageAndMaskSeg:
-            crop_size: ${dataset_params.crop_size}
-            mode: random
-
-  image_mask_transforms:
-    Compose:
-      transforms:
-        - RescaleSeg:
-            scale_factor: ${dataset_params.eval_scale}
-
-dataset_interface:
-  cityscapes:
-    dataset_params: ${dataset_params}
-
-data_loader_num_workers: 8
 
 arch_params:
   num_classes: 19
   aux_head: True
   sync_bn: True
+
 
 load_checkpoint: False
 checkpoint_params:
@@ -104,12 +68,17 @@ checkpoint_params:
   load_backbone: True
   strict_load: no_key_matching
 
-architecture: ddrnet_23
+
 experiment_name: ${architecture}_cityscapes
 
 model_checkpoints_location: local
 ckpt_root_dir:
 
-multi_gpu: DDP
+multi_gpu: "Off"
+
+hydra:
+  run:
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
+
 
 

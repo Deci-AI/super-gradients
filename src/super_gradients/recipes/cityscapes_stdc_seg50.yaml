@@ -61,6 +61,8 @@ training_hyperparams:
       ce_edge_weights: [ .5, .5 ]
       edge_kernel: 3
 
+multi_gpu: "Off"
+
 experiment_name: ${architecture}50_cityscapes
 ckpt_root_dir:
 
