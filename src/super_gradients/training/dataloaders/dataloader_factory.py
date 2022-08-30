@@ -1,12 +1,14 @@
 import os.path
-
 import pkg_resources
+from typing import Dict
+
 import hydra
 from hydra import compose, initialize_config_dir
 from hydra.core.global_hydra import GlobalHydra
-from typing import Dict
 
-from torch.utils.data import BatchSampler, DataLoader
+import numpy as np
+import torch
+from torch.utils.data import BatchSampler, DataLoader, TensorDataset
 
 import super_gradients
 from super_gradients.training.utils import get_param
@@ -95,6 +97,27 @@ def _instantiate_sampler(dataset, dataloader_params):
     dataloader_params["sampler"][sampler_name]["dataset"] = dataset
     dataloader_params["sampler"] = SamplersFactory().get(dataloader_params["sampler"])
     return dataloader_params
+
+
+def classification_test_dataloader(batch_size: int = 5, image_size: int = 32) -> DataLoader:
+    images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
+    ground_truth = torch.LongTensor(np.zeros((batch_size)))
+    dataset = TensorDataset(images, ground_truth)
+    return DataLoader(dataset=dataset, batch_size=batch_size)
+
+
+def detection_test_dataloader(batch_size: int = 5, image_size: int = 320) -> DataLoader:
+    images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
+    ground_truth = torch.LongTensor(np.zeros((batch_size, 6)))
+    dataset = TensorDataset(images, ground_truth)
+    return DataLoader(dataset=dataset, batch_size=batch_size)
+
+
+def segmentation_test_dataloader(batch_size: int = 5, image_size: int = 512) -> DataLoader:
+    images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
+    ground_truth = torch.LongTensor(np.zeros((batch_size, image_size, image_size)))
+    dataset = TensorDataset(images, ground_truth)
+    return DataLoader(dataset=dataset, batch_size=batch_size)
 
 
 def coco2017_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):

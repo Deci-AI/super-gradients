@@ -1,8 +1,11 @@
 import unittest
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 
 from super_gradients.training.dataloaders.dataloader_factory import (
+    classification_test_dataloader,
+    detection_test_dataloader,
+    segmentation_test_dataloader,
     coco2017_train,
     coco2017_val,
     coco2017_train_ssd_lite_mobilenet_v2,
@@ -24,12 +27,28 @@ from super_gradients.training.dataloaders.dataloader_factory import (
     imagenet_vit_base_train,
     imagenet_vit_base_val,
     tiny_imagenet_train,
-    tiny_imagenet_val
+    tiny_imagenet_val,
 )
 from super_gradients.training.datasets import COCODetectionDataset, ImageNetDataset
 
 
 class DataLoaderFactoryTest(unittest.TestCase):
+
+    def test_classification_test_dataloader_creation(self):
+        dl = classification_test_dataloader()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, TensorDataset))
+
+    def test_detection_test_dataloader_creation(self):
+        dl = detection_test_dataloader()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, TensorDataset))
+
+    def test_segmentation_test_dataloader_creation(self):
+        dl = segmentation_test_dataloader()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, TensorDataset))
+
     def test_coco2017_train_creation(self):
         dl_train = coco2017_train()
         self.assertTrue(isinstance(dl_train, DataLoader))
