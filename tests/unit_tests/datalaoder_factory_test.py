@@ -34,21 +34,6 @@ from super_gradients.training.datasets import COCODetectionDataset, ImageNetData
 
 class DataLoaderFactoryTest(unittest.TestCase):
 
-    def test_classification_test_dataloader_creation(self):
-        dl = classification_test_dataloader()
-        self.assertTrue(isinstance(dl, DataLoader))
-        self.assertTrue(isinstance(dl.dataset, TensorDataset))
-
-    def test_detection_test_dataloader_creation(self):
-        dl = detection_test_dataloader()
-        self.assertTrue(isinstance(dl, DataLoader))
-        self.assertTrue(isinstance(dl.dataset, TensorDataset))
-
-    def test_segmentation_test_dataloader_creation(self):
-        dl = segmentation_test_dataloader()
-        self.assertTrue(isinstance(dl, DataLoader))
-        self.assertTrue(isinstance(dl.dataset, TensorDataset))
-
     def test_coco2017_train_creation(self):
         dl_train = coco2017_train()
         self.assertTrue(isinstance(dl_train, DataLoader))
@@ -159,6 +144,21 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = tiny_imagenet_val()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, ImageNetDataset))
+
+    def test_classification_test_dataloader_creation(self):
+        dl = classification_test_dataloader()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, TensorDataset))
+
+    def test_detection_test_dataloader_creation(self):
+        dl = detection_test_dataloader()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, TensorDataset))
+
+    def test_segmentation_test_dataloader_creation(self):
+        dl = segmentation_test_dataloader()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, TensorDataset))
 
 
 if __name__ == '__main__':
