@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from super_gradients.training.dataloaders.dataloader_factory import coco2017_train, coco2017_val, \
     coco2017_train_ssd_lite_mobilenet_v2, coco2017_val_ssd_lite_mobilenet_v2, \
-    classification_test_dataloader, detection_test_dataloader,segmentation_test_dataloader, \
+    classification_test_dataloader, detection_test_dataloader, segmentation_test_dataloader, \
     cifar10_val, cifar10_train, cifar100_val, cifar100_train
 from super_gradients.training.datasets import COCODetectionDataset
 from torchvision.datasets import CIFAR10, CIFAR100

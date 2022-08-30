@@ -198,4 +198,3 @@ def segmentation_test_dataloader(batch_size: int = 5, image_size: int = 512) -> 
     ground_truth = torch.LongTensor(np.zeros((batch_size, image_size, image_size)))
     dataset = TensorDataset(images, ground_truth)
     return DataLoader(dataset=dataset, batch_size=batch_size)
-
