@@ -15,18 +15,20 @@ train_dataset_params:
       - _target_: torchvision.transforms.RandomHorizontalFlip
       - _target_: torchvision.transforms.ToTensor
       - _target_: torchvision.transforms.Normalize
-        mean: (0.4914, 0.4822, 0.4465)
-        std: (0.2023, 0.1994, 0.2010)
+        mean:
+          - 0.4914
+          - 0.4822
+          - 0.4465
+        std:
+          - 0.2023
+          - 0.1994
+          - 0.2010
   target_transform: null
   download: True
 
 train_dataloader_params:
   batch_size: 256
   num_workers: 8
-  batch_sampler: True
-  sampler:
-    InfiniteSampler:
-      seed: 42
   drop_last: False
   pin_memory: True
 
@@ -38,17 +40,19 @@ val_dataset_params:
     transforms:
       - _target_: torchvision.transforms.ToTensor
       - _target_: torchvision.transforms.Normalize
-        mean: (0.4914, 0.4822, 0.4465)
-        std: (0.2023, 0.1994, 0.2010)
+        mean:
+          - 0.4914
+          - 0.4822
+          - 0.4465
+        std:
+          - 0.2023
+          - 0.1994
+          - 0.2010
   target_transform: null
   download: True
 
 val_dataloader_params:
   batch_size: 512
   num_workers: 8
-  batch_sampler: True
-  sampler:
-    InfiniteSampler:
-      seed: 42
   drop_last: False
   pin_memory: True
