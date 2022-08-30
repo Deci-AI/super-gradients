@@ -3,10 +3,15 @@
 #      "Deep Dual-resolution Networks for Real-time and Accurate Semantic Segmentation of Road Scenes"
 #      https://arxiv.org/abs/2104.13188
 #
-#  Usage DDRNet23:
-#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_ddrnet checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path>
-#  Usage DDRNet23-Slim:
-#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_ddrnet checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path> architecture=ddrnet_23_slim
+
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#      DDRNet23:       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet
+#      DDRNet23-Slim:  python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim
+# Note: add "checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path>" to use pretrained backbone
 #
 #  Validation mIoU - Cityscapes, training time:
 #      DDRNet23:        input-size: [1024, 2048]     mIoU: 80.26     4 X RTX A5000, 12 H
@@ -100,9 +105,8 @@ arch_params:
 load_checkpoint: False
 checkpoint_params:
   load_checkpoint: ${load_checkpoint}
-  external_checkpoint_path:
+  checkpoint_path:
   load_backbone: True
-  load_weights_only: True
   strict_load: no_key_matching
 
 architecture: ddrnet_23
@@ -111,8 +115,6 @@ experiment_name: ${architecture}_cityscapes
 model_checkpoints_location: local
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 
 

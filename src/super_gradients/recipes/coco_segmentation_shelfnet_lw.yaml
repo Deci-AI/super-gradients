@@ -3,7 +3,16 @@
 # Trained using 4 X 2080 Ti using DDP- takes ~ 2d 7h with batch size of 8 and batch accumulate of 3 (i.e effective batch
 # size is 4*8*3 = 96)
 # Logs and tensorboards: s3://deci-pretrained-models/shelfnet34_coco_segmentation_tensorboard/
-# python train_from_recipe_example/train_from_recipe.py --config-name=coco_segmentation_shelfnet_lw
+
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco_segmentation_shelfnet_lw --model_checkpoints_location=<checkpoint-location>
+
+
+# /!\ THIS RECIPE IS NOT SUPPORTED AT THE MOMENT /!\
 
 defaults:
   - training_hyperparams: coco_segmentation_shelfnet_lw_train_params
@@ -21,19 +30,18 @@ dataset_interface:
 
 data_loader_num_workers: 8
 
-load_checkpoint: True
 checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
   strict_load: True
-  load_weights_only: True
   load_backbone: True
-  source_ckpt_folder_name: resnet_34
+  checkpoint_path:
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: coco_segmentation_21_subclass_shelfnet34
 
-multi_gpu:
-  _target_: super_gradients.training.sg_trainer.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 
 ckpt_root_dir:
 

@@ -1,8 +1,12 @@
 #  RegSeg segmentation training example with Cityscapes dataset.
 #  Reproduction of paper: Rethink Dilated Convolution for Real-time Semantic Segmentation.
 #
-#  Usage RegSeg48:
-#      python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=regseg48_cityscapes
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_regseg48
 #
 #
 #  Validation mIoU - Cityscapes, training time:
@@ -85,8 +89,10 @@ dataset_interface:
 data_loader_num_workers: 8
 
 
+resume: False
 
 training_hyperparams:
+  resume: ${resume}
   max_epochs: 800
   lr_mode: poly
   initial_lr: 0.02   # for effective batch_size=16
@@ -121,8 +127,7 @@ training_hyperparams:
 
   _convert_: all
 load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+
 
 model_checkpoints_location: local
 ckpt_root_dir:
