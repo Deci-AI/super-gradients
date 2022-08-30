@@ -15,6 +15,7 @@ from super_gradients.training.datasets.detection_datasets import COCODetectionDa
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from torchvision.datasets import CIFAR10, CIFAR100
 
 logger = get_logger(__name__)
 
@@ -142,6 +143,42 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_par
                            )
 
 
+def cifar10_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cifar10_dataset_params",
+                           dataset_cls=CIFAR10,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cifar10_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cifar10_dataset_params",
+                           dataset_cls=CIFAR10,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cifar100_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cifar100_dataset_params",
+                           dataset_cls=CIFAR100,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cifar100_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cifar100_dataset_params",
+                           dataset_cls=CIFAR100,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
 def classification_test_dataloader(batch_size: int = 5, image_size: int = 32) -> DataLoader:
     images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
     ground_truth = torch.LongTensor(np.zeros((batch_size)))
@@ -161,3 +198,4 @@ def segmentation_test_dataloader(batch_size: int = 5, image_size: int = 512) -> 
     ground_truth = torch.LongTensor(np.zeros((batch_size, image_size, image_size)))
     dataset = TensorDataset(images, ground_truth)
     return DataLoader(dataset=dataset, batch_size=batch_size)
+

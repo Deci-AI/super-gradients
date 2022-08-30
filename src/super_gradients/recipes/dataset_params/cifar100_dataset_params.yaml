@@ -4,7 +4,7 @@
 # TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
 
 train_dataset_params:
-  root: /data/cifar10
+  root: /data/cifar100
   train: True
   transform:
     _target_: torchvision.transforms.Compose
@@ -31,7 +31,7 @@ train_dataloader_params:
   pin_memory: True
 
 val_dataset_params:
-  root: /data/cifar10
+  root: /data/cifar100
   train: False
   transform:
     _target_: torchvision.transforms.Compose
