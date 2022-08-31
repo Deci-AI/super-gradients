@@ -1,10 +1,11 @@
 import unittest
 
 import torch
-from torchvision.transforms import Compose, ToTensor
-from super_gradients.training.transforms.transforms import Rescale, RandomRescale, CropImageAndMask, PadShortToCropSize
 from PIL import Image
-from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
+from torchvision.transforms import Compose
+
+from super_gradients.training.transforms.transforms import Rescale, RandomRescale, CropImageAndMask, PadShortToCropSize, \
+    ToTensorSeg
 
 
 class SegmentationTransformsTest(unittest.TestCase):
@@ -134,7 +135,6 @@ class SegmentationTransformsTest(unittest.TestCase):
         self.assertEqual(out_size, out["image"].size)
 
     def test_padding_fill_values(self):
-        image_to_tensor = ToTensor()
         # test fill mask
         in_size = (256, 128)
         out_size = (256, 256)
@@ -146,9 +146,9 @@ class SegmentationTransformsTest(unittest.TestCase):
         padding = PadShortToCropSize(crop_size=out_size, fill_mask=fill_mask_value, fill_image=fill_image_value)
         out = padding(sample)
 
-        out_mask = SegmentationDataSet.target_transform(out["mask"])
-        # same as SegmentationDataset transform just without normalization to easily keep track of values.
-        out_image = image_to_tensor(out["image"])
+        out = ToTensorSeg()(out)
+        out_mask = out["mask"]
+        out_image = out["image"]
 
         # test transformed mask values
         original_values = out_mask[128 // 2:-128 // 2].unique().tolist()
@@ -202,7 +202,7 @@ class SegmentationTransformsTest(unittest.TestCase):
         sample = self.create_sample(in_size)
 
         transform = Compose([
-            Rescale(long_size=out_size[0]),         # rescale to (512, 256)
+            Rescale(long_size=out_size[0]),  # rescale to (512, 256)
             PadShortToCropSize(crop_size=out_size)  # pad to (512, 512)
         ])
         out = transform(sample)

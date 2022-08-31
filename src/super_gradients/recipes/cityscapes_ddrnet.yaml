@@ -33,9 +33,57 @@
 
 defaults:
   - training_hyperparams: cityscapes_default_train_params
-  - dataset_params: cityscapes_ddrnet_dataset_params
+  #  - dataset_params: cityscapes_ddrnet_dataset_params # TODO: uncomment after DatasetInterface refactor
   - checkpoint_params: default_checkpoint_params
   - _self_
+
+# ------------------------------------- legacy dataset params ------------------------------------- #
+dataset_params:
+  _convert_: all
+  batch_size: 6
+  val_batch_size: 6
+  dataset_dir: /data/cityscapes
+  crop_size: [ 1024, 1024 ]
+  img_size: 1024
+  train_loader_drop_last: True
+  color_jitter: 0.5
+  random_scales: [ 0.5, 2. ]
+  eval_scale: 1.
+  cityscapes_ignored_label: 19
+
+  image_mask_transforms_aug:
+    Compose:
+      transforms:
+        - ColorJitterSeg:
+            brightness: ${dataset_params.color_jitter}
+            contrast: ${dataset_params.color_jitter}
+            saturation: ${dataset_params.color_jitter}
+
+        - RandomFlipSeg
+
+        - RandomRescaleSeg:
+            scales: ${dataset_params.random_scales}
+
+        - PadShortToCropSizeSeg:
+            crop_size: ${dataset_params.crop_size}
+            fill_mask: ${dataset_params.cityscapes_ignored_label}
+
+        - CropImageAndMaskSeg:
+            crop_size: ${dataset_params.crop_size}
+            mode: random
+
+  image_mask_transforms:
+    Compose:
+      transforms:
+        - RescaleSeg:
+            scale_factor: ${dataset_params.eval_scale}
+
+dataset_interface:
+  cityscapes:
+    dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+# ------------------------------------- legacy dataset params ------------------------------------- #
 
 architecture: ddrnet_23
 
@@ -74,7 +122,7 @@ experiment_name: ${architecture}_cityscapes
 model_checkpoints_location: local
 ckpt_root_dir:
 
-multi_gpu: "Off"
+multi_gpu: DDP
 
 hydra:
   run:
