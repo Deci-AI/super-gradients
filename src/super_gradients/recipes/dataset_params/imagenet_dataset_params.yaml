@@ -13,3 +13,48 @@ train_interpolation: default # interpolation mode
 rand_augment_config_string: # randaugment config string (see super_gradients/training/datasets/auto_augment.py)
 random_erase_prob: 0.0 # random erase probability (applied only to trainset)
 aug_repeat_count: 0 # amount of repetitions (each repetition of an example is augmented differently) for a trainset example.
+
+
+# TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
+# TODO: UNCOMMENT BELOW WHEN ABOVE IS REMOVED
+# Base recipe for ImageNet Datasets amd Dataloaders.
+#img_mean: [0.485, 0.456, 0.406] # mean for normalization
+#img_std: [0.229, 0.224, 0.225]  # std  for normalization
+
+train_dataset_params:
+  root: /data/Imagenet/train
+  transforms:
+    - RandomResizedCropAndInterpolation:
+        size: 224
+        interpolation: default
+    - RandomHorizontalFlip
+    - ToTensor
+    - Normalize:
+        mean: ${dataset_params.img_mean}
+        std: ${dataset_params.img_std}
+
+val_dataset_params:
+  root: /data/Imagenet/val
+  transforms:
+    - Resize:
+        size: 256
+    - CenterCrop:
+        size: 224
+    - ToTensor
+    - Normalize:
+        mean: ${dataset_params.img_mean}
+        std: ${dataset_params.img_std}
+
+train_dataloader_params:
+  batch_size: 64
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+
+val_dataloader_params:
+  batch_size: 200
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+
+_convert_: all
