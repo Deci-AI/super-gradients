@@ -9,24 +9,39 @@ from super_gradients.training.datasets.dataset_interfaces import DatasetInterfac
 from super_gradients.common.data_types.enum.deep_learning_task import DeepLearningTask
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 
+
+#Fixme: THis should be the same as the factory, which is not the case!
+class DatasetNames:
+    TEST_DATASET = "test_dataset"
+    LIBRARY_DATASET = "library_dataset"
+    CLASSIFICATION_DATASET = "classification_dataset"
+    CIFAR_10 = "cifar_10"
+    CIFAR_100 = "cifar_100"
+    IMAGENET = "imagenet"
+    TINY_IMAGENET = "tiny_imagenet"
+    COCO = "coco"
+    PASCAL_VOC = "pascal_voc"
+    PASCAL_AUG = "pascal_aug"
+
+
 CLASSIFICATION_DATASETS = {
-    "test_dataset": TestDatasetInterface,
-    "library_dataset": LibraryDatasetInterface,
-    "classification_dataset": ClassificationDatasetInterface,
-    "cifar_10": Cifar10DatasetInterface,
-    "cifar_100": Cifar100DatasetInterface,
-    "imagenet": ImageNetDatasetInterface,
-    "tiny_imagenet": TinyImageNetDatasetInterface
+    DatasetNames.TEST_DATASET: TestDatasetInterface,
+    DatasetNames.LIBRARY_DATASET: LibraryDatasetInterface,
+    DatasetNames.CLASSIFICATION_DATASET: ClassificationDatasetInterface,
+    DatasetNames.CIFAR_10: Cifar10DatasetInterface,
+    DatasetNames.CIFAR_100: Cifar100DatasetInterface,
+    DatasetNames.IMAGENET: ImageNetDatasetInterface,
+    DatasetNames.TINY_IMAGENET: TinyImageNetDatasetInterface
 }
 
 OBJECT_DETECTION_DATASETS = {
-    "coco": CoCoDetectionDatasetInterface,
+    DatasetNames.COCO: CoCoDetectionDatasetInterface,
 }
 
 SEMANTIC_SEGMENTATION_DATASETS = {
-    "coco": CoCoSegmentationDatasetInterface,
-    "pascal_voc": PascalVOC2012SegmentationDataSetInterface,
-    "pascal_aug": PascalAUG2012SegmentationDataSetInterface
+    DatasetNames.COCO: CoCoSegmentationDatasetInterface,
+    DatasetNames.PASCAL_VOC: PascalVOC2012SegmentationDataSetInterface,
+    DatasetNames.PASCAL_AUG: PascalAUG2012SegmentationDataSetInterface
 }
 
 
