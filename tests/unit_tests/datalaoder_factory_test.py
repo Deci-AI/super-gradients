@@ -33,8 +33,12 @@ from super_gradients.training.dataloaders.dataloader_factory import (
     tiny_imagenet_train,
     tiny_imagenet_val,
 )
-from super_gradients.training.datasets import COCODetectionDataset, ImageNetDataset
-from super_gradients.training.datasets.classification_datasets import Cifar10, Cifar100
+from super_gradients.training.datasets import (
+    COCODetectionDataset,
+    ImageNetDataset,
+    Cifar10,
+    Cifar100,
+)
 
 
 class DataLoaderFactoryTest(unittest.TestCase):
