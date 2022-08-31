@@ -15,6 +15,9 @@ from super_gradients.training.utils.detection_utils import DetectionVisualizatio
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 import cv2
 
+from super_gradients.training.utils.early_stopping import EarlyStop
+from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
+
 logger = get_logger(__name__)
 
 try:
@@ -765,3 +768,26 @@ class TestLRCallback(PhaseCallback):
 
     def __call__(self, context: PhaseContext):
         self.lr_placeholder.append(context.optimizer.param_groups[0]["lr"])
+
+
+class CallbackNames:
+    DECI_LAB_UPLOAD = 'DeciLabUploadCallback'
+    LR_CALLBACK_BASE = 'LRCallbackBase'
+    LR_SCHEDULER = 'LRSchedulerCallback'
+    METRICS_UPDATE = 'MetricsUpdateCallback'
+    MODEL_CONVERSION_CHECK = 'ModelConversionCheckCallback'
+    EARLY_STOP = 'EarlyStop'
+    DETECTION_MULTISCALE_PREPREDICTION = 'DetectionMultiscalePrePredictionCallback'
+    YOLOX_TRAINING_STAGE_SWITCH = 'YoloXTrainingStageSwitchCallback'
+
+
+CALLBACKS = {
+    CallbackNames.DECI_LAB_UPLOAD: DeciLabUploadCallback,
+    CallbackNames.LR_CALLBACK_BASE: LRCallbackBase,
+    CallbackNames.LR_SCHEDULER: LRSchedulerCallback,
+    CallbackNames.METRICS_UPDATE: MetricsUpdateCallback,
+    CallbackNames.MODEL_CONVERSION_CHECK: ModelConversionCheckCallback,
+    CallbackNames.EARLY_STOP: EarlyStop,
+    CallbackNames.DETECTION_MULTISCALE_PREPREDICTION: DetectionMultiscalePrePredictionCallback,
+    CallbackNames.YOLOX_TRAINING_STAGE_SWITCH: YoloXTrainingStageSwitchCallback
+}
