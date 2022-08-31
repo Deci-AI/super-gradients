@@ -7,7 +7,7 @@ from super_gradients.training.dataloaders.dataloader_factory import coco2017_tra
     classification_test_dataloader, detection_test_dataloader, segmentation_test_dataloader, \
     cifar10_val, cifar10_train, cifar100_val, cifar100_train
 from super_gradients.training.datasets import COCODetectionDataset
-from super_gradients.training.datasets.classification_datasets import Cifar10, Cifar100
+from super_gradients.training.datasets.classification_datasets.cifar import Cifar10, Cifar100
 
 
 class DataLoaderFactoryTest(unittest.TestCase):

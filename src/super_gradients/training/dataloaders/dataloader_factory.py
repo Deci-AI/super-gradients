@@ -12,7 +12,7 @@ from torch.utils.data import BatchSampler, DataLoader, TensorDataset
 import super_gradients
 from super_gradients.training.utils import get_param
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
-from super_gradients.training.datasets.classification_datasets import Cifar10, Cifar100
+from super_gradients.training.datasets.classification_datasets.cifar import Cifar10, Cifar100
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 from super_gradients.common.abstractions.abstract_logger import get_logger
