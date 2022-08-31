@@ -7,7 +7,7 @@ from super_gradients.training.dataloaders.dataloader_factory import coco2017_tra
     classification_test_dataloader, detection_test_dataloader, segmentation_test_dataloader, \
     cifar10_val, cifar10_train, cifar100_val, cifar100_train
 from super_gradients.training.datasets import COCODetectionDataset
-from torchvision.datasets import CIFAR10, CIFAR100
+from super_gradients.training.datasets.classification_datasets import Cifar10, Cifar100
 
 
 class DataLoaderFactoryTest(unittest.TestCase):
@@ -34,22 +34,22 @@ class DataLoaderFactoryTest(unittest.TestCase):
     def test_cifar10_train_creation(self):
         dl_train = cifar10_train()
         self.assertTrue(isinstance(dl_train, DataLoader))
-        self.assertTrue(isinstance(dl_train.dataset, CIFAR10))
+        self.assertTrue(isinstance(dl_train.dataset, Cifar10))
 
     def test_cifar10_val_creation(self):
         dl_val = cifar10_val()
         self.assertTrue(isinstance(dl_val, DataLoader))
-        self.assertTrue(isinstance(dl_val.dataset, CIFAR10))
+        self.assertTrue(isinstance(dl_val.dataset, Cifar10))
 
     def test_cifar100_train_creation(self):
         dl_train = cifar100_train()
         self.assertTrue(isinstance(dl_train, DataLoader))
-        self.assertTrue(isinstance(dl_train.dataset, CIFAR100))
+        self.assertTrue(isinstance(dl_train.dataset, Cifar100))
 
     def test_cifar100_val_creation(self):
         dl_val = cifar100_val()
         self.assertTrue(isinstance(dl_val, DataLoader))
-        self.assertTrue(isinstance(dl_val.dataset, CIFAR100))
+        self.assertTrue(isinstance(dl_val.dataset, Cifar100))
 
     def test_classification_test_dataloader_creation(self):
         dl = classification_test_dataloader()

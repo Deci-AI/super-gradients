@@ -12,10 +12,10 @@ from torch.utils.data import BatchSampler, DataLoader, TensorDataset
 import super_gradients
 from super_gradients.training.utils import get_param
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
+from super_gradients.training.datasets.classification_datasets import Cifar10, Cifar100
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from torchvision.datasets import CIFAR10, CIFAR100
 
 logger = get_logger(__name__)
 
@@ -145,7 +145,7 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_par
 
 def cifar10_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="cifar10_dataset_params",
-                           dataset_cls=CIFAR10,
+                           dataset_cls=Cifar10,
                            train=True,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
@@ -154,7 +154,7 @@ def cifar10_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
 
 def cifar10_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="cifar10_dataset_params",
-                           dataset_cls=CIFAR10,
+                           dataset_cls=Cifar10,
                            train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
@@ -163,7 +163,7 @@ def cifar10_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
 
 def cifar100_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="cifar100_dataset_params",
-                           dataset_cls=CIFAR100,
+                           dataset_cls=Cifar100,
                            train=True,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
@@ -172,7 +172,7 @@ def cifar100_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
 
 def cifar100_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="cifar100_dataset_params",
-                           dataset_cls=CIFAR100,
+                           dataset_cls=Cifar100,
                            train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
