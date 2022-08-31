@@ -6,8 +6,8 @@ from super_gradients.training.utils.optimizers.lamb import Lamb
 class OptimizerNames:
     SGD = "SGD"
     ADAM = "Adam"
-    RMS_PROP = "RMS_prop"
-    RMS_PROP_TF = "RMS_prop_TF"  # Fixme: is it fine that I added the "_" ?
+    RMS_PROP = "RMSprop"
+    RMS_PROP_TF = "RMSpropTF"
     LAMB = "Lamb"
 
 
