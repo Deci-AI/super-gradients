@@ -6,15 +6,13 @@
 train_dataset_params:
   root: /data/cifar100
   train: True
-  transform:
-    _target_: torchvision.transforms.Compose
-    transforms:
-      - _target_: torchvision.transforms.RandomCrop
+  transforms:
+    - RandomCrop:
         size: 24
         padding: 4
-      - _target_: torchvision.transforms.RandomHorizontalFlip
-      - _target_: torchvision.transforms.ToTensor
-      - _target_: torchvision.transforms.Normalize
+    - RandomHorizontalFlip
+    - ToTensor
+    - Normalize:
         mean:
           - 0.4914
           - 0.4822
@@ -35,11 +33,9 @@ train_dataloader_params:
 val_dataset_params:
   root: /data/cifar100
   train: False
-  transform:
-    _target_: torchvision.transforms.Compose
-    transforms:
-      - _target_: torchvision.transforms.ToTensor
-      - _target_: torchvision.transforms.Normalize
+  transforms:
+    - ToTensor
+    - Normalize:
         mean:
           - 0.4914
           - 0.4822
