@@ -24,97 +24,189 @@ from super_gradients.training.models.classification_models.beit import beit_base
 # IF YOU UPDATE THE ARCHITECTURE DICT PLEASE ALSO UPDATE THE ENUM CLASS DOWN BELOW.
 
 
-ARCHITECTURES = {"resnet18": resnet.ResNet18,
-                 "resnet34": resnet.ResNet34,
-                 "resnet50_3343": resnet.ResNet50_3343,
-                 "resnet50": resnet.ResNet50,
-                 "resnet101": resnet.ResNet101,
-                 "resnet152": resnet.ResNet152,
-                 "resnet18_cifar": resnet.ResNet18Cifar,
-                 "custom_resnet": resnet.CustomizedResnet,
-                 "custom_resnet50": resnet.CustomizedResnet50,
-                 "custom_resnet_cifar": resnet.CustomizedResnetCifar,
-                 "custom_resnet50_cifar": resnet.CustomizedResnet50Cifar,
-                 "mobilenet_v2": mobile_net_v2,
-                 "mobile_net_v2_135": mobile_net_v2_135,
-                 "custom_mobilenet_v2": custom_mobile_net_v2,
-                 "mobilenet_v3_large": mobilenetv3_large,
-                 "mobilenet_v3_small": mobilenetv3_small,
-                 "mobilenet_v3_custom": mobilenetv3_custom,
-                 "custom_densenet": densenet.CustomizedDensnet,
-                 "densenet121": densenet.densenet121,
-                 "densenet161": densenet.densenet161,
-                 "densenet169": densenet.densenet169,
-                 "densenet201": densenet.densenet201,
-                 "shelfnet18_lw": ShelfNet18_LW,
-                 "shelfnet34_lw": ShelfNet34_LW,
-                 "shelfnet50_3343": ShelfNet503343,
-                 "shelfnet50": ShelfNet50,
-                 "shelfnet101": ShelfNet101,
-                 "shufflenet_v2_x0_5": ShufflenetV2_x0_5,
-                 "shufflenet_v2_x1_0": ShufflenetV2_x1_0,
-                 "shufflenet_v2_x1_5": ShufflenetV2_x1_5,
-                 "shufflenet_v2_x2_0": ShufflenetV2_x2_0,
-                 "shufflenet_v2_custom5": CustomizedShuffleNetV2,
-                 'darknet53': Darknet53,
-                 'csp_darknet53': CSPDarknet53,
-                 "resnext50": ResNeXt50,
-                 "resnext101": ResNeXt101,
-                 "googlenet_v1": googlenet_v1,
-                 "efficientnet_b0": efficientnet.b0,
-                 "efficientnet_b1": efficientnet.b1,
-                 "efficientnet_b2": efficientnet.b2,
-                 "efficientnet_b3": efficientnet.b3,
-                 "efficientnet_b4": efficientnet.b4,
-                 "efficientnet_b5": efficientnet.b5,
-                 "efficientnet_b6": efficientnet.b6,
-                 "efficientnet_b7": efficientnet.b7,
-                 "efficientnet_b8": efficientnet.b8,
-                 "efficientnet_l2": efficientnet.l2,
-                 "CustomizedEfficientnet": efficientnet.CustomizedEfficientnet,
-                 "regnetY200": regnet.RegNetY200,
-                 "regnetY400": regnet.RegNetY400,
-                 "regnetY600": regnet.RegNetY600,
-                 "regnetY800": regnet.RegNetY800,
-                 "custom_regnet": regnet.CustomRegNet,
-                 "nas_regnet": regnet.NASRegNet,
-                 "yolox_n": YoloX_N,
-                 "yolox_t": YoloX_T,
-                 "yolox_s": YoloX_S,
-                 "yolox_m": YoloX_M,
-                 "yolox_l": YoloX_L,
-                 "yolox_x": YoloX_X,
-                 "ssd_mobilenet_v1": SSDMobileNetV1,
-                 "ssd_lite_mobilenet_v2": SSDLiteMobileNetV2,
-                 "repvgg_a0": repvgg.RepVggA0,
-                 "repvgg_a1": repvgg.RepVggA1,
-                 "repvgg_a2": repvgg.RepVggA2,
-                 "repvgg_b0": repvgg.RepVggB0,
-                 "repvgg_b1": repvgg.RepVggB1,
-                 "repvgg_b2": repvgg.RepVggB2,
-                 "repvgg_b3": repvgg.RepVggB3,
-                 "repvgg_d2se": repvgg.RepVggD2SE,
-                 "repvgg_custom": repvgg.RepVggCustom,
-                 "ddrnet_23": DDRNet23,
-                 "ddrnet_23_slim": DDRNet23Slim,
-                 "custom_ddrnet_23": AnyBackBoneDDRNet23,
-                 "stdc1_classification": STDC1Classification,
-                 "stdc2_classification": STDC2Classification,
-                 "stdc1_seg": STDC1Seg,
-                 "stdc1_seg50": STDC1Seg,
-                 "stdc1_seg75": STDC1Seg,
-                 "stdc2_seg": STDC2Seg,
-                 "stdc2_seg50": STDC2Seg,
-                 "stdc2_seg75": STDC2Seg,
-                 "regseg48": RegSeg48,
-                 "kd_module": KDModule,
-                 "vit_base": vit_base,
-                 "vit_large": vit_large,
-                 "vit_huge": vit_huge,
-                 "beit_base_patch16_224": beit_base_patch16_224,
-                 "beit_large_patch16_224": beit_large_patch16_224
+class ModelNames:
+    RESNET18 = "resnet18"
+    RESNET34 = "resnet34"
+    RESNET50_3343 = "resnet50_3343"
+    RESNET50 = "resnet50"
+    RESNET101 = "resnet101"
+    RESNET152 = "resnet152"
+    RESNET18_CIFAR = "resnet18_cifar"
+    CUSTOM_RESNET = "custom_resnet"
+    CUSTOM_RESNET50 = "custom_resnet50"
+    CUSTOM_RESNET_CIFAR = "custom_resnet_cifar"
+    CUSTOM_RESNET50_CIFAR = "custom_resnet50_cifar"
+    MOBILENET_V2 = "mobilenet_v2"
+    MOBILE_NET_V2_135 = "mobile_net_v2_135"
+    CUSTOM_MOBILENET_V2 = "custom_mobilenet_v2"
+    MOBILENET_V3_LARGE = "mobilenet_v3_large"
+    MOBILENET_V3_SMALL = "mobilenet_v3_small"
+    MOBILENET_V3_CUSTOM = "mobilenet_v3_custom"
+    CUSTOM_DENSENET = "custom_densenet"
+    DENSENET121 = "densenet121"
+    DENSENET161 = "densenet161"
+    DENSENET169 = "densenet169"
+    DENSENET201 = "densenet201"
+    SHELFNET18_LW = "shelfnet18_lw"
+    SHELFNET34_LW = "shelfnet34_lw"
+    SHELFNET50_3343 = "shelfnet50_3343"
+    SHELFNET50 = "shelfnet50"
+    SHELFNET101 = "shelfnet101"
+    SHUFFLENET_V2_X0_5 = "shufflenet_v2_x0_5"
+    SHUFFLENET_V2_X1_0 = "shufflenet_v2_x1_0"
+    SHUFFLENET_V2_X1_5 = "shufflenet_v2_x1_5"
+    SHUFFLENET_V2_X2_0 = "shufflenet_v2_x2_0"
+    SHUFFLENET_V2_CUSTOM5 = "shufflenet_v2_custom5"
+    DARKNET53 = "darknet53"
+    CSP_DARKNET53 = "csp_darknet53"
+    RESNEXT50 = "resnext50"
+    RESNEXT101 = "resnext101"
+    GOOGLENET_V1 = "googlenet_v1"
+    EFFICIENTNET_B0 = "efficientnet_b0"
+    EFFICIENTNET_B1 = "efficientnet_b1"
+    EFFICIENTNET_B2 = "efficientnet_b2"
+    EFFICIENTNET_B3 = "efficientnet_b3"
+    EFFICIENTNET_B4 = "efficientnet_b4"
+    EFFICIENTNET_B5 = "efficientnet_b5"
+    EFFICIENTNET_B6 = "efficientnet_b6"
+    EFFICIENTNET_B7 = "efficientnet_b7"
+    EFFICIENTNET_B8 = "efficientnet_b8"
+    EFFICIENTNET_L2 = "efficientnet_l2"
+    CUSTOMIZEDEFFICIENTNET = "CustomizedEfficientnet"
+    REGNETY200 = "regnetY200"
+    REGNETY400 = "regnetY400"
+    REGNETY600 = "regnetY600"
+    REGNETY800 = "regnetY800"
+    CUSTOM_REGNET = "custom_regnet"
+    NAS_REGNET = "nas_regnet"
+    YOLOX_N = "yolox_n"
+    YOLOX_T = "yolox_t"
+    YOLOX_S = "yolox_s"
+    YOLOX_M = "yolox_m"
+    YOLOX_L = "yolox_l"
+    YOLOX_X = "yolox_x"
+    SSD_MOBILENET_V1 = "ssd_mobilenet_v1"
+    SSD_LITE_MOBILENET_V2 = "ssd_lite_mobilenet_v2"
+    REPVGG_A0 = "repvgg_a0"
+    REPVGG_A1 = "repvgg_a1"
+    REPVGG_A2 = "repvgg_a2"
+    REPVGG_B0 = "repvgg_b0"
+    REPVGG_B1 = "repvgg_b1"
+    REPVGG_B2 = "repvgg_b2"
+    REPVGG_B3 = "repvgg_b3"
+    REPVGG_D2SE = "repvgg_d2se"
+    REPVGG_CUSTOM = "repvgg_custom"
+    DDRNET_23 = "ddrnet_23"
+    DDRNET_23_SLIM = "ddrnet_23_slim"
+    CUSTOM_DDRNET_23 = "custom_ddrnet_23"
+    STDC1_CLASSIFICATION = "stdc1_classification"
+    STDC2_CLASSIFICATION = "stdc2_classification"
+    STDC1_SEG = "stdc1_seg"
+    STDC1_SEG50 = "stdc1_seg50"
+    STDC1_SEG75 = "stdc1_seg75"
+    STDC2_SEG = "stdc2_seg"
+    STDC2_SEG50 = "stdc2_seg50"
+    STDC2_SEG75 = "stdc2_seg75"
+    REGSEG48 = "regseg48"
+    KD_MODULE = "kd_module"
+    VIT_BASE = "vit_base"
+    VIT_LARGE = "vit_large"
+    VIT_HUGE = "vit_huge"
+    BEIT_BASE_PATCH16_224 = "beit_base_patch16_224"
+    BEIT_LARGE_PATCH16_224 = "beit_large_patch16_224"
+
+
+ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
+                 ModelNames.RESNET34: resnet.ResNet34,
+                 ModelNames.RESNET50_3343: resnet.ResNet50_3343,
+                 ModelNames.RESNET50: resnet.ResNet50,
+                 ModelNames.RESNET101: resnet.ResNet101,
+                 ModelNames.RESNET152: resnet.ResNet152,
+                 ModelNames.RESNET18_CIFAR: resnet.ResNet18Cifar,
+                 ModelNames.CUSTOM_RESNET: resnet.CustomizedResnet,
+                 ModelNames.CUSTOM_RESNET50: resnet.CustomizedResnet50,
+                 ModelNames.CUSTOM_RESNET_CIFAR: resnet.CustomizedResnetCifar,
+                 ModelNames.CUSTOM_RESNET50_CIFAR: resnet.CustomizedResnet50Cifar,
+                 ModelNames.MOBILENET_V2: mobile_net_v2,
+                 ModelNames.MOBILE_NET_V2_135: mobile_net_v2_135,
+                 ModelNames.CUSTOM_MOBILENET_V2: custom_mobile_net_v2,
+                 ModelNames.MOBILENET_V3_LARGE: mobilenetv3_large,
+                 ModelNames.MOBILENET_V3_SMALL: mobilenetv3_small,
+                 ModelNames.MOBILENET_V3_CUSTOM: mobilenetv3_custom,
+                 ModelNames.CUSTOM_DENSENET: densenet.CustomizedDensnet,
+                 ModelNames.DENSENET121: densenet.densenet121,
+                 ModelNames.DENSENET161: densenet.densenet161,
+                 ModelNames.DENSENET169: densenet.densenet169,
+                 ModelNames.DENSENET201: densenet.densenet201,
+                 ModelNames.SHELFNET18_LW: ShelfNet18_LW,
+                 ModelNames.SHELFNET34_LW: ShelfNet34_LW,
+                 ModelNames.SHELFNET50_3343: ShelfNet503343,
+                 ModelNames.SHELFNET50: ShelfNet50,
+                 ModelNames.SHELFNET101: ShelfNet101,
+                 ModelNames.SHUFFLENET_V2_X0_5: ShufflenetV2_x0_5,
+                 ModelNames.SHUFFLENET_V2_X1_0: ShufflenetV2_x1_0,
+                 ModelNames.SHUFFLENET_V2_X1_5: ShufflenetV2_x1_5,
+                 ModelNames.SHUFFLENET_V2_X2_0: ShufflenetV2_x2_0,
+                 ModelNames.SHUFFLENET_V2_CUSTOM5: CustomizedShuffleNetV2,
+                 ModelNames.DARKNET53: Darknet53,
+                 ModelNames.CSP_DARKNET53: CSPDarknet53,
+                 ModelNames.RESNEXT50: ResNeXt50,
+                 ModelNames.RESNEXT101: ResNeXt101,
+                 ModelNames.GOOGLENET_V1: googlenet_v1,
+                 ModelNames.EFFICIENTNET_B0: efficientnet.b0,
+                 ModelNames.EFFICIENTNET_B1: efficientnet.b1,
+                 ModelNames.EFFICIENTNET_B2: efficientnet.b2,
+                 ModelNames.EFFICIENTNET_B3: efficientnet.b3,
+                 ModelNames.EFFICIENTNET_B4: efficientnet.b4,
+                 ModelNames.EFFICIENTNET_B5: efficientnet.b5,
+                 ModelNames.EFFICIENTNET_B6: efficientnet.b6,
+                 ModelNames.EFFICIENTNET_B7: efficientnet.b7,
+                 ModelNames.EFFICIENTNET_B8: efficientnet.b8,
+                 ModelNames.EFFICIENTNET_L2: efficientnet.l2,
+                 ModelNames.CUSTOMIZEDEFFICIENTNET: efficientnet.CustomizedEfficientnet,
+                 ModelNames.REGNETY200: regnet.RegNetY200,
+                 ModelNames.REGNETY400: regnet.RegNetY400,
+                 ModelNames.REGNETY600: regnet.RegNetY600,
+                 ModelNames.REGNETY800: regnet.RegNetY800,
+                 ModelNames.CUSTOM_REGNET: regnet.CustomRegNet,
+                 ModelNames.NAS_REGNET: regnet.NASRegNet,
+                 ModelNames.YOLOX_N: YoloX_N,
+                 ModelNames.YOLOX_T: YoloX_T,
+                 ModelNames.YOLOX_S: YoloX_S,
+                 ModelNames.YOLOX_M: YoloX_M,
+                 ModelNames.YOLOX_L: YoloX_L,
+                 ModelNames.YOLOX_X: YoloX_X,
+                 ModelNames.SSD_MOBILENET_V1: SSDMobileNetV1,
+                 ModelNames.SSD_LITE_MOBILENET_V2: SSDLiteMobileNetV2,
+                 ModelNames.REPVGG_A0: repvgg.RepVggA0,
+                 ModelNames.REPVGG_A1: repvgg.RepVggA1,
+                 ModelNames.REPVGG_A2: repvgg.RepVggA2,
+                 ModelNames.REPVGG_B0: repvgg.RepVggB0,
+                 ModelNames.REPVGG_B1: repvgg.RepVggB1,
+                 ModelNames.REPVGG_B2: repvgg.RepVggB2,
+                 ModelNames.REPVGG_B3: repvgg.RepVggB3,
+                 ModelNames.REPVGG_D2SE: repvgg.RepVggD2SE,
+                 ModelNames.REPVGG_CUSTOM: repvgg.RepVggCustom,
+                 ModelNames.DDRNET_23: DDRNet23,
+                 ModelNames.DDRNET_23_SLIM: DDRNet23Slim,
+                 ModelNames.CUSTOM_DDRNET_23: AnyBackBoneDDRNet23,
+                 ModelNames.STDC1_CLASSIFICATION: STDC1Classification,
+                 ModelNames.STDC2_CLASSIFICATION: STDC2Classification,
+                 ModelNames.STDC1_SEG: STDC1Seg,
+                 ModelNames.STDC1_SEG50: STDC1Seg,
+                 ModelNames.STDC1_SEG75: STDC1Seg,
+                 ModelNames.STDC2_SEG: STDC2Seg,
+                 ModelNames.STDC2_SEG50: STDC2Seg,
+                 ModelNames.STDC2_SEG75: STDC2Seg,
+                 ModelNames.REGSEG48: RegSeg48,
+                 ModelNames.KD_MODULE: KDModule,
+                 ModelNames.VIT_BASE: vit_base,
+                 ModelNames.VIT_LARGE: vit_large,
+                 ModelNames.VIT_HUGE: vit_huge,
+                 ModelNames.BEIT_BASE_PATCH16_224: beit_base_patch16_224,
+                 ModelNames.BEIT_LARGE_PATCH16_224: beit_large_patch16_224
                  }
 
 KD_ARCHITECTURES = {
-    "kd_module": KDModule
+    ModelNames.KD_MODULE: KDModule
 }
