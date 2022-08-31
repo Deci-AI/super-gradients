@@ -94,7 +94,7 @@ class CityscapesDataset(SegmentationDataSet):
     @staticmethod
     def transform_target(target):
         """
-        Transforms the sample image
+        Transforms the sample mask
         This function overrides the original function from SegmentationDataSet and changes target pixels with value
         255 to value = CITYSCAPES_IGNORE_LABEL. This was done since current IoU metric from torchmetrics does not
         support such a high ignore label value (crashed on OOM)

@@ -6,14 +6,15 @@
 #  Log and tensorboard at s3://deci-pretrained-models/KD_ResNet50_Beit_Base_ImageNet/average_model.pth
 
 # Instructions:
-# running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
-#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/:"YOUR_LOCAL_PATH"/super_gradients/src/
-# Then:
-#   python train_from_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python -m torch.distributed.launch --nproc_per_node=8  src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
+
 
 defaults:
   - training_hyperparams: imagenet_resnet50_kd_train_params
-  - dataset_params: imagenet_dataset_params
+  - dataset_params: imagenet_resnet50_kd_dataset_params
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
 
@@ -51,6 +52,9 @@ teacher_checkpoint_params:
     value: True
   pretrained_weights: imagenet
 
+checkpoint_params:
+  teacher_pretrained_weights: imagenet
+
 student_checkpoint_params:
   load_backbone: False # whether to load only backbone part of checkpoint
   checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
@@ -59,19 +63,6 @@ student_checkpoint_params:
     value: True
   pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
 
-dataset_params:
-  batch_size: 192
-  val_batch_size: 256
-  random_erase_prob: 0
-  random_erase_value: random
-  train_interpolation: random
-  rand_augment_config_string: rand-m7-mstd0.5
-  cutmix: True
-  cutmix_params:
-    mixup_alpha: 0.2
-    cutmix_alpha: 1.0
-    label_smoothing: 0.1
-  aug_repeat_count: 3
 
 dataset_interface:
   imagenet:

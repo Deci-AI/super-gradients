@@ -49,7 +49,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
                                       target_loader=self.target_loader,
                                       collate_fn=collate_fn)
 
-        self.transforms = transform.Compose(transforms) if transforms else []
+        self.transforms = transform.Compose(transforms if transforms else [])
 
     def __getitem__(self, index):
         sample_path, target_path = self.samples_targets_tuples_list[index]
