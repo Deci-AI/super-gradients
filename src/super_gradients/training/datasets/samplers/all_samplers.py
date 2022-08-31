@@ -13,4 +13,4 @@ SAMPLERS = {
     SamplerNames.INFINITE: InfiniteSampler,
     SamplerNames.REPEAT_AUG: RepeatAugSampler,
     SamplerNames.DISTRIBUTED: DistributedSampler
- }
+}

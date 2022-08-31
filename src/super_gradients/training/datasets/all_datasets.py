@@ -10,7 +10,7 @@ from super_gradients.common.data_types.enum.deep_learning_task import DeepLearni
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 
 
-#Fixme: THis should be the same as the factory, which is not the case!
+# Fixme: THis should be the same as the factory, which is not the case!
 class DatasetNames:
     TEST_DATASET = "test_dataset"
     LIBRARY_DATASET = "library_dataset"
