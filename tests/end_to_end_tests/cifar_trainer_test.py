@@ -12,9 +12,6 @@ from super_gradients.training.dataloaders.dataloader_factory import (
     cifar100_train,
     cifar100_val,
 )
-import torch
-
-torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 class TestCifarTrainer(unittest.TestCase):

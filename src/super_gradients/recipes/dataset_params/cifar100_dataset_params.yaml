@@ -1,5 +1,5 @@
--batch_size: 256 # batch size for trainset
--val_batch_size: 512 # batch size for valset in DatasetInterface
+batch_size: 256 # batch size for trainset
+val_batch_size: 512 # batch size for valset in DatasetInterface
 
 # TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
 

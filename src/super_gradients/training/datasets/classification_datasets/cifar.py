@@ -9,6 +9,15 @@ from torchvision.datasets import CIFAR10, CIFAR100
 
 
 class Cifar10(CIFAR10):
+    """
+    CIFAR10 Dataset
+
+    :param root:                    Path for the data to be extracted
+    :param train:                   Bool to load training (True) or validation (False) part of the dataset
+    :param transforms:              List of transforms to apply sequentially on sample. Wrapped internally with torchvision.Compose
+    :param target_transform:        Transform to apply to target output
+    :param download:                Download (True) the dataset from source
+    """
     @resolve_param("transforms", ListFactory(TransformsFactory()))
     def __init__(
         self,
@@ -37,6 +46,15 @@ class Cifar100(CIFAR100):
         target_transform: Optional[Callable] = None,
         download: bool = False,
     ) -> None:
+        """
+        CIFAR100 Dataset
+
+        :param root:                    Path for the data to be extracted
+        :param train:                   Bool to load training (True) or validation (False) part of the dataset
+        :param transforms:              List of transforms to apply sequentially on sample. Wrapped internally with torchvision.Compose
+        :param target_transform:        Transform to apply to target output
+        :param download:                Download (True) the dataset from source
+        """
         super(Cifar100, self).__init__(
             root=root,
             train=train,
