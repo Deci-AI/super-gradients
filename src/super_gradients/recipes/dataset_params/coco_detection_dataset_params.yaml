@@ -19,7 +19,7 @@ val_input_dim:
   - ${dataset_params.val_image_size}
   - ${dataset_params.val_image_size}
 
-filter_box_candidates: False
+filter_box_candidates: True
 targets_format:
   _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
   value: LABEL_CXCYWH

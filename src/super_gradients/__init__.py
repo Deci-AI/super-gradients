@@ -13,3 +13,16 @@ __all__ = ['ARCHITECTURES', 'losses', 'utils', 'datasets_utils', 'DataAugmentati
 
 
 env_sanity_check()
+
+class Model(Enum):
+    ResNet18 = ("resnet18", ResNet18Cls, "resnet18_arch_params")
+    ResNet34 = ("resnet34", ResNet34Cls, "resnet34_arch_params")
+    ResNet50 = ("resnet50", ResNet50Cls, "resnet50_arch_params")
+
+    def __init__(self,
+                 name: str,
+                 cls: Type[nn.Module],
+                 default_yaml: str):
+        self.name = name
+        self.cls = cls
+        self.default_yaml = default_yaml
