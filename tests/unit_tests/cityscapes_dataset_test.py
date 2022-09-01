@@ -18,6 +18,13 @@ class CityscapesDatasetTest(unittest.TestCase):
         with open(default_config_path, 'r') as file:
             self.recipe = yaml.safe_load(file)
 
+    def dataloader_tester(self, dl: DataLoader):
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, CityscapesDataset))
+        it = iter(dl)
+        for _ in range(10):
+            next(it)
+
     def test_train_dataset_creation(self):
         train_dataset = CityscapesDataset(**self.recipe['train_dataset_params'])
         for i in range(10):
@@ -25,83 +32,43 @@ class CityscapesDatasetTest(unittest.TestCase):
 
     def test_cityscapes_train_dataloader(self):
         dl_train = cityscapes_train()
-        self.assertTrue(isinstance(dl_train, DataLoader))
-        self.assertTrue(isinstance(dl_train.dataset, CityscapesDataset))
-        it = iter(dl_train)
-        for _ in range(10):
-            next(it)
+        self.dataloader_tester(dl_train)
 
     def test_cityscapes_val_dataloader(self):
         dl_val = cityscapes_val()
-        self.assertTrue(isinstance(dl_val, DataLoader))
-        self.assertTrue(isinstance(dl_val.dataset, CityscapesDataset))
-        it = iter(dl_val)
-        for _ in range(10):
-            next(it)
+        self.dataloader_tester(dl_val)
 
     def test_cityscapes_stdc_seg50_train_dataloader(self):
         dl_train = cityscapes_stdc_seg50_train()
-        self.assertTrue(isinstance(dl_train, DataLoader))
-        self.assertTrue(isinstance(dl_train.dataset, CityscapesDataset))
-        it = iter(dl_train)
-        for _ in range(10):
-            next(it)
+        self.dataloader_tester(dl_train)
 
     def test_cityscapes_stdc_seg50_val_dataloader(self):
         dl_val = cityscapes_stdc_seg50_val()
-        self.assertTrue(isinstance(dl_val, DataLoader))
-        self.assertTrue(isinstance(dl_val.dataset, CityscapesDataset))
-        it = iter(dl_val)
-        for _ in range(10):
-            next(it)
+        self.dataloader_tester(dl_val)
 
     def test_cityscapes_stdc_seg75_train_dataloader(self):
         dl_train = cityscapes_stdc_seg75_train()
-        self.assertTrue(isinstance(dl_train, DataLoader))
-        self.assertTrue(isinstance(dl_train.dataset, CityscapesDataset))
-        it = iter(dl_train)
-        for _ in range(10):
-            next(it)
+        self.dataloader_tester(dl_train)
 
     def test_cityscapes_stdc_seg75_val_dataloader(self):
         dl_val = cityscapes_stdc_seg75_val()
-        self.assertTrue(isinstance(dl_val, DataLoader))
-        self.assertTrue(isinstance(dl_val.dataset, CityscapesDataset))
-        it = iter(dl_val)
-        for _ in range(10):
-            next(it)
+        self.dataloader_tester(dl_val)
 
     def test_cityscapes_regseg48_train_dataloader(self):
         dl_train = cityscapes_regseg48_train()
-        self.assertTrue(isinstance(dl_train, DataLoader))
-        self.assertTrue(isinstance(dl_train.dataset, CityscapesDataset))
-        it = iter(dl_train)
-        for _ in range(10):
-            next(it)
+        self.dataloader_tester(dl_train)
 
     def test_cityscapes_regseg48_val_dataloader(self):
         dl_val = cityscapes_regseg48_val()
-        self.assertTrue(isinstance(dl_val, DataLoader))
-        self.assertTrue(isinstance(dl_val.dataset, CityscapesDataset))
-        it = iter(dl_val)
-        for _ in range(10):
-            next(it)
+        self.dataloader_tester(dl_val)
 
     def test_cityscapes_ddrnet_train_dataloader(self):
         dl_train = cityscapes_ddrnet_train()
-        self.assertTrue(isinstance(dl_train, DataLoader))
-        self.assertTrue(isinstance(dl_train.dataset, CityscapesDataset))
-        it = iter(dl_train)
-        for _ in range(10):
-            next(it)
+        self.dataloader_tester(dl_train)
 
     def test_cityscapes_ddrnet_val_dataloader(self):
         dl_val = cityscapes_ddrnet_val()
-        self.assertTrue(isinstance(dl_val, DataLoader))
-        self.assertTrue(isinstance(dl_val.dataset, CityscapesDataset))
-        it = iter(dl_val)
-        for _ in range(10):
-            next(it)
+        self.dataloader_tester(dl_val)
 
 
 if __name__ == '__main__':
