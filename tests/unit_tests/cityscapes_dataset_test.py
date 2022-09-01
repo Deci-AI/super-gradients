@@ -34,7 +34,7 @@ class CityscapesDatasetTest(unittest.TestCase):
         val_dataset = CityscapesDataset(**self.recipe['val_dataset_params'])
         for i in range(10):
             image, mask = val_dataset[i]
-            
+
     def test_cityscapes_train_dataloader(self):
         dl_train = cityscapes_train()
         self.dataloader_tester(dl_train)
