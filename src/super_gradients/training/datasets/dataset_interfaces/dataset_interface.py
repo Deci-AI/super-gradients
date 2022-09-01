@@ -26,6 +26,8 @@ from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentat
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import \
     SuperviselyPersonsDataset
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
+from super_gradients.training.transforms.transforms import RandomFlip, Rescale, RandomRescale, CropImageAndMask, \
+    PadShortToCropSize
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 
@@ -591,24 +593,35 @@ class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):
                  dataset_classes_inclusion_tuples_list: list = None):
         super().__init__(dataset_params=dataset_params)
 
+        # backwards compatability patch for legacy dataset params
+        img_size = core_utils.get_param(dataset_params, "img_size")
+        crop_size = core_utils.get_param(dataset_params, "crop_size")
+
+        train_transforms = [RandomFlip(),
+                            Rescale(long_size=img_size),
+                            RandomRescale(scales=(0.5, 2.0)),
+                            PadShortToCropSize(crop_size=crop_size),
+                            CropImageAndMask(crop_size=crop_size, mode="random")]
+        val_transforms = None
+
         self.trainset = CoCoSegmentationDataSet(
             root=self.root_dir,
             list_file='instances_train2017.json',
             samples_sub_directory='images/train2017',
-            targets_sub_directory='annotations', augment=True,
-            dataset_hyper_params=dataset_params,
+            targets_sub_directory='annotations',
             cache_labels=cache_labels,
             cache_images=cache_images,
+            transforms=train_transforms,
             dataset_classes_inclusion_tuples_list=dataset_classes_inclusion_tuples_list)
 
         self.valset = CoCoSegmentationDataSet(
             root=self.root_dir,
             list_file='instances_val2017.json',
             samples_sub_directory='images/val2017',
-            targets_sub_directory='annotations', augment=False,
-            dataset_hyper_params=dataset_params,
+            targets_sub_directory='annotations',
             cache_labels=cache_labels,
             cache_images=cache_images,
+            transforms=val_transforms,
             dataset_classes_inclusion_tuples_list=dataset_classes_inclusion_tuples_list)
 
         self.coco_classes = self.trainset.classes

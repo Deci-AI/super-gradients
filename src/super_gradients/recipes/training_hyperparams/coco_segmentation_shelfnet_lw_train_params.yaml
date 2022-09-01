@@ -12,12 +12,12 @@ optimizer_params:
 load_opt_params: False
 train_metrics_list:
   - PixelAccuracy
-  - IoU
-    num_classes: 21
+  - IoU:
+      num_classes: 21
 valid_metrics_list:
   - PixelAccuracy
-  - IoU
-    num_classes: 21
-loss_logging_items_names: [Loss1/4, Loss1/8, Loss1/16, Loss]
+  - IoU:
+      num_classes: 21
+loss_logging_items_names: [ Loss1/4, Loss1/8, Loss1/16, Loss ]
 metric_to_watch: IoU
 greater_metric_to_watch_is_better: True
