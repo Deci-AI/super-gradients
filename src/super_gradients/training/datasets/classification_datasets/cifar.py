@@ -2,8 +2,8 @@ from typing import Optional, Callable
 
 from torchvision.transforms import Compose
 
-from common.factories.list_factory import ListFactory
-from common.factories.transforms_factory import TransformsFactory
+from super_gradients.common.factories.list_factory import ListFactory
+from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from torchvision.datasets import CIFAR10, CIFAR100
 
