@@ -29,7 +29,6 @@ dataset_params:
   img_size: 608
   crop_size: 512
   train_loader_drop_last: True
-  data_loader_num_workers: 8
 
 sub_classes:
   _target_: super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list
