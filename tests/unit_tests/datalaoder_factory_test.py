@@ -29,7 +29,7 @@ from super_gradients.training.dataloaders.dataloader_factory import (
     tiny_imagenet_train,
     tiny_imagenet_val,
     pascal_aug_segmentation_train,
-    pascal_aug_segmentation_val
+    pascal_aug_segmentation_val,
     pascal_voc_segmentation_train,
     pascal_voc_segmentation_val
 )
