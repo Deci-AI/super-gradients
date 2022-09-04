@@ -1,19 +1,23 @@
 import os.path
+import pkg_resources
 from typing import Dict
 
 import hydra
-import pkg_resources
 from hydra import compose, initialize_config_dir
 from hydra.core.global_hydra import GlobalHydra
-from torch.utils.data import BatchSampler, DataLoader
+
+import numpy as np
+import torch
+from torch.utils.data import BatchSampler, DataLoader, TensorDataset
 
 import super_gradients
-from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.factories.samplers_factory import SamplersFactory
+from super_gradients.training.utils import get_param
+from super_gradients.training.datasets import ImageNetDataset
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
 from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset, SuperviselyPersonsDataset
-from super_gradients.training.utils import get_param
+from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
+from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -65,14 +69,13 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
     default_dataloader_params = hydra.utils.instantiate(default_dataloader_params)
     is_dist = super_gradients.is_distributed()
 
-    if get_param(default_dataloader_params, "sampler") is not None:
+    if get_param(dataloader_params, "sampler") is not None:
+        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+    elif get_param(default_dataloader_params, "sampler") is not None:
         default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
     elif is_dist:
         default_dataloader_params["sampler"] = {"DistributedSampler": {}}
         default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
-
-    if get_param(dataloader_params, "sampler") is not None:
-        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
 
     dataloader_params = _override_default_params_without_nones(dataloader_params, default_dataloader_params)
     if get_param(dataloader_params, "batch_sampler"):
@@ -135,6 +138,205 @@ def coco2017_train_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_p
 def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="coco_detection_ssd_lite_mobilenet_v2_dataset_params",
                            dataset_cls=COCODetectionDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def imagenet_train(dataset_params={}, dataloader_params={}, config_name="imagenet_dataset_params"):
+    return get_data_loader(config_name=config_name,
+                           dataset_cls=ImageNetDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params)
+
+
+def imagenet_val(dataset_params={}, dataloader_params={}, config_name="imagenet_dataset_params"):
+    return get_data_loader(config_name=config_name,
+                           dataset_cls=ImageNetDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params)
+
+
+def imagenet_efficientnet_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_efficientnet_dataset_params")
+
+
+def imagenet_efficientnet_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_efficientnet_dataset_params")
+
+
+def imagenet_mobilenetv2_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_mobilenetv2_dataset_params")
+
+
+def imagenet_mobilenetv2_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_mobilenetv2_dataset_params")
+
+
+def imagenet_mobilenetv3_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_mobilenetv3_dataset_params")
+
+
+def imagenet_mobilenetv3_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_mobilenetv3_dataset_params")
+
+
+def imagenet_regnetY_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_regnetY_dataset_params")
+
+
+def imagenet_regnetY_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_regnetY_dataset_params")
+
+
+def imagenet_resnet50_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_resnet50_dataset_params")
+
+
+def imagenet_resnet50_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_resnet50_dataset_params")
+
+
+def imagenet_resnet50_kd_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_resnet50_kd_dataset_params")
+
+
+def imagenet_resnet50_kd_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_resnet50_kd_dataset_params")
+
+
+def imagenet_vit_base_train(dataset_params={}, dataloader_params={}):
+    return imagenet_train(dataset_params, dataloader_params, config_name="imagenet_vit_base_dataset_params")
+
+
+def imagenet_vit_base_val(dataset_params={}, dataloader_params={}):
+    return imagenet_val(dataset_params, dataloader_params, config_name="imagenet_vit_base_dataset_params")
+
+
+def tiny_imagenet_train(dataset_params={}, dataloader_params={}, config_name="tiny_imagenet_dataset_params"):
+    return get_data_loader(config_name=config_name,
+                           dataset_cls=ImageNetDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params)
+
+
+def tiny_imagenet_val(dataset_params={}, dataloader_params={}, config_name="tiny_imagenet_dataset_params"):
+    return get_data_loader(config_name=config_name,
+                           dataset_cls=ImageNetDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params)
+
+
+def classification_test_dataloader(batch_size: int = 5, image_size: int = 32) -> DataLoader:
+    images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
+    ground_truth = torch.LongTensor(np.zeros((batch_size)))
+    dataset = TensorDataset(images, ground_truth)
+    return DataLoader(dataset=dataset, batch_size=batch_size)
+
+
+def detection_test_dataloader(batch_size: int = 5, image_size: int = 320) -> DataLoader:
+    images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
+    ground_truth = torch.LongTensor(np.zeros((batch_size, 6)))
+    dataset = TensorDataset(images, ground_truth)
+    return DataLoader(dataset=dataset, batch_size=batch_size)
+
+
+def segmentation_test_dataloader(batch_size: int = 5, image_size: int = 512) -> DataLoader:
+    images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
+    ground_truth = torch.LongTensor(np.zeros((batch_size, image_size, image_size)))
+    dataset = TensorDataset(images, ground_truth)
+    return DataLoader(dataset=dataset, batch_size=batch_size)
+
+
+def cityscapes_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_stdc_seg50_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_stdc_seg50_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_stdc_seg50_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_stdc_seg50_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_stdc_seg75_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_stdc_seg75_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_stdc_seg75_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_stdc_seg75_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_regseg48_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_regseg48_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_regseg48_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_regseg48_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_ddrnet_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_ddrnet_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_ddrnet_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_ddrnet_dataset_params",
+                           dataset_cls=CityscapesDataset,
                            train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params

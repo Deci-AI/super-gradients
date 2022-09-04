@@ -6,11 +6,13 @@ from torchvision import transforms
 
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.common.factories.list_factory import ListFactory
+from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
+from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, rand_augment_transform
 from super_gradients.training.transforms.transforms import RandomFlip, Rescale, RandomRescale, RandomRotate, \
     CropImageAndMask, RandomGaussianBlur, PadShortToCropSize, ColorJitterSeg, DetectionMosaic, DetectionRandomAffine, \
     DetectionMixup, DetectionHSV, \
     DetectionHorizontalFlip, DetectionTargetsFormat, DetectionPaddedRescale, \
-    DetectionTargetsFormatTransform, NormalizeSeg, ToTensorSeg, ResizeSeg
+    DetectionTargetsFormatTransform
 
 
 class TransformsFactory(BaseFactory):
@@ -33,9 +35,11 @@ class TransformsFactory(BaseFactory):
             "DetectionPaddedRescale": DetectionPaddedRescale,
             "DetectionTargetsFormat": DetectionTargetsFormat,
             "DetectionTargetsFormatTransform": DetectionTargetsFormatTransform,
-            "ResizeSeg": ResizeSeg,
-            'NormalizeSeg': NormalizeSeg,
-            'ToTensorSeg': ToTensorSeg
+
+            'RandomResizedCropAndInterpolation': RandomResizedCropAndInterpolation,
+            'RandAugmentTransform': rand_augment_transform,
+            'Lighting': Lighting,
+            'RandomErase': RandomErase
         }
         for name, obj in inspect.getmembers(transforms, inspect.isclass):
             if name in type_dict:
@@ -52,4 +56,5 @@ class TransformsFactory(BaseFactory):
             conf['Compose']['transforms'] = ListFactory(TransformsFactory()).get(conf['Compose']['transforms'])
         elif isinstance(conf, (list, ListConfig)):
             conf = ListFactory(TransformsFactory()).get(conf)
+
         return super().get(conf)
