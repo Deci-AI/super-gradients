@@ -6,32 +6,20 @@
 #  Log and tensorboard at s3://deci-pretrained-models/ResNet50_ImageNet/average_model.pth
 
 # Instructions:
-# running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
-#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
-# Then:
-#   python train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
 
 
 defaults:
   - training_hyperparams: imagenet_resnet50_train_params
-  - dataset_params: imagenet_dataset_params
+  - dataset_params: imagenet_resnet50_dataset_params
   - arch_params: resnet50_arch_params
   - checkpoint_params: default_checkpoint_params
 
 arch_params:
   droppath_prob: 0.05
-
-dataset_params:
-  resize_size: 236
-  random_erase_prob: 0
-  random_erase_value: random
-  train_interpolation: random
-  rand_augment_config_string: rand-m7-mstd0.5
-  cutmix: True
-  cutmix_params:
-    mixup_alpha: 0.2
-    cutmix_alpha: 1.0
-    label_smoothing: 0.1
 
 dataset_interface:
   imagenet:

@@ -3,13 +3,32 @@
 # Trained using 4 X 2080 Ti using DDP- takes ~ 2d 7h with batch size of 8 and batch accumulate of 3 (i.e effective batch
 # size is 4*8*3 = 96)
 # Logs and tensorboards: s3://deci-pretrained-models/shelfnet34_coco_segmentation_tensorboard/
-# python train_from_recipe_example/train_from_recipe.py --config-name=coco_segmentation_shelfnet_lw
+
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco_segmentation_shelfnet_lw --model_checkpoints_location=<checkpoint-location>
+
+
+# /!\ THIS RECIPE IS NOT SUPPORTED AT THE MOMENT /!\
 
 defaults:
   - training_hyperparams: coco_segmentation_shelfnet_lw_train_params
-  - dataset_params: coco_segmentation_dataset_params
+  #  - dataset_params: coco_segmentation_dataset_params # TODO: uncomment after DatasetInterface refactor
   - arch_params: shelfnet34_lw_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
+
+# ------------------------------------- legacy dataset params ------------------------------------- #
+dataset_params:
+  batch_size: 8
+  val_batch_size: 24
+  dataset_dir: "/data/coco/"
+  img_size: 608
+  crop_size: 512
+  train_loader_drop_last: True
 
 sub_classes:
   _target_: super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list
@@ -20,6 +39,8 @@ dataset_interface:
   dataset_classes_inclusion_tuples_list: ${sub_classes}
 
 data_loader_num_workers: 8
+# ------------------------------------- legacy dataset params ------------------------------------- #
+
 
 checkpoint_params:
   strict_load: True
@@ -37,3 +58,7 @@ multi_gpu: DDP
 ckpt_root_dir:
 
 architecture: shelfnet34_lw
+
+hydra:
+  run:
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

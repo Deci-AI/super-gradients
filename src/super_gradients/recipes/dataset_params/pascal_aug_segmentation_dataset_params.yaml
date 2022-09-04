@@ -1,10 +1,8 @@
 train_dataset_params:
-  root_dir: /data/coco/
-  list_file: instances_train2017.json
-  samples_sub_directory: images/train2017
-  targets_sub_directory: annotations
-  dataset_classes_inclusion_tuples_list:
-    _target_: super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list
+  root: /data/pascal_voc_2012/VOCaug/dataset/
+  list_file: trainval.txt
+  samples_sub_directory: img
+  targets_sub_directory: cls
   cache_labels: False
   cache_images: False
   transforms:
@@ -26,12 +24,10 @@ train_dataset_params:
         mode: random
 
 val_dataset_params:
-  root_dir: /data/coco/
-  list_file: instances_val2017.json
-  samples_sub_directory: images/val2017
-  targets_sub_directory: annotations
-  dataset_classes_inclusion_tuples_list:
-    _target_: super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list
+  root: /data/pascal_voc_2012/VOCaug/dataset/
+  list_file: val.txt
+  samples_sub_directory: img
+  targets_sub_directory: cls
   cache_labels: False
   cache_images: False
   transforms:
@@ -42,12 +38,15 @@ val_dataset_params:
         crop_size: 512
         mode: center
 
-train_dataloader_params:
-  batch_size: 8
-  num_workers: 8
-  drop_last: True                 # drop the last incomplete batch, if dataset size is not divisible by the batch size
 
-val_dataloader_params:
-  batch_size: 24
+train_dataloader_params:
+  batch_size: 64
   num_workers: 8
   drop_last: False
+  pin_memory: True
+
+val_dataloader_params:
+  batch_size: 200
+  num_workers: 8
+  drop_last: False
+  pin_memory: True

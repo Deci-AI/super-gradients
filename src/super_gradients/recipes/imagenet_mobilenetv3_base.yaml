@@ -2,10 +2,8 @@
 
 defaults:
   - training_hyperparams: imagenet_mobilenetv3_train_params
+  - dataset_params: imagenet_mobilenetv3_dataset_params
   - checkpoint_params: default_checkpoint_params
-
-dataset_params:
-  batch_size: 128
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
