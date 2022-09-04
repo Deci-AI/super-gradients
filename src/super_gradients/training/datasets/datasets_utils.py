@@ -670,10 +670,7 @@ def get_color_augmentation(rand_augment_config_string: str, color_jitter: tuple,
     :return: RandAugment transform or ColorJitter
     """
     if rand_augment_config_string:
-        auto_augment_params = dict(translate_const=int(crop_size * 0.45),
-                                   img_mean=tuple([min(255, round(255 * x)) for x in img_mean]))
-
-        color_augmentation = rand_augment_transform(rand_augment_config_string, auto_augment_params)
+        color_augmentation = rand_augment_transform(rand_augment_config_string, crop_size, img_mean)
 
     else:  # RandAugment includes colorjitter like augmentations, both cannot be applied together.
         color_augmentation = transforms.ColorJitter(*color_jitter)
