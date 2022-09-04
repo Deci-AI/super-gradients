@@ -38,16 +38,73 @@
 #      * Pretrained backbones were used.
 
 defaults:
-  - cityscapes_stdc_base
+  - training_hyperparams: cityscapes_default_train_params
+  #  - dataset_params: cityscapes_stdc_seg50_dataset_params # TODO: uncomment after DatasetInterface refactor
+  - checkpoint_params: default_checkpoint_params
   - _self_
 
+# ------------------------------------- legacy dataset params ------------------------------------- #
 dataset_params:
   _convert_: all
   batch_size: 16
   val_batch_size: 16
-  crop_size: [1024, 512]
-  eval_scale: 0.5
+  dataset_dir: /data/cityscapes
+  crop_size: [ 1024, 512 ]
+  img_size: 1024
+  train_loader_drop_last: True
+  color_jitter: 0.5
   random_scales: [ 0.125, 1.5 ]
+  eval_scale: 0.5
+  cityscapes_ignored_label: 19
+
+  image_mask_transforms_aug:
+    Compose:
+      transforms:
+        - ColorJitterSeg:
+            brightness: ${dataset_params.color_jitter}
+            contrast: ${dataset_params.color_jitter}
+            saturation: ${dataset_params.color_jitter}
+
+        - RandomFlipSeg
+
+        - RandomRescaleSeg:
+            scales: ${dataset_params.random_scales}
+
+        - PadShortToCropSizeSeg:
+            crop_size: ${dataset_params.crop_size}
+            fill_mask: ${dataset_params.cityscapes_ignored_label}
+
+        - CropImageAndMaskSeg:
+            crop_size: ${dataset_params.crop_size}
+            mode: random
+
+  image_mask_transforms:
+    Compose:
+      transforms:
+        - RescaleSeg:
+            scale_factor: ${dataset_params.eval_scale}
+
+dataset_interface:
+  cityscapes:
+    dataset_params: ${dataset_params}
+
+data_loader_num_workers: 10
+# ------------------------------------- legacy dataset params ------------------------------------- #
+
+
+architecture: stdc1_seg
+
+
+arch_params:
+  num_classes: 19
+  use_aux_heads: True
+  sync_bn: True
+
+checkpoint_params:
+  checkpoint_path:
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
 
 training_hyperparams:
   loss:
@@ -59,4 +116,11 @@ training_hyperparams:
       ce_edge_weights: [ .5, .5 ]
       edge_kernel: 3
 
+multi_gpu: DDP
+
 experiment_name: ${architecture}50_cityscapes
+ckpt_root_dir:
+
+hydra:
+  run:
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
