@@ -31,7 +31,7 @@ from super_gradients.training.dataloaders.dataloader_factory import (
     pascal_voc_segmentation_train,
     pascal_voc_segmentation_val
 )
-from super_gradients.training.datasets import COCODetectionDataset, ImageNetDataset, COCODetectionDataset, PascalVOC2012SegmentationDataSet
+from super_gradients.training.datasets import COCODetectionDataset, ImageNetDataset, PascalVOC2012SegmentationDataSet
 
 
 class DataLoaderFactoryTest(unittest.TestCase):
