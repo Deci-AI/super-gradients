@@ -11,10 +11,14 @@ import torch
 from torch.utils.data import BatchSampler, DataLoader, TensorDataset
 
 import super_gradients
+
+from super_gradients.training.datasets.detection_datasets.pascal_voc_detection import \
+    PascalVOCUnifiedDetectionTrainDataset, PascalVOCDetectionDataset
 from super_gradients.training.utils import get_param
 from super_gradients.training.datasets import ImageNetDataset
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
-from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset, CoCoSegmentationDataSet, PascalAUG2012SegmentationDataSet, \
+from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset, CoCoSegmentationDataSet, \
+    PascalAUG2012SegmentationDataSet, \
     PascalVOC2012SegmentationDataSet, SuperviselyPersonsDataset
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
@@ -412,3 +416,21 @@ def supervisely_persons_val(dataset_params: Dict = {}, dataloader_params: Dict =
                            train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params)
+
+
+def pascal_voc_detection_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="pascal_voc_detection_dataset_params",
+                           dataset_cls=PascalVOCUnifiedDetectionTrainDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def pascal_voc_detection_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="pascal_voc_detection_dataset_params",
+                           dataset_cls=PascalVOCDetectionDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
