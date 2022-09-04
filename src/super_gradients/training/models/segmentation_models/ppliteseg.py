@@ -1,14 +1,70 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Union, Optional, List, Tuple
+from typing import Union, List, Tuple
 from super_gradients.training.utils.module_utils import ConvBNReLU, UpsampleMode, make_upsample_module
 from super_gradients.training.models.segmentation_models.stdc import SegmentationHead, AbstractSTDCBackbone, STDC1Backbone, STDC2Backbone
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import HpmStruct, get_param
 
 
+class SPPM(nn.Module):
+    """
+    Simple Pyramid Pooling context Module.
+    """
+    def __init__(self,
+                 in_channels: int,
+                 inter_channels: int,
+                 out_channels: int,
+                 pool_sizes: List[Union[int, Tuple[int, int]]],
+                 upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
+                 align_corners: bool = False):
+        """
+        :param inter_channels: num channels in each pooling branch.
+        :param out_channels: The number of output channels after pyramid pooling module.
+        :param pool_sizes: output sizes of the pooled feature maps.
+        """
+        # TODO - replace adaptive with average pooling
+        super().__init__()
+        self.branches = nn.ModuleList([
+            nn.Sequential(
+                nn.AdaptiveAvgPool2d(pool_size),
+                ConvBNReLU(in_channels, inter_channels, kernel_size=1, bias=False),
+            ) for pool_size in pool_sizes
+        ])
+        self.conv_out = ConvBNReLU(inter_channels, out_channels, kernel_size=3, padding=1, bias=False)
+        self.out_channels = out_channels
+        self.upsample_mode = upsample_mode
+        self.align_corners = align_corners
+        self.pool_sizes = pool_sizes
+
+    def output_channels(self):
+        return self.out_channels
+
+    def forward(self, x):
+        out = None
+        input_shape = x.shape[2:]
+        for branch in self.branches:
+            y = branch(x)
+            y = F.interpolate(y, size=input_shape, mode=self.upsample_mode, align_corners=self.align_corners)
+            out = y if out is None else out + y
+        out = self.conv_out(out)
+        return out
+
+    def prep_model_for_conversion(self, input_size: Union[tuple, list], stride_ratio: int = 32, **kwargs):
+        input_size = [x / stride_ratio for x in input_size[-2:]]
+        for branch in self.branches:
+            global_pool: nn.AdaptiveAvgPool2d = branch[0]
+            out_size = global_pool.output_size
+            out_size = out_size if isinstance(out_size, (tuple, list)) else (out_size, out_size)
+            kernel_size = [int(i / o) for i, o in zip(input_size, out_size)]
+            branch[0] = nn.AvgPool2d(kernel_size=kernel_size, stride=kernel_size)
+
+
 class PPLiteSegEncoder(nn.Module):
+    """
+    Encoder for PPLiteSeg, include backbone followed by a context module.
+    """
     def __init__(self,
                  backbone: AbstractSTDCBackbone,
                  projection_channels_list: List[int],
@@ -21,11 +77,12 @@ class PPLiteSegEncoder(nn.Module):
             ConvBNReLU(feat_ch, proj_ch, kernel_size=3, padding=1, bias=False)
             for feat_ch, proj_ch in zip(feats_channels, projection_channels_list)
         ])
+        self.projection_channels_list = projection_channels_list
 
     def get_output_number_of_channels(self) -> List[int]:
-        channels_list = self.backbone.get_backbone_output_number_of_channels()
+        channels_list = self.projection_channels_list
         if hasattr(self.context_module, "output_channels"):
-            channels_list[-1] = self.context_module.output_channels()
+            channels_list.append(self.context_module.output_channels())
         return channels_list
 
     def forward(self, x):
@@ -43,8 +100,11 @@ class PPLiteSegDecoder(nn.Module):
                  upsample_mode,
                  align_corners: bool):
         super().__init__()
+        # Make a copy of channels list, to prevent out of scope changes.
+        encoder_channels = encoder_channels.copy()
         encoder_channels.reverse()
         in_channels = encoder_channels.pop(0)
+
         # TODO - assert argument length
         self.up_stages = nn.ModuleList()
         for skip_ch, up_factor, out_ch in zip(encoder_channels, up_factors, out_channels):
@@ -113,7 +173,7 @@ class PPLiteSegBase(SegmentationModule):
         self.encoder = PPLiteSegEncoder(backbone=backbone,
                                         context_module=context,
                                         projection_channels_list=projection_channels_list)
-        encoder_channels = projection_channels_list + [sppm_out_channels]
+        encoder_channels = self.encoder.get_output_number_of_channels()
         self.decoder = PPLiteSegDecoder(encoder_channels=encoder_channels,
                                         up_factors=decoder_up_factors,
                                         out_channels=decoder_channels,
@@ -196,58 +256,6 @@ class PPLiteSegBase(SegmentationModule):
         if isinstance(self.encoder.context_module, SPPM):
             self.encoder.context_module.prep_model_for_conversion(input_size=input_size, stride_ratio=stride_ratio)
 
-
-class SPPM(nn.Module):
-    """
-    Simple Pyramid Pooling context Module.
-    """
-    def __init__(self,
-                 in_channels: int,
-                 inter_channels: int,
-                 out_channels: int,
-                 pool_sizes: List[Union[int, Tuple[int, int]]],
-                 upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
-                 align_corners: bool = False):
-        """
-        :param inter_channels: num channels in each pooling branch.
-        :param out_channels: The number of output channels after pyramid pooling module.
-        :param pool_sizes: output sizes of the pooled feature maps.
-        """
-        # TODO - replace adaptive with average pooling
-        super().__init__()
-        self.branches = nn.ModuleList([
-            nn.Sequential(
-                nn.AdaptiveAvgPool2d(pool_size),
-                ConvBNReLU(in_channels, inter_channels, kernel_size=1, bias=False),
-            ) for pool_size in pool_sizes
-        ])
-        self.conv_out = ConvBNReLU(inter_channels, out_channels, kernel_size=3, padding=1, bias=False)
-        self.out_channels = out_channels
-        self.upsample_mode = upsample_mode
-        self.align_corners = align_corners
-        self.pool_sizes = pool_sizes
-
-    def output_channels(self):
-        return self.out_channels
-
-    def forward(self, x):
-        out = None
-        input_shape = x.shape[2:]
-        for branch in self.branches:
-            y = branch(x)
-            y = F.interpolate(y, size=input_shape, mode=self.upsample_mode, align_corners=self.align_corners)
-            out = y if out is None else out + y
-        out = self.conv_out(out)
-        return out
-
-    def prep_model_for_conversion(self, input_size: Union[tuple, list], stride_ratio: int = 32, **kwargs):
-        input_size = [x / stride_ratio for x in input_size[-2:]]
-        for branch in self.branches:
-            global_pool: nn.AdaptiveAvgPool2d = branch[0]
-            out_size = global_pool.output_size
-            out_size = out_size if isinstance(out_size, (tuple, list)) else (out_size, out_size)
-            kernel_size = [int(i / o) for i, o in zip(input_size, out_size)]
-            branch[0] = nn.AvgPool2d(kernel_size=kernel_size, stride=kernel_size)
 
 class UAFM(nn.Module):
     """
@@ -352,12 +360,12 @@ class PPLiteSegT(PPLiteSegBase):
 
 
 if __name__ == '__main__':
-    scale = 4 / 3
+    scale = 2
     in_size = [1, 3, 1024, 2048]
     model_in_size = [1, 3, int(in_size[2] / scale), int(in_size[3] / scale)]
     m = nn.Sequential(
         nn.Upsample(scale_factor=1/scale, mode="bilinear", align_corners=False),
-        PPLiteSegT(HpmStruct(num_classes=19, use_aux_heads=False))
+        PPLiteSegT(HpmStruct(num_classes=19, use_aux_heads=True))
     ).eval()
     m[-1].seg_head[-1].scale_factor = m[-1].seg_head[-1].scale_factor * scale
 
@@ -373,7 +381,7 @@ if __name__ == '__main__':
     print_outputs(m(x))
 
     m[-1].prep_model_for_conversion(input_size=model_in_size)
-    onnx_path = "/Users/liork/Downloads/pp_lite_t_seg75.onnx"
+    onnx_path = "/Users/liork/Downloads/pp_lite_t_seg50.onnx"
     torch.onnx.export(m, x, onnx_path, opset_version=11)
 
     import onnx
