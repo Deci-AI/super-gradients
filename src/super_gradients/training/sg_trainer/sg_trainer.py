@@ -533,11 +533,7 @@ class Trainer:
 
     def _prep_net_for_train(self):
         if self.arch_params is None:
-            default_arch_params = HpmStruct(sync_bn=False)
-            arch_params = getattr(self.net, "arch_params", default_arch_params)
-            self.arch_params = default_arch_params
-            if arch_params is not None:
-                self.arch_params.override(**arch_params.to_dict())
+            self._init_arch_params()
 
         # TODO: REMOVE THE BELOW LINE (FOR BACKWARD COMPATIBILITY)
         if self.checkpoint_params is None:
@@ -554,6 +550,13 @@ class Trainer:
         self.load_checkpoint = core_utils.get_param(self.training_params, "resume", False)
         self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
         self._load_checkpoint_to_model()
+
+    def _init_arch_params(self):
+        default_arch_params = HpmStruct(sync_bn=False)
+        arch_params = getattr(self.net, "arch_params", default_arch_params)
+        self.arch_params = default_arch_params
+        if arch_params is not None:
+            self.arch_params.override(**arch_params.to_dict())
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def train(self, model: nn.Module = None, training_params: dict = dict(), train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
@@ -1433,6 +1436,10 @@ class Trainer:
         # RESET METRIC RUNNERS
         self._reset_metrics()
         self.test_metrics.to(self.device)
+
+        if self.arch_params is None:
+            self._init_arch_params()
+        self._net_to_device()
 
     def _add_metrics_update_callback(self, phase: Phase):
         """
