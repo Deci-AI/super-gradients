@@ -33,10 +33,11 @@ from super_gradients.training.dataloaders.dataloader_factory import (
     pascal_voc_segmentation_train,
     pascal_voc_segmentation_val,
     supervisely_persons_train,
-    supervisely_persons_val
+    supervisely_persons_val, pascal_voc_train, pascal_voc_val
 )
-from super_gradients.training.datasets import COCODetectionDataset, ImageNetDataset, PascalAUG2012SegmentationDataSet, PascalVOC2012SegmentationDataSet, \
-    SuperviselyPersonsDataset
+from super_gradients.training.datasets import COCODetectionDataset, ImageNetDataset, PascalAUG2012SegmentationDataSet, \
+    PascalVOC2012SegmentationDataSet, \
+    SuperviselyPersonsDataset, PascalVOCDetectionDataset
 
 
 class DataLoaderFactoryTest(unittest.TestCase):
@@ -196,6 +197,16 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = supervisely_persons_val()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, SuperviselyPersonsDataset))
+
+    def test_pascal_voc_train_creation(self):
+        dl = pascal_voc_train()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, PascalVOCDetectionDataset))
+
+    def test_pascal_voc_val_creation(self):
+        dl = pascal_voc_val()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, PascalVOCDetectionDataset))
 
 
 if __name__ == '__main__':
