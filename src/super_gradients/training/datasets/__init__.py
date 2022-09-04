@@ -11,6 +11,8 @@ from super_gradients.training.datasets.segmentation_datasets.segmentation_datase
 from super_gradients.training.datasets.segmentation_datasets.pascal_voc_segmentation import PascalVOC2012SegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.pascal_aug_segmentation import PascalAUG2012SegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.coco_segmentation import CoCoSegmentationDataSet
+from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
+
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import TestDatasetInterface, DatasetInterface, \
     Cifar10DatasetInterface, CoCoSegmentationDatasetInterface, \
     PascalVOC2012SegmentationDataSetInterface, PascalAUG2012SegmentationDataSetInterface, \
@@ -29,4 +31,4 @@ __all__ = ['DataAugmentation', 'ListDataset', 'DirectoryDataSet', 'CLASSIFICATIO
            'TestYoloDetectionDatasetInterface', 'DetectionTestDatasetInterface', 'ClassificationTestDatasetInterface',
            'SegmentationTestDatasetInterface',
            'ImageNetDatasetInterface',
-           'DetectionDataset', 'COCODetectionDataset', 'PascalVOCDetectionDataset', 'ImageNetDataset']
+           'DetectionDataset', 'COCODetectionDataset', 'PascalVOCDetectionDataset', 'ImageNetDataset', 'SuperviselyPersonsDataset']
