@@ -1,14 +1,12 @@
 import collections
+import math
 import random
 from typing import Optional, Union, Tuple, List, Sequence, Dict
 
-import cv2
-import math
-import numpy as np
-import torchvision
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
-
+import numpy as np
+import cv2
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, \
     adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
@@ -58,37 +56,6 @@ class RandomFlip(SegmentationTransform):
             sample["image"] = image
             sample["mask"] = mask
 
-        return sample
-
-
-class ToTensorSeg(SegmentationTransform):
-    """
-    ToTensor transform op which expects a dict with keys "image" and "mask"
-    """
-
-    def __init__(self):
-        self.to_tensor = transforms.ToTensor()
-
-    def __call__(self, sample: dict):
-        sample["image"] = self.to_tensor(sample["image"])
-        sample["mask"] = self.to_tensor(sample["mask"])
-        return sample
-
-
-class NormalizeSeg(SegmentationTransform):
-    """
-    Normalize image to have a µ=0, σ=1 across all RGB channels.
-    """
-
-    def __init__(self, mean: tuple = (.485, .456, .406), std: tuple = (.229, .224, .225)):
-        self.mean = mean
-        self.std = std
-        self.transform_fn = torchvision.transforms.Normalize(self.mean, self.std)
-
-    def __call__(self, sample: dict):
-        image = sample["image"]
-        normalized_img = self.transform_fn(image)
-        sample["image"] = normalized_img
         return sample
 
 

@@ -342,25 +342,6 @@ def cityscapes_ddrnet_val(dataset_params: Dict = {}, dataloader_params: Dict = {
                            dataloader_params=dataloader_params
                            )
 
-
-def cityscapes_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
-    return get_data_loader(config_name="cityscapes_dataset_params",
-                           dataset_cls=CityscapesDataset,
-                           train=True,
-                           dataset_params=dataset_params,
-                           dataloader_params=dataloader_params
-                           )
-
-
-def cityscapes_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
-    return get_data_loader(config_name="supervisely_persons_dataset_params",
-                           dataset_cls=CityscapesDataset,
-                           train=False,
-                           dataset_params=dataset_params,
-                           dataloader_params=dataloader_params
-                           )
-
-
 def supervisely_persons_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="supervisely_persons_dataset_params",
                            dataset_cls=SuperviselyPersonsDataset,

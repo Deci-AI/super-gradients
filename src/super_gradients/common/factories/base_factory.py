@@ -1,13 +1,11 @@
-from abc import ABC, abstractmethod
 from typing import Union, Mapping, Dict
 
 
-class AbstractFactory(ABC):
+class AbstractFactory:
     """
     An abstract factory to generate an object from a string, a dictionary or a list
     """
 
-    @abstractmethod
     def get(self, conf: Union[str, dict, list]):
         """
         Get an instantiated object.
@@ -18,14 +16,13 @@ class AbstractFactory(ABC):
 
                 If provided value is not one of the three above, the value will be returned as is
         """
-        pass
+        raise NotImplementedError
 
 
 class BaseFactory(AbstractFactory):
     """
     The basic factory fo a *single* object generation.
     """
-
     def __init__(self, type_dict: Dict[str, type]):
         """
         :param type_dict: a dictionary mapping a name to a type
@@ -45,21 +42,18 @@ class BaseFactory(AbstractFactory):
             if conf in self.type_dict:
                 return self.type_dict[conf]()
             else:
-                raise RuntimeError(
-                    f"Unknown object type: {conf} in configuration. valid types are: {self.type_dict.keys()}")
+                raise RuntimeError(f"Unknown object type: {conf} in configuration. valid types are: {self.type_dict.keys()}")
         elif isinstance(conf, Mapping):
             if len(conf.keys()) > 1:
-                raise RuntimeError(
-                    "Malformed object definition in configuration. Expecting either a string of object type or a single entry dictionary"
-                    "{type_name(str): {parameters...}}."
-                    f"received: {conf}")
+                raise RuntimeError("Malformed object definition in configuration. Expecting either a string of object type or a single entry dictionary"
+                                   "{type_name(str): {parameters...}}."
+                                   f"received: {conf}")
 
             _type = list(conf.keys())[0]  # THE TYPE NAME
             _params = list(conf.values())[0]  # A DICT CONTAINING THE PARAMETERS FOR INIT
             if _type in self.type_dict:
                 return self.type_dict[_type](**_params)
             else:
-                raise RuntimeError(
-                    f"Unknown object type: {_type} in configuration. valid types are: {self.type_dict.keys()}")
+                raise RuntimeError(f"Unknown object type: {_type} in configuration. valid types are: {self.type_dict.keys()}")
         else:
             return conf

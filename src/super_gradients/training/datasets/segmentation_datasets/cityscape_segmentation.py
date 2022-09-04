@@ -1,9 +1,7 @@
 import os
-
 import cv2
 import numpy as np
 from PIL import Image, ImageColor
-
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
 # TODO - ADD COARSE DATA - right now cityscapes dataset includes fine annotations. It's optional to use extra coarse
@@ -38,8 +36,7 @@ class CityscapesDataset(SegmentationDataSet):
         self.root_dir = root_dir
         super().__init__(root_dir, list_file=list_file, **kwargs)
         # labels dataframe for labels metadata.
-        self.labels_data = np.recfromcsv(os.path.join(self.root_dir, labels_csv_path),
-                                         dtype='<i8,U20,<i8,<i8,U12,<i8,?,?,U7', comments='&')
+        self.labels_data = np.recfromcsv(os.path.join(self.root_dir, labels_csv_path), dtype='<i8,U20,<i8,<i8,U12,<i8,?,?,U7', comments='&')
         # map vector to map ground-truth labels to train labels
         self.labels_map = self.labels_data.field("trainid")
         # class names
