@@ -31,7 +31,7 @@ from super_gradients.training.dataloaders.dataloader_factory import (
     pascal_aug_segmentation_train,
     pascal_aug_segmentation_val,
     pascal_voc_segmentation_train,
-    pascal_voc_segmentation_val
+    pascal_voc_segmentation_val,
     supervisely_persons_train,
     supervisely_persons_val
 )
