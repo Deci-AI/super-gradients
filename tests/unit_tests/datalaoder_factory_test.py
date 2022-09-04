@@ -162,12 +162,12 @@ class DataLoaderFactoryTest(unittest.TestCase):
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, TensorDataset))
 
-    def test_pascal_voc_segmentation_train_creation(self):
+    def test_pascal_aug_segmentation_train_creation(self):
         dl = pascal_aug_segmentation_train()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, PascalAUG2012SegmentationDataSet))
 
-    def test_pascal_voc_segmentation_val_creation(self):
+    def test_pascal_aug_segmentation_val_creation(self):
         dl = pascal_aug_segmentation_val()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, PascalAUG2012SegmentationDataSet))
