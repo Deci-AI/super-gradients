@@ -51,6 +51,10 @@ class SPPM(nn.Module):
         return out
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list], stride_ratio: int = 32, **kwargs):
+        """
+        Replace Global average pooling with fixed kernels Average pooling, since dynamic kernel sizes are not supported
+        when compiling to ONNX: `Unsupported: ONNX export of operator adaptive_avg_pool2d, input size not accessible.`
+        """
         input_size = [x / stride_ratio for x in input_size[-2:]]
         for branch in self.branches:
             global_pool: nn.AdaptiveAvgPool2d = branch[0]
@@ -381,7 +385,7 @@ if __name__ == '__main__':
 
     print_outputs(m(x))
 
-    m[-1].prep_model_for_conversion(input_size=model_in_size)
+    # m[-1].prep_model_for_conversion(input_size=model_in_size)
     onnx_path = "/Users/liork/Downloads/pp_lite_t_seg50.onnx"
     torch.onnx.export(m, x, onnx_path, opset_version=11)
 
