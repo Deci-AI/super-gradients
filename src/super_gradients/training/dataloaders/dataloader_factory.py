@@ -14,7 +14,8 @@ import super_gradients
 from super_gradients.training.utils import get_param
 from super_gradients.training.datasets import ImageNetDataset
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
-from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset, CoCoSegmentationDataSet, PascalAUG2012SegmentationDataSet
+from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset, CoCoSegmentationDataSet, PascalAUG2012SegmentationDataSet, \
+    PascalVOC2012SegmentationDataSet
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -373,6 +374,24 @@ def pascal_aug_segmentation_train(dataset_params: Dict = {}, dataloader_params: 
 def pascal_aug_segmentation_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="pascal_aug_segmentation_dataset_params",
                            dataset_cls=PascalAUG2012SegmentationDataSet,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def pascal_voc_segmentation_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="pascal_voc_segmentation_dataset_params",
+                           dataset_cls=PascalVOC2012SegmentationDataSet,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def pascal_voc_segmentation_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="pascal_voc_segmentation_dataset_params",
+                           dataset_cls=PascalVOC2012SegmentationDataSet,
                            train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
