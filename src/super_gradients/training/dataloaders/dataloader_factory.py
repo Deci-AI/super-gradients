@@ -362,7 +362,7 @@ def coco_segmentation_val(dataset_params: Dict = {}, dataloader_params: Dict = {
 
 
 def pascal_aug_segmentation_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
-    return get_data_loader(config_name="pascal_aug_segmentation",
+    return get_data_loader(config_name="pascal_aug_segmentation_dataset_params",
                            dataset_cls=PascalAUG2012SegmentationDataSet,
                            train=True,
                            dataset_params=dataset_params,
@@ -371,7 +371,7 @@ def pascal_aug_segmentation_train(dataset_params: Dict = {}, dataloader_params: 
 
 
 def pascal_aug_segmentation_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
-    return get_data_loader(config_name="pascal_aug_segmentation",
+    return get_data_loader(config_name="pascal_aug_segmentation_dataset_params",
                            dataset_cls=PascalAUG2012SegmentationDataSet,
                            train=False,
                            dataset_params=dataset_params,
