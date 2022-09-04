@@ -15,7 +15,7 @@ from super_gradients.training.utils import get_param
 from super_gradients.training.datasets import ImageNetDataset
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
 from super_gradients.training.datasets.classification_datasets.cifar import Cifar10, Cifar100
-from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset
+from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset, CoCoSegmentationDataSet
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -374,6 +374,24 @@ def cityscapes_ddrnet_train(dataset_params: Dict = {}, dataloader_params: Dict =
 def cityscapes_ddrnet_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="cityscapes_ddrnet_dataset_params",
                            dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def coco_segmentation_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="coco_segmentation_dataset_params",
+                           dataset_cls=CoCoSegmentationDataSet,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def coco_segmentation_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="coco_segmentation_dataset_params",
+                           dataset_cls=CoCoSegmentationDataSet,
                            train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params

@@ -29,7 +29,6 @@ dataset_params:
   img_size: 608
   crop_size: 512
   train_loader_drop_last: True
-# ------------------------------------- legacy dataset params ------------------------------------- #
 
 sub_classes:
   _target_: super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list
@@ -40,6 +39,8 @@ dataset_interface:
   dataset_classes_inclusion_tuples_list: ${sub_classes}
 
 data_loader_num_workers: 8
+# ------------------------------------- legacy dataset params ------------------------------------- #
+
 
 checkpoint_params:
   strict_load: True
@@ -57,3 +58,7 @@ multi_gpu: DDP
 ckpt_root_dir:
 
 architecture: shelfnet34_lw
+
+hydra:
+  run:
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

@@ -602,10 +602,11 @@ class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):
                             RandomRescale(scales=(0.5, 2.0)),
                             PadShortToCropSize(crop_size=crop_size),
                             CropImageAndMask(crop_size=crop_size, mode="random")]
-        val_transforms = None
+        val_transforms = [Rescale(short_size=crop_size),
+                          CropImageAndMask(crop_size=crop_size, mode="center")]
 
         self.trainset = CoCoSegmentationDataSet(
-            root=self.root_dir,
+            root_dir=self.root_dir,
             list_file='instances_train2017.json',
             samples_sub_directory='images/train2017',
             targets_sub_directory='annotations',
@@ -615,7 +616,7 @@ class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):
             dataset_classes_inclusion_tuples_list=dataset_classes_inclusion_tuples_list)
 
         self.valset = CoCoSegmentationDataSet(
-            root=self.root_dir,
+            root_dir=self.root_dir,
             list_file='instances_val2017.json',
             samples_sub_directory='images/val2017',
             targets_sub_directory='annotations',
