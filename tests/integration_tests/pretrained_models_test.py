@@ -255,22 +255,22 @@ class PretrainedModelsTest(unittest.TestCase):
             "dataset_dir": "/data/cityscapes/",
             "crop_size": 1024,
             "img_size": 1024,
-            "image_mask_transforms_aug": transforms.Compose([]),
-            "image_mask_transforms": transforms.Compose([])  # no transform for evaluation
+            "image_mask_transforms_aug": [],
+            "image_mask_transforms": []  # no transform for evaluation
         }, cache_labels=False)
 
         self.cityscapes_dataset_rescaled50 = CityscapesDatasetInterface(dataset_params={
             "batch_size": 3,
             "val_batch_size": 3,
-            "image_mask_transforms_aug": transforms.Compose([]),
-            "image_mask_transforms": transforms.Compose([Rescale(scale_factor=0.5)])  # no transform for evaluation
+            "image_mask_transforms_aug": [],
+            "image_mask_transforms": [Rescale(scale_factor=0.5)]  # no transform for evaluation
         }, cache_labels=False)
 
         self.cityscapes_dataset_rescaled75 = CityscapesDatasetInterface(dataset_params={
             "batch_size": 3,
             "val_batch_size": 3,
-            "image_mask_transforms_aug": transforms.Compose([]),
-            "image_mask_transforms": transforms.Compose([Rescale(scale_factor=0.75)])  # no transform for evaluation
+            "image_mask_transforms_aug": [],
+            "image_mask_transforms": [Rescale(scale_factor=0.75)]  # no transform for evaluation
         }, cache_labels=False)
 
         self.transfer_segmentation_dataset = SegmentationTestDatasetInterface(image_size=1024)
@@ -795,7 +795,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["stdc2_seg75"], delta=0.001)
 
     def test_pretrained_pplite_t_seg50_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_pplite_t_seg50', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_pplite_t_seg50', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
         trainer.build_model("pp_lite_t_seg50", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"],
@@ -806,7 +806,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_t_seg50"], delta=0.001)
 
     def test_pretrained_pplite_t_seg75_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_pplite_t_seg75', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_pplite_t_seg75', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
         trainer.build_model("pp_lite_t_seg75", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"],
@@ -817,7 +817,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_t_seg75"], delta=0.001)
 
     def test_pretrained_pplite_b_seg50_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_pplite_b_seg50', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_pplite_b_seg50', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled50, data_loader_num_workers=8)
         trainer.build_model("pp_lite_b_seg50", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"],
@@ -828,7 +828,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_b_seg50"], delta=0.001)
 
     def test_pretrained_pplite_b_seg75_cityscapes(self):
-        trainer = SgModel('cityscapes_pretrained_pplite_b_seg75', model_checkpoints_location='local',
+        trainer = Trainer('cityscapes_pretrained_pplite_b_seg75', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
         trainer.connect_dataset_interface(self.cityscapes_dataset_rescaled75, data_loader_num_workers=8)
         trainer.build_model("pp_lite_b_seg75", arch_params=self.cityscapes_pretrained_arch_params["pplite_seg"],

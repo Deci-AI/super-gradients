@@ -22,7 +22,7 @@ class SPPM(nn.Module):
         """
         :param inter_channels: num channels in each pooling branch.
         :param out_channels: The number of output channels after pyramid pooling module.
-        :param pool_sizes: output sizes of the pooled feature maps.
+        :param pool_sizes: spatial output sizes of the pooled feature maps.
         """
         super().__init__()
         self.branches = nn.ModuleList([
@@ -156,6 +156,9 @@ class PPLiteSegEncoder(nn.Module):
 
 
 class PPLiteSegDecoder(nn.Module):
+    """
+    PPLiteSegDecoder using UAFM blocks to fuse feature maps.
+    """
     def __init__(self,
                  encoder_channels: List[int],
                  up_factors: List[int],
@@ -216,18 +219,25 @@ class PPLiteSegBase(SegmentationModule):
                  aux_hidden_channels: List[int],
                  aux_scale_factors: List[int]
                  ):
+        """
+        :param backbone: Backbone nn.Module should implement the abstract class `AbstractSTDCBackbone`.
+        :param projection_channels_list: channels list to project encoder features before fusing with the decoder
+            stream.
+        :param sppm_inter_channels: num channels in each sppm pooling branch.
+        :param sppm_out_channels: The number of output channels after sppm module.
+        :param sppm_pool_sizes: spatial output sizes of the pooled feature maps.
+        :param sppm_upsample_mode: Upsample mode to original size after pooling.
+        :param :
+        :param :
+        """
         super().__init__(use_aux_heads=use_aux_heads)
 
-        # backbone
-        # assert hasattr(backbone, 'feat_channels'), \
-        #     "The backbone should has feat_channels."
-        # assert len(backbone.feat_channels) >= len(backbone_indices), \
-        #     f"The length of input backbone_indices ({len(backbone_indices)}) should not be" \
-        #     f"greater than the length of feat_channels ({len(backbone.feat_channels)})."
-        # assert len(backbone.feat_channels) > max(backbone_indices), \
-        #     f"The max value ({max(backbone_indices)}) of backbone_indices should be " \
-        #     f"less than the length of feat_channels ({len(backbone.feat_channels)})."
-        context = SPPM(in_channels=backbone.get_backbone_output_number_of_channels()[-1],
+        # Init Encoder
+        backbone_out_channels = backbone.get_backbone_output_number_of_channels()
+        assert len(backbone_out_channels) == len(projection_channels_list), \
+            f"The length of backbone outputs ({backbone_out_channels}) should match the length of projection channels" \
+            f"({len(projection_channels_list)})."
+        context = SPPM(in_channels=backbone_out_channels[-1],
                        inter_channels=sppm_inter_channels,
                        out_channels=sppm_out_channels,
                        pool_sizes=sppm_pool_sizes,
@@ -237,11 +247,15 @@ class PPLiteSegBase(SegmentationModule):
                                         context_module=context,
                                         projection_channels_list=projection_channels_list)
         encoder_channels = self.encoder.get_output_number_of_channels()
+
+        # Init Decoder
         self.decoder = PPLiteSegDecoder(encoder_channels=encoder_channels,
                                         up_factors=decoder_up_factors,
                                         out_channels=decoder_channels,
                                         upsample_mode=decoder_upsample_mode,
                                         align_corners=align_corners)
+
+        # Init Segmentation classification heads
         self.seg_head = nn.Sequential(
             SegmentationHead(in_channels=decoder_channels[-1],
                              mid_channels=head_mid_channels,
@@ -268,6 +282,9 @@ class PPLiteSegBase(SegmentationModule):
 
     @property
     def backbone(self) -> nn.Module:
+        """
+        Support SG load backbone when training.
+        """
         return self.encoder.backbone
 
     def forward(self, x):
@@ -322,7 +339,8 @@ class PPLiteSegBase(SegmentationModule):
 
 class PPLiteSegB(PPLiteSegBase):
     def __init__(self, arch_params: HpmStruct):
-        backbone = STDC2Backbone(in_channels=3, out_down_ratios=[8, 16, 32])
+        backbone = STDC2Backbone(in_channels=get_param(arch_params, "in_channels", 3),
+                                 out_down_ratios=[8, 16, 32])
         super().__init__(num_classes=get_param(arch_params, "num_classes"),
                          backbone=backbone,
                          projection_channels_list=[96, 128, 128],
@@ -344,7 +362,8 @@ class PPLiteSegB(PPLiteSegBase):
 
 class PPLiteSegT(PPLiteSegBase):
     def __init__(self, arch_params: HpmStruct):
-        backbone = STDC1Backbone(in_channels=3, out_down_ratios=[8, 16, 32])
+        backbone = STDC1Backbone(in_channels=get_param(arch_params, "in_channels", 3),
+                                 out_down_ratios=[8, 16, 32])
         super().__init__(num_classes=get_param(arch_params, "num_classes"),
                          backbone=backbone,
                          projection_channels_list=[64, 128, 128],
@@ -362,46 +381,3 @@ class PPLiteSegT(PPLiteSegBase):
                          use_aux_heads=get_param(arch_params, "use_aux_heads", False),
                          aux_hidden_channels=[32, 64, 64],
                          aux_scale_factors=[8, 16, 32])
-
-
-if __name__ == '__main__':
-    scale = 2
-    in_size = [1, 3, 1024, 2048]
-    model_in_size = [1, 3, int(in_size[2] / scale), int(in_size[3] / scale)]
-    m = nn.Sequential(
-        nn.Upsample(scale_factor=1/scale, mode="bilinear", align_corners=False),
-        PPLiteSegT(HpmStruct(num_classes=19, use_aux_heads=True))
-    ).eval()
-    m[-1].seg_head[-1].scale_factor = m[-1].seg_head[-1].scale_factor * scale
-
-    x = torch.randn(*in_size)
-
-    def print_outputs(y):
-        if isinstance(y, torch.Tensor):
-            print(y.shape)
-        else:
-            for ys in y:
-                print(ys.shape)
-
-    print_outputs(m(x))
-
-    # m[-1].prep_model_for_conversion(input_size=model_in_size)
-    onnx_path = "/Users/liork/Downloads/pp_lite_t_seg50.onnx"
-    torch.onnx.export(m, x, onnx_path, opset_version=11)
-
-    import onnx
-    from onnxsim import simplify
-    def onnx_simplify(onnx_path: str, onnx_sim_path: str):
-        """
-        onnx simplifier method, same as `python -m onnxsim onnx_path onnx_sim_path
-        :param onnx_path: path to onnx model
-        :param onnx_sim_path: path for output onnx simplified model
-        """
-        model_sim, check = simplify(model=onnx_path)
-        assert check, "Simplified ONNX model could not be validated"
-        onnx.save_model(model_sim, onnx_sim_path)
-        return onnx_sim_path
-
-    onnx_simplify(onnx_path, onnx_path)
-
-
