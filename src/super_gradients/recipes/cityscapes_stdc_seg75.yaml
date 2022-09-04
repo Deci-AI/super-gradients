@@ -39,15 +39,74 @@
 #      * Pretrained backbones were used.
 #      * Results with Deci code are higher than original implementation, mostly thanks to changes in Detail loss and
 #          module, different auxiliary feature maps and different loss weights.
-defaults:
-  - cityscapes_stdc_base
 
+defaults:
+  - training_hyperparams: cityscapes_default_train_params
+  #  - dataset_params: cityscapes_stdc_seg75_dataset_params # TODO: uncomment after DatasetInterface refactor
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+# ------------------------------------- legacy dataset params ------------------------------------- #
 dataset_params:
+  _convert_: all
   batch_size: 4
   val_batch_size: 4
-  crop_size: [1536, 768]
-  eval_scale: 0.75
+  dataset_dir: /data/cityscapes
+  crop_size: [ 1536, 768 ]
+  img_size: 1024
+  train_loader_drop_last: True
+  color_jitter: 0.5
   random_scales: [ 0.125, 1.5 ]
+  eval_scale: 0.75
+  cityscapes_ignored_label: 19
+
+  image_mask_transforms_aug:
+    Compose:
+      transforms:
+        - ColorJitterSeg:
+            brightness: ${dataset_params.color_jitter}
+            contrast: ${dataset_params.color_jitter}
+            saturation: ${dataset_params.color_jitter}
+
+        - RandomFlipSeg
+
+        - RandomRescaleSeg:
+            scales: ${dataset_params.random_scales}
+
+        - PadShortToCropSizeSeg:
+            crop_size: ${dataset_params.crop_size}
+            fill_mask: ${dataset_params.cityscapes_ignored_label}
+
+        - CropImageAndMaskSeg:
+            crop_size: ${dataset_params.crop_size}
+            mode: random
+
+  image_mask_transforms:
+    Compose:
+      transforms:
+        - RescaleSeg:
+            scale_factor: ${dataset_params.eval_scale}
+
+dataset_interface:
+  cityscapes:
+    dataset_params: ${dataset_params}
+
+data_loader_num_workers: 10
+# ------------------------------------- legacy dataset params ------------------------------------- #
+
+
+architecture: stdc1_seg
+
+arch_params:
+  num_classes: 19
+  use_aux_heads: True
+  sync_bn: True
+
+checkpoint_params:
+  checkpoint_path:
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
 
 training_hyperparams:
   initial_lr: 0.005
@@ -59,4 +118,12 @@ training_hyperparams:
       mining_percent: 0.0625 # mining percentage is 1/16 of pixels following original implementation.
       weights: [ 1., 0.6, 0.4, 1. ]
 
+multi_gpu: DDP
+
 experiment_name: ${architecture}75_cityscapes
+ckpt_root_dir:
+
+hydra:
+  run:
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
+
