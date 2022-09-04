@@ -1,6 +1,53 @@
-batch_size: 8
-val_batch_size: 24
-dataset_dir: "/data/coco/"
-img_size: 608
-crop_size: 512
-train_loader_drop_last: True
+train_dataset_params:
+  root_dir: /data/coco/
+  list_file: instances_train2017.json
+  samples_sub_directory: images/train2017
+  targets_sub_directory: annotations
+  dataset_classes_inclusion_tuples_list:
+    _target_: super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list
+  cache_labels: False
+  cache_images: False
+  transforms:
+    # for more options see common.factories.transforms_factory.py
+    - RandomFlipSeg:
+        prob: 0.5
+
+    - RescaleSeg: # consider removing this step
+        long_size: 608
+
+    - RandomRescaleSeg:
+        scales: [ 0.5, 2.0 ]
+
+    - PadShortToCropSizeSeg:
+        crop_size: 512
+
+    - CropImageAndMaskSeg:
+        crop_size: 512
+        mode: random
+
+val_dataset_params:
+  root_dir: /data/coco/
+  list_file: instances_val2017.json
+  samples_sub_directory: images/val2017
+  targets_sub_directory: annotations
+  dataset_classes_inclusion_tuples_list:
+    _target_: super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list
+  cache_labels: False
+  cache_images: False
+  transforms:
+    - RescaleSeg:
+        short_size: 512
+
+    - CropImageAndMaskSeg:
+        crop_size: 512
+        mode: center
+
+train_dataloader_params:
+  batch_size: 8
+  num_workers: 8
+  drop_last: True                 # drop the last incomplete batch, if dataset size is not divisible by the batch size
+
+val_dataloader_params:
+  batch_size: 24
+  num_workers: 8
+  drop_last: False
