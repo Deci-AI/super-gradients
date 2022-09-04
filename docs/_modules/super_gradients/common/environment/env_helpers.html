@@ -35,11 +35,30 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">SuperGradients</span></p>
+              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">SuperGradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#supergradients">SuperGradients</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -75,7 +94,7 @@
 <span class="kn">from</span> <span class="nn">super_gradients.common.environment</span> <span class="kn">import</span> <span class="n">environment_config</span>
 
 
-<div class="viewcode-block" id="TerminalColours"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.TerminalColours">[docs]</a><span class="k">class</span> <span class="nc">TerminalColours</span><span class="p">:</span>
+<div class="viewcode-block" id="TerminalColours"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.TerminalColours">[docs]</a><span class="k">class</span> <span class="nc">TerminalColours</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Usage: https://stackoverflow.com/questions/287871/how-to-print-colored-text-in-python?page=1&amp;tab=votes#tab-top</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -90,8 +109,8 @@
     <span class="n">UNDERLINE</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[4m&#39;</span></div>
 
 
-<div class="viewcode-block" id="ColouredTextFormatter"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.ColouredTextFormatter">[docs]</a><span class="k">class</span> <span class="nc">ColouredTextFormatter</span><span class="p">:</span>
-<div class="viewcode-block" id="ColouredTextFormatter.print_coloured_text"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.ColouredTextFormatter.print_coloured_text">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="ColouredTextFormatter"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.ColouredTextFormatter">[docs]</a><span class="k">class</span> <span class="nc">ColouredTextFormatter</span><span class="p">:</span>
+<div class="viewcode-block" id="ColouredTextFormatter.print_coloured_text"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.ColouredTextFormatter.print_coloured_text">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">print_coloured_text</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">colour</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Prints a text with colour ascii characters.</span>
@@ -99,7 +118,7 @@
         <span class="k">return</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">colour</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">TerminalColours</span><span class="o">.</span><span class="n">ENDC</span><span class="p">]))</span></div></div>
 
 
-<div class="viewcode-block" id="get_environ_as_type"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.get_environ_as_type">[docs]</a><span class="k">def</span> <span class="nf">get_environ_as_type</span><span class="p">(</span><span class="n">environment_variable_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cast_to_type</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+<div class="viewcode-block" id="get_environ_as_type"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.get_environ_as_type">[docs]</a><span class="k">def</span> <span class="nf">get_environ_as_type</span><span class="p">(</span><span class="n">environment_variable_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cast_to_type</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tries to get an environment variable and cast it into a requested type.</span>
 <span class="sd">    :return: cast_to_type object, or None if failed.</span>
@@ -116,7 +135,7 @@
     <span class="k">return</span></div>
 
 
-<div class="viewcode-block" id="init_trainer"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.init_trainer">[docs]</a><span class="k">def</span> <span class="nf">init_trainer</span><span class="p">():</span>
+<div class="viewcode-block" id="init_trainer"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.init_trainer">[docs]</a><span class="k">def</span> <span class="nf">init_trainer</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    a function to initialize the super_gradients environment. This function should be the first thing to be called</span>
 <span class="sd">    by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used</span>
@@ -136,11 +155,11 @@
     <span class="n">environment_config</span><span class="o">.</span><span class="n">DDP_LOCAL_RANK</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">local_rank</span></div>
 
 
-<div class="viewcode-block" id="is_distributed"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.is_distributed">[docs]</a><span class="k">def</span> <span class="nf">is_distributed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="is_distributed"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.is_distributed">[docs]</a><span class="k">def</span> <span class="nf">is_distributed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">environment_config</span><span class="o">.</span><span class="n">DDP_LOCAL_RANK</span> <span class="o">&gt;=</span> <span class="mi">0</span></div>
 
 
-<div class="viewcode-block" id="multi_process_safe"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.multi_process_safe">[docs]</a><span class="k">def</span> <span class="nf">multi_process_safe</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+<div class="viewcode-block" id="multi_process_safe"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.multi_process_safe">[docs]</a><span class="k">def</span> <span class="nf">multi_process_safe</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A decorator for making sure a function runs only in main process.</span>
 <span class="sd">    If not in DDP mode (local_rank = -1), the function will run.</span>

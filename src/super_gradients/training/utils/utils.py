@@ -24,6 +24,11 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
+def empty_list():
+    """Instantiate an empty list. This is a workaround to generate a list with a function call in hydra, instead of the "[]"."""
+    return list()
+
+
 def convert_to_tensor(array):
     """Converts numpy arrays and lists to Torch tensors before calculation losses
     :param array: torch.tensor / Numpy array / List
@@ -413,7 +418,7 @@ def get_orientation_key() -> int:
 def exif_size(image: Image) -> Tuple[int, int]:
     """Get the size of image.
     :param image:   The image to get size from
-    :return:        (width, height)
+    :return:        (height, width)
     """
 
     orientation_key = get_orientation_key()
@@ -431,8 +436,8 @@ def exif_size(image: Image) -> Tuple[int, int]:
                 image_size = (image_size[1], image_size[0])
     except Exception as ex:
         print('Caught Exception trying to rotate: ' + str(image) + str(ex))
-    height, width = image_size
-    return width, height
+    width, height = image_size
+    return height, width
 
 
 def get_image_size_from_path(img_path: str) -> Tuple[int, int]:

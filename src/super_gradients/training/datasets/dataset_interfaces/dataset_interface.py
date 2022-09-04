@@ -1,46 +1,35 @@
 import os
 
 import numpy as np
-
 import torch
 import torchvision
 import torchvision.datasets as datasets
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import ConcatDataset, BatchSampler, DataLoader
 import torchvision.transforms as transforms
-
+from torch.utils.data import ConcatDataset, BatchSampler, DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 from super_gradients.common import DatasetDataInterface
-from super_gradients.common.environment import AWS_ENV_NAME
 from super_gradients.common.abstractions.abstract_logger import get_logger
-
+from super_gradients.common.environment import AWS_ENV_NAME
 from super_gradients.training import utils as core_utils
-from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
-
-from super_gradients.training.utils import get_param
-from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
-
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
-from super_gradients.training.datasets.mixup import CollateMixup
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, PascalVOCDetectionDataset
-
+from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
+from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
 from super_gradients.training.datasets.segmentation_datasets import PascalVOC2012SegmentationDataSet, \
     PascalAUG2012SegmentationDataSet, CoCoSegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import \
     SuperviselyPersonsDataset
-
-from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
-from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
-
-from super_gradients.training.transforms.transforms import DetectionMosaic, DetectionMixup, DetectionRandomAffine,\
-    DetectionTargetsFormatTransform, DetectionPaddedRescale, DetectionHSV, DetectionHorizontalFlip
-
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
-
+from super_gradients.training.transforms.transforms import RandomFlip, Rescale, RandomRescale, CropImageAndMask, \
+    PadShortToCropSize
+from super_gradients.training.utils import get_param
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -438,8 +427,7 @@ class ImageNetDatasetInterface(DatasetInterface):
         valdir = os.path.join(data_dir, 'val')
         img_mean = core_utils.get_param(self.dataset_params, 'img_mean', default_val=[0.485, 0.456, 0.406])
         img_std = core_utils.get_param(self.dataset_params, 'img_std', default_val=[0.229, 0.224, 0.225])
-        normalize = transforms.Normalize(mean=img_mean,
-                                         std=img_std)
+        normalize = transforms.Normalize(mean=img_mean, std=img_std)
 
         crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=224)
         resize_size = core_utils.get_param(self.dataset_params, 'resize_size', default_val=256)
@@ -605,24 +593,35 @@ class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):
                  dataset_classes_inclusion_tuples_list: list = None):
         super().__init__(dataset_params=dataset_params)
 
+        # backwards compatability patch for legacy dataset params
+        img_size = core_utils.get_param(dataset_params, "img_size")
+        crop_size = core_utils.get_param(dataset_params, "crop_size")
+
+        train_transforms = [RandomFlip(),
+                            Rescale(long_size=img_size),
+                            RandomRescale(scales=(0.5, 2.0)),
+                            PadShortToCropSize(crop_size=crop_size),
+                            CropImageAndMask(crop_size=crop_size, mode="random")]
+        val_transforms = None
+
         self.trainset = CoCoSegmentationDataSet(
             root=self.root_dir,
             list_file='instances_train2017.json',
             samples_sub_directory='images/train2017',
-            targets_sub_directory='annotations', augment=True,
-            dataset_hyper_params=dataset_params,
+            targets_sub_directory='annotations',
             cache_labels=cache_labels,
             cache_images=cache_images,
+            transforms=train_transforms,
             dataset_classes_inclusion_tuples_list=dataset_classes_inclusion_tuples_list)
 
         self.valset = CoCoSegmentationDataSet(
             root=self.root_dir,
             list_file='instances_val2017.json',
             samples_sub_directory='images/val2017',
-            targets_sub_directory='annotations', augment=False,
-            dataset_hyper_params=dataset_params,
+            targets_sub_directory='annotations',
             cache_labels=cache_labels,
             cache_images=cache_images,
+            transforms=val_transforms,
             dataset_classes_inclusion_tuples_list=dataset_classes_inclusion_tuples_list)
 
         self.coco_classes = self.trainset.classes
@@ -632,35 +631,28 @@ class CityscapesDatasetInterface(DatasetInterface):
     def __init__(self, dataset_params=None, cache_labels: bool = False, cache_images: bool = False):
         super().__init__(dataset_params=dataset_params)
         root_dir = core_utils.get_param(dataset_params, "dataset_dir", "/data/cityscapes")
-        img_size = core_utils.get_param(dataset_params, "img_size", 1024)
-        crop_size = core_utils.get_param(dataset_params, "crop_size", 512)
         image_mask_transforms = core_utils.get_param(dataset_params, "image_mask_transforms")
         image_mask_transforms_aug = core_utils.get_param(dataset_params, "image_mask_transforms_aug")
+
+        # Backwards compatability fix for SegmentationDataset refactor
+        train_transforms = image_mask_transforms_aug['Compose']['transforms']
+        val_transforms = image_mask_transforms['Compose']['transforms']
 
         self.trainset = CityscapesDataset(
             root_dir=root_dir,
             list_file='lists/train.lst',
             labels_csv_path="lists/labels.csv",
-            img_size=img_size,
-            crop_size=crop_size,
-            augment=True,
-            dataset_hyper_params=dataset_params,
             cache_labels=cache_labels,
             cache_images=cache_images,
-            image_mask_transforms=image_mask_transforms,
-            image_mask_transforms_aug=image_mask_transforms_aug)
+            transforms=train_transforms)
 
         self.valset = CityscapesDataset(
             root_dir=root_dir,
             list_file='lists/val.lst',
             labels_csv_path="lists/labels.csv",
-            img_size=img_size,
-            crop_size=crop_size,
-            augment=False,
-            dataset_hyper_params=dataset_params,
             cache_labels=cache_labels,
             cache_images=cache_images,
-            image_mask_transforms=image_mask_transforms)
+            transforms=val_transforms)
 
         self.classes = self.trainset.classes
 
@@ -697,7 +689,7 @@ class DetectionDatasetInterface(DatasetInterface):
     def build_data_loaders(self, batch_size_factor=1, num_workers=8, train_batch_size=None, val_batch_size=None,
                            test_batch_size=None, distributed_sampler: bool = False):
 
-        train_sampler = InfiniteSampler(len(self.trainset), seed=0)
+        train_sampler = InfiniteSampler(self.trainset, seed=0)
 
         train_batch_sampler = BatchSampler(
             sampler=train_sampler,
@@ -746,13 +738,14 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         train_dataset_names = ["train2007", "val2007", "train2012", "val2012"]
         # We divide train_max_num_samples between the datasets
         if train_max_num_samples:
-            max_num_samples_per_train_dataset = [len(segment) for segment in np.array_split(range(train_max_num_samples), len(train_dataset_names))]
+            max_num_samples_per_train_dataset = [len(segment) for segment in
+                                                 np.array_split(range(train_max_num_samples), len(train_dataset_names))]
         else:
             max_num_samples_per_train_dataset = [None] * len(train_dataset_names)
         train_sets = [PascalVOCDetectionDataset(data_dir=self.data_dir,
                                                 input_dim=train_input_dim,
                                                 cache=self.dataset_params.cache_train_images,
-                                                cache_path=self.dataset_params.cache_dir + "cache_train",
+                                                cache_dir=self.dataset_params.cache_dir,
                                                 transforms=self.dataset_params.train_transforms,
                                                 images_sub_directory='images/' + trainset_name + '/',
                                                 class_inclusion_list=self.dataset_params.class_inclusion_list,
@@ -762,7 +755,7 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         testset2007 = PascalVOCDetectionDataset(data_dir=self.data_dir,
                                                 input_dim=val_input_dim,
                                                 cache=self.dataset_params.cache_val_images,
-                                                cache_path=self.dataset_params.cache_dir + "cache_valid",
+                                                cache_dir=self.dataset_params.cache_dir,
                                                 transforms=self.dataset_params.val_transforms,
                                                 images_sub_directory='images/test2007/',
                                                 class_inclusion_list=self.dataset_params.class_inclusion_list,
@@ -782,60 +775,32 @@ class CoCoDetectionDatasetInterface(DetectionDatasetInterface):
     def __init__(self, dataset_params={}):
         super(CoCoDetectionDatasetInterface, self).__init__(dataset_params=dataset_params)
 
-        train_input_dim = (self.dataset_params.train_image_size, self.dataset_params.train_image_size)
-        targets_format = get_param(self.dataset_params, "targets_format", DetectionTargetsFormat.LABEL_CXCYWH)
-
-        train_transforms = [DetectionMosaic(input_dim=train_input_dim,
-                                            prob=self.dataset_params.mosaic_prob),
-                            DetectionRandomAffine(degrees=self.dataset_params.degrees,
-                                                  translate=self.dataset_params.translate,
-                                                  scales=self.dataset_params.mosaic_scale,
-                                                  shear=self.dataset_params.shear,
-                                                  target_size=train_input_dim,
-                                                  filter_box_candidates=self.dataset_params.filter_box_candidates,
-                                                  wh_thr=self.dataset_params.wh_thr,
-                                                  area_thr=self.dataset_params.area_thr,
-                                                  ar_thr=self.dataset_params.ar_thr
-                                                  ),
-                            DetectionMixup(input_dim=train_input_dim,
-                                           mixup_scale=self.dataset_params.mixup_scale,
-                                           prob=self.dataset_params.mixup_prob,
-                                           flip_prob=self.dataset_params.flip_prob),
-                            DetectionHSV(prob=self.dataset_params.hsv_prob,
-                                         hgain=self.dataset_params.hgain,
-                                         sgain=self.dataset_params.sgain,
-                                         vgain=self.dataset_params.vgain
-                                         ),
-                            DetectionHorizontalFlip(prob=self.dataset_params.flip_prob),
-                            DetectionPaddedRescale(input_dim=train_input_dim, max_targets=120),
-                            DetectionTargetsFormatTransform(output_format=targets_format)
-                            ]
-
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
         local_rank = get_local_rank()
         with wait_for_the_master(local_rank):
             self.trainset = COCODetectionDataset(data_dir=self.dataset_params.data_dir,
-                                                 name=self.dataset_params.train_subdir,
+                                                 subdir=self.dataset_params.train_subdir,
                                                  json_file=self.dataset_params.train_json_file,
-                                                 img_size=train_input_dim,
+                                                 input_dim=self.dataset_params.train_input_dim,
                                                  cache=self.dataset_params.cache_train_images,
-                                                 cache_dir_path=self.dataset_params.cache_dir_path,
-                                                 transforms=train_transforms,
+                                                 cache_dir=self.dataset_params.cache_dir,
+                                                 transforms=self.dataset_params.train_transforms,
+                                                 tight_box_rotation=self.dataset_params.tight_box_rotation,
+                                                 class_inclusion_list=self.dataset_params.class_inclusion_list,
+                                                 max_num_samples=self.dataset_params.train_max_num_samples,
                                                  with_crowd=False)
-
-        val_input_dim = (self.dataset_params.val_image_size, self.dataset_params.val_image_size)
-        with_crowd = core_utils.get_param(self.dataset_params, 'with_crowd', default_val=True)
 
         # IF CACHE- CREATING THE CACHE FILE WILL HAPPEN ONLY FOR RANK 0, THEN ALL THE OTHER RANKS SIMPLY READ FROM IT.
         with wait_for_the_master(local_rank):
             self.valset = COCODetectionDataset(
                 data_dir=self.dataset_params.data_dir,
                 json_file=self.dataset_params.val_json_file,
-                name=self.dataset_params.val_subdir,
-                img_size=val_input_dim,
-                transforms=[DetectionPaddedRescale(input_dim=val_input_dim),
-                            DetectionTargetsFormatTransform(max_targets=50, output_format=targets_format)],
+                subdir=self.dataset_params.val_subdir,
+                cache_dir=self.dataset_params.cache_dir,
                 cache=self.dataset_params.cache_val_images,
-                cache_dir_path=self.dataset_params.cache_dir_path,
-                with_crowd=with_crowd)
+                input_dim=self.dataset_params.val_input_dim,
+                transforms=self.dataset_params.val_transforms,
+                class_inclusion_list=self.dataset_params.class_inclusion_list,
+                max_num_samples=self.dataset_params.val_max_num_samples,
+                with_crowd=self.dataset_params.with_crowd)
         self.classes = COCO_DETECTION_CLASSES_LIST
