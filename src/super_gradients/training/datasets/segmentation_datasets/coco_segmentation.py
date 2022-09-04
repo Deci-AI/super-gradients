@@ -24,11 +24,13 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
     CoCoSegmentationDataSet - Segmentation Data Set Class for COCO 2017 Segmentation Data Set
     """
 
-    def __init__(self, dataset_classes_inclusion_tuples_list: list = None, *args, **kwargs):
+    def __init__(self, root_dir: str,
+                 dataset_classes_inclusion_tuples_list: list = None, *args, **kwargs):
         # THERE ARE 91 CLASSES, INCLUDING BACKGROUND - BUT WE ENABLE THE USAGE OF SUBCLASSES, TO PARTIALLY USE THE DATA
         self.dataset_classes_inclusion_tuples_list = dataset_classes_inclusion_tuples_list or COCO_DEFAULT_CLASSES_TUPLES_LIST
 
-        super().__init__(*args, **kwargs)
+        self.root_dir = root_dir
+        super().__init__(root_dir, *args, **kwargs)
 
         _, class_names = zip(*self.dataset_classes_inclusion_tuples_list)
         self.classes = class_names
