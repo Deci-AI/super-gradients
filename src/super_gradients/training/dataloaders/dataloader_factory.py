@@ -341,3 +341,39 @@ def cityscapes_ddrnet_val(dataset_params: Dict = {}, dataloader_params: Dict = {
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params
                            )
+
+
+def coco_segmentation_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="coco_segmentation_dataset_params",
+                           dataset_cls=CoCoSegmentationDataSet,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def coco_segmentation_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="coco_segmentation_dataset_params",
+                           dataset_cls=CoCoSegmentationDataSet,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def pascal_voc_segmentation_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="pascal_voc_segmentation_dataset_params",
+                           dataset_cls=PascalVOC2012SegmentationDataSet,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def pascal_voc_segmentation_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="pascal_voc_segmentation_dataset_params",
+                           dataset_cls=PascalVOC2012SegmentationDataSet,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
