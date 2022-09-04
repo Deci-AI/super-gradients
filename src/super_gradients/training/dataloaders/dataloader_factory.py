@@ -418,7 +418,7 @@ def supervisely_persons_val(dataset_params: Dict = {}, dataloader_params: Dict =
                            dataloader_params=dataloader_params)
 
 
-def pascal_voc_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+def pascal_voc_detection_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="pascal_voc_detection_dataset_params",
                            dataset_cls=PascalVOCUnifiedDetectionTrainDataset,
                            train=True,
@@ -427,7 +427,7 @@ def pascal_voc_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
                            )
 
 
-def pascal_voc_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+def pascal_voc_detection_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
     return get_data_loader(config_name="pascal_voc_detection_dataset_params",
                            dataset_cls=PascalVOCDetectionDataset,
                            train=False,

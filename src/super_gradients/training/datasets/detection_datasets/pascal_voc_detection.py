@@ -30,8 +30,11 @@ class PascalVOCDetectionDataset(DetectionDataset):
 
         self.images_sub_directory = images_sub_directory
         self.img_and_target_path_list = None
+        data_dir = kwargs.get("data_dir")
+        if data_dir is None:
+            raise ValueError("Must pass data_dir != None through **kwargs")
         if download:
-            PascalVOCDetectionDataset.download(kwargs.get("data_dir"))
+            PascalVOCDetectionDataset.download(data_dir)
 
         kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
         kwargs['all_classes_list'] = PASCAL_VOC_2012_CLASSES_LIST
