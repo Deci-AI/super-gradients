@@ -24,7 +24,6 @@ class SPPM(nn.Module):
         :param out_channels: The number of output channels after pyramid pooling module.
         :param pool_sizes: output sizes of the pooled feature maps.
         """
-        # TODO - replace adaptive with average pooling
         super().__init__()
         self.branches = nn.ModuleList([
             nn.Sequential(
@@ -59,6 +58,66 @@ class SPPM(nn.Module):
             out_size = out_size if isinstance(out_size, (tuple, list)) else (out_size, out_size)
             kernel_size = [int(i / o) for i, o in zip(input_size, out_size)]
             branch[0] = nn.AvgPool2d(kernel_size=kernel_size, stride=kernel_size)
+
+
+class UAFM(nn.Module):
+    """
+    Unified Attention Fusion Module, which uses mean and max values across the spatial dimensions.
+    """
+    def __init__(self,
+                 in_channels: int,
+                 skip_channels: int,
+                 out_channels: int,
+                 up_factor: int,
+                 upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
+                 align_corners: bool = False):
+        """
+        :params in_channels: num_channels of input feature map.
+        :param skip_channels: num_channels of skip connection feature map.
+        :param out_channels: num out channels after features fusion.
+        :param up_factor: upsample scale factor of the input feature map.
+        :param upsample_mode: see UpsampleMode for valid options.
+        """
+        super().__init__()
+        self.conv_atten = nn.Sequential(
+            ConvBNReLU(4, 2, kernel_size=3, padding=1, bias=False),
+            ConvBNReLU(2, 1, kernel_size=3, padding=1, bias=False, use_activation=False)
+        )
+
+        self.proj_skip = nn.Identity() if skip_channels == in_channels else \
+            ConvBNReLU(skip_channels, in_channels, kernel_size=3, padding=1, bias=False)
+        self.up_x = nn.Identity() if up_factor == 1 else \
+            make_upsample_module(scale_factor=up_factor, upsample_mode=upsample_mode, align_corners=align_corners)
+        self.conv_out = ConvBNReLU(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
+
+    def forward(self, x, skip):
+        """
+        :param x: input feature map to upsample before fusion.
+        :param skip: skip connection feature map.
+        """
+        x = self.up_x(x)
+        skip = self.proj_skip(skip)
+
+        atten = torch.cat([
+            *self._avg_max_spatial_reduce(x, use_concat=False),
+            *self._avg_max_spatial_reduce(skip, use_concat=False)
+        ], dim=1)
+        atten = self.conv_atten(atten)
+        atten = torch.sigmoid(atten)
+
+        out = x * atten + skip * (1 - atten)
+        out = self.conv_out(out)
+        return out
+
+    @staticmethod
+    def _avg_max_spatial_reduce(x, use_concat: bool = False):
+        reduced = [
+            torch.mean(x, dim=1, keepdim=True),
+            torch.max(x, dim=1, keepdim=True)[0]
+        ]
+        if use_concat:
+            reduced = torch.cat(reduced, dim=1)
+        return reduced
 
 
 class PPLiteSegEncoder(nn.Module):
@@ -255,64 +314,6 @@ class PPLiteSegBase(SegmentationModule):
         super().prep_model_for_conversion(input_size, **kwargs)
         if isinstance(self.encoder.context_module, SPPM):
             self.encoder.context_module.prep_model_for_conversion(input_size=input_size, stride_ratio=stride_ratio)
-
-
-class UAFM(nn.Module):
-    """
-    Unified Attention Fusion Module, which uses mean and max values across the spatial dimensions.
-    """
-    def __init__(self,
-                 in_channels: int,
-                 skip_channels: int,
-                 out_channels: int,
-                 up_factor: int,
-                 upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
-                 align_corners: bool = False):
-        """
-        TODO - doc
-        """
-        super().__init__()
-        self.conv_atten = nn.Sequential(
-            ConvBNReLU(4, 2, kernel_size=3, padding=1, bias=False),
-            ConvBNReLU(2, 1, kernel_size=3, padding=1, bias=False, use_activation=False)
-        )
-
-        self.proj_skip = nn.Identity() if skip_channels == in_channels else \
-            ConvBNReLU(skip_channels, in_channels, kernel_size=3, padding=1, bias=False)
-        self.up_x = nn.Identity() if up_factor == 1 else \
-            make_upsample_module(scale_factor=up_factor, upsample_mode=upsample_mode, align_corners=align_corners)
-        self.conv_out = ConvBNReLU(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
-
-    def forward(self, x, skip):
-        """
-        TODO - doc
-        Args:
-            x (Tensor): The low level feature.
-            y (Tensor): The high level feature.
-        """
-        x = self.up_x(x)
-        skip = self.proj_skip(skip)
-
-        atten = torch.cat([
-            *self._avg_max_spatial_reduce(x, use_concat=False),
-            *self._avg_max_spatial_reduce(skip, use_concat=False)
-        ], dim=1)
-        atten = self.conv_atten(atten)
-        atten = torch.sigmoid(atten)
-
-        out = x * atten + skip * (1 - atten)
-        out = self.conv_out(out)
-        return out
-
-    @staticmethod
-    def _avg_max_spatial_reduce(x, use_concat: bool = False):
-        reduced = [
-            torch.mean(x, dim=1, keepdim=True),
-            torch.max(x, dim=1, keepdim=True)[0]
-        ]
-        if use_concat:
-            reduced = torch.cat(reduced, dim=1)
-        return reduced
 
 
 class PPLiteSegB(PPLiteSegBase):
