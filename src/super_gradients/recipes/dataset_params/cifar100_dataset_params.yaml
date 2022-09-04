@@ -8,19 +8,19 @@ train_dataset_params:
   train: True
   transforms:
     - RandomCrop:
-        size: 24
+        size: 32
         padding: 4
     - RandomHorizontalFlip
     - ToTensor
     - Normalize:
         mean:
-          - 0.4914
-          - 0.4822
-          - 0.4465
+          - 0.5071
+          - 0.4865
+          - 0.4409
         std:
-          - 0.2023
-          - 0.1994
-          - 0.2010
+          - 0.2673
+          - 0.2564
+          - 0.2762
   target_transform: null
   download: True
 
@@ -37,13 +37,13 @@ val_dataset_params:
     - ToTensor
     - Normalize:
         mean:
-          - 0.4914
-          - 0.4822
-          - 0.4465
+          - 0.5071
+          - 0.4865
+          - 0.4409
         std:
-          - 0.2023
-          - 0.1994
-          - 0.2010
+          - 0.2673
+          - 0.2564
+          - 0.2762
   target_transform: null
   download: True
 
