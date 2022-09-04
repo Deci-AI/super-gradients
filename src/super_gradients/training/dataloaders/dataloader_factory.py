@@ -15,6 +15,7 @@ from super_gradients.training.utils import get_param
 from super_gradients.training.datasets import ImageNetDataset
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
 from super_gradients.training.datasets.classification_datasets.cifar import Cifar10, Cifar100
+from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -287,3 +288,93 @@ def segmentation_test_dataloader(batch_size: int = 5, image_size: int = 512) -> 
     ground_truth = torch.LongTensor(np.zeros((batch_size, image_size, image_size)))
     dataset = TensorDataset(images, ground_truth)
     return DataLoader(dataset=dataset, batch_size=batch_size)
+
+
+def cityscapes_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_stdc_seg50_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_stdc_seg50_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_stdc_seg50_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_stdc_seg50_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_stdc_seg75_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_stdc_seg75_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_stdc_seg75_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_stdc_seg75_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_regseg48_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_regseg48_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_regseg48_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_regseg48_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_ddrnet_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_ddrnet_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cityscapes_ddrnet_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cityscapes_ddrnet_dataset_params",
+                           dataset_cls=CityscapesDataset,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
