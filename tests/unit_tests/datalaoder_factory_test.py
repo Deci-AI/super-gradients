@@ -29,9 +29,11 @@ from super_gradients.training.dataloaders.dataloader_factory import (
     tiny_imagenet_train,
     tiny_imagenet_val,
     pascal_aug_segmentation_train,
-    pascal_aug_segmentation_val
+    pascal_aug_segmentation_val,
+    pascal_voc_segmentation_train,
+    pascal_voc_segmentation_val
 )
-from super_gradients.training.datasets import COCODetectionDataset, ImageNetDataset, PascalAUG2012SegmentationDataSet
+from super_gradients.training.datasets import COCODetectionDataset, ImageNetDataset, PascalAUG2012SegmentationDataSet, PascalVOC2012SegmentationDataSet
 
 
 class DataLoaderFactoryTest(unittest.TestCase):
@@ -171,6 +173,16 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dl = pascal_aug_segmentation_val()
         self.assertTrue(isinstance(dl, DataLoader))
         self.assertTrue(isinstance(dl.dataset, PascalAUG2012SegmentationDataSet))
+
+    def test_pascal_voc_segmentation_train_creation(self):
+        dl = pascal_voc_segmentation_train()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, PascalVOC2012SegmentationDataSet))
+
+    def test_pascal_voc_segmentation_val_creation(self):
+        dl = pascal_voc_segmentation_val()
+        self.assertTrue(isinstance(dl, DataLoader))
+        self.assertTrue(isinstance(dl.dataset, PascalVOC2012SegmentationDataSet))
 
 
 if __name__ == '__main__':
