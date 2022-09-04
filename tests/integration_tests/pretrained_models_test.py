@@ -11,7 +11,6 @@ import os
 import shutil
 from super_gradients.training.utils.ssd_utils import SSDPostPredictCallback
 from super_gradients.training.models.detection_models.ssd import DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS
-import torchvision.transforms as transforms
 from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
 from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.transforms.transforms import Rescale
