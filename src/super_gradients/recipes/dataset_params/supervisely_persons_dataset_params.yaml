@@ -21,7 +21,6 @@ train_dataset_params:
     - CropImageAndMaskSeg:
         crop_size: [ 320, 480 ]
         mode: random
-    - ToTensorSeg
 
 val_dataset_params:
   root_dir: /data/supervisely-persons
@@ -32,7 +31,6 @@ val_dataset_params:
     - ResizeSeg:
         h: 480
         w: 320
-    - ToTensorSeg
 
 train_dataloader_params:
   batch_size: 8
