@@ -22,5 +22,6 @@ experiment_name: mobileNetv3_large_training
 ckpt_root_dir:
 
 multi_gpu: DDP
+nproc_per_node: 2
 
 architecture: mobilenet_v3_large
