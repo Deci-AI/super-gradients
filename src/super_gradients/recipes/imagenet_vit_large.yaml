@@ -10,6 +10,7 @@
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
 #       python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_large
+#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_large +nproc_per_node=8
 
 
 defaults:
