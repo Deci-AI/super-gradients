@@ -33,4 +33,3 @@ __all__ = ['DataAugmentation', 'ListDataset', 'DirectoryDataSet', 'CLASSIFICATIO
            'ImageNetDatasetInterface',
            'DetectionDataset', 'COCODetectionDataset', 'PascalVOCDetectionDataset', 'ImageNetDataset',
            'Cifar10', 'Cifar100', 'SuperviselyPersonsDataset']
-
