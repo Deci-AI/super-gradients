@@ -54,7 +54,8 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
     """Non-Maximum Suppression (NMS) module"""
 
     def __init__(self, conf: float = 0.001, iou: float = 0.6, classes: List[int] = None,
-                 nms_type: NMS_Type = NMS_Type.ITERATIVE, max_predictions: int = 300,
+                 # nms_type: NMS_Type = NMS_Type.ITERATIVE, max_predictions: int = 300,
+                 nms_type: NMS_Type = NMS_Type.MATRIX, max_predictions: int = 300,
                  with_confidence: bool = True):
         """
         :param conf: confidence threshold
