@@ -30,7 +30,7 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
     quant_nn.TensorQuantizer.use_fb_fake_quant = True
     # Export ONNX for multiple batch sizes
     logger.info("Creating ONNX file: " + onnx_filename)
-    dummy_input = torch.randn(input_shape, device='cuda')
+    dummy_input = torch.randn(input_shape, device=next(model.parameters()).device)
     torch.onnx.export(model, dummy_input, onnx_filename, verbose=False, opset_version=13,
                       enable_onnx_checker=False,
                       do_constant_folding=True)
