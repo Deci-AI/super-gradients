@@ -17,6 +17,7 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
 from super_gradients.training.utils import get_param
 from super_gradients.training.datasets import ImageNetDataset
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset
+from super_gradients.training.datasets.classification_datasets.cifar import Cifar10, Cifar100
 from super_gradients.training.datasets.segmentation_datasets import CityscapesDataset, CoCoSegmentationDataSet, \
     PascalAUG2012SegmentationDataSet, \
     PascalVOC2012SegmentationDataSet, SuperviselyPersonsDataset
@@ -235,6 +236,42 @@ def tiny_imagenet_val(dataset_params={}, dataloader_params={}, config_name="tiny
                            train=False,
                            dataset_params=dataset_params,
                            dataloader_params=dataloader_params)
+
+
+def cifar10_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cifar10_dataset_params",
+                           dataset_cls=Cifar10,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cifar10_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cifar10_dataset_params",
+                           dataset_cls=Cifar10,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cifar100_train(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cifar100_dataset_params",
+                           dataset_cls=Cifar100,
+                           train=True,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
+
+
+def cifar100_val(dataset_params: Dict = {}, dataloader_params: Dict = {}):
+    return get_data_loader(config_name="cifar100_dataset_params",
+                           dataset_cls=Cifar100,
+                           train=False,
+                           dataset_params=dataset_params,
+                           dataloader_params=dataloader_params
+                           )
 
 
 def classification_test_dataloader(batch_size: int = 5, image_size: int = 32) -> DataLoader:

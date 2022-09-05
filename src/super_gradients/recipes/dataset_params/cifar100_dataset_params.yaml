@@ -4,7 +4,7 @@ val_batch_size: 512 # batch size for valset in DatasetInterface
 # TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
 
 train_dataset_params:
-  root: /data/cifar10
+  root: /data/cifar100
   train: True
   transforms:
     - RandomCrop:
@@ -14,13 +14,13 @@ train_dataset_params:
     - ToTensor
     - Normalize:
         mean:
-          - 0.4914
-          - 0.4822
-          - 0.4465
+          - 0.5071
+          - 0.4865
+          - 0.4409
         std:
-          - 0.2023
-          - 0.1994
-          - 0.2010
+          - 0.2673
+          - 0.2564
+          - 0.2762
   target_transform: null
   download: True
 
@@ -31,19 +31,19 @@ train_dataloader_params:
   pin_memory: True
 
 val_dataset_params:
-  root: /data/cifar10
+  root: /data/cifar100
   train: False
   transforms:
     - ToTensor
     - Normalize:
         mean:
-          - 0.4914
-          - 0.4822
-          - 0.4465
+          - 0.5071
+          - 0.4865
+          - 0.4409
         std:
-          - 0.2023
-          - 0.1994
-          - 0.2010
+          - 0.2673
+          - 0.2564
+          - 0.2762
   target_transform: null
   download: True
 
