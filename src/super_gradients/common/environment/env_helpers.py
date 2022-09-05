@@ -2,12 +2,14 @@ import argparse
 import os
 import sys
 import subprocess
+import logging
 from functools import wraps
 from typing import List
 
 from omegaconf import OmegaConf
 
 from super_gradients.common.environment import environment_config
+from super_gradients.common.environment.environment_config import DEFAULT_SUBPROCESS_LOGGING_LEVEL, set_global_log_level
 
 
 class TerminalColours:
@@ -113,13 +115,14 @@ def multi_process_safe(func):
 def launch_sub_processes(ddp_port: int, world_size: int) -> List[subprocess.Popen]:
     """Launch copies of the current job in different processes. This is used for DDP training.
 
-    :param ddp_port:        Port that will be used on every node
-    :param n_subprocess:    Number of subprocesses to launch
-    :return:                List of the subprocesses that were launched
+    :param ddp_port:    Port that will be used on every node
+    :param world_size:  Total number of nodes to use - including master node
+    :return:            List of the subprocesses that were launched
     """
     subprocesses = []
     for i in range(1, world_size):
-        argv = sys.argv.copy() + [f'+local_rank={i}', f'+ddp_port={ddp_port}', ]
+        argv = sys.argv.copy() + [f'+local_rank={i}', f'+ddp_port={ddp_port}']
+
         subproc = subprocess.Popen([sys.executable, *argv], env=os.environ)
         subprocesses.append(subproc)
         print(f'Launched node {i} with pid={subproc.pid}')
@@ -140,6 +143,9 @@ def init_local_process(local_rank: int, ddp_port: int, world_size: int) -> None:
     os.environ['WORLD_SIZE'] = str(world_size)
     os.environ['MASTER_ADDR'] = '127.0.0.1'
     os.environ['MASTER_PORT'] = str(ddp_port)
+    if local_rank > 0:
+        os.environ["LOG_LEVEL"] = DEFAULT_SUBPROCESS_LOGGING_LEVEL
+        set_global_log_level(level=DEFAULT_SUBPROCESS_LOGGING_LEVEL)
 
 
 def kill_subprocesses(subprocesses: List[subprocess.Popen]) -> None:

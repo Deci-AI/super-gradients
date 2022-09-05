@@ -21,10 +21,16 @@ if AWS_ENV_NAME not in AWS_ENVIRONMENTS:
                 f'with one of the values: {",".join(AWS_ENVIRONMENTS)}'
             )
 
+
+def set_global_log_level(level: str):
+    """Force the initialization of the logging config according to the log level.
+    Be aware that this will also the logging level of already existing loggers."""
+    logging.basicConfig(level=level, force=True)  # Set the default level for all libraries - including 3rd party packages
+
+
 # Controlling the default logging level via environment variable
+DEFAULT_SUBPROCESS_LOGGING_LEVEL = environ.get("SUBPROCESS_LOG_LEVEL", "ERROR").upper()
 DEFAULT_LOGGING_LEVEL = environ.get("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(
-    level=DEFAULT_LOGGING_LEVEL
-)  # Set the default level for all libraries - including 3rd party packages
+set_global_log_level(DEFAULT_LOGGING_LEVEL)
 
 DDP_LOCAL_RANK = -1
