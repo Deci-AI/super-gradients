@@ -1,7 +1,9 @@
 import argparse
 import os
 import sys
+import subprocess
 from functools import wraps
+from typing import List
 
 from omegaconf import OmegaConf
 
@@ -63,9 +65,8 @@ def init_trainer():
     by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
     and prepares the super_gradients environment.
     """
-    OmegaConf.register_new_resolver(
-        "hydra_output_dir", hydra_output_dir_resolver, replace=True
-    )
+    register_hydra_resolvers()
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
     args, _ = parser.parse_known_args()
@@ -77,6 +78,11 @@ def init_trainer():
             sys.argv.remove(val)
 
     environment_config.DDP_LOCAL_RANK = args.local_rank
+
+
+def register_hydra_resolvers():
+    """Register all the hydra resolvers required for the super-gradients recipes."""
+    OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
 
 
 def is_distributed() -> bool:
@@ -102,3 +108,45 @@ def multi_process_safe(func):
             return do_nothing(*args, **kwargs)
 
     return wrapper
+
+
+def launch_sub_processes(ddp_port: int, world_size: int) -> List[subprocess.Popen]:
+    """Launch copies of the current job in different processes. This is used for DDP training.
+
+    :param ddp_port:        Port that will be used on every node
+    :param n_subprocess:    Number of subprocesses to launch
+    :return:                List of the subprocesses that were launched
+    """
+    subprocesses = []
+    for i in range(1, world_size):
+        argv = sys.argv.copy() + [f'+local_rank={i}', f'+ddp_port={ddp_port}', ]
+        subproc = subprocess.Popen([sys.executable, *argv], env=os.environ)
+        subprocesses.append(subproc)
+        print(f'Launched node {i} with pid={subproc.pid}')
+    return subprocesses
+
+
+def init_local_process(local_rank: int, ddp_port: int, world_size: int) -> None:
+    """Initialize the local node with its rank, port and with world_size.
+
+    :param local_rank:  Local rank of this node
+    :param ddp_port:    Port that will be used on this node
+    :param world_size:  Number of nodes used for the training
+    """
+
+    environment_config.DDP_LOCAL_RANK = local_rank
+
+    os.environ['RANK'] = str(local_rank)
+    os.environ['WORLD_SIZE'] = str(world_size)
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = str(ddp_port)
+
+
+def kill_subprocesses(subprocesses: List[subprocess.Popen]) -> None:
+    """Kill all the subprocesses. This is meant to terminate DDP job.
+
+    :param subprocesses: All the subprocesses that were launched by this node
+    """
+    for process in subprocesses:
+        print(f'Killing process pid={process.pid}')
+        process.kill()
