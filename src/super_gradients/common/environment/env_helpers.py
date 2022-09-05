@@ -67,6 +67,16 @@ def init_trainer():
     by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
     and prepares the super_gradients environment.
     """
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+
     register_hydra_resolvers()
 
     parser = argparse.ArgumentParser()
@@ -122,8 +132,8 @@ def launch_sub_processes(ddp_port: int, world_size: int) -> List[subprocess.Pope
     subprocesses = []
     for i in range(1, world_size):
         argv = sys.argv.copy() + [f'+local_rank={i}', f'+ddp_port={ddp_port}']
-
         subproc = subprocess.Popen([sys.executable, *argv], env=os.environ)
+
         subprocesses.append(subproc)
         print(f'Launched node {i} with pid={subproc.pid}')
     return subprocesses

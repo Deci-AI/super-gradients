@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 
 from super_gradients import Trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
-from super_gradients.common.environment.env_helpers import launch_sub_processes, init_local_process, kill_subprocesses, register_hydra_resolvers
+from super_gradients.common.environment.env_helpers import launch_sub_processes, init_local_process, kill_subprocesses, register_hydra_resolvers, init_trainer
 from super_gradients.training import utils as core_utils
 
 
@@ -33,13 +33,14 @@ def main(cfg: DictConfig):
             kill_subprocesses(subprocesses)
 
 
-def train(cfg: DictConfig) -> None:
+@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
+def train(cfg: DictConfig):
     """Launch the training job according to the specified recipe.
 
     :param cfg: Hydra config that was specified when launching the job with --config-name
     """
     Trainer.train_from_config(cfg)
-
+#
 
 def get_ddp_params(cfg: DictConfig) -> Tuple[int, int, int]:
     """Get the DDP params. Take it from config file if set there, or set default value otherwise.
@@ -52,5 +53,6 @@ def get_ddp_params(cfg: DictConfig) -> Tuple[int, int, int]:
 
 
 if __name__ == "__main__":
+    os.environ["RANK"] = os.getenv("LOCAL_RANK", "0")
     register_hydra_resolvers()
-    main()
+    train()

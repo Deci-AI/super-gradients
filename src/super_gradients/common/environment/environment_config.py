@@ -33,4 +33,5 @@ DEFAULT_SUBPROCESS_LOGGING_LEVEL = environ.get("SUBPROCESS_LOG_LEVEL", "ERROR").
 DEFAULT_LOGGING_LEVEL = environ.get("LOG_LEVEL", "INFO").upper()
 set_global_log_level(DEFAULT_LOGGING_LEVEL)
 
-DDP_LOCAL_RANK = -1
+import os
+DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", -1))
