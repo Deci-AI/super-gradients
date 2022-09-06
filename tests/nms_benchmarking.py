@@ -10,9 +10,8 @@ from super_gradients.training.sg_model import SgModel
 
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.models.detection_models.yolox import YoloX_S, YoloX_N, YoloX_T
-from super_gradients.training.datasets import CoCoDetectionDatasetInterface
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CocoDetectionDatasetInterfaceV2
-from super_gradients.training.models.detection_models.yolov5_base import YoloV5PostPredictionCallback
+from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
+from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import DetectionCollateFN
 
 THROUGHPUT_BATCH_SIZES = [8, 16] #[8, 16, 32, 64]
@@ -176,7 +175,7 @@ class NMSBenchmarker:
         dataset_params['val_image_size'] = loaded_model.input_dims[0][-1]
         dataset_params['train_image_size'] = loaded_model.input_dims[0][-1]
 
-        _, val_loader, _, _ = CocoDetectionDatasetInterfaceV2(dataset_params).get_data_loaders()
+        _, val_loader, _, _ = CoCoDetectionDatasetInterface(dataset_params).get_data_loaders()
 
         return val_loader
 
