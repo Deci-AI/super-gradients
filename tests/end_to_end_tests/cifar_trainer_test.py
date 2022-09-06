@@ -5,7 +5,7 @@ from super_gradients.training import models
 import super_gradients
 
 from super_gradients import Trainer
-from super_gradients.training.dataloaders.dataloader_factory import (
+from super_gradients.training.dataloaders.dataloaders import (
     cifar10_train,
     cifar10_val,
     cifar100_train,

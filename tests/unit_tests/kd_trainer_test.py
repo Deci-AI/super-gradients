@@ -2,7 +2,7 @@ import os
 import unittest
 from copy import deepcopy
 
-from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.kd_trainer.kd_trainer import KDTrainer
 import torch
 

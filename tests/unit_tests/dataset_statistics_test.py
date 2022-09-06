@@ -1,6 +1,6 @@
 import unittest
 
-from super_gradients.training.dataloaders.dataloader_factory import coco2017_train, coco2017_val
+from super_gradients.training.dataloaders.dataloaders import coco2017_train, coco2017_val
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 

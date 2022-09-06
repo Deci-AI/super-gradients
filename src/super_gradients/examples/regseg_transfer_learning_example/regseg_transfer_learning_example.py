@@ -7,7 +7,7 @@ from super_gradients.training.transforms.transforms import ResizeSeg, RandomFlip
     PadShortToCropSize, ColorJitterSeg
 from super_gradients.training.utils.callbacks import BinarySegmentationVisualizationCallback, Phase
 from torchvision import transforms
-from super_gradients.training.dataloaders.dataloader_factory import supervisely_persons_val, supervisely_persons_train
+from super_gradients.training.dataloaders.dataloaders import supervisely_persons_val, supervisely_persons_train
 # DEFINE DATA TRANSFORMATIONS
 
 dl_train = supervisely_persons_train(dataset_params={"transforms": [ColorJitterSeg(brightness=0.5, contrast=0.5, saturation=0.5),

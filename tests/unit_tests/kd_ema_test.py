@@ -2,7 +2,7 @@ import unittest
 
 from super_gradients.training import models
 from super_gradients.training import Trainer
-from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.kd_trainer import KDTrainer
 import torch
 from super_gradients.training.utils.utils import check_models_have_same_weights

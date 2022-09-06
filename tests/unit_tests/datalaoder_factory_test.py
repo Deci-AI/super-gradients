@@ -2,7 +2,7 @@ import unittest
 
 from torch.utils.data import DataLoader, TensorDataset
 
-from super_gradients.training.dataloaders.dataloader_factory import (
+from super_gradients.training.dataloaders.dataloaders import (
     classification_test_dataloader,
     detection_test_dataloader,
     segmentation_test_dataloader,

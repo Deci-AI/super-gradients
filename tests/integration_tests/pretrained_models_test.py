@@ -16,7 +16,7 @@ from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.losses.stdc_loss import STDCLoss
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training import models
-from super_gradients.training.dataloaders.dataloader_factory import *
+from super_gradients.training.dataloaders.dataloaders import *
 
 
 class PretrainedModelsTest(unittest.TestCase):

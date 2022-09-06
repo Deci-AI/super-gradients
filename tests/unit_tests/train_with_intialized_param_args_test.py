@@ -8,7 +8,7 @@ from torchmetrics import F1Score
 
 from super_gradients import Trainer
 from super_gradients.training import models
-from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5, ToyTestClassificationMetric
 from super_gradients.training.utils.callbacks import LRSchedulerCallback, Phase
 

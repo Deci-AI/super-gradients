@@ -3,7 +3,7 @@ import unittest
 import torch
 
 from super_gradients import ClassificationTestDatasetInterface, Trainer
-from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
 

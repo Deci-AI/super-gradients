@@ -1,6 +1,6 @@
 import unittest
 from super_gradients.training import Trainer
-from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
 from super_gradients.training.utils.utils import check_models_have_same_weights

@@ -5,7 +5,7 @@ The main purpose of this code is to demonstrate how to upload the model to the p
  after training is complete, using DeciPlatformCallback.
 """
 from super_gradients import Trainer, ClassificationTestDatasetInterface
-from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils.callbacks import DeciLabUploadCallback, ModelConversionCheckCallback
 from deci_lab_client.models import (

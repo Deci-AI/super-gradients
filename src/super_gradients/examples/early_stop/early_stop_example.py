@@ -3,7 +3,7 @@
 import super_gradients
 from super_gradients import Trainer
 from super_gradients.training import models
-from super_gradients.training.dataloaders.dataloader_factory import cifar10_train, cifar10_val
+from super_gradients.training.dataloaders.dataloaders import cifar10_train, cifar10_val
 from super_gradients.training.metrics.classification_metrics import Accuracy, Top5
 from super_gradients.training.utils.early_stopping import EarlyStop
 from super_gradients.training.utils.callbacks import Phase

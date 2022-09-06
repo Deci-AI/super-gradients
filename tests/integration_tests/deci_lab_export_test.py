@@ -1,7 +1,7 @@
 import unittest
 from super_gradients import Trainer, \
     ClassificationTestDatasetInterface
-from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
 from torch.optim import SGD

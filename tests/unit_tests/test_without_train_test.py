@@ -4,7 +4,7 @@ import os
 from super_gradients import Trainer, \
     ClassificationTestDatasetInterface, \
     SegmentationTestDatasetInterface, DetectionTestDatasetInterface
-from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader, \
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader, \
     detection_test_dataloader, segmentation_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training import MultiGPUMode, models

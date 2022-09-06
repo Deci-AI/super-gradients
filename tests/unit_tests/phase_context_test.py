@@ -1,6 +1,6 @@
 import unittest
 
-from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.utils.callbacks import PhaseContextTestCallback, Phase
 from super_gradients import Trainer, \
     ClassificationTestDatasetInterface

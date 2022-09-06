@@ -23,7 +23,7 @@ from super_gradients.training.models import HpmStruct
 import argparse
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
-from super_gradients.training.dataloaders.dataloader_factory import imagenet_train, imagenet_val
+from super_gradients.training.dataloaders.dataloaders import imagenet_train, imagenet_val
 parser = argparse.ArgumentParser()
 super_gradients.init_trainer()
 
