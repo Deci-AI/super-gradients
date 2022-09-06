@@ -37,9 +37,6 @@ class SPPM(nn.Module):
         self.align_corners = align_corners
         self.pool_sizes = pool_sizes
 
-    def output_channels(self):
-        return self.out_channels
-
     def forward(self, x):
         out = None
         input_shape = x.shape[2:]
@@ -144,8 +141,8 @@ class PPLiteSegEncoder(nn.Module):
 
     def get_output_number_of_channels(self) -> List[int]:
         channels_list = self.projection_channels_list
-        if hasattr(self.context_module, "output_channels"):
-            channels_list.append(self.context_module.output_channels())
+        if hasattr(self.context_module, "out_channels"):
+            channels_list.append(self.context_module.out_channels)
         return channels_list
 
     def forward(self, x):
