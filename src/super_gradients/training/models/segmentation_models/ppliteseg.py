@@ -209,6 +209,7 @@ class PPLiteSegBase(SegmentationModule):
                  decoder_up_factors: List[int],
                  decoder_channels: List[int],
                  decoder_upsample_mode: Union[UpsampleMode, str],
+                 head_scale_factor: int,
                  head_upsample_mode: Union[UpsampleMode, str],
                  head_mid_channels: int,
                  dropout: float,
@@ -227,11 +228,12 @@ class PPLiteSegBase(SegmentationModule):
         :param decoder_up_factors: list upsample factor per decoder stage.
         :param decoder_channels: list of num_channels per decoder stage.
         :param decoder_upsample_mode: upsample mode in decoder stages, see UpsampleMode for valid options.
+        :param head_scale_factor: scale factor for final the segmentation head logits.
         :param head_upsample_mode: upsample mode to final prediction sizes, see UpsampleMode for valid options.
         :param head_mid_channels: num of hidden channels in segmentation head.
         :param use_aux_heads: set True when training, output extra Auxiliary feature maps from the encoder module.
         :param aux_hidden_channels: List of hidden channels in auxiliary segmentation heads.
-        :param aux_scale_factors: list of psample factors for final auxiliary heads logits.
+        :param aux_scale_factors: list of uppsample factors for final auxiliary heads logits.
         """
         super().__init__(use_aux_heads=use_aux_heads)
 
@@ -264,7 +266,8 @@ class PPLiteSegBase(SegmentationModule):
                              mid_channels=head_mid_channels,
                              num_classes=num_classes,
                              dropout=dropout),
-            make_upsample_module(scale_factor=8, upsample_mode=head_upsample_mode, align_corners=align_corners)
+            make_upsample_module(scale_factor=head_scale_factor, upsample_mode=head_upsample_mode,
+                                 align_corners=align_corners)
         )
         # Auxiliary heads
         if self.use_aux_heads:
@@ -355,6 +358,7 @@ class PPLiteSegB(PPLiteSegBase):
                          decoder_up_factors=[1, 2, 2],
                          decoder_channels=[128, 96, 64],
                          decoder_upsample_mode="bilinear",
+                         head_scale_factor=8,
                          head_upsample_mode="bilinear",
                          head_mid_channels=64,
                          dropout=get_param(arch_params, "dropout", 0.),
@@ -378,6 +382,7 @@ class PPLiteSegT(PPLiteSegBase):
                          decoder_up_factors=[1, 2, 2],
                          decoder_channels=[128, 64, 32],
                          decoder_upsample_mode="bilinear",
+                         head_scale_factor=8,
                          head_upsample_mode="bilinear",
                          head_mid_channels=32,
                          dropout=get_param(arch_params, "dropout", 0.),
