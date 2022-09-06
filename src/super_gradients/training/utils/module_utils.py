@@ -3,7 +3,8 @@ import copy
 from typing import List, Union, Tuple, Optional
 import torch
 from torch import nn
-from enum import Enum
+
+from super_gradients.common import UpsampleMode
 
 
 class MultiOutputModule(nn.Module):
@@ -220,13 +221,6 @@ class NormalizationAdapter(torch.nn.Module):
     def forward(self, x):
         x = (x + self.additive) * self.multiplier
         return x
-
-
-class UpsampleMode(Enum):
-    NEAREST = "nearest"
-    BILINEAR = "bilinear"
-    BICUBIC = "bicubic"
-    SNPE_BILINEAR = "snpe_bilinear"
 
 
 def make_upsample_module(scale_factor: int,
