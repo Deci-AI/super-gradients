@@ -1,3 +1,5 @@
+from super_gradients.training import models
+
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import SuperviselyPersonsDatasetInterface
 from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.metrics import BinaryIOU
@@ -5,28 +7,26 @@ from super_gradients.training.transforms.transforms import ResizeSeg, RandomFlip
     PadShortToCropSize, ColorJitterSeg
 from super_gradients.training.utils.callbacks import BinarySegmentationVisualizationCallback, Phase
 from torchvision import transforms
-
+from super_gradients.training.dataloaders.dataloader_factory import supervisely_persons_val, supervisely_persons_train
 # DEFINE DATA TRANSFORMATIONS
-dataset_params = {
-    "image_mask_transforms_aug": transforms.Compose([ColorJitterSeg(brightness=0.5, contrast=0.5, saturation=0.5),
+
+dl_train = supervisely_persons_train(dataset_params={"transforms": [ColorJitterSeg(brightness=0.5, contrast=0.5, saturation=0.5),
                                                      RandomFlip(),
                                                      RandomRescale(scales=[0.25, 1.]),
                                                      PadShortToCropSize([320, 480]),
                                                      CropImageAndMask(crop_size=[320, 480],
-                                                                      mode="random")]),
-    "image_mask_transforms": transforms.Compose([ResizeSeg(h=480, w=320)])
-}
+                                                                      mode="random")]})
 
-dataset_interface = SuperviselyPersonsDatasetInterface(dataset_params)
+dl_val = supervisely_persons_val(dataset_params={"transforms": [ResizeSeg(h=480, w=320)]})
+
 
 trainer = Trainer("regseg48_transfer_learning_old_dice_diff_lrs_head_fixed_50_epochs")
 
-# CONNECTING THE DATASET INTERFACE WILL SET SGMODEL'S CLASSES ATTRIBUTE ACCORDING TO SUPERVISELY
-trainer.connect_dataset_interface(dataset_interface)
 
 # THIS IS WHERE THE MAGIC HAPPENS- SINCE SGMODEL'S CLASSES ATTRIBUTE WAS SET TO BE DIFFERENT FROM CITYSCAPES'S, AFTER
 # LOADING THE PRETRAINED REGSET, IT WILL CALL IT'S REPLACE_HEAD METHOD AND CHANGE IT'S SEGMENTATION HEAD LAYER ACCORDING
 # TO OUR BINARY SEGMENTATION DATASET
+model = models.get("regseg48", pretrained_weights="cityscapes", num_classes=1)
 trainer.build_model("regseg48", arch_params={"pretrained_weights": "cityscapes"})
 
 # DEFINE TRAINING PARAMS. SEE DOCS FOR THE FULL LIST.

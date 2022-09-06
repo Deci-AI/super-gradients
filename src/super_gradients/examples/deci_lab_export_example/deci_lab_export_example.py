@@ -5,6 +5,7 @@ The main purpose of this code is to demonstrate how to upload the model to the p
  after training is complete, using DeciPlatformCallback.
 """
 from super_gradients import Trainer, ClassificationTestDatasetInterface
+from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils.callbacks import DeciLabUploadCallback, ModelConversionCheckCallback
 from deci_lab_client.models import (
@@ -28,8 +29,6 @@ def main(architecture_name: str):
         model_checkpoints_location="local",
         ckpt_root_dir=checkpoint_dir,
     )
-    dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 10})
-    trainer.connect_dataset_interface(dataset, data_loader_num_workers=0)
 
     trainer.build_model(architecture=architecture_name, arch_params={"use_aux_heads": True, "aux_head": True})
 
@@ -91,7 +90,8 @@ def main(architecture_name: str):
 
     # RUN TRAINING. ONCE ALL EPOCHS ARE DONE THE OPTIMIZED MODEL FILE WILL BE LOCATED IN THE EXPERIMENT'S
     # CHECKPOINT DIRECTORY
-    trainer.train(train_params)
+    trainer.train(train_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
 
 if __name__ == "__main__":

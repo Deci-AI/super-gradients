@@ -1,6 +1,7 @@
 import unittest
 
 from super_gradients.training import Trainer
+from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models import LeNet
@@ -29,15 +30,9 @@ class ContextMethodsCheckerCallback(PhaseCallback):
 
 
 class ContextMethodsTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.dataset_params = {"batch_size": 4}
-        self.dataset = ClassificationTestDatasetInterface(dataset_params=self.dataset_params)
-        self.arch_params = {'num_classes': 10}
-
     def test_access_to_methods_by_phase(self):
         net = LeNet()
         trainer = Trainer("test_access_to_methods_by_phase", model_checkpoints_location='local')
-        trainer.connect_dataset_interface(self.dataset)
 
         phase_callbacks = []
         for phase in Phase:
@@ -68,7 +63,9 @@ class ContextMethodsTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks}
 
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params,
+                      train_loader=classification_test_dataloader(batch_size=4),
+                      valid_loader=classification_test_dataloader(batch_size=4))
         for phase_callback in phase_callbacks:
             if isinstance(phase_callback, ContextMethodsCheckerCallback):
                 self.assertTrue(phase_callback.result)

@@ -3,6 +3,7 @@ import unittest
 import torch
 
 from super_gradients import ClassificationTestDatasetInterface, Trainer
+from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
 
@@ -11,10 +12,6 @@ class FactoriesTest(unittest.TestCase):
 
     def test_training_with_factories(self):
         trainer = Trainer("test_train_with_factories", model_checkpoints_location='local')
-        dataset_params = {"batch_size": 10}
-        dataset = {"classification_test_dataset": {"dataset_params": dataset_params}}
-        trainer.connect_dataset_interface(dataset)
-
         net = ResNet18(num_classes=5, arch_params={})
         trainer.build_model(net)
         train_params = {"max_epochs": 2,
@@ -32,7 +29,9 @@ class FactoriesTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
 
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params,
+                      train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
         self.assertIsInstance(trainer.train_metrics.Accuracy, Accuracy)
         self.assertIsInstance(trainer.valid_metrics.Top5, Top5)

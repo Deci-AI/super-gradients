@@ -2,6 +2,7 @@ import unittest
 
 from super_gradients.training import models
 from super_gradients.training import Trainer
+from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
 from super_gradients.training.kd_trainer import KDTrainer
 import torch
 from super_gradients.training.utils.utils import check_models_have_same_weights
@@ -32,12 +33,13 @@ class KDEMATest(unittest.TestCase):
         """Check that the teacher EMA is a reference to the teacher net (not a copy)."""
 
         kd_model = KDTrainer("test_teacher_ema_not_duplicated", device='cpu')
-        kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 1000})
         teacher = models.get('resnet50', arch_params={'num_classes': 1000},
                              pretrained_weights="imagenet")
 
-        kd_model.train(training_params=self.kd_train_params, student=student, teacher=teacher)
+        kd_model.train(training_params=self.kd_train_params, student=student, teacher=teacher,
+                       train_loader=classification_test_dataloader(),
+                       valid_loader=classification_test_dataloader())
 
         self.assertTrue(kd_model.ema_model.ema.module.teacher is kd_model.net.module.teacher)
         self.assertTrue(kd_model.ema_model.ema.module.student is not kd_model.net.module.student)
@@ -48,24 +50,26 @@ class KDEMATest(unittest.TestCase):
         # Create a KD trainer and train it
         train_params = self.kd_train_params.copy()
         kd_model = KDTrainer("test_kd_ema_ckpt_reload", device='cpu')
-        kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 1000})
         teacher = models.get('resnet50', arch_params={'num_classes': 1000},
                              pretrained_weights="imagenet")
 
-        kd_model.train(training_params=self.kd_train_params, student=student, teacher=teacher)
+        kd_model.train(training_params=self.kd_train_params, student=student, teacher=teacher,
+                       train_loader=classification_test_dataloader(),
+                       valid_loader=classification_test_dataloader())
         ema_model = kd_model.ema_model.ema
         net = kd_model.net
 
         # Load the trained KD trainer
         kd_model = KDTrainer("test_kd_ema_ckpt_reload", device='cpu')
-        kd_model.connect_dataset_interface(self.dataset)
         student = models.get('resnet18', arch_params={'num_classes': 1000})
         teacher = models.get('resnet50', arch_params={'num_classes': 1000},
                              pretrained_weights="imagenet")
 
         train_params["resume"] = True
-        kd_model.train(training_params=train_params, student=student, teacher=teacher)
+        kd_model.train(training_params=train_params, student=student, teacher=teacher,
+                       train_loader=classification_test_dataloader(),
+                       valid_loader=classification_test_dataloader())
         reloaded_ema_model = kd_model.ema_model.ema
         reloaded_net = kd_model.net
 
@@ -79,7 +83,8 @@ class KDEMATest(unittest.TestCase):
         self.assertTrue(not check_models_have_same_weights(reloaded_net, ema_model))
 
         # loaded student ema == loaded  student net (since load_ema_as_net = False)
-        self.assertTrue(not check_models_have_same_weights(reloaded_ema_model.module.student, reloaded_net.module.student))
+        self.assertTrue(
+            not check_models_have_same_weights(reloaded_ema_model.module.student, reloaded_net.module.student))
 
         # loaded teacher ema == loaded teacher net (teacher always loads ema)
         self.assertTrue(check_models_have_same_weights(reloaded_ema_model.module.teacher, reloaded_net.module.teacher))

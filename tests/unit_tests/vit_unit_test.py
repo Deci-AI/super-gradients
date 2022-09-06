@@ -1,4 +1,6 @@
 import unittest
+
+from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients import Trainer
@@ -10,7 +12,6 @@ class TestViT(unittest.TestCase):
 
     def setUp(self):
         self.arch_params = HpmStruct(**{"image_size": (224, 224), "patch_size": (16, 16), "num_classes": 10})
-        self.dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 16})
 
         self.train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                              "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
@@ -23,9 +24,8 @@ class TestViT(unittest.TestCase):
         Validate vit_base
         """
         trainer = Trainer("test_vit_base", device='cpu')
-        trainer.connect_dataset_interface(self.dataset, data_loader_num_workers=8)
-        model = models.get('vit_base', arch_params={"num_classes": 5})
-        trainer.train(model=model, training_params=self.train_params)
+        model = models.get('vit_base', num_classes=5)
+        trainer.train(model=model, training_params=self.train_params, train_loader=classification_test_dataloader())
 
 
 if __name__ == '__main__':

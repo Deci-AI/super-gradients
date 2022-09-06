@@ -283,7 +283,7 @@ def classification_test_dataloader(batch_size: int = 5, image_size: int = 32) ->
 
 def detection_test_dataloader(batch_size: int = 5, image_size: int = 320) -> DataLoader:
     images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
-    ground_truth = torch.LongTensor(np.zeros((batch_size, 6)))
+    ground_truth = torch.Tensor(np.zeros((batch_size, 6)))
     dataset = TensorDataset(images, ground_truth)
     return DataLoader(dataset=dataset, batch_size=batch_size)
 

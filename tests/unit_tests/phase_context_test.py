@@ -1,4 +1,6 @@
 import unittest
+
+from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
 from super_gradients.training.utils.callbacks import PhaseContextTestCallback, Phase
 from super_gradients import Trainer, \
     ClassificationTestDatasetInterface
@@ -12,9 +14,6 @@ from torchmetrics import MetricCollection
 class PhaseContextTest(unittest.TestCase):
     def context_information_in_train_test(self):
         trainer = Trainer("context_information_in_train_test", model_checkpoints_location='local')
-        dataset_params = {"batch_size": 10}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        trainer.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
 
@@ -31,7 +30,9 @@ class PhaseContextTest(unittest.TestCase):
                         "loss_logging_items_names": ["Loss"], "metric_to_watch": "Top5",
                         "greater_metric_to_watch_is_better": True, "phase_callbacks": phase_callbacks}
 
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params,
+                      train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
         context_callbacks = list(filter(lambda cb: isinstance(cb, PhaseContextTestCallback), trainer.phase_callbacks))
 
         # CHECK THAT PHASE CONTEXES HAVE THE EXACT INFORMATION THERY'RE SUPPOSE TO HOLD

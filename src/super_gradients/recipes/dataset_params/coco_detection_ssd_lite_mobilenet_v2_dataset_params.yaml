@@ -126,7 +126,7 @@ val_dataset_params:
   cache: False
   transforms:
     - DetectionPaddedRescale:
-      input_dim: ${dataset_params.val_dataset_params.input_dim}
+        input_dim: ${dataset_params.val_dataset_params.input_dim}
     - DetectionTargetsFormatTransform:
         max_targets: 50
         output_format:

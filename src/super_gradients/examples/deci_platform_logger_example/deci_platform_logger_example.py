@@ -1,15 +1,12 @@
 import os
-from super_gradients.training import Trainer
-from super_gradients.training.datasets.dataset_interfaces import Cifar10DatasetInterface
+from super_gradients.training import Trainer, models
 from super_gradients.training.metrics.classification_metrics import Accuracy, Top5
-
+from super_gradients.training.dataloaders.dataloader_factory import cifar10_train, cifar10_val
 os.environ["DECI_PLATFORM_TOKEN"] = "XXX"  # Replace XXX with your token
 
 
 trainer = Trainer(experiment_name='demo-deci-platform-logger')
-dataset = Cifar10DatasetInterface(dataset_params={"batch_size": 256, "val_batch_size": 512})
-trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
-trainer.build_model("resnet18")
+model = models.get("resnet18", num_classes=10)
 
 trainer.train(training_params={"max_epochs": 20,
                                "lr_updates": [5, 10, 15],
@@ -23,4 +20,6 @@ trainer.train(training_params={"max_epochs": 20,
                                "valid_metrics_list": [Accuracy(), Top5()],
                                "metric_to_watch": "Accuracy",
                                "greater_metric_to_watch_is_better": True,
-                               "sg_logger": "deci_platform_sg_logger"})
+                               "sg_logger": "deci_platform_sg_logger"},
+              train_loader=cifar10_train(),
+              valid_loader=cifar10_val())

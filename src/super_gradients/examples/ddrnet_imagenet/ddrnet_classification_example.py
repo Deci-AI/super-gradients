@@ -14,15 +14,16 @@ Paper:              https://arxiv.org/pdf/2101.06085.pdf
 
 import torch
 
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface
-
+from super_gradients.common import MultiGPUMode
+from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation
+from torchvision.transforms import RandomHorizontalFlip, ColorJitter, ToTensor, Normalize
 import super_gradients
-from super_gradients.training import Trainer, MultiGPUMode
+from super_gradients.training import Trainer, models
 from super_gradients.training.models import HpmStruct
 import argparse
-
 from super_gradients.training.metrics import Accuracy, Top5
-
+from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
+from super_gradients.training.dataloaders.dataloader_factory import imagenet_train, imagenet_val
 parser = argparse.ArgumentParser()
 super_gradients.init_trainer()
 
@@ -56,19 +57,25 @@ dataset_params = {"batch_size": args.batch,
                   "random_erase_prob": 0.2,
                   "random_erase_value": 'random',
                   "train_interpolation": 'random',
-                  "auto_augment_config_string": 'rand-m9-mstd0.5'
                   }
+
+
+train_transforms = [RandomResizedCropAndInterpolation(size=224, interpolation="random"),
+                    RandomHorizontalFlip(),
+                    ColorJitter(0.4, 0.4, 0.4),
+                    ToTensor(),
+                    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                    RandomErase(0.2, "random")
+                    ]
 
 trainer = Trainer(experiment_name=args.experiment_name,
                   multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
                   device='cuda')
+train_loader = imagenet_train(dataset_params={"transforms": train_transforms}, dataloader_params={"batch_size": args.batch})
+valid_loader = imagenet_val()
 
-dataset = ImageNetDatasetInterface(dataset_params=dataset_params)
+model = models.get("ddrnet_23_slim" if args.slim else "ddrnet_23",
+                   arch_params={"aux_head": False, "classification_mode": True, 'dropout_prob': 0.3},
+                   num_classes=1000)
 
-trainer.connect_dataset_interface(dataset, data_loader_num_workers=8 * devices)
-
-arch_params = HpmStruct(**{"num_classes": 1000, "aux_head": False, "classification_mode": True, 'dropout_prob': 0.3})
-
-trainer.build_model(architecture="ddrnet_23_slim" if args.slim else "ddrnet_23",
-                    arch_params=arch_params)
-trainer.train(training_params=train_params_ddr)
+trainer.train(model=model, training_params=train_params_ddr, train_loader=train_loader, valid_loader=valid_loader)

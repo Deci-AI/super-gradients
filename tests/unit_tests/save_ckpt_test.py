@@ -1,6 +1,7 @@
 import unittest
 import os
 from super_gradients.training import Trainer, models
+from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
 from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 
@@ -20,15 +21,13 @@ class SaveCkptListUnitTest(unittest.TestCase):
         # Define Model
         trainer = Trainer("save_ckpt_test", model_checkpoints_location='local')
 
-        # Connect Dataset
-        dataset = ClassificationTestDatasetInterface()
-        trainer.connect_dataset_interface(dataset, data_loader_num_workers=8)
-
         # Build Model
         model = models.get("resnet18_cifar", arch_params={"num_classes": 10})
 
         # Train Model (and save ckpt_epoch_list)
-        trainer.train(model=model, training_params=train_params)
+        trainer.train(model=model, training_params=train_params,
+                      train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
         dir_path = trainer.checkpoints_dir_path
         self.file_names_list = [dir_path + f'/ckpt_epoch_{epoch}.pth' for epoch in train_params["save_ckpt_epoch_list"]]

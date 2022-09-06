@@ -1,5 +1,6 @@
 import unittest
 from super_gradients.training import Trainer
+from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
@@ -25,16 +26,10 @@ class TestNet(LeNet):
 
 
 class UpdateParamGroupsTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.dataset_params = {"batch_size": 4}
-        self.dataset = ClassificationTestDatasetInterface(dataset_params=self.dataset_params)
-        self.arch_params = {'num_classes': 10}
-
     def test_lr_scheduling_with_update_param_groups(self):
         # Define Model
         net = TestNet()
         trainer = Trainer("lr_warmup_test", model_checkpoints_location='local')
-        trainer.connect_dataset_interface(self.dataset)
 
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
@@ -52,6 +47,8 @@ class UpdateParamGroupsTest(unittest.TestCase):
                         }
 
         expected_lrs = np.array([0.1, 0.2, 0.3])
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params,
+                      train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
         self.assertTrue(np.allclose(np.array(lrs), expected_lrs, rtol=0.0000001))

@@ -1,6 +1,7 @@
 import unittest
 from super_gradients import Trainer, \
     ClassificationTestDatasetInterface
+from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
 import os
@@ -13,8 +14,6 @@ class SgTrainerLoggingTest(unittest.TestCase):
     def test_train_logging(self):
         trainer = Trainer("test_train_with_full_log", model_checkpoints_location='local')
         dataset_params = {"batch_size": 10}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        trainer.connect_dataset_interface(dataset)
 
         net = ResNet18(num_classes=5, arch_params={})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
@@ -25,7 +24,9 @@ class SgTrainerLoggingTest(unittest.TestCase):
                         "greater_metric_to_watch_is_better": True,
                         "save_full_train_log": True}
 
-        trainer.train(model=net, training_params=train_params)
+        trainer.train(model=net, training_params=train_params,
+                      train_loader=classification_test_dataloader(batch_size=10),
+                      valid_loader=classification_test_dataloader(batch_size=10))
 
         logfile_path = trainer.log_file.replace('.txt', 'full_train_log.log')
         assert os.path.exists(logfile_path) and os.path.getsize(logfile_path) > 0

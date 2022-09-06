@@ -559,7 +559,7 @@ class Trainer:
             self.arch_params.override(**arch_params.to_dict())
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, model: nn.Module = None, training_params: dict = dict(), train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
+    def train(self, model: nn.Module = None, training_params: dict = None, train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
         """
 
         train - Trains the Model
@@ -838,6 +838,8 @@ class Trainer:
         :return:
         """
         global logger
+        if training_params is None:
+            training_params = dict()
 
         self.train_loader = train_loader or self.train_loader
         self.valid_loader = valid_loader or self.valid_loader

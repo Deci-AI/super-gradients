@@ -1,6 +1,7 @@
 from super_gradients import ClassificationTestDatasetInterface
 from super_gradients.training import MultiGPUMode, models
 from super_gradients.training import Trainer
+from super_gradients.training.dataloaders.dataloader_factory import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 import unittest
 
@@ -25,8 +26,6 @@ class EMAIntegrationTest(unittest.TestCase):
     def _init_model(self) -> None:
         self.trainer = Trainer("resnet18_cifar_ema_test", model_checkpoints_location='local',
                                device='cpu', multi_gpu=MultiGPUMode.OFF)
-        dataset_interface = ClassificationTestDatasetInterface({"batch_size": 32})
-        self.trainer.connect_dataset_interface(dataset_interface, 8)
         self.model = models.get("resnet18_cifar", arch_params={"num_classes": 5})
 
     @classmethod
@@ -65,7 +64,9 @@ class EMAIntegrationTest(unittest.TestCase):
         self.trainer.test = CallWrapper(self.trainer.test, check_before=before_test)
         self.trainer._train_epoch = CallWrapper(self.trainer._train_epoch, check_before=before_train_epoch)
 
-        self.trainer.train(model=self.model, training_params=training_params)
+        self.trainer.train(model=self.model, training_params=training_params,
+                           train_loader=classification_test_dataloader(),
+                           valid_loader=classification_test_dataloader())
 
         self.assertIsNotNone(self.trainer.ema_model)
 
