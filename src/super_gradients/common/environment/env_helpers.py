@@ -9,7 +9,7 @@ from typing import List
 from omegaconf import OmegaConf
 
 from super_gradients.common.environment import environment_config
-from super_gradients.common.environment.environment_config import DEFAULT_SUBPROCESS_LOGGING_LEVEL, set_global_log_level
+from super_gradients.common.environment.environment_config import DEFAULT_SUBPROCESS_LOGGING_LEVEL
 
 
 class TerminalColours:
@@ -155,7 +155,7 @@ def init_local_process(local_rank: int, ddp_port: int, world_size: int) -> None:
     os.environ['MASTER_PORT'] = str(ddp_port)
     if local_rank > 0:
         os.environ["LOG_LEVEL"] = DEFAULT_SUBPROCESS_LOGGING_LEVEL
-        set_global_log_level(level=DEFAULT_SUBPROCESS_LOGGING_LEVEL)
+        # set_global_log_level(level=DEFAULT_SUBPROCESS_LOGGING_LEVEL)
 
 
 def kill_subprocesses(subprocesses: List[subprocess.Popen]) -> None:

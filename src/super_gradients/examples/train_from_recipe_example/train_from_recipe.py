@@ -53,6 +53,9 @@ def get_ddp_params(cfg: DictConfig) -> Tuple[int, int, int]:
 
 
 if __name__ == "__main__":
+    import subprocess
+
+    subprocess.run(["torchrun --nproc_per_node=3 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py  --config-name=imagenet_efficientnet"])
     os.environ["RANK"] = os.getenv("LOCAL_RANK", "0")
     register_hydra_resolvers()
     train()
