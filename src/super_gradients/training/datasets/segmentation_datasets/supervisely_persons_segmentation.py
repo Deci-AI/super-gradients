@@ -39,3 +39,4 @@ class SuperviselyPersonsDataset(SegmentationDataSet):
                 else:
                     raise AssertionError(f"Sample and/or target file(s) not found or in illegal format "
                                          f"(sample path: {sample_path}, target path: {target_path})")
+        super(SuperviselyPersonsDataset, self)._generate_samples_and_targets()
