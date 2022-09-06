@@ -34,13 +34,26 @@ def main(cfg: DictConfig):
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-def train(cfg: DictConfig):
+def train(cfg):
     """Launch the training job according to the specified recipe.
 
     :param cfg: Hydra config that was specified when launching the job with --config-name
     """
+    # from hydra import compose, initialize
+    # from omegaconf import OmegaConf
+    #
+    # import omegaconf
+    # cfg = omegaconf.OmegaConf.load(config_path)
+    #
+    # initialize(config_path=config_path)
+    # cfg = compose(config_path="")
+    # print(OmegaConf.to_yaml(cfg))
     Trainer.train_from_config(cfg)
-#
+
+
+def setup_train():
+    train()
+
 
 def get_ddp_params(cfg: DictConfig) -> Tuple[int, int, int]:
     """Get the DDP params. Take it from config file if set there, or set default value otherwise.
@@ -53,9 +66,7 @@ def get_ddp_params(cfg: DictConfig) -> Tuple[int, int, int]:
 
 
 if __name__ == "__main__":
-    import subprocess
-
-    subprocess.run(["torchrun --nproc_per_node=3 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py  --config-name=imagenet_efficientnet"])
     os.environ["RANK"] = os.getenv("LOCAL_RANK", "0")
-    register_hydra_resolvers()
+    init_trainer()
+    import torch
     train()
