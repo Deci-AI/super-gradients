@@ -224,8 +224,14 @@ class PPLiteSegBase(SegmentationModule):
         :param sppm_out_channels: The number of output channels after sppm module.
         :param sppm_pool_sizes: spatial output sizes of the pooled feature maps.
         :param sppm_upsample_mode: Upsample mode to original size after pooling.
-        :param :
-        :param :
+        :param decoder_up_factors: list upsample factor per decoder stage.
+        :param decoder_channels: list of num_channels per decoder stage.
+        :param decoder_upsample_mode: upsample mode in decoder stages, see UpsampleMode for valid options.
+        :param head_upsample_mode: upsample mode to final prediction sizes, see UpsampleMode for valid options.
+        :param head_mid_channels: num of hidden channels in segmentation head.
+        :param use_aux_heads: set True when training, output extra Auxiliary feature maps from the encoder module.
+        :param aux_hidden_channels: List of hidden channels in auxiliary segmentation heads.
+        :param aux_scale_factors: list of psample factors for final auxiliary heads logits.
         """
         super().__init__(use_aux_heads=use_aux_heads)
 
