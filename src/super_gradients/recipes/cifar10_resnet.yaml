@@ -12,9 +12,8 @@ defaults:
   - arch_params: resnet18_cifar_arch_params
   - checkpoint_params: default_checkpoint_params
 
-dataset_interface:
-  cifar_10:
-    dataset_params: ${dataset_params}
+train_dataloader: cifar10_train
+val_dataloader: cifar10_val
 
 data_loader_num_workers: 8
 
@@ -27,3 +26,5 @@ model_checkpoints_location: local
 ckpt_root_dir:
 
 architecture: resnet18_cifar
+
+experiment_name: resnet18_cifar

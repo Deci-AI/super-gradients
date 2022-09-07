@@ -203,7 +203,7 @@ class Trainer:
 
         trainer = Trainer(**kwargs)
 
-        # CONNECT THE DATASET INTERFACE WITH DECI MODEL
+        # INSTANTIATE DATA LOADERS
         train_dataloader = dataloaders.get(name=cfg.train_dataloader,
                                            dataset_params=cfg.dataset_params.train_dataset_params,
                                            dataloader_params=cfg.dataset_params.train_dataloader_params)

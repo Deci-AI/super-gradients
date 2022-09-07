@@ -15,6 +15,9 @@ defaults:
   - arch_params: mobilenet_v2_arch_params
   - checkpoint_params: default_checkpoint_params
 
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
+
 arch_params:
   num_classes: 1000
   dropout: 0.2
