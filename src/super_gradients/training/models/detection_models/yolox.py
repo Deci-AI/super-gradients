@@ -55,4 +55,3 @@ class CustomYoloX(YoloBase):
     def __init__(self, arch_params: HpmStruct):
         arch_params.yolo_type = 'yoloX'
         super().__init__(backbone=arch_params.backbone, arch_params=arch_params)
-

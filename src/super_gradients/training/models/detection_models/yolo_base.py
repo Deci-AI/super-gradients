@@ -223,6 +223,7 @@ class YoloDarknetBackbone(AbstractYoloBackbone, CSPDarknet53):
     def forward(self, x):
         return AbstractYoloBackbone.forward(self, x)
 
+
 class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
     """Implements the Regnet module and inherits the forward pass to extract layers indicated in arch_params"""
 
