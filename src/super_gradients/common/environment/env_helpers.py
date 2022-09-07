@@ -79,7 +79,7 @@ def init_trainer():
         for val in to_remove:
             sys.argv.remove(val)
 
-    environment_config.DDP_LOCAL_RANK = args.local_rank
+    environment_config.DDP_LOCAL_RANK = int(os.environ["LOCAL_RANK"])
 
 
 def register_hydra_resolvers():

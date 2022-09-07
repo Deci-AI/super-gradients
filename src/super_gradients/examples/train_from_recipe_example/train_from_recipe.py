@@ -39,7 +39,13 @@ def train(cfg):
 
     :param cfg: Hydra config that was specified when launching the job with --config-name
     """
-    # from hydra import compose, initialize
+    Trainer.train_from_config(cfg)
+
+
+def setup_train(config_path, config_name):
+
+
+    # from hydra import compose, initialize, initialize_config_dir
     # from omegaconf import OmegaConf
     #
     # import omegaconf
@@ -48,11 +54,14 @@ def train(cfg):
     # initialize(config_path=config_path)
     # cfg = compose(config_path="")
     # print(OmegaConf.to_yaml(cfg))
+
+
+    import omegaconf
+    from hydra import compose, initialize, initialize_config_dir
+    initialize_config_dir(config_path)
+    cfg = compose(config_name)
+    # cfg = omegaconf.OmegaConf.load(config_path + "/" + config_name + ".yaml")
     Trainer.train_from_config(cfg)
-
-
-def setup_train():
-    train()
 
 
 def get_ddp_params(cfg: DictConfig) -> Tuple[int, int, int]:
