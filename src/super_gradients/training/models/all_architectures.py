@@ -11,7 +11,7 @@ from super_gradients.training.models.classification_models.vit import vit_base, 
 from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
-from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X
+from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, \
@@ -85,6 +85,7 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "yolox_m": YoloX_M,
                  "yolox_l": YoloX_L,
                  "yolox_x": YoloX_X,
+                 "custom_yolox": CustomYoloX,
                  "ssd_mobilenet_v1": SSDMobileNetV1,
                  "ssd_lite_mobilenet_v2": SSDLiteMobileNetV2,
                  "repvgg_a0": repvgg.RepVggA0,

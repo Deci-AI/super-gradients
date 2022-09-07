@@ -49,3 +49,10 @@ class YoloX_X(YoloBase):
         arch_params.width_mult_factor = 1.25
         arch_params.yolo_type = 'yoloX'
         super().__init__(backbone=YoloDarknetBackbone, arch_params=arch_params)
+
+
+class CustomYoloX(YoloBase):
+    def __init__(self, arch_params: HpmStruct):
+        arch_params.yolo_type = 'yoloX'
+        super().__init__(backbone=arch_params.backbone, arch_params=arch_params)
+

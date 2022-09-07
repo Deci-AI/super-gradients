@@ -1,15 +1,16 @@
 import math
-from typing import Union, Type, List
+from typing import Union, Type, List, Tuple
 
 import torch
 import torch.nn as nn
+
+from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, \
-    CSPDarknet53, get_yolo_type_params
+    CSPDarknet53, get_yolo_type_params, SPP
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.detection_utils import non_max_suppression, \
     matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
-from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility
-
+from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [30, 61, 62, 45, 59, 119],
@@ -222,6 +223,50 @@ class YoloDarknetBackbone(AbstractYoloBackbone, CSPDarknet53):
     def forward(self, x):
         return AbstractYoloBackbone.forward(self, x)
 
+class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
+    """Implements the Regnet module and inherits the forward pass to extract layers indicated in arch_params"""
+
+    def __init__(self, arch_params):
+        backbone_params = {**arch_params.backbone_params, 'backbone_mode': True, 'num_classes': None}
+        backbone_params.pop('spp_kernels', None)
+        AnyNetX.__init__(self, **backbone_params)
+
+        changed_backbone = False
+
+        # LAST ANYNETX STAGE -> STAGE + SPP IF SPP_KERNELS IS GIVEN
+        spp_kernels = get_param(arch_params.backbone_params, 'spp_kernels', None)
+        if spp_kernels:
+            activation_type = nn.SiLU if arch_params.yolo_type == 'yoloX' or arch_params.yolo_version == 'v6.0' \
+                else nn.Hardswish
+            self.net.stage_3 = self.add_spp_to_stage(self.net.stage_3, spp_kernels, activation_type=activation_type)
+            changed_backbone = True
+
+        # IF CHANGES TO BACKBONE WERE MADE RE-INITIALIZE WEIGHTS
+        if changed_backbone:
+            # INITIALIZE WEIGHTS AGAIN TO COVER NEWLY ADDED STEMCUSTOMIZED AND/OR SPP
+            self.initialize_weight()
+
+        # CREATE A LIST CONTAINING THE LAYERS TO EXTRACT FROM THE BACKBONE AND ADD THE FINAL LAYER
+        self._modules_list = nn.ModuleList()
+        for layer in self.net:
+            self._modules_list.append(layer)
+
+        AbstractYoloBackbone.__init__(self, arch_params)
+        self.backbone_connection_channels = arch_params.backbone_params['ls_block_width'][1:][::-1]
+
+    @staticmethod
+    def add_spp_to_stage(anynetx_stage: Stage, spp_kernels: Tuple[int], activation_type):
+        """
+        Add SPP in the end of an AnyNetX Stage
+        """
+        # Last block in a Stage -> conv_block_3 -> Conv2d -> out_channels
+        out_channels = anynetx_stage.blocks[-1].conv_block_3[0].out_channels
+        anynetx_stage.blocks.add_module("spp_block", SPP(out_channels, out_channels, spp_kernels, activation_type=activation_type))
+        return anynetx_stage
+
+    def forward(self, x):
+        return AbstractYoloBackbone.forward(self, x)
+
 
 class YoloHead(nn.Module):
     def __init__(self, arch_params):
@@ -319,6 +364,10 @@ class YoloBase(SgModule):
         self.num_classes = self.arch_params.num_classes
         # THE MODEL'S MODULES
         self._backbone = backbone(arch_params=self.arch_params)
+        if hasattr(self._backbone, 'backbone_connection_channels'):
+            self.arch_params.scaled_backbone_width = False
+            self.arch_params.backbone_connection_channels = self._backbone.backbone_connection_channels
+
         self._nms = nn.Identity()
 
         # A FLAG TO DEFINE augment_forward IN INFERENCE
