@@ -19,10 +19,9 @@ from super_gradients.training.datasets.datasets_utils import RandomResizedCropAn
 from torchvision.transforms import RandomHorizontalFlip, ColorJitter, ToTensor, Normalize
 import super_gradients
 from super_gradients.training import Trainer, models
-from super_gradients.training.models import HpmStruct
 import argparse
 from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
+from super_gradients.training.datasets.data_augmentation import RandomErase
 from super_gradients.training.dataloaders.dataloaders import imagenet_train, imagenet_val
 parser = argparse.ArgumentParser()
 super_gradients.init_trainer()

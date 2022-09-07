@@ -4,7 +4,6 @@ from super_gradients.training.dataloaders.dataloaders import classification_test
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
 from super_gradients.training.utils.utils import check_models_have_same_weights
-from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
 from copy import deepcopy
 

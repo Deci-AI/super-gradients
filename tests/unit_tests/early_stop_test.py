@@ -6,7 +6,6 @@ from super_gradients.training.dataloaders.dataloaders import classification_test
 from super_gradients.training.utils.early_stopping import EarlyStop
 from super_gradients.training.utils.callbacks import Phase
 from super_gradients.training.sg_trainer import Trainer
-from super_gradients.training.datasets.dataset_interfaces import ClassificationTestDatasetInterface
 from super_gradients.training.models.classification_models.resnet import ResNet18
 from super_gradients.training.metrics import Accuracy, Top5
 from torchmetrics.metric import Metric

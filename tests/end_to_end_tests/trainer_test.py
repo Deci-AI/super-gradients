@@ -6,7 +6,7 @@ from super_gradients.training import models
 import super_gradients
 import torch
 import os
-from super_gradients import Trainer, ClassificationTestDatasetInterface
+from super_gradients import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 

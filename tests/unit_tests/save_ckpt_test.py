@@ -2,7 +2,6 @@ import unittest
 import os
 from super_gradients.training import Trainer, models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy, Top5
 
 

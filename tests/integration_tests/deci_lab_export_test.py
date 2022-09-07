@@ -1,6 +1,5 @@
 import unittest
-from super_gradients import Trainer, \
-    ClassificationTestDatasetInterface
+from super_gradients import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
@@ -48,8 +47,8 @@ class DeciLabUploadTest(unittest.TestCase):
                         "phase_callbacks": [model_conversion_callback, deci_lab_callback]}
         self.optimizer = SGD(params=net.parameters(), lr=0.1)
 
-        self.trainer.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(),
-                      valid_loader=classification_test_dataloader())
+        self.trainer.train(model=net, training_params=train_params,
+                           train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
 
         # CLEANUP
 

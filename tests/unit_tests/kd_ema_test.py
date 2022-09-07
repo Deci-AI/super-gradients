@@ -6,7 +6,6 @@ from super_gradients.training.dataloaders.dataloaders import classification_test
 from super_gradients.training.kd_trainer import KDTrainer
 import torch
 from super_gradients.training.utils.utils import check_models_have_same_weights
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.losses.kd_losses import KDLogitsLoss
 
@@ -15,8 +14,6 @@ class KDEMATest(unittest.TestCase):
     @classmethod
     def setUp(cls):
         cls.sg_trained_teacher = Trainer("sg_trained_teacher", device='cpu')
-        cls.dataset_params = {"batch_size": 5}
-        cls.dataset = ClassificationTestDatasetInterface(dataset_params=cls.dataset_params)
 
         cls.kd_train_params = {"max_epochs": 3, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                                "lr_warmup_epochs": 0, "initial_lr": 0.1,

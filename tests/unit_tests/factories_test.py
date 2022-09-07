@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from super_gradients import ClassificationTestDatasetInterface, Trainer
+from super_gradients import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
@@ -35,7 +35,6 @@ class FactoriesTest(unittest.TestCase):
 
         self.assertIsInstance(trainer.train_metrics.Accuracy, Accuracy)
         self.assertIsInstance(trainer.valid_metrics.Top5, Top5)
-        self.assertIsInstance(trainer.dataset_interface, ClassificationTestDatasetInterface)
         self.assertIsInstance(trainer.optimizer, torch.optim.ASGD)
 
 

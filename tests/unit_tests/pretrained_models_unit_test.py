@@ -3,7 +3,6 @@ import super_gradients
 from super_gradients.training import MultiGPUMode, models
 from super_gradients.training import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training.metrics import Accuracy
 import os
 import shutil

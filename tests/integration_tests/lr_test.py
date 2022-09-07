@@ -4,7 +4,7 @@ import os
 
 from super_gradients.training import models
 
-from super_gradients import Trainer, ClassificationTestDatasetInterface
+from super_gradients import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 
@@ -49,6 +49,7 @@ class LRTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             trainer.train(model=model, training_params=training_params, train_loader=classification_test_dataloader(),
                           valid_loader=classification_test_dataloader())
+
     def test_cosine_lr(self):
         trainer, model = self.get_trainer(self.folder_name)
         training_params = {**self.training_params, "lr_mode": "cosine", "cosine_final_lr_ratio": 0.01}
@@ -60,6 +61,7 @@ class LRTest(unittest.TestCase):
         training_params = {**self.training_params, "lr_mode": "step", "lr_decay_factor": 0.1, "lr_updates": [4]}
         trainer.train(model=model, training_params=training_params, train_loader=classification_test_dataloader(),
                       valid_loader=classification_test_dataloader())
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -2,7 +2,6 @@ import unittest
 from super_gradients.training import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy
-from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training.utils.callbacks import TestLRCallback

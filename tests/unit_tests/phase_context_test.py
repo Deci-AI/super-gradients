@@ -2,8 +2,7 @@ import unittest
 
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.utils.callbacks import PhaseContextTestCallback, Phase
-from super_gradients import Trainer, \
-    ClassificationTestDatasetInterface
+from super_gradients import Trainer
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
 import torch

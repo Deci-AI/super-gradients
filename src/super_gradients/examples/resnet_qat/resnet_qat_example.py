@@ -16,9 +16,8 @@ Once triggered, the following will happen:
 Finally, once training is over- we trigger a pos-training callback that will export the ONNX files.
 
 """
-
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface
-from super_gradients.training import Trainer, MultiGPUMode
+from super_gradients.training.dataloaders import imagenet_train, imagenet_val
+from super_gradients.training import Trainer, MultiGPUMode, models
 from super_gradients.training.metrics.classification_metrics import Accuracy
 
 import super_gradients
@@ -26,13 +25,14 @@ from super_gradients.training.utils.quantization_utils import PostQATConversionC
 
 super_gradients.init_trainer()
 
-dataset = ImageNetDatasetInterface(data_dir="/data/Imagenet", dataset_params={"batch_size": 128})
 trainer = Trainer("resnet18_qat_example",
                   model_checkpoints_location='local',
                   multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
 
-trainer.connect_dataset_interface(dataset)
-trainer.build_model("resnet18", checkpoint_params={"pretrained_weights": "imagenet"})
+train_loader = imagenet_train()
+valid_loader = imagenet_val()
+
+model = models.get("resnet18", pretrained_weights="imagenet")
 
 train_params = {"max_epochs": 1,
                 "lr_mode": "step",
@@ -58,4 +58,4 @@ train_params = {"max_epochs": 1,
                 "phase_callbacks": [PostQATConversionCallback(dummy_input_size=(1, 3, 224, 224))]
                 }
 
-trainer.train(training_params=train_params)
+trainer.train(model=model, training_params=train_params, train_loader=train_loader, valid_loader=valid_loader)

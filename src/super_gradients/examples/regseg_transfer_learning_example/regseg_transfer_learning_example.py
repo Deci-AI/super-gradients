@@ -1,12 +1,10 @@
 from super_gradients.training import models
 
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import SuperviselyPersonsDatasetInterface
 from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.metrics import BinaryIOU
 from super_gradients.training.transforms.transforms import ResizeSeg, RandomFlip, RandomRescale, CropImageAndMask, \
     PadShortToCropSize, ColorJitterSeg
 from super_gradients.training.utils.callbacks import BinarySegmentationVisualizationCallback, Phase
-from torchvision import transforms
 from super_gradients.training.dataloaders.dataloaders import supervisely_persons_val, supervisely_persons_train
 # DEFINE DATA TRANSFORMATIONS
 

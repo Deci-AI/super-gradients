@@ -7,7 +7,6 @@ from super_gradients.training.kd_trainer.kd_trainer import KDTrainer
 import torch
 
 from super_gradients.training import models
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training.losses.kd_losses import KDLogitsLoss
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.models.classification_models.resnet import ResNet50, ResNet18
@@ -38,7 +37,6 @@ class PreTrainingEMANetCollector(PhaseCallback):
 class KDTrainerTest(unittest.TestCase):
     @classmethod
     def setUp(cls):
-
         cls.kd_train_params = {"max_epochs": 3, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                                "lr_warmup_epochs": 0, "initial_lr": 0.1,
                                "loss": KDLogitsLoss(torch.nn.CrossEntropyLoss()),
@@ -69,7 +67,6 @@ class KDTrainerTest(unittest.TestCase):
         sg_model = KDTrainer("test_train_kd_module_external_models", device='cpu')
         teacher_model = ResNet50(arch_params={}, num_classes=5)
         student_model = ResNet18(arch_params={}, num_classes=5)
-        
 
         sg_model.train(training_params=self.kd_train_params, student=deepcopy(student_model), teacher=teacher_model,
                        train_loader=classification_test_dataloader(),
@@ -128,7 +125,8 @@ class KDTrainerTest(unittest.TestCase):
         train_params = self.kd_train_params.copy()
         train_params["max_epochs"] = 1
         train_params["ema"] = True
-        kd_trainer.train(training_params=train_params, student=student, teacher=teacher, train_loader=classification_test_dataloader(),
+        kd_trainer.train(training_params=train_params, student=student, teacher=teacher,
+                         train_loader=classification_test_dataloader(),
                          valid_loader=classification_test_dataloader())
         best_student_ckpt = os.path.join(kd_trainer.checkpoints_dir_path, "ckpt_best.pth")
 
@@ -145,7 +143,8 @@ class KDTrainerTest(unittest.TestCase):
                              pretrained_weights="imagenet")
         train_params = self.kd_train_params.copy()
         train_params["max_epochs"] = 1
-        kd_trainer.train(training_params=train_params, student=student, teacher=teacher, train_loader=classification_test_dataloader(),
+        kd_trainer.train(training_params=train_params, student=student, teacher=teacher,
+                         train_loader=classification_test_dataloader(),
                          valid_loader=classification_test_dataloader())
         latest_net = deepcopy(kd_trainer.net)
 
@@ -158,7 +157,8 @@ class KDTrainerTest(unittest.TestCase):
         train_params["resume"] = True
         collector = PreTrainingNetCollector()
         train_params["phase_callbacks"] = [collector]
-        kd_trainer.train(training_params=train_params, student=student, teacher=teacher, train_loader=classification_test_dataloader(),
+        kd_trainer.train(training_params=train_params, student=student, teacher=teacher,
+                         train_loader=classification_test_dataloader(),
                          valid_loader=classification_test_dataloader())
 
         self.assertTrue(

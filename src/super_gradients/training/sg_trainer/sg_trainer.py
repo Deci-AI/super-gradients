@@ -23,7 +23,6 @@ from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.factories.datasets_factory import DatasetsFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
@@ -38,7 +37,6 @@ from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, \
     IllegalDataloaderInitialization
-from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
     get_logging_values, \
@@ -247,23 +245,6 @@ class Trainer:
 
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
-
-    @resolve_param('dataset_interface', DatasetsFactory())
-    def connect_dataset_interface(self, dataset_interface: DatasetInterface, data_loader_num_workers: int = 8):
-        """
-        :param dataset_interface: DatasetInterface object
-        :param data_loader_num_workers: The number of threads to initialize the Data Loaders with
-            The dataset to be connected
-        """
-        if self.train_loader:
-            logger.warning("Overriding the dataloaders that Trainer was initialized with")
-        self.dataset_interface = dataset_interface
-        self.train_loader, self.valid_loader, self.test_loader, self.classes = \
-            self.dataset_interface.get_data_loaders(batch_size_factor=self.num_devices,
-                                                    num_workers=data_loader_num_workers,
-                                                    distributed_sampler=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
-
-        self.dataset_params = self.dataset_interface.get_dataset_params()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     @deprecated(target=None, deprecated_in='2.3.0', remove_in='3.0.0')
@@ -879,8 +860,7 @@ class Trainer:
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
-        self.metric_idx_in_results_tuple = (
-                self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
 
         # Instantiate the values to monitor (loss/metric)
         for loss in self.loss_logging_items_names:
@@ -1443,8 +1423,7 @@ class Trainer:
                              "calling test or through training_params when calling train(...)")
         if self.test_loader is None:
             raise ValueError("Test dataloader is required to perform test. Make sure to either pass it through "
-                             "test_loader arg or calling connect_dataset_interface upon a DatasetInterface instance "
-                             "with a non empty testset attribute.")
+                             "test_loader arg.")
 
         # RESET METRIC RUNNERS
         self._reset_metrics()

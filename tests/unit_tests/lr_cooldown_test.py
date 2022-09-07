@@ -2,7 +2,6 @@ import unittest
 from super_gradients.training import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy
-from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
 from super_gradients.training.utils.callbacks import TestLRCallback
 
@@ -12,7 +11,6 @@ class LRCooldownTest(unittest.TestCase):
         # Define Model
         net = LeNet()
         trainer = Trainer("lr_warmup_test", model_checkpoints_location='local')
-
 
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]

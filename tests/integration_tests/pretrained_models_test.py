@@ -1,9 +1,11 @@
 import unittest
 
-import torch
-
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import Trainer
+from super_gradients.training.dataloaders import imagenet_val, imagenet_vit_base_val
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader, coco2017_val_yolox, \
+    coco2017_val_ssd_lite_mobilenet_v2, detection_test_dataloader, coco_segmentation_val, cityscapes_val, \
+    cityscapes_stdc_seg50_val, cityscapes_stdc_seg75_val, segmentation_test_dataloader
 from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN
 
 from super_gradients.training.metrics import Accuracy, IoU
@@ -16,7 +18,7 @@ from super_gradients.training.metrics import DetectionMetrics
 from super_gradients.training.losses.stdc_loss import STDCLoss
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training import models
-from super_gradients.training.dataloaders.dataloaders import *
+import super_gradients
 
 
 class PretrainedModelsTest(unittest.TestCase):
@@ -481,8 +483,7 @@ class PretrainedModelsTest(unittest.TestCase):
                            **self.coco_pretrained_ckpt_params)
         ssd_post_prediction_callback = SSDPostPredictCallback()
         res = trainer.test(model=model, test_loader=self.coco_dataset['ssd_mobilenet'], test_metrics_list=[
-            DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback, num_cls=80)],
-                           metrics_progress_verbose=True)[2]
+            DetectionMetrics(post_prediction_callback=ssd_post_prediction_callback, num_cls=80)], metrics_progress_verbose=True)[2]
         self.assertAlmostEqual(res, self.coco_pretrained_maps["ssd_lite_mobilenet_v2"], delta=0.001)
 
     def test_transfer_learning_ssd_lite_mobilenet_v2_coco(self):

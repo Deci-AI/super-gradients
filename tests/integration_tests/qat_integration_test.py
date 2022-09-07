@@ -1,7 +1,6 @@
 import unittest
 
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
 from super_gradients.training import Trainer, MultiGPUMode, models
 from super_gradients.training.metrics.classification_metrics import Accuracy
 import os
