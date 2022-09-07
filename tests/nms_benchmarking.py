@@ -5,22 +5,27 @@ from enum import Enum
 import time
 from datetime import datetime
 import os
+import sys
 import gc
 import torch
 
-from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
-from super_gradients.training.utils.detection_utils import NMS_Type
+try:
+    from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
+    from super_gradients.training.utils.detection_utils import NMS_Type
+    SG_IMPORTED_SUCCESSFULLY = True
+except ImportError as e:
+    print(f'\n\nWARNING: Failed to import super-gradients - {e}\n\n')
+    SG_IMPORTED_SUCCESSFULLY = False
 
-BATCH_SIZES = [1, 8, 16]
+BATCH_SIZES = [1, 8, 16, 32]
 WARMUP_REPETITIONS = 100
-NMS_CONFIDENCE_THRESHOLD = 0.3
-NMS_THRESHOLD = 0.0
+NMS_CONFIDENCE_THRESHOLD = 0.5
 NMS_IOU = 0.65
 
 
 class ModelArchs(Enum):
-    # YOLOX_N = 'yolox_n'
-    # YOLOX_T = 'yolox_t'
+    YOLOX_N = 'yolox_n'
+    YOLOX_T = 'yolox_t'
     YOLOX_S = 'yolox_s'
 
 
@@ -28,7 +33,6 @@ class NMSTypes(Enum):
     FIRST_100 = 'first_100'
     NO_NMS = 'no_nms'
     BATCHED_NMS = 'batched_nms'
-    # TODO: MATRIX_NMS = 'matrix_nms'
 
 
 class NMSBenchmarker:
@@ -36,7 +40,6 @@ class NMSBenchmarker:
         self._model_directory_base = _model_directory_base
         """
         Expected Model Directory Structure:
-        
         |
         -- yolox_s
         |    |
@@ -55,13 +58,19 @@ class NMSBenchmarker:
              ---- batched_nms.engine
         """
 
-    def _benchmark_internal(self, model_archs, batch_sizes,  nms_type, nms_device='cpu'):
+    def _benchmark_internal(self, model_archs, batch_sizes,  nms_type, nms_device='cpu', torch_nms='iterative'):
         self.cleanup()
         results_dict = {}
 
-        # If NO_NMS is compiled, use the Torch NMS module with the passed NMS device
-        nms = YoloPostPredictionCallback(conf=NMS_CONFIDENCE_THRESHOLD, iou=NMS_IOU, nms_type=NMS_Type.ITERATIVE) if \
-            nms_type == NMSTypes.NO_NMS else (lambda y: y)
+        # If NO_NMS is compiled, use the Torch NMS module with the passed NMS device and type
+        benchmark_method = self._benchmark_helper_in_model_nms
+        nms_callback = None
+        if nms_type == NMSTypes.NO_NMS:
+            benchmark_method = self._benchmark_helper_torch_cpu if nms_device == 'cpu' else \
+                self._benchmark_helper_torch_gpu
+            nms_callback = YoloPostPredictionCallback(conf=NMS_CONFIDENCE_THRESHOLD,
+                                                      iou=NMS_IOU, nms_type=NMS_Type(torch_nms))
+
 
         for arch in model_archs:
             # Prep model and results bookkeeping
@@ -72,11 +81,11 @@ class NMSBenchmarker:
             # Start benchmarking different batch sizes
             for bs in batch_sizes:
                 print(f'{arch} --- {bs}')
-                data_loader = self.get_coco_data_loader(loaded_model=loaded_model, batch_size=bs)
+                data_loader = self.get_coco_data_loader()
                 results_dict[arch][bs] = {}
 
                 # Warmup
-                dummy_input = np.random.rand(bs, *(loaded_model.input_dims[0]))
+                dummy_input = np.random.rand(bs, *(loaded_model.input_dims[0])).astype(np.float32)
                 for _ in range(WARMUP_REPETITIONS):
                     x = loaded_model.predict(dummy_input, output_device=nms_device)
 
@@ -84,14 +93,14 @@ class NMSBenchmarker:
                 times = []
 
                 for x in data_loader:
-                    x = (x[0].numpy())[:bs, :, :, :]
+                    x = (x[0].numpy())
 
-                    # We're loaded and the input is converted - now time to benchmark (E2E - i.e., CPU -> CPU)
-                    start = time.perf_counter()
-                    x = loaded_model.predict(x, output_device=nms_device)
-                    x = x[-1] if nms_device == 'gpu' else torch.from_numpy(x[-1])
-                    x = nms(x)
-                    times.append(time.perf_counter() - start)
+                    # Bug with setting BS of dataloader dynamically
+                    for i in range(0, 64, bs):
+                        y = x[i:i+bs, :, :, :]
+
+                        # We're loaded and the input is converted - now time to benchmark (E2E - i.e., CPU -> CPU)
+                        benchmark_method(y, loaded_model, times, nms_callback)
 
                 results_dict[arch][bs]['latency'] = sum(times)/len(times)
                 results_dict[arch][bs]['throughput'] = len(times)*bs/sum(times)
@@ -99,6 +108,23 @@ class NMSBenchmarker:
 
         self.cleanup()
         return results_dict
+
+    def _benchmark_helper_torch_gpu(self, x, loaded_model, times, nms_callback):
+        start = time.perf_counter()
+        x = loaded_model.predict(x, output_device='gpu')
+        x = nms_callback(x[-1])
+        times.append(time.perf_counter() - start)
+
+    def _benchmark_helper_torch_cpu(self, x, loaded_model, times, nms_callback):
+        start = time.perf_counter()
+        x = loaded_model.predict(x)
+        x = nms_callback(torch.from_numpy(x[-1]))
+        times.append(time.perf_counter() - start)
+
+    def _benchmark_helper_in_model_nms(self, x, loaded_model, times, nms_callback):
+        start = time.perf_counter()
+        x = loaded_model.predict(x)
+        times.append(time.perf_counter() - start)
 
     def no_nms_first_100_benchmarks(self, model_archs=None, batch_sizes=None):
         model_archs, batch_sizes = self._valid_archs_and_batchs(model_archs, batch_sizes)
@@ -110,13 +136,13 @@ class NMSBenchmarker:
 
         return self._benchmark_internal(model_archs=model_archs, batch_sizes=batch_sizes, nms_type=NMSTypes.BATCHED_NMS)
 
-    def native_torch_on_cpu(self, model_archs=None, batch_sizes=None):
+    def native_torch_on_cpu(self, model_archs=None, batch_sizes=None, torch_nms='iterative'):
         model_archs, batch_sizes = self._valid_archs_and_batchs(model_archs, batch_sizes)
 
         return self._benchmark_internal(model_archs=model_archs, batch_sizes=batch_sizes, nms_device='cpu',
                                         nms_type=NMSTypes.NO_NMS)
 
-    def native_torch_on_gpu(self, model_archs=None, batch_sizes=None):
+    def native_torch_on_gpu(self, model_archs=None, batch_sizes=None, torch_nms='iterative'):
         model_archs, batch_sizes = self._valid_archs_and_batchs(model_archs, batch_sizes)
 
         return self._benchmark_internal(model_archs=model_archs, batch_sizes=batch_sizes, nms_device='gpu',
@@ -153,7 +179,7 @@ class NMSBenchmarker:
         new_results_df.to_csv(export_path, index=False)
 
     @staticmethod
-    def get_coco_data_loader(loaded_model, batch_size):
+    def get_coco_data_loader():
         from super_gradients.training.dataloaders.dataloader_factory import coco2017_val_yolox
 
         return coco2017_val_yolox()
@@ -173,9 +199,13 @@ class NMSBenchmarker:
 
 
 if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print('USAGE: [PATH_TO_MODEL_DIR] [PATH_TO_RESULTS_FILE]')
+        exit(1)
+
     # ------------- CONSTANTS ------------- #
-    benchmarker = NMSBenchmarker('/home/naveassaf/Desktop/NMS_Benchmarks/A4000_NEW')
-    results_path = '/home/naveassaf/Desktop/NMS_Benchmarks/results_A4000.csv'
+    benchmarker = NMSBenchmarker(sys.argv[1])
+    results_path = sys.argv[2]
 
     # ------------- BENCHMARK ------------- #
     results_dict = benchmarker.no_nms_first_100_benchmarks()
@@ -188,13 +218,17 @@ if __name__ == '__main__':
                                            results_dict=results_dict,
                                            export_path=results_path,
                                            append_to_existing=True)
-    results_dict = benchmarker.native_torch_on_cpu()
-    benchmarker.persist_result_dict_to_csv('torch_cpu',
-                                           results_dict=results_dict,
-                                           export_path=results_path,
-                                           append_to_existing=True)
-    results_dict = benchmarker.native_torch_on_gpu()
-    benchmarker.persist_result_dict_to_csv('torch_gpu',
-                                           results_dict=results_dict,
-                                           export_path=results_path,
-                                           append_to_existing=True)
+    if SG_IMPORTED_SUCCESSFULLY:
+        results_dict = benchmarker.native_torch_on_cpu(torch_nms=NMS_Type.ITERATIVE)
+        benchmarker.persist_result_dict_to_csv('torch_cpu',
+                                               results_dict=results_dict,
+                                               export_path=results_path,
+                                               append_to_existing=True)
+        results_dict = benchmarker.native_torch_on_gpu(torch_nms=NMS_Type.ITERATIVE)
+        benchmarker.persist_result_dict_to_csv('torch_gpu',
+                                               results_dict=results_dict,
+                                               export_path=results_path,
+                                               append_to_existing=True)
+
+        # TODO: SUPPORT MATRIX NMS? CURRENTLY SEEMS BUGGY.
+        # TODO: results_dict = benchmarker.native_torch_on_gpu(torch_nms=NMS_Type.MATRIX)
