@@ -191,7 +191,7 @@ class DetectX(nn.Module):
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
-class AbstractYoLoBackbone:
+class AbstractYoloBackbone:
     def __init__(self, arch_params):
         # CREATE A LIST CONTAINING THE LAYERS TO EXTRACT FROM THE BACKBONE AND ADD THE FINAL LAYER
         self._layer_idx_to_extract = [idx for sub_l in arch_params.skip_connections_dict.values() for idx in sub_l]
@@ -211,19 +211,19 @@ class AbstractYoLoBackbone:
         return extracted_intermediate_layers
 
 
-class YoLoDarknetBackbone(AbstractYoLoBackbone, CSPDarknet53):
+class YoloDarknetBackbone(AbstractYoloBackbone, CSPDarknet53):
     """Implements the CSP_Darknet53 module and inherit the forward pass to extract layers indicated in arch_params"""
 
     def __init__(self, arch_params):
         arch_params.backbone_mode = True
         CSPDarknet53.__init__(self, arch_params)
-        AbstractYoLoBackbone.__init__(self, arch_params)
+        AbstractYoloBackbone.__init__(self, arch_params)
 
     def forward(self, x):
-        return AbstractYoLoBackbone.forward(self, x)
+        return AbstractYoloBackbone.forward(self, x)
 
 
-class YoLoHead(nn.Module):
+class YoloHead(nn.Module):
     def __init__(self, arch_params):
         super().__init__()
         # PARSE arch_params
@@ -306,7 +306,7 @@ class YoLoHead(nn.Module):
                                        out])
 
 
-class YoLoBase(SgModule):
+class YoloBase(SgModule):
     def __init__(self, backbone: Type[nn.Module], arch_params: HpmStruct, initialize_module: bool = True):
         super().__init__()
         # DEFAULT PARAMETERS TO BE OVERWRITTEN BY DUPLICATES THAT APPEAR IN arch_params
@@ -325,7 +325,7 @@ class YoLoBase(SgModule):
         self.augmented_inference = False
 
         if initialize_module:
-            self._head = YoLoHead(self.arch_params)
+            self._head = YoloHead(self.arch_params)
             self._initialize_module()
 
     def forward(self, x):
