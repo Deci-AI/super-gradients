@@ -248,6 +248,22 @@ class CustomRegNet(RegNetX):
                          input_channels=get_param(arch_params, 'input_channels', 3))
 
 
+class CustomAnyNet(AnyNetX):
+    def __init__(self, arch_params):
+        """All parameters must be provided in arch_params other than SE"""
+        super().__init__(ls_num_blocks=arch_params.ls_num_blocks,
+                         ls_block_width=arch_params.ls_block_width,
+                         ls_bottleneck_ratio=arch_params.ls_bottleneck_ratio,
+                         ls_group_width=arch_params.ls_group_width,
+                         stride=arch_params.stride,
+                         num_classes=arch_params.num_classes,
+                         se_ratio=arch_params.se_ratio if hasattr(arch_params, 'se_ratio') else None,
+                         backbone_mode=get_param(arch_params, 'backbone_mode', False),
+                         dropout_prob=get_param(arch_params, 'dropout_prob', 0),
+                         droppath_prob=get_param(arch_params, 'droppath_prob', 0),
+                         input_channels=get_param(arch_params, 'input_channels', 3))
+
+
 class NASRegNet(RegNetX):
     def __init__(self, arch_params):
         """All parameters are provided as a single structure list: arch_params.structure"""
