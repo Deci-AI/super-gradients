@@ -1,13 +1,10 @@
 import unittest
 
 from super_gradients.training.dataloaders.dataloaders import coco2017_train, coco2017_val
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 
 from super_gradients.training import Trainer, models
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
-from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN, DetectionCollateFN, \
-    DetectionTargetsFormat
 
 
 class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):

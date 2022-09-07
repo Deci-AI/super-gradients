@@ -3,10 +3,9 @@ import unittest
 
 from super_gradients.training import Trainer, utils as core_utils, models
 from super_gradients.training.dataloaders.dataloaders import coco2017_val
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
-from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionCollateFN, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import DetectionVisualization
 
 
 class TestDetectionUtils(unittest.TestCase):

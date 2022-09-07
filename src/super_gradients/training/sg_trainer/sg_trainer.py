@@ -30,7 +30,7 @@ from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
-from super_gradients.training import utils as core_utils, models
+from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
@@ -204,7 +204,13 @@ class Trainer:
         trainer = Trainer(**kwargs)
 
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
-        trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
+        train_dataloader = dataloaders.get(name=cfg.train_dataloader,
+                                           dataset_params=cfg.dataset_params.train_dataset_params,
+                                           dataloader_params=cfg.dataset_params.train_dataloader_params)
+
+        val_dataloader = dataloaders.get(name=cfg.val_dataloader,
+                                         dataset_params=cfg.dataset_params.val_dataset_params,
+                                         dataloader_params=cfg.dataset_params.val_dataloader_params)
 
         # BUILD NETWORK
         model = models.get(name=cfg.architecture,
@@ -217,7 +223,10 @@ class Trainer:
                            )
 
         # TRAIN
-        trainer.train(model=model, training_params=cfg.training_hyperparams)
+        trainer.train(model=model,
+                      train_loader=train_dataloader,
+                      valid_loader=val_dataloader,
+                      training_params=cfg.training_hyperparams)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
@@ -559,7 +568,8 @@ class Trainer:
             self.arch_params.override(**arch_params.to_dict())
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, model: nn.Module = None, training_params: dict = None, train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
+    def train(self, model: nn.Module = None, training_params: dict = None, train_loader: DataLoader = None,
+              valid_loader: DataLoader = None):  # noqa: C901
         """
 
         train - Trains the Model
@@ -869,7 +879,8 @@ class Trainer:
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
-        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
+        self.metric_idx_in_results_tuple = (
+                self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
 
         # Instantiate the values to monitor (loss/metric)
         for loss in self.loss_logging_items_names:
