@@ -260,7 +260,7 @@ class CustomAnyNet(AnyNetX):
                          se_ratio=arch_params.se_ratio if hasattr(arch_params, 'se_ratio') else None,
                          backbone_mode=get_param(arch_params, 'backbone_mode', False),
                          dropout_prob=get_param(arch_params, 'dropout_prob', 0),
-                         droppath_prob = get_param(arch_params, 'droppath_prob', 0),
+                         droppath_prob=get_param(arch_params, 'droppath_prob', 0),
                          input_channels=get_param(arch_params, 'input_channels', 3))
 
 
