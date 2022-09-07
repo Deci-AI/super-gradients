@@ -6,15 +6,12 @@ import time
 from datetime import datetime
 import os
 import gc
-
 import torch
 
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
-from super_gradients.training.models.detection_models.yolox_generator import get_model, prep
 from super_gradients.training.utils.detection_utils import NMS_Type
 
-THROUGHPUT_BATCH_SIZES = [8, 16] #[8, 16, 32, 64]
-LATENCY_BATCH_SIZES = [1]
+BATCH_SIZES = [1, 8, 16]
 WARMUP_REPETITIONS = 100
 NMS_CONFIDENCE_THRESHOLD = 0.3
 NMS_THRESHOLD = 0.0
@@ -74,11 +71,6 @@ class NMSBenchmarker:
 
             # Start benchmarking different batch sizes
             for bs in batch_sizes:
-                # FOR TESTING INPUT
-                # input_shape = [bs, 3, 416, 416]
-                # model = prep(get_model("yolox_s_arch_params"), input_shape)
-                # model.prep_model_for_conversion(input_shape)
-
                 print(f'{arch} --- {bs}')
                 data_loader = self.get_coco_data_loader(loaded_model=loaded_model, batch_size=bs)
                 results_dict[arch][bs] = {}
@@ -163,19 +155,13 @@ class NMSBenchmarker:
     @staticmethod
     def get_coco_data_loader(loaded_model, batch_size):
         from super_gradients.training.dataloaders.dataloader_factory import coco2017_val_yolox
-        dataset_params = {}
-
-        dataset_params['batch_size'] = batch_size
-        dataset_params['val_batch_size'] = batch_size
-        dataset_params['val_image_size'] = loaded_model.input_dims[0][-1]
-        dataset_params['train_image_size'] = loaded_model.input_dims[0][-1]
 
         return coco2017_val_yolox()
 
     def _valid_archs_and_batchs(self, model_archs, batch_sizes):
         # If not specified, benchmark all model architectures and all batch sizes
         model_archs = model_archs or list(ModelArchs)
-        batch_sizes = batch_sizes or {*THROUGHPUT_BATCH_SIZES, *LATENCY_BATCH_SIZES}
+        batch_sizes = batch_sizes or BATCH_SIZES
 
         return model_archs, batch_sizes
 
@@ -192,16 +178,16 @@ if __name__ == '__main__':
     results_path = '/home/naveassaf/Desktop/NMS_Benchmarks/results_A4000.csv'
 
     # ------------- BENCHMARK ------------- #
-    # results_dict = benchmarker.no_nms_first_100_benchmarks()
-    # benchmarker.persist_result_dict_to_csv('first_100',
-    #                                        results_dict=results_dict,
-    #                                        export_path=results_path,
-    #                                        append_to_existing=True)
-    # results_dict = benchmarker.trt_batched_nms()
-    # benchmarker.persist_result_dict_to_csv('trt_batched',
-    #                                        results_dict=results_dict,
-    #                                        export_path=results_path,
-    #                                        append_to_existing=True)
+    results_dict = benchmarker.no_nms_first_100_benchmarks()
+    benchmarker.persist_result_dict_to_csv('first_100',
+                                           results_dict=results_dict,
+                                           export_path=results_path,
+                                           append_to_existing=True)
+    results_dict = benchmarker.trt_batched_nms()
+    benchmarker.persist_result_dict_to_csv('trt_batched',
+                                           results_dict=results_dict,
+                                           export_path=results_path,
+                                           append_to_existing=True)
     results_dict = benchmarker.native_torch_on_cpu()
     benchmarker.persist_result_dict_to_csv('torch_cpu',
                                            results_dict=results_dict,
