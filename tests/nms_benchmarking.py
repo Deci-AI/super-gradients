@@ -6,26 +6,25 @@ import time
 from datetime import datetime
 import os
 import gc
-from super_gradients.training.sg_model import SgModel
 
-from super_gradients.training.utils.utils import HpmStruct
-from super_gradients.training.models.detection_models.yolox import YoloX_S, YoloX_N, YoloX_T
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import CoCoDetectionDatasetInterface
+import torch
+
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
-from super_gradients.training.utils.detection_utils import DetectionCollateFN
+from super_gradients.training.models.detection_models.yolox_generator import get_model, prep
+from super_gradients.training.utils.detection_utils import NMS_Type
 
 THROUGHPUT_BATCH_SIZES = [8, 16] #[8, 16, 32, 64]
 LATENCY_BATCH_SIZES = [1]
 WARMUP_REPETITIONS = 100
-NMS_CONFIDENCE_THRESHOLD = 0.001
+NMS_CONFIDENCE_THRESHOLD = 0.3
 NMS_THRESHOLD = 0.0
 NMS_IOU = 0.65
 
 
 class ModelArchs(Enum):
-    YOLOX_N = 'yolox_n'
-    YOLOX_T = 'yolox_t'
-    # YOLOX_S = 'yolox_s'
+    # YOLOX_N = 'yolox_n'
+    # YOLOX_T = 'yolox_t'
+    YOLOX_S = 'yolox_s'
 
 
 class NMSTypes(Enum):
@@ -64,7 +63,7 @@ class NMSBenchmarker:
         results_dict = {}
 
         # If NO_NMS is compiled, use the Torch NMS module with the passed NMS device
-        nms = YoloV5PostPredictionCallback(conf=NMS_CONFIDENCE_THRESHOLD, iou=NMS_IOU, classes=80) if \
+        nms = YoloPostPredictionCallback(conf=NMS_CONFIDENCE_THRESHOLD, iou=NMS_IOU, nms_type=NMS_Type.ITERATIVE) if \
             nms_type == NMSTypes.NO_NMS else (lambda y: y)
 
         for arch in model_archs:
@@ -76,9 +75,9 @@ class NMSBenchmarker:
             # Start benchmarking different batch sizes
             for bs in batch_sizes:
                 # FOR TESTING INPUT
-                input_shape = [bs, 3, 416, 416]
-                model = YoloX_N(HpmStruct()).eval()
-                model.prep_model_for_conversion(input_shape)
+                # input_shape = [bs, 3, 416, 416]
+                # model = prep(get_model("yolox_s_arch_params"), input_shape)
+                # model.prep_model_for_conversion(input_shape)
 
                 print(f'{arch} --- {bs}')
                 data_loader = self.get_coco_data_loader(loaded_model=loaded_model, batch_size=bs)
@@ -93,12 +92,13 @@ class NMSBenchmarker:
                 times = []
 
                 for x in data_loader:
-                    x = x[0].numpy()
+                    x = (x[0].numpy())[:bs, :, :, :]
 
                     # We're loaded and the input is converted - now time to benchmark (E2E - i.e., CPU -> CPU)
                     start = time.perf_counter()
                     x = loaded_model.predict(x, output_device=nms_device)
-                    # x = nms(x)
+                    x = x[-1] if nms_device == 'gpu' else torch.from_numpy(x[-1])
+                    x = nms(x)
                     times.append(time.perf_counter() - start)
 
                 results_dict[arch][bs]['latency'] = sum(times)/len(times)
@@ -162,22 +162,15 @@ class NMSBenchmarker:
 
     @staticmethod
     def get_coco_data_loader(loaded_model, batch_size):
-        import yaml
-        from pathlib import Path
+        from super_gradients.training.dataloaders.dataloader_factory import coco2017_val_yolox
+        dataset_params = {}
 
-        dataset_params = yaml.safe_load(Path(
-            '/home/naveassaf/Workspace/super-gradients/src/super_gradients/recipes/dataset_params/coco_detection_yolox_dataset_params.yaml').read_text())
-
-        dataset_params['val_collate_fn'] = DetectionCollateFN()
-        dataset_params['train_collate_fn'] = DetectionCollateFN()
         dataset_params['batch_size'] = batch_size
         dataset_params['val_batch_size'] = batch_size
         dataset_params['val_image_size'] = loaded_model.input_dims[0][-1]
         dataset_params['train_image_size'] = loaded_model.input_dims[0][-1]
 
-        _, val_loader, _, _ = CoCoDetectionDatasetInterface(dataset_params).get_data_loaders()
-
-        return val_loader
+        return coco2017_val_yolox()
 
     def _valid_archs_and_batchs(self, model_archs, batch_sizes):
         # If not specified, benchmark all model architectures and all batch sizes
@@ -194,27 +187,8 @@ class NMSBenchmarker:
 
 
 if __name__ == '__main__':
-    import yaml
-    from pathlib import Path
-
-    dataset_params = yaml.safe_load(Path(
-        '/home/naveassaf/Workspace/super-gradients/src/super_gradients/recipes/dataset_params/coco_detection_yolox_dataset_params.yaml').read_text())
-
-    dataset_params['val_collate_fn'] = DetectionCollateFN()
-    dataset_params['train_collate_fn'] = DetectionCollateFN()
-    dataset_params['batch_size'] = 1
-    dataset_params['val_batch_size'] = 1
-    dataset_params['val_image_size'] = 640
-    dataset_params['train_image_size'] = 640
-
-    ds_interface = CocoDetectionDatasetInterfaceV2(dataset_params)
-
-    yolox_s = SgModel(experiment_name='YoloX_S')
-    yolox_s.connect_dataset_interface(ds_interface)
-    yolox_s.build_model()
-
     # ------------- CONSTANTS ------------- #
-    benchmarker = NMSBenchmarker('/home/naveassaf/Desktop/NMS_Benchmarks/A4000')
+    benchmarker = NMSBenchmarker('/home/naveassaf/Desktop/NMS_Benchmarks/A4000_NEW')
     results_path = '/home/naveassaf/Desktop/NMS_Benchmarks/results_A4000.csv'
 
     # ------------- BENCHMARK ------------- #

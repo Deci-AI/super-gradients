@@ -1,15 +1,6 @@
 from super_gradients.training.models.detection_models.yolo_base import YoLoBase, YoLoDarknetBackbone
-import numpy as np
-import torch
 from super_gradients.training.utils.utils import HpmStruct
 
-import sys
-import os
-sys.path.insert(0, '/home/naveassaf/Workspace/rt-optimization')
-
-from deci_common.data_types.enum.models_enums import QuantizationLevel
-from deci_common.data_types.enum.model_frameworks import FrameworkType
-from deci_optimize.converter import Converter
 
 # ------------------------------------------------------------------------------------------ #
 # YOLOX Nano
@@ -22,10 +13,9 @@ class YoloX_N(YoLoBase):
         arch_params.depthwise = True
         super().__init__(backbone=YoLoDarknetBackbone, arch_params=arch_params)
 
-
-class YoloX_N_First100(YoloX_N):
-    def forward(self, x):
-        return super().forward(x)[0][:, :100, :]
+    # COMMENT OUT WHEN COMPILING NORMAL/BATCHED NMS YOLOX
+    # def forward(self, x):
+    #     return super().forward(x)[:, :100, :]
 
 # ------------------------------------------------------------------------------------------ #
 # YOLOX Tiny
@@ -37,10 +27,9 @@ class YoloX_T(YoLoBase):
         arch_params.yolo_type = 'yoloX'
         super().__init__(backbone=YoLoDarknetBackbone, arch_params=arch_params)
 
-
-class YoloX_T_First100(YoloX_T):
-    def forward(self, x):
-        return super().forward(x)[0][:, :100, :]
+    # COMMENT OUT WHEN COMPILING NORMAL/BATCHED NMS YOLOX
+    # def forward(self, x):
+    #     return super().forward(x)[:, :100, :]
 
 # ------------------------------------------------------------------------------------------ #
 # YOLOX Small
@@ -52,10 +41,9 @@ class YoloX_S(YoLoBase):
         arch_params.yolo_type = 'yoloX'
         super().__init__(backbone=YoLoDarknetBackbone, arch_params=arch_params)
 
-
-class YoloX_S_First100(YoloX_S):
-    def forward(self, x):
-        return super().forward(x)[0][:, :100, :]
+    # COMMENT OUT WHEN COMPILING NORMAL/BATCHED NMS YOLOX
+    # def forward(self, x):
+    #     return super().forward(x)[:, :100, :]
 
 
 # ------------------------------------------------------------------------------------------ #
