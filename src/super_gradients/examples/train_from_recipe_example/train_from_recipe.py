@@ -11,30 +11,30 @@ from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment.env_helpers import launch_sub_processes, init_local_process, kill_subprocesses, register_hydra_resolvers, init_trainer
 from super_gradients.training import utils as core_utils
 
+#
+# @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
+# def main(cfg: DictConfig):
+#     """Launch a training on single node or multiple node depending on the specified config.
+#
+#     :param cfg: Hydra config that was specified when launching the job with --config-name
+#     """
+#     multi_gpu = core_utils.get_param(cfg, 'multi_gpu')
+#
+#     if not multi_gpu or multi_gpu == MultiGPUMode.OFF:
+#         train(cfg)
+#     else:
+#         local_rank, ddp_port, nproc_per_node = get_ddp_params(cfg)
+#         subprocesses = launch_sub_processes(ddp_port, world_size=nproc_per_node) if local_rank == 0 else []
+#         init_local_process(local_rank, ddp_port, world_size=nproc_per_node)
+#
+#         try:
+#             train(cfg)
+#         finally:
+#             kill_subprocesses(subprocesses)
+
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-def main(cfg: DictConfig):
-    """Launch a training on single node or multiple node depending on the specified config.
-
-    :param cfg: Hydra config that was specified when launching the job with --config-name
-    """
-    multi_gpu = core_utils.get_param(cfg, 'multi_gpu')
-
-    if not multi_gpu or multi_gpu == MultiGPUMode.OFF:
-        train(cfg)
-    else:
-        local_rank, ddp_port, nproc_per_node = get_ddp_params(cfg)
-        subprocesses = launch_sub_processes(ddp_port, world_size=nproc_per_node) if local_rank == 0 else []
-        init_local_process(local_rank, ddp_port, world_size=nproc_per_node)
-
-        try:
-            train(cfg)
-        finally:
-            kill_subprocesses(subprocesses)
-
-
-@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-def train(cfg):
+def train_from_recipe(cfg):
     """Launch the training job according to the specified recipe.
 
     :param cfg: Hydra config that was specified when launching the job with --config-name
@@ -42,40 +42,11 @@ def train(cfg):
     Trainer.train_from_config(cfg)
 
 
-def setup_train(config_path, config_name):
-
-
-    # from hydra import compose, initialize, initialize_config_dir
-    # from omegaconf import OmegaConf
-    #
-    # import omegaconf
-    # cfg = omegaconf.OmegaConf.load(config_path)
-    #
-    # initialize(config_path=config_path)
-    # cfg = compose(config_path="")
-    # print(OmegaConf.to_yaml(cfg))
-
-
-    import omegaconf
-    from hydra import compose, initialize, initialize_config_dir
-    initialize_config_dir(config_path)
-    cfg = compose(config_name)
-    # cfg = omegaconf.OmegaConf.load(config_path + "/" + config_name + ".yaml")
-    Trainer.train_from_config(cfg)
-
-
-def get_ddp_params(cfg: DictConfig) -> Tuple[int, int, int]:
-    """Get the DDP params. Take it from config file if set there, or set default value otherwise.
-
-    :param cfg: Hydra config that was specified when launching the job with --config-name"""
-    local_rank = core_utils.get_param(cfg, 'local_rank', 0 if torch.cuda.device_count() > 1 else -1)
-    ddp_port = core_utils.get_param(cfg, 'ddp_port', random.randint(1025, 65536))
-    nproc_per_node = core_utils.get_param(cfg, 'nproc_per_node', torch.cuda.device_count())
-    return local_rank, ddp_port, nproc_per_node
+def main():
+    train_from_recipe()
 
 
 if __name__ == "__main__":
     os.environ["RANK"] = os.getenv("LOCAL_RANK", "0")
     init_trainer()
-    import torch
-    train()
+    main()

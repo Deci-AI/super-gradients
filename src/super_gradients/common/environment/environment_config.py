@@ -34,5 +34,4 @@ DEFAULT_LOGGING_LEVEL = environ.get("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=DEFAULT_LOGGING_LEVEL)
 # set_global_log_level(DEFAULT_LOGGING_LEVEL)
 
-import os
-DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", -1))
+DDP_LOCAL_RANK = -1

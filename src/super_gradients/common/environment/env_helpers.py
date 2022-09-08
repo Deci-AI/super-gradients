@@ -66,20 +66,27 @@ def init_trainer():
     a function to initialize the super_gradients environment. This function should be the first thing to be called
     by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
     and prepares the super_gradients environment.
+    TODO: Rename to setup_env or something more explicit than init_trainer
     """
     register_hydra_resolvers()
+    setup_rank()
 
+
+def setup_rank():
+    # Get local_rank from args if exists.
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
     args, _ = parser.parse_known_args()
 
-    # remove any flags starting with --local_rank from the argv list
+    # Remove local_rank from args if exists.
     to_remove = list(filter(lambda x: x.startswith('--local_rank'), sys.argv))
     if len(to_remove) > 0:
         for val in to_remove:
             sys.argv.remove(val)
 
-    environment_config.DDP_LOCAL_RANK = int(os.environ["LOCAL_RANK"])
+    # Set local_rank with priority order (env variable > args > default value)
+    local_rank = os.getenv("LOCAL_RANK", args.local_rank)
+    environment_config.DDP_LOCAL_RANK = local_rank
 
 
 def register_hydra_resolvers():
