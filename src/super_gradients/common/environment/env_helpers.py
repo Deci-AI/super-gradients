@@ -10,7 +10,6 @@ from typing import List
 from omegaconf import OmegaConf
 
 from super_gradients.common.environment import environment_config
-from super_gradients.common.environment.environment_config import DEFAULT_SUBPROCESS_LOGGING_LEVEL
 
 
 class TerminalColours:

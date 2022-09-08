@@ -8,7 +8,7 @@ from super_gradients.sanity_check import env_sanity_check
 
 __all__ = ['ARCHITECTURES', 'losses', 'utils', 'datasets_utils', 'DataAugmentation',
            'TestDatasetInterface', 'Trainer', 'KDTrainer', 'SegmentationTestDatasetInterface', 'DetectionTestDatasetInterface',
-           'ClassificationTestDatasetInterface', 'init_trainer', 'is_distributed', 'train_from_recipe', 'train_from_kd_recipe',
+           'ClassificationTestDatasetInterface', 'init_trainer', 'is_distributed', 'train_from_recipe.py', 'train_from_kd_recipe',
            'env_sanity_check', 'KDModel', 'SgModel']
 
 
