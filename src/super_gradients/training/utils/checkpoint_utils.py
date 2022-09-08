@@ -273,6 +273,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
                                                                               solver=solver)
     model.load_state_dict(adapted_pretrained_state_dict['net'], strict=False)
 
+
 def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pretrained_weights: str):
 
     """
