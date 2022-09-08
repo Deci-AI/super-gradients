@@ -1,13 +1,30 @@
+import importlib
+import sys
+
+import boto3
+import hydra
+from hydra.core.global_hydra import GlobalHydra
+from omegaconf import OmegaConf, DictConfig
+
 from super_gradients.common import StrictLoad
 from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
+from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model, load_pretrained_weights, \
-    read_ckpt_state_dict
+    read_ckpt_state_dict, load_pretrained_weights_local
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
+
+def get_cls(cls_path):
+    module = '.'.join(cls_path.split('.')[:-1])
+    name = cls_path.split('.')[-1]
+    importlib.import_module(module)
+    return getattr(sys.modules[module], name)
+
+OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args))
 
 
 def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = None) -> SgModule:
@@ -31,15 +48,36 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
 
         arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
 
+    remote_model = False
     if isinstance(name, str) and name in ARCHITECTURES.keys():
         architecture_cls = ARCHITECTURES[name]
         net = architecture_cls(arch_params=arch_params)
+    elif isinstance(name, str):
+        deci_client = MockClient()
+        _arch_params = deci_client.get_model_arch_params(name)
+
+        if _arch_params is not None:
+            _arch_params = hydra.utils.instantiate(_arch_params)
+            base_name = _arch_params['model_name']
+            _arch_params = HpmStruct(**_arch_params)
+            architecture_cls = ARCHITECTURES[base_name]
+            _arch_params.override(**arch_params.to_dict())
+
+            net = architecture_cls(arch_params=_arch_params)
+            remote_model = True
+        else:
+            raise ValueError(
+                "Unsupported model name " + str(name) + ", see docs or all_architectures.py for supported nets.")
     else:
         raise ValueError(
             "Unsupported model name " + str(name) + ", see docs or all_architectures.py for supported "
                                                     "nets.")
     if pretrained_weights:
-        load_pretrained_weights(net, name, pretrained_weights)
+        if remote_model:
+            weights_path = deci_client.get_model_weights(name)
+            load_pretrained_weights_local(net, name, weights_path)
+        else:
+            load_pretrained_weights(net, name, pretrained_weights)
         if num_classes_new_head != arch_params.num_classes:
             net.replace_head(new_num_classes=num_classes_new_head)
             arch_params.num_classes = num_classes_new_head
@@ -90,3 +128,25 @@ def get(name: str, arch_params: dict = {}, num_classes: int = None,
                                      load_weights_only=True,
                                      load_ema_as_net=load_ema_as_net)
     return net
+
+
+class MockClient:
+
+    def __init__(self):
+        self.bucket_name = 'deci-model-repository-research'
+        self.prefix = 'mock_client'
+        self.s3 = boto3.client('s3')
+        GlobalHydra.instance().clear()
+
+
+    def get_model_arch_params(self, model_name:str) -> DictConfig:
+        tmp_file_path='/home/ofri/arch_params.yaml'
+        self.s3.download_file(self.bucket_name, f'{self.prefix}/{model_name}/arch_params.yaml', tmp_file_path)
+        with hydra.initialize_config_dir(config_dir='/home/ofri/'):
+            cfg = hydra.compose(config_name='arch_params.yaml')
+        return cfg
+
+    def get_model_weights(self, model_name:str) -> DictConfig:
+        tmp_file_path='/home/ofri/weights.pth'
+        # self.s3.download_file(self.bucket_name, f'{self.prefix}/{model_name}/weights.pth', tmp_file_path)
+        return tmp_file_path

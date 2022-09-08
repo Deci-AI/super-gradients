@@ -272,3 +272,24 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
                                                                               source_ckpt=pretrained_state_dict,
                                                                               solver=solver)
     model.load_state_dict(adapted_pretrained_state_dict['net'], strict=False)
+
+def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pretrained_weights: str):
+
+    """
+    Loads pretrained weights from the MODEL_URLS dictionary to model
+    @param architecture: name of the model's architecture
+    @param model: model to load pretrinaed weights for
+    @param pretrained_weights: path tp pretrained weights
+    @return: None
+    """
+
+    map_location = torch.device('cpu')
+
+    pretrained_state_dict = torch.load(pretrained_weights, map_location=map_location)
+    if 'ema_net' in pretrained_state_dict.keys():
+        pretrained_state_dict['net'] = pretrained_state_dict['ema_net']
+    solver = _yolox_ckpt_solver if "yolox" in architecture else None
+    adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(model_state_dict=model.state_dict(),
+                                                                              source_ckpt=pretrained_state_dict,
+                                                                              solver=solver)
+    model.load_state_dict(adapted_pretrained_state_dict['net'], strict=False)
