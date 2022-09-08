@@ -39,8 +39,12 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "yolox_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_m_coco/average_model.pth",
               "yolox_l_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_l_coco/average_model.pth",
               "yolox_t_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_tiny_coco/ckpt_best.pth",
-              "yolox_n_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_n_coco/ckpt_best.pth"
+              "yolox_n_coco": "https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/yolox_n_coco/ckpt_best.pth",
 
+              "pp_lite_t_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_t_seg50/average_model.pth",
+              "pp_lite_t_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_t_seg75/average_model.pth",
+              "pp_lite_b_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_b_seg50/average_model.pth",
+              "pp_lite_b_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_b_seg75/average_model.pth",
               }
 
 PRETRAINED_NUM_CLASSES = {"imagenet": 1000,

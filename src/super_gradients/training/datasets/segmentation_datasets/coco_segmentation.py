@@ -57,6 +57,8 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
             mask_metadata_tuple = (relevant_image_id, img_metadata['height'], img_metadata['width'])
             self.samples_targets_tuples_list.append((image_path, mask_metadata_tuple))
 
+        super(CoCoSegmentationDataSet, self)._generate_samples_and_targets()
+
     def target_loader(self, mask_metadata_tuple) -> Image:
         """
         target_loader

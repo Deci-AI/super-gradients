@@ -56,6 +56,7 @@ class CityscapesDataset(SegmentationDataSet):
                 os.path.join(self.root, image_path),
                 os.path.join(self.root, label_path)
             ))
+        super(CityscapesDataset, self)._generate_samples_and_targets()
 
     def target_loader(self, label_path: str) -> Image:
         """
