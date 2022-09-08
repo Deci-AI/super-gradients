@@ -47,9 +47,7 @@ class InitializeWithDataloadersTest(unittest.TestCase):
 
     def test_train_with_dataloaders(self):
         trainer = Trainer(experiment_name="test_name", model_checkpoints_location="local")
-
-        trainer.build_model("resnet18")
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get("resnet18", num_classes=5)
         trainer.train(model=model,
                       training_params={"max_epochs": 2,
                                        "lr_updates": [5, 6, 12],

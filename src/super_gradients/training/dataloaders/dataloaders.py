@@ -279,23 +279,26 @@ def cifar100_val(dataset_params: Dict = None, dataloader_params: Dict = None):
                            )
 
 
-def classification_test_dataloader(batch_size: int = 5, image_size: int = 32) -> DataLoader:
-    images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
-    ground_truth = torch.LongTensor(np.zeros((batch_size)))
+def classification_test_dataloader(batch_size: int = 5, image_size: int = 32, dataset_size=None) -> DataLoader:
+    dataset_size = dataset_size or batch_size
+    images = torch.Tensor(np.zeros((dataset_size, 3, image_size, image_size)))
+    ground_truth = torch.LongTensor(np.zeros((dataset_size)))
     dataset = TensorDataset(images, ground_truth)
     return DataLoader(dataset=dataset, batch_size=batch_size)
 
 
-def detection_test_dataloader(batch_size: int = 5, image_size: int = 320) -> DataLoader:
-    images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
-    ground_truth = torch.Tensor(np.zeros((batch_size, 6)))
+def detection_test_dataloader(batch_size: int = 5, image_size: int = 320, dataset_size=None) -> DataLoader:
+    dataset_size = dataset_size or batch_size
+    images = torch.Tensor(np.zeros((dataset_size, 3, image_size, image_size)))
+    ground_truth = torch.Tensor(np.zeros((dataset_size, 6)))
     dataset = TensorDataset(images, ground_truth)
     return DataLoader(dataset=dataset, batch_size=batch_size)
 
 
-def segmentation_test_dataloader(batch_size: int = 5, image_size: int = 512) -> DataLoader:
-    images = torch.Tensor(np.zeros((batch_size, 3, image_size, image_size)))
-    ground_truth = torch.LongTensor(np.zeros((batch_size, image_size, image_size)))
+def segmentation_test_dataloader(batch_size: int = 5, image_size: int = 512, dataset_size=None) -> DataLoader:
+    dataset_size = dataset_size or batch_size
+    images = torch.Tensor(np.zeros((dataset_size, 3, image_size, image_size)))
+    ground_truth = torch.LongTensor(np.zeros((dataset_size, image_size, image_size)))
     dataset = TensorDataset(images, ground_truth)
     return DataLoader(dataset=dataset, batch_size=batch_size)
 

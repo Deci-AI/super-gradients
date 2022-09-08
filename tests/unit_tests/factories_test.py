@@ -3,17 +3,16 @@ import unittest
 import torch
 
 from super_gradients import Trainer
+from super_gradients.training import models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.training.models import ResNet18
 
 
 class FactoriesTest(unittest.TestCase):
 
     def test_training_with_factories(self):
         trainer = Trainer("test_train_with_factories", model_checkpoints_location='local')
-        net = ResNet18(num_classes=5, arch_params={})
-        trainer.build_model(net)
+        net = models.get("resnet18", num_classes=5)
         train_params = {"max_epochs": 2,
                         "lr_updates": [1],
                         "lr_decay_factor": 0.1,

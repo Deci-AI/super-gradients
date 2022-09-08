@@ -31,7 +31,7 @@ class ForwardpassPrepFNTest(unittest.TestCase):
     def test_resizing_with_forward_pass_prep_fn(self):
         # Define Model
         trainer = Trainer("ForwardpassPrepFNTest")
-        model = models.get("resnet18", arch_params=self.arch_params)
+        model = models.get("resnet18", num_classes=5)
 
         sizes = []
         phase_callbacks = [TestInputSizesCallback(sizes)]

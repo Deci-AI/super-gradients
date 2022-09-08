@@ -163,7 +163,6 @@ class EarlyStopTest(unittest.TestCase):
 
         # test Inf value
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
-        trainer.build_model(self.net)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
