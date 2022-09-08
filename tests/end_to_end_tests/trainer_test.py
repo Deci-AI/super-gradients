@@ -1,6 +1,8 @@
 import shutil
 import unittest
 
+from super_gradients.training import models
+
 import super_gradients
 import torch
 import os
@@ -37,53 +39,31 @@ class TestTrainer(unittest.TestCase):
     def get_classification_trainer(name=''):
         trainer = Trainer(name, model_checkpoints_location='local')
         dataset_params = {"batch_size": 4}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
+        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params, image_size=224)
         trainer.connect_dataset_interface(dataset)
-        trainer.build_model("resnet18_cifar")
-        return trainer
+        model = models.get("resnet18", arch_params={"num_classes": 5})
+        return trainer, model
 
     def test_train(self):
-        trainer = self.get_classification_trainer(self.folder_names[0])
-        trainer.train(training_params=self.training_params)
+        trainer, model = self.get_classification_trainer(self.folder_names[0])
+        trainer.train(model=model, training_params=self.training_params)
 
     def test_save_load(self):
-        trainer = self.get_classification_trainer(self.folder_names[1])
-        trainer.train(training_params=self.training_params)
-        trainer.build_model("resnet18_cifar", checkpoint_params={'load_checkpoint': True})
+        trainer, model = self.get_classification_trainer(self.folder_names[1])
+        trainer.train(model=model, training_params=self.training_params)
 
-    def test_load_only_weights_from_ckpt(self):
-        # Create a checkpoint with 100% accuracy
-        trainer = self.get_classification_trainer(self.folder_names[2])
-        params = self.training_params.copy()
-
-        params['max_epochs'] = 3
-        trainer.train(training_params=params)
-        # Build a model that continues the training
-        trainer = self.get_classification_trainer(self.folder_names[3])
-        trainer.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": False,
-                                                                 "source_ckpt_folder_name": self.folder_names[2]}
-                            )
-        self.assertTrue(trainer.best_metric > -1)
-        self.assertTrue(trainer.start_epoch != 0)
-        # start_epoch is not initialized, adding to max_epochs
-        self.training_params['max_epochs'] += 3
-        trainer.train(training_params=self.training_params)
-        # Build a model that loads the weights and starts from scratch
-        trainer = self.get_classification_trainer(self.folder_names[4])
-        trainer.build_model('resnet18_cifar', checkpoint_params={"load_checkpoint": True, "load_weights_only": True,
-                                                                 "source_ckpt_folder_name": self.folder_names[2]}
-                            )
-        self.assertTrue(trainer.best_metric == -1)
-        self.assertTrue(trainer.start_epoch == 0)
-        self.training_params['max_epochs'] += 3
-        trainer.train(training_params=self.training_params)
+        resume_training_params = self.training_params.copy()
+        resume_training_params["resume"] = True
+        resume_training_params["max_epochs"] = 2
+        trainer, model = self.get_classification_trainer(self.folder_names[1])
+        trainer.train(model=model, training_params=resume_training_params)
 
     def test_checkpoint_content(self):
         """VERIFY THAT ALL CHECKPOINTS ARE SAVED AND CONTAIN ALL THE EXPECTED KEYS"""
-        trainer = self.get_classification_trainer(self.folder_names[5])
+        trainer, model = self.get_classification_trainer(self.folder_names[5])
         params = self.training_params.copy()
         params["save_ckpt_epoch_list"] = [1]
-        trainer.train(training_params=params)
+        trainer.train(model=model, training_params=params)
         ckpt_filename = ['ckpt_best.pth', 'ckpt_latest.pth', 'ckpt_epoch_1.pth']
         ckpt_paths = [os.path.join(trainer.checkpoints_dir_path, suf) for suf in ckpt_filename]
         for ckpt_path in ckpt_paths:

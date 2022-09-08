@@ -6,34 +6,17 @@
 #  Log and tensorboard at s3://deci-pretrained-models/vit_base_imagenet1k/
 
 # Instructions:
-# running from the command line, set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
-#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
-# Then:
-# for vit_base:
-#   python -m torch.distributed.launch --nproc_per_node=8 train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
 
 
 defaults:
   - training_hyperparams: imagenet_vit_train_params
-  - dataset_params: imagenet_dataset_params
+  - dataset_params: imagenet_vit_base_dataset_params
   - arch_params: vit_base_arch_params
   - checkpoint_params: vit_base_imagenet_checkpoint_params
-
-
-dataset_params:
-  resize_size: 249
-  batch_size: 64
-  random_erase_prob: 0
-  random_erase_value: random
-  train_interpolation: random
-  rand_augment_config_string: rand-m7-mstd0.5
-  cutmix: True
-  cutmix_params:
-    mixup_alpha: 0.2
-    cutmix_alpha: 1.0
-    label_smoothing: 0.1
-  img_mean: [0.5, 0.5, 0.5]
-  img_std: [0.5, 0.5, 0.5]
 
 dataset_interface:
   imagenet:
@@ -42,9 +25,12 @@ dataset_interface:
 data_loader_num_workers: 8
 
 model_checkpoints_location: local
-load_checkpoint: True
-load_weights_only: True
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: vit_base_imagenet1k
 
 architecture: vit_base
+multi_gpu: DDP

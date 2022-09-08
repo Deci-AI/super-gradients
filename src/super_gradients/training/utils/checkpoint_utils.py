@@ -62,7 +62,7 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str
     @return:
     """
     try:
-        net.load_state_dict(state_dict['net'], strict=strict)
+        net.load_state_dict(state_dict['net'] if 'net' in state_dict.keys() else state_dict, strict=strict)
     except (RuntimeError, ValueError, KeyError) as ex:
         if strict == 'no_key_matching':
             adapted_state_dict = adapt_state_dict_to_fit_model_layer_names(net.state_dict(), state_dict)
@@ -263,7 +263,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
 
     url = MODEL_URLS[model_url_key]
     unique_filename = url.split("https://deci-pretrained-models.s3.amazonaws.com/")[1].replace('/', '_').replace(' ', '_')
-    map_location = torch.device('cpu') if not torch.cuda.is_available() else None
+    map_location = torch.device('cpu')
     pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
     if 'ema_net' in pretrained_state_dict.keys():
         pretrained_state_dict['net'] = pretrained_state_dict['ema_net']

@@ -42,6 +42,11 @@ class KDModule(SgModule):
         for p in self.teacher.parameters():
             p.requires_grad = False
 
+        if self.teacher_input_adapter is not None:
+            for p in self.teacher_input_adapter.parameters():
+                p.requires_grad = False
+            self.teacher_input_adapter.eval()
+
     def train(self, mode=True):
         self.student.train(mode)
         if not self.run_teacher_on_eval:

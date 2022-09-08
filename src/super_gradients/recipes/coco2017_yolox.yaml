@@ -2,18 +2,29 @@
 # YoloX trained in 640x640
 # Checkpoints + tensorboards: https://deci-pretrained-models.s3.amazonaws.com/yolox_coco/
 # Recipe runs with batch size = 16 X 8 gpus = 128.
+
+
 # Instructions:
-# python -m torch.distributed.launch super_gradients.train_from_recipe --nproc_per_node=8 --config-name=coco2017_yolox architecture=yolox_<YOLOX_SIZE> dataset_params.data_dir=<YOUR_COCO_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command you want:
+#         yolox_n: python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n
+#         yolox_t: python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t
+#         yolox_s: python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s
+#         yolox_m: python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m
+#         yolox_l: python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l
+#         yolox_x: python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_x
+#
 # Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images):
-# yolox_n: 1d 16h 33m 9s on 8 NVIDIA GeForce RTX 3090, mAP: 26.77
-# yolox_tiny: 20h 43m 37s on 8 NVIDIA RTX A5000, mAP: 37.18
-# yolox_s: 1d 17h 40m 30s on 8 NVIDIA RTX A5000, mAP: 40.47
-# yolox_m: 1d 22h 23m 43s on 8 NVIDIA GeForce RTX 3090, mAP: 46.40
-# yolox_l: 2d 14h 11m 41s on 8 NVIDIA GeForce RTX 3090, mAP: 49.25
+#         yolox_n: 1d 16h 33m 9s  on 8 NVIDIA GeForce RTX 3090, mAP: 26.77
+#         yolox_t: 20h 43m 37s    on 8 NVIDIA RTX A5000, mAP: 37.18
+#         yolox_s: 1d 17h 40m 30s on 8 NVIDIA RTX A5000, mAP: 40.47
+#         yolox_m: 1d 22h 23m 43s on 8 NVIDIA GeForce RTX 3090, mAP: 46.40
+#         yolox_l: 2d 14h 11m 41s on 8 NVIDIA GeForce RTX 3090, mAP: 49.25
 
 defaults:
   - training_hyperparams: coco2017_yolox_train_params
-  - dataset_params: coco_detection_yolox_dataset_params
+  - dataset_params: coco_detection_dataset_params
   - arch_params: yolox_s_arch_params
   - checkpoint_params: default_checkpoint_params
 
@@ -27,8 +38,9 @@ data_loader_num_workers: 8
 model_checkpoints_location: local
 
 load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 architecture: yolox_s
 
