@@ -46,7 +46,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
     if dataloader_params is None:
         dataloader_params = dict()
     if dataset_params is None:
-        dataloader_params = dict()
+        dataset_params = dict()
 
     GlobalHydra.instance().clear()
     with initialize_config_dir(config_dir=pkg_resources.resource_filename("super_gradients.recipes", "")):
