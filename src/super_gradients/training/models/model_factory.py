@@ -148,5 +148,5 @@ class MockClient:
 
     def get_model_weights(self, model_name:str) -> DictConfig:
         tmp_file_path='/home/ofri/weights.pth'
-        # self.s3.download_file(self.bucket_name, f'{self.prefix}/{model_name}/weights.pth', tmp_file_path)
+        self.s3.download_file(self.bucket_name, f'{self.prefix}/{model_name}/{model_name}.pth', tmp_file_path)
         return tmp_file_path
