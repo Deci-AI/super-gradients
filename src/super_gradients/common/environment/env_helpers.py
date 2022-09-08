@@ -2,10 +2,7 @@ import argparse
 import os
 import sys
 import socket
-import subprocess
-import logging
 from functools import wraps
-from typing import List
 
 from omegaconf import OmegaConf
 
