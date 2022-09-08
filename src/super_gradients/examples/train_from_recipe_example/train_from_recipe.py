@@ -10,6 +10,8 @@ For recipe's specific instructions and details refer to the recipe's configurati
 """
 
 import sys
+import time
+
 import hydra
 import pkg_resources
 import torch
@@ -25,14 +27,14 @@ from super_gradients.training import utils as core_utils
 from super_gradients.common.data_types.enum import MultiGPUMode
 
 
-def launch_ddp(cfg: DictConfig):
+def launch_ddp(nproc_per_node: int):
     """Create a configuration to launch DDP on single node without restart.
 
     :param cfg: Hydra config that was specified when launching the job with --config-name
     :return:    Configuration to start DDP"""
 
     # Get the value fom recipe if specified, otherwise take all available devices.
-    nproc_per_node = core_utils.get_param(cfg, 'nproc_per_node', torch.cuda.device_count())
+    nproc_per_node = nproc_per_node if nproc_per_node else torch.cuda.device_count()
     ddp_port = find_free_port()
 
     config = LaunchConfig(
@@ -54,6 +56,7 @@ def launch_ddp(cfg: DictConfig):
         metrics_cfg={})
 
     elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv)
+    time.sleep(1000000000)
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
@@ -67,7 +70,9 @@ def run(cfg: DictConfig):
     if multi_gpu == MultiGPUMode.OFF or is_distributed():
         Trainer.train_from_config(cfg)
     else:
-        launch_ddp(cfg)
+        nproc_per_node = core_utils.get_param(cfg, 'nproc_per_node')
+        launch_ddp(nproc_per_node)
+        return
 
 
 @record
@@ -78,3 +83,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
