@@ -56,7 +56,7 @@ def launch_ddp(cfg: DictConfig):
     elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv)
 
 
-@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""))
+@hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
 def run(cfg: DictConfig):
     """Launch the training job according to the specified recipe.
 
