@@ -391,21 +391,24 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
-
 | Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
-| DDRNet 23   | Cityscapes |1024x2048   |80.26 |**7.62ms** |**25.94ms**|
-| DDRNet 23 slim   | Cityscapes |1024x2048 |78.01 |**3.56ms** |**22.80ms**|
-| STDC 1-Seg50   | Cityscapes | 512x1024 |75.11 |**2.83ms** |**12.57ms**|
-| STDC 1-Seg75   | Cityscapes | 768x1536 |77.8  |**5.71ms** |**26.70ms**|
-| STDC 2-Seg50   | Cityscapes | 512x1024 |76.44 |**3.74ms** |**13.89ms**
-| STDC 2-Seg75   | Cityscapes | 768x1536 |78.93 |**7.35ms** |**28.18ms**|
-| RegSeg (exp48)   | Cityscapes | 1024x2048 |78.15 |**13.09ms** |**41.88ms**|
-| Larger RegSeg (exp53)   | Cityscapes | 1024x2048 |79.2|**24.82ms** |**51.87ms**|
-| ShelfNet LW 34 | COCO Segmentation (21 classes from PASCAL including background) |512x512 |65.1  |**-** |**-** |
-
+| PP-LiteSeg B50 | Cityscapes |512x1024    |76.48 |**4.18ms** |**31.22ms**|
+| PP-LiteSeg B75 | Cityscapes |768x1536   |78.52 |**6.84ms** |**33.69ms**|
+| PP-LiteSeg T50 | Cityscapes |512x1024    |74.92 |**3.26ms** |**30.33ms**|
+| PP-LiteSeg T75 | Cityscapes |768x1536  |77.56 |**5.20ms** |**32.28ms**|
+| DDRNet 23 slim   | Cityscapes |1024x2048 |78.01 |**5.74ms** |**32.01ms**|
+| DDRNet 23   | Cityscapes |1024x2048   |80.26 |**12.74ms** |**39.01ms**|
+| STDC 1-Seg50   | Cityscapes | 512x1024 |75.11 |**3.34ms** |**30.12ms**|
+| STDC 1-Seg75   | Cityscapes | 768x1536 |77.8  |**5.53ms** |**32.490ms**|
+| STDC 2-Seg50   | Cityscapes | 512x1024 |76.44 |**4.12ms** |**30.94ms**
+| STDC 2-Seg75   | Cityscapes | 768x1536 |78.93 |**6.95ms** |**33.89ms**|
+| RegSeg (exp48)   | Cityscapes | 1024x2048 |78.15 |**12.03ms** |**38.91ms**|
+| Larger RegSeg (exp53)   | Cityscapes | 1024x2048 |79.2|**22.00ms** |**48.96ms**|
 
 > **NOTE:** Performance measured on T4 GPU with TensorRT, using FP16 precision and batch size 1 (latency), and not including IO
+
+> **NOTE:** For resolutions below 1024x2048 we first resize the input to the inference resolution and then resize the predictions to 1024x2048. The time of resizing is included in the measurements so that the practical input-size is 1024x2048.
 
 ## Implemented Model Architectures 
   
@@ -441,7 +444,8 @@ Devices[https://arxiv.org/pdf/1807.11164](https://arxiv.org/pdf/1807.11164)
   
   
 ### Semantic Segmentation 
-  
+
+- [PP-LiteSeg](https://bit.ly/3RrtMMO) - [https://arxiv.org/pdf/2204.02681v1.pdf](https://arxiv.org/pdf/2204.02681v1.pdf) 
 - [DDRNet (Deep Dual-resolution Networks)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/ddrnet.py) - [https://arxiv.org/pdf/2101.06085.pdf](https://arxiv.org/pdf/2101.06085.pdf)
 - [LadderNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/laddernet.py) - Multi-path networks based on U-Net for medical image segmentation [https://arxiv.org/pdf/1810.07810](https://arxiv.org/pdf/1810.07810)
 - [RegSeg](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/regseg.py) - Rethink Dilated Convolution for Real-time Semantic Segmentation [https://arxiv.org/pdf/2111.09957](https://arxiv.org/pdf/2111.09957)
