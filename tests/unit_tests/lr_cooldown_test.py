@@ -25,8 +25,8 @@ class LRCooldownTest(unittest.TestCase):
 
         expected_lrs = [0.25, 0.5, 0.75, 0.9236067977499791, 0.4763932022500211, 0.4763932022500211, 0.4763932022500211]
         trainer.train(model=net, training_params=train_params,
-                      train_loader=classification_test_dataloader(),
-                      valid_loader=classification_test_dataloader())
+                      train_loader=classification_test_dataloader(dataset_size=5, batch_size=4),
+                      valid_loader=classification_test_dataloader(dataset_size=5, batch_size=4))
 
         # ALTHOUGH NOT SEEN IN HERE, THE 4TH EPOCH USES LR=1, SO THIS IS THE EXPECTED LIST AS WE COLLECT
         # THE LRS AFTER THE UPDATE
