@@ -1,3 +1,14 @@
+"""
+Example code for running SuperGradient's recipes with and without DDP.
+
+Can be launched in either way:
+    - python -m run --config-name=<MY-RECIPE> [nproc_per_node=<NUM>]
+    - python -m torch.distributed.launcher --nproc_per_node=<NUM> run.py --config-name=<MY-RECIPE>
+Note: When using the first approach, nproc_per_node will by default use the value specified in recipe.
+
+For recipe's specific instructions and details refer to the recipe's configuration file in the recipes directory (src/super_gradients/recipes/).
+"""
+
 import sys
 import hydra
 import pkg_resources
@@ -14,7 +25,7 @@ from super_gradients.training import utils as core_utils
 from super_gradients.common.data_types.enum import MultiGPUMode
 
 
-def launch_ddp(cfg: DictConfig) -> None:
+def launch_ddp(cfg: DictConfig):
     """Create a configuration to launch DDP on single node without restart.
 
     :param cfg: Hydra config that was specified when launching the job with --config-name
@@ -46,7 +57,7 @@ def launch_ddp(cfg: DictConfig) -> None:
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""))
-def run(cfg: DictConfig) -> None:
+def run(cfg: DictConfig):
     """Launch the training job according to the specified recipe.
 
     :param cfg: Hydra config that was specified when launching the job with --config-name
@@ -60,14 +71,7 @@ def run(cfg: DictConfig) -> None:
 
 
 @record
-def main() -> None:
-    """This script is designed to run a recipe with and without DDP.
-
-    Can be launched in either way:
-        - python -m run --config-name=<MY-RECIPE> [nproc_per_node=<NUM>]
-        - python -m torch.distributed.launcher --nproc_per_node=<NUM> run.py --config-name=<MY-RECIPE>
-    Note: When using the first approach, nproc_per_node will by default use the value specified in recipe.
-    """
+def main():
     init_trainer()
     run()
 
