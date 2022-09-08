@@ -232,19 +232,11 @@ class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
         backbone_params.pop('spp_kernels', None)
         AnyNetX.__init__(self, **backbone_params)
 
-        changed_backbone = False
-
         # LAST ANYNETX STAGE -> STAGE + SPP IF SPP_KERNELS IS GIVEN
         spp_kernels = get_param(arch_params.backbone_params, 'spp_kernels', None)
         if spp_kernels:
-            activation_type = nn.SiLU if arch_params.yolo_type == 'yoloX' or arch_params.yolo_version == 'v6.0' \
-                else nn.Hardswish
+            activation_type = nn.SiLU if arch_params.yolo_type == 'yoloX' else nn.Hardswish
             self.net.stage_3 = self.add_spp_to_stage(self.net.stage_3, spp_kernels, activation_type=activation_type)
-            changed_backbone = True
-
-        # IF CHANGES TO BACKBONE WERE MADE RE-INITIALIZE WEIGHTS
-        if changed_backbone:
-            # INITIALIZE WEIGHTS AGAIN TO COVER NEWLY ADDED STEMCUSTOMIZED AND/OR SPP
             self.initialize_weight()
 
         # CREATE A LIST CONTAINING THE LAYERS TO EXTRACT FROM THE BACKBONE AND ADD THE FINAL LAYER
@@ -253,6 +245,8 @@ class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
             self._modules_list.append(layer)
 
         AbstractYoloBackbone.__init__(self, arch_params)
+
+        # WE KEEP A LIST OF THE OUTPUTS WIDTHS (NUM FEATURES) TO BE CONNECTED TO THE HEAD
         self.backbone_connection_channels = arch_params.backbone_params['ls_block_width'][1:][::-1]
 
     @staticmethod
