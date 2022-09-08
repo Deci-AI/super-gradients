@@ -1,11 +1,7 @@
 import sys
-import random
-import os
 import hydra
 import pkg_resources
 import torch
-from typing import Tuple, List
-from argparse import ArgumentParser, Namespace
 
 from omegaconf import DictConfig
 from torch.distributed.elastic.multiprocessing import Std
@@ -13,46 +9,9 @@ from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
 from super_gradients import Trainer
-from super_gradients.common.environment import environment_config
-from super_gradients.common.environment.env_helpers import setup_rank, is_distributed, init_trainer
+from super_gradients.common.environment.env_helpers import is_distributed, init_trainer, find_free_port
 from super_gradients.training import utils as core_utils
 from super_gradients.common.data_types.enum import MultiGPUMode
-
-
-# def parse_args() -> Tuple[Namespace, List[str]]:
-#     """Get a parser that only parses args that are not (and should not be) included in the recipes."""
-#     parser = ArgumentParser(description="Torch Distributed Elastic Training Launcher")
-#     # parser.add_argument(
-#     #     "--subprocess",
-#     #     action='store_true',
-#     #     help="When used, this flag indicates that the current process is a subprocess (DDP)",
-#     # )
-#     # parser.add_argument("--local_rank", type=int, default=-1)
-#     args, recipe_args = parser.parse_known_args()
-#     return args, recipe_args
-
-
-# def setup() -> None:
-#     """This step is required to differentiate subprocesses to main processes."""
-#     # args, _ = parse_args()
-#     # if args.subprocess:
-#     #     # This is required because hydra does not allow this type of parameters
-#     #     sys.argv.remove("--subprocess")
-#     #     environment_config.IS_SUBPROCESS = True
-#     setup_rank()
-
-
-def _find_free_port() -> int:
-    """Find an available port of current machine / node."""
-    import socket
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Binding to port 0 will cause the OS to find an available port for us
-    sock.bind(("", 0))
-    port = sock.getsockname()[1]
-    sock.close()
-    # NOTE: there is still a chance the port could be taken by other processes.
-    return port
 
 
 def launch_ddp(cfg: DictConfig) -> None:
@@ -63,7 +22,7 @@ def launch_ddp(cfg: DictConfig) -> None:
 
     # Get the value fom recipe if specified, otherwise take all available devices.
     nproc_per_node = core_utils.get_param(cfg, 'nproc_per_node', torch.cuda.device_count())
-    ddp_port = _find_free_port()
+    ddp_port = find_free_port()
 
     config = LaunchConfig(
         nproc_per_node=nproc_per_node,
@@ -82,9 +41,7 @@ def launch_ddp(cfg: DictConfig) -> None:
         redirects=Std.NONE,
         tee=Std.NONE,
         metrics_cfg={})
-    # _, recipe_args = parse_args()
 
-    # elastic_launch(config=config, entrypoint=sys.executable)(sys.argv[0], *recipe_args)
     elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv)
 
 

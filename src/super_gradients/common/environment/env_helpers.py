@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import socket
 import subprocess
 import logging
 from functools import wraps
@@ -69,10 +70,11 @@ def init_trainer():
     TODO: Rename to setup_env or something more explicit than init_trainer
     """
     register_hydra_resolvers()
-    setup_rank()
+    setup_ddp_local_rank()
 
 
-def setup_rank():
+def setup_ddp_local_rank():
+    """Initialize environment_config.DDP_LOCAL_RANK with rank value."""
     # Get local_rank from args if exists.
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
@@ -85,8 +87,7 @@ def setup_rank():
             sys.argv.remove(val)
 
     # Set local_rank with priority order (env variable > args > default value)
-    local_rank = os.getenv("LOCAL_RANK", args.local_rank)
-    environment_config.DDP_LOCAL_RANK = local_rank
+    environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", args.local_rank))
 
 
 def register_hydra_resolvers():
@@ -119,47 +120,12 @@ def multi_process_safe(func):
     return wrapper
 
 
-def launch_sub_processes(ddp_port: int, world_size: int) -> List[subprocess.Popen]:
-    """Launch copies of the current job in different processes. This is used for DDP training.
+def find_free_port() -> int:
+    """Find an available port of current machine/node.
+    Note: there is still a chance the port could be taken by other processes."""
 
-    :param ddp_port:    Port that will be used on every node
-    :param world_size:  Total number of nodes to use - including master node
-    :return:            List of the subprocesses that were launched
-    """
-    subprocesses = []
-    for i in range(1, world_size):
-        argv = sys.argv.copy() + [f'+local_rank={i}', f'+ddp_port={ddp_port}']
-        subproc = subprocess.Popen([sys.executable, *argv], env=os.environ)
-
-        subprocesses.append(subproc)
-        print(f'Launched node {i} with pid={subproc.pid}')
-    return subprocesses
-
-
-def init_local_process(local_rank: int, ddp_port: int, world_size: int) -> None:
-    """Initialize the local node with its rank, port and with world_size.
-
-    :param local_rank:  Local rank of this node
-    :param ddp_port:    Port that will be used on this node
-    :param world_size:  Number of nodes used for the training
-    """
-
-    environment_config.DDP_LOCAL_RANK = local_rank
-
-    os.environ['RANK'] = str(local_rank)
-    os.environ['WORLD_SIZE'] = str(world_size)
-    os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = str(ddp_port)
-    if local_rank > 0:
-        os.environ["LOG_LEVEL"] = DEFAULT_SUBPROCESS_LOGGING_LEVEL
-        # set_global_log_level(level=DEFAULT_SUBPROCESS_LOGGING_LEVEL)
-
-
-def kill_subprocesses(subprocesses: List[subprocess.Popen]) -> None:
-    """Kill all the subprocesses. This is meant to terminate DDP job.
-
-    :param subprocesses: All the subprocesses that were launched by this node
-    """
-    for process in subprocesses:
-        print(f'Killing process pid={process.pid}')
-        process.kill()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        # Binding to port 0 will cause the OS to find an available port for us
+        sock.bind(("", 0))
+        _adress, port = sock.getsockname()
+    return port
