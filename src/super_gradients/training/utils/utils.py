@@ -2,7 +2,7 @@ import math
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Mapping, Optional, Tuple, Union, List
+from typing import Mapping, Optional, Tuple, Union, List, Dict
 from zipfile import ZipFile
 import os
 from jsonschema import validate
@@ -444,3 +444,16 @@ def get_image_size_from_path(img_path: str) -> Tuple[int, int]:
     """Get the image size of an image at a specific path"""
     with open(img_path, 'rb') as f:
         return exif_size(Image.open(f))
+
+
+def override_default_params_without_nones(params: Dict, default_params: Dict) -> Dict:
+    """
+    Helper method for overriding default dictionary's entries excluding entries with None values.
+    :param params: dict, output dictionary which will take the defaults.
+    :param default_params: dict, dictionary for the defaults.
+    :return: dict, params after manipulation,
+    """
+    for key, val in default_params.items():
+        if key not in params.keys() or params[key] is None:
+            params[key] = val
+    return params
