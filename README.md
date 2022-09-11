@@ -5,7 +5,7 @@
 **Easily train or fine-tune SOTA computer vision models with one open source training library**
 [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Easily%20train%20or%20fine-tune%20SOTA%20computer%20vision%20models%20from%20one%20training%20repository&url=https://github.com/Deci-AI/super-gradients&via=deci_ai&hashtags=AI,deeplearning,computervision,training,opensource)
 
-#### Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -> [Fill Survey](https://hz8qtlvwkaw.typeform.com/to/OpKda0Qe)
+#### Version 3 is out! updated Notebooks and tutorials will be added this week - stay tuned!
 ______________________________________________________________________
   
   <p align="center">
@@ -487,10 +487,6 @@ The basic basic syntax is as follow:
 ```
 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=<CONFIG-NAME> dataset_params.data_dir=<PATH-TO-DATASET>
 ```
-But in most cases you will want to train on multiple GPU's using this syntax:
-```
-python -m torch.distributed.launch --nproc_per_node=<N-NODES> src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=<CONFIG-NAME> dataset_params.data_dir=<PATH-TO-DATASET>
-```
 *Note: this script needs to be launched from the root folder of super_gradients*
 *Note: if you stored your dataset in the path specified by the recipe you can drop "dataset_params.data_dir=<PATH-TO-DATASET>".*
 
@@ -501,7 +497,7 @@ You will find information about the performance of a recipe as well as the comma
 
 *Example: [Training of YoloX Small on Coco 2017](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco2017_yolox.yaml), using 8 GPU* 
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s dataset_params.data_dir=/home/coco2017
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s dataset_params.data_dir=/home/coco2017
 ```
 
 
@@ -526,19 +522,19 @@ python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.
 
 efficientnet
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_efficientnet
 ```
 mobilenetv2
 ```
-python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv2
 ```
 mobilenetv3 small
 ```
-python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_small
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_small
 ```
 mobilenetv3 large
 ```
-python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_large
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_mobilenetv3_large
 ```
 regnetY200
 ```
@@ -558,23 +554,23 @@ python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.
 ```
 repvgg
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
 ```
 resnet50
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_resnet50
 ```
 resnet50_kd
 ```
-python -m torch.distributed.launch --nproc_per_node=8  src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
+python src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
 ```
 vit_base
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
 ```
 vit_large
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_large
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_large
 ```
 </details>
 
@@ -585,31 +581,31 @@ python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/exampl
 
 ssd_lite_mobilenet_v2
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2
 ```
 yolox_n
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_n
 ```
 yolox_t
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_t
 ```
 yolox_s
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_s
 ```
 yolox_m
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_m
 ```
 yolox_l
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_l
 ```
 yolox_x
 ```
-python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_x
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_yolox architecture=yolox_x
 ```
 
 </details>
@@ -622,31 +618,31 @@ python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/exampl
 
 DDRNet23
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet
 ```
 DDRNet23-Slim
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim
 ```
 RegSeg48
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_regseg48
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_regseg48
 ```
 STDC1-Seg50
 ```
-python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50
 ```
 STDC2-Seg50
 ```
-python -m torch.distributed.launch --nproc_per_node=2 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50 architecture=stdc2_seg
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50 architecture=stdc2_seg
 ```
 STDC1-Seg75
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75
 ```
 STDC2-Seg75
 ```
-python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
+python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
 ```
 
 </details>

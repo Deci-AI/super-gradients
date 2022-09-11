@@ -36,7 +36,7 @@ from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, \
-    IllegalDataloaderInitialization
+    IllegalDataloaderInitialization, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
     get_logging_values, \
@@ -44,7 +44,7 @@ from super_gradients.training.metrics.metric_utils import get_metrics_titles, ge
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.distributed_training_utils import MultiGPUModeAutocastWrapper, \
-    reduce_results_tuple_for_ddp, compute_precise_bn_stats
+    reduce_results_tuple_for_ddp, compute_precise_bn_stats, setup_gpu_mode, require_gpu_setup
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
@@ -194,6 +194,10 @@ class Trainer:
         @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         @return: output of trainer.train(...) (i.e results tuple)
         """
+
+        setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, 'multi_gpu', MultiGPUMode.OFF),
+                       num_gpus=core_utils.get_param(cfg, 'num_gpus'))
+
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
@@ -1271,6 +1275,9 @@ class Trainer:
             else:
                 raise RuntimeError('CUDA DEVICE NOT FOUND... EXITING')
 
+        if require_gpu_setup(requested_multi_gpu):
+            raise GPUModeNotSetupError()
+
         # SELECT CPU DEVICE
         elif requested_device == 'cpu':
             self.device = 'cpu'
@@ -1312,19 +1319,13 @@ class Trainer:
 
     def _initialize_ddp(self):
         """
-        Initializes Distributed Data Parallel
+        Initialize Distributed Data Parallel
 
-        Usage:
-
-            python -m torch.distributed.launch --nproc_per_node=n YOUR_TRAINING_SCRIPT.py
-            where n is the number of GPUs required, e.g., n=8
-
-            Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.
-            Whatever learning rate and schedule you specify will be applied to the each GPU individually.
-            Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch size is the
-            batch you specify times the number of GPUs. In the literature there are several "best practices" to set
-            learning rates and schedules for large batch sizes.
-
+        Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.
+        Whatever learning rate and schedule you specify will be applied to the each GPU individually.
+        Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch size is the
+        batch you specify times the number of GPUs. In the literature there are several "best practices" to set
+        learning rates and schedules for large batch sizes.
         """
         logger.info("Distributed training starting...")
         local_rank = environment_config.DDP_LOCAL_RANK
