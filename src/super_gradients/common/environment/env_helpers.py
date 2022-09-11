@@ -9,7 +9,6 @@ from omegaconf import OmegaConf
 from super_gradients.common.environment import environment_config
 
 
-
 class TerminalColours:
     """
     Usage: https://stackoverflow.com/questions/287871/how-to-print-colored-text-in-python?page=1&tab=votes#tab-top
