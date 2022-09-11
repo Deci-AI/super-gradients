@@ -6,8 +6,8 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#       STDC1-Seg75: python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75
-#       STDC2-Seg75: python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 architecture=stdc2_seg
+#       STDC1-Seg75: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75
+#       STDC2-Seg75: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 architecture=stdc2_seg
 # Note: add "external_checkpoint_path=<stdc1-backbone-pretrained-path>" to use pretrained backbone
 #
 #
@@ -74,6 +74,7 @@ training_hyperparams:
       weights: [ 1., 0.6, 0.4, 1. ]
 
 multi_gpu: DDP
+num_gpus: 4
 
 experiment_name: ${architecture}75_cityscapes
 ckpt_root_dir:
