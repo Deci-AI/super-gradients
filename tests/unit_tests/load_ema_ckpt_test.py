@@ -1,9 +1,9 @@
 import unittest
 from super_gradients.training import Trainer
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
 from super_gradients.training.utils.utils import check_models_have_same_weights
-from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
 from copy import deepcopy
 
@@ -19,8 +19,6 @@ class PreTrainingEMANetCollector(PhaseCallback):
 
 class LoadCheckpointWithEmaTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.dataset_params = {"batch_size": 4}
-        self.dataset = ClassificationTestDatasetInterface(dataset_params=self.dataset_params)
         self.train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                              "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": 'SGD',
                              "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
@@ -32,22 +30,23 @@ class LoadCheckpointWithEmaTest(unittest.TestCase):
         # Define Model
         net = LeNet()
         trainer = Trainer("ema_ckpt_test", model_checkpoints_location='local')
-
-        trainer.connect_dataset_interface(self.dataset)
-
-        trainer.train(model=net, training_params=self.train_params)
+        trainer.train(model=net, training_params=self.train_params,
+                      train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
         ema_model = trainer.ema_model.ema
 
         # TRAIN FOR 1 MORE EPOCH AND COMPARE THE NET AT THE BEGINNING OF EPOCH 3 AND THE END OF EPOCH NUMBER 2
         net = LeNet()
         trainer = Trainer("ema_ckpt_test", model_checkpoints_location='local')
-        trainer.connect_dataset_interface(self.dataset)
+
         net_collector = PreTrainingEMANetCollector()
         self.train_params["resume"] = True
         self.train_params["max_epochs"] = 3
         self.train_params["phase_callbacks"] = [net_collector]
-        trainer.train(model=net, training_params=self.train_params)
+        trainer.train(model=net, training_params=self.train_params,
+                      train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
         reloaded_ema_model = net_collector.net.ema
 
