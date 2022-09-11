@@ -24,6 +24,7 @@ from super_gradients.training.datasets.segmentation_datasets import CityscapesDa
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import wait_for_the_master, get_local_rank
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.utils import override_default_params_without_nones
 
 logger = get_logger(__name__)
 
@@ -83,20 +84,13 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
         default_dataloader_params["sampler"] = {"DistributedSampler": {}}
         default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
 
-    dataloader_params = _override_default_params_without_nones(dataloader_params, default_dataloader_params)
+    dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
     if get_param(dataloader_params, "batch_sampler"):
         sampler = dataloader_params.pop("sampler")
         batch_size = dataloader_params.pop("batch_size")
         dataloader_params["batch_sampler"] = BatchSampler(sampler=sampler, batch_size=batch_size, drop_last=False)
 
     return dataloader_params
-
-
-def _override_default_params_without_nones(params, default_params):
-    for key, val in default_params.items():
-        if key not in params.keys() or params[key] is None:
-            params[key] = val
-    return params
 
 
 def _instantiate_sampler(dataset, dataloader_params):
