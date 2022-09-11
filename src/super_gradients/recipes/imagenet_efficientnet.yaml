@@ -17,12 +17,9 @@ defaults:
 arch_params:
   num_classes: 1000
 
-dataset_interface:
-  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
-  dataset_params: ${dataset_params}
-  data_dir: /data/Imagenet
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
 
-data_loader_num_workers: 8
 
 resume: False
 training_hyperparams:

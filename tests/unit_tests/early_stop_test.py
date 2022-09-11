@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import unittest
 
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.utils.early_stopping import EarlyStop
 from super_gradients.training.utils.callbacks import Phase
 from super_gradients.training.sg_trainer import Trainer
-from super_gradients.training.datasets.dataset_interfaces import ClassificationTestDatasetInterface
 from super_gradients.training.models.classification_models.resnet import ResNet18
 from super_gradients.training.metrics import Accuracy, Top5
 from torchmetrics.metric import Metric
@@ -43,8 +43,6 @@ class LossTest(nn.Module):
 class EarlyStopTest(unittest.TestCase):
     def setUp(self) -> None:
         # batch_size is equal to length of dataset, to have only one step per epoch, to ease the test.
-        dataset_params = {"batch_size": 10}
-        self.dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params, batch_size=10)
         self.net = ResNet18(num_classes=5, arch_params={})
         self.max_epochs = 10
         self.train_params = {"max_epochs": self.max_epochs, "lr_updates": [1], "lr_decay_factor": 0.1,
@@ -61,7 +59,6 @@ class EarlyStopTest(unittest.TestCase):
         epochs.
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
-        trainer.connect_dataset_interface(self.dataset)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -71,8 +68,8 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params)
-
+        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
         excepted_end_epoch = 5
 
         # count divided by 2, because loss counter used for both train and eval.
@@ -84,8 +81,6 @@ class EarlyStopTest(unittest.TestCase):
         epochs.
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
-        trainer.connect_dataset_interface(self.dataset)
-
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=3,
                                    verbose=True)
         phase_callbacks = [early_stop_acc]
@@ -96,8 +91,8 @@ class EarlyStopTest(unittest.TestCase):
         train_params.update(
             {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params)
-
+        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
         excepted_end_epoch = 6
 
         self.assertEqual(excepted_end_epoch, fake_metric.count)
@@ -107,7 +102,6 @@ class EarlyStopTest(unittest.TestCase):
         Test for mode=min metric, test that training stops after metric value reaches the `threshold` value.
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
-        trainer.connect_dataset_interface(self.dataset)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", threshold=0.1, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -117,8 +111,8 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params)
-
+        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
         excepted_end_epoch = 5
         # count divided by 2, because loss counter used for both train and eval.
         self.assertEqual(excepted_end_epoch, fake_loss.count // 2)
@@ -128,7 +122,6 @@ class EarlyStopTest(unittest.TestCase):
         Test for mode=max metric, test that training stops after metric value reaches the `threshold` value.
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
-        trainer.connect_dataset_interface(self.dataset)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", threshold=0.94,
                                    verbose=True)
@@ -140,8 +133,8 @@ class EarlyStopTest(unittest.TestCase):
         train_params.update(
             {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params)
-
+        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
         excepted_end_epoch = 7
 
         self.assertEqual(excepted_end_epoch, fake_metric.count)
@@ -152,7 +145,6 @@ class EarlyStopTest(unittest.TestCase):
         """
         # test Nan value
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
-        trainer.connect_dataset_interface(self.dataset)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", check_finite=True,
                                     verbose=True)
@@ -163,16 +155,14 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params)
-
+        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
         excepted_end_epoch = 2
 
         self.assertEqual(excepted_end_epoch, fake_loss.count // 2)
 
         # test Inf value
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
-        trainer.connect_dataset_interface(self.dataset)
-        trainer.build_model(self.net)
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -182,8 +172,8 @@ class EarlyStopTest(unittest.TestCase):
         train_params = self.train_params.copy()
         train_params.update({"loss": fake_loss, "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params)
-
+        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
         excepted_end_epoch = 3
         # count divided by 2, because loss counter used for both train and eval.
         self.assertEqual(excepted_end_epoch, fake_loss.count // 2)
@@ -194,7 +184,6 @@ class EarlyStopTest(unittest.TestCase):
         current_value - min_delta > best_value
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
-        trainer.connect_dataset_interface(self.dataset)
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=2,
                                    min_delta=0.1, verbose=True)
@@ -206,7 +195,8 @@ class EarlyStopTest(unittest.TestCase):
         train_params.update(
             {"valid_metrics_list": [fake_metric], "metric_to_watch": "MetricTest", "phase_callbacks": phase_callbacks})
 
-        trainer.train(model=self.net, training_params=train_params)
+        trainer.train(model=self.net, training_params=train_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
         excepted_end_epoch = 5
 

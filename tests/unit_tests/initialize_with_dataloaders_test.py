@@ -2,7 +2,7 @@ import unittest
 
 from super_gradients.training import models
 
-from super_gradients import Trainer, ClassificationTestDatasetInterface
+from super_gradients import Trainer
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 from super_gradients.training.metrics import Accuracy
@@ -26,22 +26,6 @@ class InitializeWithDataloadersTest(unittest.TestCase):
         label = torch.randint(0, len(self.testcase_classes), size=(test_size,))
         self.testcase_testloader = DataLoader(TensorDataset(inp, label))
 
-    def test_interface_was_not_broken(self):
-        trainer = Trainer("test_interface", model_checkpoints_location='local')
-        dataset_params = {"batch_size": 10}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        trainer.connect_dataset_interface(dataset)
-
-        model = models.get("efficientnet_b0", arch_params={"num_classes": 5})
-        train_params = {"max_epochs": 1, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
-                        "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": torch.nn.CrossEntropyLoss(),
-                        "optimizer": "SGD",
-                        "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                        "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-                        "metric_to_watch": "Accuracy",
-                        "greater_metric_to_watch_is_better": True}
-        trainer.train(model=model, training_params=train_params)
-
     def test_initialization_rules(self):
         self.assertRaises(IllegalDataloaderInitialization, Trainer, "test_name", model_checkpoints_location='local',
                           train_loader=self.testcase_trainloader)
@@ -63,9 +47,7 @@ class InitializeWithDataloadersTest(unittest.TestCase):
 
     def test_train_with_dataloaders(self):
         trainer = Trainer(experiment_name="test_name", model_checkpoints_location="local")
-
-        trainer.build_model("resnet18")
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get("resnet18", num_classes=5)
         trainer.train(model=model,
                       training_params={"max_epochs": 2,
                                        "lr_updates": [5, 6, 12],

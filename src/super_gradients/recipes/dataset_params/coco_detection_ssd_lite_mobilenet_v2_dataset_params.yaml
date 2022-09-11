@@ -5,7 +5,6 @@ cache_dir: # path to a directory that will be used for caching (with numpy.memma
 cache_train_images: False
 cache_val_images: False
 
-
 batch_size: 32
 val_batch_size: 16
 train_image_size: 320
@@ -126,7 +125,7 @@ val_dataset_params:
   cache: False
   transforms:
     - DetectionPaddedRescale:
-      input_dim: ${dataset_params.val_dataset_params.input_dim}
+        input_dim: ${dataset_params.val_dataset_params.input_dim}
     - DetectionTargetsFormatTransform:
         max_targets: 50
         output_format:

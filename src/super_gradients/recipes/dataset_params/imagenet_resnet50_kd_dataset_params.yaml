@@ -1,31 +1,12 @@
 defaults:
   - imagenet_dataset_params
 
-batch_size: 192
-val_batch_size: 256
-random_erase_prob: 0
-random_erase_value: random
-train_interpolation: random
-config_string: rand-m7-mstd0.5
-cutmix: True
-cutmix_params:
-  mixup_alpha: 0.2
-  cutmix_alpha: 1.0
-  label_smoothing: 0.1
-aug_repeat_count: 3
-
-
-# TODO: REMOVE ABOVE, HERE FOR COMPATIBILITY UNTIL WE REMOVE DATASET_INTERFACE
-# TODO: UNCOMMENT BELOW WHEN ABOVE IS REMOVED
-#defaults:
-#  - imagenet_dataset_params
-#
-#train_transform_args:
-#  interpolation: random
-#  color_jitter: [0.4, 0.4, 0.4]
-#  random_erase_prob: 0.
-#  random_erase_value: random
-#  auto_augment_config_string: rand-m7-mstd0.5
+train_transform_args:
+  interpolation: random
+  color_jitter: [0.4, 0.4, 0.4]
+  random_erase_prob: 0.
+  random_erase_value: random
+  auto_augment_config_string: rand-m7-mstd0.5
 
 train_dataset_params:
   root: /data/Imagenet/train

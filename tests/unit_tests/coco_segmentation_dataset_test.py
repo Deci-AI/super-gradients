@@ -5,7 +5,7 @@ import pkg_resources
 import yaml
 from torch.utils.data import DataLoader
 
-from super_gradients.training.dataloaders.dataloader_factory import coco_segmentation_train, coco_segmentation_val
+from super_gradients.training.dataloaders.dataloaders import coco_segmentation_train, coco_segmentation_val
 from super_gradients.training.datasets.segmentation_datasets.coco_segmentation import CoCoSegmentationDataSet
 
 
