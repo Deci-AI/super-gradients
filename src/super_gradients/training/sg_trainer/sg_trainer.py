@@ -199,7 +199,7 @@ class Trainer:
         @return: output of trainer.train(...) (i.e results tuple)
         """
 
-        setup_gpu_mode(gpu_mode=cfg.multi_gpu,
+        setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, 'multi_gpu', MultiGPUMode.OFF),
                        nproc_per_node=core_utils.get_param(cfg, 'nproc_per_node'))
 
         # INSTANTIATE ALL OBJECTS IN CFG

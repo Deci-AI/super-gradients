@@ -24,7 +24,8 @@ if AWS_ENV_NAME not in AWS_ENVIRONMENTS:
 # Controlling the default logging level via environment variable
 DEFAULT_LOGGING_LEVEL = environ.get("LOG_LEVEL", "INFO").upper()
 
-# Set the default level for all libraries - including 3rd party packages
-logging.basicConfig(level=DEFAULT_LOGGING_LEVEL)
+logging.basicConfig(
+    level=DEFAULT_LOGGING_LEVEL
+)  # Set the default level for all libraries - including 3rd party packages
 
 DDP_LOCAL_RANK = -1
