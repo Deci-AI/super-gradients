@@ -1,12 +1,9 @@
 import os
-import torch
+
 import numpy as np
-from tqdm import tqdm
+import torch
 from PIL import Image
-import torchvision.transforms as transform
-from super_gradients.training.transforms.transforms import RandomFlip, Rescale, RandomRescale, CropImageAndMask, \
-    PadShortToCropSize
-from super_gradients.training.utils.utils import get_param
+from tqdm import tqdm
 
 try:
     from pycocotools.coco import COCO
@@ -27,27 +24,13 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
     CoCoSegmentationDataSet - Segmentation Data Set Class for COCO 2017 Segmentation Data Set
     """
 
-    def __init__(self, dataset_classes_inclusion_tuples_list: list = None, *args, **kwargs):
+    def __init__(self, root_dir: str,
+                 dataset_classes_inclusion_tuples_list: list = None, *args, **kwargs):
         # THERE ARE 91 CLASSES, INCLUDING BACKGROUND - BUT WE ENABLE THE USAGE OF SUBCLASSES, TO PARTIALLY USE THE DATA
         self.dataset_classes_inclusion_tuples_list = dataset_classes_inclusion_tuples_list or COCO_DEFAULT_CLASSES_TUPLES_LIST
 
-        # OVERRIDE DEFAULT AUGMENTATIONS, IMG_SIZE, CROP SIZE
-        dataset_hyper_params = kwargs['dataset_hyper_params']
-        kwargs['img_size'] = get_param(dataset_hyper_params, 'img_size', 608)
-        kwargs['crop_size'] = get_param(dataset_hyper_params, 'crop_size', 512)
-        # FIXME - Rescale before RandomRescale is kept for legacy support, consider removing it like most implementation
-        #  papers regimes.
-        default_image_mask_transforms_aug = transform.Compose([RandomFlip(),
-                                                               Rescale(long_size=kwargs["img_size"]),
-                                                               RandomRescale(scales=(0.5, 2.0)),
-                                                               PadShortToCropSize(crop_size=kwargs['crop_size']),
-                                                               CropImageAndMask(crop_size=kwargs['crop_size'], mode="random")])
-        kwargs["image_mask_transforms_aug"] = get_param(dataset_hyper_params, "image_mask_transforms_aug",
-                                                        default_image_mask_transforms_aug)
-        image_mask_transforms = get_param(dataset_hyper_params, 'image_mask_transforms')
-        if image_mask_transforms is not None:
-            kwargs["image_mask_transforms"] = image_mask_transforms
-        super().__init__(*args, **kwargs)
+        self.root_dir = root_dir
+        super().__init__(root_dir, *args, **kwargs)
 
         _, class_names = zip(*self.dataset_classes_inclusion_tuples_list)
         self.classes = class_names
@@ -73,6 +56,8 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
             image_path = os.path.join(self.root, self.samples_sub_directory, img_metadata['file_name'])
             mask_metadata_tuple = (relevant_image_id, img_metadata['height'], img_metadata['width'])
             self.samples_targets_tuples_list.append((image_path, mask_metadata_tuple))
+
+        super(CoCoSegmentationDataSet, self)._generate_samples_and_targets()
 
     def target_loader(self, mask_metadata_tuple) -> Image:
         """

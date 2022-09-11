@@ -14,7 +14,7 @@
 
 defaults:
   - training_hyperparams: imagenet_resnet50_kd_train_params
-  - dataset_params: imagenet_dataset_params
+  - dataset_params: imagenet_resnet50_kd_dataset_params
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
 
@@ -52,6 +52,9 @@ teacher_checkpoint_params:
     value: True
   pretrained_weights: imagenet
 
+checkpoint_params:
+  teacher_pretrained_weights: imagenet
+
 student_checkpoint_params:
   load_backbone: False # whether to load only backbone part of checkpoint
   checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
@@ -60,19 +63,6 @@ student_checkpoint_params:
     value: True
   pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
 
-dataset_params:
-  batch_size: 192
-  val_batch_size: 256
-  random_erase_prob: 0
-  random_erase_value: random
-  train_interpolation: random
-  rand_augment_config_string: rand-m7-mstd0.5
-  cutmix: True
-  cutmix_params:
-    mixup_alpha: 0.2
-    cutmix_alpha: 1.0
-    label_smoothing: 0.1
-  aug_repeat_count: 3
 
 dataset_interface:
   imagenet:
