@@ -1,42 +1,35 @@
 import os
 
 import numpy as np
-
 import torch
 import torchvision
 import torchvision.datasets as datasets
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import ConcatDataset, BatchSampler, DataLoader
 import torchvision.transforms as transforms
-
+from torch.utils.data import ConcatDataset, BatchSampler, DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 from super_gradients.common import DatasetDataInterface
-from super_gradients.common.environment import AWS_ENV_NAME
 from super_gradients.common.abstractions.abstract_logger import get_logger
-
+from super_gradients.common.environment import AWS_ENV_NAME
 from super_gradients.training import utils as core_utils
-from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
-
-from super_gradients.training.utils import get_param
-
 from super_gradients.training.datasets import datasets_utils, DataAugmentation
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
-from super_gradients.training.datasets.mixup import CollateMixup
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
+from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
 from super_gradients.training.datasets.detection_datasets import COCODetectionDataset, PascalVOCDetectionDataset
-
+from super_gradients.training.datasets.mixup import CollateMixup
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
+from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
 from super_gradients.training.datasets.segmentation_datasets import PascalVOC2012SegmentationDataSet, \
     PascalAUG2012SegmentationDataSet, CoCoSegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import \
     SuperviselyPersonsDataset
-
-from super_gradients.training.datasets.samplers.repeated_augmentation_sampler import RepeatAugSampler
-from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, worker_init_reset_seed
-
 from super_gradients.training.exceptions.dataset_exceptions import IllegalDatasetParameterException
-
+from super_gradients.training.transforms.transforms import RandomFlip, Rescale, RandomRescale, CropImageAndMask, \
+    PadShortToCropSize
+from super_gradients.training.utils import get_param
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, wait_for_the_master
 
 default_dataset_params = {"batch_size": 64, "val_batch_size": 200, "test_batch_size": 200, "dataset_dir": "./data/",
                           "s3_link": None}
@@ -434,8 +427,7 @@ class ImageNetDatasetInterface(DatasetInterface):
         valdir = os.path.join(data_dir, 'val')
         img_mean = core_utils.get_param(self.dataset_params, 'img_mean', default_val=[0.485, 0.456, 0.406])
         img_std = core_utils.get_param(self.dataset_params, 'img_std', default_val=[0.229, 0.224, 0.225])
-        normalize = transforms.Normalize(mean=img_mean,
-                                         std=img_std)
+        normalize = transforms.Normalize(mean=img_mean, std=img_std)
 
         crop_size = core_utils.get_param(self.dataset_params, 'crop_size', default_val=224)
         resize_size = core_utils.get_param(self.dataset_params, 'resize_size', default_val=256)
@@ -601,24 +593,36 @@ class CoCoSegmentationDatasetInterface(CoCoDataSetInterfaceBase):
                  dataset_classes_inclusion_tuples_list: list = None):
         super().__init__(dataset_params=dataset_params)
 
+        # backwards compatability patch for legacy dataset params
+        img_size = core_utils.get_param(dataset_params, "img_size")
+        crop_size = core_utils.get_param(dataset_params, "crop_size")
+
+        train_transforms = [RandomFlip(),
+                            Rescale(long_size=img_size),
+                            RandomRescale(scales=(0.5, 2.0)),
+                            PadShortToCropSize(crop_size=crop_size),
+                            CropImageAndMask(crop_size=crop_size, mode="random")]
+        val_transforms = [Rescale(short_size=crop_size),
+                          CropImageAndMask(crop_size=crop_size, mode="center")]
+
         self.trainset = CoCoSegmentationDataSet(
-            root=self.root_dir,
+            root_dir=self.root_dir,
             list_file='instances_train2017.json',
             samples_sub_directory='images/train2017',
-            targets_sub_directory='annotations', augment=True,
-            dataset_hyper_params=dataset_params,
+            targets_sub_directory='annotations',
             cache_labels=cache_labels,
             cache_images=cache_images,
+            transforms=train_transforms,
             dataset_classes_inclusion_tuples_list=dataset_classes_inclusion_tuples_list)
 
         self.valset = CoCoSegmentationDataSet(
-            root=self.root_dir,
+            root_dir=self.root_dir,
             list_file='instances_val2017.json',
             samples_sub_directory='images/val2017',
-            targets_sub_directory='annotations', augment=False,
-            dataset_hyper_params=dataset_params,
+            targets_sub_directory='annotations',
             cache_labels=cache_labels,
             cache_images=cache_images,
+            transforms=val_transforms,
             dataset_classes_inclusion_tuples_list=dataset_classes_inclusion_tuples_list)
 
         self.coco_classes = self.trainset.classes
@@ -628,35 +632,28 @@ class CityscapesDatasetInterface(DatasetInterface):
     def __init__(self, dataset_params=None, cache_labels: bool = False, cache_images: bool = False):
         super().__init__(dataset_params=dataset_params)
         root_dir = core_utils.get_param(dataset_params, "dataset_dir", "/data/cityscapes")
-        img_size = core_utils.get_param(dataset_params, "img_size", 1024)
-        crop_size = core_utils.get_param(dataset_params, "crop_size", 512)
         image_mask_transforms = core_utils.get_param(dataset_params, "image_mask_transforms")
         image_mask_transforms_aug = core_utils.get_param(dataset_params, "image_mask_transforms_aug")
+
+        # Backwards compatability fix for SegmentationDataset refactor
+        train_transforms = image_mask_transforms_aug['Compose']['transforms']
+        val_transforms = image_mask_transforms['Compose']['transforms']
 
         self.trainset = CityscapesDataset(
             root_dir=root_dir,
             list_file='lists/train.lst',
             labels_csv_path="lists/labels.csv",
-            img_size=img_size,
-            crop_size=crop_size,
-            augment=True,
-            dataset_hyper_params=dataset_params,
             cache_labels=cache_labels,
             cache_images=cache_images,
-            image_mask_transforms=image_mask_transforms,
-            image_mask_transforms_aug=image_mask_transforms_aug)
+            transforms=train_transforms)
 
         self.valset = CityscapesDataset(
             root_dir=root_dir,
             list_file='lists/val.lst',
             labels_csv_path="lists/labels.csv",
-            img_size=img_size,
-            crop_size=crop_size,
-            augment=False,
-            dataset_hyper_params=dataset_params,
             cache_labels=cache_labels,
             cache_images=cache_images,
-            image_mask_transforms=image_mask_transforms)
+            transforms=val_transforms)
 
         self.classes = self.trainset.classes
 
@@ -742,7 +739,8 @@ class PascalVOCUnifiedDetectionDatasetInterface(DetectionDatasetInterface):
         train_dataset_names = ["train2007", "val2007", "train2012", "val2012"]
         # We divide train_max_num_samples between the datasets
         if train_max_num_samples:
-            max_num_samples_per_train_dataset = [len(segment) for segment in np.array_split(range(train_max_num_samples), len(train_dataset_names))]
+            max_num_samples_per_train_dataset = [len(segment) for segment in
+                                                 np.array_split(range(train_max_num_samples), len(train_dataset_names))]
         else:
             max_num_samples_per_train_dataset = [None] * len(train_dataset_names)
         train_sets = [PascalVOCDetectionDataset(data_dir=self.data_dir,

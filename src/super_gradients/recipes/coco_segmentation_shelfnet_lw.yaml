@@ -16,9 +16,19 @@
 
 defaults:
   - training_hyperparams: coco_segmentation_shelfnet_lw_train_params
-  - dataset_params: coco_segmentation_dataset_params
+  #  - dataset_params: coco_segmentation_dataset_params # TODO: uncomment after DatasetInterface refactor
   - arch_params: shelfnet34_lw_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
+
+# ------------------------------------- legacy dataset params ------------------------------------- #
+dataset_params:
+  batch_size: 8
+  val_batch_size: 24
+  dataset_dir: "/data/coco/"
+  img_size: 608
+  crop_size: 512
+  train_loader_drop_last: True
 
 sub_classes:
   _target_: super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list
@@ -29,6 +39,8 @@ dataset_interface:
   dataset_classes_inclusion_tuples_list: ${sub_classes}
 
 data_loader_num_workers: 8
+# ------------------------------------- legacy dataset params ------------------------------------- #
+
 
 checkpoint_params:
   strict_load: True
@@ -46,3 +58,7 @@ multi_gpu: DDP
 ckpt_root_dir:
 
 architecture: shelfnet34_lw
+
+hydra:
+  run:
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

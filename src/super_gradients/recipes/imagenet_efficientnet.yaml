@@ -10,20 +10,12 @@
 
 defaults:
   - training_hyperparams: imagenet_efficientnet_train_params
-  - dataset_params: imagenet_dataset_params
+  - dataset_params: imagenet_efficientnet_dataset_params
   - arch_params: efficientnet_b0_arch_params
   - checkpoint_params: default_checkpoint_params
 
 arch_params:
   num_classes: 1000
-
-dataset_params:
-  batch_size: 64
-  color_jitter: 0.4
-  random_erase_prob: 0.2
-  random_erase_value: random
-  train_interpolation: random
-  auto_augment_config_string: rand-m9-mstd0.5
 
 dataset_interface:
   _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
