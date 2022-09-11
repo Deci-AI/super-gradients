@@ -4,7 +4,7 @@ parameters:
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
-    default: "4.1.3"
+    default: "8.0.1"
 #    default: "dev:alpha"
 
 orbs:
@@ -106,8 +106,8 @@ jobs:
         - checkout
         - run:
            name: integration test
-           #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deci1/super-gradients:test python3 ./tests/integration_tests/pretrained_models_test.py
-           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deci1/super-gradients:test python3 -c 'print("it works!")'
+           #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
+           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 -c 'print("it works!")'
 
 
 

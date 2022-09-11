@@ -4,9 +4,9 @@ LABEL maintainer "DECI.AI <services@deci.ai>"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y pip libgl1 libglib2.0-0 \
+RUN apt-get update && apt-get install -y pip libgl1 libglib2.0-0 git \
     && rm -rf /var/lib/apt/lists/*
-RUN pip install super-gradients
+RUN pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 RUN mkdir /SG
 WORKDIR /SG
