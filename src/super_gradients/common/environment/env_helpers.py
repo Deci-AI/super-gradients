@@ -73,7 +73,7 @@ def init_trainer():
 
     register_hydra_resolvers()
 
-    # We pop local_rank and nproc_per_node because they can be useful to start a job but they would break
+    # We pop local_rank if it was specified in the args, because it would break
     args_local_rank = pop_arg("local_rank", default_value=-1)
 
     # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
@@ -99,7 +99,7 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = No
 
 
 def require_gpu_setup(gpu_mode: MultiGPUMode) -> bool:
-    """Check if the environment requires a setup in order to work with DP or DDP."""
+    """Check if the environment requires a setup in order to work with DDP."""
     return (gpu_mode == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL) and (not is_distributed())
 
 

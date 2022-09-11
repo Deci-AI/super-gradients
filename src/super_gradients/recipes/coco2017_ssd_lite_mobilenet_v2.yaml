@@ -54,4 +54,4 @@ training_hyperparams:
     dboxes: ${dboxes}
 
 multi_gpu: DDP
-nproc_per_node: 8
+num_gpus: 8

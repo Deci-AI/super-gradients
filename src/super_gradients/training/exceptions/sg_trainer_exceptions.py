@@ -39,4 +39,4 @@ class GPUModeNotSetupError(Exception):
     def __init__(self):
         super().__init__("Your environment was not setup to support DDP. Please run at the beginning of your script:\n"
                          ">>> from super_gradients.common.environment.env_helpers import init_trainer\n"
-                         ">>> setup_gpu_mode(gpu_mode=..., nproc_per_node=...)\n")
+                         ">>> setup_gpu_mode(gpu_mode=..., num_gpus=...)\n")
