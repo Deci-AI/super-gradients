@@ -17,7 +17,6 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
-from super_gradients.common.environment.env_helpers import require_gpu_setup
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
@@ -45,7 +44,7 @@ from super_gradients.training.metrics.metric_utils import get_metrics_titles, ge
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.distributed_training_utils import MultiGPUModeAutocastWrapper, \
-    reduce_results_tuple_for_ddp, compute_precise_bn_stats
+    reduce_results_tuple_for_ddp, compute_precise_bn_stats, setup_gpu_mode, require_gpu_setup
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
@@ -59,7 +58,6 @@ from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
-from super_gradients.common.environment.env_helpers import setup_gpu_mode
 
 logger = get_logger(__name__)
 
