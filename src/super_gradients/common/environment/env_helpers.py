@@ -4,14 +4,11 @@ import sys
 import socket
 from functools import wraps
 
-import hydra
-import pkg_resources
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import OmegaConf
 import torch
 from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
-from typing import List, Type, Any, Dict
 
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment import environment_config
@@ -68,10 +65,10 @@ def hydra_output_dir_resolver(ckpt_root_dir, experiment_name):
 
 def init_trainer():
     """
-    a function to initialize the super_gradients environment. This function should be the first thing to be called
-    by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
-    and prepares the super_gradients environment.
-    TODO: Rename to setup_env or something more explicit than init_trainer?
+    Initialize the super_gradients environment.
+
+    This function should be the first thing to be called by any code running super_gradients.
+    It resolves conflicts between the different tools, packages and environments used and prepares the super_gradients environment.
     """
 
     register_hydra_resolvers()
@@ -83,9 +80,18 @@ def init_trainer():
     environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=args_local_rank))
 
 
+def register_hydra_resolvers():
+    """Register all the hydra resolvers required for the super-gradients recipes."""
+    OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
+
+
 def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, nproc_per_node: int = None):
-    # ----- SETUP DDP --------
-    if require_ddp_setup(gpu_mode):
+    """
+    If required, launch ddp subprocesses.
+    :param gpu_mode:        DDP, DP or Off
+    :param nproc_per_node:  Number of GPU's to use.
+    """
+    if require_gpu_setup(gpu_mode):
         args_nproc_per_node = pop_arg("nproc_per_node")
 
         # We chose to not allow the user to use both explicit parameter and python args.
@@ -101,8 +107,8 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, nproc_per_node: in
         restart_script_with_ddp(nproc_per_node)
 
 
-def require_ddp_setup(gpu_mode: MultiGPUMode) -> bool:
-    """Check"""
+def require_gpu_setup(gpu_mode: MultiGPUMode) -> bool:
+    """Check if the environment requires a setup in order to work with DP or DDP."""
     return (gpu_mode == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL) and (not is_distributed())
 
 
@@ -117,78 +123,6 @@ def pop_arg(arg_name: str, default_value: int = None) -> argparse.Namespace:
     for val in filter(lambda x: x.startswith(f"--{arg_name}"), sys.argv):
         sys.argv.remove(val)
     return vars(args)[arg_name]
-
-
-def pop_args(arg_names: List[str], default_value: int = -1) -> argparse.Namespace:
-    """Get the specified args and remove them from argv"""
-
-    parser = argparse.ArgumentParser()
-    for arg_name in arg_names:
-        parser.add_argument(f"--{arg_name}", default=default_value)
-    args, _ = parser.parse_known_args()
-
-    # Remove the ddp args to not have a conflict with the use of hydra
-    for arg_name in arg_names:
-        for val in filter(lambda x: x.startswith(f"--{arg_name}"), sys.argv):
-            sys.argv.remove(val)
-    return args
-
-#
-# def setup_ddp_local_rank():
-#     """Initialize environment_config.DDP_LOCAL_RANK with rank value."""
-#     # Get local_rank from args if exists.
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
-#     args, _ = parser.parse_known_args()
-#
-#     # TODO: make sure that the commented code can be replace by sys.argv.remove("local_rank")
-#     # sys.argv.remove("local_rank")
-#
-#     # Remove local_rank from args if exists.
-#     to_remove = list(filter(lambda x: x.startswith('--local_rank'), sys.argv))
-#     if len(to_remove) > 0:
-#         for val in to_remove:
-#             sys.argv.remove(val)
-#
-#
-#     environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", args.local_rank))
-#
-#
-# def setup_ddp_nproc():
-#     """Initialize environment_config.DDP_LOCAL_RANK with rank value."""
-#     # Get local_rank from args if exists.
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("--nproc_per_node", type=int, default=None)
-#     parser.add_argument("--config_name", type=str, default=None)
-#     args, _ = parser.parse_known_args()
-#
-#     # TODO: make sure that the commented code can be replace by sys.argv.remove("local_rank")
-#     # sys.argv.remove("nproc_per_node")
-#
-#     # Remove local_rank from args if exists.
-#     to_remove = list(filter(lambda x: x.startswith('--nproc_per_node'), sys.argv))
-#     if len(to_remove) > 0:
-#         for val in to_remove:
-#             sys.argv.remove(val)
-#
-#
-#     hydra_nproc_per_node = load_hydra_conf().nproc_per_node if args.config_name else None
-#
-#     if args.nproc_per_node or hydra_nproc_per_node:
-#         if hydra_nproc_per_node == args.nproc_per_node:
-#             raise ValueError(f"You specified nproc_per_node in both your recipe and in your script which lead to a conflict,"
-#                              f"please remove either '--nproc_per_node={args.nproc_per_node}' from your script,"
-#                              f"or 'nproc_per_node: hydra_nproc_per_node' from your recipe")
-#
-#         nproc_per_node = hydra_nproc_per_node if hydra_nproc_per_node else args.nproc_per_node
-#         if nproc_per_node is not None:
-#             restart_script_with_ddp(nproc_per_node)
-
-
-
-def register_hydra_resolvers():
-    """Register all the hydra resolvers required for the super-gradients recipes."""
-    OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
 
 
 def is_distributed() -> bool:
@@ -223,7 +157,7 @@ def find_free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         # Binding to port 0 will cause the OS to find an available port for us
         sock.bind(("", 0))
-        _adress, port = sock.getsockname()
+        _ip, port = sock.getsockname()
     return port
 
 

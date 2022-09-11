@@ -17,7 +17,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
-from super_gradients.common.environment.env_helpers import require_ddp_setup
+from super_gradients.common.environment.env_helpers import require_gpu_setup
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
@@ -1282,7 +1282,7 @@ class Trainer:
             else:
                 raise RuntimeError('CUDA DEVICE NOT FOUND... EXITING')
 
-        if require_ddp_setup(requested_multi_gpu):
+        if require_gpu_setup(requested_multi_gpu):
             raise GPUModeNotSetupError()
 
         # SELECT CPU DEVICE
