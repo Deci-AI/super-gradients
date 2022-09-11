@@ -200,14 +200,13 @@ class Trainer:
         """
 
         setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, 'multi_gpu', MultiGPUMode.OFF),
-                       nproc_per_node=core_utils.get_param(cfg, 'nproc_per_node'))
+                       num_gpus=core_utils.get_param(cfg, 'num_gpus'))
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
         kwargs = parse_args(cfg, cls.__init__)
 
-        # init_trainer(multi_gpu=cfg.multi_gpu, nproc_per_node=cfg.nproc_per_node)
         trainer = Trainer(**kwargs)
 
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
@@ -1330,7 +1329,7 @@ class Trainer:
 
         Usage:
 
-            python -m torch.distributed.launch --nproc_per_node=n YOUR_TRAINING_SCRIPT.py
+            python -m torch.distributed.launch --num_gpus=n YOUR_TRAINING_SCRIPT.py
             where n is the number of GPUs required, e.g., n=8
 
             Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.

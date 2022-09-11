@@ -28,4 +28,4 @@ architecture: vit_large
 
 experiment_name: vit_large_imagenet1k
 multi_gpu: DDP
-nproc_per_node: 8
+num_gpus: 8

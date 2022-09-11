@@ -18,7 +18,7 @@
 # Anchors will be selected based on validation resolution and anchors_name
 # To switch between anchors, set anchors_name to something else defined in the anchors section
 # e.g.
-# python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2 anchors_name=stride_16_plus
+# python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco2017_ssd_lite_mobilenet_v2 anchors_name=stride_16_plus
 
 
 defaults:

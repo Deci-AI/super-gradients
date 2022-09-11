@@ -134,7 +134,7 @@ project_name: RegSeg
 experiment_name: ${architecture}_cityscapes
 
 multi_gpu: AUTO
-nproc_per_node: 4
+num_gpus: 4
 
 hydra:
   searchpath:

@@ -37,6 +37,6 @@ training_hyperparams:
 experiment_name: repvgg_a0_imagenet_reproduce_fix
 
 multi_gpu: DDP
-nproc_per_node: 4
+num_gpus: 4
 
 architecture: repvgg_a0

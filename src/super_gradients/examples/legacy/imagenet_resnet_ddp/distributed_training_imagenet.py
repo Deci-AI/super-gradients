@@ -4,7 +4,7 @@
     The program will dispatch distributed training on all available GPUs residing in a single node.
 
     Usage:
-    python -m torch.distributed.launch --nproc_per_node=n distributed_training_imagenet.py
+    python -m torch.distributed.launch --num_gpus=n distributed_training_imagenet.py
     where n is the number of GPUs required, e.g., n=8
 
     Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.

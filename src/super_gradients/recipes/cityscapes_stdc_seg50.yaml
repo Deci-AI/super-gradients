@@ -117,7 +117,7 @@ training_hyperparams:
       edge_kernel: 3
 
 multi_gpu: DDP
-nproc_per_node: 2
+num_gpus: 2
 
 experiment_name: ${architecture}50_cityscapes
 ckpt_root_dir:

@@ -128,7 +128,7 @@ model_checkpoints_location: local
 ckpt_root_dir:
 
 multi_gpu: DDP
-nproc_per_node: 4
+num_gpus: 4
 
 hydra:
   run:

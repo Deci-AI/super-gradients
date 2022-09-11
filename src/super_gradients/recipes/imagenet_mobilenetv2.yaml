@@ -37,6 +37,6 @@ experiment_name: mobileNetv2_training
 ckpt_root_dir:
 
 multi_gpu: DDP
-nproc_per_node: 2
+num_gpus: 2
 
 architecture: mobilenet_v2

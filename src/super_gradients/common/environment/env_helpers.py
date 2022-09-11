@@ -85,26 +85,17 @@ def register_hydra_resolvers():
     OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
 
 
-def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, nproc_per_node: int = None):
+def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     """
     If required, launch ddp subprocesses.
-    :param gpu_mode:        DDP, DP or Off
-    :param nproc_per_node:  Number of GPU's to use.
+    :param gpu_mode:    DDP, DP or Off
+    :param num_gpus:    Number of GPU's to use.
     """
     if require_gpu_setup(gpu_mode):
-        args_nproc_per_node = pop_arg("nproc_per_node")
-
-        # We chose to not allow the user to use both explicit parameter and python args.
-        if (nproc_per_node is not None) and (args_nproc_per_node is not None) and (nproc_per_node != args_nproc_per_node):
-            raise ValueError(f"You specified nproc_per_node in your script args and in the 'setup_env' param which lead to a conflict.\n"
-                             f"Please remove either '--nproc_per_node={args_nproc_per_node}' from your script,"
-                             f"or 'init_trainer(nproc_per_node={nproc_per_node})' from your recipe")
-
-        # If nproc_per_node not specified in param, take args. If args not specified, take all available devices.
-        nproc_per_node = nproc_per_node or args_nproc_per_node or torch.cuda.device_count()
-        if nproc_per_node > torch.cuda.device_count():
-            raise ValueError(f"You specified nproc_per_node={nproc_per_node} but only {torch.cuda.device_count()} GPU's are available")
-        restart_script_with_ddp(nproc_per_node)
+        num_gpus = num_gpus or torch.cuda.device_count()
+        if num_gpus > torch.cuda.device_count():
+            raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
+        restart_script_with_ddp(num_gpus)
 
 
 def require_gpu_setup(gpu_mode: MultiGPUMode) -> bool:
@@ -162,17 +153,17 @@ def find_free_port() -> int:
 
 
 @record
-def restart_script_with_ddp(nproc_per_node: int = None):
+def restart_script_with_ddp(num_gpus: int = None):
     """Launch the same script as the one that was launched (i.e. the command used to start the current process is re-used) but on subprocesses (i.e. with DDP).
 
-    :param nproc_per_node: How many gpu's you want to run the script on. If not specified, every available device will be used.
+    :param num_gpus: How many gpu's you want to run the script on. If not specified, every available device will be used.
     """
     # Get the value fom recipe if specified, otherwise take all available devices.
-    nproc_per_node = nproc_per_node if nproc_per_node else torch.cuda.device_count()
+    num_gpus = num_gpus if num_gpus else torch.cuda.device_count()
     ddp_port = find_free_port()
 
     config = LaunchConfig(
-        nproc_per_node=nproc_per_node,
+        nproc_per_node=num_gpus,
         min_nodes=1,
         max_nodes=1,
         run_id='none',

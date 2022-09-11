@@ -37,6 +37,6 @@ experiment_name: resnet50_imagenet
 ckpt_root_dir:
 
 multi_gpu: DDP
-nproc_per_node: 4
+num_gpus: 4
 
 architecture: resnet50

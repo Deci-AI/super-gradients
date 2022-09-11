@@ -34,4 +34,4 @@ experiment_name: vit_base_imagenet1k
 
 architecture: vit_base
 multi_gpu: DDP
-nproc_per_node: 8
+num_gpus: 8

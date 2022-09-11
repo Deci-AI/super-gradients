@@ -54,7 +54,7 @@ training_hyperparams:
 experiment_name: coco_segmentation_21_subclass_shelfnet34
 
 multi_gpu: DDP
-nproc_per_node: 4
+num_gpus: 4
 
 ckpt_root_dir:
 

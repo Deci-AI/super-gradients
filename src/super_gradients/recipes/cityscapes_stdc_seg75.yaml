@@ -119,7 +119,7 @@ training_hyperparams:
       weights: [ 1., 0.6, 0.4, 1. ]
 
 multi_gpu: DDP
-nproc_per_node: 4
+num_gpus: 4
 
 experiment_name: ${architecture}75_cityscapes
 ckpt_root_dir:

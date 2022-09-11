@@ -45,7 +45,7 @@ training_hyperparams:
 architecture: yolox_s
 
 multi_gpu: DDP
-nproc_per_node: 8
+num_gpus: 8
 
 experiment_suffix: res${dataset_params.train_image_size}
 experiment_name: ${architecture}_coco2017_${experiment_suffix}
