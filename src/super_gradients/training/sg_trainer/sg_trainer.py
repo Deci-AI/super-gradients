@@ -24,14 +24,13 @@ from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.factories.datasets_factory import DatasetsFactory
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
-from super_gradients.training import utils as core_utils, models
+from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
@@ -39,7 +38,6 @@ from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, \
     IllegalDataloaderInitialization, GPUModeNotSetupError
-from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
     get_logging_values, \
@@ -209,8 +207,14 @@ class Trainer:
 
         trainer = Trainer(**kwargs)
 
-        # CONNECT THE DATASET INTERFACE WITH DECI MODEL
-        trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
+        # INSTANTIATE DATA LOADERS
+        train_dataloader = dataloaders.get(name=cfg.train_dataloader,
+                                           dataset_params=cfg.dataset_params.train_dataset_params,
+                                           dataloader_params=cfg.dataset_params.train_dataloader_params)
+
+        val_dataloader = dataloaders.get(name=cfg.val_dataloader,
+                                         dataset_params=cfg.dataset_params.val_dataset_params,
+                                         dataloader_params=cfg.dataset_params.val_dataloader_params)
 
         # BUILD NETWORK
         model = models.get(name=cfg.architecture,
@@ -223,7 +227,10 @@ class Trainer:
                            )
 
         # TRAIN
-        trainer.train(model=model, training_params=cfg.training_hyperparams)
+        trainer.train(model=model,
+                      train_loader=train_dataloader,
+                      valid_loader=val_dataloader,
+                      training_params=cfg.training_hyperparams)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
@@ -244,23 +251,6 @@ class Trainer:
 
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
-
-    @resolve_param('dataset_interface', DatasetsFactory())
-    def connect_dataset_interface(self, dataset_interface: DatasetInterface, data_loader_num_workers: int = 8):
-        """
-        :param dataset_interface: DatasetInterface object
-        :param data_loader_num_workers: The number of threads to initialize the Data Loaders with
-            The dataset to be connected
-        """
-        if self.train_loader:
-            logger.warning("Overriding the dataloaders that Trainer was initialized with")
-        self.dataset_interface = dataset_interface
-        self.train_loader, self.valid_loader, self.test_loader, self.classes = \
-            self.dataset_interface.get_data_loaders(batch_size_factor=self.num_devices,
-                                                    num_workers=data_loader_num_workers,
-                                                    distributed_sampler=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
-
-        self.dataset_params = self.dataset_interface.get_dataset_params()
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     @deprecated(target=None, deprecated_in='2.3.0', remove_in='3.0.0')
@@ -539,11 +529,7 @@ class Trainer:
 
     def _prep_net_for_train(self):
         if self.arch_params is None:
-            default_arch_params = HpmStruct(sync_bn=False)
-            arch_params = getattr(self.net, "arch_params", default_arch_params)
-            self.arch_params = default_arch_params
-            if arch_params is not None:
-                self.arch_params.override(**arch_params.to_dict())
+            self._init_arch_params()
 
         # TODO: REMOVE THE BELOW LINE (FOR BACKWARD COMPATIBILITY)
         if self.checkpoint_params is None:
@@ -561,8 +547,16 @@ class Trainer:
         self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
         self._load_checkpoint_to_model()
 
+    def _init_arch_params(self):
+        default_arch_params = HpmStruct(sync_bn=False)
+        arch_params = getattr(self.net, "arch_params", default_arch_params)
+        self.arch_params = default_arch_params
+        if arch_params is not None:
+            self.arch_params.override(**arch_params.to_dict())
+
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, model: nn.Module = None, training_params: dict = dict(), train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
+    def train(self, model: nn.Module = None, training_params: dict = None, train_loader: DataLoader = None,
+              valid_loader: DataLoader = None):  # noqa: C901
         """
 
         train - Trains the Model
@@ -841,6 +835,8 @@ class Trainer:
         :return:
         """
         global logger
+        if training_params is None:
+            training_params = dict()
 
         self.train_loader = train_loader or self.train_loader
         self.valid_loader = valid_loader or self.valid_loader
@@ -1325,19 +1321,13 @@ class Trainer:
 
     def _initialize_ddp(self):
         """
-        Initializes Distributed Data Parallel
+        Initialize Distributed Data Parallel
 
-        Usage:
-
-            python -m torch.distributed.launch --num_gpus=n YOUR_TRAINING_SCRIPT.py
-            where n is the number of GPUs required, e.g., n=8
-
-            Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.
-            Whatever learning rate and schedule you specify will be applied to the each GPU individually.
-            Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch size is the
-            batch you specify times the number of GPUs. In the literature there are several "best practices" to set
-            learning rates and schedules for large batch sizes.
-
+        Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.
+        Whatever learning rate and schedule you specify will be applied to the each GPU individually.
+        Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch size is the
+        batch you specify times the number of GPUs. In the literature there are several "best practices" to set
+        learning rates and schedules for large batch sizes.
         """
         logger.info("Distributed training starting...")
         local_rank = environment_config.DDP_LOCAL_RANK
@@ -1436,12 +1426,15 @@ class Trainer:
                              "calling test or through training_params when calling train(...)")
         if self.test_loader is None:
             raise ValueError("Test dataloader is required to perform test. Make sure to either pass it through "
-                             "test_loader arg or calling connect_dataset_interface upon a DatasetInterface instance "
-                             "with a non empty testset attribute.")
+                             "test_loader arg.")
 
         # RESET METRIC RUNNERS
         self._reset_metrics()
         self.test_metrics.to(self.device)
+
+        if self.arch_params is None:
+            self._init_arch_params()
+        self._net_to_device()
 
     def _add_metrics_update_callback(self, phase: Phase):
         """

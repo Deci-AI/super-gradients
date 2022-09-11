@@ -18,6 +18,8 @@ defaults:
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
 
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
 
 resume: False
 training_hyperparams:
@@ -63,12 +65,6 @@ student_checkpoint_params:
     value: True
   pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
 
-
-dataset_interface:
-  imagenet:
-    dataset_params: ${dataset_params}
-
-data_loader_num_workers: 8
 
 model_checkpoints_location: local
 

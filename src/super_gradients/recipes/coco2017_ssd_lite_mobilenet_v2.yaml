@@ -28,6 +28,9 @@ defaults:
   - checkpoint_params: default_checkpoint_params
   - anchors: ssd_anchors
 
+train_dataloader: coco2017_train
+val_dataloader: coco2017_val
+
 architecture: ssd_lite_mobilenet_v2
 
 data_loader_num_workers: 8
@@ -43,9 +46,6 @@ arch_params:
   num_classes: 80
   anchors: ${dboxes}
 
-dataset_interface:
-  coco2017_detection:
-    dataset_params: ${dataset_params}
 resume: False
 training_hyperparams:
   resume: ${resume}

@@ -1,6 +1,6 @@
 import unittest
 
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training import Trainer, MultiGPUMode, models
 from super_gradients.training.metrics.classification_metrics import Accuracy
 import os
@@ -9,12 +9,9 @@ from super_gradients.training.utils.quantization_utils import PostQATConversionC
 
 class QATIntegrationTest(unittest.TestCase):
     def _get_trainer(self, experiment_name):
-        dataset_params = {"batch_size": 10}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
         trainer = Trainer(experiment_name,
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
-        trainer.connect_dataset_interface(dataset)
         model = models.get("resnet18", pretrained_weights="imagenet")
         return trainer, model
 
@@ -47,7 +44,8 @@ class QATIntegrationTest(unittest.TestCase):
             "percentile": 99.99
         })
 
-        model.train(model=net, training_params=train_params)
+        model.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(),
+                    valid_loader=classification_test_dataloader())
 
     def test_qat_transition(self):
         model, net = self._get_trainer("test_qat_transition")
@@ -59,7 +57,8 @@ class QATIntegrationTest(unittest.TestCase):
             "percentile": 99.99
         })
 
-        model.train(model=net, training_params=train_params)
+        model.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(),
+                    valid_loader=classification_test_dataloader())
 
     def test_qat_from_calibrated_ckpt(self):
         model, net = self._get_trainer("generate_calibrated_model")
@@ -71,7 +70,8 @@ class QATIntegrationTest(unittest.TestCase):
             "percentile": 99.99
         })
 
-        model.train(model=net, training_params=train_params)
+        model.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(),
+                    valid_loader=classification_test_dataloader())
 
         calibrated_model_path = os.path.join(model.checkpoints_dir_path, "ckpt_calibrated_percentile_99.99.pth")
 
@@ -85,7 +85,8 @@ class QATIntegrationTest(unittest.TestCase):
             "percentile": 99.99
         })
 
-        model.train(model=net, training_params=train_params)
+        model.train(model=net, training_params=train_params, train_loader=classification_test_dataloader(),
+                    valid_loader=classification_test_dataloader())
 
 
 if __name__ == '__main__':

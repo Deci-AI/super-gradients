@@ -5,12 +5,8 @@ defaults:
   - dataset_params: imagenet_mobilenetv3_dataset_params
   - checkpoint_params: default_checkpoint_params
 
-dataset_interface:
-  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
-  dataset_params: ${dataset_params}
-  data_dir: /data/Imagenet
-
-data_loader_num_workers: 16
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
 
 model_checkpoints_location: local
 resume: False

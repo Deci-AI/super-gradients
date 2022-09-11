@@ -28,12 +28,8 @@ defaults:
   - arch_params: yolox_s_arch_params
   - checkpoint_params: default_checkpoint_params
 
-dataset_interface:
-  coco2017_detection:
-    dataset_params: ${dataset_params}
-
-
-data_loader_num_workers: 8
+train_dataloader: coco2017_train
+val_dataloader: coco2017_val
 
 model_checkpoints_location: local
 
@@ -47,7 +43,7 @@ architecture: yolox_s
 multi_gpu: DDP
 num_gpus: 8
 
-experiment_suffix: res${dataset_params.train_image_size}
+experiment_suffix: res${dataset_params.train_dataset_params.input_dim}
 experiment_name: ${architecture}_coco2017_${experiment_suffix}
 
 ckpt_root_dir:

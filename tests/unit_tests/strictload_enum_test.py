@@ -54,7 +54,7 @@ class StrictLoadEnumTest(unittest.TestCase):
 
         # Save the model's state_dict checkpoint in Trainer format
         cls.trainer = Trainer("load_checkpoint_test", model_checkpoints_location='local')  # Saves in /checkpoints
-        cls.trainer.build_model(cls.original_torch_model, arch_params={'num_classes': 10})
+        cls.trainer.set_net(cls.original_torch_model)
         # FIXME: after uniting init and build_model we should remove this
         cls.trainer.sg_logger = BaseSGLogger('project_name', 'load_checkpoint_test', 'local', resumed=False,
                                              training_params=HpmStruct(max_epochs=10),
