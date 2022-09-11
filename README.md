@@ -5,7 +5,7 @@
 **Easily train or fine-tune SOTA computer vision models with one open source training library**
 [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Easily%20train%20or%20fine-tune%20SOTA%20computer%20vision%20models%20from%20one%20training%20repository&url=https://github.com/Deci-AI/super-gradients&via=deci_ai&hashtags=AI,deeplearning,computervision,training,opensource)
 
-#### Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -> [Fill Survey](https://hz8qtlvwkaw.typeform.com/to/OpKda0Qe)
+#### Version 3 is out! updated Notebooks and tutorials will be added this week - stay tuned!
 ______________________________________________________________________
   
   <p align="center">
