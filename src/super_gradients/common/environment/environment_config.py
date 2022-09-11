@@ -28,3 +28,5 @@ DEFAULT_LOGGING_LEVEL = environ.get("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=DEFAULT_LOGGING_LEVEL)
 
 DDP_LOCAL_RANK = -1
+IS_RANK_SETUP = False
+IS_DDP_SETUP = False

@@ -4,8 +4,16 @@ import sys
 import socket
 from functools import wraps
 
-from omegaconf import OmegaConf
+import hydra
+import pkg_resources
+from omegaconf import OmegaConf, DictConfig
+import torch
+from torch.distributed.elastic.multiprocessing import Std
+from torch.distributed.elastic.multiprocessing.errors import record
+from torch.distributed.launcher.api import LaunchConfig, elastic_launch
+from typing import List, Type, Any, Dict
 
+from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment import environment_config
 
 
@@ -63,27 +71,123 @@ def init_trainer():
     a function to initialize the super_gradients environment. This function should be the first thing to be called
     by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
     and prepares the super_gradients environment.
-    TODO: Rename to setup_env or something more explicit than init_trainer
+    TODO: Rename to setup_env or something more explicit than init_trainer?
     """
+
     register_hydra_resolvers()
-    setup_ddp_local_rank()
+
+    # We pop local_rank and nproc_per_node because they can be useful to start a job but they would break
+    args_local_rank = pop_arg("local_rank", default_value=-1)
+
+    # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
+    environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=args_local_rank))
 
 
-def setup_ddp_local_rank():
-    """Initialize environment_config.DDP_LOCAL_RANK with rank value."""
-    # Get local_rank from args if exists.
+def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, nproc_per_node: int = None):
+    # ----- SETUP DDP --------
+    if require_ddp_setup(gpu_mode):
+        args_nproc_per_node = pop_arg("nproc_per_node")
+
+        # We chose to not allow the user to use both explicit parameter and python args.
+        if (nproc_per_node is not None) and (args_nproc_per_node is not None) and (nproc_per_node != args_nproc_per_node):
+            raise ValueError(f"You specified nproc_per_node in your script args and in the 'setup_env' param which lead to a conflict.\n"
+                             f"Please remove either '--nproc_per_node={args_nproc_per_node}' from your script,"
+                             f"or 'init_trainer(nproc_per_node={nproc_per_node})' from your recipe")
+
+        # If nproc_per_node not specified in param, take args. If args not specified, take all available devices.
+        nproc_per_node = nproc_per_node or args_nproc_per_node or torch.cuda.device_count()
+        restart_script_with_ddp(nproc_per_node)
+
+    # Set IS_SETUP to true so that we can know later whether this function was called or not.
+    environment_config.IS_SETUP = True
+
+
+def require_ddp_setup(gpu_mode: MultiGPUMode) -> bool:
+    """Check"""
+    is_ddp = (gpu_mode == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
+    is_master_process = not is_distributed()
+    is_not_setup = not environment_config.IS_DDP_SETUP
+    return is_ddp and is_master_process and is_not_setup
+
+
+def pop_arg(arg_name: str, default_value: int = None) -> argparse.Namespace:
+    """Get the specified args and remove them from argv"""
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
+    parser.add_argument(f"--{arg_name}", default=default_value)
     args, _ = parser.parse_known_args()
 
-    # Remove local_rank from args if exists.
-    to_remove = list(filter(lambda x: x.startswith('--local_rank'), sys.argv))
-    if len(to_remove) > 0:
-        for val in to_remove:
-            sys.argv.remove(val)
+    # Remove the ddp args to not have a conflict with the use of hydra
+    for val in filter(lambda x: x.startswith(f"--{arg_name}"), sys.argv):
+        sys.argv.remove(val)
+    return vars(args)[arg_name]
 
-    # Set local_rank with priority order (env variable > args > default value)
-    environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", args.local_rank))
+
+def pop_args(arg_names: List[str], default_value: int = -1) -> argparse.Namespace:
+    """Get the specified args and remove them from argv"""
+
+    parser = argparse.ArgumentParser()
+    for arg_name in arg_names:
+        parser.add_argument(f"--{arg_name}", default=default_value)
+    args, _ = parser.parse_known_args()
+
+    # Remove the ddp args to not have a conflict with the use of hydra
+    for arg_name in arg_names:
+        for val in filter(lambda x: x.startswith(f"--{arg_name}"), sys.argv):
+            sys.argv.remove(val)
+    return args
+
+#
+# def setup_ddp_local_rank():
+#     """Initialize environment_config.DDP_LOCAL_RANK with rank value."""
+#     # Get local_rank from args if exists.
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
+#     args, _ = parser.parse_known_args()
+#
+#     # TODO: make sure that the commented code can be replace by sys.argv.remove("local_rank")
+#     # sys.argv.remove("local_rank")
+#
+#     # Remove local_rank from args if exists.
+#     to_remove = list(filter(lambda x: x.startswith('--local_rank'), sys.argv))
+#     if len(to_remove) > 0:
+#         for val in to_remove:
+#             sys.argv.remove(val)
+#
+#
+#     environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", args.local_rank))
+#
+#
+# def setup_ddp_nproc():
+#     """Initialize environment_config.DDP_LOCAL_RANK with rank value."""
+#     # Get local_rank from args if exists.
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--nproc_per_node", type=int, default=None)
+#     parser.add_argument("--config_name", type=str, default=None)
+#     args, _ = parser.parse_known_args()
+#
+#     # TODO: make sure that the commented code can be replace by sys.argv.remove("local_rank")
+#     # sys.argv.remove("nproc_per_node")
+#
+#     # Remove local_rank from args if exists.
+#     to_remove = list(filter(lambda x: x.startswith('--nproc_per_node'), sys.argv))
+#     if len(to_remove) > 0:
+#         for val in to_remove:
+#             sys.argv.remove(val)
+#
+#
+#     hydra_nproc_per_node = load_hydra_conf().nproc_per_node if args.config_name else None
+#
+#     if args.nproc_per_node or hydra_nproc_per_node:
+#         if hydra_nproc_per_node == args.nproc_per_node:
+#             raise ValueError(f"You specified nproc_per_node in both your recipe and in your script which lead to a conflict,"
+#                              f"please remove either '--nproc_per_node={args.nproc_per_node}' from your script,"
+#                              f"or 'nproc_per_node: hydra_nproc_per_node' from your recipe")
+#
+#         nproc_per_node = hydra_nproc_per_node if hydra_nproc_per_node else args.nproc_per_node
+#         if nproc_per_node is not None:
+#             restart_script_with_ddp(nproc_per_node)
+
 
 
 def register_hydra_resolvers():
@@ -125,3 +229,37 @@ def find_free_port() -> int:
         sock.bind(("", 0))
         _adress, port = sock.getsockname()
     return port
+
+
+@record
+def restart_script_with_ddp(nproc_per_node: int = None):
+    """Launch the same script as the one that was launched (i.e. the command used to start the current process is re-used) but on subprocesses (i.e. with DDP).
+
+    :param nproc_per_node: How many gpu's you want to run the script on. If not specified, every available device will be used.
+    """
+    # Get the value fom recipe if specified, otherwise take all available devices.
+    nproc_per_node = nproc_per_node if nproc_per_node else torch.cuda.device_count()
+    ddp_port = find_free_port()
+
+    config = LaunchConfig(
+        nproc_per_node=nproc_per_node,
+        min_nodes=1,
+        max_nodes=1,
+        run_id='none',
+        role='default',
+        rdzv_endpoint=f'127.0.0.1:{ddp_port}',
+        rdzv_backend='static',
+        rdzv_configs={'rank': 0, 'timeout': 900},
+        rdzv_timeout=-1,
+        max_restarts=0,
+        monitor_interval=5,
+        start_method='spawn',
+        log_dir=None,
+        redirects=Std.NONE,
+        tee=Std.NONE,
+        metrics_cfg={})
+
+    elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv)
+
+    # The code below should actually never be reached as the process will be in a loop inside elastic_launch until any subprocess crashes.
+    sys.exit("Main process finished")

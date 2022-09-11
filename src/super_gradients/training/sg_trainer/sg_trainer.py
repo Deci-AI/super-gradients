@@ -17,6 +17,7 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients.common.environment.env_helpers import require_ddp_setup
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
@@ -37,7 +38,7 @@ from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, \
-    IllegalDataloaderInitialization
+    IllegalDataloaderInitialization, GPUModeNotSetupError
 from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
@@ -60,6 +61,7 @@ from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
+from super_gradients.common.environment.env_helpers import setup_gpu_mode
 
 logger = get_logger(__name__)
 
@@ -196,11 +198,14 @@ class Trainer:
         @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         @return: output of trainer.train(...) (i.e results tuple)
         """
+        # setup_gpu_mode(gpu_mode=cfg.multi_gpu, nproc_per_node=cfg.nproc_per_node)
+
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
         kwargs = parse_args(cfg, cls.__init__)
 
+        # init_trainer(multi_gpu=cfg.multi_gpu, nproc_per_node=cfg.nproc_per_node)
         trainer = Trainer(**kwargs)
 
         # CONNECT THE DATASET INTERFACE WITH DECI MODEL
@@ -1274,6 +1279,9 @@ class Trainer:
                 self.device = 'cuda'  # TODO - we may want to set the device number as well i.e. 'cuda:1'
             else:
                 raise RuntimeError('CUDA DEVICE NOT FOUND... EXITING')
+
+        if require_ddp_setup(requested_multi_gpu):
+            raise GPUModeNotSetupError()
 
         # SELECT CPU DEVICE
         elif requested_device == 'cpu':
