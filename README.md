@@ -60,7 +60,7 @@ All SuperGradients models’ are production ready in the sense that they are com
 
     
 ## What's New
-* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints] (https://bit.ly/3UdjMIT)  for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
+* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](https://bit.ly/3UdjMIT)  for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
 * 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-semantic-segmentation-pytorch-checkpoints) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
 * 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
 * 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](https://github.com/Deci-AI/super-gradients#pretrained-object-detection-pytorch-checkpoints) on COCO - Tailored for edge devices! 📱
