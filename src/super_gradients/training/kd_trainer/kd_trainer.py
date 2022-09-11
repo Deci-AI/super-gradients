@@ -4,6 +4,7 @@ from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 
 from super_gradients.common import MultiGPUMode
+from super_gradients.training.dataloaders import dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
@@ -57,8 +58,14 @@ class KDTrainer(Trainer):
 
         trainer = KDTrainer(**kwargs)
 
-        # CONNECT THE DATASET INTERFACE WITH DECI MODEL
-        trainer.connect_dataset_interface(cfg.dataset_interface, data_loader_num_workers=cfg.data_loader_num_workers)
+        # INSTANTIATE DATA LOADERS
+        train_dataloader = dataloaders.get(name=cfg.train_dataloader,
+                                           dataset_params=cfg.dataset_params.train_dataset_params,
+                                           dataloader_params=cfg.dataset_params.train_dataloader_params)
+
+        val_dataloader = dataloaders.get(name=cfg.val_dataloader,
+                                         dataset_params=cfg.dataset_params.val_dataset_params,
+                                         dataloader_params=cfg.dataset_params.val_dataloader_params)
 
         student = models.get(cfg.student_architecture, arch_params=cfg.student_arch_params,
                              strict_load=cfg.student_checkpoint_params.strict_load,
@@ -75,7 +82,8 @@ class KDTrainer(Trainer):
         # TRAIN
         trainer.train(training_params=cfg.training_hyperparams, student=student, teacher=teacher,
                       kd_architecture=cfg.architecture, kd_arch_params=cfg.arch_params,
-                      run_teacher_on_eval=cfg.run_teacher_on_eval)
+                      run_teacher_on_eval=cfg.run_teacher_on_eval,
+                      train_loader=train_dataloader, valid_loader=val_dataloader)
 
     def build_model(self,
                     # noqa: C901 - too complex
@@ -303,7 +311,8 @@ class KDTrainer(Trainer):
                                    })
         return hyper_param_config
 
-    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> KDModelEMA:
+    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15,
+                               exp_activation: bool = True) -> KDModelEMA:
         """Instantiate KD ema model for KDModule.
 
         If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.
@@ -330,7 +339,8 @@ class KDTrainer(Trainer):
 
     def train(self, model: KDModule = None, training_params: dict = dict(), student: SgModule = None,
               teacher: torch.nn.Module = None, kd_architecture: Union[KDModule.__class__, str] = 'kd_module',
-              kd_arch_params: dict = dict(), run_teacher_on_eval=False, *args, **kwargs):
+              kd_arch_params: dict = dict(), run_teacher_on_eval=False, train_loader: DataLoader = None,
+              valid_loader: DataLoader = None, *args, **kwargs):
         """
         Trains the student network (wrapped in KDModule network).
 
@@ -342,6 +352,8 @@ class KDTrainer(Trainer):
         :param kd_architecture: KDModule architecture to use, currently only 'kd_module' is supported (default='kd_module').
         :param kd_arch_params: architecture params to pas to kd_architecture constructor.
         :param run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)
+        :param train_loader: Dataloader for train set.
+        :param valid_loader: Dataloader for validation.
         """
         kd_net = self.net or model
         if kd_net is None:
@@ -352,4 +364,5 @@ class KDTrainer(Trainer):
                                               run_teacher_on_eval=run_teacher_on_eval,
                                               student=student,
                                               teacher=teacher)
-        super(KDTrainer, self).train(model=kd_net, training_params=training_params)
+        super(KDTrainer, self).train(model=kd_net, training_params=training_params,
+                                     train_loader=train_loader, valid_loader=valid_loader)
