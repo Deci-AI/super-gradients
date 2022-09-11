@@ -24,7 +24,6 @@ trainer = Trainer("regseg48_transfer_learning_old_dice_diff_lrs_head_fixed_50_ep
 # LOADING THE PRETRAINED REGSET, IT WILL CALL IT'S REPLACE_HEAD METHOD AND CHANGE IT'S SEGMENTATION HEAD LAYER ACCORDING
 # TO OUR BINARY SEGMENTATION DATASET
 model = models.get("regseg48", pretrained_weights="cityscapes", num_classes=1)
-trainer.build_model("regseg48", arch_params={"pretrained_weights": "cityscapes"})
 
 # DEFINE TRAINING PARAMS. SEE DOCS FOR THE FULL LIST.
 train_params = {"max_epochs": 50,
@@ -52,4 +51,7 @@ train_params = {"max_epochs": 50,
                                                                             last_img_idx_in_batch=4)],
                 }
 
-trainer.train(train_params)
+trainer.train(training_params=train_params,
+              train_loader=dl_train,
+              valid_loader=dl_val,
+              model=model)

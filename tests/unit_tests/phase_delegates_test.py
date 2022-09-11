@@ -41,7 +41,6 @@ class ContextMethodsTest(unittest.TestCase):
                                                                                                            "set_net",
                                                                                                            "set_ckpt_best_name",
                                                                                                            "reset_best_metric",
-                                                                                                           "build_model",
                                                                                                            "validate_epoch"],
                                                                      non_accessible_method_names=[]))
             else:
@@ -50,7 +49,6 @@ class ContextMethodsTest(unittest.TestCase):
                                                                                             "set_net",
                                                                                             "set_ckpt_best_name",
                                                                                             "reset_best_metric",
-                                                                                            "build_model",
                                                                                             "validate_epoch",
                                                                                             "set_ema"],
                                                   accessible_method_names=[]))
