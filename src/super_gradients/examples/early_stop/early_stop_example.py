@@ -2,8 +2,7 @@
 # Reaches ~94.9 Accuracy after 250 Epochs
 import super_gradients
 from super_gradients import Trainer
-from super_gradients.training import models
-from super_gradients.training.dataloaders.dataloaders import cifar10_train, cifar10_val
+from super_gradients.training import models, dataloaders
 from super_gradients.training.metrics.classification_metrics import Accuracy, Top5
 from super_gradients.training.utils.early_stopping import EarlyStop
 from super_gradients.training.utils.callbacks import Phase
@@ -27,4 +26,5 @@ trainer = Trainer("Callback_Example")
 # Build Model
 model = models.get("resnet18_cifar", num_classes=10)
 
-trainer.train(model=model, training_params=train_params, train_loader=cifar10_train(), valid_loader=cifar10_val())
+trainer.train(model=model, training_params=train_params,
+              train_loader=dataloaders.cifar10_train(), valid_loader=dataloaders.cifar10_val())

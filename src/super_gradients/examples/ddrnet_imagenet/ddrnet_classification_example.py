@@ -18,11 +18,10 @@ from super_gradients.common import MultiGPUMode
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation
 from torchvision.transforms import RandomHorizontalFlip, ColorJitter, ToTensor, Normalize
 import super_gradients
-from super_gradients.training import Trainer, models
+from super_gradients.training import Trainer, models, dataloaders
 import argparse
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.datasets.data_augmentation import RandomErase
-from super_gradients.training.dataloaders.dataloaders import imagenet_train, imagenet_val
 parser = argparse.ArgumentParser()
 super_gradients.init_trainer()
 
@@ -70,8 +69,10 @@ train_transforms = [RandomResizedCropAndInterpolation(size=224, interpolation="r
 trainer = Trainer(experiment_name=args.experiment_name,
                   multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
                   device='cuda')
-train_loader = imagenet_train(dataset_params={"transforms": train_transforms}, dataloader_params={"batch_size": args.batch})
-valid_loader = imagenet_val()
+
+train_loader = dataloaders.imagenet_train(dataset_params={"transforms": train_transforms},
+                                          dataloader_params={"batch_size": args.batch})
+valid_loader = dataloaders.imagenet_val()
 
 model = models.get("ddrnet_23_slim" if args.slim else "ddrnet_23",
                    arch_params={"aux_head": False, "classification_mode": True, 'dropout_prob': 0.3},

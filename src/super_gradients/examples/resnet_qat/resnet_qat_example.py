@@ -16,8 +16,7 @@ Once triggered, the following will happen:
 Finally, once training is over- we trigger a pos-training callback that will export the ONNX files.
 
 """
-from super_gradients.training.dataloaders import imagenet_train, imagenet_val
-from super_gradients.training import Trainer, MultiGPUMode, models
+from super_gradients.training import Trainer, MultiGPUMode, models, dataloaders
 from super_gradients.training.metrics.classification_metrics import Accuracy
 
 import super_gradients
@@ -29,8 +28,8 @@ trainer = Trainer("resnet18_qat_example",
                   model_checkpoints_location='local',
                   multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
 
-train_loader = imagenet_train()
-valid_loader = imagenet_val()
+train_loader = dataloaders.imagenet_train()
+valid_loader = dataloaders.imagenet_val()
 
 model = models.get("resnet18", pretrained_weights="imagenet")
 

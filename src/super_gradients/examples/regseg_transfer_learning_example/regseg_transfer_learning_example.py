@@ -1,25 +1,24 @@
-from super_gradients.training import models
+from super_gradients.training import models, dataloaders
 
 from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.metrics import BinaryIOU
 from super_gradients.training.transforms.transforms import ResizeSeg, RandomFlip, RandomRescale, CropImageAndMask, \
     PadShortToCropSize, ColorJitterSeg
 from super_gradients.training.utils.callbacks import BinarySegmentationVisualizationCallback, Phase
-from super_gradients.training.dataloaders.dataloaders import supervisely_persons_val, supervisely_persons_train
+
 # DEFINE DATA TRANSFORMATIONS
 
-dl_train = supervisely_persons_train(dataset_params={"transforms": [ColorJitterSeg(brightness=0.5, contrast=0.5, saturation=0.5),
-                                                     RandomFlip(),
-                                                     RandomRescale(scales=[0.25, 1.]),
-                                                     PadShortToCropSize([320, 480]),
-                                                     CropImageAndMask(crop_size=[320, 480],
-                                                                      mode="random")]})
+dl_train = dataloaders.supervisely_persons_train(
+    dataset_params={"transforms": [ColorJitterSeg(brightness=0.5, contrast=0.5, saturation=0.5),
+                                   RandomFlip(),
+                                   RandomRescale(scales=[0.25, 1.]),
+                                   PadShortToCropSize([320, 480]),
+                                   CropImageAndMask(crop_size=[320, 480],
+                                                    mode="random")]})
 
-dl_val = supervisely_persons_val(dataset_params={"transforms": [ResizeSeg(h=480, w=320)]})
-
+dl_val = dataloaders.supervisely_persons_val(dataset_params={"transforms": [ResizeSeg(h=480, w=320)]})
 
 trainer = Trainer("regseg48_transfer_learning_old_dice_diff_lrs_head_fixed_50_epochs")
-
 
 # THIS IS WHERE THE MAGIC HAPPENS- SINCE SGMODEL'S CLASSES ATTRIBUTE WAS SET TO BE DIFFERENT FROM CITYSCAPES'S, AFTER
 # LOADING THE PRETRAINED REGSET, IT WILL CALL IT'S REPLACE_HEAD METHOD AND CHANGE IT'S SEGMENTATION HEAD LAYER ACCORDING

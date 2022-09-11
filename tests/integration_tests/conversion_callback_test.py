@@ -4,9 +4,7 @@ import re
 
 from super_gradients.training import models
 
-from super_gradients import (
-    Trainer
-)
+from super_gradients import Trainer
 from super_gradients.training.dataloaders.dataloaders import segmentation_test_dataloader, \
     classification_test_dataloader
 from super_gradients.training.utils.callbacks import ModelConversionCheckCallback
