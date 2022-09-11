@@ -198,7 +198,9 @@ class Trainer:
         @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         @return: output of trainer.train(...) (i.e results tuple)
         """
-        # setup_gpu_mode(gpu_mode=cfg.multi_gpu, nproc_per_node=cfg.nproc_per_node)
+
+        setup_gpu_mode(gpu_mode=cfg.multi_gpu,
+                       nproc_per_node=core_utils.get_param(cfg, 'nproc_per_node'))
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)

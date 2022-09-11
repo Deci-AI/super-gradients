@@ -96,18 +96,14 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, nproc_per_node: in
 
         # If nproc_per_node not specified in param, take args. If args not specified, take all available devices.
         nproc_per_node = nproc_per_node or args_nproc_per_node or torch.cuda.device_count()
+        if nproc_per_node > torch.cuda.device_count():
+            raise ValueError(f"You specified nproc_per_node={nproc_per_node} but only {torch.cuda.device_count()} GPU's are available")
         restart_script_with_ddp(nproc_per_node)
-
-    # Set IS_SETUP to true so that we can know later whether this function was called or not.
-    environment_config.IS_SETUP = True
 
 
 def require_ddp_setup(gpu_mode: MultiGPUMode) -> bool:
     """Check"""
-    is_ddp = (gpu_mode == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
-    is_master_process = not is_distributed()
-    is_not_setup = not environment_config.IS_DDP_SETUP
-    return is_ddp and is_master_process and is_not_setup
+    return (gpu_mode == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL) and (not is_distributed())
 
 
 def pop_arg(arg_name: str, default_value: int = None) -> argparse.Namespace:
