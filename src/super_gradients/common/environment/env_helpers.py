@@ -1,4 +1,5 @@
 import argparse
+import importlib
 import os
 import sys
 from functools import wraps
@@ -30,6 +31,22 @@ class ColouredTextFormatter:
         Prints a text with colour ascii characters.
         """
         return print(''.join([colour, text, TerminalColours.ENDC]))
+
+
+def get_cls(cls_path):
+    """
+    A resolver for Hydra/OmegaConf to allow getting a class instead on an instance.
+    usage:
+    class_of_optimizer: ${class:torch.optim.Adam}
+    """
+    module = '.'.join(cls_path.split('.')[:-1])
+    name = cls_path.split('.')[-1]
+    importlib.import_module(module)
+    return getattr(sys.modules[module], name)
+
+
+# register the resolver
+OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args))
 
 
 def get_environ_as_type(environment_variable_name: str, default=None, cast_to_type: type = str) -> object:

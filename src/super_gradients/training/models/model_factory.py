@@ -1,10 +1,8 @@
-import importlib
-import sys
 
 import boto3
 import hydra
 from hydra.core.global_hydra import GlobalHydra
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import DictConfig
 
 from super_gradients.common import StrictLoad
 from super_gradients.training import utils as core_utils
@@ -17,16 +15,6 @@ from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_m
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
-
-
-def get_cls(cls_path):
-    module = '.'.join(cls_path.split('.')[:-1])
-    name = cls_path.split('.')[-1]
-    importlib.import_module(module)
-    return getattr(sys.modules[module], name)
-
-
-OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args))
 
 
 def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = None) -> SgModule:
