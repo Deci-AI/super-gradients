@@ -46,10 +46,6 @@ def get_cls(cls_path):
     return getattr(sys.modules[module], name)
 
 
-# register the resolver
-OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args))
-
-
 def get_environ_as_type(environment_variable_name: str, default=None, cast_to_type: type = str) -> object:
     """
     Tries to get an environment variable and cast it into a requested type.
@@ -95,6 +91,7 @@ def init_trainer():
 def register_hydra_resolvers():
     """Register all the hydra resolvers required for the super-gradients recipes."""
     OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
+    OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args))
 
 
 def pop_arg(arg_name: str, default_value: int = None) -> argparse.Namespace:
