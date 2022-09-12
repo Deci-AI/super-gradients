@@ -104,7 +104,7 @@ class ConversionCallbackTest(unittest.TestCase):
             model_meta_data = generate_model_metadata(architecture=architecture, task=Task.SEMANTIC_SEGMENTATION)
             trainer = Trainer(f"{architecture}_example", model_checkpoints_location="local",
                               ckpt_root_dir=checkpoint_dir)
-            model = models.get(name=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
+            model = models.get(model_name=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
 
             phase_callbacks = [
                 ModelConversionCheckCallback(model_meta_data=model_meta_data, opset_version=11, rtol=1, atol=1),
