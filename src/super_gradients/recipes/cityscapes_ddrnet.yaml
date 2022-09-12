@@ -9,8 +9,8 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#      DDRNet23:       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet
-#      DDRNet23-Slim:  python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim
+#      DDRNet23:       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet
+#      DDRNet23-Slim:  python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_ddrnet architecture=ddrnet_23_slim
 # Note: add "checkpoint_params.external_checkpoint_path=<ddrnet23-backbone-pretrained-path>" to use pretrained backbone
 #
 #  Validation mIoU - Cityscapes, training time:
@@ -38,57 +38,12 @@
 
 defaults:
   - training_hyperparams: cityscapes_default_train_params
-  #  - dataset_params: cityscapes_ddrnet_dataset_params # TODO: uncomment after DatasetInterface refactor
+  - dataset_params: cityscapes_ddrnet_dataset_params
   - checkpoint_params: default_checkpoint_params
   - _self_
 
-# ------------------------------------- legacy dataset params ------------------------------------- #
-dataset_params:
-  _convert_: all
-  batch_size: 6
-  val_batch_size: 6
-  dataset_dir: /data/cityscapes
-  crop_size: [ 1024, 1024 ]
-  img_size: 1024
-  train_loader_drop_last: True
-  color_jitter: 0.5
-  random_scales: [ 0.5, 2. ]
-  eval_scale: 1.
-  cityscapes_ignored_label: 19
-
-  image_mask_transforms_aug:
-    Compose:
-      transforms:
-        - ColorJitterSeg:
-            brightness: ${dataset_params.color_jitter}
-            contrast: ${dataset_params.color_jitter}
-            saturation: ${dataset_params.color_jitter}
-
-        - RandomFlipSeg
-
-        - RandomRescaleSeg:
-            scales: ${dataset_params.random_scales}
-
-        - PadShortToCropSizeSeg:
-            crop_size: ${dataset_params.crop_size}
-            fill_mask: ${dataset_params.cityscapes_ignored_label}
-
-        - CropImageAndMaskSeg:
-            crop_size: ${dataset_params.crop_size}
-            mode: random
-
-  image_mask_transforms:
-    Compose:
-      transforms:
-        - RescaleSeg:
-            scale_factor: ${dataset_params.eval_scale}
-
-dataset_interface:
-  cityscapes:
-    dataset_params: ${dataset_params}
-
-data_loader_num_workers: 8
-# ------------------------------------- legacy dataset params ------------------------------------- #
+train_dataloader: cityscapes_train
+val_dataloader: cityscapes_val
 
 architecture: ddrnet_23
 
@@ -107,11 +62,11 @@ training_hyperparams:
       edge_kernel: 5
   loss_logging_items_names: [ main_loss, aux_loss1, loss ]
 
-
 arch_params:
   num_classes: 19
   aux_head: True
   sync_bn: True
+
 
 
 load_checkpoint: False
@@ -121,13 +76,13 @@ checkpoint_params:
   load_backbone: True
   strict_load: no_key_matching
 
-
 experiment_name: ${architecture}_cityscapes
 
 model_checkpoints_location: local
 ckpt_root_dir:
 
 multi_gpu: DDP
+num_gpus: 4
 
 hydra:
   run:

@@ -9,7 +9,7 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#       python -m torch.distributed.launch --nproc_per_node=8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
+#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
 
 
 defaults:
@@ -18,11 +18,8 @@ defaults:
   - arch_params: vit_base_arch_params
   - checkpoint_params: vit_base_imagenet_checkpoint_params
 
-dataset_interface:
-  imagenet:
-    dataset_params: ${dataset_params}
-
-data_loader_num_workers: 8
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
 
 model_checkpoints_location: local
 
@@ -34,3 +31,4 @@ experiment_name: vit_base_imagenet1k
 
 architecture: vit_base
 multi_gpu: DDP
+num_gpus: 8

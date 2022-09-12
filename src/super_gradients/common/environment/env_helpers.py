@@ -2,6 +2,7 @@ import argparse
 import importlib
 import os
 import sys
+import socket
 from functools import wraps
 
 from omegaconf import OmegaConf
@@ -76,24 +77,37 @@ def hydra_output_dir_resolver(ckpt_root_dir, experiment_name):
 
 def init_trainer():
     """
-    a function to initialize the super_gradients environment. This function should be the first thing to be called
-    by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
-    and prepares the super_gradients environment.
+    Initialize the super_gradients environment.
+
+    This function should be the first thing to be called by any code running super_gradients.
+    It resolves conflicts between the different tools, packages and environments used and prepares the super_gradients environment.
     """
-    OmegaConf.register_new_resolver(
-        "hydra_output_dir", hydra_output_dir_resolver, replace=True
-    )
+
+    register_hydra_resolvers()
+
+    # We pop local_rank if it was specified in the args, because it would break
+    args_local_rank = pop_arg("local_rank", default_value=-1)
+
+    # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
+    environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=args_local_rank))
+
+
+def register_hydra_resolvers():
+    """Register all the hydra resolvers required for the super-gradients recipes."""
+    OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
+
+
+def pop_arg(arg_name: str, default_value: int = None) -> argparse.Namespace:
+    """Get the specified args and remove them from argv"""
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
+    parser.add_argument(f"--{arg_name}", default=default_value)
     args, _ = parser.parse_known_args()
 
-    # remove any flags starting with --local_rank from the argv list
-    to_remove = list(filter(lambda x: x.startswith('--local_rank'), sys.argv))
-    if len(to_remove) > 0:
-        for val in to_remove:
-            sys.argv.remove(val)
-
-    environment_config.DDP_LOCAL_RANK = args.local_rank
+    # Remove the ddp args to not have a conflict with the use of hydra
+    for val in filter(lambda x: x.startswith(f"--{arg_name}"), sys.argv):
+        sys.argv.remove(val)
+    return vars(args)[arg_name]
 
 
 def is_distributed() -> bool:
@@ -119,3 +133,14 @@ def multi_process_safe(func):
             return do_nothing(*args, **kwargs)
 
     return wrapper
+
+
+def find_free_port() -> int:
+    """Find an available port of current machine/node.
+    Note: there is still a chance the port could be taken by other processes."""
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        # Binding to port 0 will cause the OS to find an available port for us
+        sock.bind(("", 0))
+        _ip, port = sock.getsockname()
+    return port

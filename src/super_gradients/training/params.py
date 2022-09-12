@@ -1,5 +1,5 @@
 from super_gradients.training.utils import HpmStruct
-
+from copy import deepcopy
 DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "lr_cooldown_epochs": 0,
                            "warmup_initial_lr": None,
@@ -99,7 +99,8 @@ class TrainingParams(HpmStruct):
 
     def __init__(self, **entries):
         # WE initialize by the default training params, overridden by the provided params
-        super().__init__(**DEFAULT_TRAINING_PARAMS)
+        default_training_params = deepcopy(DEFAULT_TRAINING_PARAMS)
+        super().__init__(**default_training_params)
         self.set_schema(TRAINING_PARAM_SCHEMA)
         if len(entries) > 0:
             self.override(**entries)
