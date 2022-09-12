@@ -460,7 +460,7 @@ class YoloBase(SgModule):
             self._head = new_head
         else:
             self.arch_params.num_classes = new_num_classes
-            self.num_classes = self.arch_params.num_classes
+            self.num_classes = new_num_classes
             old_detectx = self._head._modules_list[-1]
             _, block, activation_type, width_mult, depth_mult = get_yolo_type_params(self.arch_params.yolo_type,
                                                                                      self.arch_params.width_mult_factor,
