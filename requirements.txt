@@ -1,16 +1,16 @@
-torch>=1.9.0
+torch==1.6.0
 tqdm>=4.57.0
 boto3>=1.17.15
 jsonschema>=3.2.0
 Deprecated>=1.2.11
 opencv-python>=4.5.1
-scipy>=1.6.1
+scipy>=1.5.4
 matplotlib>=3.3.4
 psutil>=5.8.0
 tensorboard>=2.4.1
 setuptools>=21.0.0
 coverage~=5.3.1
-torchvision>=0.10.0
+torchvision==0.7.0
 sphinx~=4.0.2
 sphinx-rtd-theme
 torchmetrics==0.8
@@ -24,7 +24,6 @@ pyparsing==2.4.5
 einops==0.3.2
 pycocotools==2.0.4
 protobuf~=3.19.0
-deci-lab-client==2.38.0
 treelib==1.6.1
 termcolor==1.1.0
 packaging>=20.4
