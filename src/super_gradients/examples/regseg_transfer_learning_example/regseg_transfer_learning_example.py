@@ -51,7 +51,7 @@ train_params = {"max_epochs": 50,
                                                                             last_img_idx_in_batch=4)],
                 }
 
-trainer.train(training_params=train_params,
+trainer.train(model=model,
+              training_params=train_params,
               train_loader=dl_train,
-              valid_loader=dl_val,
-              model=model)
+              valid_loader=dl_val)
