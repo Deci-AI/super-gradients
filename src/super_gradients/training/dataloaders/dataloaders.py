@@ -59,7 +59,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
         local_rank = get_local_rank()
         with wait_for_the_master(local_rank):
             dataset = dataset_cls(**dataset_params)
-        dataset.dataset_params = dataset_params
+            dataset.dataset_params = dataset_params
 
         dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
 
@@ -531,9 +531,9 @@ ALL_DATALOADERS = {"coco2017_train": coco2017_train,
 def get(name: str, dataset_params: Dict = None, dataloader_params: Dict = None):
     """
 
-    
-    :param name: 
-    :param dataset_params: 
+
+    :param name:
+    :param dataset_params:
     :param dataloader_params: 
     :return: 
     """
