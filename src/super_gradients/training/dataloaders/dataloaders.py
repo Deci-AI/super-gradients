@@ -534,8 +534,8 @@ def get(name: str, dataset_params: Dict = None, dataloader_params: Dict = None):
 
     :param name:
     :param dataset_params:
-    :param dataloader_params: 
-    :return: 
+    :param dataloader_params:
+    :return:
     """
 
     if name not in ALL_DATALOADERS.keys():
