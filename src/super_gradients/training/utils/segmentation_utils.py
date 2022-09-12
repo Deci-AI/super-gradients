@@ -4,7 +4,11 @@ import numpy as np
 from typing import Union, Callable
 import torch
 import torch.nn.functional as F
-from torchvision.utils import draw_segmentation_masks
+draw = True
+try:
+    from torchvision.utils import draw_segmentation_masks
+except Exception:
+    draw = False
 
 # FIXME: REFACTOR AUGMENTATIONS, CONSIDER USING A MORE EFFICIENT LIBRARIES SUCH AS, IMGAUG, DALI ETC.
 from super_gradients.training import utils as core_utils
@@ -58,6 +62,9 @@ class BinarySegmentationVisualization:
     @staticmethod
     def _visualize_image(image_np: np.ndarray, pred_mask: torch.Tensor, target_mask: torch.Tensor,
                          image_scale: float, checkpoint_dir: str, image_name: str):
+        if not draw:
+            return None
+
         pred_mask = pred_mask.copy()
         image_np = torch.from_numpy(np.moveaxis(image_np, -1, 0).astype(np.uint8))
 
