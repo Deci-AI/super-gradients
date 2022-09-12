@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 
 import torch
-import torch.nn as nn
 from torch import distributed as dist
 from torch.cuda.amp import autocast
 import torch.nn as nn
