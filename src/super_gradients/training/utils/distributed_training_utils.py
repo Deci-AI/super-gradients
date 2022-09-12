@@ -7,7 +7,7 @@ import torch.nn as nn
 import itertools
 
 from super_gradients.common.data_types.enum import MultiGPUMode
-from super_gradients.common.environment.env_helpers import find_free_port, is_distributed
+from super_gradients.common.environment.env_helpers import is_distributed
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
