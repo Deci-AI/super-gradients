@@ -18,7 +18,7 @@ from deprecate import deprecated
 from matplotlib.patches import Rectangle
 from torchvision.datasets import ImageFolder
 from super_gradients.training.datasets.auto_augment import rand_augment_transform
-from torchvision.transforms import transforms, InterpolationMode, RandomResizedCrop
+from torchvision.transforms import transforms, RandomResizedCrop
 from tqdm import tqdm
 
 from super_gradients.training.utils.utils import AverageMeter
@@ -28,6 +28,10 @@ from super_gradients.training.utils.distributed_training_utils import get_local_
 
 import matplotlib.pyplot as plt
 
+try:
+    from torchvision.transforms import InterpolationMode
+except Exception:
+    from PIL import Image as InterpolationMode
 
 def get_mean_and_std_torch(data_dir=None, dataloader=None, num_workers=4, RandomResizeSize=224):
     """
