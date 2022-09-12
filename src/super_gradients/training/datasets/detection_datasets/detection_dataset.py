@@ -431,7 +431,7 @@ class DetectionDataset(Dataset):
 
                 # shape = [n_box x 4] (We remove padded boxes, which corresponds to boxes with only 0)
                 boxes = boxes[(boxes != 0).any(axis=1)]
-                plt.subplot(n_subplot, n_subplot, img_i + 1).imshow(image)
+                plt.subplot(n_subplot, n_subplot, img_i + 1).imshow(image[:, :, ::-1])
                 plt.plot(boxes[:, [0, 2, 2, 0, 0]].T, boxes[:, [1, 1, 3, 3, 1]].T, '.-')
                 plt.axis('off')
             fig.tight_layout()
