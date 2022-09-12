@@ -4,14 +4,15 @@ import numpy as np
 from typing import Union, Callable
 import torch
 import torch.nn.functional as F
+
+# FIXME: REFACTOR AUGMENTATIONS, CONSIDER USING A MORE EFFICIENT LIBRARIES SUCH AS, IMGAUG, DALI ETC.
+from super_gradients.training import utils as core_utils
+
 draw = True
 try:
     from torchvision.utils import draw_segmentation_masks
 except Exception:
     draw = False
-
-# FIXME: REFACTOR AUGMENTATIONS, CONSIDER USING A MORE EFFICIENT LIBRARIES SUCH AS, IMGAUG, DALI ETC.
-from super_gradients.training import utils as core_utils
 
 
 def coco_sub_classes_inclusion_tuples_list():
