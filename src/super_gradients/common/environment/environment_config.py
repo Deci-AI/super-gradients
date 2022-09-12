@@ -6,7 +6,7 @@ import pkg_resources
 
 try:
     PKG_CHECKPOINTS_DIR = pkg_resources.resource_filename("checkpoints", "")
-except:
+except Exception:
     os.mkdir(os.path.join(os.getcwd(), "checkpoints"))
     PKG_CHECKPOINTS_DIR = os.path.join(os.getcwd(), "checkpoints")
 
