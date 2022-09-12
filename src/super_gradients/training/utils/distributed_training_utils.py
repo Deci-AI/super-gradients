@@ -1,15 +1,11 @@
-
-import sys
-import itertools
 from contextlib import contextmanager
 
 import torch
 import torch.nn as nn
 from torch import distributed as dist
 from torch.cuda.amp import autocast
-from torch.distributed.elastic.multiprocessing import Std
-from torch.distributed.elastic.multiprocessing.errors import record
-from torch.distributed.launcher.api import LaunchConfig, elastic_launch
+import torch.nn as nn
+import itertools
 
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment.env_helpers import find_free_port, is_distributed
@@ -84,8 +80,8 @@ def scaled_all_reduce(tensors: torch.Tensor, num_gpus: int):
 @torch.no_grad()
 def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoader, precise_bn_batch_size: int, num_gpus: int):
     '''
-    :param model:                   The model being trained (ie: Trainer.net)
-    :param loader:                  Training dataloader (ie: Trainer.train_loader)
+    :param model:                   The model being trained (ie: SgModel.net)
+    :param loader:                  Training dataloader (ie: SgModel.train_loader)
     :param precise_bn_batch_size:   The effective batch size we want to calculate the batchnorm on. For example, if we are training a model
                                     on 8 gpus, with a batch of 128 on each gpu, a good rule of thumb would be to give it 8192
                                     (ie: effective_batch_size * num_gpus = batch_per_gpu * num_gpus * num_gpus).
@@ -185,43 +181,5 @@ def require_gpu_setup(gpu_mode: MultiGPUMode) -> bool:
     return (gpu_mode == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL) and (not is_distributed())
 
 
-@record
 def restart_script_with_ddp(num_gpus: int = None):
-    """Launch the same script as the one that was launched (i.e. the command used to start the current process is re-used) but on subprocesses (i.e. with DDP).
-
-    :param num_gpus: How many gpu's you want to run the script on. If not specified, every available device will be used.
-    """
-    ddp_port = find_free_port()
-
-    # Get the value fom recipe if specified, otherwise take all available devices.
-    num_gpus = num_gpus if num_gpus else torch.cuda.device_count()
-    if num_gpus > torch.cuda.device_count():
-        raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
-
-    logger.info("Launching DDP with:\n"
-                f"   - ddp_port = {ddp_port}\n"
-                f"   - num_gpus = {num_gpus}/{torch.cuda.device_count()} available\n"
-                "-------------------------------------")
-
-    config = LaunchConfig(
-        nproc_per_node=num_gpus,
-        min_nodes=1,
-        max_nodes=1,
-        run_id='none',
-        role='default',
-        rdzv_endpoint=f'127.0.0.1:{ddp_port}',
-        rdzv_backend='static',
-        rdzv_configs={'rank': 0, 'timeout': 900},
-        rdzv_timeout=-1,
-        max_restarts=0,
-        monitor_interval=5,
-        start_method='spawn',
-        log_dir=None,
-        redirects=Std.NONE,
-        tee=Std.NONE,
-        metrics_cfg={})
-
-    elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv)
-
-    # The code below should actually never be reached as the process will be in a loop inside elastic_launch until any subprocess crashes.
-    sys.exit("Main process finished")
+    pass
