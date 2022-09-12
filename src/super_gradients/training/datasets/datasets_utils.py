@@ -33,6 +33,7 @@ try:
 except Exception:
     from PIL import Image as InterpolationMode
 
+
 def get_mean_and_std_torch(data_dir=None, dataloader=None, num_workers=4, RandomResizeSize=224):
     """
     A function for getting the mean and std of large datasets using pytorch dataloader and gpu functionality.
@@ -202,6 +203,7 @@ class AbstractPrePredictionCallback(ABC):
 
     Should implement __call__ and return images, targets after applying the desired preprocessing.
     """
+
     @abstractmethod
     def __call__(self, inputs, targets, batch_idx):
         pass
@@ -397,7 +399,6 @@ STAT_LOGGER_FONT_SIZE = 15
 
 
 class DatasetStatisticsTensorboardLogger:
-
     logger = get_logger(__name__)
     DEFAULT_SUMMARY_PARAMS = {
         'sample_images': 32,  # by default, 32 images will be sampled from each dataset
