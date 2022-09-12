@@ -6,7 +6,6 @@ from typing import Union, Tuple, Mapping, List, Any
 
 import hydra
 import numpy as np
-import pkg_resources
 import torch
 from deprecate import deprecated
 from omegaconf import DictConfig
