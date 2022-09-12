@@ -528,8 +528,6 @@ ALL_DATALOADERS = {"coco2017_train": coco2017_train,
 
 def get(name: str, dataset_params: Dict = None, dataloader_params: Dict = None):
     """
-
-    
     :param name: 
     :param dataset_params: 
     :param dataloader_params: 
