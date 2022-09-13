@@ -158,14 +158,14 @@ from super_gradients.training.losses import KDLogitsLoss, LabelSmoothingCrossEnt
 
 
 kd_params = {
-    "max_epochs": 5,  # We will stop after 4 epochs because it is slow to train on google collab
+    "max_epochs": 10,  # We will stop after 4 epochs because it is slow to train on google collab
     "loss": KDLogitsLoss(distillation_loss_coeff=0.8, task_loss_fn=LabelSmoothingCrossEntropyLoss()),
     "loss_logging_items_names": ["Loss", "Task Loss", "Distillation Loss"]}
 
 training_params = training_hyperparams.get("imagenet_resnet50_kd", overriding_params=kd_params)
 
 
-arch_params={"teacher_input_adapter": transforms.Resize(224)}
+arch_params = {"teacher_input_adapter": transforms.Resize(224)}
 
 
 kd_trainer.train(training_params=training_params,
