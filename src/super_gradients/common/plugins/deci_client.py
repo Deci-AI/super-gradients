@@ -1,24 +1,34 @@
-import boto3
 import hydra
+from deci_common.data_interfaces.files_data_interface import FilesDataInterface
+from deci_lab_client import AutoNACFileName
+from deci_lab_client.client import DeciPlatformClient
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 
-class MockClient:
 
-    def __init__(self):
-        self.bucket_name = 'deci-model-repository-research'
-        self.prefix = 'mock_client'
-        self.s3 = boto3.client('s3')
+class DeciClient:
+    def __init__(self, lab_client: DeciPlatformClient):
+        self.lab_client = lab_client
         GlobalHydra.instance().clear()
+        self.super_gradients_version = None
+        try:
+            import pkg_resources
+
+            self.super_gradients_version = pkg_resources.get_distribution("super_gradients").version
+        except Exception as e:
+            print(e)
+
+    def _get_file(self, model_name: str, file_name: str) -> str:
+        response = self.lab_client.get_autonac_model_file_link(model_name=model_name, file_name=file_name)
+        download_link = response.data
+        return FilesDataInterface.download_temporary_file(file_url=download_link)
 
     def get_model_arch_params(self, model_name: str) -> DictConfig:
-        tmp_file_path = '/home/ofri/arch_params.yaml'
-        self.s3.download_file(self.bucket_name, f'{self.prefix}/{model_name}/arch_params.yaml', tmp_file_path)
-        with hydra.initialize_config_dir(config_dir='/home/ofri/'):
-            cfg = hydra.compose(config_name='arch_params.yaml')
+        file = self._get_file(model_name=model_name, file_name=AutoNACFileName.STRUCTURE_YAML)
+        split_file = file.split("/")
+        with hydra.initialize_config_dir(config_dir=f"/{'/'.join(split_file)}/"):
+            cfg = hydra.compose(config_name=split_file[-1])
         return cfg
 
-    def get_model_weights(self, model_name: str) -> DictConfig:
-        tmp_file_path = '/home/ofri/weights.pth'
-        self.s3.download_file(self.bucket_name, f'{self.prefix}/{model_name}/{model_name}.pth', tmp_file_path)
-        return tmp_file_path
+    def get_model_weights(self, model_name: str) -> str:
+        return self._get_file(model_name=model_name, file_name=AutoNACFileName.WEIGHTS_PTH)

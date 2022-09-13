@@ -1,21 +1,28 @@
-
+from typing import Optional
 import hydra
+from deci_lab_client.client import DeciPlatformClient
 
 from super_gradients.common import StrictLoad
-from super_gradients.common.plugins.deci_client import MockClient
+from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import HpmStruct
-from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model, load_pretrained_weights, \
-    read_ckpt_state_dict, load_pretrained_weights_local
+from super_gradients.training.utils.checkpoint_utils import (
+    load_checkpoint_to_model,
+    load_pretrained_weights,
+    read_ckpt_state_dict,
+    load_pretrained_weights_local,
+)
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
 
 
-def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = None) -> SgModule:
+def instantiate_model(
+    name: str, arch_params: dict, pretrained_weights: str = None, lab_client: Optional[DeciPlatformClient] = None
+) -> SgModule:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
         module manipulation (i.e head replacement).
@@ -40,13 +47,13 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
     if isinstance(name, str) and name in ARCHITECTURES.keys():
         architecture_cls = ARCHITECTURES[name]
         net = architecture_cls(arch_params=arch_params)
-    elif isinstance(name, str):
-        deci_client = MockClient()
+    elif isinstance(name, str) and lab_client is not None:
+        deci_client = DeciClient(lab_client=lab_client)
         _arch_params = deci_client.get_model_arch_params(name)
 
         if _arch_params is not None:
             _arch_params = hydra.utils.instantiate(_arch_params)
-            base_name = _arch_params['model_name']
+            base_name = _arch_params["model_name"]
             _arch_params = HpmStruct(**_arch_params)
             architecture_cls = ARCHITECTURES[base_name]
             _arch_params.override(**arch_params.to_dict())
@@ -55,11 +62,12 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
             remote_model = True
         else:
             raise ValueError(
-                "Unsupported model name " + str(name) + ", see docs or all_architectures.py for supported nets.")
+                "Unsupported model name " + str(name) + ", see docs or all_architectures.py for supported nets."
+            )
     else:
         raise ValueError(
-            "Unsupported model name " + str(name) + ", see docs or all_architectures.py for supported "
-                                                    "nets.")
+            "Unsupported model name " + str(name) + ", see docs or all_architectures.py for supported nets."
+        )
     if pretrained_weights:
         if remote_model:
             weights_path = deci_client.get_model_weights(name)
@@ -73,9 +81,16 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
     return net
 
 
-def get(name: str, arch_params: dict = {}, num_classes: int = None,
-        strict_load: StrictLoad = StrictLoad.NO_KEY_MATCHING, checkpoint_path: str = None,
-        pretrained_weights: str = None, load_backbone: bool = False) -> SgModule:
+def get(
+    name: str,
+    arch_params: dict = {},
+    num_classes: int = None,
+    strict_load: StrictLoad = StrictLoad.NO_KEY_MATCHING,
+    checkpoint_path: str = None,
+    pretrained_weights: str = None,
+    load_backbone: bool = False,
+    lab_client: Optional[DeciPlatformClient] = None,
+) -> SgModule:
     """
     :param name:               Defines the model's architecture from models/ALL_ARCHITECTURES
     :param num_classes:        Number of classes (defines the net's structure). If None is given, will try to derrive from
@@ -94,8 +109,10 @@ def get(name: str, arch_params: dict = {}, num_classes: int = None,
 
     """
     if arch_params.get("num_classes") is not None:
-        logger.warning("Passing num_classes through arch_params is dperecated and will be removed in the next version. "
-                       "Pass num_classes explicitly to models.get")
+        logger.warning(
+            "Passing num_classes through arch_params is dperecated and will be removed in the next version. "
+            "Pass num_classes explicitly to models.get"
+        )
     num_classes = num_classes or arch_params.get("num_classes")
 
     if pretrained_weights is None and num_classes is None:
@@ -105,14 +122,16 @@ def get(name: str, arch_params: dict = {}, num_classes: int = None,
         arch_params["num_classes"] = num_classes
 
     arch_params = core_utils.HpmStruct(**arch_params)
-    net = instantiate_model(name, arch_params, pretrained_weights)
+    net = instantiate_model(name, arch_params, pretrained_weights, lab_client=lab_client)
 
     if checkpoint_path:
-        load_ema_as_net = 'ema_net' in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
-        _ = load_checkpoint_to_model(ckpt_local_path=checkpoint_path,
-                                     load_backbone=load_backbone,
-                                     net=net,
-                                     strict=strict_load.value if hasattr(strict_load, "value") else strict_load,
-                                     load_weights_only=True,
-                                     load_ema_as_net=load_ema_as_net)
+        load_ema_as_net = "ema_net" in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
+        _ = load_checkpoint_to_model(
+            ckpt_local_path=checkpoint_path,
+            load_backbone=load_backbone,
+            net=net,
+            strict=strict_load.value if hasattr(strict_load, "value") else strict_load,
+            load_weights_only=True,
+            load_ema_as_net=load_ema_as_net,
+        )
     return net
