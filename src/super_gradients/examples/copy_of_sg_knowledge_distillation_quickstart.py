@@ -63,6 +63,17 @@ Additionally, notice the key in arch_params teacher_input_adapter, which we have
 student = models.get('resnet18_cifar', arch_params={'num_classes': 10})
 teacher = models.get('beit_base_patch16_224', arch_params={'num_classes': 10, "image_size": [224, 224], "patch_size": [16, 16]}, pretrained_weights="cifar10")
 
+# from super_gradients.training.metrics import Accuracy, Top5
+# import torchvision.transforms as transform
+#
+# teacher_test_dataloader = dataloaders.get("cifar10_val", dataloader_params={"batch_size": 64}, dataset_params={"transforms": [transform.ToTensor(), transform.Resize(224)]})
+# accuracy, top5 = trainer.test(model=teacher,
+#                               test_loader=teacher_test_dataloader,
+#                               test_metrics_list=[Accuracy(), Top5()])
+# print(f"Accuracy: {accuracy}")
+# print(f"Top 5:    {top5}")
+
+
 from super_gradients.training import training_hyperparams
 training_params = training_hyperparams.get("imagenet_resnet50_kd")
 # training_params = training_hyperparams.get("cifar10_resnet")
@@ -79,7 +90,7 @@ trainer.train(training_params=training_params,
               teacher=teacher,
               kd_architecture="kd_module",
               kd_arch_params={"teacher_input_adapter": Resize(224)},
-              run_teacher_on_eval=True,
+              run_teacher_on_eval=False,
               train_loader=train_dataloader, valid_loader=val_dataloader)
 
 
@@ -100,7 +111,7 @@ Most of the below arguement's use has already been demonstarted in previous tuto
 
 """Finally, call train:"""
 
-trainer.train(kd_train_params)
+# trainer.train(kd_train_params)
 
 print("Best Checkpoint Accuracy is: "+ str(trainer.best_metric.item()))
 
