@@ -1,5 +1,4 @@
 # PACKAGE IMPORTS FOR EXTERNAL USAGE
-from tests.unit_tests.dataset_interface_test import TestDatasetInterface
 from tests.unit_tests.factories_test import FactoriesTest
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
 from tests.unit_tests.zero_weight_decay_on_bias_bn_test import ZeroWdForBnBiasTest
@@ -16,10 +15,10 @@ from tests.unit_tests.segmentation_transforms_test import SegmentationTransforms
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
 from tests.unit_tests.conv_bn_relu_test import TestConvBnRelu
 from tests.unit_tests.initialize_with_dataloaders_test import InitializeWithDataloadersTest
+from tests.unit_tests.training_params_factory_test import TrainingParamsTest
 
-
-__all__ = ['TestDatasetInterface', 'ZeroWdForBnBiasTest', 'SaveCkptListUnitTest',
+__all__ = ['ZeroWdForBnBiasTest', 'SaveCkptListUnitTest',
            'AllArchitecturesTest', 'TestAverageMeter', 'TestRepVgg', 'TestWithoutTrainTest',
            'StrictLoadEnumTest', 'TrainWithInitializedObjectsTest', 'TestAutoAugment',
            'OhemLossTest', 'EarlyStopTest', 'SegmentationTransformsTest', 'PretrainedModelsUnitTest', 'TestConvBnRelu',
-           'FactoriesTest', 'InitializeWithDataloadersTest']
+           'FactoriesTest', 'InitializeWithDataloadersTest', 'TrainingParamsTest']

@@ -6,7 +6,8 @@ from super_gradients.training import models
 import super_gradients
 import torch
 import os
-from super_gradients import Trainer, ClassificationTestDatasetInterface
+from super_gradients import Trainer
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 
 
@@ -38,32 +39,32 @@ class TestTrainer(unittest.TestCase):
     @staticmethod
     def get_classification_trainer(name=''):
         trainer = Trainer(name, model_checkpoints_location='local')
-        dataset_params = {"batch_size": 4}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params, image_size=224)
-        trainer.connect_dataset_interface(dataset)
-        model = models.get("resnet18", arch_params={"num_classes": 5})
+        model = models.get("resnet18", num_classes=5)
         return trainer, model
 
     def test_train(self):
         trainer, model = self.get_classification_trainer(self.folder_names[0])
-        trainer.train(model=model, training_params=self.training_params)
+        trainer.train(model=model, training_params=self.training_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
     def test_save_load(self):
         trainer, model = self.get_classification_trainer(self.folder_names[1])
-        trainer.train(model=model, training_params=self.training_params)
-
+        trainer.train(model=model, training_params=self.training_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
         resume_training_params = self.training_params.copy()
         resume_training_params["resume"] = True
         resume_training_params["max_epochs"] = 2
         trainer, model = self.get_classification_trainer(self.folder_names[1])
-        trainer.train(model=model, training_params=resume_training_params)
+        trainer.train(model=model, training_params=resume_training_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
     def test_checkpoint_content(self):
         """VERIFY THAT ALL CHECKPOINTS ARE SAVED AND CONTAIN ALL THE EXPECTED KEYS"""
         trainer, model = self.get_classification_trainer(self.folder_names[5])
         params = self.training_params.copy()
         params["save_ckpt_epoch_list"] = [1]
-        trainer.train(model=model, training_params=params)
+        trainer.train(model=model, training_params=params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
         ckpt_filename = ['ckpt_best.pth', 'ckpt_latest.pth', 'ckpt_epoch_1.pth']
         ckpt_paths = [os.path.join(trainer.checkpoints_dir_path, suf) for suf in ckpt_filename]
         for ckpt_path in ckpt_paths:

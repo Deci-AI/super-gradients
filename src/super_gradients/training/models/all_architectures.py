@@ -11,7 +11,7 @@ from super_gradients.training.models.classification_models.vit import vit_base, 
 from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
-from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X
+from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
 from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, \
@@ -21,7 +21,9 @@ from super_gradients.training.models.segmentation_models.stdc import STDC1Classi
 
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import beit_base_patch16_224, beit_large_patch16_224
+from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
 # IF YOU UPDATE THE ARCHITECTURE DICT PLEASE ALSO UPDATE THE ENUM CLASS DOWN BELOW.
+
 
 
 class ModelNames:
@@ -114,6 +116,12 @@ class ModelNames:
     VIT_HUGE = "vit_huge"
     BEIT_BASE_PATCH16_224 = "beit_base_patch16_224"
     BEIT_LARGE_PATCH16_224 = "beit_large_patch16_224"
+    PP_LITE_T_SEG = "pp_lite_t_seg"
+    PP_LITE_T_SEG50 = "pp_lite_t_seg50"
+    PP_LITE_T_SEG75 = "pp_lite_t_seg75"
+    PP_LITE_B_SEG = "pp_lite_b_seg"
+    PP_LITE_B_SEG50 = "pp_lite_b_seg50"
+    PP_LITE_B_SEG75 = "pp_lite_b_seg75"
 
 
 ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
@@ -204,7 +212,13 @@ ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
                  ModelNames.VIT_LARGE: vit_large,
                  ModelNames.VIT_HUGE: vit_huge,
                  ModelNames.BEIT_BASE_PATCH16_224: beit_base_patch16_224,
-                 ModelNames.BEIT_LARGE_PATCH16_224: beit_large_patch16_224
+                 ModelNames.BEIT_LARGE_PATCH16_224: beit_large_patch16_224,
+                 ModelNames.PP_LITE_T_SEG: PPLiteSegT,
+                 ModelNames.PP_LITE_T_SEG50: PPLiteSegT,
+                 ModelNames.PP_LITE_T_SEG75: PPLiteSegT,
+                 ModelNames.PP_LITE_B_SEG: PPLiteSegB,
+                 ModelNames.PP_LITE_B_SEG50: PPLiteSegB,
+                 ModelNames.PP_LITE_B_SEG75: PPLiteSegB,
                  }
 
 KD_ARCHITECTURES = {
