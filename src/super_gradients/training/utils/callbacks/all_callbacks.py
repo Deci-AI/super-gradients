@@ -4,6 +4,7 @@ from super_gradients.training.utils.callbacks.callbacks import DeciLabUploadCall
 
 
 class CallbackNames:
+    """Static class to hold all the available Callback names"""""
     DECI_LAB_UPLOAD = 'DeciLabUploadCallback'
     LR_CALLBACK_BASE = 'LRCallbackBase'
     LR_SCHEDULER = 'LRSchedulerCallback'
@@ -28,6 +29,7 @@ CALLBACKS = {
 
 # DICT FOR LEGACY LR HARD-CODED REGIMES, WILL BE DELETED IN THE FUTURE
 class LRScheduler:
+    """Static class to hold all the available LR Scheduler names"""""
     STEP = "step"
     POLY = "poly"
     COSINE = "cosine"
@@ -46,6 +48,7 @@ LR_SCHEDULERS_CLS_DICT = {
 
 # DICT FOR LEGACY LR HARD-CODED REGIMES, WILL BE DELETED IN THE FUTURE
 class LRWarmup:
+    """Static class to hold all the available LR Warmup names"""""
     LINEAR_STEP = "linear_step"
 
 

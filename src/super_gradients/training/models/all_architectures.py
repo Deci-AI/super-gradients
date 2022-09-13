@@ -22,11 +22,10 @@ from super_gradients.training.models.segmentation_models.stdc import STDC1Classi
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import beit_base_patch16_224, beit_large_patch16_224
 from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
-# IF YOU UPDATE THE ARCHITECTURE DICT PLEASE ALSO UPDATE THE ENUM CLASS DOWN BELOW.
-
 
 
 class ModelNames:
+    """Static class to hold all the available model names"""""
     RESNET18 = "resnet18"
     RESNET34 = "resnet34"
     RESNET50_3343 = "resnet50_3343"
@@ -87,6 +86,7 @@ class ModelNames:
     YOLOX_M = "yolox_m"
     YOLOX_L = "yolox_l"
     YOLOX_X = "yolox_x"
+    CUSTOM_YOLO_X = "CustomYoloX"
     SSD_MOBILENET_V1 = "ssd_mobilenet_v1"
     SSD_LITE_MOBILENET_V2 = "ssd_lite_mobilenet_v2"
     REPVGG_A0 = "repvgg_a0"
@@ -184,6 +184,7 @@ ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
                  ModelNames.YOLOX_M: YoloX_M,
                  ModelNames.YOLOX_L: YoloX_L,
                  ModelNames.YOLOX_X: YoloX_X,
+                 ModelNames.CUSTOM_YOLO_X: CustomYoloX,
                  ModelNames.SSD_MOBILENET_V1: SSDMobileNetV1,
                  ModelNames.SSD_LITE_MOBILENET_V2: SSDLiteMobileNetV2,
                  ModelNames.REPVGG_A0: repvgg.RepVggA0,

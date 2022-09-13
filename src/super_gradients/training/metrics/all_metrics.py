@@ -3,6 +3,7 @@ from super_gradients.training.metrics import Accuracy, Top5, DetectionMetrics, I
 
 
 class MetricNames:
+    """Static class to hold all the available metric names"""""
     ACCURACY = 'Accuracy'
     TOP5 = 'Top5'
     DETECTION_METRICS = 'DetectionMetrics'

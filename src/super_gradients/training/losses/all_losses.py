@@ -6,7 +6,7 @@ from super_gradients.training.losses.stdc_loss import STDCLoss
 
 
 class LossNames:
-    """Static class to group the names of every implemented loss"""
+    """Static class to hold all the available loss names"""""
     CROSS_ENTROPY = "cross_entropy"
     MSE = "mse"
     R_SQUARED_LOSS = "r_squared_loss"
