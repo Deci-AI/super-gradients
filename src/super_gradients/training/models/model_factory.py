@@ -36,8 +36,7 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
         net = architecture_cls(arch_params=arch_params)
     else:
         raise ValueError(
-            "Unsupported model name " + str(name) + ", see docs or all_architectures.py for supported "
-                                                    "nets.")
+            "Unsupported model model_name " + str(name) + ", see docs or all_architectures.py for supported nets.")
     if pretrained_weights:
         load_pretrained_weights(net, name, pretrained_weights)
         if num_classes_new_head != arch_params.num_classes:
@@ -47,11 +46,11 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
     return net
 
 
-def get(name: str, arch_params: dict = {}, num_classes: int = None,
+def get(model_name: str, arch_params: dict = {}, num_classes: int = None,
         strict_load: StrictLoad = StrictLoad.NO_KEY_MATCHING, checkpoint_path: str = None,
         pretrained_weights: str = None, load_backbone: bool = False) -> SgModule:
     """
-    :param name:               Defines the model's architecture from models/ALL_ARCHITECTURES
+    :param model_name:               Defines the model's architecture from models/ALL_ARCHITECTURES
     :param num_classes:        Number of classes (defines the net's structure). If None is given, will try to derrive from
                                 pretrained_weight's corresponding dataset.
     :param arch_params:                Architecture hyper parameters. e.g.: block, num_blocks, etc.
@@ -79,7 +78,7 @@ def get(name: str, arch_params: dict = {}, num_classes: int = None,
         arch_params["num_classes"] = num_classes
 
     arch_params = core_utils.HpmStruct(**arch_params)
-    net = instantiate_model(name, arch_params, pretrained_weights)
+    net = instantiate_model(model_name, arch_params, pretrained_weights)
 
     if checkpoint_path:
         load_ema_as_net = 'ema_net' in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
