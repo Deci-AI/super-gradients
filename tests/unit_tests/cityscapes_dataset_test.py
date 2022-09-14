@@ -4,7 +4,7 @@ import pkg_resources
 import yaml
 from torch.utils.data import DataLoader
 
-from super_gradients.training.dataloaders.dataloader_factory import cityscapes_train, cityscapes_val, \
+from super_gradients.training.dataloaders.dataloaders import cityscapes_train, cityscapes_val, \
     cityscapes_stdc_seg50_train, cityscapes_stdc_seg50_val, cityscapes_stdc_seg75_val, cityscapes_ddrnet_train, \
     cityscapes_regseg48_val, cityscapes_regseg48_train, cityscapes_ddrnet_val, cityscapes_stdc_seg75_train
 from super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation import CityscapesDataset

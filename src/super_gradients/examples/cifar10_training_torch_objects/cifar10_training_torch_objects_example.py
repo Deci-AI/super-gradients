@@ -49,9 +49,7 @@ phase_callbacks = [LRSchedulerCallback(scheduler=rop_lr_scheduler, phase=Phase.V
                    LRSchedulerCallback(scheduler=step_lr_scheduler, phase=Phase.TRAIN_EPOCH_END)]
 
 # Bring everything together with Trainer and start training
-trainer = Trainer("Cifar10_external_objects_example", multi_gpu=MultiGPUMode.OFF,
-                  train_loader=train_loader, valid_loader=valid_loader, classes=train_dataset.classes)
-trainer.build_model(net)
+trainer = Trainer("Cifar10_external_objects_example", multi_gpu=MultiGPUMode.OFF)
 
 train_params = {"max_epochs": 300,
                 "phase_callbacks": phase_callbacks,
@@ -65,4 +63,4 @@ train_params = {"max_epochs": 300,
                 "greater_metric_to_watch_is_better": True,
                 "lr_scheduler_step_type": "epoch"}
 
-trainer.train(training_params=train_params)
+trainer.train(model=net, training_params=train_params, train_loader=train_loader, valid_loader=valid_loader)

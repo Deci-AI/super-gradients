@@ -9,7 +9,7 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#       python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
+#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
 
 defaults:
   - training_hyperparams: imagenet_repvgg_train_params
@@ -21,12 +21,8 @@ arch_params:
   num_classes: 1000
   build_residual_branches: True
 
-dataset_interface:
-  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
-  dataset_params: ${dataset_params}
-  data_dir: /data/Imagenet
-
-data_loader_num_workers: 8
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
 
 
 model_checkpoints_location: local
@@ -37,5 +33,6 @@ training_hyperparams:
 experiment_name: repvgg_a0_imagenet_reproduce_fix
 
 multi_gpu: DDP
+num_gpus: 4
 
 architecture: repvgg_a0

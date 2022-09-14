@@ -9,7 +9,7 @@
 #   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
-#       python -m torch.distributed.launch --nproc_per_node=8  src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
+#       python src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
 
 
 defaults:
@@ -18,6 +18,8 @@ defaults:
   - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
 
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
 
 resume: False
 training_hyperparams:
@@ -64,12 +66,6 @@ student_checkpoint_params:
   pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
 
 
-dataset_interface:
-  imagenet:
-    dataset_params: ${dataset_params}
-
-data_loader_num_workers: 8
-
 model_checkpoints_location: local
 
 
@@ -80,6 +76,7 @@ experiment_name: resnet50_imagenet_KD_Model
 ckpt_root_dir:
 
 multi_gpu: DDP
+num_gpus: 8
 
 architecture: kd_module
 student_architecture: resnet50
