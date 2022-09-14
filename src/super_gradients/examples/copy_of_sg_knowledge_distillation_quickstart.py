@@ -138,7 +138,7 @@ pretrained_beit = models.get('beit_base_patch16_224', pretrained_weights="cifar1
 from super_gradients.training import KDTrainer
 
 
-kd_trainer = KDTrainer(experiment_name="kd_cifar10_resnet_big")
+kd_trainer = KDTrainer(experiment_name="kd_cifar10_resnet_s_cust")
 
 
 
@@ -158,7 +158,9 @@ from super_gradients.training.losses import KDLogitsLoss, LabelSmoothingCrossEnt
 
 
 kd_params = {
-    "max_epochs": 20,  # We will stop after 4 epochs because it is slow to train on google collab
+    'lr_cooldown_epochs': 0,
+    'lr_warmup_epochs': 0,
+    "max_epochs": 2,  # We will stop after 4 epochs because it is slow to train on google collab
     "loss": KDLogitsLoss(distillation_loss_coeff=0.8, task_loss_fn=LabelSmoothingCrossEntropyLoss()),
     "loss_logging_items_names": ["Loss", "Task Loss", "Distillation Loss"]}
 
