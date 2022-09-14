@@ -1,6 +1,9 @@
 from super_gradients.training.utils.callbacks.callbacks import DeciLabUploadCallback, LRCallbackBase, LRSchedulerCallback, MetricsUpdateCallback, \
-    ModelConversionCheckCallback, EarlyStop, DetectionMultiscalePrePredictionCallback, YoloXTrainingStageSwitchCallback, StepLRCallback, PolyLRCallback,\
+    ModelConversionCheckCallback, YoloXTrainingStageSwitchCallback, StepLRCallback, PolyLRCallback,\
     CosineLRCallback, ExponentialLRCallback, FunctionLRCallback, WarmupLRCallback
+
+from super_gradients.training.utils.early_stopping import EarlyStop
+from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
 
 
 class CallbackNames:

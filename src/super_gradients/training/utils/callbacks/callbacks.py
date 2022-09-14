@@ -15,9 +15,6 @@ from super_gradients.training.utils.detection_utils import DetectionVisualizatio
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 import cv2
 
-from super_gradients.training.utils.early_stopping import EarlyStop
-from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
-
 logger = get_logger(__name__)
 
 try:
