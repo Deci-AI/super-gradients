@@ -36,8 +36,7 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
         net = architecture_cls(arch_params=arch_params)
     else:
         raise ValueError(
-            "Unsupported model model_name " + str(name) + ", see docs or all_architectures.py for supported "
-                                                    "nets.")
+            "Unsupported model model_name " + str(name) + ", see docs or all_architectures.py for supported nets.")
     if pretrained_weights:
         load_pretrained_weights(net, name, pretrained_weights)
         if num_classes_new_head != arch_params.num_classes:

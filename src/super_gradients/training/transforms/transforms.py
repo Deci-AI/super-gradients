@@ -3,6 +3,7 @@ import math
 import random
 from typing import Optional, Union, Tuple, List, Sequence, Dict
 
+import torch
 from PIL import Image, ImageFilter, ImageOps
 from torchvision import transforms as transforms
 import numpy as np
@@ -17,8 +18,27 @@ mask_resample = Image.NEAREST
 logger = get_logger(__name__)
 
 
+class Sample:
+
+    def __init__(self, image: Union[Image, np.ndarray, torch.Tensor]):
+        self._image = image
+
+
+class SegmentationSample(Sample):
+
+    def __init__(self, image: Union[Image, np.ndarray, torch.Tensor], mask: np.ndarray):
+        super().__init__(image)
+        self._mask = mask
+
+class DetectionSample(Sample):
+
+    def __init__(self, image: Union[Image, np.ndarray, torch.Tensor], mask: np.ndarray):
+        super().__init__(image)
+        self._mask = mask
+
+
 class SegmentationTransform:
-    def __call__(self, *args, **kwargs):
+    def __call__(self, sample: SegmentationSample) -> SegmentationSample:
         raise NotImplementedError
 
     def __repr__(self):
@@ -30,11 +50,11 @@ class ResizeSeg(SegmentationTransform):
         self.h = h
         self.w = w
 
-    def __call__(self, sample):
-        image = sample["image"]
-        mask = sample["mask"]
-        sample["image"] = image.resize((self.w, self.h), image_resample)
-        sample["mask"] = mask.resize((self.w, self.h), mask_resample)
+    def __call__(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
+        sample.image = image.resize((self.w, self.h), image_resample)
+        sample.mask = mask.resize((self.w, self.h), mask_resample)
         return sample
 
 
@@ -47,14 +67,14 @@ class RandomFlip(SegmentationTransform):
         assert 0. <= prob <= 1., f"Probability value must be between 0 and 1, found {prob}"
         self.prob = prob
 
-    def __call__(self, sample: dict):
-        image = sample["image"]
-        mask = sample["mask"]
+    def __call__(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
         if random.random() < self.prob:
             image = image.transpose(Image.FLIP_LEFT_RIGHT)
             mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
-            sample["image"] = image
-            sample["mask"] = mask
+            sample.image = image
+            sample.mask = mask
 
         return sample
 
@@ -83,9 +103,9 @@ class Rescale(SegmentationTransform):
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict):
-        image = sample["image"]
-        mask = sample["mask"]
+    def __call__(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
         w, h = image.size
         if self.scale_factor is not None:
             scale = self.scale_factor
@@ -101,8 +121,8 @@ class Rescale(SegmentationTransform):
         image = image.resize(out_size, image_resample)
         mask = mask.resize(out_size, mask_resample)
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -118,7 +138,7 @@ class Rescale(SegmentationTransform):
             raise ValueError(f"Long size must be a positive number, found: {self.long_size}")
 
 
-class RandomRescale:
+class RandomRescale(SegmentationTransform):
     """
     Random rescale the image and mask (synchronously) while preserving aspect ratio.
     Scale factor is randomly picked between scales [min, max]
@@ -132,9 +152,9 @@ class RandomRescale:
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict):
-        image = sample["image"]
-        mask = sample["mask"]
+    def __call__(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
         w, h = image.size
 
         scale = random.uniform(self.scales[0], self.scales[1])
@@ -143,8 +163,8 @@ class RandomRescale:
         image = image.resize(out_size, image_resample)
         mask = mask.resize(out_size, mask_resample)
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -180,16 +200,16 @@ class RandomRotate(SegmentationTransform):
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict):
-        image = sample["image"]
-        mask = sample["mask"]
+    def __call__(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
 
         deg = random.uniform(self.min_deg, self.max_deg)
         image = image.rotate(deg, resample=image_resample, fillcolor=self.fill_image)
         mask = mask.rotate(deg, resample=mask_resample, fillcolor=self.fill_mask)
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -218,9 +238,9 @@ class CropImageAndMask(SegmentationTransform):
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict):
-        image = sample["image"]
-        mask = sample["mask"]
+    def __call__(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
 
         w, h = image.size
         if self.mode == "random":
@@ -233,8 +253,8 @@ class CropImageAndMask(SegmentationTransform):
         image = image.crop((x1, y1, x1 + self.crop_size[0], y1 + self.crop_size[1]))
         mask = mask.crop((x1, y1, x1 + self.crop_size[0], y1 + self.crop_size[1]))
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -257,16 +277,16 @@ class RandomGaussianBlur(SegmentationTransform):
         assert 0. <= prob <= 1., "Probability value must be between 0 and 1"
         self.prob = prob
 
-    def __call__(self, sample: dict):
-        image = sample["image"]
-        mask = sample["mask"]
+    def __call__(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
 
         if random.random() < self.prob:
             image = image.filter(ImageFilter.GaussianBlur(
                 radius=random.random()))
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -292,9 +312,9 @@ class PadShortToCropSize(SegmentationTransform):
 
         self.check_valid_arguments()
 
-    def __call__(self, sample: dict):
-        image = sample["image"]
-        mask = sample["mask"]
+    def __call__(self, sample: SegmentationSample) -> SegmentationSample:
+        image = sample.image
+        mask = sample.mask
         w, h = image.size
 
         # pad images from center symmetrically
@@ -307,8 +327,8 @@ class PadShortToCropSize(SegmentationTransform):
             image = ImageOps.expand(image, border=(pad_left, pad_top, pad_right, pad_bottom), fill=self.fill_image)
             mask = ImageOps.expand(mask, border=(pad_left, pad_top, pad_right, pad_bottom), fill=self.fill_mask)
 
-        sample["image"] = image
-        sample["mask"] = mask
+        sample.image = image
+        sample.mask = mask
 
         return sample
 
@@ -322,8 +342,8 @@ class PadShortToCropSize(SegmentationTransform):
 
 
 class ColorJitterSeg(transforms.ColorJitter):
-    def __call__(self, sample):
-        sample["image"] = super(ColorJitterSeg, self).__call__(sample["image"])
+    def __call__(self, sample: SegmentationSample) -> SegmentationSample:
+        sample.image = super(ColorJitterSeg, self).__call__(sample.image)
         return sample
 
 
