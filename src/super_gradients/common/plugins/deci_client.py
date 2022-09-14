@@ -13,8 +13,10 @@ except (ImportError, NameError):
 
 
 class DeciClient:
-    def __init__(self, lab_client: DeciPlatformClient):
-        self.lab_client = lab_client
+    def __init__(self):
+        from deci_lab_client.client import DeciPlatformClient
+
+        self.lab_client = DeciPlatformClient(api_host="api.development.deci.ai")
         GlobalHydra.instance().clear()
         self.super_gradients_version = None
         try:

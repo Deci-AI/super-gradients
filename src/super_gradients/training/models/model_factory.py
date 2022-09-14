@@ -1,4 +1,3 @@
-from typing import Optional
 import hydra
 
 from super_gradients.common import StrictLoad
@@ -19,15 +18,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
-try:
-    from deci_lab_client.client import DeciPlatformClient
-except (ImportError, NameError):
-    from typing import Any as DeciPlatformClient
-
-
-def instantiate_model(
-    name: str, arch_params: dict, pretrained_weights: str = None, lab_client: Optional[DeciPlatformClient] = None
-) -> SgModule:
+def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = None) -> SgModule:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
         module manipulation (i.e head replacement).
@@ -52,8 +43,8 @@ def instantiate_model(
     if isinstance(name, str) and name in ARCHITECTURES.keys():
         architecture_cls = ARCHITECTURES[name]
         net = architecture_cls(arch_params=arch_params)
-    elif isinstance(name, str) and lab_client is not None:
-        deci_client = DeciClient(lab_client=lab_client)
+    elif isinstance(name, str):
+        deci_client = DeciClient()
         _arch_params = deci_client.get_model_arch_params(name)
 
         if _arch_params is not None:
@@ -94,7 +85,6 @@ def get(
     checkpoint_path: str = None,
     pretrained_weights: str = None,
     load_backbone: bool = False,
-    lab_client: Optional[DeciPlatformClient] = None,
 ) -> SgModule:
     """
     :param name:               Defines the model's architecture from models/ALL_ARCHITECTURES
@@ -127,7 +117,7 @@ def get(
         arch_params["num_classes"] = num_classes
 
     arch_params = core_utils.HpmStruct(**arch_params)
-    net = instantiate_model(name, arch_params, pretrained_weights, lab_client=lab_client)
+    net = instantiate_model(name, arch_params, pretrained_weights)
 
     if checkpoint_path:
         load_ema_as_net = "ema_net" in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
