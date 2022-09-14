@@ -46,3 +46,5 @@ phase_callbacks:
 
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True
+
+_convert_: all
