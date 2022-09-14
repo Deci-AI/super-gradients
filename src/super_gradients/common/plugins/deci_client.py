@@ -23,7 +23,9 @@ class DeciClient:
     def _get_file(self, model_name: str, file_name: str) -> str:
         from deci_common.data_interfaces.files_data_interface import FilesDataInterface
 
-        response = self.lab_client.get_autonac_model_file_link(model_name=model_name, file_name=file_name)
+        response = self.lab_client.get_autonac_model_file_link(
+            model_name=model_name, file_name=file_name, super_gradients_version=self.super_gradients_version
+        )
         download_link = response.data
         return FilesDataInterface.download_temporary_file(file_url=download_link)
 
@@ -32,7 +34,7 @@ class DeciClient:
 
         file = self._get_file(model_name=model_name, file_name=AutoNACFileName.STRUCTURE_YAML)
         split_file = file.split("/")
-        with hydra.initialize_config_dir(config_dir=f"/{'/'.join(split_file)}/"):
+        with hydra.initialize_config_dir(config_dir=f"{'/'.join(split_file[:-1])}/"):
             cfg = hydra.compose(config_name=split_file[-1])
         return cfg
 
