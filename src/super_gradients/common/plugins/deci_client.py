@@ -6,6 +6,10 @@ try:
     from deci_lab_client.client import DeciPlatformClient
 except (ImportError, NameError):
     from typing import Any as DeciPlatformClient
+try:
+    from pkg_resources import DistributionNotFound
+except (ImportError, NameError):
+    DistributionNotFound = Exception
 
 
 class DeciClient:
@@ -17,8 +21,8 @@ class DeciClient:
             import pkg_resources
 
             self.super_gradients_version = pkg_resources.get_distribution("super_gradients").version
-        except Exception as e:
-            print(e)
+        except DistributionNotFound:
+            self.super_gradients_version = "3.0.0"
 
     def _get_file(self, model_name: str, file_name: str) -> str:
         from deci_common.data_interfaces.files_data_interface import FilesDataInterface
@@ -34,7 +38,7 @@ class DeciClient:
 
         file = self._get_file(model_name=model_name, file_name=AutoNACFileName.STRUCTURE_YAML)
         split_file = file.split("/")
-        with hydra.initialize_config_dir(config_dir=f"{'/'.join(split_file[:-1])}/"):
+        with hydra.initialize_config_dir(config_dir=f"{'/'.join(split_file[:-1])}/", version_base=None):
             cfg = hydra.compose(config_name=split_file[-1])
         return cfg
 

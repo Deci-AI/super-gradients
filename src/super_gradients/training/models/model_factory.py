@@ -120,8 +120,8 @@ def get(
         )
     num_classes = num_classes or arch_params.get("num_classes")
 
-    # if pretrained_weights is None and num_classes is None:
-    #     raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")
+    if pretrained_weights is None and num_classes is None:
+        raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")
 
     if num_classes is not None:
         arch_params["num_classes"] = num_classes
