@@ -127,9 +127,9 @@ from super_gradients.training.metrics import Accuracy, Top5
 from torchvision import transforms
 
 
-trainer = Trainer(experiment_name="beit_base_patch16_224_test")
+trainer = Trainer(experiment_name="beit_base_patch16_224_test_small")
 test_dataloader = dataloaders.get("cifar10_val", dataloader_params={"batch_size": 64},dataset_params={"transforms": [transforms.ToTensor(), transforms.Resize(224)]})
-pretrained_beit = models.get('beit_base_patch16_224', arch_params={'num_classes': 10, "image_size": [224, 224], "patch_size": [16, 16]}, pretrained_weights="cifar10")
+pretrained_beit = models.get('beit_base_patch16_224', pretrained_weights="cifar10")
 # accuracy, top5 = trainer.test(model=pretrained_beit, test_loader=test_dataloader, test_metrics_list=[Accuracy(), Top5()])
 # print()
 # print(f"Accuracy: {accuracy}")
@@ -138,7 +138,7 @@ pretrained_beit = models.get('beit_base_patch16_224', arch_params={'num_classes'
 from super_gradients.training import KDTrainer
 
 
-kd_trainer = KDTrainer(experiment_name="kd_cifar10_resnet")
+kd_trainer = KDTrainer(experiment_name="kd_cifar10_resnet_big")
 
 
 
@@ -158,7 +158,7 @@ from super_gradients.training.losses import KDLogitsLoss, LabelSmoothingCrossEnt
 
 
 kd_params = {
-    "max_epochs": 10,  # We will stop after 4 epochs because it is slow to train on google collab
+    "max_epochs": 20,  # We will stop after 4 epochs because it is slow to train on google collab
     "loss": KDLogitsLoss(distillation_loss_coeff=0.8, task_loss_fn=LabelSmoothingCrossEntropyLoss()),
     "loss_logging_items_names": ["Loss", "Task Loss", "Distillation Loss"]}
 
