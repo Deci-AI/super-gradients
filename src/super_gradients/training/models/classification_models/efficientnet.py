@@ -25,6 +25,12 @@ from collections import OrderedDict
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
+
+try:
+    from torch.functional import silu
+except Exception:
+    from super_gradients.training.utils.module_utils import silu
+
 # Parameters for an individual model block
 BlockArgs = collections.namedtuple('BlockArgs', [
     'num_repeat', 'kernel_size', 'stride', 'expand_ratio',
@@ -354,7 +360,7 @@ class MBConvBlock(nn.Module):
         Conv2d = get_same_padding_conv2d(image_size=image_size)
         self._project_conv = Conv2d(in_channels=oup, out_channels=final_oup, kernel_size=1, bias=False)
         self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
-        self._swish = nn.functional.silu
+        self._swish = silu
 
     def forward(self, inputs, drop_connect_rate=None):
         """MBConvBlock's forward function.
@@ -467,7 +473,7 @@ class EfficientNet(SgModule):
             self._avg_pooling = nn.AdaptiveAvgPool2d(1)
             self._dropout = nn.Dropout(self._arch_params.dropout_rate)
             self._fc = nn.Linear(out_channels, self._arch_params.num_classes)
-        self._swish = nn.functional.silu
+        self._swish = silu
 
     def extract_features(self, inputs):
         """

@@ -11,6 +11,11 @@ import torch.nn as nn
 from super_gradients.training.utils.utils import get_param, HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
+try:
+    from torch.nn import SiLU
+except Exception:
+    from super_gradients.training.utils.module_utils import SiLU
+
 
 def autopad(kernel, padding=None):
     # PAD TO 'SAME'
@@ -30,7 +35,7 @@ def get_yolo_type_params(yolo_type: str, width_mult_factor: float, depth_mult_fa
     if yolo_type == 'yoloX':
         struct = (3, 9, 9, 3)
         block = CSPLayer
-        activation_type = nn.SiLU
+        activation_type = SiLU
         width_mult = lambda channels: width_multiplier(channels, width_mult_factor)
     else:
         raise NotImplementedError(f'Yolo yolo_type {yolo_type} is not supported')

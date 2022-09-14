@@ -12,6 +12,13 @@ from super_gradients.training.utils.detection_utils import non_max_suppression, 
     matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 
+
+try:
+    from torch.nn import SiLU
+except Exception:
+    from super_gradients.training.utils.module_utils import SiLU
+
+
 COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
                                                   [30, 61, 62, 45, 59, 119],
                                                   [116, 90, 156, 198, 373, 326]],
@@ -235,7 +242,7 @@ class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
         # LAST ANYNETX STAGE -> STAGE + SPP IF SPP_KERNELS IS GIVEN
         spp_kernels = get_param(arch_params.backbone_params, 'spp_kernels', None)
         if spp_kernels:
-            activation_type = nn.SiLU if arch_params.yolo_type == 'yoloX' else nn.Hardswish
+            activation_type = SiLU if arch_params.yolo_type == 'yoloX' else nn.Hardswish
             self.net.stage_3 = self.add_spp_to_stage(self.net.stage_3, spp_kernels, activation_type=activation_type)
             self.initialize_weight()
 
@@ -427,7 +434,7 @@ class YoloBase(SgModule):
             if isinstance(m, nn.BatchNorm2d):
                 m.eps = 1e-3
                 m.momentum = 0.03
-            elif isinstance(m, (nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.Hardswish, nn.SiLU)):
+            elif isinstance(m, (nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.Hardswish, SiLU)):
                 m.inplace = True
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):

@@ -134,11 +134,11 @@ def replace_activations(module: nn.Module, new_activation: nn.Module, activation
 
 
 def fuse_repvgg_blocks_residual_branches(model: nn.Module):
-    '''
+    """
     Call fuse_block_residual_branches for all repvgg blocks in the model
     :param model: torch.nn.Module with repvgg blocks. Doesn't have to be entirely consists of repvgg.
     :type model: torch.nn.Module
-    '''
+    """
     assert not model.training, "To fuse RepVGG block residual branches, model must be on eval mode"
     for module in model.modules():
         if hasattr(module, 'fuse_block_residual_branches'):
@@ -241,3 +241,37 @@ def make_upsample_module(scale_factor: int,
     else:
         raise NotImplementedError(f"Upsample mode: `{upsample_mode}` is not supported.")
     return module
+
+
+def silu(input):
+    """
+    Applies the Sigmoid Linear Unit (SiLU) function element-wise:
+        SiLU(x) = x * sigmoid(x)
+    """
+    return input * torch.sigmoid(input) # use torch.sigmoid to make sure that we created the most efficient implemetation based on builtin PyTorch functions
+
+# create a class wrapper from PyTorch nn.Module, so
+# the function now can be easily used in models
+class SiLU(nn.Module):
+    """
+    Applies the Sigmoid Linear Unit (SiLU) function element-wise:
+        SiLU(x) = x * sigmoid(x)
+    Shape:
+        - Input: (N, *) where * means, any number of additional
+          dimensions
+        - Output: (N, *), same shape as the input
+    References:
+        -  Related paper:
+        https://arxiv.org/pdf/1606.08415.pdf
+    """
+    def __init__(self):
+        """
+        Init method.
+        """
+        super().__init__() # init the base class
+
+    def forward(self, input):
+        """
+        Forward pass of the function.
+        """
+        return silu(input) # simply apply already implemented SiLU
