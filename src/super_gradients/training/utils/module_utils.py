@@ -208,6 +208,7 @@ class NormalizationAdapter(torch.nn.Module):
      number of input channels.
 
     """
+
     def __init__(self, mean_original, std_original, mean_required, std_required):
         super(NormalizationAdapter, self).__init__()
         mean_original = torch.tensor(mean_original).unsqueeze(-1).unsqueeze(-1)
@@ -248,7 +249,8 @@ def silu(input):
     Applies the Sigmoid Linear Unit (SiLU) function element-wise:
         SiLU(x) = x * sigmoid(x)
     """
-    return input * torch.sigmoid(input) # use torch.sigmoid to make sure that we created the most efficient implemetation based on builtin PyTorch functions
+    return input * torch.sigmoid(input)  # use torch.sigmoid to make sure that we created the most efficient implemetation based on builtin PyTorch functions
+
 
 # create a class wrapper from PyTorch nn.Module, so
 # the function now can be easily used in models
@@ -264,14 +266,15 @@ class SiLU(nn.Module):
         -  Related paper:
         https://arxiv.org/pdf/1606.08415.pdf
     """
+
     def __init__(self):
         """
         Init method.
         """
-        super().__init__() # init the base class
+        super().__init__()  # init the base class
 
     def forward(self, input):
         """
         Forward pass of the function.
         """
-        return silu(input) # simply apply already implemented SiLU
+        return silu(input)  # simply apply already implemented SiLU
