@@ -1,9 +1,11 @@
 import hydra
-from deci_common.data_interfaces.files_data_interface import FilesDataInterface
-from deci_lab_client import AutoNACFileName
-from deci_lab_client.client import DeciPlatformClient
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
+
+try:
+    from deci_lab_client.client import DeciPlatformClient
+except (ImportError, NameError):
+    from typing import Any as DeciPlatformClient
 
 
 class DeciClient:
@@ -19,11 +21,15 @@ class DeciClient:
             print(e)
 
     def _get_file(self, model_name: str, file_name: str) -> str:
+        from deci_common.data_interfaces.files_data_interface import FilesDataInterface
+
         response = self.lab_client.get_autonac_model_file_link(model_name=model_name, file_name=file_name)
         download_link = response.data
         return FilesDataInterface.download_temporary_file(file_url=download_link)
 
     def get_model_arch_params(self, model_name: str) -> DictConfig:
+        from deci_lab_client.models import AutoNACFileName
+
         file = self._get_file(model_name=model_name, file_name=AutoNACFileName.STRUCTURE_YAML)
         split_file = file.split("/")
         with hydra.initialize_config_dir(config_dir=f"/{'/'.join(split_file)}/"):
@@ -31,4 +37,6 @@ class DeciClient:
         return cfg
 
     def get_model_weights(self, model_name: str) -> str:
+        from deci_lab_client.models import AutoNACFileName
+
         return self._get_file(model_name=model_name, file_name=AutoNACFileName.WEIGHTS_PTH)

@@ -1,6 +1,5 @@
 from typing import Optional
 import hydra
-from deci_lab_client.client import DeciPlatformClient
 
 from super_gradients.common import StrictLoad
 from super_gradients.common.plugins.deci_client import DeciClient
@@ -18,6 +17,12 @@ from super_gradients.training.utils.checkpoint_utils import (
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 logger = get_logger(__name__)
+
+
+try:
+    from deci_lab_client.client import DeciPlatformClient
+except (ImportError, NameError):
+    from typing import Any as DeciPlatformClient
 
 
 def instantiate_model(
