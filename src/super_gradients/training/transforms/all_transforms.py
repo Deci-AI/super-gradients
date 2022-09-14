@@ -1,7 +1,7 @@
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, rand_augment_transform
-from super_gradients.training.transforms.transforms import RandomFlip, Rescale, RandomRescale, RandomRotate, \
-    CropImageAndMask, RandomGaussianBlur, PadShortToCropSize, ResizeSeg, ColorJitterSeg, DetectionMosaic, DetectionRandomAffine, \
+from super_gradients.training.transforms.transforms import SegRandomFlip, SegRescale, SegRandomRescale, SegRandomRotate, \
+    SegCropImageAndMask, SegRandomGaussianBlur, SegPadShortToCropSize, SegResize, SegColorJitter, DetectionMosaic, DetectionRandomAffine, \
     DetectionMixup, DetectionHSV, \
     DetectionHorizontalFlip, DetectionTargetsFormat, DetectionPaddedRescale, \
     DetectionTargetsFormatTransform
@@ -14,15 +14,15 @@ from torchvision.transforms import Compose, ToTensor, PILToTensor, ConvertImageD
 class TransformNames:
     """Static class holding all the supported transform names"""""
     # From SG
-    RandomFlipSeg = "RandomFlipSeg"
-    ResizeSeg = "ResizeSeg"
-    RescaleSeg = "RescaleSeg"
-    RandomRescaleSeg = "RandomRescaleSeg"
-    RandomRotateSeg = "RandomRotateSeg"
-    CropImageAndMaskSeg = "CropImageAndMaskSeg"
-    RandomGaussianBlurSeg = "RandomGaussianBlurSeg"
-    PadShortToCropSizeSeg = "PadShortToCropSizeSeg"
-    ColorJitterSeg = "ColorJitterSeg"
+    SegRandomFlip = "SegRandomFlip"
+    SegResize = "SegResize"
+    SegRescale = "SegRescale"
+    SegRandomRescale = "SegRandomRescale"
+    SegRandomRotate = "SegRandomRotate"
+    SegCropImageAndMask = "SegCropImageAndMask"
+    SegRandomGaussianBlur = "SegRandomGaussianBlur"
+    SegPadShortToCropSize = "SegPadShortToCropSize"
+    SegColorJitter = "SegColorJitter"
     DetectionMosaic = "DetectionMosaic"
     DetectionRandomAffine = "DetectionRandomAffine"
     DetectionMixup = "DetectionMixup"
@@ -75,15 +75,15 @@ class TransformNames:
 
 
 TRANSFORMS = {
-    TransformNames.RandomFlipSeg: RandomFlip,
-    TransformNames.ResizeSeg: ResizeSeg,
-    TransformNames.RescaleSeg: Rescale,
-    TransformNames.RandomRescaleSeg: RandomRescale,
-    TransformNames.RandomRotateSeg: RandomRotate,
-    TransformNames.CropImageAndMaskSeg: CropImageAndMask,
-    TransformNames.RandomGaussianBlurSeg: RandomGaussianBlur,
-    TransformNames.PadShortToCropSizeSeg: PadShortToCropSize,
-    TransformNames.ColorJitterSeg: ColorJitterSeg,
+    TransformNames.SegRandomFlip: SegRandomFlip,
+    TransformNames.SegResize: SegResize,
+    TransformNames.SegRescale: SegRescale,
+    TransformNames.SegRandomRescale: SegRandomRescale,
+    TransformNames.SegRandomRotate: SegRandomRotate,
+    TransformNames.SegCropImageAndMask: SegCropImageAndMask,
+    TransformNames.SegRandomGaussianBlur: SegRandomGaussianBlur,
+    TransformNames.SegPadShortToCropSize: SegPadShortToCropSize,
+    TransformNames.SegColorJitter: SegColorJitter,
     TransformNames.DetectionMosaic: DetectionMosaic,
     TransformNames.DetectionRandomAffine: DetectionRandomAffine,
     TransformNames.DetectionMixup: DetectionMixup,

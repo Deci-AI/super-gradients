@@ -4,22 +4,22 @@ defaults:
 
 train_dataset_params:
   transforms:
-    - ColorJitterSeg:
+    - SegColorJitter:
         brightness: 0.5
         contrast: 0.5
         saturation: 0.5
 
-    - RandomFlipSeg:
+    - SegRandomFlip:
         prob: 0.5
 
-    - RandomRescaleSeg:
+    - SegRandomRescale:
         scales: [ 0.5, 2. ]
 
-    - PadShortToCropSizeSeg:
+    - SegPadShortToCropSize:
         crop_size: [ 1024, 1024 ]
         fill_mask: 19
 
-    - CropImageAndMaskSeg:
+    - SegCropImageAndMask:
         crop_size: [ 1024, 1024 ]
         mode: random
 

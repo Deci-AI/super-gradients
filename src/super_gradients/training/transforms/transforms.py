@@ -25,7 +25,7 @@ class SegmentationTransform:
         return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')
 
 
-class ResizeSeg(SegmentationTransform):
+class SegResize(SegmentationTransform):
     def __init__(self, h, w):
         self.h = h
         self.w = w
@@ -38,7 +38,7 @@ class ResizeSeg(SegmentationTransform):
         return sample
 
 
-class RandomFlip(SegmentationTransform):
+class SegRandomFlip(SegmentationTransform):
     """
     Randomly flips the image and mask (synchronously) with probability 'prob'.
     """
@@ -59,7 +59,7 @@ class RandomFlip(SegmentationTransform):
         return sample
 
 
-class Rescale(SegmentationTransform):
+class SegRescale(SegmentationTransform):
     """
     Rescales the image and mask (synchronously) while preserving aspect ratio.
     The rescaling can be done according to scale_factor, short_size or long_size.
@@ -118,7 +118,7 @@ class Rescale(SegmentationTransform):
             raise ValueError(f"Long size must be a positive number, found: {self.long_size}")
 
 
-class RandomRescale:
+class SegRandomRescale:
     """
     Random rescale the image and mask (synchronously) while preserving aspect ratio.
     Scale factor is randomly picked between scales [min, max]
@@ -159,13 +159,13 @@ class RandomRescale:
                 self.scales = (1, self.scales)
 
         if self.scales[0] < 0 or self.scales[1] < 0:
-            raise ValueError(f"RandomRescale scale values must be positive numbers, found: {self.scales}")
+            raise ValueError(f"SegRandomRescale scale values must be positive numbers, found: {self.scales}")
         if self.scales[0] > self.scales[1]:
             self.scales = (self.scales[1], self.scales[0])
         return self.scales
 
 
-class RandomRotate(SegmentationTransform):
+class SegRandomRotate(SegmentationTransform):
     """
     Randomly rotates image and mask (synchronously) between 'min_deg' and 'max_deg'.
     """
@@ -197,7 +197,7 @@ class RandomRotate(SegmentationTransform):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
 
-class CropImageAndMask(SegmentationTransform):
+class SegCropImageAndMask(SegmentationTransform):
     """
     Crops image and mask (synchronously).
     In "center" mode a center crop is performed while, in "random" mode the drop will be positioned around
@@ -248,7 +248,7 @@ class CropImageAndMask(SegmentationTransform):
             raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
 
 
-class RandomGaussianBlur(SegmentationTransform):
+class SegRandomGaussianBlur(SegmentationTransform):
     """
     Adds random Gaussian Blur to image with probability 'prob'.
     """
@@ -271,10 +271,10 @@ class RandomGaussianBlur(SegmentationTransform):
         return sample
 
 
-class PadShortToCropSize(SegmentationTransform):
+class SegPadShortToCropSize(SegmentationTransform):
     """
     Pads image to 'crop_size'.
-    Should be called only after "Rescale" or "RandomRescale" in augmentations pipeline.
+    Should be called only after "SegRescale" or "SegRandomRescale" in augmentations pipeline.
     """
 
     def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0,
@@ -321,9 +321,9 @@ class PadShortToCropSize(SegmentationTransform):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
 
-class ColorJitterSeg(transforms.ColorJitter):
+class SegColorJitter(transforms.ColorJitter):
     def __call__(self, sample):
-        sample["image"] = super(ColorJitterSeg, self).__call__(sample["image"])
+        sample["image"] = super(SegColorJitter, self).__call__(sample["image"])
         return sample
 
 
@@ -662,11 +662,11 @@ class DetectionPaddedRescale(DetectionTransform):
         return sample
 
     def _rescale_target(self, targets: np.array, r: float) -> np.array:
-        """Rescale the target according to a coefficient used to rescale the image.
+        """SegRescale the target according to a coefficient used to rescale the image.
         This is done to have images and targets at the same scale.
 
         :param targets:  Targets to rescale, shape (batch_size, 6)
-        :param r:        Rescale coefficient that was applied to the image
+        :param r:        SegRescale coefficient that was applied to the image
 
         :return:         Rescaled targets, shape (batch_size, 6)
         """
