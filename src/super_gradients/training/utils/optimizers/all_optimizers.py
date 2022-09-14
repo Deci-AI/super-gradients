@@ -4,6 +4,7 @@ from super_gradients.training.utils.optimizers.lamb import Lamb
 
 
 class OptimizerNames:
+    """Static class holding all the supported optimizer names"""""
     SGD = "SGD"
     ADAM = "Adam"
     RMS_PROP = "RMSprop"

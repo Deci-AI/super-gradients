@@ -10,5 +10,5 @@ from super_gradients.training.losses.bce_dice_loss import BCEDiceLoss
 from super_gradients.training.losses.dice_ce_edge_loss import DiceCEEdgeLoss
 from super_gradients.training.losses.all_losses import LOSSES, LossNames
 
-__all__ = ['FocalLoss', 'LabelSmoothingCrossEntropyLoss', 'ShelfNetOHEMLoss', 'ShelfNetSemanticEncodingLoss',
-           'YoloXDetectionLoss', 'RSquaredLoss', 'SSDLoss', 'LOSSES', 'LossNames', 'BCEDiceLoss', 'KDLogitsLoss', 'DiceCEEdgeLoss']
+__all__ = ['LOSSES', 'LossNames', 'FocalLoss', 'LabelSmoothingCrossEntropyLoss', 'ShelfNetOHEMLoss', 'ShelfNetSemanticEncodingLoss',
+           'YoloXDetectionLoss', 'RSquaredLoss', 'SSDLoss', 'BCEDiceLoss', 'KDLogitsLoss', 'DiceCEEdgeLoss']
