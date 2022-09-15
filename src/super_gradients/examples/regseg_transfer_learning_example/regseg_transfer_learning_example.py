@@ -20,7 +20,7 @@ dl_val = dataloaders.supervisely_persons_val(dataset_params={"transforms": [Resi
 
 trainer = Trainer("regseg48_transfer_learning_old_dice_diff_lrs_head_fixed_50_epochs")
 
-# THIS IS WHERE THE MAGIC HAPPENS- SINCE SGMODEL'S CLASSES ATTRIBUTE WAS SET TO BE DIFFERENT FROM CITYSCAPES'S, AFTER
+# THIS IS WHERE THE MAGIC HAPPENS- SINCE TRAINER'S CLASSES ATTRIBUTE WAS SET TO BE DIFFERENT FROM CITYSCAPES'S, AFTER
 # LOADING THE PRETRAINED REGSET, IT WILL CALL IT'S REPLACE_HEAD METHOD AND CHANGE IT'S SEGMENTATION HEAD LAYER ACCORDING
 # TO OUR BINARY SEGMENTATION DATASET
 model = models.get("regseg48", pretrained_weights="cityscapes", num_classes=1)
