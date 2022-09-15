@@ -25,7 +25,7 @@ einops==0.3.2
 pycocotools==2.0.4
 protobuf~=3.19.0
 deci-common==3.4.1
-deci-lab-client==2.55.0b16158
+deci-lab-client==2.55.0
 treelib==1.6.1
 termcolor==1.1.0
 packaging>=20.4
