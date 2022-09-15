@@ -7,7 +7,6 @@ from typing import Union, Tuple, Mapping, List, Any
 import hydra
 import numpy as np
 import torch
-from deprecate import deprecated
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler
@@ -248,48 +247,6 @@ class Trainer:
 
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
-
-    # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    @deprecated(target=None, deprecated_in='2.3.0', remove_in='3.0.0')
-    def build_model(self,  # noqa: C901 - too complex
-                    architecture: Union[str, nn.Module],
-                    arch_params={}, checkpoint_params={}, *args, **kwargs):
-        """
-        :param architecture:               Defines the network's architecture from models/ALL_ARCHITECTURES
-        :param arch_params:                Architecture H.P. e.g.: block, num_blocks, num_classes, etc.
-        :param checkpoint_params:          Dictionary like object with the following key:values:
-
-            load_checkpoint:            Load a pre-trained checkpoint
-            strict_load:                See StrictLoad class documentation for details.
-            source_ckpt_folder_name:    folder name to load the checkpoint from (self.experiment_name if none is given)
-            load_weights_only:          loads only the weight from the checkpoint and zeroize the training params
-            load_backbone:              loads the provided checkpoint to self.net.backbone instead of self.net
-            external_checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
-                                               (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
-                                               load the checkpoint even if the load_checkpoint flag is not provided.
-
-        """
-        if 'num_classes' not in arch_params.keys():
-            if self.classes is None and self.dataset_interface is None:
-                raise Exception('Error', 'Number of classes not defined in arch params and dataset is not defined')
-            else:
-                arch_params['num_classes'] = len(self.classes)
-
-        self.arch_params = core_utils.HpmStruct(**arch_params)
-        self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
-
-        self.net = self._instantiate_net(architecture, self.arch_params, checkpoint_params, *args, **kwargs)
-
-        # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
-
-        self.architecture = architecture
-
-        self._net_to_device()
-
-        # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
-        self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
-
-        self._load_checkpoint_to_model()
 
     def _set_ckpt_loading_attributes(self):
         """
@@ -1783,7 +1740,6 @@ class Trainer:
                                                set_net=self.set_net,
                                                set_ckpt_best_name=self.set_ckpt_best_name,
                                                reset_best_metric=self._reset_best_metric,
-                                               build_model=self.build_model,
                                                validate_epoch=self._validate_epoch,
                                                set_ema=self.set_ema)
         else:
