@@ -44,6 +44,7 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
         architecture_cls = ARCHITECTURES[name]
         net = architecture_cls(arch_params=arch_params)
     elif isinstance(name, str):
+        logger.info(f'Required model {name} not found in local SuperGradients. Trying to load a model from remote deci lab')
         deci_client = DeciClient()
         _arch_params = deci_client.get_model_arch_params(name)
 
@@ -57,12 +58,9 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
             net = architecture_cls(arch_params=_arch_params)
             remote_model = True
         else:
-            raise ValueError(
-                "Unsupported model name " + str(name) + ", see docs or all_architectures.py for supported nets."
-            )
+            raise ValueError("Unsupported model name " + str(name) + ", see docs or all_architectures.py for supported nets.")
     else:
-        raise ValueError(
-            "Unsupported model model_name " + str(name) + ", see docs or all_architectures.py for supported nets.")
+        raise ValueError("Unsupported model model_name " + str(name) + ", see docs or all_architectures.py for supported nets.")
     if pretrained_weights:
         if remote_model:
             weights_path = deci_client.get_model_weights(name)
