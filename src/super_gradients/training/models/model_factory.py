@@ -6,6 +6,7 @@ from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils.checkpoint_utils import load_checkpoint_to_model, load_pretrained_weights, \
     read_ckpt_state_dict
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from typing import Optional
 
 logger = get_logger(__name__)
 
@@ -47,7 +48,7 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
     return net
 
 
-def get(name: str, arch_params: dict = {}, num_classes: int = None,
+def get(name: str, arch_params: Optional[dict] = None, num_classes: int = None,
         strict_load: StrictLoad = StrictLoad.NO_KEY_MATCHING, checkpoint_path: str = None,
         pretrained_weights: str = None, load_backbone: bool = False) -> SgModule:
     """
@@ -67,6 +68,9 @@ def get(name: str, arch_params: dict = {}, num_classes: int = None,
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
 
     """
+    if arch_params is None:
+        arch_params = {}
+        
     if arch_params.get("num_classes") is not None:
         logger.warning("Passing num_classes through arch_params is dperecated and will be removed in the next version. "
                        "Pass num_classes explicitly to models.get")
