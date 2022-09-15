@@ -526,14 +526,14 @@ ALL_DATALOADERS = {"coco2017_train": coco2017_train,
                    }
 
 
-def get(name: str, dataset_params: Dict = None, dataloader_params: Dict = None):
+def get(name: str, dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     """
+    Get DataLoader of the recipe-configured dataset defined by name in ALL_DATALOADERS.
 
-    
-    :param name: 
-    :param dataset_params: 
-    :param dataloader_params: 
-    :return: 
+    :param name: dataset name in ALL_DATALOADERS.
+    :param dataset_params: dataset params that override the yaml configured defaults, then passed to the dataset_cls.__init__.
+    :param dataloader_params: DataLoader params that override the yaml configured defaults, then passed to the DataLoader.__init__
+    :return: initialized DataLoader.
     """
 
     if name not in ALL_DATALOADERS.keys():

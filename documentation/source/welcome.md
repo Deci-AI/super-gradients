@@ -137,8 +137,8 @@ trainer = Trainer(experiment_name="yoloxn_coco_experiment",ckpt_root_dir=<CHECKP
 model = models.get("yolox_n", pretrained_weights="coco", num_classes= 80)
 train_loader = dataloaders.coco2017_train()
 valid_loader = dataloaders.coco2017_val()
-
-trainer.train(model=model, training_)
+train_params = {...}
+trainer.train(model=model, training_params=train_params, train_loader=train_loader, valid_loader=valid_loader)
 ```   
     
 ### Quick Start Notebook - Classification
