@@ -3,10 +3,6 @@ from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 
 try:
-    from deci_lab_client.client import DeciPlatformClient
-except (ImportError, NameError):
-    from typing import Any as DeciPlatformClient
-try:
     from pkg_resources import DistributionNotFound
 except (ImportError, NameError):
     DistributionNotFound = Exception
@@ -16,7 +12,7 @@ class DeciClient:
     def __init__(self):
         from deci_lab_client.client import DeciPlatformClient
 
-        self.lab_client = DeciPlatformClient(api_host="api.development.deci.ai")
+        self.lab_client = DeciPlatformClient()
         GlobalHydra.instance().clear()
         self.super_gradients_version = None
         try:
