@@ -1,4 +1,5 @@
 import argparse
+import importlib
 import os
 import sys
 import socket
@@ -33,6 +34,18 @@ class ColouredTextFormatter:
         return print(''.join([colour, text, TerminalColours.ENDC]))
 
 
+def get_cls(cls_path):
+    """
+    A resolver for Hydra/OmegaConf to allow getting a class instead on an instance.
+    usage:
+    class_of_optimizer: ${class:torch.optim.Adam}
+    """
+    module = '.'.join(cls_path.split('.')[:-1])
+    name = cls_path.split('.')[-1]
+    importlib.import_module(module)
+    return getattr(sys.modules[module], name)
+
+
 def get_environ_as_type(environment_variable_name: str, default=None, cast_to_type: type = str) -> object:
     """
     Tries to get an environment variable and cast it into a requested type.
@@ -65,19 +78,22 @@ def init_trainer():
     This function should be the first thing to be called by any code running super_gradients.
     It resolves conflicts between the different tools, packages and environments used and prepares the super_gradients environment.
     """
+    if not environment_config.INIT_TRAINER:
 
-    register_hydra_resolvers()
+        register_hydra_resolvers()
 
-    # We pop local_rank if it was specified in the args, because it would break
-    args_local_rank = pop_arg("local_rank", default_value=-1)
+        # We pop local_rank if it was specified in the args, because it would break
+        args_local_rank = pop_arg("local_rank", default_value=-1)
 
-    # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
-    environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=args_local_rank))
+        # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
+        environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=args_local_rank))
+        environment_config.INIT_TRAINER = True
 
 
 def register_hydra_resolvers():
     """Register all the hydra resolvers required for the super-gradients recipes."""
     OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
+    OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
 
 
 def pop_arg(arg_name: str, default_value: int = None) -> argparse.Namespace:
