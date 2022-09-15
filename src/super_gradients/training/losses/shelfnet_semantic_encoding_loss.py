@@ -15,6 +15,7 @@ class ShelfNetSemanticEncodingLoss(nn.CrossEntropyLoss):
 
         # FIXME - TEST CODE LOTEM, CHANGED IN ORDER TO WORK WITH apex.amp
         self.bcewithlogitsloss = nn.BCELoss(weight)
+        self.component_names = ["loss1", "loss2", "loss3", "total_loss"]
 
     def forward(self, logits, labels):
         pred1, se_pred, pred2 = logits

@@ -25,6 +25,7 @@ class KDLogitsLoss(_Loss):
         self.task_loss_fn = task_loss_fn
         self.distillation_loss_fn = distillation_loss_fn
         self.distillation_loss_coeff = distillation_loss_coeff
+        self.component_names = ["Loss", "Task Loss", "Distillation Loss"]
 
     def forward(self, kd_module_output, target):
         task_loss = self.task_loss_fn(kd_module_output.student_output, target)

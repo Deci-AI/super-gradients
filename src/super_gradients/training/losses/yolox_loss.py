@@ -126,6 +126,7 @@ class YoloXDetectionLoss(_Loss):
         self.l1_loss = nn.L1Loss(reduction="none")
         self.bcewithlog_loss = nn.BCEWithLogitsLoss(reduction="none")
         self.iou_loss = IOUloss(reduction="none", loss_type=iou_type)
+        self.component_names = ["iou", "obj", "cls", "l1", "num_fg", "Loss"]
 
     def forward(self, model_output: Union[list, Tuple[torch.Tensor, List]], targets: torch.Tensor):
         """

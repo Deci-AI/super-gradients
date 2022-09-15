@@ -138,9 +138,6 @@ class Trainer:
         self.qat_params = {}
         self._infinite_train_loader = False
 
-        # DETERMINE THE LOCATION OF THE LOSS AND ACCURACY IN THE RESULTS TUPLE OUTPUTED BY THE TEST
-        self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = None, None
-
         # METRICS
         self.loss_logging_items_names = None
         self.train_metrics = None
@@ -174,14 +171,10 @@ class Trainer:
 
         self.results_titles = default_results_titles
 
-        self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = 0, 1
         default_train_metrics, default_valid_metrics = MetricCollection([Accuracy(), Top5()]), MetricCollection(
             [Accuracy(), Top5()])
 
-        default_loss_logging_items_names = ["Loss"]
-
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
-        self.loss_logging_items_names = default_loss_logging_items_names
 
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
@@ -427,6 +420,10 @@ class Trainer:
             # IF ITS NOT A TUPLE THE LOGGING ITEMS CONTAIN ONLY THE LOSS FOR BACKPROP (USER DEFINED LOSS RETURNS SCALAR)
         else:
             loss_logging_items = loss.unsqueeze(0).detach()
+
+        # ON FIRST BACKWARD, DERRIVE THE LOGGING TITLES.
+        if self.loss_logging_items_names is None:
+            self._init_loss_logging_names(loss_logging_items)
 
         if len(loss_logging_items) != len(self.loss_logging_items_names):
             raise ValueError("Loss output length must match loss_logging_items_names. Got " + str(
@@ -1791,3 +1788,22 @@ class Trainer:
             context_methods = ContextSgMethods()
 
         return context_methods
+
+    def _init_loss_logging_names(self, loss_logging_items):
+        criterion_name = self.criterion.__class__.__name__
+        component_names = None
+        if hasattr(self.criterion, "component_names"):
+            component_names = self.criterion.component_names
+        elif len(loss_logging_items) > 1:
+            component_names = ["loss_" + str(i) for i in range(len(loss_logging_items))]
+
+        if component_names is not None:
+            self.loss_logging_items_names = [criterion_name + '/' + component_name for component_name in component_names]
+            if self.metric_to_watch in component_names:
+                self.metric_to_watch = criterion_name + '/' + self.metric_to_watch
+
+
+
+
+
+

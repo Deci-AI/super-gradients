@@ -15,6 +15,7 @@ class ShelfNetOHEMLoss(OhemCELoss):
         :param ignore_lb: targets label to be ignored
         """
         super().__init__(threshold=threshold, mining_percent=mining_percent, ignore_lb=ignore_lb)
+        self.component_names = ["Loss1/4", "Loss1/8", "Loss1/16", "Loss"]
 
     def forward(self, predictions_list: list, targets):
         losses = []
