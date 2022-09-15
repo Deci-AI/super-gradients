@@ -1,9 +1,14 @@
 import logging
+import os
 from os import environ
 
 import pkg_resources
 
-PKG_CHECKPOINTS_DIR = pkg_resources.resource_filename("checkpoints", "")
+try:
+    PKG_CHECKPOINTS_DIR = pkg_resources.resource_filename("checkpoints", "")
+except Exception:
+    os.makedirs(os.path.join(os.getcwd(), "checkpoints"), exist_ok=True)
+    PKG_CHECKPOINTS_DIR = os.path.join(os.getcwd(), "checkpoints")
 
 AWS_ENV_NAME = environ.get("ENVIRONMENT_NAME")
 
