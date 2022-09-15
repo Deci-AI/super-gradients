@@ -345,6 +345,11 @@ class PPLiteSegBase(SegmentationModule):
         if isinstance(self.encoder.context_module, SPPM):
             self.encoder.context_module.prep_model_for_conversion(input_size=input_size, stride_ratio=stride_ratio)
 
+    def replace_head(self, new_num_classes: int, **kwargs):
+        for module in self.modules():
+            if isinstance(module, SegmentationHead):
+                module.replace_num_classes(new_num_classes)
+
 
 class PPLiteSegB(PPLiteSegBase):
     def __init__(self, arch_params: HpmStruct):

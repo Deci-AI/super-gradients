@@ -4,20 +4,17 @@ train_dataset_params:
   cache_labels: False
   cache_images: False
   transforms:
-    - ResizeSeg:
-        h: 480
-        w: 320
+    - RandomRescaleSeg:
+        scales: [ 0.25, 1. ]
     - ColorJitterSeg:
         brightness: 0.5
         contrast: 0.5
         saturation: 0.5
     - RandomFlipSeg:
         prob: 0.5
-    - RandomRescaleSeg:
-        scales: [ 0.25, 1. ]
     - PadShortToCropSizeSeg:
         crop_size: [ 320, 480 ]
-        fill_mask: 19
+        fill_mask: 0
     - CropImageAndMaskSeg:
         crop_size: [ 320, 480 ]
         mode: random
