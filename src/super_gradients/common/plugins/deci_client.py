@@ -31,7 +31,7 @@ class DeciClient:
                          'Please install deci-lab-client>=2.55.0 and deci-common>=3.4.1')
             return
 
-        self.lab_client = DeciPlatformClient('api.staging.deci.ai')
+        self.lab_client = DeciPlatformClient()
         GlobalHydra.instance().clear()
         self.super_gradients_version = None
         try:
@@ -47,7 +47,7 @@ class DeciClient:
             download_link = response.data
         except ApiException as e:
             if e.status == 401:
-                logger.error("Deci client: Unauthorized. wrong token or token was not defined. please login to deci-lab-client "
+                logger.error("Unauthorized. wrong token or token was not defined. please login to deci-lab-client "
                              "by calling DeciPlatformClient().login(<token>)")
             elif e.status == 400 and e.body is not None and "message" in e.body:
                 logger.error(f"Deci client: {json.loads(e.body)['message']}")
