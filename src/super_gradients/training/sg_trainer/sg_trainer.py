@@ -1395,7 +1395,7 @@ class Trainer:
     def _prep_for_test(self, test_loader: torch.utils.data.DataLoader = None, loss=None, post_prediction_callback=None,
                        test_metrics_list=None,
                        loss_logging_items_names=None, test_phase_callbacks=None):
-        """Run commands that are common to all SgModels"""
+        """Run commands that are common to all models"""
         # SET THE MODEL IN evaluation STATE
         self.net.eval()
 
