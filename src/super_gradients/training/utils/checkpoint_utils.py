@@ -265,10 +265,10 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     unique_filename = url.split("https://deci-pretrained-models.s3.amazonaws.com/")[1].replace('/', '_').replace(' ', '_')
     map_location = torch.device('cpu')
     pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
-    load_weights(architecture, model, pretrained_state_dict)
+    _load_weights(architecture, model, pretrained_state_dict)
 
 
-def load_weights(architecture, model, pretrained_state_dict):
+def _load_weights(architecture, model, pretrained_state_dict):
     if 'ema_net' in pretrained_state_dict.keys():
         pretrained_state_dict['net'] = pretrained_state_dict['ema_net']
     solver = _yolox_ckpt_solver if "yolox" in architecture else None
@@ -291,4 +291,4 @@ def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pre
     map_location = torch.device('cpu')
 
     pretrained_state_dict = torch.load(pretrained_weights, map_location=map_location)
-    load_weights(architecture, model, pretrained_state_dict)
+    _load_weights(architecture, model, pretrained_state_dict)
