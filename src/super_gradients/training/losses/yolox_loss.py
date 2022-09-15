@@ -7,9 +7,11 @@ import logging
 from typing import List, Tuple, Union
 
 import torch
+import torch.distributed as dist
 from torch import nn
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
+
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.detection_utils import calculate_bbox_iou_matrix
 
@@ -544,3 +546,360 @@ class YoloXDetectionLoss(_Loss):
 
         pred_ious_this_matching = (matching_matrix * pair_wise_ious).sum(0)[fg_mask_inboxes]
         return num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds
+
+
+class YoloXFastDetectionLoss(YoloXDetectionLoss):
+    """
+    A completely new implementation of YOLOX loss.
+    This is NOT an equivalent implementation to the regular yolox loss.
+
+    * Completely avoids using loops compared to the nested loops in the original implementation.
+        As a result runs much faster (speedup depends on the type of GPUs, their count, the batch size, etc.).
+    * Tensors format is very different the original implementation.
+        Tensors contain image ids, ground truth ids and anchor ids as values to support variable length data.
+    * There are differences in terms of the algorithm itself:
+    1. When computing a dynamic k for a ground truth,
+        in the original implementation they consider the sum of top 10 predictions sorted by ious among the initial
+        foregrounds of any ground truth in the image,
+        while in our implementation we consider only the initial foreground of that particular ground truth.
+        To compensate for that difference we introduce the dynamic_ks_bias hyperparamter which makes the dynamic ks larger.
+    2. When computing the k matched detections for a ground truth,
+        in the original implementation they consider the initial foregrounds of any ground truth in the image as candidates,
+        while in our implementation we consider only the initial foreground of that particular ground truth as candidates.
+        We believe that this difference is minor.
+
+    :param dynamic_ks_bias: hyperparameter to compensate for the discrepancies between the regular loss and this loss.
+    :param sync_num_fgs:    sync num of fgs.
+                            Can be used for DDP training.
+    :param obj_loss_fix:    devide by total of num anchors instead num of matching fgs.
+                            Can be used for objectness loss.
+    """
+
+    def __init__(self, strides, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou',
+                 dynamic_ks_bias=1.1, sync_num_fgs=False, obj_loss_fix=False):
+        super().__init__(strides=strides, num_classes=num_classes, use_l1=use_l1, center_sampling_radius=center_sampling_radius,
+                         iou_type=iou_type)
+
+        self.dynamic_ks_bias = dynamic_ks_bias
+        self.sync_num_fgs = sync_num_fgs
+        self.obj_loss_fix = obj_loss_fix
+
+    def _compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        L = L_objectness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
+        where:
+            * L_iou, L_classification and L_l1 are calculated only between cells and targets that suit them;
+            * L_objectness is calculated for all cells.
+
+        L_classification:
+            for cells that have suitable ground truths in their grid locations add BCEs
+            to force a prediction of IoU with a GT in a multi-label way
+            Coef: 1.
+        L_iou:
+            for cells that have suitable ground truths in their grid locations
+            add (1 - IoU^2), IoU between a predicted box and each GT box, force maximum IoU
+            Coef: 1.
+        L_l1:
+            for cells that have suitable ground truths in their grid locations
+            l1 distance between the logits and GTs in “logits” format (the inverse of “logits to predictions” ops)
+            Coef: 1[no_aug_epoch]
+        L_objectness:
+            for each cell add BCE with a label of 1 if there is GT assigned to the cell
+            Coef: 5
+
+        :param predictions:     output from all Yolo levels, each of shape
+                                [Batch x Num_Anchors x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]
+        :param targets:         [Num_targets x (4 + 2)], values on dim 1 are: image id in a batch, class, box x y w h
+
+        :return:                loss, all losses separately in a detached tensor
+        """
+        x_shifts, y_shifts, expanded_strides, transformed_outputs, raw_outputs = self.prepare_predictions(predictions)
+
+        bbox_preds = transformed_outputs[:, :, :4]  # [batch, n_anchors_all, 4]
+        obj_preds = transformed_outputs[:, :, 4:5]  # [batch, n_anchors_all, 1]
+        cls_preds = transformed_outputs[:, :, 5:]   # [batch, n_anchors_all, n_cls]
+
+        # assign cells to ground truths, at most one GT per cell
+        matched_fg_ids, matched_gt_classes, matched_gt_ids, matched_img_ids, matched_ious, flattened_gts = \
+            self._compute_matching(bbox_preds, cls_preds, obj_preds, expanded_strides, x_shifts, y_shifts, targets)
+
+        num_gts = max(flattened_gts.shape[0], 1)
+        num_fg = max(matched_gt_ids.shape[0], 1)
+        total_num_anchors = max(transformed_outputs.shape[0] * transformed_outputs.shape[1], 1)
+
+        cls_targets = F.one_hot(matched_gt_classes.to(torch.int64), self.num_classes) * matched_ious.unsqueeze(dim=1)
+        obj_targets = transformed_outputs.new_zeros((transformed_outputs.shape[0], transformed_outputs.shape[1]))
+        obj_targets[matched_img_ids, matched_fg_ids] = 1
+        reg_targets = flattened_gts[matched_gt_ids][:, 1:]
+        if self.use_l1:
+            l1_targets = self.get_l1_target(transformed_outputs.new_zeros((num_fg, 4)),
+                                            flattened_gts[matched_gt_ids][:, 1:], expanded_strides.squeeze()[matched_fg_ids],
+                                            x_shifts=x_shifts.squeeze()[matched_fg_ids], y_shifts=y_shifts.squeeze()[matched_fg_ids])
+        if self.sync_num_fgs and dist.group.WORLD is not None:
+            num_fg = torch.scalar_tensor(num_fg).to(matched_gt_ids.device)
+            dist.all_reduce(num_fg, op=torch._C._distributed_c10d.ReduceOp.AVG)
+
+        loss_iou = self.iou_loss(bbox_preds[matched_img_ids, matched_fg_ids], reg_targets).sum() / num_fg
+        loss_obj = self.bcewithlog_loss(obj_preds.squeeze(-1), obj_targets).sum() / (total_num_anchors if self.obj_loss_fix else num_fg)
+        loss_cls = self.bcewithlog_loss(cls_preds[matched_img_ids, matched_fg_ids], cls_targets).sum() / num_fg
+        if self.use_l1:
+            loss_l1 = self.l1_loss(raw_outputs[matched_img_ids, matched_fg_ids], l1_targets).sum() / num_fg
+        else:
+            loss_l1 = 0.0
+
+        reg_weight = 5.0
+        loss = reg_weight * loss_iou + loss_obj + loss_cls + loss_l1
+
+        return loss, torch.cat((loss_iou.unsqueeze(0), loss_obj.unsqueeze(0), loss_cls.unsqueeze(0),
+                                torch.tensor(loss_l1).unsqueeze(0).to(transformed_outputs.device),
+                                torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).to(transformed_outputs.device),
+                                loss.unsqueeze(0))).detach()
+
+    def _get_initial_matching(self, gt_bboxes: torch.Tensor, expanded_strides: torch.Tensor,
+                              x_shifts: torch.Tensor, y_shifts: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Get candidates using a mask for all cells.
+        Mask in only foreground cells that have a center located:
+            * withing a GT box (param: is_in_boxes);
+            OR
+            * within a fixed radius around a GT box (center sampling) (param: is_in_centers);
+
+        return:
+            initial_matching: get a list of candidates pairs of (gt box id, anchor box id) based on cell = is_in_boxes | is_in_centers.
+                              shape: [num_candidates, 2]
+            strong candidate mask: get a list whether a candidate is a strong one or not.
+                                   strong candidate is a cell from is_in_boxes & is_in_centers.
+                                   shape: [num_candidates].
+        """
+        cell_x_centers = (x_shifts + 0.5) * expanded_strides
+        cell_y_centers = (y_shifts + 0.5) * expanded_strides
+
+        gt_bboxes_x_centers = gt_bboxes[:, 0].unsqueeze(1)
+        gt_bboxes_y_centers = gt_bboxes[:, 1].unsqueeze(1)
+
+        gt_bboxes_half_w = (0.5 * gt_bboxes[:, 2]).unsqueeze(1)
+        gt_bboxes_half_h = (0.5 * gt_bboxes[:, 3]).unsqueeze(1)
+
+        is_in_boxes = (cell_x_centers > gt_bboxes_x_centers - gt_bboxes_half_w) & \
+                      (gt_bboxes_x_centers + gt_bboxes_half_w > cell_x_centers) & \
+                      (cell_y_centers > gt_bboxes_y_centers - gt_bboxes_half_h) & \
+                      (gt_bboxes_y_centers + gt_bboxes_half_h > cell_y_centers)
+
+        radius_shifts = (2.5 * expanded_strides)
+
+        is_in_centers = (cell_x_centers + radius_shifts > gt_bboxes_x_centers) & \
+                        (gt_bboxes_x_centers > cell_x_centers - radius_shifts) & \
+                        (cell_y_centers + radius_shifts > gt_bboxes_y_centers) & \
+                        (gt_bboxes_y_centers > cell_y_centers - radius_shifts)
+
+        initial_mask = is_in_boxes | is_in_centers
+        initial_matching = initial_mask.nonzero()
+        strong_candidate_mask = (is_in_boxes & is_in_centers)[initial_mask]
+
+        return initial_matching[:, 0], initial_matching[:, 1], strong_candidate_mask
+
+    @torch.no_grad()
+    def _compute_matching(self, bbox_preds: torch.Tensor, cls_preds: torch.Tensor, obj_preds: torch.Tensor,
+                          expanded_strides: torch.Tensor, x_shifts: torch.Tensor, y_shifts: torch.Tensor,
+                          labels: torch.Tensor, ious_loss_cost_coeff: float = 3.0, outside_boxes_and_center_cost_coeff: float = 100000.0) \
+            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Match cells to ground truth:
+            * at most 1 GT per cell
+            * dynamic number of cells per GT
+
+        :param bbox_preds: predictions of bounding boxes. shape [batch, n_anchors_all, 4]
+        :param cls_preds:  predictions of class.          shape [batch, n_anchors_all, n_cls]
+        :param obj_preds:  predictions for objectness.    shape [batch, n_anchors_all, 1]
+        :param expanded_strides:  stride of the output grid the prediction is coming from. shape [1, n_anchors_all]
+        :param x_shifts: x coordinate on the grid cell the prediction is coming from.      shape [1, n_anchors_all]
+        :param y_shifts: y coordinate on the grid cell the prediction is coming from.      shape [1, n_anchors_all]
+        :param labels:   labels for each grid cell.  shape [n_anchors_all, (4 + 2)]
+        :return: candidate_fg_ids       shape [num_fg]
+                 candidate_gt_classes   shape [num_fg]
+                 candidate_gt_ids       shape [num_fg]
+                 candidate_img_ids      shape [num_fg]
+                 candidate_ious         shape [num_fg]
+                 flattened_gts          shape [num_gts, 5]
+        """
+
+        flattened_gts, gt_id_to_img_id = labels[:, 1:], labels[:, 0].type(torch.int64)
+
+        # COMPUTE CANDIDATES
+        candidate_gt_ids, candidate_fg_ids, strong_candidate_mask = self._get_initial_matching(
+            flattened_gts[:, 1:], expanded_strides, x_shifts, y_shifts)
+        candidate_img_ids = gt_id_to_img_id[candidate_gt_ids]
+        candidate_gts_bbox = flattened_gts[candidate_gt_ids, 1:]
+        candidate_det_bbox = bbox_preds[candidate_img_ids, candidate_fg_ids]
+
+        # COMPUTE DYNAMIC KS
+        candidate_ious = self._calculate_pairwise_bbox_iou(candidate_gts_bbox, candidate_det_bbox, xyxy=False)
+        dynamic_ks, matching_index_to_dynamic_k_index = self._compute_dynamic_ks(candidate_gt_ids, candidate_ious, self.dynamic_ks_bias)
+        del candidate_gts_bbox, candidate_det_bbox
+
+        # ORDER CANDIDATES BY COST
+        candidate_gt_classes = flattened_gts[candidate_gt_ids, 0]
+        cost_order = self._compute_cost_order(self.num_classes, candidate_img_ids, candidate_gt_classes,
+                                              candidate_fg_ids, candidate_ious,
+                                              cls_preds, obj_preds, strong_candidate_mask, ious_loss_cost_coeff, outside_boxes_and_center_cost_coeff)
+
+        candidate_gt_ids = candidate_gt_ids[cost_order]
+        candidate_gt_classes = candidate_gt_classes[cost_order]
+        candidate_img_ids = candidate_img_ids[cost_order]
+        candidate_fg_ids = candidate_fg_ids[cost_order]
+        candidate_ious = candidate_ious[cost_order]
+        matching_index_to_dynamic_k_index = matching_index_to_dynamic_k_index[cost_order]
+        del cost_order
+
+        # FILTER MATCHING TO LOWEST K COST MATCHES PER GT
+        ranks = self._compute_ranks(candidate_gt_ids)
+        corresponding_dynamic_ks = dynamic_ks[matching_index_to_dynamic_k_index]
+        topk_mask = ranks < corresponding_dynamic_ks
+
+        candidate_gt_ids = candidate_gt_ids[topk_mask]
+        candidate_gt_classes = candidate_gt_classes[topk_mask]
+        candidate_img_ids = candidate_img_ids[topk_mask]
+        candidate_fg_ids = candidate_fg_ids[topk_mask]
+        candidate_ious = candidate_ious[topk_mask]
+        del ranks, topk_mask, dynamic_ks, matching_index_to_dynamic_k_index, corresponding_dynamic_ks
+
+        # FILTER MATCHING TO AT MOST 1 MATCH FOR DET BY TAKING THE LOWEST COST MATCH
+        candidate_img_and_fg_ids_combined = self._combine_candidates_img_id_fg_id(candidate_img_ids, candidate_fg_ids)
+        top1_mask = self._compute_is_first_mask(candidate_img_and_fg_ids_combined)
+        candidate_gt_ids = candidate_gt_ids[top1_mask]
+        candidate_gt_classes = candidate_gt_classes[top1_mask]
+        candidate_fg_ids = candidate_fg_ids[top1_mask]
+        candidate_img_ids = candidate_img_ids[top1_mask]
+        candidate_ious = candidate_ious[top1_mask]
+
+        return candidate_fg_ids, candidate_gt_classes, candidate_gt_ids, candidate_img_ids, candidate_ious, flattened_gts
+
+    def _combine_candidates_img_id_fg_id(self, candidate_img_ids, candidate_anchor_ids):
+        """
+        Create one dim tensor with unique pairs of img_id and fg_id.
+        e.g: candidate_img_ids = [0,1,0,0]
+             candidate_fg_ids = [0,0,0,1]
+             result = [0,1,0,2]
+        """
+        candidate_img_and_fg_ids_combined = torch.stack((
+            candidate_img_ids,
+            candidate_anchor_ids), dim=1).unique(dim=0, return_inverse=True)[1]
+        return candidate_img_and_fg_ids_combined
+
+    def _compute_dynamic_ks(self, ids: torch.Tensor, ious: torch.Tensor, dynamic_ks_bias) -> torch.Tensor:
+        """
+        :param ids:                 ids of GTs, shape: [num_candidates]
+        :param ious:                pairwise IoUs, shape: [num_candidates]
+        :param dynamic_ks_bias:     multiply the resulted k to compensate the regular loss
+        """
+        assert len(ids.shape) == 1, "ids must be of shape [num_candidates]"
+        assert len(ious.shape) == 1, "ious must be of shape [num_candidates]"
+        assert ids.shape[0] == ious.shape[0], "num of ids.shape[0] must be the same as num of ious.shape[0]"
+        # sort ious and ids by ious
+        ious, ious_argsort = ious.sort(descending=True)
+        ids = ids[ious_argsort]
+
+        # stable sort indices, so that ious are first sorted by id and second by value
+        ids, ids_argsort = ids.sort(stable=True)
+        ious = ious[ids_argsort]
+
+        unique_ids, ids_index_to_unique_ids_index = ids.unique_consecutive(dim=0, return_inverse=True)
+        num_unique_ids = unique_ids.shape[0]
+
+        if ids.shape[0] > 10:
+            is_in_top_10 = torch.cat(
+                (torch.ones((10,), dtype=torch.bool, device=ids.device), ids[10:] != ids[:-10]))
+        else:
+            is_in_top_10 = torch.ones_like(ids, dtype=torch.bool)
+
+        dynamic_ks = torch.zeros((num_unique_ids,), dtype=ious.dtype, device=ious.device)
+        dynamic_ks.index_put_((ids_index_to_unique_ids_index,), is_in_top_10 * ious, accumulate=True)
+        if dynamic_ks_bias is not None:
+            dynamic_ks *= dynamic_ks_bias
+        dynamic_ks = dynamic_ks.long().clamp(min=1)
+
+        all_argsort = ious_argsort[ids_argsort]
+        inverse_all_argsort = torch.zeros_like(ious_argsort)
+        inverse_all_argsort[all_argsort] = torch.arange(all_argsort.shape[0],
+                                                        dtype=all_argsort.dtype, device=all_argsort.device)
+
+        return dynamic_ks, ids_index_to_unique_ids_index[inverse_all_argsort]
+
+    def _compute_cost_order(self, num_classes, candidate_gt_img_ids: torch.Tensor, candidate_gt_classes: torch.Tensor,
+                            candidate_anchor_ids: torch.Tensor, candidate_ious: torch.Tensor,
+                            cls_preds: torch.Tensor, obj_preds: torch.Tensor, strong_candidate_mask: torch.Tensor, ious_loss_cost_coeff: float,
+                            outside_boxes_and_center_cost_coeff: float) \
+            -> torch.Tensor:
+        gt_cls_per_image = F.one_hot(candidate_gt_classes.to(torch.int64), num_classes).float()
+        with torch.cuda.amp.autocast(enabled=False):
+            cls_preds_ = cls_preds[candidate_gt_img_ids, candidate_anchor_ids].float().sigmoid_() \
+                * obj_preds[candidate_gt_img_ids, candidate_anchor_ids].float().sigmoid_()
+            pair_wise_cls_cost = F.binary_cross_entropy(cls_preds_.sqrt_(), gt_cls_per_image, reduction="none").sum(-1)
+
+        ious_cost = -torch.log(candidate_ious + 1e-8)
+        cost = pair_wise_cls_cost + ious_loss_cost_coeff * ious_cost + outside_boxes_and_center_cost_coeff * strong_candidate_mask.logical_not()
+        return cost.argsort()
+
+    def _calculate_pairwise_bbox_iou(self, bboxes_a: torch.Tensor, bboxes_b: torch.Tensor, xyxy=True) -> torch.Tensor:
+        if bboxes_a.shape[1] != 4 or bboxes_b.shape[1] != 4:
+            raise IndexError
+
+        if xyxy:
+            tl = torch.max(bboxes_a[:, :2], bboxes_b[:, :2])
+            br = torch.min(bboxes_a[:, 2:], bboxes_b[:, 2:])
+            area_a = torch.prod(bboxes_a[:, 2:] - bboxes_a[:, :2], 1)
+            area_b = torch.prod(bboxes_b[:, 2:] - bboxes_b[:, :2], 1)
+        else:
+            tl = torch.max(
+                (bboxes_a[:, :2] - bboxes_a[:, 2:] / 2),
+                (bboxes_b[:, :2] - bboxes_b[:, 2:] / 2),
+            )
+            br = torch.min(
+                (bboxes_a[:, :2] + bboxes_a[:, 2:] / 2),
+                (bboxes_b[:, :2] + bboxes_b[:, 2:] / 2),
+            )
+
+            area_a = torch.prod(bboxes_a[:, 2:], 1)
+            area_b = torch.prod(bboxes_b[:, 2:], 1)
+        en = (tl < br).prod(dim=1)
+        area_i = torch.prod(br - tl, 1) * en
+        return area_i / (area_a + area_b - area_i)
+
+    def _compute_ranks(self, ids: torch.Tensor) -> torch.Tensor:
+        ids, ids_argsort = ids.sort(stable=True)
+
+        if ids.shape[0] > 1:
+            is_not_first = torch.cat(
+                (torch.zeros((1,), dtype=torch.bool, device=ids.device), ids[1:] == ids[:-1]))
+        else:
+            is_not_first = torch.zeros_like(ids, dtype=torch.bool)
+
+        subtract = torch.arange(ids.shape[0], dtype=ids_argsort.dtype, device=ids.device)
+        subtract[is_not_first] = 0
+        subtract = subtract.cummax(dim=0)[0]
+        rank = torch.arange(ids.shape[0], dtype=ids_argsort.dtype, device=ids.device) - subtract
+
+        inverse_argsort = torch.zeros_like(ids_argsort)
+        inverse_argsort[ids_argsort] = torch.arange(ids_argsort.shape[0],
+                                                    dtype=ids_argsort.dtype, device=ids_argsort.device)
+
+        return rank[inverse_argsort]
+
+    def _compute_is_first_mask(self, ids: torch.Tensor) -> torch.Tensor:
+        """
+        Filter fg that matches two gts.
+        """
+        ids, ids_argsort = ids.sort(stable=True)
+
+        if ids.shape[0] > 1:
+            is_first = torch.cat(
+                (torch.ones((1,), dtype=torch.bool, device=ids.device), ids[1:] != ids[:-1]))
+        else:
+            is_first = torch.ones_like(ids, dtype=torch.bool)
+
+        inverse_argsort = torch.zeros_like(ids_argsort)
+        inverse_argsort[ids_argsort] = torch.arange(ids_argsort.shape[0],
+                                                    dtype=ids_argsort.dtype, device=ids_argsort.device)
+
+        return is_first[inverse_argsort]

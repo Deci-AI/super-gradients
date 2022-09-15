@@ -38,7 +38,7 @@ valid_metrics_list:
         conf: 0.01
       num_cls: 80
 
-pre_prediction_callback: DetectionMultiscalePrePredictionCallback
+pre_prediction_callback:
 
 phase_callbacks:
   - YoloXTrainingStageSwitchCallback:
@@ -46,6 +46,5 @@ phase_callbacks:
 
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True
-
 
 _convert_: all
