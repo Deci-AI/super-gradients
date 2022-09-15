@@ -6,7 +6,6 @@ from typing import Union, Tuple, Mapping, List, Any
 
 import hydra
 import numpy as np
-import pkg_resources
 import torch
 from deprecate import deprecated
 from omegaconf import DictConfig
@@ -157,8 +156,8 @@ class Trainer:
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
         if ckpt_root_dir:
             self.checkpoints_dir_path = os.path.join(ckpt_root_dir, self.experiment_name)
-        elif pkg_resources.resource_exists("checkpoints", ""):
-            self.checkpoints_dir_path = pkg_resources.resource_filename('checkpoints', self.experiment_name)
+        elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
+            self.checkpoints_dir_path = os.path.join(environment_config.PKG_CHECKPOINTS_DIR, self.experiment_name)
         else:
             raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to"
                              "resources.")
