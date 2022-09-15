@@ -18,6 +18,7 @@ try:
 except (ImportError, NameError):
     client_enabled = False
 
+
 class DeciClient:
     """
     A client to deci platform and model zoo.
@@ -27,7 +28,7 @@ class DeciClient:
     def __init__(self):
         if not client_enabled:
             logger.error('deci-lab-client or deci-common are not installed. Model cannot be loaded from deci lab.'
-                           'Please install deci-lab-client>=2.55.0 and deci-common>=3.4.1')
+                         'Please install deci-lab-client>=2.55.0 and deci-common>=3.4.1')
             return
 
         self.lab_client = DeciPlatformClient('api.staging.deci.ai')
