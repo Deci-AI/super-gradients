@@ -29,3 +29,5 @@ logging.basicConfig(
 )  # Set the default level for all libraries - including 3rd party packages
 
 DDP_LOCAL_RANK = -1
+
+INIT_TRAINER = False
