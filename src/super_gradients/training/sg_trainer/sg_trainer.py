@@ -215,7 +215,7 @@ class Trainer:
                                          dataloader_params=cfg.dataset_params.val_dataloader_params)
 
         # BUILD NETWORK
-        model = models.get(name=cfg.architecture,
+        model = models.get(model_name=cfg.architecture,
                            num_classes=cfg.arch_params.num_classes,
                            arch_params=cfg.arch_params,
                            strict_load=cfg.checkpoint_params.strict_load,
