@@ -4,7 +4,7 @@ from typing import Callable, Optional
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 
 
-def register(name: Optional[str] = None) -> Callable:
+def register_model(name: Optional[str] = None) -> Callable:
     def model_decorator(model: Callable) -> Callable:
         if name is not None:
             model_name = name
