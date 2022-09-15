@@ -57,11 +57,11 @@ class DeciClient:
             return None
         return FilesDataInterface.download_temporary_file(file_url=download_link)
 
-    def get_model_arch_params(self, model_name: str) -> DictConfig:
+    def _get_model_cfg(self, model_name: str, cfg_file_name: str) -> DictConfig:
         if not client_enabled:
             return None
 
-        file = self._get_file(model_name=model_name, file_name=AutoNACFileName.STRUCTURE_YAML)
+        file = self._get_file(model_name=model_name, file_name=cfg_file_name)
         if file is None:
             return None
 
@@ -69,6 +69,12 @@ class DeciClient:
         with hydra.initialize_config_dir(config_dir=f"{'/'.join(split_file[:-1])}/", version_base=None):
             cfg = hydra.compose(config_name=split_file[-1])
         return cfg
+
+    def get_model_arch_params(self, model_name: str) -> DictConfig:
+        return self.get_model_cfg(model_name, AutoNACFileName.STRUCTURE_YAML)
+
+    def get_model_recipe(self, model_name: str) -> DictConfig:
+        return self.get_model_cfg(model_name, AutoNACFileName.RECIPE_YAML)
 
     def get_model_weights(self, model_name: str) -> str:
         if not client_enabled:
