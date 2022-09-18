@@ -1,7 +1,7 @@
 from torch import nn
 
 from super_gradients.training.losses import LabelSmoothingCrossEntropyLoss, ShelfNetOHEMLoss, \
-    ShelfNetSemanticEncodingLoss, RSquaredLoss, SSDLoss, BCEDiceLoss, YoloXDetectionLoss, KDLogitsLoss, DiceCEEdgeLoss
+    ShelfNetSemanticEncodingLoss, RSquaredLoss, SSDLoss, BCEDiceLoss, YoloXDetectionLoss, YoloXFastDetectionLoss, KDLogitsLoss, DiceCEEdgeLoss
 from super_gradients.training.losses.stdc_loss import STDCLoss
 
 LOSSES = {"cross_entropy": LabelSmoothingCrossEntropyLoss,
@@ -10,6 +10,7 @@ LOSSES = {"cross_entropy": LabelSmoothingCrossEntropyLoss,
           "shelfnet_ohem_loss": ShelfNetOHEMLoss,
           "shelfnet_se_loss": ShelfNetSemanticEncodingLoss,
           "yolox_loss": YoloXDetectionLoss,
+          "yolox_fast_loss": YoloXFastDetectionLoss,
           "ssd_loss": SSDLoss,
           "stdc_loss": STDCLoss,
           "bce_dice_loss": BCEDiceLoss,
