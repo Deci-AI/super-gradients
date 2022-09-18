@@ -6,7 +6,7 @@ from typing import Union, Tuple, Mapping, List, Any
 from pathlib import Path
 
 from hydra.core.global_hydra import GlobalHydra
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, open_dict
 import hydra
 import numpy as np
 import pkg_resources
@@ -227,7 +227,7 @@ class Trainer:
                       training_params=cfg.training_hyperparams)
 
     @classmethod
-    def resume_from_recipe(cls, cfg: Union[DictConfig, dict], use_new_recipe: bool = False) -> None:
+    def resume_from_recipe(cls, cfg: Union[DictConfig, dict], use_new_recipe: bool = True) -> None:
         """
         Resume a training that was run using our recipes.
 
@@ -235,11 +235,15 @@ class Trainer:
         :param use_new_recipe:  (default: False) If False, use the SAME recipe/parameters as the one used for the previous run.
                                 If True, the current version of recipe/parameters will be used to resume the training.
         """
+        ckpt_name = core_utils.get_param(cfg, "ckpt_name", "ckpt_latest.pth")
         if use_new_recipe:
+            new_cfg = OmegaConf.from_dotlist(["training_hyperparams.resume=True", f"++ckpt_name={ckpt_name}"])
+            with open_dict(cfg):  # This is required to add new fields to existing config
+                cfg.merge_with(new_cfg)
             cls.train_from_config(cfg)
         else:
             cls.resume(experiment_name=cfg.experiment_name,
-                       ckpt_name=core_utils.get_param(cfg, "ckpt_name"),
+                       ckpt_name=ckpt_name,
                        ckpt_root_dir=cfg.ckpt_root_dir)
 
     @classmethod
@@ -261,8 +265,7 @@ class Trainer:
             raise FileNotFoundError(f"The checkpoint directory {checkpoints_dir_path} does not include .hydra artifacts to resume the experiment.")
 
         overrides_cfg = list(OmegaConf.load(resume_dir / "overrides.yaml"))
-        overrides_cfg += ["training_hyperparams.resume=True"]
-        overrides_cfg += [f"++ckpt_name={ckpt_name}"]  # TODO: Check why ckpt_name not in recipes...
+        overrides_cfg += ["training_hyperparams.resume=True", f"++ckpt_name={ckpt_name}"]  # TODO: Check why ckpt_name not in recipes...
 
         GlobalHydra.instance().clear()
         with initialize_config_dir(config_dir=str(resume_dir)):
