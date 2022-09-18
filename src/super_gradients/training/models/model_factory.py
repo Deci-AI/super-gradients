@@ -75,8 +75,7 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
     return net
 
 
-def get(name: str, arch_params: Optional[dict] = None, num_classes: int = None,
-
+def get(model_name: str, arch_params: Optional[dict] = None, num_classes: int = None,
         strict_load: StrictLoad = StrictLoad.NO_KEY_MATCHING, checkpoint_path: str = None,
         pretrained_weights: str = None, load_backbone: bool = False) -> SgModule:
     """
