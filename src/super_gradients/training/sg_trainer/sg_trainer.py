@@ -1756,6 +1756,8 @@ class Trainer:
             self.loss_logging_items_names = [criterion_name + '/' + component_name for component_name in component_names]
             if self.metric_to_watch in component_names:
                 self.metric_to_watch = criterion_name + '/' + self.metric_to_watch
+        else:
+            self.loss_logging_items_names = [criterion_name]
 
 
 

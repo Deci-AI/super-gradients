@@ -164,6 +164,7 @@ class STDCLoss(_Loss):
 
         self.ce_ohem = ohem_criteria
         self.num_classes = num_classes
+        self.component_names = ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"]
 
     def forward(self, preds: Tuple[torch.Tensor], target: torch.Tensor):
         """

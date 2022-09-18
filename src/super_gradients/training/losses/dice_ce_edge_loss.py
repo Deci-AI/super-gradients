@@ -62,6 +62,7 @@ class DiceCEEdgeLoss(_Loss):
             loss_weights=ce_edge_weights
         )
         self.dice_loss = DiceLoss(apply_softmax=True, ignore_index=ignore_index)
+        self.component_names = ["main_loss", "aux_loss1", "loss"]
 
     def forward(self, preds: Tuple[torch.Tensor], target: torch.Tensor):
         """
