@@ -380,12 +380,36 @@ class Trainer:
         # ON FIRST BACKWARD, DERRIVE THE LOGGING TITLES.
         if self.loss_logging_items_names is None:
             self._init_loss_logging_names(loss_logging_items)
+            self._init_monitored_items()
 
         if len(loss_logging_items) != len(self.loss_logging_items_names):
             raise ValueError("Loss output length must match loss_logging_items_names. Got " + str(
                 len(loss_logging_items)) + ', and ' + str(len(self.loss_logging_items_names)))
         # RETURN AND THE LOSS LOGGING ITEMS COMPUTED DURING LOSS FORWARD PASS
         return loss, loss_logging_items
+
+    def _init_monitored_items(self):
+        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(
+            self.metric_to_watch)
+        # Instantiate the values to monitor (loss/metric)
+        for loss_name in self.loss_logging_items_names:
+            self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
+            self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
+        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch,
+                                                                           greater_is_better=True)
+        self.results_titles = ["Train_" + t for t in
+                               self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + \
+                              ["Valid_" + t for t in
+                               self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)]
+
+        if self.training_params.average_best_models:
+            self.model_weight_averaging = ModelWeightAveraging(self.checkpoints_dir_path,
+                                                               greater_is_better=self.greater_metric_to_watch_is_better,
+                                                               source_ckpt_folder_name=self.source_ckpt_folder_name,
+                                                               metric_to_watch=self.metric_to_watch,
+                                                               metric_idx=self.metric_idx_in_results_tuple,
+                                                               load_checkpoint=self.load_checkpoint,
+                                                               model_checkpoints_location=self.model_checkpoints_location)
 
     def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
         """
@@ -807,24 +831,10 @@ class Trainer:
         # METRICS
         self._set_train_metrics(train_metrics_list=self.training_params.train_metrics_list)
         self._set_valid_metrics(valid_metrics_list=self.training_params.valid_metrics_list)
-        self.loss_logging_items_names = self.training_params.loss_logging_items_names
-
-        self.results_titles = ["Train_" + t for t in
-                               self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + \
-                              ["Valid_" + t for t in
-                               self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)]
 
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
-        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
-
-        # Instantiate the values to monitor (loss/metric)
-        for loss in self.loss_logging_items_names:
-            self.train_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
-            self.valid_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
-        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch,
-                                                                           greater_is_better=True)
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -917,15 +927,6 @@ class Trainer:
                                                   title="Train-set", anchors=self.net.module.arch_params.anchors)
                 dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes,
                                                   title="val-set")
-            # AVERAGE BEST 10 MODELS PARAMS
-            if self.training_params.average_best_models:
-                self.model_weight_averaging = ModelWeightAveraging(self.checkpoints_dir_path,
-                                                                   greater_is_better=self.greater_metric_to_watch_is_better,
-                                                                   source_ckpt_folder_name=self.source_ckpt_folder_name,
-                                                                   metric_to_watch=self.metric_to_watch,
-                                                                   metric_idx=self.metric_idx_in_results_tuple,
-                                                                   load_checkpoint=self.load_checkpoint,
-                                                                   model_checkpoints_location=self.model_checkpoints_location)
         if self.training_params.save_full_train_log and not self.ddp_silent_mode:
             logger = get_logger(__name__,
                                 training_log_path=self.sg_logger.log_file_path.replace('.txt', 'full_train_log.log'))
@@ -979,7 +980,6 @@ class Trainer:
                                checkpoint_params=self.checkpoint_params,
                                architecture=self.architecture,
                                arch_params=self.arch_params,
-                               metric_idx_in_results_tuple=self.metric_idx_in_results_tuple,
                                metric_to_watch=self.metric_to_watch,
                                device=self.device,
                                context_methods=self._get_context_methods(Phase.PRE_TRAINING),
