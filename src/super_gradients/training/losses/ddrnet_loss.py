@@ -46,3 +46,12 @@ class DDRNetLoss(OhemCELoss):
         unweighted_losses.append(total_loss)
 
         return total_loss, torch.stack(unweighted_losses, dim=0).detach()
+
+    @property
+    def component_names(self):
+        """
+        Component names for logging during training.
+        These correspond to 2nd item in the tuple returned in self.forward(...).
+        See super_gradients.Trainer.train() docs for more info.
+        """
+        return ["main_loss", "aux_loss1", "loss"]

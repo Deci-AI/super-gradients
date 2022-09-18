@@ -15,7 +15,6 @@ class ShelfNetSemanticEncodingLoss(nn.CrossEntropyLoss):
 
         # FIXME - TEST CODE LOTEM, CHANGED IN ORDER TO WORK WITH apex.amp
         self.bcewithlogitsloss = nn.BCELoss(weight)
-        self.component_names = ["loss1", "loss2", "loss3", "total_loss"]
 
     def forward(self, logits, labels):
         pred1, se_pred, pred2 = logits
@@ -36,3 +35,12 @@ class ShelfNetSemanticEncodingLoss(nn.CrossEntropyLoss):
         total_loss = loss1 + self.aux_weight * loss2 + self.se_weight * loss3
         losses = [loss1, loss2, loss3, total_loss]
         return total_loss, torch.stack(losses, dim=0).detach()
+
+    @property
+    def component_names(self):
+        """
+        Component names for logging during training.
+        These correspond to 2nd item in the tuple returned in self.forward(...).
+        See super_gradients.Trainer.train() docs for more info.
+        """
+        return ["loss1", "loss2", "loss3", "total_loss"]

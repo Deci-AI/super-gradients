@@ -164,7 +164,15 @@ class STDCLoss(_Loss):
 
         self.ce_ohem = ohem_criteria
         self.num_classes = num_classes
-        self.component_names = ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"]
+
+    @property
+    def component_names(self):
+        """
+        Component names for logging during training.
+        These correspond to 2nd item in the tuple returned in self.forward(...).
+        See super_gradients.Trainer.train() docs for more info.
+        """
+        return ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"]
 
     def forward(self, preds: Tuple[torch.Tensor], target: torch.Tensor):
         """

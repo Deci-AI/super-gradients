@@ -607,10 +607,49 @@ class Trainer:
                     where the computed loss is the sum of a few components we would like to log- these entries in
                     loss_items).
 
-                    When training, set the loss_logging_items_names parameter in train_params to be a list of
-                    strings, of length n_items who's ith element is the name of the ith entry in loss_items. Then
-                    each item will be logged, rendered on tensorboard and "watched" (i.e saving model checkpoints
-                    according to it).
+                    IMPORTANT:When dealing with external loss classes, too logg/monitor the loss_items as described
+                    above by specific string name:
+
+                    Set a "component_names" property in the loss class, whos instance is passed through train_params,
+                     to be a list of strings, of length n_items who's ith element is the name of the ith entry in loss_items.
+                     Then each item will be logged, rendered on tensorboard and "watched" (i.e saving model checkpoints
+                     according to it) under <LOSS_CLASS.__name__>"/"<COMPONENT_NAME>. If a single item is returned rather then a
+                     tuple, it would be logged under <LOSS_CLASS.__name__>. When there is no such attributed, the items
+                     will be named <LOSS_CLASS.__name__>"/"Loss_"<IDX> according to the length of loss_items
+
+                    For example:
+                        class MyLoss(_Loss):
+                            ...
+                            def forward(self, inputs, targets):
+                                ...
+                                total_loss = comp1 + comp2
+                                loss_items = torch.cat((total_loss.unsqueeze(0),comp1.unsqueeze(0), comp2.unsqueeze(0)).detach()
+                                return total_loss, loss_items
+                            ...
+                            @property
+                            def component_names(self):
+                                return ["total_loss", "my_1st_component", "my_2nd_component"]
+
+                    Trainer.train(...
+                                    train_params={"loss":MyLoss(),
+                                                    ...
+                                                    "metric_to_watch": "MyLoss/my_1st_component"}
+
+                   For example:
+                        class MyLoss2(_Loss):
+                            ...
+                            def forward(self, inputs, targets):
+                                ...
+                                total_loss = comp1 + comp2
+                                loss_items = torch.cat((total_loss.unsqueeze(0),comp1.unsqueeze(0), comp2.unsqueeze(0)).detach()
+                                return total_loss, loss_items
+                            ...
+
+                    Trainer.train(...
+                                    train_params={"loss":MyLoss(),
+                                                    ...
+                                                    "metric_to_watch": "MyLoss2/loss_0"}
+
 
                     Since running logs will save the loss_items in some internal state, it is recommended that
                     loss_items are detached from their computational graph for memory efficiency.
@@ -659,7 +698,7 @@ class Trainer:
                         is a list referring to the names of each entry in the output metric (torch tensor of size n)
 
                         one of "loss_logging_items_names" i.e which will correspond to an item returned during the
-                        loss function's forward pass.
+                        loss function's forward pass (see loss docs abov).
 
                     At the end of each epoch, if a new best metric_to_watch value is achieved, the models checkpoint
                     is saved in YOUR_PYTHON_PATH/checkpoints/ckpt_best.pth
