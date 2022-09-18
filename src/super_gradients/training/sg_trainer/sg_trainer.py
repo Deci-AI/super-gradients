@@ -607,7 +607,7 @@ class Trainer:
                     where the computed loss is the sum of a few components we would like to log- these entries in
                     loss_items).
 
-                    IMPORTANT:When dealing with external loss classes, too logg/monitor the loss_items as described
+                    IMPORTANT:When dealing with external loss classes, to logg/monitor the loss_items as described
                     above by specific string name:
 
                     Set a "component_names" property in the loss class, whos instance is passed through train_params,
@@ -635,6 +635,9 @@ class Trainer:
                                                     ...
                                                     "metric_to_watch": "MyLoss/my_1st_component"}
 
+                        This will write to log and monitor MyLoss/total_loss, MyLoss/my_1st_component,
+                         MyLoss/my_2nd_component.
+
                    For example:
                         class MyLoss2(_Loss):
                             ...
@@ -650,6 +653,8 @@ class Trainer:
                                                     ...
                                                     "metric_to_watch": "MyLoss2/loss_0"}
 
+                        This will write to log and monitor MyLoss2/loss_0, MyLoss2/loss_1, MyLoss2/loss_2
+                        as they have been named by their positional index in loss_items.
 
                     Since running logs will save the loss_items in some internal state, it is recommended that
                     loss_items are detached from their computational graph for memory efficiency.
