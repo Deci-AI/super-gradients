@@ -54,7 +54,7 @@ from super_gradients.training.utils.weight_averaging_utils import ModelWeightAve
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
 from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path, read_ckpt_state_dict, \
-    load_checkpoint_to_model, load_pretrained_weights, get_checkpoints_dir_path
+    load_checkpoint_to_model, load_pretrained_weights, get_checkpoints_dir_path, load_experiment_cfg
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
@@ -240,7 +240,7 @@ class Trainer:
         cls.train_from_config(cfg=cfg)
 
     @classmethod
-    def resume(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
+    def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
         """
         Resume a training that was run using our recipes.
 
@@ -248,27 +248,9 @@ class Trainer:
         :param ckpt_root_dir:       Directory including the checkpoints
         """
         logger.info("Resume training using the checkpoint recipe, ignoring the current recipe")
-        if not experiment_name:
-            raise ValueError(f"experiment_name should be non empty string but got :{experiment_name}")
-
-        checkpoints_dir_path = Path(get_checkpoints_dir_path(experiment_name, ckpt_root_dir))
-        if not checkpoints_dir_path.exists():
-            raise FileNotFoundError(f"Impossible to find checkpoint dir ({checkpoints_dir_path})")
-
-        resume_dir = Path(checkpoints_dir_path) / ".hydra"
-        if not resume_dir.exists():
-            raise FileNotFoundError(f"The checkpoint directory {checkpoints_dir_path} does not include .hydra artifacts to resume the experiment.")
-
-        # Load overrides that were used in previous run
-        overrides_cfg = list(OmegaConf.load(resume_dir / "overrides.yaml"))
-        # Add new overrides to resume training
-        overrides_cfg += ["training_hyperparams.resume=True"]
-
-        GlobalHydra.instance().clear()
-        with initialize_config_dir(config_dir=str(resume_dir)):
-            cfg = compose(config_name="config.yaml", overrides=overrides_cfg)
-
-        Trainer.train_from_config(cfg)
+        cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
+        add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
+        cls.train_from_config(cfg)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
