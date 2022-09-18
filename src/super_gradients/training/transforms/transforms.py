@@ -1060,7 +1060,7 @@ def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
     :return: rescaled image, ratio
     """
     if len(img.shape) == 3:
-        padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * pad_val
+        padded_img = np.ones((input_size[0], input_size[1], img.shape[-1]), dtype=np.uint8) * pad_val
     else:
         padded_img = np.ones(input_size, dtype=np.uint8) * pad_val
 
