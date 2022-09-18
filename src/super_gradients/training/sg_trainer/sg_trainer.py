@@ -252,6 +252,51 @@ class Trainer:
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
         cls.train_from_config(cfg)
 
+    @classmethod
+    def test_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
+        """
+        Resume a training that was run using our recipes.
+
+        :param experiment_name:     Name of the experiment to resume
+        :param ckpt_root_dir:       Directory including the checkpoints
+        """
+        logger.info("Test experiment using the checkpoint recipe.")
+        cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
+
+        # INSTANTIATE ALL OBJECTS IN CFG
+        cfg = hydra.utils.instantiate(cfg)
+
+        kwargs = parse_args(cfg, cls.__init__)
+
+        trainer = Trainer(**kwargs)
+
+        # INSTANTIATE DATA LOADERS
+        test_dataloader = dataloaders.get(name=cfg.val_dataloader,
+                                          dataset_params=cfg.dataset_params.val_dataset_params,
+                                          dataloader_params=cfg.dataset_params.val_dataloader_params)
+
+        # BUILD NETWORK
+        model = models.get(model_name=cfg.architecture,
+                           num_classes=cfg.arch_params.num_classes,
+                           arch_params=cfg.arch_params,
+                           strict_load=cfg.checkpoint_params.strict_load,
+                           pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+                           checkpoint_path=cfg.checkpoint_params.checkpoint_path,
+                           load_backbone=cfg.checkpoint_params.load_backbone
+                           )
+
+        # TEST
+        test_results_tuple = trainer.test(model=model,
+                           test_loader=test_dataloader,
+                           test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
+
+        valid_metrics_dict = get_metrics_dict(test_results_tuple, trainer.test_metrics,
+                                              trainer.loss_logging_items_names)
+
+        results_str = ["Test Results"]
+        results_str += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
+        logger.info("\n".join(results_str))
+
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
             raise IllegalDataloaderInitialization()
@@ -1125,6 +1170,10 @@ class Trainer:
     def _set_valid_metrics(self, valid_metrics_list):
         self.valid_metrics = MetricCollection(valid_metrics_list)
 
+    @resolve_param('test_metrics_list', ListFactory(MetricsFactory()))
+    def _set_test_metrics(self, test_metrics_list):
+        self.test_metrics = MetricCollection(test_metrics_list)
+
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
         # SCALER IS ALWAYS INITIALIZED BUT IS DISABLED IF MIXED PRECISION WAS NOT SET
         self.scaler = GradScaler(enabled=mixed_precision_enabled)
@@ -1391,7 +1440,7 @@ class Trainer:
             self.phase_callbacks = []
 
         if test_metrics_list:
-            self.test_metrics = MetricCollection(test_metrics_list)
+            self._set_test_metrics(test_metrics_list)
             self._add_metrics_update_callback(Phase.TEST_BATCH_END)
             self.phase_callback_handler = CallbackHandler(self.phase_callbacks)
 
@@ -1500,6 +1549,7 @@ class Trainer:
             self.optimizer.param_groups) > 1 else ['LR']
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
+
 
     def test(self, model: nn.Module = None, test_loader: torch.utils.data.DataLoader = None,
              loss: torch.nn.modules.loss._Loss = None, silent_mode: bool = False, test_metrics_list=None,
