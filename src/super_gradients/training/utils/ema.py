@@ -6,6 +6,7 @@ from typing import Union
 import torch
 from torch import nn
 
+from deci_research.sparsification.Sparssifier import fix_state_dict
 from super_gradients.training.models import SgModule
 
 
@@ -71,13 +72,30 @@ class ModelEMA:
         :param model: current training model
         :param training_percent: the percentage of the training process [0,1]. i.e 0.4 means 40% of the training have passed
         """
+        # print("sparsity state in EMA", model.module.is_sparsifier_ready)
+        state_dict_fixed = fix_state_dict(model.state_dict())
+
+        # for k1, k2 in zip(sorted(self.ema.module.state_dict().keys()), sorted(state_dict_fixed.keys())):
+        #     print(k1, " QQQ ", k2)
+
+        if not model.module.is_sparsifier_ready:
+            # print("copying ema")
+            self.ema.load_state_dict(state_dict_fixed)
+            self.ema.eval()
+
+
+
         # Update EMA parameters
         with torch.no_grad():
             decay = self.decay_function(training_percent)
 
-            for ema_v, model_v in zip(self.ema.module.state_dict().values(), model.state_dict().values()):
+            for key, ema_v in self.ema.module.state_dict().items():
                 if ema_v.dtype.is_floating_point:
-                    ema_v.copy_(ema_v * decay + (1. - decay) * model_v.detach())
+                    ema_v.copy_(ema_v * decay + (1. - decay) * state_dict_fixed["module." + key].detach())
+
+            # for ema_v, model_v in zip(self.ema.module.state_dict().values(), state_dict_fixed.values()):
+            #     if ema_v.dtype.is_floating_point:
+            #         ema_v.copy_(ema_v * decay + (1. - decay) * model_v.detach())
 
     def update_attr(self, model):
         """
