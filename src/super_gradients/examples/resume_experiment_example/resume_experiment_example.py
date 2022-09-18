@@ -20,7 +20,7 @@ def main_recipe(cfg: DictConfig) -> None:
 def main() -> None:
     experiment_name = pop_arg("experiment_name")
     ckpt_root_dir = pop_arg("ckpt_root_dir")
-    Trainer.resume(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
+    Trainer.resume_experiment(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
 
 
 def run():
