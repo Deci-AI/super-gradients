@@ -21,6 +21,15 @@
 #         yolox_s: 1d 17h 40m 30s on 8 NVIDIA RTX A5000, mAP: 40.47
 #         yolox_m: 1d 22h 23m 43s on 8 NVIDIA GeForce RTX 3090, mAP: 46.40
 #         yolox_l: 2d 14h 11m 41s on 8 NVIDIA GeForce RTX 3090, mAP: 49.25
+#
+# Using FAST LOSS
+# Training times and accuracies (mAP@0.5-0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 640x640 images):
+#         yolox_n: COMING SOON
+#         yolox_t: COMING SOON
+#         yolox_s: 18h 23m 4s     on 8 NVIDIA RTX A5000, mAP: 40.55
+#         yolox_m: COMING SOON
+#         yolox_l: COMING SOON
+
 
 defaults:
   - training_hyperparams: coco2017_yolox_train_params
