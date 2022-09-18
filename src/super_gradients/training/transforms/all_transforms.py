@@ -1,3 +1,4 @@
+from super_gradients.training.object_names import Transforms
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, rand_augment_transform
 from super_gradients.training.transforms.transforms import SegRandomFlip, SegRescale, SegRandomRescale, SegRandomRotate, \
@@ -11,126 +12,63 @@ from torchvision.transforms import Compose, ToTensor, PILToTensor, ConvertImageD
     RandomSolarize, RandomAdjustSharpness, RandomAutocontrast, RandomEqualize
 
 
-class TransformNames:
-    """Static class holding all the supported transform names"""""
-    # From SG
-    SegRandomFlip = "SegRandomFlip"
-    SegResize = "SegResize"
-    SegRescale = "SegRescale"
-    SegRandomRescale = "SegRandomRescale"
-    SegRandomRotate = "SegRandomRotate"
-    SegCropImageAndMask = "SegCropImageAndMask"
-    SegRandomGaussianBlur = "SegRandomGaussianBlur"
-    SegPadShortToCropSize = "SegPadShortToCropSize"
-    SegColorJitter = "SegColorJitter"
-    DetectionMosaic = "DetectionMosaic"
-    DetectionRandomAffine = "DetectionRandomAffine"
-    DetectionMixup = "DetectionMixup"
-    DetectionHSV = "DetectionHSV"
-    DetectionHorizontalFlip = "DetectionHorizontalFlip"
-    DetectionPaddedRescale = "DetectionPaddedRescale"
-    DetectionTargetsFormat = "DetectionTargetsFormat"
-    DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
-    RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
-    RandAugmentTransform = "RandAugmentTransform"
-    Lighting = "Lighting"
-    RandomErase = "RandomErase"
-
-    # From torch
-    Compose = "Compose"
-    ToTensor = "ToTensor"
-    PILToTensor = "PILToTensor"
-    ConvertImageDtype = "ConvertImageDtype"
-    ToPILImage = "ToPILImage"
-    Normalize = "Normalize"
-    Resize = "Resize"
-    CenterCrop = "CenterCrop"
-    Pad = "Pad"
-    Lambda = "Lambda"
-    RandomApply = "RandomApply"
-    RandomChoice = "RandomChoice"
-    RandomOrder = "RandomOrder"
-    RandomCrop = "RandomCrop"
-    RandomHorizontalFlip = "RandomHorizontalFlip"
-    RandomVerticalFlip = "RandomVerticalFlip"
-    RandomResizedCrop = "RandomResizedCrop"
-    FiveCrop = "FiveCrop"
-    TenCrop = "TenCrop"
-    LinearTransformation = "LinearTransformation"
-    ColorJitter = "ColorJitter"
-    RandomRotation = "RandomRotation"
-    RandomAffine = "RandomAffine"
-    Grayscale = "Grayscale"
-    RandomGrayscale = "RandomGrayscale"
-    RandomPerspective = "RandomPerspective"
-    RandomErasing = "RandomErasing"
-    GaussianBlur = "GaussianBlur"
-    InterpolationMode = "InterpolationMode"
-    RandomInvert = "RandomInvert"
-    RandomPosterize = "RandomPosterize"
-    RandomSolarize = "RandomSolarize"
-    RandomAdjustSharpness = "RandomAdjustSharpness"
-    RandomAutocontrast = "RandomAutocontrast"
-    RandomEqualize = "RandomEqualize"
-
-
 TRANSFORMS = {
-    TransformNames.SegRandomFlip: SegRandomFlip,
-    TransformNames.SegResize: SegResize,
-    TransformNames.SegRescale: SegRescale,
-    TransformNames.SegRandomRescale: SegRandomRescale,
-    TransformNames.SegRandomRotate: SegRandomRotate,
-    TransformNames.SegCropImageAndMask: SegCropImageAndMask,
-    TransformNames.SegRandomGaussianBlur: SegRandomGaussianBlur,
-    TransformNames.SegPadShortToCropSize: SegPadShortToCropSize,
-    TransformNames.SegColorJitter: SegColorJitter,
-    TransformNames.DetectionMosaic: DetectionMosaic,
-    TransformNames.DetectionRandomAffine: DetectionRandomAffine,
-    TransformNames.DetectionMixup: DetectionMixup,
-    TransformNames.DetectionHSV: DetectionHSV,
-    TransformNames.DetectionHorizontalFlip: DetectionHorizontalFlip,
-    TransformNames.DetectionPaddedRescale: DetectionPaddedRescale,
-    TransformNames.DetectionTargetsFormat: DetectionTargetsFormat,
-    TransformNames.DetectionTargetsFormatTransform: DetectionTargetsFormatTransform,
-    TransformNames.RandomResizedCropAndInterpolation: RandomResizedCropAndInterpolation,
-    TransformNames.RandAugmentTransform: rand_augment_transform,
-    TransformNames.Lighting: Lighting,
-    TransformNames.RandomErase: RandomErase,
+    Transforms.SegRandomFlip: SegRandomFlip,
+    Transforms.SegResize: SegResize,
+    Transforms.SegRescale: SegRescale,
+    Transforms.SegRandomRescale: SegRandomRescale,
+    Transforms.SegRandomRotate: SegRandomRotate,
+    Transforms.SegCropImageAndMask: SegCropImageAndMask,
+    Transforms.SegRandomGaussianBlur: SegRandomGaussianBlur,
+    Transforms.SegPadShortToCropSize: SegPadShortToCropSize,
+    Transforms.SegColorJitter: SegColorJitter,
+    Transforms.DetectionMosaic: DetectionMosaic,
+    Transforms.DetectionRandomAffine: DetectionRandomAffine,
+    Transforms.DetectionMixup: DetectionMixup,
+    Transforms.DetectionHSV: DetectionHSV,
+    Transforms.DetectionHorizontalFlip: DetectionHorizontalFlip,
+    Transforms.DetectionPaddedRescale: DetectionPaddedRescale,
+    Transforms.DetectionTargetsFormat: DetectionTargetsFormat,
+    Transforms.DetectionTargetsFormatTransform: DetectionTargetsFormatTransform,
+    Transforms.RandomResizedCropAndInterpolation: RandomResizedCropAndInterpolation,
+    Transforms.RandAugmentTransform: rand_augment_transform,
+    Transforms.Lighting: Lighting,
+    Transforms.RandomErase: RandomErase,
 
     # From torch
-    TransformNames.Compose: Compose,
-    TransformNames.ToTensor: ToTensor,
-    TransformNames.PILToTensor: PILToTensor,
-    TransformNames.ConvertImageDtype: ConvertImageDtype,
-    TransformNames.ToPILImage: ToPILImage,
-    TransformNames.Normalize: Normalize,
-    TransformNames.Resize: Resize,
-    TransformNames.CenterCrop: CenterCrop,
-    TransformNames.Pad: Pad,
-    TransformNames.Lambda: Lambda,
-    TransformNames.RandomApply: RandomApply,
-    TransformNames.RandomChoice: RandomChoice,
-    TransformNames.RandomOrder: RandomOrder,
-    TransformNames.RandomCrop: RandomCrop,
-    TransformNames.RandomHorizontalFlip: RandomHorizontalFlip,
-    TransformNames.RandomVerticalFlip: RandomVerticalFlip,
-    TransformNames.RandomResizedCrop: RandomResizedCrop,
-    TransformNames.FiveCrop: FiveCrop,
-    TransformNames.TenCrop: TenCrop,
-    TransformNames.LinearTransformation: LinearTransformation,
-    TransformNames.ColorJitter: ColorJitter,
-    TransformNames.RandomRotation: RandomRotation,
-    TransformNames.RandomAffine: RandomAffine,
-    TransformNames.Grayscale: Grayscale,
-    TransformNames.RandomGrayscale: RandomGrayscale,
-    TransformNames.RandomPerspective: RandomPerspective,
-    TransformNames.RandomErasing: RandomErasing,
-    TransformNames.GaussianBlur: GaussianBlur,
-    TransformNames.InterpolationMode: InterpolationMode,
-    TransformNames.RandomInvert: RandomInvert,
-    TransformNames.RandomPosterize: RandomPosterize,
-    TransformNames.RandomSolarize: RandomSolarize,
-    TransformNames.RandomAdjustSharpness: RandomAdjustSharpness,
-    TransformNames.RandomAutocontrast: RandomAutocontrast,
-    TransformNames.RandomEqualize: RandomEqualize,
+    Transforms.Compose: Compose,
+    Transforms.ToTensor: ToTensor,
+    Transforms.PILToTensor: PILToTensor,
+    Transforms.ConvertImageDtype: ConvertImageDtype,
+    Transforms.ToPILImage: ToPILImage,
+    Transforms.Normalize: Normalize,
+    Transforms.Resize: Resize,
+    Transforms.CenterCrop: CenterCrop,
+    Transforms.Pad: Pad,
+    Transforms.Lambda: Lambda,
+    Transforms.RandomApply: RandomApply,
+    Transforms.RandomChoice: RandomChoice,
+    Transforms.RandomOrder: RandomOrder,
+    Transforms.RandomCrop: RandomCrop,
+    Transforms.RandomHorizontalFlip: RandomHorizontalFlip,
+    Transforms.RandomVerticalFlip: RandomVerticalFlip,
+    Transforms.RandomResizedCrop: RandomResizedCrop,
+    Transforms.FiveCrop: FiveCrop,
+    Transforms.TenCrop: TenCrop,
+    Transforms.LinearTransformation: LinearTransformation,
+    Transforms.ColorJitter: ColorJitter,
+    Transforms.RandomRotation: RandomRotation,
+    Transforms.RandomAffine: RandomAffine,
+    Transforms.Grayscale: Grayscale,
+    Transforms.RandomGrayscale: RandomGrayscale,
+    Transforms.RandomPerspective: RandomPerspective,
+    Transforms.RandomErasing: RandomErasing,
+    Transforms.GaussianBlur: GaussianBlur,
+    Transforms.InterpolationMode: InterpolationMode,
+    Transforms.RandomInvert: RandomInvert,
+    Transforms.RandomPosterize: RandomPosterize,
+    Transforms.RandomSolarize: RandomSolarize,
+    Transforms.RandomAdjustSharpness: RandomAdjustSharpness,
+    Transforms.RandomAutocontrast: RandomAutocontrast,
+    Transforms.RandomEqualize: RandomEqualize,
 }

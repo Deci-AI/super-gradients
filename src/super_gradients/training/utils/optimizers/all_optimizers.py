@@ -1,21 +1,13 @@
 from torch import optim
+from super_gradients.training.object_names import Optimizers
 from super_gradients.training.utils.optimizers.rmsprop_tf import RMSpropTF
 from super_gradients.training.utils.optimizers.lamb import Lamb
 
 
-class OptimizerNames:
-    """Static class holding all the supported optimizer names"""""
-    SGD = "SGD"
-    ADAM = "Adam"
-    RMS_PROP = "RMSprop"
-    RMS_PROP_TF = "RMSpropTF"
-    LAMB = "Lamb"
-
-
 OPTIMIZERS = {
-    OptimizerNames.SGD: optim.SGD,
-    OptimizerNames.ADAM: optim.Adam,
-    OptimizerNames.RMS_PROP: optim.RMSprop,
-    OptimizerNames.RMS_PROP_TF: RMSpropTF,
-    OptimizerNames.LAMB: Lamb
+    Optimizers.SGD: optim.SGD,
+    Optimizers.ADAM: optim.Adam,
+    Optimizers.RMS_PROP: optim.RMSprop,
+    Optimizers.RMS_PROP_TF: RMSpropTF,
+    Optimizers.LAMB: Lamb
 }
