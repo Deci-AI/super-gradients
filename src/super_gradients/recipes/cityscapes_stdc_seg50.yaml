@@ -43,7 +43,6 @@ defaults:
   - checkpoint_params: default_checkpoint_params
   - _self_
 
-
 train_dataloader: cityscapes_train
 val_dataloader: cityscapes_val
 
@@ -61,7 +60,6 @@ checkpoint_params:
   strict_load: no_key_matching
 
 training_hyperparams:
-  resume: True
   loss:
     dice_ce_edge_loss:
       num_classes: 19
@@ -77,9 +75,6 @@ num_gpus: 2
 experiment_name: ${architecture}50_cityscapes
 ckpt_root_dir:
 
-ckpt_name: ckpt_latest.pth
 hydra:
   run:
-    dir: /home/louis.dupont/PycharmProjects/super-gradients/checkpoints/new
-#  job:
-#    chdir: True
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

@@ -23,7 +23,7 @@ training_hyperparams:
 
 
 model_checkpoints_location: local
-ckpt_root_dir: #/home/louis.dupont/PycharmProjects/super-gradients/checkpoints
+ckpt_root_dir:
 
 architecture: resnet18_cifar
 

@@ -1,4 +1,4 @@
-load_checkpoint: True # whether to load checkpoint
+load_checkpoint: False # whether to load checkpoint
 load_backbone: False # whether to load only backbone part of checkpoint
 checkpoint_path: # checkpoint path that is located in super_gradients/checkpoints
 external_checkpoint_path: # checkpoint path that is not located in super_gradients/checkpoints
