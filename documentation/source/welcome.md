@@ -131,10 +131,14 @@ Want to try our pre-trained models on your machine? Import SuperGradients, initi
 # This is an example of loading COCO-2017 pre-trained weights for a YOLOX Nano object detection model
     
 import super_gradients
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer, models, dataloaders
 
-trainer = SgModel(experiment_name="yoloxn_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
-trainer.build_model(architecture="yolox_n", arch_params={"pretrained_weights": "coco", num_classes": 80})
+trainer = Trainer(experiment_name="yoloxn_coco_experiment",ckpt_root_dir=<CHECKPOINT_DIRECTORY>)
+model = models.get("yolox_n", pretrained_weights="coco", num_classes= 80)
+train_loader = dataloaders.coco2017_train()
+valid_loader = dataloaders.coco2017_val()
+train_params = {...}
+trainer.train(model=model, training_params=train_params, train_loader=train_loader, valid_loader=valid_loader)
 ```   
     
 ### Quick Start Notebook - Classification

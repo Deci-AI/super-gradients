@@ -6,9 +6,7 @@ from typing import Union, Tuple, Mapping, List, Any
 
 import hydra
 import numpy as np
-import pkg_resources
 import torch
-from deprecate import deprecated
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler
@@ -157,8 +155,8 @@ class Trainer:
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
         if ckpt_root_dir:
             self.checkpoints_dir_path = os.path.join(ckpt_root_dir, self.experiment_name)
-        elif pkg_resources.resource_exists("checkpoints", ""):
-            self.checkpoints_dir_path = pkg_resources.resource_filename('checkpoints', self.experiment_name)
+        elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
+            self.checkpoints_dir_path = os.path.join(environment_config.PKG_CHECKPOINTS_DIR, self.experiment_name)
         else:
             raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to"
                              "resources.")
@@ -249,48 +247,6 @@ class Trainer:
 
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
-
-    # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    @deprecated(target=None, deprecated_in='2.3.0', remove_in='3.0.0')
-    def build_model(self,  # noqa: C901 - too complex
-                    architecture: Union[str, nn.Module],
-                    arch_params={}, checkpoint_params={}, *args, **kwargs):
-        """
-        :param architecture:               Defines the network's architecture from models/ALL_ARCHITECTURES
-        :param arch_params:                Architecture H.P. e.g.: block, num_blocks, num_classes, etc.
-        :param checkpoint_params:          Dictionary like object with the following key:values:
-
-            load_checkpoint:            Load a pre-trained checkpoint
-            strict_load:                See StrictLoad class documentation for details.
-            source_ckpt_folder_name:    folder name to load the checkpoint from (self.experiment_name if none is given)
-            load_weights_only:          loads only the weight from the checkpoint and zeroize the training params
-            load_backbone:              loads the provided checkpoint to self.net.backbone instead of self.net
-            external_checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
-                                               (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
-                                               load the checkpoint even if the load_checkpoint flag is not provided.
-
-        """
-        if 'num_classes' not in arch_params.keys():
-            if self.classes is None and self.dataset_interface is None:
-                raise Exception('Error', 'Number of classes not defined in arch params and dataset is not defined')
-            else:
-                arch_params['num_classes'] = len(self.classes)
-
-        self.arch_params = core_utils.HpmStruct(**arch_params)
-        self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
-
-        self.net = self._instantiate_net(architecture, self.arch_params, checkpoint_params, *args, **kwargs)
-
-        # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
-
-        self.architecture = architecture
-
-        self._net_to_device()
-
-        # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
-        self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
-
-        self._load_checkpoint_to_model()
 
     def _set_ckpt_loading_attributes(self):
         """
@@ -1396,7 +1352,7 @@ class Trainer:
     def _prep_for_test(self, test_loader: torch.utils.data.DataLoader = None, loss=None, post_prediction_callback=None,
                        test_metrics_list=None,
                        loss_logging_items_names=None, test_phase_callbacks=None):
-        """Run commands that are common to all SgModels"""
+        """Run commands that are common to all models"""
         # SET THE MODEL IN evaluation STATE
         self.net.eval()
 
@@ -1784,7 +1740,6 @@ class Trainer:
                                                set_net=self.set_net,
                                                set_ckpt_best_name=self.set_ckpt_best_name,
                                                reset_best_metric=self._reset_best_metric,
-                                               build_model=self.build_model,
                                                validate_epoch=self._validate_epoch,
                                                set_ema=self.set_ema)
         else:

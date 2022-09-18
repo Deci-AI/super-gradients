@@ -42,7 +42,7 @@ class SegmentationModule(SgModule, ABC):
     @abstractmethod
     def backbone(self) -> nn.Module:
         """
-        For SgModel load_backbone compatibility.
+        For SgTrainer load_backbone compatibility.
         """
         raise NotImplementedError()
 
