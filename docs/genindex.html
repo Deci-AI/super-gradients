@@ -37,7 +37,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="welcome.html">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Technical Documentation</span></p>
 <ul>
@@ -56,6 +57,7 @@
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#network-architectures">Network Architectures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#pretrained-models">Pretrained Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
@@ -147,10 +149,10 @@
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.detection_utils.Anchors.anchors">anchors (super_gradients.training.utils.detection_utils.Anchors property)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.detection_metrics.ap_per_class">ap_per_class() (in module super_gradients.training.metrics.detection_metrics)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.legacy.html#super_gradients.training.legacy.utils.PrefetchDataLoader.async_prefech">async_prefech() (super_gradients.training.legacy.utils.PrefetchDataLoader method)</a>
 </li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.datasets_utils.AtomicInteger">AtomicInteger (class in super_gradients.training.datasets.datasets_utils)</a>
@@ -167,6 +169,14 @@
       </ul></li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.auto_augment.AugmentOp">AugmentOp (class in super_gradients.training.datasets.auto_augment)</a>
 </li>
+      <li><a href="super_gradients.training.html#super_gradients.training.MultiGPUMode.AUTO">AUTO (super_gradients.training.MultiGPUMode attribute)</a>
+
+      <ul>
+        <li><a href="super_gradients.training.html#super_gradients.training.sg_model.MultiGPUMode.AUTO">(super_gradients.training.sg_model.MultiGPUMode attribute)</a>, <a href="super_gradients.training.sg_model.html#super_gradients.training.sg_model.MultiGPUMode.AUTO">[1]</a>
+</li>
+        <li><a href="super_gradients.training.sg_model.html#super_gradients.training.sg_model.sg_model.MultiGPUMode.AUTO">(super_gradients.training.sg_model.sg_model.MultiGPUMode attribute)</a>
+</li>
+      </ul></li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.auto_augment.auto_contrast">auto_contrast() (in module super_gradients.training.datasets.auto_augment)</a>
 </li>
       <li><a href="super_gradients.common.auto_logging.html#super_gradients.common.auto_logging.auto_logger.AutoLoggerConfig">AutoLoggerConfig (class in super_gradients.common.auto_logging.auto_logger)</a>
@@ -201,9 +211,23 @@
 </li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.sg_dataset.BaseSgVisionDataset">BaseSgVisionDataset (class in super_gradients.training.datasets.sg_dataset)</a>
 </li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.BinarySegmentationVisualizationCallback.batch_idx">batch_idx (super_gradients.training.utils.callbacks.BinarySegmentationVisualizationCallback attribute)</a>
+
+      <ul>
+        <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.DetectionVisualizationCallback.batch_idx">(super_gradients.training.utils.callbacks.DetectionVisualizationCallback attribute)</a>
+</li>
+      </ul></li>
       <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.batch_intersection_union">batch_intersection_union() (in module super_gradients.training.metrics.segmentation_metrics)</a>
 </li>
       <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.batch_pix_accuracy">batch_pix_accuracy() (in module super_gradients.training.metrics.segmentation_metrics)</a>
+</li>
+      <li><a href="super_gradients.training.html#super_gradients.training.losses.BCEDiceLoss">BCEDiceLoss (class in super_gradients.training.losses)</a>, <a href="super_gradients.training.losses.html#super_gradients.training.losses.BCEDiceLoss">[1]</a>
+</li>
+      <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.BinaryIOU">BinaryIOU (class in super_gradients.training.metrics.segmentation_metrics)</a>
+</li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.BinarySegmentationVisualization">BinarySegmentationVisualization (class in super_gradients.training.utils.segmentation_utils)</a>
+</li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.BinarySegmentationVisualizationCallback">BinarySegmentationVisualizationCallback (class in super_gradients.training.utils.callbacks)</a>
 </li>
       <li><a href="super_gradients.common.environment.html#super_gradients.common.environment.env_helpers.TerminalColours.BOLD">BOLD (super_gradients.common.environment.env_helpers.TerminalColours attribute)</a>
 </li>
@@ -285,18 +309,6 @@
       </ul></li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.utils.check_models_have_same_weights">check_models_have_same_weights() (in module super_gradients.training.utils.utils)</a>
 </li>
-      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.CropImageAndMask.check_valid_arguments">check_valid_arguments() (super_gradients.training.utils.segmentation_utils.CropImageAndMask method)</a>
-
-      <ul>
-        <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.PadShortToCropSize.check_valid_arguments">(super_gradients.training.utils.segmentation_utils.PadShortToCropSize method)</a>
-</li>
-        <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomRescale.check_valid_arguments">(super_gradients.training.utils.segmentation_utils.RandomRescale method)</a>
-</li>
-        <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomRotate.check_valid_arguments">(super_gradients.training.utils.segmentation_utils.RandomRotate method)</a>
-</li>
-        <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.Rescale.check_valid_arguments">(super_gradients.training.utils.segmentation_utils.Rescale method)</a>
-</li>
-      </ul></li>
       <li><a href="super_gradients.training.datasets.dataset_interfaces.html#super_gradients.training.datasets.dataset_interfaces.Cifar100DatasetInterface">Cifar100DatasetInterface (class in super_gradients.training.datasets.dataset_interfaces)</a>
 
       <ul>
@@ -316,6 +328,8 @@
       <li><a href="super_gradients.training.datasets.dataset_interfaces.html#super_gradients.training.datasets.dataset_interfaces.dataset_interface.CityscapesDatasetInterface">CityscapesDatasetInterface (class in super_gradients.training.datasets.dataset_interfaces.dataset_interface)</a>
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.DeciLabUploadCallback.ckpt_name">ckpt_name (super_gradients.training.utils.callbacks.DeciLabUploadCallback attribute)</a>
+</li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.DetectionVisualizationCallback.classes">classes (super_gradients.training.utils.callbacks.DetectionVisualizationCallback attribute)</a>
 </li>
       <li><a href="super_gradients.common.data_types.enum.html#super_gradients.common.data_types.enum.deep_learning_task.DeepLearningTask.CLASSIFICATION">CLASSIFICATION (super_gradients.common.data_types.enum.deep_learning_task.DeepLearningTask attribute)</a>
 
@@ -375,8 +389,6 @@
         <li><a href="super_gradients.training.datasets.segmentation_datasets.html#super_gradients.training.datasets.segmentation_datasets.coco_segmentation.CoCoSegmentationDataSet">(class in super_gradients.training.datasets.segmentation_datasets.coco_segmentation)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.CoCoSegmentationDatasetInterface">CoCoSegmentationDatasetInterface (class in super_gradients.training.datasets)</a>, <a href="super_gradients.training.html#super_gradients.training.datasets.CoCoSegmentationDatasetInterface">[1]</a>
 
       <ul>
@@ -385,11 +397,11 @@
         <li><a href="super_gradients.training.datasets.dataset_interfaces.html#super_gradients.training.datasets.dataset_interfaces.dataset_interface.CoCoSegmentationDatasetInterface">(class in super_gradients.training.datasets.dataset_interfaces.dataset_interface)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.mixup.CollateMixup">CollateMixup (class in super_gradients.training.datasets.mixup)</a>
 </li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.auto_augment.color">color() (in module super_gradients.training.datasets.auto_augment)</a>
-</li>
-      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.ColorJitterSeg">ColorJitterSeg (class in super_gradients.training.utils.segmentation_utils)</a>
 </li>
       <li><a href="super_gradients.common.environment.html#super_gradients.common.environment.env_helpers.ColouredTextFormatter">ColouredTextFormatter (class in super_gradients.common.environment.env_helpers)</a>
 </li>
@@ -401,6 +413,8 @@
         <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.classification_metrics.ToyTestClassificationMetric.compute">(super_gradients.training.metrics.classification_metrics.ToyTestClassificationMetric method)</a>
 </li>
         <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.detection_metrics.DetectionMetrics.compute">(super_gradients.training.metrics.detection_metrics.DetectionMetrics method)</a>
+</li>
+        <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.BinaryIOU.compute">(super_gradients.training.metrics.segmentation_metrics.BinaryIOU method)</a>
 </li>
         <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.PixelAccuracy.compute">(super_gradients.training.metrics.segmentation_metrics.PixelAccuracy method)</a>
 </li>
@@ -425,8 +439,12 @@
 </li>
       <li><a href="super_gradients.common.auto_logging.html#super_gradients.common.auto_logging.auto_logger.AutoLoggerConfig.configure_elasticsearch_handler">configure_elasticsearch_handler() (super_gradients.common.auto_logging.auto_logger.AutoLoggerConfig static method)</a>
 </li>
-      <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.IoU.confmat">confmat (super_gradients.training.metrics.segmentation_metrics.IoU attribute)</a>
+      <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.BinaryIOU.confmat">confmat (super_gradients.training.metrics.segmentation_metrics.BinaryIOU attribute)</a>
+
+      <ul>
+        <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.IoU.confmat">(super_gradients.training.metrics.segmentation_metrics.IoU attribute)</a>
 </li>
+      </ul></li>
       <li><a href="super_gradients.training.sg_model.html#super_gradients.training.sg_model.sg_model.SgModel.connect_dataset_interface">connect_dataset_interface() (super_gradients.training.sg_model.sg_model.SgModel method)</a>
 
       <ul>
@@ -485,8 +503,6 @@
         <li><a href="super_gradients.common.html#super_gradients.common.S3Connector.create_presigned_upload_url">(super_gradients.common.S3Connector method)</a>
 </li>
       </ul></li>
-      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.CropImageAndMask">CropImageAndMask (class in super_gradients.training.utils.segmentation_utils)</a>
-</li>
       <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.label_smoothing_cross_entropy_loss.cross_entropy">cross_entropy() (in module super_gradients.training.losses.label_smoothing_cross_entropy_loss)</a>
 </li>
       <li><a href="super_gradients.common.aws_connection.html#super_gradients.common.aws_connection.aws_secrets_manager_connector.AWSSecretsManagerConnector.current_environment_client">current_environment_client (super_gradients.common.aws_connection.aws_secrets_manager_connector.AWSSecretsManagerConnector attribute)</a>
@@ -615,6 +631,8 @@
       </ul></li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.detection_utils.DetectionVisualization">DetectionVisualization (class in super_gradients.training.utils.detection_utils)</a>
 </li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.DetectionVisualizationCallback">DetectionVisualizationCallback (class in super_gradients.training.utils.callbacks)</a>
+</li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.DirectoryDataSet">DirectoryDataSet (class in super_gradients.training.datasets)</a>, <a href="super_gradients.training.html#super_gradients.training.datasets.DirectoryDataSet">[1]</a>
 
       <ul>
@@ -631,6 +649,8 @@
         <li><a href="super_gradients.training.sg_model.html#super_gradients.training.sg_model.sg_model.MultiGPUMode.DISTRIBUTED_DATA_PARALLEL">(super_gradients.training.sg_model.sg_model.MultiGPUMode attribute)</a>
 </li>
       </ul></li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.utils.download_and_unzip_from_url">download_and_unzip_from_url() (in module super_gradients.training.utils.utils)</a>
+</li>
       <li><a href="super_gradients.common.data_connection.html#super_gradients.common.data_connection.s3_connector.S3Connector.download_file_by_path">download_file_by_path() (super_gradients.common.data_connection.s3_connector.S3Connector method)</a>
 
       <ul>
@@ -736,6 +756,8 @@
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.datasets_utils.RandomResizedCropAndInterpolation.forward">forward() (super_gradients.training.datasets.datasets_utils.RandomResizedCropAndInterpolation method)</a>
 
       <ul>
+        <li><a href="super_gradients.training.html#super_gradients.training.losses.BCEDiceLoss.forward">(super_gradients.training.losses.BCEDiceLoss method)</a>, <a href="super_gradients.training.losses.html#super_gradients.training.losses.BCEDiceLoss.forward">[1]</a>
+</li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.ddrnet_loss.DDRNetLoss.forward">(super_gradients.training.losses.ddrnet_loss.DDRNetLoss method)</a>
 </li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.focal_loss.FocalLoss.forward">(super_gradients.training.losses.focal_loss.FocalLoss method)</a>
@@ -1017,6 +1039,14 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.models.html#super_gradients.training.models.sg_module.SgModule.initialize_param_groups">initialize_param_groups() (super_gradients.training.models.sg_module.SgModule method)</a>
 </li>
+      <li><a href="super_gradients.training.sg_model.html#super_gradients.training.sg_model.sg_model.SgModel.instantiate_net">instantiate_net() (super_gradients.training.sg_model.sg_model.SgModel method)</a>
+
+      <ul>
+        <li><a href="super_gradients.training.html#super_gradients.training.sg_model.SgModel.instantiate_net">(super_gradients.training.sg_model.SgModel method)</a>, <a href="super_gradients.training.sg_model.html#super_gradients.training.sg_model.SgModel.instantiate_net">[1]</a>
+</li>
+        <li><a href="super_gradients.training.html#super_gradients.training.SgModel.instantiate_net">(super_gradients.training.SgModel method)</a>
+</li>
+      </ul></li>
       <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.intersection_and_union">intersection_and_union() (in module super_gradients.training.metrics.segmentation_metrics)</a>
 </li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.auto_augment.invert">invert() (in module super_gradients.training.datasets.auto_augment)</a>
@@ -1051,6 +1081,10 @@
 <h2 id="K">K</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.KDModelMetricsUpdateCallback">KDModelMetricsUpdateCallback (class in super_gradients.training.utils.callbacks)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.common.data_connection.html#super_gradients.common.data_connection.s3_connector.KeyNotExistInBucketError">KeyNotExistInBucketError</a>
 </li>
   </ul></td>
@@ -1073,6 +1107,12 @@
 
       <ul>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.label_smoothing_cross_entropy_loss.LabelSmoothingCrossEntropyLoss">(class in super_gradients.training.losses.label_smoothing_cross_entropy_loss)</a>
+</li>
+      </ul></li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.BinarySegmentationVisualizationCallback.last_img_idx_in_batch">last_img_idx_in_batch (super_gradients.training.utils.callbacks.BinarySegmentationVisualizationCallback attribute)</a>
+
+      <ul>
+        <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.DetectionVisualizationCallback.last_img_idx_in_batch">(super_gradients.training.utils.callbacks.DetectionVisualizationCallback attribute)</a>
 </li>
       </ul></li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.sg_model_utils.launch_tensorboard_process">launch_tensorboard_process() (in module super_gradients.training.utils.sg_model_utils)</a>
@@ -1165,6 +1205,8 @@
         <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.detection_utils.AnchorGenerator.logger">(super_gradients.training.utils.detection_utils.AnchorGenerator attribute)</a>
 </li>
       </ul></li>
+      <li><a href="super_gradients.training.html#super_gradients.training.losses.BCEDiceLoss.loss_weights">loss_weights (super_gradients.training.losses.BCEDiceLoss attribute)</a>, <a href="super_gradients.training.losses.html#super_gradients.training.losses.BCEDiceLoss.loss_weights">[1]</a>
+</li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.LRCallbackBase">LRCallbackBase (class in super_gradients.training.utils.callbacks)</a>
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.LRSchedulerCallback">LRSchedulerCallback (class in super_gradients.training.utils.callbacks)</a>
@@ -1201,6 +1243,16 @@
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.checkpoint_utils.MissingPretrainedWeightsException">MissingPretrainedWeightsException</a>
 </li>
+      <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.detection_dataset.DetectionDataSet.mixup">mixup() (super_gradients.training.datasets.detection_datasets.detection_dataset.DetectionDataSet static method)</a>
+
+      <ul>
+        <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.DetectionDataSet.mixup">(super_gradients.training.datasets.detection_datasets.DetectionDataSet static method)</a>
+</li>
+        <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.DetectionDataSet.mixup">(super_gradients.training.datasets.DetectionDataSet static method)</a>, <a href="super_gradients.training.html#super_gradients.training.datasets.DetectionDataSet.mixup">[1]</a>
+</li>
+        <li><a href="super_gradients.training.html#super_gradients.training.DetectionDataSet.mixup">(super_gradients.training.DetectionDataSet static method)</a>
+</li>
+      </ul></li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.mixup.mixup_target">mixup_target() (in module super_gradients.training.datasets.mixup)</a>
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.early_stopping.EarlyStop.mode_dict">mode_dict (super_gradients.training.utils.early_stopping.EarlyStop attribute)</a>
@@ -1522,14 +1574,6 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.PadShortToCropSize">PadShortToCropSize (class in super_gradients.training.utils.segmentation_utils)</a>
-</li>
-      <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.pascal_voc_detection.PascalVOC2012DetectionDataSet.parse_xml_file">parse_xml_file() (super_gradients.training.datasets.detection_datasets.pascal_voc_detection.PascalVOC2012DetectionDataSet method)</a>
-
-      <ul>
-        <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.PascalVOC2012DetectionDataSet.parse_xml_file">(super_gradients.training.datasets.detection_datasets.PascalVOC2012DetectionDataSet method)</a>
-</li>
-      </ul></li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.PascalAUG2012SegmentationDataSet">PascalAUG2012SegmentationDataSet (class in super_gradients.training.datasets)</a>, <a href="super_gradients.training.html#super_gradients.training.datasets.PascalAUG2012SegmentationDataSet">[1]</a>
 
       <ul>
@@ -1544,14 +1588,6 @@
         <li><a href="super_gradients.training.datasets.dataset_interfaces.html#super_gradients.training.datasets.dataset_interfaces.dataset_interface.PascalAUG2012SegmentationDataSetInterface">(class in super_gradients.training.datasets.dataset_interfaces.dataset_interface)</a>
 </li>
       </ul></li>
-      <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.PascalVOC2012DetectionDataSet">PascalVOC2012DetectionDataSet (class in super_gradients.training.datasets.detection_datasets)</a>
-
-      <ul>
-        <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.pascal_voc_detection.PascalVOC2012DetectionDataSet">(class in super_gradients.training.datasets.detection_datasets.pascal_voc_detection)</a>
-</li>
-      </ul></li>
-      <li><a href="super_gradients.training.datasets.dataset_interfaces.html#super_gradients.training.datasets.dataset_interfaces.dataset_interface.PascalVOC2012DetectionDataSetInterface">PascalVOC2012DetectionDataSetInterface (class in super_gradients.training.datasets.dataset_interfaces.dataset_interface)</a>
-</li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.PascalVOC2012SegmentationDataSet">PascalVOC2012SegmentationDataSet (class in super_gradients.training.datasets)</a>, <a href="super_gradients.training.html#super_gradients.training.datasets.PascalVOC2012SegmentationDataSet">[1]</a>
 
       <ul>
@@ -1566,6 +1602,14 @@
         <li><a href="super_gradients.training.datasets.dataset_interfaces.html#super_gradients.training.datasets.dataset_interfaces.dataset_interface.PascalVOC2012SegmentationDataSetInterface">(class in super_gradients.training.datasets.dataset_interfaces.dataset_interface)</a>
 </li>
       </ul></li>
+      <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.PascalVOCDetectionDataSet">PascalVOCDetectionDataSet (class in super_gradients.training.datasets.detection_datasets)</a>
+
+      <ul>
+        <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.pascal_voc_detection.PascalVOCDetectionDataSet">(class in super_gradients.training.datasets.detection_datasets.pascal_voc_detection)</a>
+</li>
+      </ul></li>
+      <li><a href="super_gradients.training.datasets.dataset_interfaces.html#super_gradients.training.datasets.dataset_interfaces.dataset_interface.PascalVOCUnifiedDetectionDataSetInterface">PascalVOCUnifiedDetectionDataSetInterface (class in super_gradients.training.datasets.dataset_interfaces.dataset_interface)</a>
+</li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.DeciLabUploadCallback.password">password (super_gradients.training.utils.callbacks.DeciLabUploadCallback attribute)</a>
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.Phase">Phase (class in super_gradients.training.utils.callbacks)</a>
@@ -1574,10 +1618,10 @@
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.PhaseContext">PhaseContext (class in super_gradients.training.utils.callbacks)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.PhaseContextTestCallback">PhaseContextTestCallback (class in super_gradients.training.utils.callbacks)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.pixel_accuracy">pixel_accuracy() (in module super_gradients.training.metrics.segmentation_metrics)</a>
 </li>
       <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.PixelAccuracy">PixelAccuracy (class in super_gradients.training.metrics.segmentation_metrics)</a>
@@ -1660,15 +1704,7 @@
       </ul></li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.data_augmentation.RandomErase">RandomErase (class in super_gradients.training.datasets.data_augmentation)</a>
 </li>
-      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomFlip">RandomFlip (class in super_gradients.training.utils.segmentation_utils)</a>
-</li>
-      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomGaussianBlur">RandomGaussianBlur (class in super_gradients.training.utils.segmentation_utils)</a>
-</li>
-      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomRescale">RandomRescale (class in super_gradients.training.utils.segmentation_utils)</a>
-</li>
       <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.datasets_utils.RandomResizedCropAndInterpolation">RandomResizedCropAndInterpolation (class in super_gradients.training.datasets.datasets_utils)</a>
-</li>
-      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.RandomRotate">RandomRotate (class in super_gradients.training.utils.segmentation_utils)</a>
 </li>
       <li><a href="super_gradients.training.sg_model.html#super_gradients.training.sg_model.sg_model.SgModel.re_build_model">re_build_model() (super_gradients.training.sg_model.sg_model.SgModel method)</a>
 
@@ -1684,8 +1720,6 @@
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.distributed_training_utils.reduce_results_tuple_for_ddp">reduce_results_tuple_for_ddp() (in module super_gradients.training.utils.distributed_training_utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.ddrnet_loss.DDRNetLoss.reduction">reduction (super_gradients.training.losses.ddrnet_loss.DDRNetLoss attribute)</a>
 
       <ul>
@@ -1724,13 +1758,15 @@
         <li><a href="super_gradients.training.html#super_gradients.training.losses.YoLoV5DetectionLoss.reduction">(super_gradients.training.losses.YoLoV5DetectionLoss attribute)</a>, <a href="super_gradients.training.losses.html#super_gradients.training.losses.YoLoV5DetectionLoss.reduction">[1]</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.module_utils.replace_activations">replace_activations() (in module super_gradients.training.utils.module_utils)</a>
 </li>
       <li><a href="super_gradients.training.models.html#super_gradients.training.models.sg_module.SgModule.replace_head">replace_head() (super_gradients.training.models.sg_module.SgModule method)</a>
 </li>
-      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.Rescale">Rescale (class in super_gradients.training.utils.segmentation_utils)</a>
-</li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.detection_utils.rescale_bboxes_for_image_size">rescale_bboxes_for_image_size() (in module super_gradients.training.utils.detection_utils)</a>
+</li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.reverse_imagenet_preprocessing">reverse_imagenet_preprocessing() (in module super_gradients.training.utils.segmentation_utils)</a>
 </li>
       <li><a href="super_gradients.training.utils.optimizers.html#super_gradients.training.utils.optimizers.rmsprop_tf.RMSpropTF">RMSpropTF (class in super_gradients.training.utils.optimizers.rmsprop_tf)</a>
 </li>
@@ -2128,8 +2164,6 @@
         <li><a href="super_gradients.training.html#module-super_gradients.training">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     super_gradients.training.datasets
 
@@ -2137,6 +2171,8 @@
         <li><a href="super_gradients.training.datasets.html#module-super_gradients.training.datasets">module</a>, <a href="super_gradients.training.html#module-super_gradients.training.datasets">[1]</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     super_gradients.training.datasets.all_datasets
 
@@ -2592,6 +2628,8 @@
         <li><a href="super_gradients.training.utils.html#module-super_gradients.training.utils.weight_averaging_utils">module</a>
 </li>
       </ul></li>
+      <li><a href="super_gradients.training.datasets.dataset_interfaces.html#super_gradients.training.datasets.dataset_interfaces.dataset_interface.SuperviselyPersonsDatasetInterface">SuperviselyPersonsDatasetInterface (class in super_gradients.training.datasets.dataset_interfaces.dataset_interface)</a>
+</li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.early_stopping.EarlyStop.supported_phases">supported_phases (super_gradients.training.utils.early_stopping.EarlyStop attribute)</a>
 </li>
   </ul></td>
@@ -2606,10 +2644,6 @@
         <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.detection_dataset.DetectionDataSet.target_loader">(super_gradients.training.datasets.detection_datasets.detection_dataset.DetectionDataSet static method)</a>
 </li>
         <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.DetectionDataSet.target_loader">(super_gradients.training.datasets.detection_datasets.DetectionDataSet static method)</a>
-</li>
-        <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.pascal_voc_detection.PascalVOC2012DetectionDataSet.target_loader">(super_gradients.training.datasets.detection_datasets.pascal_voc_detection.PascalVOC2012DetectionDataSet method)</a>
-</li>
-        <li><a href="super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.detection_datasets.PascalVOC2012DetectionDataSet.target_loader">(super_gradients.training.datasets.detection_datasets.PascalVOC2012DetectionDataSet method)</a>
 </li>
         <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.DetectionDataSet.target_loader">(super_gradients.training.datasets.DetectionDataSet static method)</a>, <a href="super_gradients.training.html#super_gradients.training.datasets.DetectionDataSet.target_loader">[1]</a>
 </li>
@@ -2704,6 +2738,8 @@
         <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.utils.HpmStruct.to_dict">(super_gradients.training.utils.utils.HpmStruct method)</a>
 </li>
       </ul></li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.to_one_hot">to_one_hot() (in module super_gradients.training.utils.segmentation_utils)</a>
+</li>
       <li><a href="super_gradients.training.html#super_gradients.training.DataAugmentation.to_tensor">to_tensor() (super_gradients.training.DataAugmentation static method)</a>
 
       <ul>
@@ -2740,6 +2776,8 @@
 
       <ul>
         <li><a href="super_gradients.training.datasets.html#super_gradients.training.datasets.datasets_utils.RandomResizedCropAndInterpolation.training">(super_gradients.training.datasets.datasets_utils.RandomResizedCropAndInterpolation attribute)</a>
+</li>
+        <li><a href="super_gradients.training.html#super_gradients.training.losses.BCEDiceLoss.training">(super_gradients.training.losses.BCEDiceLoss attribute)</a>, <a href="super_gradients.training.losses.html#super_gradients.training.losses.BCEDiceLoss.training">[1]</a>
 </li>
         <li><a href="super_gradients.training.losses.html#super_gradients.training.losses.focal_loss.FocalLoss.training">(super_gradients.training.losses.focal_loss.FocalLoss attribute)</a>
 </li>
@@ -2791,8 +2829,6 @@
 </li>
         <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.regularization_utils.DropPath.training">(super_gradients.training.utils.regularization_utils.DropPath attribute)</a>
 </li>
-        <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.ColorJitterSeg.training">(super_gradients.training.utils.segmentation_utils.ColorJitterSeg attribute)</a>
-</li>
         <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.ssd_utils.SSDPostPredictCallback.training">(super_gradients.training.utils.ssd_utils.SSDPostPredictCallback attribute)</a>
 </li>
         <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.utils.WrappedModel.training">(super_gradients.training.utils.utils.WrappedModel attribute)</a>
@@ -2836,6 +2872,8 @@
         <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.classification_metrics.ToyTestClassificationMetric.update">(super_gradients.training.metrics.classification_metrics.ToyTestClassificationMetric method)</a>
 </li>
         <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.detection_metrics.DetectionMetrics.update">(super_gradients.training.metrics.detection_metrics.DetectionMetrics method)</a>
+</li>
+        <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.BinaryIOU.update">(super_gradients.training.metrics.segmentation_metrics.BinaryIOU method)</a>
 </li>
         <li><a href="super_gradients.training.metrics.html#super_gradients.training.metrics.segmentation_metrics.IoU.update">(super_gradients.training.metrics.segmentation_metrics.IoU method)</a>
 </li>
@@ -2898,13 +2936,21 @@
       </ul></li>
       <li><a href="super_gradients.training.sg_model.html#super_gradients.training.sg_model.sg_model.EvaluationType.VALIDATION">VALIDATION (super_gradients.training.sg_model.sg_model.EvaluationType attribute)</a>
 </li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.Phase.VALIDATION_BATCH_END">VALIDATION_BATCH_END (super_gradients.training.utils.callbacks.Phase attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.Phase.VALIDATION_BATCH_END">VALIDATION_BATCH_END (super_gradients.training.utils.callbacks.Phase attribute)</a>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.Phase.VALIDATION_END_BEST_EPOCH">VALIDATION_END_BEST_EPOCH (super_gradients.training.utils.callbacks.Phase attribute)</a>
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.callbacks.Phase.VALIDATION_EPOCH_END">VALIDATION_EPOCH_END (super_gradients.training.utils.callbacks.Phase attribute)</a>
 </li>
       <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.detection_utils.DetectionVisualization.visualize_batch">visualize_batch() (super_gradients.training.utils.detection_utils.DetectionVisualization static method)</a>
+
+      <ul>
+        <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.BinarySegmentationVisualization.visualize_batch">(super_gradients.training.utils.segmentation_utils.BinarySegmentationVisualization static method)</a>
+</li>
+      </ul></li>
+      <li><a href="super_gradients.training.utils.html#super_gradients.training.utils.segmentation_utils.visualize_batches">visualize_batches() (in module super_gradients.training.utils.segmentation_utils)</a>
 </li>
   </ul></td>
 </tr></table>

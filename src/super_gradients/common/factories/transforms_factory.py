@@ -2,8 +2,8 @@ from typing import Union, Mapping
 
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.common.factories.list_factory import ListFactory
-from super_gradients.training.utils.segmentation_utils import RandomFlip, Rescale, RandomRescale, RandomRotate, CropImageAndMask, RandomGaussianBlur, \
-    PadShortToCropSize, ColorJitterSeg
+from super_gradients.training.transforms.transforms import RandomFlip, Rescale, RandomRescale, RandomRotate, \
+    CropImageAndMask, RandomGaussianBlur, PadShortToCropSize, ColorJitterSeg
 
 from torchvision import transforms
 import inspect

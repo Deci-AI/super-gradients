@@ -2,7 +2,7 @@ import os
 import sys
 from copy import deepcopy
 from enum import Enum
-from typing import Union, Tuple, Mapping
+from typing import Union, Tuple, Mapping, List, Any
 
 import numpy as np
 import pkg_resources
@@ -10,11 +10,13 @@ import torch
 import torchvision.transforms as transforms
 from deprecated import deprecated
 from torch import nn
+from torch.utils.data import DataLoader, DistributedSampler
 from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -25,16 +27,17 @@ from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.sg_loggers import SG_LOGGERS
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
-from super_gradients.training import ARCHITECTURES, utils as core_utils
+from super_gradients.training import utils as core_utils
+from super_gradients.training.models import SgModule
+from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_model_utils
 from super_gradients.training import metrics
-from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat
+from super_gradients.training.exceptions.sg_model_exceptions import UnsupportedOptimizerFormat, IllegalDataloaderInitialization
 from super_gradients.training.datasets import DatasetInterface
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
     get_logging_values, \
     get_metrics_dict, get_train_loop_description_dict
-from super_gradients.training.models import SgModule
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.distributed_training_utils import MultiGPUModeAutocastWrapper, \
@@ -50,7 +53,7 @@ from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTe
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT
 from super_gradients.common.environment import environment_config
-from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
+from super_gradients.training.utils import HpmStruct
 
 logger = get_logger(__name__)
 
@@ -115,10 +118,12 @@ class SgModel:
         returns the test loss, accuracy and runtime
     """
 
-    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.AUTO,
+    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF,
                  model_checkpoints_location: str = 'local',
                  overwrite_local_checkpoint: bool = True, ckpt_name: str = 'ckpt_latest.pth',
-                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir=None):
+                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir: str = None,
+                 train_loader: DataLoader = None, valid_loader: DataLoader = None, test_loader: DataLoader = None,
+                 classes: List[Any] = None):
         """
 
         :param experiment_name:                      Used for logging and loading purposes
@@ -129,15 +134,19 @@ class SgModel:
         :param overwrite_local_checkpoint:      If set to False keeps the current local checkpoint when importing
                                                 checkpoint from cloud service, otherwise overwrites the local checkpoints file
         :param ckpt_name:                       The Checkpoint to Load
-        :ckpt_root_dir:                         Local root directory path where all experiment logging directories will
-                                                 reside. When none is give, it is assumed that
-                                                 pkg_resources.resource_filename('checkpoints', "") exists and will be used.
+        :param ckpt_root_dir:                   Local root directory path where all experiment logging directories will
+                                                reside. When none is give, it is assumed that
+                                                pkg_resources.resource_filename('checkpoints', "") exists and will be used.
+        :param train_loader:                    Training set Dataloader instead of using DatasetInterface, must pass "valid_loader"
+                                                and "classes" along with it
+        :param valid_loader:                    Validation set Dataloader
+        :param test_loader:                     Test set Dataloader
+        :param classes:                         List of class labels
 
         """
         # SET THE EMPTY PROPERTIES
         self.net, self.architecture, self.arch_params, self.dataset_interface = None, None, None, None
-        self.architecture_cls, self.device, self.multi_gpu = None, None, None
-        self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = None, None, None, None, None
+        self.device, self.multi_gpu = None, None
         self.ema = None
         self.ema_model = None
         self.sg_logger = None
@@ -147,6 +156,7 @@ class SgModel:
         self.training_params = None
         self.scaler = None
         self.phase_callbacks = None
+        self.checkpoint_params = None
 
         # SET THE DEFAULT PROPERTIES
         self.half_precision = False
@@ -160,6 +170,8 @@ class SgModel:
         self.start_epoch = 0
         self.best_metric = np.inf
         self.external_checkpoint_path = None
+        self.strict_load = StrictLoad.ON
+        self.load_ema_as_net = False
 
         # DETERMINE THE LOCATION OF THE LOSS AND ACCURACY IN THE RESULTS TUPLE OUTPUTED BY THE TEST
         self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = None, None
@@ -175,6 +187,7 @@ class SgModel:
         self.ckpt_name = ckpt_name
         self.overwrite_local_checkpoint = overwrite_local_checkpoint
         self.model_checkpoints_location = model_checkpoints_location
+        self._set_dataset_properties(classes, test_loader, train_loader, valid_loader)
 
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
         if ckpt_root_dir:
@@ -205,6 +218,25 @@ class SgModel:
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
         self.loss_logging_items_names = default_loss_logging_items_names
 
+    def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
+        if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
+            raise IllegalDataloaderInitialization()
+
+        dataset_params = {"batch_size": train_loader.batch_size if train_loader else None,
+                          "val_batch_size": valid_loader.batch_size if valid_loader else None,
+                          "test_batch_size": test_loader.batch_size if test_loader else None,
+                          "dataset_dir": None,
+                          "s3_link": None}
+
+        if train_loader and self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+            if not all([isinstance(train_loader.sampler, DistributedSampler),
+                        isinstance(valid_loader.sampler, DistributedSampler),
+                        test_loader is None or isinstance(test_loader.sampler, DistributedSampler)]):
+                logger.warning("DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
+
+        self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
+            HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
+
     @resolve_param('dataset_interface', DatasetsFactory())
     def connect_dataset_interface(self, dataset_interface: DatasetInterface, data_loader_num_workers: int = 8):
         """
@@ -212,6 +244,8 @@ class SgModel:
         :param data_loader_num_workers: The number of threads to initialize the Data Loaders with
             The dataset to be connected
         """
+        if self.train_loader:
+            logger.warning("Overriding the dataloaders that SgModel was initialized with")
         self.dataset_interface = dataset_interface
         self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             self.dataset_interface.get_data_loaders(batch_size_factor=self.num_devices,
@@ -223,68 +257,64 @@ class SgModel:
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
     def build_model(self,  # noqa: C901 - too complex
                     architecture: Union[str, nn.Module],
-                    arch_params={},
-                    load_checkpoint: bool = False,
-                    strict_load: StrictLoad = StrictLoad.ON,
-                    source_ckpt_folder_name: str = None,
-                    load_weights_only: bool = False,
-                    load_backbone: bool = False,
-                    external_checkpoint_path: str = None,
-                    load_ema_as_net: bool = False):
+                    arch_params={}, checkpoint_params={}, *args, **kwargs):
         """
         :param architecture:               Defines the network's architecture from models/ALL_ARCHITECTURES
         :param arch_params:                Architecture H.P. e.g.: block, num_blocks, num_classes, etc.
-        :param load_checkpoint:            Load a pre-trained checkpoint
-        :param strict_load:                See StrictLoad class documentation for details.
-        :param source_ckpt_folder_name:    folder name to load the checkpoint from (self.experiment_name if none is given)
-        :param load_weights_only:          loads only the weight from the checkpoint and zeroize the training params
-        :param load_backbone:              loads the provided checkpoint to self.net.backbone instead of self.net
-        :param external_checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
-                                           (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
-                                           load the checkpoint even if the load_checkpoint flag is not provided.
+        :param checkpoint_params:          Dictionary like object with the following key:values:
+
+            load_checkpoint:            Load a pre-trained checkpoint
+            strict_load:                See StrictLoad class documentation for details.
+            source_ckpt_folder_name:    folder name to load the checkpoint from (self.experiment_name if none is given)
+            load_weights_only:          loads only the weight from the checkpoint and zeroize the training params
+            load_backbone:              loads the provided checkpoint to self.net.backbone instead of self.net
+            external_checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
+                                               (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
+                                               load the checkpoint even if the load_checkpoint flag is not provided.
+
         """
         if 'num_classes' not in arch_params.keys():
-            if self.dataset_interface is None:
+            if self.classes is None and self.dataset_interface is None:
                 raise Exception('Error', 'Number of classes not defined in arch params and dataset is not defined')
             else:
                 arch_params['num_classes'] = len(self.classes)
 
         self.arch_params = core_utils.HpmStruct(**arch_params)
+        self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
 
-        pretrained_weights = core_utils.get_param(self.arch_params, 'pretrained_weights', default_val=None)
-        if pretrained_weights is not None:
-            num_classes_new_head = self.arch_params.num_classes
-            self.arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
-
-        # OVERRIDE THE INPUT PARAMS WITH THE arch_params VALUES
-        load_weights_only = core_utils.get_param(self.arch_params, 'load_weights_only', default_val=load_weights_only)
-
-        self.source_ckpt_folder_name = core_utils.get_param(self.arch_params, 'source_ckpt_folder_name',
-                                                            default_val=source_ckpt_folder_name)
-        strict_load = core_utils.get_param(self.arch_params, 'strict_load', default_val=strict_load)
-
-        self.arch_params.sync_bn = core_utils.get_param(self.arch_params, 'sync_bn', default_val=False)
-        self.load_checkpoint = load_checkpoint or core_utils.get_param(self.arch_params, 'load_checkpoint',
-                                                                       default_val=False)
-        self.load_backbone = core_utils.get_param(self.arch_params, 'load_backbone', default_val=load_backbone)
-        self.external_checkpoint_path = core_utils.get_param(self.arch_params, 'external_checkpoint_path',
-                                                             default_val=external_checkpoint_path)
-
-        if isinstance(architecture, str):
-            self.architecture_cls = ARCHITECTURES[architecture]
-            self.net = self.architecture_cls(arch_params=self.arch_params)
-        elif isinstance(architecture, SgModule.__class__):
-            self.net = architecture(self.arch_params)
-        else:
-            self.net = architecture
+        self.net = self.instantiate_net(architecture, self.arch_params, checkpoint_params, *args, **kwargs)
 
         # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
-        if hasattr(self.net, 'structure'):
-            self.architecture = self.net.structure
 
+        self.architecture = self.net.structure if hasattr(self.net, 'structure') else architecture
+
+        self._net_to_device()
+
+        self._load_checkpoint_to_model()
+
+    def _set_ckpt_loading_attributes(self):
+        """
+        Sets checkpoint loading related attributes according to self.checkpoint_params
+        """
+        self.checkpoint = {}
+        self.strict_load = core_utils.get_param(self.checkpoint_params, 'strict_load', default_val=StrictLoad.ON)
+        self.load_ema_as_net = core_utils.get_param(self.checkpoint_params, 'load_ema_as_net', default_val=False)
+        self.source_ckpt_folder_name = core_utils.get_param(self.checkpoint_params, 'source_ckpt_folder_name')
+        self.load_checkpoint = core_utils.get_param(self.checkpoint_params, 'load_checkpoint', default_val=False)
+        self.load_backbone = core_utils.get_param(self.checkpoint_params, 'load_backbone', default_val=False)
+        self.external_checkpoint_path = core_utils.get_param(self.checkpoint_params, 'external_checkpoint_path')
+        if self.load_checkpoint or self.external_checkpoint_path:
+            self.load_weights_only = core_utils.get_param(self.checkpoint_params, 'load_weights_only',
+                                                          default_val=False)
+
+    def _net_to_device(self):
+        """
+        Manipulates self.net according to self.multi_gpu
+        """
         self.net.to(self.device)
 
         # FOR MULTI-GPU TRAINING (not distributed)
+        self.arch_params.sync_bn = core_utils.get_param(self.arch_params, 'sync_bn', default_val=False)
         if self.multi_gpu == MultiGPUMode.DATA_PARALLEL:
             self.net = torch.nn.DataParallel(self.net, device_ids=self.device_ids)
         elif self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
@@ -301,24 +331,6 @@ class SgModel:
 
         else:
             self.net = core_utils.WrappedModel(self.net)
-
-        # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
-        self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
-
-        # LOAD AN EXISTING CHECKPOINT IF INDICATED
-        self.checkpoint = {}
-
-        if self.load_checkpoint or self.external_checkpoint_path:
-            self.load_weights_only = load_weights_only
-            self._load_checkpoint_to_model(strict=strict_load, load_backbone=self.load_backbone,
-                                           source_ckpt_folder_name=self.source_ckpt_folder_name,
-                                           load_ema_as_net=load_ema_as_net)
-        if pretrained_weights:
-            load_pretrained_weights(self.net, architecture, pretrained_weights)
-            if num_classes_new_head != self.arch_params.num_classes:
-                self.net.module.replace_head(new_num_classes=num_classes_new_head)
-                self.arch_params.num_classes = num_classes_new_head
-                self.net.to(self.device)
 
     def _train_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
         """
@@ -406,7 +418,7 @@ class SgModel:
         # RETURN AND THE LOSS LOGGING ITEMS COMPUTED DURING LOSS FORWARD PASS
         return loss, loss_logging_items
 
-    def backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext):
+    def backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
         """
         Run backprop on the loss and perform a step
         :param loss: The value computed by the loss function
@@ -418,6 +430,10 @@ class SgModel:
         """
         # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
         self.scaler.scale(loss).backward()
+
+        # APPLY GRADIENT CLIPPING IF REQUIRED
+        if self.training_params.clip_grad_norm:
+            torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
 
         # ACCUMULATE GRADIENT FOR X BATCHES BEFORE OPTIMIZING
         integrated_batches_num = batch_idx + len(self.train_loader) * epoch + 1
@@ -434,7 +450,8 @@ class SgModel:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
 
-    def save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None):
+    def save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None,
+                        context: PhaseContext = None):
         """
         Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
         params)
@@ -717,13 +734,23 @@ class SgModel:
                 -   `sg_logger_params` : dict
 
                     SGLogger parameters
+
+                -   `clip_grad_norm` : float
+
+                    Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped
+
+                -   `lr_cooldown_epochs` : int (default=0)
+
+                    Number of epochs to cooldown LR (i.e the last epoch from scheduling view point=max_epochs-cooldown).
+
+
         :return:
         """
         global logger
 
         if self.net is None:
             raise Exception('Model', 'No model found')
-        if self.dataset_interface is None:
+        if self.dataset_interface is None and self.train_loader is None:
             raise Exception('Data', 'No dataset found')
 
         self.training_params = TrainingParams()
@@ -794,7 +821,7 @@ class SgModel:
         self.lr_mode = self.training_params.lr_mode
         load_opt_params = self.training_params.load_opt_params
 
-        self.phase_callbacks = self.training_params.phase_callbacks
+        self.phase_callbacks = self.training_params.phase_callbacks or []
 
         if self.lr_mode is not None:
             sg_lr_callback_cls = LR_SCHEDULERS_CLS_DICT[self.lr_mode]
@@ -811,8 +838,8 @@ class SgModel:
                                                             update_param_groups=self.update_param_groups,
                                                             **self.training_params.to_dict()))
 
-        self.phase_callbacks.append(MetricsUpdateCallback(Phase.TRAIN_BATCH_END))
-        self.phase_callbacks.append(MetricsUpdateCallback(Phase.VALIDATION_BATCH_END))
+        self._add_metrics_update_callback(Phase.TRAIN_BATCH_END)
+        self._add_metrics_update_callback(Phase.VALIDATION_BATCH_END)
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
@@ -853,13 +880,17 @@ class SgModel:
         else:
             raise UnsupportedOptimizerFormat()
 
+        # VERIFY GRADIENT CLIPPING VALUE
+        if self.training_params.clip_grad_norm is not None and self.training_params.clip_grad_norm <= 0:
+            raise TypeError('Params', 'Invalid clip_grad_norm')
+
         if self.load_checkpoint and load_opt_params:
             self.optimizer.load_state_dict(self.checkpoint['optimizer_state_dict'])
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
         context = PhaseContext(optimizer=self.optimizer, net=self.net, experiment_name=self.experiment_name,
-                               ckpt_dir=self.checkpoints_dir_path,
+                               ckpt_dir=self.checkpoints_dir_path, criterion=self.criterion,
                                lr_warmup_epochs=self.training_params.lr_warmup_epochs, sg_logger=self.sg_logger)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
@@ -929,7 +960,8 @@ class SgModel:
 
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch, context)
+                    self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch,
+                                                   context)
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
@@ -1233,7 +1265,7 @@ class SgModel:
 
         self.arch_params = core_utils.HpmStruct(**arch_params)
         self.classes = self.arch_params.num_classes
-        self.net = self.architecture_cls(arch_params=self.arch_params)
+        self.net = self.instantiate_net(self.architecture, self.arch_params, self.checkpoint_params)
         # save the architecture for neural architecture search
         if hasattr(self.net, 'structure'):
             self.architecture = self.net.structure
@@ -1309,7 +1341,8 @@ class SgModel:
                     self.multi_gpu = MultiGPUMode.OFF
                     if requested_multi_gpu != MultiGPUMode.AUTO:
                         # if AUTO mode was set - do not log a warning
-                        logger.warning('\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n')
+                        logger.warning(
+                            '\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n')
                 else:
                     if requested_multi_gpu == MultiGPUMode.AUTO:
                         if env_helpers.is_distributed():
@@ -1364,36 +1397,44 @@ class SgModel:
         self.net.to(self.device)
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def _load_checkpoint_to_model(self, strict: StrictLoad, load_backbone: bool, source_ckpt_folder_name: str,
-                                  load_ema_as_net: bool):  # noqa: C901 - too complex
+    def _load_checkpoint_to_model(self):  # noqa: C901 - too complex
         """
-        Copies the source checkpoint to a local folder and loads the checkpoint's data to the model
-        :param strict:           See StrictLoad class documentation for details.
-        :param load_backbone:    loads the provided checkpoint to self.net.backbone instead of self.net
-        :param source_ckpt_folder_name: The folder where the checkpoint is saved. By default uses the self.experiment_name
-        NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params is True
+        Copies the source checkpoint to a local folder and loads the checkpoint's data to the model using the
+         attributes:
+
+         strict:           See StrictLoad class documentation for details.
+         load_backbone:    loads the provided checkpoint to self.net.backbone instead of self.net
+         source_ckpt_folder_name: The folder where the checkpoint is saved. By default uses the self.experiment_name
+
+        NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params
+         is True
         """
 
-        # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST
-        ckpt_local_path = get_ckpt_local_path(source_ckpt_folder_name=source_ckpt_folder_name,
-                                              experiment_name=self.experiment_name,
-                                              ckpt_name=self.ckpt_name,
-                                              model_checkpoints_location=self.model_checkpoints_location,
-                                              external_checkpoint_path=self.external_checkpoint_path,
-                                              overwrite_local_checkpoint=self.overwrite_local_checkpoint,
-                                              load_weights_only=self.load_weights_only)
+        self._set_ckpt_loading_attributes()
 
-        # LOAD CHECKPOINT TO MODEL
-        self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
-                                                   load_backbone=load_backbone,
-                                                   net=self.net,
-                                                   strict=strict.value if isinstance(strict, StrictLoad) else strict,
-                                                   load_weights_only=self.load_weights_only,
-                                                   load_ema_as_net=load_ema_as_net)
+        if self.load_checkpoint or self.external_checkpoint_path:
+            # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST
+            ckpt_local_path = get_ckpt_local_path(source_ckpt_folder_name=self.source_ckpt_folder_name,
+                                                  experiment_name=self.experiment_name,
+                                                  ckpt_name=self.ckpt_name,
+                                                  model_checkpoints_location=self.model_checkpoints_location,
+                                                  external_checkpoint_path=self.external_checkpoint_path,
+                                                  overwrite_local_checkpoint=self.overwrite_local_checkpoint,
+                                                  load_weights_only=self.load_weights_only)
 
-        if 'ema_net' in self.checkpoint.keys():
-            logger.warning("[WARNING] Main network has been loaded from checkpoint but EMA network exists as well. It "
-                           " will only be loaded during validation when training with ema=True. ")
+            # LOAD CHECKPOINT TO MODEL
+            self.checkpoint = load_checkpoint_to_model(ckpt_local_path=ckpt_local_path,
+                                                       load_backbone=self.load_backbone,
+                                                       net=self.net,
+                                                       strict=self.strict_load.value if isinstance(self.strict_load,
+                                                                                                   StrictLoad) else self.strict_load,
+                                                       load_weights_only=self.load_weights_only,
+                                                       load_ema_as_net=self.load_ema_as_net)
+
+            if 'ema_net' in self.checkpoint.keys():
+                logger.warning("[WARNING] Main network has been loaded from checkpoint but EMA network exists as "
+                               "well. It "
+                               " will only be loaded during validation when training with ema=True. ")
 
         # UPDATE TRAINING PARAMS IF THEY EXIST & WE ARE NOT LOADING AN EXTERNAL MODEL's WEIGHTS
         self.best_metric = self.checkpoint['acc'] if 'acc' in self.checkpoint.keys() else -1
@@ -1418,7 +1459,7 @@ class SgModel:
 
         if test_metrics_list:
             self.test_metrics = MetricCollection(test_metrics_list)
-            self.phase_callbacks.append(MetricsUpdateCallback(Phase.TEST_BATCH_END))
+            self._add_metrics_update_callback(Phase.TEST_BATCH_END)
             self.phase_callback_handler = CallbackHandler(self.phase_callbacks)
 
         # WHEN TESTING WITHOUT A LOSS FUNCTION- CREATE EPOCH HEADERS FOR PRINTS
@@ -1436,6 +1477,14 @@ class SgModel:
         # RESET METRIC RUNNERS
         self.test_metrics.reset()
         self.test_metrics.to(self.device)
+
+    def _add_metrics_update_callback(self, phase: Phase):
+        """
+        Adds MetricsUpdateCallback to be fired at phase
+
+        :param phase: Phase for the metrics callback to be fired at
+        """
+        self.phase_callbacks.append(MetricsUpdateCallback(phase))
 
     def _initialize_sg_logger_objects(self):
         """Initialize object that collect, write to disk, monitor and store remotely all training outputs"""
@@ -1470,24 +1519,33 @@ class SgModel:
 
         # IN CASE SG_LOGGER UPDATED THE DIR PATH
         self.checkpoints_dir_path = self.sg_logger.local_dir()
+        hyper_param_config = self.get_hyper_param_config()
+
+        self.sg_logger.add_config("hyper_params", hyper_param_config)
+
+        self.sg_logger.flush()
+
+    def get_hyper_param_config(self):
+        """
+        Creates a training hyper param config for logging.
+        """
         additional_log_items = {'initial_LR': self.training_params.initial_lr,
                                 'num_devices': self.num_devices,
                                 'multi_gpu': str(self.multi_gpu),
                                 'device_type': torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu'}
-
         # ADD INSTALLED PACKAGE LIST + THEIR VERSIONS
         if self.training_params.log_installed_packages:
             pkg_list = list(map(lambda pkg: str(pkg), _get_installed_distributions()))
             additional_log_items['installed_packages'] = pkg_list
+        hyper_param_config = {"arch_params": self.arch_params.__dict__,
+                              "checkpoint_params": self.checkpoint_params.__dict__,
+                              "training_hyperparams": self.training_params.__dict__,
+                              "dataset_params": self.dataset_params.__dict__,
+                              "additional_log_items": additional_log_items}
+        return hyper_param_config
 
-        self.sg_logger.add_config("hyper_params", {"arch_params": self.arch_params.__dict__,
-                                                   "training_hyperparams": self.training_params.__dict__,
-                                                   "dataset_params": self.dataset_params.__dict__,
-                                                   "additional_log_items": additional_log_items})
-
-        self.sg_logger.flush()
-
-    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int, context: PhaseContext):
+    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int,
+                                  context: PhaseContext):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         # STORE VALUES IN A TENSORBOARD FILE
         train_results = list(train_metrics) + list(validation_results) + [inf_time]
@@ -1662,3 +1720,39 @@ class SgModel:
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logging_values = reduce_results_tuple_for_ddp(logging_values, next(self.net.parameters()).device)
         return logging_values
+
+    def instantiate_net(self, architecture: Union[torch.nn.Module, SgModule.__class__, str], arch_params: dict,
+                        checkpoint_params: dict, *args, **kwargs) -> tuple:
+        """
+        Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
+            module manipulation (i.e head replacement).
+
+        :param architecture: String, torch.nn.Module or uninstantiated SgModule class describing the netowrks architecture.
+        :param arch_params: Architecture's parameters passed to networks c'tor.
+        :param checkpoint_params: checkpoint loading related parameters dictionary with 'pretrained_weights' key,
+            s.t it's value is a string describing the dataset of the pretrained weights (for example "imagenent").
+
+        :return: instantiated netowrk i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
+
+        """
+        pretrained_weights = core_utils.get_param(checkpoint_params, 'pretrained_weights', default_val=None)
+
+        if pretrained_weights is not None:
+            num_classes_new_head = arch_params.num_classes
+            arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
+
+        if isinstance(architecture, str):
+            architecture_cls = ARCHITECTURES[architecture]
+            net = architecture_cls(arch_params=arch_params)
+        elif isinstance(architecture, SgModule.__class__):
+            net = architecture(arch_params)
+        else:
+            net = architecture
+
+        if pretrained_weights:
+            load_pretrained_weights(net, architecture, pretrained_weights)
+            if num_classes_new_head != arch_params.num_classes:
+                net.replace_head(new_num_classes=num_classes_new_head)
+                arch_params.num_classes = num_classes_new_head
+
+        return net

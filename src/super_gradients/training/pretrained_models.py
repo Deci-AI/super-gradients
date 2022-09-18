@@ -3,7 +3,7 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
               "regnetY400_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/RegnetY400/average_model_regnety400.pth",
               "regnetY200_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/RegnetY200/average_model_regnety200.pth",
 
-              "resnet50_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/resnet50_imagenet.pth",
+              "resnet50_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/ResNet50_ImageNet/average_model.pth",
               "resnet34_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/resent_34/average_model.pth",
               "resnet18_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/resnet18/average_model.pth",
 
@@ -27,10 +27,17 @@ MODEL_URLS = {"regnetY800_imagenet": "https://deci-pretrained-models.s3.amazonaw
 
               "mobilenet_v3_large_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/mobilenetv3+large+300epoch/average_model.pth",
               "mobilenet_v3_small_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/mobilenetv3+small/ckpt_best.pth",
-              "mobilenet_v2_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/mobilenetv2+w1/ckpt_best.pth"
+              "mobilenet_v2_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/mobilenetv2+w1/ckpt_best.pth",
+
+              "regseg48_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/regseg48_cityscapes/ckpt_best.pth",
+              "vit_base_imagenet21k": "https://deci-pretrained-models.s3.amazonaws.com/vit_pretrained_imagenet21k/vit_base_16_imagenet21K.pth",
+              "vit_large_imagenet21k": "https://deci-pretrained-models.s3.amazonaws.com/vit_pretrained_imagenet21k/vit_large_16_imagenet21K.pth",
+              "vit_base_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/vit_base_imagenet1k/ckpt_best.pth",
+              "vit_large_imagenet": "https://deci-pretrained-models.s3.amazonaws.com/vit_large_cutmix_randaug_v2_lr%3D0.03/average_model.pth"
               }
 
 PRETRAINED_NUM_CLASSES = {"imagenet": 1000,
+                          "imagenet21k": 21843,
                           "coco_segmentation_subclass": 21,
                           "cityscapes": 19,
                           "coco": 80}

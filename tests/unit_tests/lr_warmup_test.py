@@ -3,22 +3,7 @@ from super_gradients.training import SgModel
 from super_gradients.training.metrics import Accuracy
 from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.models import LeNet
-from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
-
-
-class TestLRCallback(PhaseCallback):
-    """
-    Phase callback that collects the learning rates in lr_placeholder at the end of each epoch (used for testing). In
-     the case of multiple parameter groups (i.e multiple learning rates) the learning rate is collected from the first
-     one. The phase is VALIDATION_EPOCH_END to ensure all lr updates have been performed before calling this callback.
-    """
-
-    def __init__(self, lr_placeholder):
-        super(TestLRCallback, self).__init__(Phase.VALIDATION_EPOCH_END)
-        self.lr_placeholder = lr_placeholder
-
-    def __call__(self, context: PhaseContext):
-        self.lr_placeholder.append(context.optimizer.param_groups[0]['lr'])
+from super_gradients.training.utils.callbacks import TestLRCallback
 
 
 class LRWarmupTest(unittest.TestCase):

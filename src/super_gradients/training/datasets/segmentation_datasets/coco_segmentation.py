@@ -4,8 +4,9 @@ import numpy as np
 from tqdm import tqdm
 from PIL import Image
 import torchvision.transforms as transform
-from super_gradients.training.utils.segmentation_utils import RandomFlip, CropImageAndMask, PadShortToCropSize,\
-    RandomRescale, Rescale
+from super_gradients.training.transforms.transforms import RandomFlip, Rescale, RandomRescale, CropImageAndMask, \
+    PadShortToCropSize
+from super_gradients.training.utils.utils import get_param
 
 try:
     from pycocotools.coco import COCO

@@ -58,8 +58,9 @@ class LoadCheckpointFromDirectPathTest(unittest.TestCase):
         # Build the SgModel and load the checkpoint
         model = SgModel("load_checkpoint_test", model_checkpoints_location='local')
         model.build_model(new_torch_net, arch_params={'num_classes': 10},
-                          external_checkpoint_path=self.checkpoint_path, load_checkpoint=True,
-                          strict_load=StrictLoad.NO_KEY_MATCHING)
+                          checkpoint_params={'external_checkpoint_path': self.checkpoint_path,
+                                             'load_checkpoint': True,
+                                             'strict_load': StrictLoad.NO_KEY_MATCHING})
 
         # Assert the weights were loaded correctly
         assert self.check_models_have_same_weights(model.net, self.original_torch_net)

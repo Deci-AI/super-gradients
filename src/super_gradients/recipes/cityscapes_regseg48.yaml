@@ -1,0 +1,134 @@
+#  RegSeg segmentation training example with Cityscapes dataset.
+#  Reproduction of paper: Rethink Dilated Convolution for Real-time Semantic Segmentation.
+#
+#  Usage RegSeg48:
+#      python -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=regseg48_cityscapes
+#
+#
+#  Validation mIoU - Cityscapes, training time:
+#      RegSeg48:    input-size: [1024, 2048]     mIoU: 78.15  using 4 GeForce RTX 2080 Ti with DDP, ~2 minutes / epoch
+#
+#  Official git repo:
+#      https://github.com/RolandGao/RegSeg
+#  Paper:
+#      https://arxiv.org/pdf/2111.09957.pdf
+#
+#
+#  Logs, tensorboards and network checkpoints:
+#      s3://deci-pretrained-models/regseg48_cityscapes/
+#
+#
+#  Learning rate and batch size parameters, using 4 GeForce RTX 2080 Ti with DDP:
+#      RegSeg48:    input-size: [1024, 2048]     initial_lr: 0.02    batch-size: 4 * 4gpus = 16
+
+defaults:
+  - training_hyperparams: default_train_params
+  - dataset_params: cityscapes_dataset_params
+  - checkpoint_params: default_checkpoint_params
+
+hydra:
+  searchpath:
+    - pkg://super_gradients.recipes
+
+project_name: RegSeg
+architecture: regseg48
+experiment_name: ${architecture}_cityscapes
+multi_gpu: AUTO
+
+arch_params:
+  num_classes: 19
+  sync_bn: True
+  strict_load: no_key_matching
+
+dataset_params:
+  _convert_: all
+  batch_size: 4
+  val_batch_size: 4
+  crop_size: 1024
+  img_size: 1024
+  random_scales:
+    - 0.4
+    - 1.6
+  image_mask_transforms_aug:
+    Compose:
+      transforms:
+        - ColorJitterSeg:
+            brightness: 0.1
+            contrast: 0.1
+            saturation: 0.1
+
+        - RandomFlipSeg
+
+        - RandomRescaleSeg:
+            scales: ${dataset_params.random_scales}
+
+        - PadShortToCropSizeSeg:
+            crop_size: ${dataset_params.crop_size}
+            fill_image:
+              - ${dataset_params.cityscapes_ignored_label}
+              - 0
+              - 0
+            fill_mask: ${dataset_params.cityscapes_ignored_label}
+
+        - CropImageAndMaskSeg:
+            crop_size: ${dataset_params.crop_size}
+            mode: random
+
+  image_mask_transforms:
+    Compose:
+      transforms: [ ]
+
+dataset_interface:
+  cityscapes:
+    dataset_params: ${dataset_params}
+
+data_loader_num_workers: 8
+
+
+
+training_hyperparams:
+  max_epochs: 800
+  lr_mode: poly
+  initial_lr: 0.02   # for effective batch_size=16
+  lr_warmup_epochs: 0
+  optimizer: SGD
+  optimizer_params:
+    momentum: 0.9
+    weight_decay: 5e-4
+
+  ema: True
+
+  loss: cross_entropy
+  criterion_params:
+    ignore_index: ${dataset_params.cityscapes_ignored_label}
+
+  train_metrics_list:
+    - PixelAccuracy:
+        ignore_label: ${dataset_params.cityscapes_ignored_label}
+    - IoU:
+        num_classes: 20
+        ignore_index: ${dataset_params.cityscapes_ignored_label}
+
+  valid_metrics_list:
+    - PixelAccuracy:
+        ignore_label: ${dataset_params.cityscapes_ignored_label}
+    - IoU:
+        num_classes: 20
+        ignore_index: ${dataset_params.cityscapes_ignored_label}
+
+  metric_to_watch: IoU
+  greater_metric_to_watch_is_better: True
+
+  _convert_: all
+load_checkpoint: False
+checkpoint_params:
+  load_checkpoint: ${load_checkpoint}
+
+model_checkpoints_location: local
+ckpt_root_dir:
+
+sg_model:
+  _target_: super_gradients.SgModel
+  experiment_name: ${experiment_name}
+  model_checkpoints_location: ${model_checkpoints_location}
+  multi_gpu: DDP

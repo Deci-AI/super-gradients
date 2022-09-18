@@ -1,6 +1,7 @@
 lr_mode: # Learning rate scheduling policy, one of ['step','poly','cosine','function']
 lr_schedule_function: # Learning rate scheduling function to be used when `lr_mode` is 'function'.
 lr_warmup_epochs: 0 # number of epochs for learning rate warm up - see https://arxiv.org/pdf/1706.02677.pdf (Section 2.2).
+lr_cooldown_epochs: 0 # epochs to cooldown LR (i.e the last epoch from scheduling view point=max_epochs-cooldown)
 warmup_initial_lr: # Initial lr for linear_step. When none is given, initial_lr/(warmup_epochs+1) will be used.
 step_lr_update_freq: # (float) update frequency in epoch units for computing lr_updates when lr_mode=`step`.
 cosine_final_lr_ratio: 0.01 # final learning rate ratio (only relevant when `lr_mode`='cosine')
@@ -75,6 +76,8 @@ log_installed_packages: True # when set, the list of all installed packages (and
 
 
 save_full_train_log: False # When set, a full log (of all super_gradients modules, including uncaught exceptions from any other module) of training will be saved
+
+clip_grad_norm : # Defines a maximal L2 norm of the gradients. Values which exceed the given value will be clipped
 
 sg_logger: base_sg_logger
 sg_logger_params:
