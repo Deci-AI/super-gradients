@@ -1,3 +1,5 @@
+from typing import Optional
+
 import hydra
 
 from super_gradients.common import StrictLoad
@@ -74,7 +76,7 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
     return net
 
 
-def get(model_name: str, arch_params: dict = {}, num_classes: int = None,
+def get(model_name: str, arch_params: Optional[dict] = None, num_classes: int = None,
         strict_load: StrictLoad = StrictLoad.NO_KEY_MATCHING, checkpoint_path: str = None,
         pretrained_weights: str = None, load_backbone: bool = False) -> SgModule:
     """
@@ -94,6 +96,9 @@ def get(model_name: str, arch_params: dict = {}, num_classes: int = None,
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
 
     """
+    if arch_params is None:
+        arch_params = {}
+
     if arch_params.get("num_classes") is not None:
         logger.warning("Passing num_classes through arch_params is dperecated and will be removed in the next version. "
                        "Pass num_classes explicitly to models.get")
