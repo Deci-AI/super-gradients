@@ -77,7 +77,7 @@ num_gpus: 2
 experiment_name: ${architecture}50_cityscapes
 ckpt_root_dir:
 
-#ckpt_name: average_model.pth
+ckpt_name: ckpt_latest.pth
 hydra:
   run:
     dir: /home/louis.dupont/PycharmProjects/super-gradients/checkpoints/new

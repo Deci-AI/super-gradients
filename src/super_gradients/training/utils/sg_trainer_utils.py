@@ -14,6 +14,8 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from treelib import Tree
 from termcolor import colored
 import torch
+
+from omegaconf import OmegaConf, open_dict, DictConfig
 from torch.utils.tensorboard import SummaryWriter
 
 from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
@@ -25,6 +27,7 @@ IS_BETTER_COLOR = {True: "green", False: "red"}
 IS_GREATER_SYMBOLS = {True: "↗", False: "↘"}
 
 logger = get_logger(__name__)
+
 
 @dataclass
 class MonitoredValue:
@@ -348,3 +351,13 @@ def parse_args(cfg, arg_names: Union[List[str], callable]) -> dict:
         if hasattr(cfg, arg_name) and getattr(cfg, arg_name) is not None:
             kwargs_dict[arg_name] = getattr(cfg, arg_name)
     return kwargs_dict
+
+
+def add_params_to_cfg(cfg: DictConfig, params: List[str]):
+    """Add parameters to an existing config
+
+    :param cfg:     OmegaConf config
+    :param params:  List of parameters to add, in dotlist format (i.e. ["training_hyperparams.resume=True"])"""
+    new_cfg = OmegaConf.from_dotlist(params)
+    with open_dict(cfg):  # This is required to add new fields to existing config
+        cfg.merge_with(new_cfg)

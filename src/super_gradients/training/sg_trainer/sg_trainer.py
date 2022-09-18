@@ -6,10 +6,10 @@ from typing import Union, Tuple, Mapping, List, Any
 from pathlib import Path
 
 from hydra.core.global_hydra import GlobalHydra
-from omegaconf import OmegaConf, open_dict
+from omegaconf import OmegaConf
 import hydra
 import numpy as np
-import pkg_resources
+
 import torch
 from hydra import initialize_config_dir, compose
 from omegaconf import DictConfig
@@ -37,7 +37,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.training.utils.quantization_utils import QATCallback
-from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args
+from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, add_params_to_cfg
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, \
     IllegalDataloaderInitialization, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
@@ -235,27 +235,20 @@ class Trainer:
         :param use_new_recipe:  (default: False) If False, use the SAME recipe/parameters as the one used for the previous run.
                                 If True, the current version of recipe/parameters will be used to resume the training.
         """
-        ckpt_name = core_utils.get_param(cfg, "ckpt_name", "ckpt_latest.pth")
         if use_new_recipe:
-            new_cfg = OmegaConf.from_dotlist(["training_hyperparams.resume=True", f"++ckpt_name={ckpt_name}"])
-            with open_dict(cfg):  # This is required to add new fields to existing config
-                cfg.merge_with(new_cfg)
-            cls.train_from_config(cfg)
+            add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
+            cls.train_from_config(cfg=cfg)
         else:
-            cls.resume(experiment_name=cfg.experiment_name,
-                       ckpt_name=ckpt_name,
-                       ckpt_root_dir=cfg.ckpt_root_dir)
+            cls.resume(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
 
     @classmethod
-    def resume(cls, experiment_name: str, ckpt_name: str = None, ckpt_root_dir: str = None) -> None:
+    def resume(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
         """
         Resume a training that was run using our recipes.
 
         :param experiment_name:     Name of the experiment to resume
-        :param ckpt_name:           The Checkpoint to Load
         :param ckpt_root_dir:       Directory including the checkpoints
         """
-        ckpt_name = ckpt_name or "ckpt_latest.pth"
         checkpoints_dir_path = Path(get_checkpoints_dir_path(experiment_name, ckpt_root_dir))
         if not checkpoints_dir_path.exists():
             raise FileNotFoundError(f"Impossible to find checkpoint dir ({checkpoints_dir_path})")
@@ -264,8 +257,10 @@ class Trainer:
         if not resume_dir.exists():
             raise FileNotFoundError(f"The checkpoint directory {checkpoints_dir_path} does not include .hydra artifacts to resume the experiment.")
 
+        # Load overrides that were used in previous run
         overrides_cfg = list(OmegaConf.load(resume_dir / "overrides.yaml"))
-        overrides_cfg += ["training_hyperparams.resume=True", f"++ckpt_name={ckpt_name}"]  # TODO: Check why ckpt_name not in recipes...
+        # Add new overrides to resume training
+        overrides_cfg += ["training_hyperparams.resume=True"]
 
         GlobalHydra.instance().clear()
         with initialize_config_dir(config_dir=str(resume_dir)):

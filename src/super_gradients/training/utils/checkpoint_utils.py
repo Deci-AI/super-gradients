@@ -2,6 +2,7 @@ import os
 import tempfile
 import pkg_resources
 import torch
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.common.environment import environment_config
@@ -9,6 +10,9 @@ try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
 except (ModuleNotFoundError, ImportError, NameError):
     from torch.hub import _download_url_to_file as download_url_to_file
+
+
+logger = get_logger(__name__)
 
 
 def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
@@ -214,16 +218,19 @@ def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: tor
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
 
     # LOAD THE LOCAL CHECKPOINT PATH INTO A state_dict OBJECT
+    logger.info(f"Loading checkpoint: {ckpt_local_path}")
     checkpoint = read_ckpt_state_dict(ckpt_path=ckpt_local_path)
 
     if load_ema_as_net:
         if 'ema_net' not in checkpoint.keys():
             raise ValueError("Can't load ema network- no EMA network stored in checkpoint file")
         else:
+            logger.info("    - Load ema net")
             checkpoint['net'] = checkpoint['ema_net']
 
     # LOAD THE CHECKPOINTS WEIGHTS TO THE MODEL
     if load_backbone:
+        logger.info("    - Load backbone")
         adaptive_load_state_dict(net.module.backbone, checkpoint, strict)
     else:
         adaptive_load_state_dict(net, checkpoint, strict)
