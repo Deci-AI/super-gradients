@@ -646,14 +646,15 @@ class DetectionPaddedRescale(DetectionTransform):
 
     """
 
-    def __init__(self, input_dim, swap=(2, 0, 1), max_targets=50):
+    def __init__(self, input_dim, swap=(2, 0, 1), max_targets=50, pad_value=114):
         self.swap = swap
         self.input_dim = input_dim
         self.max_targets = max_targets
+        self.pad_value = pad_value
 
     def __call__(self, sample: Dict[str, np.array]):
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap)
+        img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap, self.pad_value)
 
         sample["image"] = img
         sample["target"] = self._rescale_target(targets, r)
