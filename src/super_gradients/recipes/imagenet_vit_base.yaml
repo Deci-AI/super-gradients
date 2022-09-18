@@ -32,3 +32,10 @@ experiment_name: vit_base_imagenet1k
 architecture: vit_base
 multi_gpu: DDP
 num_gpus: 8
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
