@@ -227,7 +227,7 @@ class Trainer:
                       training_params=cfg.training_hyperparams)
 
     @classmethod
-    def resume_from_recipe(cls, cfg: Union[DictConfig, dict], use_new_recipe: bool = False) -> None:
+    def resume_from_recipe(cls, cfg: Union[DictConfig, dict]) -> None:
         """
         Resume a training that was run using our recipes.
 
@@ -235,13 +235,9 @@ class Trainer:
         :param use_new_recipe:  (default: False) If False, use the SAME recipe/parameters as the one used for the previous run.
                                 If True, the current version of recipe/parameters will be used to resume the training.
         """
-        if use_new_recipe:
-            logger.info("Resume training using the current recipe, ignoring the checkpoint recipe")
-            add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
-            cls.train_from_config(cfg=cfg)
-        else:
-            logger.info("Resume training using the checkpoint recipe, ignoring the current recipe")
-            cls.resume(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
+        logger.info("Resume training using the current recipe, ignoring the checkpoint recipe")
+        add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
+        cls.train_from_config(cfg=cfg)
 
     @classmethod
     def resume(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
@@ -251,6 +247,10 @@ class Trainer:
         :param experiment_name:     Name of the experiment to resume
         :param ckpt_root_dir:       Directory including the checkpoints
         """
+        logger.info("Resume training using the checkpoint recipe, ignoring the current recipe")
+        if not experiment_name:
+            raise ValueError(f"experiment_name should be non empty string but got :{experiment_name}")
+
         checkpoints_dir_path = Path(get_checkpoints_dir_path(experiment_name, ckpt_root_dir))
         if not checkpoints_dir_path.exists():
             raise FileNotFoundError(f"Impossible to find checkpoint dir ({checkpoints_dir_path})")

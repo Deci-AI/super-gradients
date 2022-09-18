@@ -22,7 +22,7 @@ optimizer_params:
   momentum: 0.9
 
 loss_logging_items_names: [Loss]
-metric_to_watch: Top5
+metric_to_watch: Accuracy
 greater_metric_to_watch_is_better: True
 
 train_metrics_list:                               # metrics for evaluation
