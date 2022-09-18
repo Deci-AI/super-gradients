@@ -19,9 +19,10 @@ example, when training from a recipe config `architecture: my_custom_model`.
 import torch.nn as nn
 import torch.nn.functional as F
 
-from super_gradients.training.models.model_registry import register
+from super_gradients.training.models.model_registry import register_model
 
-@register('my_conv_net') # will be registered as "my_conv_net"
+
+@register_model('my_conv_net')  # will be registered as "my_conv_net"
 class MyConvNet(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
@@ -43,7 +44,7 @@ class MyConvNet(nn.Module):
 ```
 or
 ```python
-@register()
+@register_model()
 def myconvnet_for_cifar10(): # will be registered as "myconvnet_for_cifar10"
     return MyConvNet(num_classes=10)
 ```

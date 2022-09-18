@@ -4,6 +4,8 @@ Deci-lab model export example.
 The main purpose of this code is to demonstrate how to upload the model to the platform, optimize and download it
  after training is complete, using DeciPlatformCallback.
 """
+from super_gradients.training import models
+
 from super_gradients import Trainer
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
@@ -30,7 +32,7 @@ def main(architecture_name: str):
         ckpt_root_dir=checkpoint_dir,
     )
 
-    trainer.build_model(architecture=architecture_name, arch_params={"use_aux_heads": True, "aux_head": True})
+    model = models.get(architecture=architecture_name, arch_params={"use_aux_heads": True, "aux_head": True})
 
     # CREATE META-DATA, AND OPTIMIZATION REQUEST FORM FOR DECI PLATFORM POST TRAINING CALLBACK
     model_name = f"{architecture_name}_for_deci_lab_export_example"
@@ -90,7 +92,7 @@ def main(architecture_name: str):
 
     # RUN TRAINING. ONCE ALL EPOCHS ARE DONE THE OPTIMIZED MODEL FILE WILL BE LOCATED IN THE EXPERIMENT'S
     # CHECKPOINT DIRECTORY
-    trainer.train(train_params, train_loader=classification_test_dataloader(),
+    trainer.train(model=model, training_params=train_params, train_loader=classification_test_dataloader(),
                   valid_loader=classification_test_dataloader())
 
 
