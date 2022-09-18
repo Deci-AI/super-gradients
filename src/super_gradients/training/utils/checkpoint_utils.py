@@ -250,8 +250,8 @@ class MissingPretrainedWeightsException(Exception):
     """
 
     def __init__(self, desc):
-        message = "Missing pretrained wights: " + desc
-        super().__init__(message)
+        self.message = "Missing pretrained wights: " + desc
+        super().__init__(self.message)
 
 
 def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
