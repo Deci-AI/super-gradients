@@ -33,7 +33,6 @@ ema_params: # parameters for the ema model.
 
 train_metrics_list: [] # Metrics to log during training. For more information on torchmetrics see https://torchmetrics.rtfd.io/en/latest/.
 valid_metrics_list: [] # Metrics to log during validation. For more information on torchmetrics see https://torchmetrics.rtfd.io/en/latest/
-loss_logging_items_names: [Loss] # the list of names/titles for the outputs returned from the loss functions forward pass
 metric_to_watch: Accuracy # will be the metric which the model checkpoint will be saved according to
 greater_metric_to_watch_is_better: True # When choosing a model's checkpoint to be saved, the best achieved model is the one that maximizes the metric_to_watch when this parameter is set to True
 

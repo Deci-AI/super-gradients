@@ -50,7 +50,7 @@ class EarlyStopTest(unittest.TestCase):
                              "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                              "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                              "train_metrics_list": [Accuracy()], "valid_metrics_list": [Top5()],
-                             "loss_logging_items_names": ["Loss"], "metric_to_watch": "Top5",
+                              "metric_to_watch": "Top5",
                              "greater_metric_to_watch_is_better": True, "average_best_models": False}
 
     def test_min_mode_patience_metric(self):

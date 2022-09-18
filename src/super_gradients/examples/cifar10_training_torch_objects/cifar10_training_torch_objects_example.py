@@ -59,7 +59,7 @@ train_params = {"max_epochs": 300,
                 'optimizer': optimizer,
                 "train_metrics_list": [Accuracy(), Top5()],
                 "valid_metrics_list": [Accuracy(), Top5()],
-                "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                 "metric_to_watch": "Accuracy",
                 "greater_metric_to_watch_is_better": True,
                 "lr_scheduler_step_type": "epoch"}
 
