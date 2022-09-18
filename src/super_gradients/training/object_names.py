@@ -1,4 +1,3 @@
-
 class Losses:
     """Static class holding all the supported loss names"""""
     CROSS_ENTROPY = "cross_entropy"
@@ -7,6 +6,7 @@ class Losses:
     SHELFNET_OHEM_LOSS = "shelfnet_ohem_loss"
     SHELFNET_SE_LOSS = "shelfnet_se_loss"
     YOLOX_LOSS = "yolox_loss"
+    YOLOX_FAST_LOSS = "yolox_fast_loss"
     SSD_LOSS = "ssd_loss"
     STDC_LOSS = "stdc_loss"
     BCE_DICE_LOSS = "bce_dice_loss"

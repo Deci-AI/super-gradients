@@ -16,5 +16,4 @@ LOSSES = {Losses.CROSS_ENTROPY: LabelSmoothingCrossEntropyLoss,
           Losses.STDC_LOSS: STDCLoss,
           Losses.BCE_DICE_LOSS: BCEDiceLoss,
           Losses.KD_LOSS: KDLogitsLoss,
-          Losses.DICE_CE_EDGE_LOSS: DiceCEEdgeLoss,
-}
+          Losses.DICE_CE_EDGE_LOSS: DiceCEEdgeLoss}
