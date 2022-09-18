@@ -97,7 +97,7 @@ def get(model_name: str, arch_params: Optional[dict] = None, num_classes: int = 
     """
     if arch_params is None:
         arch_params = {}
-        
+
     if arch_params.get("num_classes") is not None:
         logger.warning("Passing num_classes through arch_params is dperecated and will be removed in the next version. "
                        "Pass num_classes explicitly to models.get")
