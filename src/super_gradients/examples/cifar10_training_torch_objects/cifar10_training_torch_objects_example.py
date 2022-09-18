@@ -1,4 +1,3 @@
-
 """
 Cifar10 training with SuperGradients training with the following initialized torch objects:
 
@@ -23,7 +22,6 @@ from torchvision.transforms import ToTensor
 from torchvision.models import resnet18
 from torch.utils.data import DataLoader
 
-
 # Define any torch DataLoaders, need at least train & valid loaders
 train_dataset = CIFAR10(root='data/', download=True, train=True, transform=ToTensor())
 valid_dataset = CIFAR10(root='data/', download=True, train=False, transform=ToTensor())
@@ -45,8 +43,9 @@ step_lr_scheduler = MultiStepLR(optimizer, milestones=[0, 150, 200], gamma=0.1)
 loss_fn = CrossEntropyLoss()
 
 # Define phase callbacks
-phase_callbacks = [LRSchedulerCallback(scheduler=rop_lr_scheduler, phase=Phase.VALIDATION_EPOCH_END, metric_name="Accuracy"),
-                   LRSchedulerCallback(scheduler=step_lr_scheduler, phase=Phase.TRAIN_EPOCH_END)]
+phase_callbacks = [
+    LRSchedulerCallback(scheduler=rop_lr_scheduler, phase=Phase.VALIDATION_EPOCH_END, metric_name="Accuracy"),
+    LRSchedulerCallback(scheduler=step_lr_scheduler, phase=Phase.TRAIN_EPOCH_END)]
 
 # Bring everything together with Trainer and start training
 trainer = Trainer("Cifar10_external_objects_example", multi_gpu=MultiGPUMode.OFF)
@@ -59,7 +58,7 @@ train_params = {"max_epochs": 300,
                 'optimizer': optimizer,
                 "train_metrics_list": [Accuracy(), Top5()],
                 "valid_metrics_list": [Accuracy(), Top5()],
-                 "metric_to_watch": "Accuracy",
+                "metric_to_watch": "Accuracy",
                 "greater_metric_to_watch_is_better": True,
                 "lr_scheduler_step_type": "epoch"}
 

@@ -1758,9 +1758,3 @@ class Trainer:
                 self.metric_to_watch = criterion_name + '/' + self.metric_to_watch
         else:
             self.loss_logging_items_names = [criterion_name]
-
-
-
-
-
-
