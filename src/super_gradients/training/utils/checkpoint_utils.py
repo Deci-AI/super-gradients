@@ -4,10 +4,27 @@ import pkg_resources
 import torch
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
 from super_gradients.training.pretrained_models import MODEL_URLS
+from super_gradients.common.environment import environment_config
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
 except (ModuleNotFoundError, ImportError, NameError):
     from torch.hub import _download_url_to_file as download_url_to_file
+
+
+def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
+    """Creating the checkpoint directory of a given experiment.
+    :param experiment_name:     Name of the experiment.
+    :param ckpt_root_dir:       Local root directory path where all experiment logging directories will
+                                reside. When none is give, it is assumed that pkg_resources.resource_filename('checkpoints', "")
+                                exists and will be used.
+    :return:                    checkpoints_dir_path
+    """
+    if ckpt_root_dir:
+        return os.path.join(ckpt_root_dir, experiment_name)
+    elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
+        return os.path.join(environment_config.PKG_CHECKPOINTS_DIR, experiment_name)
+    else:
+        raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to resources.")
 
 
 def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, model_checkpoints_location: str, external_checkpoint_path: str,
@@ -123,7 +140,7 @@ def copy_ckpt_to_local_folder(local_ckpt_destination_dir: str, ckpt_filename: st
 
 def read_ckpt_state_dict(ckpt_path: str, device="cpu"):
     if not os.path.exists(ckpt_path):
-        raise ValueError('Incorrect Checkpoint path')
+        raise ValueError(f'Incorrect Checkpoint path: {ckpt_path}')
 
     if device == "cuda":
         state_dict = torch.load(ckpt_path)
@@ -226,8 +243,8 @@ class MissingPretrainedWeightsException(Exception):
     """
 
     def __init__(self, desc):
-        self.message = "Missing pretrained wights: " + desc
-        super().__init__(self.message)
+        message = "Missing pretrained wights: " + desc
+        super().__init__(message)
 
 
 def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):

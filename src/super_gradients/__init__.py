@@ -8,5 +8,4 @@ __all__ = ['ARCHITECTURES', 'losses', 'utils', 'datasets_utils', 'DataAugmentati
            'Trainer', 'KDTrainer',
            'init_trainer', 'is_distributed', 'train_from_recipe', 'train_from_kd_recipe',
            'env_sanity_check']
-
 env_sanity_check()

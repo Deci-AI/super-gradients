@@ -23,8 +23,12 @@ training_hyperparams:
 
 
 model_checkpoints_location: local
-ckpt_root_dir:
+ckpt_root_dir: #/home/louis.dupont/PycharmProjects/super-gradients/checkpoints
 
 architecture: resnet18_cifar
 
 experiment_name: resnet18_cifar
+
+hydra:
+  run:
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

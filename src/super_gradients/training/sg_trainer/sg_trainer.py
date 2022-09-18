@@ -3,10 +3,15 @@ import os
 import sys
 from copy import deepcopy
 from typing import Union, Tuple, Mapping, List, Any
+from pathlib import Path
 
+from hydra.core.global_hydra import GlobalHydra
+from omegaconf import OmegaConf
 import hydra
 import numpy as np
+import pkg_resources
 import torch
+from hydra import initialize_config_dir, compose
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler
@@ -49,7 +54,7 @@ from super_gradients.training.utils.weight_averaging_utils import ModelWeightAve
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
 from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path, read_ckpt_state_dict, \
-    load_checkpoint_to_model, load_pretrained_weights
+    load_checkpoint_to_model, load_pretrained_weights, get_checkpoints_dir_path
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
@@ -152,14 +157,7 @@ class Trainer:
         self.model_checkpoints_location = model_checkpoints_location
         self._set_dataset_properties(classes, test_loader, train_loader, valid_loader)
 
-        # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
-        if ckpt_root_dir:
-            self.checkpoints_dir_path = os.path.join(ckpt_root_dir, self.experiment_name)
-        elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
-            self.checkpoints_dir_path = os.path.join(environment_config.PKG_CHECKPOINTS_DIR, self.experiment_name)
-        else:
-            raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to"
-                             "resources.")
+        self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
 
         # INITIALIZE THE DEVICE FOR THE MODEL
         self._initialize_device(requested_device=device, requested_multi_gpu=multi_gpu)
@@ -227,6 +225,50 @@ class Trainer:
                       train_loader=train_dataloader,
                       valid_loader=val_dataloader,
                       training_params=cfg.training_hyperparams)
+
+    @classmethod
+    def resume_from_recipe(cls, cfg: Union[DictConfig, dict], use_new_recipe: bool = False) -> None:
+        """
+        Resume a training that was run using our recipes.
+
+        :param cfg:             Config of the recipe to resume.
+        :param use_new_recipe:  (default: False) If False, use the SAME recipe/parameters as the one used for the previous run.
+                                If True, the current version of recipe/parameters will be used to resume the training.
+        """
+        if use_new_recipe:
+            cls.train_from_config(cfg)
+        else:
+            cls.resume(experiment_name=cfg.experiment_name,
+                       ckpt_name=core_utils.get_param(cfg, "ckpt_name"),
+                       ckpt_root_dir=cfg.ckpt_root_dir)
+
+    @classmethod
+    def resume(cls, experiment_name: str, ckpt_name: str = None, ckpt_root_dir: str = None) -> None:
+        """
+        Resume a training that was run using our recipes.
+
+        :param experiment_name:     Name of the experiment to resume
+        :param ckpt_name:           The Checkpoint to Load
+        :param ckpt_root_dir:       Directory including the checkpoints
+        """
+        ckpt_name = ckpt_name or "ckpt_latest.pth"
+        checkpoints_dir_path = Path(get_checkpoints_dir_path(experiment_name, ckpt_root_dir))
+        if not checkpoints_dir_path.exists():
+            raise FileNotFoundError(f"Impossible to find checkpoint dir ({checkpoints_dir_path})")
+
+        resume_dir = Path(checkpoints_dir_path) / ".hydra"
+        if not resume_dir.exists():
+            raise FileNotFoundError(f"The checkpoint directory {checkpoints_dir_path} does not include .hydra artifacts to resume the experiment.")
+
+        overrides_cfg = list(OmegaConf.load(resume_dir / "overrides.yaml"))
+        overrides_cfg += ["training_hyperparams.resume=True"]
+        overrides_cfg += [f"++ckpt_name={ckpt_name}"]  # TODO: Check why ckpt_name not in recipes...
+
+        GlobalHydra.instance().clear()
+        with initialize_config_dir(config_dir=str(resume_dir)):
+            cfg = compose(config_name="config.yaml", overrides=overrides_cfg)
+
+        Trainer.train_from_config(cfg)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
