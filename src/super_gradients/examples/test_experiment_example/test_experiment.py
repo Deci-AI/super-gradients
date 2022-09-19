@@ -1,7 +1,7 @@
 """
 Example code for testing the output model of an experiment.
 
-General use: python test_from_recipe.py --experiment_name=<PREVIOUSLY-RUN-EXPERIMENT>
+General use: python test_experiment.py --experiment_name=<PREVIOUSLY-RUN-EXPERIMENT>
 """
 from super_gradients import Trainer, init_trainer
 from super_gradients.common.environment.env_helpers import pop_arg

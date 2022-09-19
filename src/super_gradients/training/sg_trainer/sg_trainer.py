@@ -228,15 +228,12 @@ class Trainer:
         cls.train_from_config(cfg)
 
     @classmethod
-    def test_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
+    def test_from_recipe(cls, cfg: DictConfig) -> None:
         """
-        Resume a training that was run using our recipes.
+        Test according to cfg recipe configuration.
 
-        :param experiment_name:     Name of the experiment to resume
-        :param ckpt_root_dir:       Directory including the checkpoints
+        @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         """
-        logger.info("Test experiment using the checkpoint recipe.")
-        cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -271,6 +268,18 @@ class Trainer:
         results = ["Test Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
+
+    @classmethod
+    def test_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
+        """
+        Resume a training that was run using our recipes.
+
+        :param experiment_name:     Name of the experiment to resume
+        :param ckpt_root_dir:       Directory including the checkpoints
+        """
+        logger.info("Test experiment using the checkpoint recipe.")
+        cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
+        cls.test_from_recipe(cfg)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
