@@ -75,7 +75,8 @@ class Trainer:
     """
 
     def __init__(self, experiment_name: str, device: str = None,
-                 multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF, ckpt_name: str = 'ckpt_latest.pth', ckpt_root_dir: str = None):
+                 multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF, ckpt_name: str = 'ckpt_latest.pth',
+                 ckpt_root_dir: str = None):
         """
 
         :param experiment_name:                      Used for logging and loading purposes
@@ -202,6 +203,19 @@ class Trainer:
                       train_loader=train_dataloader,
                       valid_loader=val_dataloader,
                       training_params=cfg.training_hyperparams)
+
+    def _set_dataset_params(self, train_loader, valid_loader):
+        self.dataset_params = {
+            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(train_loader.dataset,
+                                                                                        "dataset_params") else None,
+            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(train_loader,
+                                                                                      "dataloader_params") else None,
+            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(valid_loader.dataset,
+                                                                                        "dataset_params") else None,
+            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(valid_loader,
+                                                                                      "dataloader_params") else None
+        }
+        self.dataset_params = HpmStruct(**self.dataset_params)
 
     def _set_ckpt_loading_attributes(self):
         """
@@ -821,6 +835,7 @@ class Trainer:
 
         self.train_loader = train_loader or self.train_loader
         self.valid_loader = valid_loader or self.valid_loader
+        self._set_dataset_params()
 
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
