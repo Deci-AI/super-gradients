@@ -71,10 +71,10 @@ class DeciClient:
         return cfg
 
     def get_model_arch_params(self, model_name: str) -> DictConfig:
-        return self.get_model_cfg(model_name, AutoNACFileName.STRUCTURE_YAML)
+        return self._get_model_cfg(model_name, AutoNACFileName.STRUCTURE_YAML)
 
     def get_model_recipe(self, model_name: str) -> DictConfig:
-        return self.get_model_cfg(model_name, AutoNACFileName.RECIPE_YAML)
+        return self._get_model_cfg(model_name, AutoNACFileName.RECIPE_YAML)
 
     def get_model_weights(self, model_name: str) -> str:
         if not client_enabled:
