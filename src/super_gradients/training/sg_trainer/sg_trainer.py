@@ -287,15 +287,15 @@ class Trainer:
 
         # TEST
         test_results_tuple = trainer.test(model=model,
-                           test_loader=test_dataloader,
-                           test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
+                                          test_loader=test_dataloader,
+                                          test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
 
         valid_metrics_dict = get_metrics_dict(test_results_tuple, trainer.test_metrics,
                                               trainer.loss_logging_items_names)
 
-        results_str = ["Test Results"]
-        results_str += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
-        logger.info("\n".join(results_str))
+        results = ["Test Results"]
+        results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
+        logger.info("\n".join(results))
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
