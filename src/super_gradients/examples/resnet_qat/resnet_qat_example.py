@@ -25,7 +25,6 @@ from super_gradients.training.utils.quantization_utils import PostQATConversionC
 super_gradients.init_trainer()
 
 trainer = Trainer("resnet18_qat_example",
-                  model_checkpoints_location='local',
                   multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
 
 train_loader = dataloaders.imagenet_train()

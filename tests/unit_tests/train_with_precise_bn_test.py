@@ -12,7 +12,7 @@ class TrainWithPreciseBNTest(unittest.TestCase):
     """
 
     def test_train_with_precise_bn_explicit_size(self):
-        trainer = Trainer("test_train_with_precise_bn_explicit_size", model_checkpoints_location='local')
+        trainer = Trainer("test_train_with_precise_bn_explicit_size")
         net = ResNet18(num_classes=5, arch_params={})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
@@ -26,7 +26,7 @@ class TrainWithPreciseBNTest(unittest.TestCase):
                       valid_loader=classification_test_dataloader(batch_size=10))
 
     def test_train_with_precise_bn_implicit_size(self):
-        trainer = Trainer("test_train_with_precise_bn_implicit_size", model_checkpoints_location='local')
+        trainer = Trainer("test_train_with_precise_bn_implicit_size")
 
         net = ResNet18(num_classes=5, arch_params={})
         train_params = {"max_epochs": 2, "lr_updates": [1], "lr_decay_factor": 0.1, "lr_mode": "step",

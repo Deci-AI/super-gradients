@@ -18,9 +18,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
         """
         # Create dataset
 
-        trainer = Trainer('dataset_statistics_visual_test',
-                          model_checkpoints_location='local',
-                          post_prediction_callback=YoloPostPredictionCallback())
+        trainer = Trainer('dataset_statistics_visual_test')
 
         model = models.get("yolox_s")
 

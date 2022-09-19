@@ -69,7 +69,7 @@ class ConversionCallbackTest(unittest.TestCase):
                 "phase_callbacks": phase_callbacks,
             }
 
-            trainer = Trainer(f"{architecture}_example", model_checkpoints_location="local",
+            trainer = Trainer(f"{architecture}_example",
                               ckpt_root_dir=checkpoint_dir)
             model = models.get(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
             try:
@@ -102,7 +102,7 @@ class ConversionCallbackTest(unittest.TestCase):
 
         for architecture in SEMANTIC_SEGMENTATION:
             model_meta_data = generate_model_metadata(architecture=architecture, task=Task.SEMANTIC_SEGMENTATION)
-            trainer = Trainer(f"{architecture}_example", model_checkpoints_location="local",
+            trainer = Trainer(f"{architecture}_example",
                               ckpt_root_dir=checkpoint_dir)
             model = models.get(model_name=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
 

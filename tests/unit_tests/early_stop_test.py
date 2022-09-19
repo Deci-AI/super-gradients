@@ -58,7 +58,7 @@ class EarlyStopTest(unittest.TestCase):
         Test for mode=min metric, test that training stops after no improvement in metric value for amount of `patience`
         epochs.
         """
-        trainer = Trainer("early_stop_test", model_checkpoints_location='local')
+        trainer = Trainer("early_stop_test")
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -80,7 +80,7 @@ class EarlyStopTest(unittest.TestCase):
         Test for mode=max metric, test that training stops after no improvement in metric value for amount of `patience`
         epochs.
         """
-        trainer = Trainer("early_stop_test", model_checkpoints_location='local')
+        trainer = Trainer("early_stop_test")
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=3,
                                    verbose=True)
         phase_callbacks = [early_stop_acc]
@@ -101,7 +101,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         Test for mode=min metric, test that training stops after metric value reaches the `threshold` value.
         """
-        trainer = Trainer("early_stop_test", model_checkpoints_location='local')
+        trainer = Trainer("early_stop_test")
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", threshold=0.1, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -121,7 +121,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         Test for mode=max metric, test that training stops after metric value reaches the `threshold` value.
         """
-        trainer = Trainer("early_stop_test", model_checkpoints_location='local')
+        trainer = Trainer("early_stop_test")
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", threshold=0.94,
                                    verbose=True)
@@ -144,7 +144,7 @@ class EarlyStopTest(unittest.TestCase):
         Test that training stops when monitor value is not a finite number. Test case of NaN and Inf values.
         """
         # test Nan value
-        trainer = Trainer("early_stop_test", model_checkpoints_location='local')
+        trainer = Trainer("early_stop_test")
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", check_finite=True,
                                     verbose=True)
@@ -162,7 +162,7 @@ class EarlyStopTest(unittest.TestCase):
         self.assertEqual(excepted_end_epoch, fake_loss.count // 2)
 
         # test Inf value
-        trainer = Trainer("early_stop_test", model_checkpoints_location='local')
+        trainer = Trainer("early_stop_test")
 
         early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
@@ -183,7 +183,7 @@ class EarlyStopTest(unittest.TestCase):
         Test for `min_delta` argument, metric value is considered an improvement only if
         current_value - min_delta > best_value
         """
-        trainer = Trainer("early_stop_test", model_checkpoints_location='local')
+        trainer = Trainer("early_stop_test")
 
         early_stop_acc = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="MetricTest", mode="max", patience=2,
                                    min_delta=0.1, verbose=True)

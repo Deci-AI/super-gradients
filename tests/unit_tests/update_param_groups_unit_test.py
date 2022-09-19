@@ -28,7 +28,7 @@ class UpdateParamGroupsTest(unittest.TestCase):
     def test_lr_scheduling_with_update_param_groups(self):
         # Define Model
         net = TestNet()
-        trainer = Trainer("lr_warmup_test", model_checkpoints_location='local')
+        trainer = Trainer("lr_warmup_test")
 
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]

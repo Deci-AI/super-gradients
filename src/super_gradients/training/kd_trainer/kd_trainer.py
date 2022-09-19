@@ -9,7 +9,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.models.all_architectures import KD_ARCHITECTURES
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.sg_trainer import Trainer
-from typing import Union, List, Any
+from typing import Union
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training import utils as core_utils, models
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
@@ -20,7 +20,6 @@ from super_gradients.training.exceptions.kd_trainer_exceptions import Architectu
     UnsupportedKDArchitectureException, InconsistentParamsException, UnsupportedKDModelArgException, \
     TeacherKnowledgeException, UndefinedNumClassesException
 from super_gradients.training.utils.callbacks import KDModelMetricsUpdateCallback
-from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.ema import KDModelEMA
 from super_gradients.training.utils.sg_trainer_utils import parse_args
 
@@ -29,15 +28,8 @@ logger = get_logger(__name__)
 
 class KDTrainer(Trainer):
     def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF,
-                 model_checkpoints_location: str = 'local', overwrite_local_checkpoint: bool = True,
-                 ckpt_name: str = 'ckpt_latest.pth',
-                 post_prediction_callback: DetectionPostPredictionCallback = None, ckpt_root_dir: str = None,
-                 train_loader: DataLoader = None,
-                 valid_loader: DataLoader = None, test_loader: DataLoader = None, classes: List[Any] = None):
-
-        super().__init__(experiment_name, device, multi_gpu, model_checkpoints_location, overwrite_local_checkpoint,
-                         ckpt_name, post_prediction_callback,
-                         ckpt_root_dir, train_loader, valid_loader, test_loader, classes)
+                 ckpt_name: str = 'ckpt_latest.pth', ckpt_root_dir: str = None):
+        super().__init__(experiment_name, device, multi_gpu, ckpt_name, ckpt_root_dir)
         self.student_architecture = None
         self.teacher_architecture = None
         self.student_arch_params = None

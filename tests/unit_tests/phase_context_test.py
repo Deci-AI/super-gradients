@@ -12,7 +12,7 @@ from torchmetrics import MetricCollection
 
 class PhaseContextTest(unittest.TestCase):
     def context_information_in_train_test(self):
-        trainer = Trainer("context_information_in_train_test", model_checkpoints_location='local')
+        trainer = Trainer("context_information_in_train_test")
 
         net = ResNet18(num_classes=5, arch_params={})
 

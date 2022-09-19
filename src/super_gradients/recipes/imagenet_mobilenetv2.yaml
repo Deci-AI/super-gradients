@@ -25,7 +25,7 @@ arch_params:
 
 data_loader_num_workers: 8
 
-model_checkpoints_location: local
+
 resume: False
 training_hyperparams:
   resume: ${resume}

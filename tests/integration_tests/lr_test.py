@@ -30,7 +30,7 @@ class LRTest(unittest.TestCase):
 
     @staticmethod
     def get_trainer(name=''):
-        trainer = Trainer(name, model_checkpoints_location='local')
+        trainer = Trainer(name)
         model = models.get("resnet18_cifar", num_classes=5)
         return trainer, model
 

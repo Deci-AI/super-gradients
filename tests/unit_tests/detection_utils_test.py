@@ -12,10 +12,9 @@ class TestDetectionUtils(unittest.TestCase):
     def test_visualization(self):
 
         # Create Yolo model
-        trainer = Trainer('visualization_test',
-                          model_checkpoints_location='local',
-                          post_prediction_callback=YoloPostPredictionCallback())
+        trainer = Trainer('visualization_test')
         model = models.get("yolox_n", pretrained_weights="coco")
+        post_prediction_callback = YoloPostPredictionCallback()
 
         # Simulate one iteration of validation subset
         valid_loader = coco2017_val()
@@ -23,7 +22,7 @@ class TestDetectionUtils(unittest.TestCase):
         imgs = core_utils.tensor_container_to_device(imgs, trainer.device)
         targets = core_utils.tensor_container_to_device(targets, trainer.device)
         output = model(imgs)
-        output = trainer.post_prediction_callback(output)
+        output = post_prediction_callback(output)
         # Visualize the batch
         DetectionVisualization.visualize_batch(imgs, output, targets, batch_i,
                                                COCO_DETECTION_CLASSES_LIST, trainer.checkpoints_dir_path)

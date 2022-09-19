@@ -38,7 +38,7 @@ class LRWarmupTest(unittest.TestCase):
     def test_lr_warmup(self):
         # Define Model
         net = LeNet()
-        trainer = Trainer("lr_warmup_test", model_checkpoints_location='local')
+        trainer = Trainer("lr_warmup_test")
 
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
@@ -59,7 +59,7 @@ class LRWarmupTest(unittest.TestCase):
     def test_lr_warmup_with_lr_scheduling(self):
         # Define model
         net = LeNet()
-        trainer = Trainer("lr_warmup_test", model_checkpoints_location='local')
+        trainer = Trainer("lr_warmup_test")
 
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
@@ -84,7 +84,7 @@ class LRWarmupTest(unittest.TestCase):
     def test_warmup_initial_lr(self):
         # Define model
         net = LeNet()
-        trainer = Trainer("test_warmup_initial_lr", model_checkpoints_location='local')
+        trainer = Trainer("test_warmup_initial_lr")
 
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
@@ -105,7 +105,7 @@ class LRWarmupTest(unittest.TestCase):
     def test_custom_lr_warmup(self):
         # Define model
         net = LeNet()
-        trainer = Trainer("custom_lr_warmup_test", model_checkpoints_location='local')
+        trainer = Trainer("custom_lr_warmup_test")
 
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
