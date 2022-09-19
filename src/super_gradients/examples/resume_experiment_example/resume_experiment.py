@@ -1,8 +1,7 @@
 """
-Example code for running SuperGradient's recipes.
+Example code for resuming SuperGradient's recipes.
 
-General use: python train_from_recipe.py --config-name="DESIRED_RECIPE".
-For recipe's specific instructions and details refer to the recipe's configuration file in the recipes directory.
+General use: python resume_experiment.py --experiment_name=<PREVIOUSLY-RUN-EXPERIMENT>
 """
 from super_gradients import Trainer, init_trainer
 from super_gradients.common.environment.env_helpers import pop_arg
