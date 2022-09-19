@@ -1,12 +1,8 @@
 import os
 import tempfile
 import pkg_resources
-from pathlib import Path
 
 import torch
-from hydra import initialize_config_dir, compose
-from hydra.core.global_hydra import GlobalHydra
-from omegaconf import OmegaConf, DictConfig
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
@@ -19,27 +15,6 @@ except (ModuleNotFoundError, ImportError, NameError):
 
 
 logger = get_logger(__name__)
-
-
-def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> DictConfig:
-    if not experiment_name:
-        raise ValueError(f"experiment_name should be non empty string but got :{experiment_name}")
-
-    checkpoints_dir_path = Path(get_checkpoints_dir_path(experiment_name, ckpt_root_dir))
-    if not checkpoints_dir_path.exists():
-        raise FileNotFoundError(f"Impossible to find checkpoint dir ({checkpoints_dir_path})")
-
-    resume_dir = Path(checkpoints_dir_path) / ".hydra"
-    if not resume_dir.exists():
-        raise FileNotFoundError(f"The checkpoint directory {checkpoints_dir_path} does not include .hydra artifacts to resume the experiment.")
-
-    # Load overrides that were used in previous run
-    overrides_cfg = list(OmegaConf.load(resume_dir / "overrides.yaml"))
-
-    GlobalHydra.instance().clear()
-    with initialize_config_dir(config_dir=str(resume_dir)):
-        cfg = compose(config_name="config.yaml", overrides=overrides_cfg)
-    return cfg
 
 
 def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
