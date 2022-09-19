@@ -2,7 +2,7 @@ import inspect
 import os
 import sys
 from copy import deepcopy
-from typing import Union, Tuple, Mapping, List, Any
+from typing import Union, Tuple, Mapping
 
 import hydra
 import numpy as np
