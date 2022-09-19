@@ -230,9 +230,9 @@ class Trainer:
         cls.train_from_config(cfg)
 
     @classmethod
-    def validate_from_recipe(cls, cfg: DictConfig) -> None:
+    def evaluate_from_recipe(cls, cfg: DictConfig) -> None:
         """
-        Validate according to cfg recipe configuration.
+        Evaluate according to a cfg recipe configuration.
 
         Note:   This script does NOT run training, only validation.
                 Please make sure that the config refers to a PRETRAINED MODEL either from one of your checkpoint or from pretrained weights from model zoo.
@@ -276,20 +276,23 @@ class Trainer:
         logger.info("\n".join(results))
 
     @classmethod
-    def validate_experiment(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
+    def evaluate_checkpoint(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
         """
-        Validate the output model of an experiment.
+        Evaluate a checkpoint resulting from one of your previous experiment, using the same parameters (dataset, valid_metrics,...)
+        as used during the training of the experiment
 
-        Note:   This is done using the SAME PARAMETERS (dataset, valid_metrics,...) as during the training of the experiment,
-                even if the recipe used for that experiment was changed since then.
+        Note:
+            The parameters will be unchanged even if the recipe used for that experiment was changed since then.
+            This is to ensure that validation of the experiment will remain exactly the same as during training.
+
         :param experiment_name:     Name of the experiment to validate
         :param ckpt_name:           Name of the checkpoint to test ("ckpt_latest.pth", "average_model.pth" or "ckpt_best.pth" for instance)
         :param ckpt_root_dir:       Directory including the checkpoints
         """
-        logger.info("Test experiment using the checkpoint recipe.")
+        logger.info("Evaluate checkpoint")
         cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
-        cls.validate_from_recipe(cfg)
+        cls.evaluate_from_recipe(cfg)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
