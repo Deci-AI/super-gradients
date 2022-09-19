@@ -228,9 +228,9 @@ class Trainer:
         cls.train_from_config(cfg)
 
     @classmethod
-    def test_from_recipe(cls, cfg: DictConfig) -> None:
+    def validate_from_recipe(cls, cfg: DictConfig) -> None:
         """
-        Test according to cfg recipe configuration.
+        Validate according to cfg recipe configuration.
 
         @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         """
@@ -243,9 +243,9 @@ class Trainer:
         trainer = Trainer(**kwargs)
 
         # INSTANTIATE DATA LOADERS
-        test_dataloader = dataloaders.get(name=cfg.val_dataloader,
-                                          dataset_params=cfg.dataset_params.val_dataset_params,
-                                          dataloader_params=cfg.dataset_params.val_dataloader_params)
+        val_dataloader = dataloaders.get(name=cfg.val_dataloader,
+                                         dataset_params=cfg.dataset_params.val_dataset_params,
+                                         dataloader_params=cfg.dataset_params.val_dataloader_params)
 
         # BUILD NETWORK
         model = models.get(model_name=cfg.architecture,
@@ -254,15 +254,14 @@ class Trainer:
                            strict_load=cfg.checkpoint_params.strict_load,
                            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
                            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
-                           load_backbone=cfg.checkpoint_params.load_backbone
-                           )
+                           load_backbone=cfg.checkpoint_params.load_backbone)
 
         # TEST
-        test_results_tuple = trainer.test(model=model,
-                                          test_loader=test_dataloader,
-                                          test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
+        val_results_tuple = trainer.test(model=model,
+                                         test_loader=val_dataloader,
+                                         test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
 
-        valid_metrics_dict = get_metrics_dict(test_results_tuple, trainer.test_metrics,
+        valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics,
                                               trainer.loss_logging_items_names)
 
         results = ["Test Results"]
@@ -270,16 +269,16 @@ class Trainer:
         logger.info("\n".join(results))
 
     @classmethod
-    def test_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
+    def validate_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
         """
-        Resume a training that was run using our recipes.
+        Validate the output model of an experiment.
 
-        :param experiment_name:     Name of the experiment to resume
+        :param experiment_name:     Name of the experiment to validate
         :param ckpt_root_dir:       Directory including the checkpoints
         """
         logger.info("Test experiment using the checkpoint recipe.")
         cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
-        cls.test_from_recipe(cfg)
+        cls.validate_from_recipe(cfg)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
         if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
