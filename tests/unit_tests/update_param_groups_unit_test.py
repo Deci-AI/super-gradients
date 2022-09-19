@@ -12,6 +12,7 @@ class TestNet(LeNet):
     """
     Toy test net with update_param_groups method that hard codes some lr.
     """
+
     def __init__(self):
         super(TestNet, self).__init__()
 
@@ -41,7 +42,7 @@ class UpdateParamGroupsTest(unittest.TestCase):
                         "loss": "cross_entropy", "optimizer": 'SGD',
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks,
                         }
 
