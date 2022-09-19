@@ -1545,7 +1545,6 @@ class Trainer:
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
-
     def test(self, model: nn.Module = None, test_loader: torch.utils.data.DataLoader = None,
              loss: torch.nn.modules.loss._Loss = None, silent_mode: bool = False, test_metrics_list=None,
              loss_logging_items_names=None, metrics_progress_verbose=False, test_phase_callbacks=None,
@@ -1596,7 +1595,6 @@ class Trainer:
     def _validate_epoch(self, epoch: int, silent_mode: bool = False) -> tuple:
         """
         Runs evaluation on self.valid_loader, with self.valid_metrics.
-
         :param epoch: (int) epoch idx
         :param silent_mode: (bool) controls verbosity
 
