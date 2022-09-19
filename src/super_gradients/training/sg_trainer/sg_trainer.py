@@ -285,6 +285,9 @@ class Trainer:
             The parameters will be unchanged even if the recipe used for that experiment was changed since then.
             This is to ensure that validation of the experiment will remain exactly the same as during training.
 
+        Example, evaluate the checkpoint "average_model.pth" from experiment "my_experiment_name":
+            >> evaluate_checkpoint(experiment_name="my_experiment_name", ckpt_name="average_model.pth")
+
         :param experiment_name:     Name of the experiment to validate
         :param ckpt_name:           Name of the checkpoint to test ("ckpt_latest.pth", "average_model.pth" or "ckpt_best.pth" for instance)
         :param ckpt_root_dir:       Directory including the checkpoints

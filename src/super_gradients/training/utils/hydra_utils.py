@@ -9,6 +9,20 @@ from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_
 
 
 def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> DictConfig:
+    """
+    Load the hydra config associated to a specific experiment.
+
+    Background Information: every time an experiment is launched based on a recipe, all the hydra config params are stored in a hidden folder ".hydra".
+    This hidden folder is used here to recreate the exact same config as the one that was used to launch the experiment (Also include hydra overrides).
+
+    The motivation is to be able to resume or evaluate an experiment with the exact same config as the one that was used when the experiment was
+    initially started, regardless of any change that might have been introduced to the recipe, and also while using the same overrides that were used
+    for that experiment.
+
+    :param experiment_name:     Name of the experiment to resume
+    :param ckpt_root_dir:       Directory including the checkpoints
+    :return:                    The config that was used for that experiment
+    """
     if not experiment_name:
         raise ValueError(f"experiment_name should be non empty string but got :{experiment_name}")
 
