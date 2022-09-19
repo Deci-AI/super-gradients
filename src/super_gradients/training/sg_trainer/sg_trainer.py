@@ -252,13 +252,15 @@ class Trainer:
                                          dataloader_params=cfg.dataset_params.val_dataloader_params)
 
         checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
+        ckpt_name = core_utils.get_param(cfg, 'ckpt_name', 'ckpt_latest.pth')
+        checkpoint_path = str(checkpoints_dir / ckpt_name)
 
         # BUILD NETWORK
         model = models.get(model_name=cfg.architecture,
                            num_classes=cfg.arch_params.num_classes,
                            arch_params=cfg.arch_params,
                            pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-                           checkpoint_path=str(checkpoints_dir / cfg.ckpt_name),
+                           checkpoint_path=checkpoint_path,
                            load_backbone=cfg.checkpoint_params.load_backbone)
 
         # TEST
