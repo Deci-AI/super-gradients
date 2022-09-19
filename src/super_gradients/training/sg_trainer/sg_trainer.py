@@ -384,8 +384,7 @@ class Trainer:
                                                                source_ckpt_folder_name=self.source_ckpt_folder_name,
                                                                metric_to_watch=self.metric_to_watch,
                                                                metric_idx=self.metric_idx_in_results_tuple,
-                                                               load_checkpoint=self.load_checkpoint,
-                                                               model_checkpoints_location=self.model_checkpoints_location)
+                                                               load_checkpoint=self.load_checkpoint)
 
     def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
         """
