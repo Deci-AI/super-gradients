@@ -32,7 +32,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.training.utils.quantization_utils import QATCallback
-from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, add_params_to_cfg
+from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, \
     IllegalDataloaderInitialization, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
@@ -49,13 +49,14 @@ from super_gradients.training.utils.weight_averaging_utils import ModelWeightAve
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
 from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path, read_ckpt_state_dict, \
-    load_checkpoint_to_model, load_pretrained_weights, get_checkpoints_dir_path, load_experiment_cfg
+    load_checkpoint_to_model, load_pretrained_weights, get_checkpoints_dir_path
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
+from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 
 logger = get_logger(__name__)
 
