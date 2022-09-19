@@ -42,7 +42,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": optimizer,
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
 
@@ -60,7 +60,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": lr, "loss": "cross_entropy", "optimizer": optimizer,
                         "criterion_params": {},
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
         self.assertTrue(lr_scheduler.get_last_lr()[0] == lr * 0.1 * 0.1)
@@ -76,7 +76,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.3, "loss": "cross_entropy", "optimizer": optimizer,
                         "criterion_params": {},
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
 
@@ -95,7 +95,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "criterion_params": {},
                         "train_metrics_list": [Accuracy(), Top5()],
                         "valid_metrics_list": [Accuracy(), Top5(), ToyTestClassificationMetric()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
         self.assertTrue(lr_scheduler._last_lr[0] == lr * 0.1)
@@ -109,7 +109,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
+                        "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
 
@@ -131,7 +131,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
+                        "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=train_loader, valid_loader=val_loader)
 

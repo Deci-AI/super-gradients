@@ -293,7 +293,7 @@ train_params = {"max_epochs": 250,
                "launch_tensorboard": False,
                "train_metrics_list": train_metrics_list,
                "valid_metrics_list": valid_metrics_list,
-               "loss_logging_items_names": ["Loss"],
+               
                "metric_to_watch": "Accuracy",
                "greater_metric_to_watch_is_better": True}
 

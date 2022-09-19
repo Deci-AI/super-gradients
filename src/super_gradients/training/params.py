@@ -26,7 +26,7 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "lr_schedule_function": None,
                            "train_metrics_list": [],
                            "valid_metrics_list": [],
-                           "loss_logging_items_names": ["Loss"],
+
                            "greater_metric_to_watch_is_better": True,
                            "precise_bn": False,
                            "precise_bn_batch_size": None,

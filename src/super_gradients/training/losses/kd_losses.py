@@ -26,6 +26,15 @@ class KDLogitsLoss(_Loss):
         self.distillation_loss_fn = distillation_loss_fn
         self.distillation_loss_coeff = distillation_loss_coeff
 
+    @property
+    def component_names(self):
+        """
+        Component names for logging during training.
+        These correspond to 2nd item in the tuple returned in self.forward(...).
+        See super_gradients.Trainer.train() docs for more info.
+        """
+        return ["Loss", "Task Loss", "Distillation Loss"]
+
     def forward(self, kd_module_output, target):
         task_loss = self.task_loss_fn(kd_module_output.student_output, target)
         if isinstance(task_loss, tuple):  # SOME LOSS FUNCTIONS RETURNS LOSS AND LOG_ITEMS
