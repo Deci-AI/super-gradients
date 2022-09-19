@@ -8,9 +8,9 @@ from super_gradients.common.environment.env_helpers import pop_arg
 
 
 def main() -> None:
+    init_trainer()
     experiment_name = pop_arg("experiment_name")
     ckpt_root_dir = pop_arg("ckpt_root_dir")
-    init_trainer()
     Trainer.resume_experiment(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
 
 

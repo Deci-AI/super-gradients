@@ -1,7 +1,10 @@
 """
-Example code for running SuperGradient's recipes.
+Example code for testing SuperGradient's recipes.
+NOTE:   This script does NOT run TRAINING,
+        so make sure in the recipe that you load a PRETRAINED MODEL
+        either from one of your checkpoint or from a pretrained model.
 
-General use: python train_from_recipe.py --config-name="DESIRED_RECIPE".
+General use: python test_from_recipe.py --config-name="DESIRED_RECIPE".
 For recipe's specific instructions and details refer to the recipe's configuration file in the recipes directory.
 """
 from omegaconf import DictConfig
@@ -9,18 +12,11 @@ import hydra
 import pkg_resources
 
 from super_gradients import Trainer, init_trainer
-from super_gradients.common.environment.env_helpers import pop_arg
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-def main_recipe(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> None:
     Trainer.test_from_recipe(cfg)
-
-
-def main() -> None:
-    experiment_name = pop_arg("experiment_name")
-    ckpt_root_dir = pop_arg("ckpt_root_dir")
-    Trainer.test_experiment(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
 
 
 def run():
