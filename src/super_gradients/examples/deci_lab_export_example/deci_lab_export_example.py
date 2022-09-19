@@ -84,7 +84,7 @@ def main(architecture_name: str):
         "criterion_params": {},
         "train_metrics_list": [Accuracy(), Top5()],
         "valid_metrics_list": [Accuracy(), Top5()],
-        "loss_logging_items_names": ["Loss"],
+
         "metric_to_watch": "Accuracy",
         "greater_metric_to_watch_is_better": True,
         "phase_callbacks": phase_callbacks,

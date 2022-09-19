@@ -20,12 +20,12 @@ class FactoriesTest(unittest.TestCase):
                         "lr_warmup_epochs": 0,
                         "initial_lr": 0.1,
                         "loss": "cross_entropy",
-                        "optimizer": "torch.optim.ASGD",    # use an optimizer by factory
+                        "optimizer": "torch.optim.ASGD",  # use an optimizer by factory
                         "criterion_params": {},
                         "optimizer_params": {"lambd": 0.0001, "alpha": 0.75},
                         "train_metrics_list": ["Accuracy", "Top5"],  # use a metric by factory
                         "valid_metrics_list": ["Accuracy", "Top5"],  # use a metric by factory
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
 
         trainer.train(model=net, training_params=train_params,

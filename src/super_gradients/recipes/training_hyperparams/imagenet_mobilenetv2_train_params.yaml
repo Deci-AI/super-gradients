@@ -29,7 +29,7 @@ ema_params:
 
 mixed_precision: True
 
-loss_logging_items_names: [Loss]
+
 metric_to_watch: Accuracy
 greater_metric_to_watch_is_better: True
 

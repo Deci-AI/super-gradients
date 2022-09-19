@@ -127,6 +127,15 @@ class YoloXDetectionLoss(_Loss):
         self.bcewithlog_loss = nn.BCEWithLogitsLoss(reduction="none")
         self.iou_loss = IOUloss(reduction="none", loss_type=iou_type)
 
+    @property
+    def component_names(self):
+        """
+        Component names for logging during training.
+        These correspond to 2nd item in the tuple returned in self.forward(...).
+        See super_gradients.Trainer.train() docs for more info.
+        """
+        return ["iou", "obj", "cls", "l1", "num_fg", "Loss"]
+
     def forward(self, model_output: Union[list, Tuple[torch.Tensor, List]], targets: torch.Tensor):
         """
         :param model_output: Union[list, Tuple[torch.Tensor, List]]:
