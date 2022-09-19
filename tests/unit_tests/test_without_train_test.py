@@ -10,6 +10,7 @@ from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.metrics.segmentation_metrics import PixelAccuracy, IoU
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 
+
 class TestWithoutTrainTest(unittest.TestCase):
     @classmethod
     def setUp(cls):
