@@ -24,7 +24,7 @@ loss: cross_entropy
 criterion_params:
   smooth_eps: 0.1
 
-loss_logging_items_names: [Loss]
+
 metric_to_watch: Accuracy
 greater_metric_to_watch_is_better: True
 
