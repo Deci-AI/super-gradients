@@ -79,6 +79,15 @@ class SSDLoss(_Loss):
         self.con_loss = HardMiningCrossEntropyLoss(neg_pos_ratio)
         self.iou_thresh = iou_thresh
 
+    @property
+    def component_names(self):
+        """
+        Component names for logging during training.
+        These correspond to 2nd item in the tuple returned in self.forward(...).
+        See super_gradients.Trainer.train() docs for more info.
+        """
+        return ["smooth_l1", "closs", "Loss"]
+
     def _norm_relative_bbox(self, loc):
         """
         convert bbox locations into relative locations (relative to the dboxes)
