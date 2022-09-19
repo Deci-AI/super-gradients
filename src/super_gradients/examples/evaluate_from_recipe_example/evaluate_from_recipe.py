@@ -7,9 +7,9 @@ Use this script if:
         such as dataset params or metrics for instance
 
 Don't use this script if:
-    - You want to train and evaluate a model (check examples/train_from_recipe_example)
+    - You want to train and evaluate a model (use examples/train_from_recipe_example)
     - You want to evaluate a checkpoint from one of your previous experiment, using the same parameters as used during the
-        training of the experiment (check examples/evaluate_checkpoint_example)
+        training of the experiment (use examples/evaluate_checkpoint_example)
 
 Note:
     This script does NOT run TRAINING, so make sure in the recipe that you load a PRETRAINED MODEL
