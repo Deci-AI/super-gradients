@@ -222,19 +222,6 @@ class Trainer:
                       training_params=cfg.training_hyperparams)
 
     @classmethod
-    def resume_from_recipe(cls, cfg: Union[DictConfig, dict]) -> None:
-        """
-        Resume a training that was run using our recipes.
-
-        :param cfg:             Config of the recipe to resume.
-        :param use_new_recipe:  (default: False) If False, use the SAME recipe/parameters as the one used for the previous run.
-                                If True, the current version of recipe/parameters will be used to resume the training.
-        """
-        logger.info("Resume training using the current recipe, ignoring the checkpoint recipe")
-        add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
-        cls.train_from_config(cfg=cfg)
-
-    @classmethod
     def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
         """
         Resume a training that was run using our recipes.
