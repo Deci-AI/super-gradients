@@ -204,15 +204,15 @@ class Trainer:
                       valid_loader=val_dataloader,
                       training_params=cfg.training_hyperparams)
 
-    def _set_dataset_params(self, train_loader, valid_loader):
+    def _set_dataset_params(self):
         self.dataset_params = {
-            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(train_loader.dataset,
+            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset,
                                                                                         "dataset_params") else None,
-            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(train_loader,
+            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader,
                                                                                       "dataloader_params") else None,
-            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(valid_loader.dataset,
+            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(self.valid_loader.dataset,
                                                                                         "dataset_params") else None,
-            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(valid_loader,
+            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader,
                                                                                       "dataloader_params") else None
         }
         self.dataset_params = HpmStruct(**self.dataset_params)
