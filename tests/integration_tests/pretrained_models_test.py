@@ -78,7 +78,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                           "momentum": 0.9},
                                                      "train_metrics_list": [Accuracy()],
                                                      "valid_metrics_list": [Accuracy()],
-                                                     "loss_logging_items_names": ["Loss"],
+
                                                      "metric_to_watch": "Accuracy",
                                                      "greater_metric_to_watch_is_better": True}
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
@@ -124,7 +124,6 @@ class PretrainedModelsTest(unittest.TestCase):
                 DetectionMetrics(
                     post_prediction_callback=SSDPostPredictCallback(),
                     num_cls=5)],
-            "loss_logging_items_names": ['smooth_l1', 'closs', 'Loss'],
             "metric_to_watch": "mAP@0.50:0.95",
             "greater_metric_to_watch_is_better": True
         }
@@ -138,10 +137,6 @@ class PretrainedModelsTest(unittest.TestCase):
                                                       "criterion_params": {
                                                           "strides": [8, 16, 32],  # output strides of all yolo outputs
                                                           "num_classes": 5},
-
-                                                      "loss_logging_items_names": ["iou", "obj", "cls", "l1", "num_fg",
-                                                                                   "Loss"],
-
                                                       "train_metrics_list": [],
                                                       "valid_metrics_list": [
                                                           DetectionMetrics(
@@ -198,7 +193,6 @@ class PretrainedModelsTest(unittest.TestCase):
                                                           "load_opt_params": False,
                                                           "train_metrics_list": [IoU(5)],
                                                           "valid_metrics_list": [IoU(5)],
-                                                          "loss_logging_items_names": ["main_loss", "aux_loss", "Loss"],
                                                           "metric_to_watch": "IoU",
                                                           "greater_metric_to_watch_is_better": True
                                                           }
@@ -215,9 +209,6 @@ class PretrainedModelsTest(unittest.TestCase):
                                                         "load_opt_params": False,
                                                         "train_metrics_list": [IoU(5)],
                                                         "valid_metrics_list": [IoU(5)],
-                                                        "loss_logging_items_names": ["main_loss", "aux_loss1",
-                                                                                     "aux_loss2", "detail_loss",
-                                                                                     "loss"],
                                                         "metric_to_watch": "IoU",
                                                         "greater_metric_to_watch_is_better": True
                                                         }
@@ -237,7 +228,7 @@ class PretrainedModelsTest(unittest.TestCase):
             "load_opt_params": False,
             "train_metrics_list": [IoU(5)],
             "valid_metrics_list": [IoU(5)],
-            "loss_logging_items_names": ["loss"],
+
 
             "metric_to_watch": "IoU",
             "greater_metric_to_watch_is_better": True

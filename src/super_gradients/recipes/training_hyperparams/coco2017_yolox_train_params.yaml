@@ -18,7 +18,7 @@ criterion_params:
   strides: [8, 16, 32]  # output strides of all yolo outputs
   num_classes: 80
 
-loss_logging_items_names: [iou, obj, cls, l1, num_fg, Loss]
+
 
 optimizer: SGD
 optimizer_params:

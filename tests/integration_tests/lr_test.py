@@ -19,7 +19,7 @@ class LRTest(unittest.TestCase):
                                "initial_lr": 0.1,
                                "loss": "cross_entropy", "train_metrics_list": [Accuracy(), Top5()],
                                "valid_metrics_list": [Accuracy(), Top5()],
-                               "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                               "metric_to_watch": "Accuracy",
                                "greater_metric_to_watch_is_better": True}
 
     @classmethod

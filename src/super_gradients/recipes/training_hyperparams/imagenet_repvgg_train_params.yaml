@@ -11,7 +11,7 @@ loss: cross_entropy
 zero_weight_decay_on_bias_and_bn: True
 average_best_models: True
 
-loss_logging_items_names: [Loss]
+
 metric_to_watch: Accuracy
 greater_metric_to_watch_is_better: True
 
