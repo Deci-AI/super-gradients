@@ -232,7 +232,9 @@ class Trainer:
         """
         Validate according to cfg recipe configuration.
 
-        @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
+        Note:   This script does NOT run training, only validation.
+                Please make sure that the config refers to a PRETRAINED MODEL either from one of your checkpoint or from pretrained weights from model zoo.
+        :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         """
 
         # INSTANTIATE ALL OBJECTS IN CFG
@@ -264,20 +266,24 @@ class Trainer:
         valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics,
                                               trainer.loss_logging_items_names)
 
-        results = ["Test Results"]
+        results = ["Validate Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
 
     @classmethod
-    def validate_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
+    def validate_experiment(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
         """
         Validate the output model of an experiment.
 
+        Note:   This is done using the SAME PARAMETERS (dataset, valid_metrics,...) as during the training of the experiment,
+                even if the recipe used for that experiment was changed since then.
         :param experiment_name:     Name of the experiment to validate
+        :param ckpt_name:           Name of the checkpoint to test ("ckpt_latest.pth", "average_model.pth" or "ckpt_best.pth" for instance)
         :param ckpt_root_dir:       Directory including the checkpoints
         """
         logger.info("Test experiment using the checkpoint recipe.")
         cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
+        add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
         cls.validate_from_recipe(cfg)
 
     def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
