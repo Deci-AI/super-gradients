@@ -947,14 +947,6 @@ class Trainer:
                                                   title="Train-set", anchors=self.net.module.arch_params.anchors)
                 dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes,
                                                   title="val-set")
-            # AVERAGE BEST 10 MODELS PARAMS
-            if self.training_params.average_best_models:
-                self.model_weight_averaging = ModelWeightAveraging(self.checkpoints_dir_path,
-                                                                   greater_is_better=self.greater_metric_to_watch_is_better,
-                                                                   source_ckpt_folder_name=self.source_ckpt_folder_name,
-                                                                   metric_to_watch=self.metric_to_watch,
-                                                                   metric_idx=self.metric_idx_in_results_tuple,
-                                                                   load_checkpoint=self.load_checkpoint)
         if self.training_params.save_full_train_log and not self.ddp_silent_mode:
             logger = get_logger(__name__,
                                 training_log_path=self.sg_logger.log_file_path.replace('.txt', 'full_train_log.log'))
@@ -1008,7 +1000,6 @@ class Trainer:
                                checkpoint_params=self.checkpoint_params,
                                architecture=self.architecture,
                                arch_params=self.arch_params,
-                               metric_idx_in_results_tuple=self.metric_idx_in_results_tuple,
                                metric_to_watch=self.metric_to_watch,
                                device=self.device,
                                context_methods=self._get_context_methods(Phase.PRE_TRAINING),
@@ -1764,3 +1755,18 @@ class Trainer:
             context_methods = ContextSgMethods()
 
         return context_methods
+
+    def _init_loss_logging_names(self, loss_logging_items):
+        criterion_name = self.criterion.__class__.__name__
+        component_names = None
+        if hasattr(self.criterion, "component_names"):
+            component_names = self.criterion.component_names
+        elif len(loss_logging_items) > 1:
+            component_names = ["loss_" + str(i) for i in range(len(loss_logging_items))]
+
+        if component_names is not None:
+            self.loss_logging_items_names = [criterion_name + '/' + component_name for component_name in component_names]
+            if self.metric_to_watch in component_names:
+                self.metric_to_watch = criterion_name + '/' + self.metric_to_watch
+        else:
+            self.loss_logging_items_names = [criterion_name]
