@@ -32,7 +32,7 @@ valid_metrics_list:
       num_classes: 20
       ignore_index: 19
 
-loss_logging_items_names: [main_loss, aux_loss1, aux_loss2, detail_loss, loss]
+
 
 zero_weight_decay_on_bias_and_bn: True
 average_best_models: True

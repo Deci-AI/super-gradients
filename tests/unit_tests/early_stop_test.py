@@ -50,7 +50,7 @@ class EarlyStopTest(unittest.TestCase):
                              "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                              "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                              "train_metrics_list": [Accuracy()], "valid_metrics_list": [Top5()],
-                             "loss_logging_items_names": ["Loss"], "metric_to_watch": "Top5",
+                             "metric_to_watch": "Top5",
                              "greater_metric_to_watch_is_better": True, "average_best_models": False}
 
     def test_min_mode_patience_metric(self):
@@ -60,7 +60,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
 
-        early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
+        early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="LossTest", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
 
         loss_values = torch.tensor([1., 0.8, 0.81, 0.8, 0.9, 0.2, 0.1, 0.3, 0.05, 0.9])
@@ -103,7 +103,7 @@ class EarlyStopTest(unittest.TestCase):
         """
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
 
-        early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", threshold=0.1, verbose=True)
+        early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="LossTest", mode="min", threshold=0.1, verbose=True)
         phase_callbacks = [early_stop_loss]
 
         loss_values = torch.tensor([1., 0.8, 0.4, 0.2, 0.09, 0.11, 0.105, 0.3, 0.05, 0.02])
@@ -146,7 +146,7 @@ class EarlyStopTest(unittest.TestCase):
         # test Nan value
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
 
-        early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", check_finite=True,
+        early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="LossTest", mode="min", check_finite=True,
                                     verbose=True)
         phase_callbacks = [early_stop_loss]
 
@@ -164,7 +164,7 @@ class EarlyStopTest(unittest.TestCase):
         # test Inf value
         trainer = Trainer("early_stop_test", model_checkpoints_location='local')
 
-        early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="Loss", mode="min", patience=3, verbose=True)
+        early_stop_loss = EarlyStop(Phase.VALIDATION_EPOCH_END, monitor="LossTest", mode="min", patience=3, verbose=True)
         phase_callbacks = [early_stop_loss]
 
         loss_values = torch.tensor([1., 0.8, float('inf'), 0.8, 0.9, 0.2, 0.1, 0.3, 0.05, 0.9])

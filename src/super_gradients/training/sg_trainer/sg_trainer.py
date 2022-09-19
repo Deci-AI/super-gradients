@@ -136,9 +136,6 @@ class Trainer:
         self.qat_params = {}
         self._infinite_train_loader = False
 
-        # DETERMINE THE LOCATION OF THE LOSS AND ACCURACY IN THE RESULTS TUPLE OUTPUTED BY THE TEST
-        self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = None, None
-
         # METRICS
         self.loss_logging_items_names = None
         self.train_metrics = None
@@ -165,14 +162,10 @@ class Trainer:
 
         self.results_titles = default_results_titles
 
-        self.loss_idx_in_results_tuple, self.acc_idx_in_results_tuple = 0, 1
         default_train_metrics, default_valid_metrics = MetricCollection([Accuracy(), Top5()]), MetricCollection(
             [Accuracy(), Top5()])
 
-        default_loss_logging_items_names = ["Loss"]
-
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
-        self.loss_logging_items_names = default_loss_logging_items_names
 
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
@@ -220,19 +213,6 @@ class Trainer:
                       train_loader=train_dataloader,
                       valid_loader=val_dataloader,
                       training_params=cfg.training_hyperparams)
-
-    @classmethod
-    def resume_from_recipe(cls, cfg: Union[DictConfig, dict]) -> None:
-        """
-        Resume a training that was run using our recipes.
-
-        :param cfg:             Config of the recipe to resume.
-        :param use_new_recipe:  (default: False) If False, use the SAME recipe/parameters as the one used for the previous run.
-                                If True, the current version of recipe/parameters will be used to resume the training.
-        """
-        logger.info("Resume training using the current recipe, ignoring the checkpoint recipe")
-        add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
-        cls.train_from_config(cfg=cfg)
 
     @classmethod
     def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
@@ -448,11 +428,39 @@ class Trainer:
         else:
             loss_logging_items = loss.unsqueeze(0).detach()
 
+        # ON FIRST BACKWARD, DERRIVE THE LOGGING TITLES.
+        if self.loss_logging_items_names is None:
+            self._init_loss_logging_names(loss_logging_items)
+            self._init_monitored_items()
+
         if len(loss_logging_items) != len(self.loss_logging_items_names):
             raise ValueError("Loss output length must match loss_logging_items_names. Got " + str(
                 len(loss_logging_items)) + ', and ' + str(len(self.loss_logging_items_names)))
         # RETURN AND THE LOSS LOGGING ITEMS COMPUTED DURING LOSS FORWARD PASS
         return loss, loss_logging_items
+
+    def _init_monitored_items(self):
+        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(
+            self.metric_to_watch)
+        # Instantiate the values to monitor (loss/metric)
+        for loss_name in self.loss_logging_items_names:
+            self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
+            self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
+        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch,
+                                                                           greater_is_better=True)
+        self.results_titles = ["Train_" + t for t in
+                               self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + \
+                              ["Valid_" + t for t in
+                               self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)]
+
+        if self.training_params.average_best_models:
+            self.model_weight_averaging = ModelWeightAveraging(self.checkpoints_dir_path,
+                                                               greater_is_better=self.greater_metric_to_watch_is_better,
+                                                               source_ckpt_folder_name=self.source_ckpt_folder_name,
+                                                               metric_to_watch=self.metric_to_watch,
+                                                               metric_idx=self.metric_idx_in_results_tuple,
+                                                               load_checkpoint=self.load_checkpoint,
+                                                               model_checkpoints_location=self.model_checkpoints_location)
 
     def _backward_step(self, loss: torch.Tensor, epoch: int, batch_idx: int, context: PhaseContext, *args, **kwargs):
         """
@@ -650,10 +658,54 @@ class Trainer:
                     where the computed loss is the sum of a few components we would like to log- these entries in
                     loss_items).
 
-                    When training, set the loss_logging_items_names parameter in train_params to be a list of
-                    strings, of length n_items who's ith element is the name of the ith entry in loss_items. Then
-                    each item will be logged, rendered on tensorboard and "watched" (i.e saving model checkpoints
-                    according to it).
+                    IMPORTANT:When dealing with external loss classes, to logg/monitor the loss_items as described
+                    above by specific string name:
+
+                    Set a "component_names" property in the loss class, whos instance is passed through train_params,
+                     to be a list of strings, of length n_items who's ith element is the name of the ith entry in loss_items.
+                     Then each item will be logged, rendered on tensorboard and "watched" (i.e saving model checkpoints
+                     according to it) under <LOSS_CLASS.__name__>"/"<COMPONENT_NAME>. If a single item is returned rather then a
+                     tuple, it would be logged under <LOSS_CLASS.__name__>. When there is no such attributed, the items
+                     will be named <LOSS_CLASS.__name__>"/"Loss_"<IDX> according to the length of loss_items
+
+                    For example:
+                        class MyLoss(_Loss):
+                            ...
+                            def forward(self, inputs, targets):
+                                ...
+                                total_loss = comp1 + comp2
+                                loss_items = torch.cat((total_loss.unsqueeze(0),comp1.unsqueeze(0), comp2.unsqueeze(0)).detach()
+                                return total_loss, loss_items
+                            ...
+                            @property
+                            def component_names(self):
+                                return ["total_loss", "my_1st_component", "my_2nd_component"]
+
+                    Trainer.train(...
+                                    train_params={"loss":MyLoss(),
+                                                    ...
+                                                    "metric_to_watch": "MyLoss/my_1st_component"}
+
+                        This will write to log and monitor MyLoss/total_loss, MyLoss/my_1st_component,
+                         MyLoss/my_2nd_component.
+
+                   For example:
+                        class MyLoss2(_Loss):
+                            ...
+                            def forward(self, inputs, targets):
+                                ...
+                                total_loss = comp1 + comp2
+                                loss_items = torch.cat((total_loss.unsqueeze(0),comp1.unsqueeze(0), comp2.unsqueeze(0)).detach()
+                                return total_loss, loss_items
+                            ...
+
+                    Trainer.train(...
+                                    train_params={"loss":MyLoss(),
+                                                    ...
+                                                    "metric_to_watch": "MyLoss2/loss_0"}
+
+                        This will write to log and monitor MyLoss2/loss_0, MyLoss2/loss_1, MyLoss2/loss_2
+                        as they have been named by their positional index in loss_items.
 
                     Since running logs will save the loss_items in some internal state, it is recommended that
                     loss_items are detached from their computational graph for memory efficiency.
@@ -702,7 +754,7 @@ class Trainer:
                         is a list referring to the names of each entry in the output metric (torch tensor of size n)
 
                         one of "loss_logging_items_names" i.e which will correspond to an item returned during the
-                        loss function's forward pass.
+                        loss function's forward pass (see loss docs abov).
 
                     At the end of each epoch, if a new best metric_to_watch value is achieved, the models checkpoint
                     is saved in YOUR_PYTHON_PATH/checkpoints/ckpt_best.pth
@@ -874,24 +926,10 @@ class Trainer:
         # METRICS
         self._set_train_metrics(train_metrics_list=self.training_params.train_metrics_list)
         self._set_valid_metrics(valid_metrics_list=self.training_params.valid_metrics_list)
-        self.loss_logging_items_names = self.training_params.loss_logging_items_names
-
-        self.results_titles = ["Train_" + t for t in
-                               self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + \
-                              ["Valid_" + t for t in
-                               self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)]
 
         # Store the metric to follow (loss\accuracy) and initialize as the worst value
         self.metric_to_watch = self.training_params.metric_to_watch
         self.greater_metric_to_watch_is_better = self.training_params.greater_metric_to_watch_is_better
-        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
-
-        # Instantiate the values to monitor (loss/metric)
-        for loss in self.loss_logging_items_names:
-            self.train_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
-            self.valid_monitored_values[loss] = MonitoredValue(name=loss, greater_is_better=False)
-        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch,
-                                                                           greater_is_better=True)
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
@@ -984,15 +1022,6 @@ class Trainer:
                                                   title="Train-set", anchors=self.net.module.arch_params.anchors)
                 dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes,
                                                   title="val-set")
-            # AVERAGE BEST 10 MODELS PARAMS
-            if self.training_params.average_best_models:
-                self.model_weight_averaging = ModelWeightAveraging(self.checkpoints_dir_path,
-                                                                   greater_is_better=self.greater_metric_to_watch_is_better,
-                                                                   source_ckpt_folder_name=self.source_ckpt_folder_name,
-                                                                   metric_to_watch=self.metric_to_watch,
-                                                                   metric_idx=self.metric_idx_in_results_tuple,
-                                                                   load_checkpoint=self.load_checkpoint,
-                                                                   model_checkpoints_location=self.model_checkpoints_location)
         if self.training_params.save_full_train_log and not self.ddp_silent_mode:
             logger = get_logger(__name__,
                                 training_log_path=self.sg_logger.log_file_path.replace('.txt', 'full_train_log.log'))
@@ -1046,7 +1075,6 @@ class Trainer:
                                checkpoint_params=self.checkpoint_params,
                                architecture=self.architecture,
                                arch_params=self.arch_params,
-                               metric_idx_in_results_tuple=self.metric_idx_in_results_tuple,
                                metric_to_watch=self.metric_to_watch,
                                device=self.device,
                                context_methods=self._get_context_methods(Phase.PRE_TRAINING),
@@ -1813,3 +1841,18 @@ class Trainer:
             context_methods = ContextSgMethods()
 
         return context_methods
+
+    def _init_loss_logging_names(self, loss_logging_items):
+        criterion_name = self.criterion.__class__.__name__
+        component_names = None
+        if hasattr(self.criterion, "component_names"):
+            component_names = self.criterion.component_names
+        elif len(loss_logging_items) > 1:
+            component_names = ["loss_" + str(i) for i in range(len(loss_logging_items))]
+
+        if component_names is not None:
+            self.loss_logging_items_names = [criterion_name + '/' + component_name for component_name in component_names]
+            if self.metric_to_watch in component_names:
+                self.metric_to_watch = criterion_name + '/' + self.metric_to_watch
+        else:
+            self.loss_logging_items_names = [criterion_name]

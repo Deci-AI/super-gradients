@@ -24,7 +24,7 @@ class QATIntegrationTest(unittest.TestCase):
                         "initial_lr": 0.001, "loss": "cross_entropy",
                         "train_metrics_list": [Accuracy()],
                         "valid_metrics_list": [Accuracy()],
-                        "loss_logging_items_names": ["Loss"],
+
                         "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True,
                         "average_best_models": False,
