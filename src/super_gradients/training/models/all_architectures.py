@@ -1,7 +1,7 @@
 from super_gradients.training.models import ResNeXt50, ResNeXt101, GoogleNetV1
 from super_gradients.training.models.classification_models import repvgg, efficientnet, densenet, resnet, regnet
-from super_gradients.training.models.classification_models.mobilenetv2 import mobile_net_v2, mobile_net_v2_135, \
-    custom_mobile_net_v2
+from super_gradients.training.models.classification_models.mobilenetv2 import MobileNetV2Base, MobileNetV2_135, \
+    CustomMobileNetV2
 from super_gradients.training.models.classification_models.mobilenetv3 import mobilenetv3_large, mobilenetv3_small, \
     mobilenetv3_custom
 from super_gradients.training.models.classification_models.shufflenetv2 import ShufflenetV2_x0_5, ShufflenetV2_x1_0, \
@@ -36,9 +36,9 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "custom_resnet50": resnet.CustomizedResnet50,
                  "custom_resnet_cifar": resnet.CustomizedResnetCifar,
                  "custom_resnet50_cifar": resnet.CustomizedResnet50Cifar,
-                 "mobilenet_v2": mobile_net_v2,
-                 "mobile_net_v2_135": mobile_net_v2_135,
-                 "custom_mobilenet_v2": custom_mobile_net_v2,
+                 "mobilenet_v2": MobileNetV2Base,
+                 "mobile_net_v2_135": MobileNetV2_135,
+                 "custom_mobilenet_v2": CustomMobileNetV2,
                  "mobilenet_v3_large": mobilenetv3_large,
                  "mobilenet_v3_small": mobilenetv3_small,
                  "mobilenet_v3_custom": mobilenetv3_custom,

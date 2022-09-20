@@ -188,7 +188,7 @@ class MobileNetV2(MobileNetBase):
                 m.bias.data.zero_()
 
 
-class mobile_net_v2(MobileNetV2):
+class MobileNetV2Base(MobileNetV2):
     def __init__(self, arch_params):
         """
         :param arch_params: HpmStruct
@@ -203,7 +203,7 @@ class mobile_net_v2(MobileNetV2):
         )
 
 
-class mobile_net_v2_135(MobileNetV2):
+class MobileNetV2_135(MobileNetV2):
     def __init__(self, arch_params):
         """
         This Model achieves–≠ 75.73% on Imagenet - similar to Resnet50
@@ -219,7 +219,7 @@ class mobile_net_v2_135(MobileNetV2):
         )
 
 
-class custom_mobile_net_v2(MobileNetV2):
+class CustomMobileNetV2(MobileNetV2):
     def __init__(self, arch_params):
         """
         :param arch_params:–≠ HpmStruct
