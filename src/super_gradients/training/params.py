@@ -63,6 +63,7 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            },
                            "resume": False,
                            "resume_path": None,
+                           "ckpt_name": 'ckpt_latest.pth',
                            "resume_strict_load": False
                            }
 

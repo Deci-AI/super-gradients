@@ -10,8 +10,7 @@ except (ModuleNotFoundError, ImportError, NameError):
     from torch.hub import _download_url_to_file as download_url_to_file
 
 
-def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, model_checkpoints_location: str, external_checkpoint_path: str,
-                        overwrite_local_checkpoint: bool, load_weights_only: bool):
+def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, external_checkpoint_path: str):
     """
     Gets the local path to the checkpoint file, which will be:
         - By default: YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name.
@@ -24,30 +23,11 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
     @param source_ckpt_folder_name: The folder where the checkpoint is saved. When set to None- uses the experiment_name.
     @param experiment_name: experiment name attr in trainer
     @param ckpt_name: checkpoint filename
-    @param model_checkpoints_location: S3, local ot URL
     @param external_checkpoint_path: full path to checkpoint file (that might be located outside of super_gradients/checkpoints directory)
-    @param overwrite_local_checkpoint: whether to overwrite the checkpoint file with the same name when downloading from S3.
-    @param load_weights_only: whether to load the network's state dict only.
     @return:
     """
     source_ckpt_folder_name = source_ckpt_folder_name or experiment_name
-    if model_checkpoints_location == 'local':
-        ckpt_local_path = external_checkpoint_path or pkg_resources.resource_filename('checkpoints', source_ckpt_folder_name + os.path.sep + ckpt_name)
-
-    # COPY THE DATA FROM 'S3'/'URL' INTO A LOCAL DIRECTORY
-    elif model_checkpoints_location.startswith('s3') or model_checkpoints_location == 'url':
-        # COPY REMOTE DATA TO A LOCAL DIRECTORY AND GET THAT DIRECTORYs NAME
-        ckpt_local_path = copy_ckpt_to_local_folder(local_ckpt_destination_dir=experiment_name,
-                                                    ckpt_filename=ckpt_name,
-                                                    remote_ckpt_source_dir=source_ckpt_folder_name,
-                                                    path_src=model_checkpoints_location,
-                                                    overwrite_local_ckpt=overwrite_local_checkpoint,
-                                                    load_weights_only=load_weights_only)
-
-    else:
-        # ERROR IN USER CODE FLOW - THIS WILL EVENTUALLY RAISE AN EXCEPTION
-        raise NotImplementedError(
-            'model_checkpoints_data_source: ' + str(model_checkpoints_location) + 'not supported')
+    ckpt_local_path = external_checkpoint_path or pkg_resources.resource_filename('checkpoints', source_ckpt_folder_name + os.path.sep + ckpt_name)
 
     return ckpt_local_path
 

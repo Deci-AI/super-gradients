@@ -23,7 +23,7 @@ class CallWrapper:
 class EMAIntegrationTest(unittest.TestCase):
 
     def _init_model(self) -> None:
-        self.trainer = Trainer("resnet18_cifar_ema_test", model_checkpoints_location='local',
+        self.trainer = Trainer("resnet18_cifar_ema_test",
                                device='cpu', multi_gpu=MultiGPUMode.OFF)
         self.model = models.get("resnet18_cifar", arch_params={"num_classes": 5})
 
