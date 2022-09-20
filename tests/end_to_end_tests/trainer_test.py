@@ -38,7 +38,7 @@ class TestTrainer(unittest.TestCase):
 
     @staticmethod
     def get_classification_trainer(name=''):
-        trainer = Trainer(name, model_checkpoints_location='local')
+        trainer = Trainer(name)
         model = models.get("resnet18", num_classes=5)
         return trainer, model
 

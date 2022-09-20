@@ -66,7 +66,7 @@ student_checkpoint_params:
   pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
 
 
-model_checkpoints_location: local
+
 
 
 run_teacher_on_eval: True

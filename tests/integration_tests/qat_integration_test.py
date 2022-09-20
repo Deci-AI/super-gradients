@@ -10,7 +10,7 @@ from super_gradients.training.utils.quantization_utils import PostQATConversionC
 class QATIntegrationTest(unittest.TestCase):
     def _get_trainer(self, experiment_name):
         trainer = Trainer(experiment_name,
-                          model_checkpoints_location='local',
+
                           multi_gpu=MultiGPUMode.OFF)
         model = models.get("resnet18", pretrained_weights="imagenet")
         return trainer, model
