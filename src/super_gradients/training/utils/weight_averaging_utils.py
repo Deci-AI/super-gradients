@@ -19,7 +19,6 @@ class ModelWeightAveraging:
                  source_ckpt_folder_name=None, metric_to_watch='acc',
                  metric_idx=1, load_checkpoint=False,
                  number_of_models_to_average=10,
-                 model_checkpoints_location='local'
                  ):
         """
         Init the ModelWeightAveraging
@@ -45,7 +44,6 @@ class ModelWeightAveraging:
                                                                   source_ckpt_folder_name=source_ckpt_folder_name,
                                                                   ckpt_filename="averaging_snapshots.pkl",
                                                                   load_weights_only=False,
-                                                                  model_checkpoints_location=model_checkpoints_location,
                                                                   overwrite_local_ckpt=True)
 
         else:

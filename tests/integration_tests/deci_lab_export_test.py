@@ -10,7 +10,7 @@ from deci_lab_client.models import Metric, QuantizationLevel, ModelMetadata, Opt
 
 class DeciLabUploadTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.trainer = Trainer("deci_lab_export_test_model", model_checkpoints_location='local')
+        self.trainer = Trainer("deci_lab_export_test_model")
 
     def test_train_with_deci_lab_integration(self):
         model_meta_data = ModelMetadata(name='model_for_deci_lab_upload_test',
