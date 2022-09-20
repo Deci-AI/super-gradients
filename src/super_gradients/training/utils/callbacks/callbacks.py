@@ -88,7 +88,6 @@ class PhaseContext:
         self.checkpoint_params = checkpoint_params
         self.architecture = architecture
         self.arch_params = arch_params
-        self.metric_idx_in_results_tuple = metric_idx_in_results_tuple
         self.metric_to_watch = metric_to_watch
         self.valid_metrics = valid_metrics
         self.context_methods = context_methods

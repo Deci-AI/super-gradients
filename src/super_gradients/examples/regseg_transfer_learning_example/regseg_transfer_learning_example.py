@@ -45,7 +45,7 @@ train_params = {"max_epochs": 50,
                 "greater_metric_to_watch_is_better": True,
                 "train_metrics_list": [BinaryIOU()],
                 "valid_metrics_list": [BinaryIOU()],
-                "loss_logging_items_names": ["loss"],
+
                 "phase_callbacks": [BinarySegmentationVisualizationCallback(phase=Phase.VALIDATION_BATCH_END,
                                                                             freq=1,
                                                                             last_img_idx_in_batch=4)],
