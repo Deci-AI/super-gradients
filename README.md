@@ -95,6 +95,14 @@ torch.onnx.export(model, dummy_input,  "yolox_s.onnx")
 ```
 More information on how to take your model to production can be found in [Getting Started](#getting-started) notebooks
 
+## Quick Installation
+
+__________________________________________________________________________________________________________
+
+ 
+```bash
+pip install super-gradients
+```
 
 ## What's New
 __________________________________________________________________________________________________________
@@ -147,7 +155,6 @@ Want to try our pre-trained models on your machine? Import SuperGradients, initi
 
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
-# This is an example of loading COCO-2017 pre-trained weights for a YOLOX Nano object detection model
     
 import super_gradients
 
@@ -179,8 +186,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 <a target="_blank" href="https://bit.ly/3qJjxYq"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source </a>
  </td>
 </table>
+ </br></br>
 
 
+ 
  ####  Transfer Learning 
 <table class="tfo-notebook-buttons" align="left">
  <td>
@@ -190,6 +199,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 <a target="_blank" href="https://bit.ly/3ShJlXn"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
+ </br></br>
 
 
 
@@ -229,7 +239,7 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 <a target="_blank" href="https://bit.ly/3xBlcmq"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
-  </br></br>
+ </br></br>
 
 
 
@@ -403,7 +413,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ## Implemented Model Architectures 
 __________________________________________________________________________________________________________
 
-Detailed list can be found [here](docs/assets/SG_img/Implemented Model Architectures.md) 
+Detailed list can be found [here](docs/assets/SG_img/Implemented%20Model%20Architectures.md) 
 
 ### Image Classification
   
