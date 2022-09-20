@@ -230,7 +230,6 @@ class mobilenetv3_small(MobileNetV3):
             [5, 6, 96, 1, 1, 1],
             [5, 6, 96, 1, 1, 1],
         ]
-    
         super().__init__(cfgs, mode='small', num_classes=arch_params.num_classes, width_mult=width_mult,
                          in_channels=get_param(arch_params, "in_channels", 3))
 

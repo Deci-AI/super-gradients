@@ -135,12 +135,11 @@ class DenseNet(SgModule):
 class CustomizedDensnet(DenseNet):
     def __init__(self, arch_params):
         super().__init__(growth_rate=arch_params.growth_rate if hasattr(arch_params, "growth_rate") else 32,
-                    structure=arch_params.structure if hasattr(arch_params, "structure") else [6, 12, 24, 16],
-                    num_init_features=arch_params.num_init_features if hasattr(arch_params,
-                                                                               "num_init_features") else 64,
-                    bn_size=arch_params.bn_size if hasattr(arch_params, "bn_size") else 4,
-                    drop_rate=arch_params.drop_rate if hasattr(arch_params, "drop_rate") else 0,
-                    num_classes=arch_params.num_classes)
+                         structure=arch_params.structure if hasattr(arch_params, "structure") else [6, 12, 24, 16],
+                         num_init_features=arch_params.num_init_features if hasattr(arch_params, "num_init_features") else 64,
+                         bn_size=arch_params.bn_size if hasattr(arch_params, "bn_size") else 4,
+                         drop_rate=arch_params.drop_rate if hasattr(arch_params, "drop_rate") else 0,
+                         num_classes=arch_params.num_classes)
 
 
 class DenseNet121(DenseNet):
