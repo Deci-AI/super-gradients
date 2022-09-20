@@ -188,52 +188,50 @@ class MobileNetV2(MobileNetBase):
                 m.bias.data.zero_()
 
 
-def mobile_net_v2(arch_params):
-    """
-    :param arch_params: HpmStruct
-        must contain: 'num_classes': int
-    :return: MobileNetV2: nn.Module
-    """
-    return MobileNetV2(
-        num_classes=arch_params.num_classes,
-        width_mult=1.0,
-        structure=None,
-        dropout=get_param(arch_params, "dropout", 0.0),
-        in_channels=get_param(arch_params, "in_channels", 3),
-    )
+class mobile_net_v2(MobileNetV2):
+    def __init__(self, arch_params):
+        """
+        :param arch_params: HpmStruct
+            must contain: 'num_classes': int
+        """
+        super().__init__(
+            num_classes=arch_params.num_classes,
+            width_mult=1.0,
+            structure=None,
+            dropout=get_param(arch_params, "dropout", 0.0),
+            in_channels=get_param(arch_params, "in_channels", 3),
+        )
 
 
-def mobile_net_v2_135(arch_params):
-    """
-    This Model achieves 75.73% on Imagenet - similar to Resnet50
-    :param arch_params: HpmStruct
-        must contain: 'num_classes': int
-    :return: MobileNetV2: nn.Module
-    """
+class mobile_net_v2_135(MobileNetV2):
+    def __init__(self, arch_params):
+        """
+        This Model achieves–≠ 75.73% on Imagenet - similar to Resnet50
+        :param arch_params: HpmStruct
+            must contain: 'num_classes': int
+        """
+        super().__init__(
+            num_classes=arch_params.num_classes,
+            width_mult=1.35,
+            structure=None,
+            dropout=get_param(arch_params, "dropout", 0.0),
+            in_channels=get_param(arch_params, "in_channels", 3),
+        )
 
-    return MobileNetV2(
-        num_classes=arch_params.num_classes,
-        width_mult=1.35,
-        structure=None,
-        dropout=get_param(arch_params, "dropout", 0.0),
-        in_channels=get_param(arch_params, "in_channels", 3),
-    )
 
-
-def custom_mobile_net_v2(arch_params):
-    """
-    :param arch_params: HpmStruct
-        must contain:
-            'num_classes': int
-            'width_mult': float
-            'structure' : list. specify the mobilenetv2 architecture
-    :return: MobileNetV2: nn.Module
-    """
-
-    return MobileNetV2(
-        num_classes=arch_params.num_classes,
-        width_mult=arch_params.width_mult,
-        structure=arch_params.structure,
-        dropout=get_param(arch_params, "dropout", 0.0),
-        in_channels=get_param(arch_params, "in_channels", 3),
-    )
+class custom_mobile_net_v2(MobileNetV2):
+    def __init__(self, arch_params):
+        """
+        :param arch_params:–≠ HpmStruct
+            must contain:
+                'num_classes': int
+                'width_mult': float
+                'structure' : list. specify the mobilenetv2 architecture
+        """
+        super().__init__(
+            num_classes=arch_params.num_classes,
+            width_mult=arch_params.width_mult,
+            structure=arch_params.structure,
+            dropout=get_param(arch_params, "dropout", 0.0),
+            in_channels=get_param(arch_params, "in_channels", 3),
+        )

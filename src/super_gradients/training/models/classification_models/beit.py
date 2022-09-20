@@ -417,31 +417,31 @@ class Beit(SgModule):
             self.head = nn.Linear(self.head.in_features, new_num_classes)
 
 
-def beit_base_patch16_224(arch_params: HpmStruct):
-    model_kwargs = HpmStruct(patch_size=(16, 16),
-                             embed_dim=768,
-                             depth=12,
-                             num_heads=12,
-                             mlp_ratio=4,
-                             use_abs_pos_emb=False,
-                             use_rel_pos_bias=True,
-                             init_values=0.1)
-    model_kwargs.override(**arch_params.to_dict())
-    model = Beit(**model_kwargs.to_dict())
-    return model
+class BeitBasePatch16_224(Beit):
+    def __init__(self, arch_params: HpmStruct):
+        model_kwargs = HpmStruct(patch_size=(16, 16),
+                                 embed_dim=768,
+                                 depth=12,
+                                 num_heads=12,
+                                 mlp_ratio=4,
+                                 use_abs_pos_emb=False,
+                                 use_rel_pos_bias=True,
+                                 init_values=0.1)
+        model_kwargs.override(**arch_params.to_dict())
+        super(BeitBasePatch16_224, self).__init__(**model_kwargs.to_dict())
 
 
-def beit_large_patch16_224(arch_params: HpmStruct):
-    model_kwargs = HpmStruct(patch_size=(16, 16),
-                             embed_dim=1024,
-                             depth=24,
-                             num_heads=16,
-                             mlp_ratio=4,
-                             qkv_bias=True,
-                             use_abs_pos_emb=False,
-                             use_rel_pos_bias=True,
-                             init_values=1e-5)
+class BeitLargePatch16_224(Beit):
+    def __init__(self, arch_params: HpmStruct):
+        model_kwargs = HpmStruct(patch_size=(16, 16),
+                                 embed_dim=1024,
+                                 depth=24,
+                                 num_heads=16,
+                                 mlp_ratio=4,
+                                 qkv_bias=True,
+                                 use_abs_pos_emb=False,
+                                 use_rel_pos_bias=True,
+                                 init_values=1e-5)
 
-    model_kwargs.override(**arch_params.to_dict())
-    model = Beit(**model_kwargs.to_dict())
-    return model
+        model_kwargs.override(**arch_params.to_dict())
+        super(BeitLargePatch16_224, self).__init__(**model_kwargs.to_dict())

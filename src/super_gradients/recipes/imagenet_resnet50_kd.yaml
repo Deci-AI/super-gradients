@@ -80,4 +80,4 @@ num_gpus: 8
 
 architecture: kd_module
 student_architecture: resnet50
-teacher_architecture: beit_base_patch16_224
+teacher_architecture: BeitBasePatch16_224

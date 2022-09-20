@@ -1,4 +1,4 @@
-from super_gradients.training.models import ResNeXt50, ResNeXt101, googlenet_v1
+from super_gradients.training.models import ResNeXt50, ResNeXt101, GoogleNetV1
 from super_gradients.training.models.classification_models import repvgg, efficientnet, densenet, resnet, regnet
 from super_gradients.training.models.classification_models.mobilenetv2 import mobile_net_v2, mobile_net_v2_135, \
     custom_mobile_net_v2
@@ -7,7 +7,7 @@ from super_gradients.training.models.classification_models.mobilenetv3 import mo
 from super_gradients.training.models.classification_models.shufflenetv2 import ShufflenetV2_x0_5, ShufflenetV2_x1_0, \
     ShufflenetV2_x1_5, \
     ShufflenetV2_x2_0, CustomizedShuffleNetV2
-from super_gradients.training.models.classification_models.vit import vit_base, vit_large, vit_huge
+from super_gradients.training.models.classification_models.vit import ViTBase, ViTLarge, ViTHuge
 from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
@@ -20,7 +20,7 @@ from super_gradients.training.models.segmentation_models.stdc import STDC1Classi
     STDC1Seg, STDC2Seg
 
 from super_gradients.training.models.kd_modules.kd_module import KDModule
-from super_gradients.training.models.classification_models.beit import beit_base_patch16_224, beit_large_patch16_224
+from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
 from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
 # IF YOU UPDATE THE ARCHITECTURE DICT PLEASE ALSO UPDATE THE ENUM CLASS DOWN BELOW.
 
@@ -43,10 +43,10 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "mobilenet_v3_small": mobilenetv3_small,
                  "mobilenet_v3_custom": mobilenetv3_custom,
                  "custom_densenet": densenet.CustomizedDensnet,
-                 "densenet121": densenet.densenet121,
-                 "densenet161": densenet.densenet161,
-                 "densenet169": densenet.densenet169,
-                 "densenet201": densenet.densenet201,
+                 "DenseNet121": densenet.DenseNet121,
+                 "DenseNet161": densenet.DenseNet161,
+                 "DenseNet169": densenet.DenseNet169,
+                 "DenseNet201": densenet.DenseNet201,
                  "shelfnet18_lw": ShelfNet18_LW,
                  "shelfnet34_lw": ShelfNet34_LW,
                  "shelfnet50_3343": ShelfNet503343,
@@ -61,17 +61,17 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  'csp_darknet53': CSPDarknet53,
                  "resnext50": ResNeXt50,
                  "resnext101": ResNeXt101,
-                 "googlenet_v1": googlenet_v1,
-                 "efficientnet_b0": efficientnet.b0,
-                 "efficientnet_b1": efficientnet.b1,
-                 "efficientnet_b2": efficientnet.b2,
-                 "efficientnet_b3": efficientnet.b3,
-                 "efficientnet_b4": efficientnet.b4,
-                 "efficientnet_b5": efficientnet.b5,
-                 "efficientnet_b6": efficientnet.b6,
-                 "efficientnet_b7": efficientnet.b7,
-                 "efficientnet_b8": efficientnet.b8,
-                 "efficientnet_l2": efficientnet.l2,
+                 "GoogleNetV1": GoogleNetV1,
+                 "efficientnet_b0": efficientnet.EfficientNetB0,
+                 "efficientnet_b1": efficientnet.EfficientNetB1,
+                 "efficientnet_b2": efficientnet.EfficientNetB2,
+                 "efficientnet_b3": efficientnet.EfficientNetB3,
+                 "efficientnet_b4": efficientnet.EfficientNetB4,
+                 "efficientnet_b5": efficientnet.EfficientNetB5,
+                 "efficientnet_b6": efficientnet.EfficientNetB6,
+                 "efficientnet_b7": efficientnet.EfficientNetB7,
+                 "efficientnet_b8": efficientnet.EfficientNetB8,
+                 "efficientnet_l2": efficientnet.EfficientNetL2,
                  "CustomizedEfficientnet": efficientnet.CustomizedEfficientnet,
                  "regnetY200": regnet.RegNetY200,
                  "regnetY400": regnet.RegNetY400,
@@ -111,11 +111,11 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "stdc2_seg75": STDC2Seg,
                  "regseg48": RegSeg48,
                  "kd_module": KDModule,
-                 "vit_base": vit_base,
-                 "vit_large": vit_large,
-                 "vit_huge": vit_huge,
-                 "beit_base_patch16_224": beit_base_patch16_224,
-                 "beit_large_patch16_224": beit_large_patch16_224,
+                 "ViTBase": ViTBase,
+                 "ViTLarge": ViTLarge,
+                 "ViTHuge": ViTHuge,
+                 "BeitBasePatch16_224": BeitBasePatch16_224,
+                 "BeitLargePatch16_224": BeitLargePatch16_224,
                  "pp_lite_t_seg": PPLiteSegT,
                  "pp_lite_t_seg50": PPLiteSegT,
                  "pp_lite_t_seg75": PPLiteSegT,
