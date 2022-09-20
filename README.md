@@ -51,17 +51,17 @@ model = models.get("yolox_s", pretrained_weights="coco")
 
 #### Classification
 <div align="center">
-<img src="./docs/assets/SG_img/Classification@2x.png" width="800px">
+<img src="./docs/assets/SG_img/Classification@2xDark.png" width="800px">
 </div>
 
 #### Semantic Segmentation
 <div align="center">
-<img src="./docs/assets/SG_img/Semantic Segmentation@2x.png" width="800px">
+<img src="./docs/assets/SG_img/Semantic Segmentation@2xDark.png" width="800px">
 </div>
 
 #### Object Detection 
 <div align="center">
-<img src="./docs/assets/SG_img/Object Detection@2x.png" width="800px">
+<img src="./docs/assets/SG_img/Object Detection@2xDark.png" width="800px">
 </div>
 
 
