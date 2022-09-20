@@ -75,7 +75,7 @@ class Trainer:
     """
 
     def __init__(self, experiment_name: str, device: str = None,
-                 multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF, ckpt_name: str = 'ckpt_latest.pth',
+                 multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF,
                  ckpt_root_dir: str = None):
         """
 
@@ -84,7 +84,6 @@ class Trainer:
         :param multi_gpu:                       If True, runs on all available devices
                                                 otherwise saves the Checkpoints Locally
                                                 checkpoint from cloud service, otherwise overwrites the local checkpoints file
-        :param ckpt_name:                       The Checkpoint to Load
         :param ckpt_root_dir:                   Local root directory path where all experiment logging directories will
                                                 reside. When none is give, it is assumed that
                                                 pkg_resources.resource_filename('checkpoints', "") exists and will be used.
@@ -131,7 +130,7 @@ class Trainer:
 
         # SETTING THE PROPERTIES FROM THE CONSTRUCTOR
         self.experiment_name = experiment_name
-        self.ckpt_name = ckpt_name
+        self.ckpt_name = None
 
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
         if ckpt_root_dir:
@@ -495,6 +494,7 @@ class Trainer:
         self.load_ema_as_net = False
         self.load_checkpoint = core_utils.get_param(self.training_params, "resume", False)
         self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
+        self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", 'ckpt_latest.pth')
         self._load_checkpoint_to_model()
 
     def _init_arch_params(self):
@@ -521,6 +521,21 @@ class Trainer:
             :param train_loader: Dataloader for train set.
             :param valid_loader: Dataloader for validation.
             :param training_params:
+
+                - `resume` : bool (default=False)
+
+                    Whether to continue training from ckpt with the same experiment name
+                     (i.e resume from CKPT_ROOT_DIR/EXPERIMENT_NAME/CKPT_NAME)
+
+                - `ckpt_name` : str (default=ckpt_latest.pth)
+
+                    The checkpoint (.pth file) filename in CKPT_ROOT_DIR/EXPERIMENT_NAME/ to use when resume=True and
+                     resume_path=None
+
+                - `resume_path`: str (default=None)
+
+                    Explicit checkpoint path (.pth file) to use to resume training.
+
                 - `max_epochs` : int
 
                     Number of epochs to run training.
