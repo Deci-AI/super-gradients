@@ -690,13 +690,13 @@ Will initialize a resnet50 and set it to be sg_model’s network attribute, whic
 
 **'custom_densenet',**
 
-**'DenseNet121',**
+**'densenet121',**
 
-**'DenseNet161',**
+**'densenet161',**
 
-**'DenseNet169',**
+**'densenet169',**
 
-**'DenseNet201',**
+**'densenet201',**
 
 **'shelfnet18',**
 
@@ -726,7 +726,7 @@ Will initialize a resnet50 and set it to be sg_model’s network attribute, whic
 
 **'resnext101',**
 
-**'GoogleNetV1',**
+**'googlenet_v1',**
 
 **'efficientnet_b0',**
 
@@ -874,7 +874,7 @@ Object Detection models
 Semantic Segmentation models
 
 
-| Model | Dataset |  Resolution | mIoU | Latency EfficientNetB1<sub>T4</sub> | Latency EfficientNetB1<sub>T4</sub> including IO |
+| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
 | DDRNet 23   | Cityscapes |1024x2048   |78.65  |**7.62ms** |**25.94ms**|
 | DDRNet 23 slim   | Cityscapes |1024x2048 |76.6  |**3.56ms** |**22.80ms**|

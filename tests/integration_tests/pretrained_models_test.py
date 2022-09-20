@@ -29,7 +29,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                 "repvgg_a0": {"build_residual_branches": True},
                                                 "efficientnet_b0": {},
                                                 "mobilenet": {},
-                                                "ViTBase":
+                                                "vit_base":
                                                     {"image_size": (224, 224),
                                                      "patch_size": (16, 16)}}
 
@@ -38,7 +38,7 @@ class PretrainedModelsTest(unittest.TestCase):
                                                                    "repvgg_a0": {"build_residual_branches": True},
                                                                    "efficientnet_b0": {},
                                                                    "mobilenet": {},
-                                                                   "ViTBase":
+                                                                   "vit_base":
                                                                        {"image_size": (224, 224),
                                                                         "patch_size": (16, 16)}}
 
@@ -58,9 +58,9 @@ class PretrainedModelsTest(unittest.TestCase):
                                                "mobilenet_v3_large": 0.7452,
                                                "mobilenet_v3_small": 0.6745,
                                                "mobilenet_v2": 0.7308,
-                                               "ViTBase": 0.8415,
-                                               "ViTLarge": 0.8564,
-                                               "BeitBasePatch16_224": 0.85
+                                               "vit_base": 0.8415,
+                                               "vit_large": 0.8564,
+                                               "beit_base_patch16_224": 0.85
                                                }
         self.imagenet_dataset = imagenet_val(dataloader_params={"batch_size": 128})
 
@@ -718,7 +718,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
 
-        model = models.get("ViTBase", arch_params=self.imagenet_pretrained_arch_params["ViTBase"],
+        model = models.get("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
                            **self.imagenet21k_pretrained_ckpt_params, num_classes=5)
         trainer.train(model=model, training_params=self.transfer_classification_train_params,
                       train_loader=self.transfer_classification_dataloader,
@@ -729,7 +729,7 @@ class PretrainedModelsTest(unittest.TestCase):
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
 
-        model = models.get("ViTLarge", arch_params=self.imagenet_pretrained_arch_params["ViTBase"],
+        model = models.get("vit_large", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
                            **self.imagenet21k_pretrained_ckpt_params, num_classes=5)
         trainer.train(model=model, training_params=self.transfer_classification_train_params,
                       train_loader=self.transfer_classification_dataloader,
@@ -738,39 +738,39 @@ class PretrainedModelsTest(unittest.TestCase):
     def test_pretrained_vit_base_imagenet(self):
         trainer = Trainer('imagenet_pretrained_vit_base', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
-        model = models.get("ViTBase", arch_params=self.imagenet_pretrained_arch_params["ViTBase"],
+        model = models.get("vit_base", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
                            **self.imagenet_pretrained_ckpt_params)
         res = \
             trainer.test(model=model, test_loader=self.imagenet_dataset_05_mean_std,
                          test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["ViTBase"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_base"], delta=0.001)
 
     def test_pretrained_vit_large_imagenet(self):
         trainer = Trainer('imagenet_pretrained_vit_large', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
-        model = models.get("ViTLarge", arch_params=self.imagenet_pretrained_arch_params["ViTBase"],
+        model = models.get("vit_large", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
                            **self.imagenet_pretrained_ckpt_params)
         res = \
             trainer.test(model=model, test_loader=self.imagenet_dataset_05_mean_std,
                          test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["ViTLarge"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["vit_large"], delta=0.001)
 
     def test_pretrained_beit_base_imagenet(self):
         trainer = Trainer('imagenet_pretrained_beit_base', model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
-        model = models.get("BeitBasePatch16_224", arch_params=self.imagenet_pretrained_arch_params["ViTBase"],
+        model = models.get("beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
                            **self.imagenet_pretrained_ckpt_params)
         res = \
             trainer.test(model=model, test_loader=self.imagenet_dataset_05_mean_std,
                          test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
-        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["BeitBasePatch16_224"], delta=0.001)
+        self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["beit_base_patch16_224"], delta=0.001)
 
     def test_transfer_learning_beit_base_imagenet(self):
         trainer = Trainer('test_transfer_learning_beit_base_imagenet',
                           model_checkpoints_location='local',
                           multi_gpu=MultiGPUMode.OFF)
 
-        model = models.get("BeitBasePatch16_224", arch_params=self.imagenet_pretrained_arch_params["ViTBase"],
+        model = models.get("beit_base_patch16_224", arch_params=self.imagenet_pretrained_arch_params["vit_base"],
                            **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(model=model, training_params=self.transfer_classification_train_params,
                       train_loader=self.transfer_classification_dataloader,

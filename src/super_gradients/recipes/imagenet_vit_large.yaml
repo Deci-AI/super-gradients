@@ -23,7 +23,7 @@ training_hyperparams:
   initial_lr: 0.06
   average_best_models: True
 
-architecture: ViTLarge
+architecture: vit_large
 
 experiment_name: vit_large_imagenet1k
 multi_gpu: DDP

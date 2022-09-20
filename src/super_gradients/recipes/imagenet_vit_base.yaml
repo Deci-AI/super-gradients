@@ -29,6 +29,6 @@ training_hyperparams:
 
 experiment_name: vit_base_imagenet1k
 
-architecture: ViTBase
+architecture: vit_base
 multi_gpu: DDP
 num_gpus: 8

@@ -392,7 +392,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
 
-| Model | Dataset |  Resolution | mIoU | Latency EfficientNetB1<sub>T4</sub> | Latency EfficientNetB1<sub>T4</sub> including IO |
+| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
 | DDRNet 23   | Cityscapes |1024x2048   |80.26 |**7.62ms** |**25.94ms**|
 | DDRNet 23 slim   | Cityscapes |1024x2048 |78.01 |**3.56ms** |**22.80ms**|

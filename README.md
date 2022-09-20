@@ -394,7 +394,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 ### Pretrained Semantic Segmentation PyTorch Checkpoints
 
-| Model | Dataset |  Resolution | mIoU | Latency EfficientNetB1<sub>T4</sub> | Latency EfficientNetB1<sub>T4</sub> including IO |
+| Model | Dataset |  Resolution | mIoU | Latency b1<sub>T4</sub> | Latency b1<sub>T4</sub> including IO |
 |--------------------- |------ | ---------- | ------ | -------- | :------: |
 | PP-LiteSeg B50 | Cityscapes |512x1024    |76.48 |**4.18ms** |**31.22ms**|
 | PP-LiteSeg B75 | Cityscapes |768x1536   |78.52 |**6.84ms** |**33.69ms**|
@@ -564,11 +564,11 @@ resnet50_kd
 ```
 python src/super_gradients/examples/train_from_kd_recipe_example/train_from_kd_recipe.py --config-name=imagenet_resnet50_kd
 ```
-ViTBase
+vit_base
 ```
 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_base
 ```
-ViTLarge
+vit_large
 ```
 python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_vit_large
 ```
