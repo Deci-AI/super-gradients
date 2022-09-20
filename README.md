@@ -88,7 +88,12 @@ All SuperGradients models’ are production ready in the sense that they are com
 # Load model with pretrained weights
 model = models.get("yolox_s", pretrained_weights="coco")
 
-# Prepare model for conversion & create dummy_input
+# Prepare model for conversion
+# Input size is in format of [Batch x Channels x Width x Height] where 640 is the standart COCO dataset dimensions
+model.eval()
+model.prep_model_for_conversion(input_size=[1, 3, 640, 640])
+    
+# Create dummy_input
 
 # Convert model to onnx
 torch.onnx.export(model, dummy_input,  "yolox_s.onnx")
