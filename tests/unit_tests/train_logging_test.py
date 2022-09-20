@@ -18,7 +18,7 @@ class SgTrainerLoggingTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True,
                         "save_full_train_log": True}
 
@@ -30,8 +30,11 @@ class SgTrainerLoggingTest(unittest.TestCase):
         assert os.path.exists(logfile_path) and os.path.getsize(logfile_path) > 0
 
         root_logger_handlers = logging.root.handlers
-        assert any(isinstance(handler, logging.handlers.RotatingFileHandler) and handler.baseFilename == logfile_path for handler in root_logger_handlers)
-        assert any(isinstance(handler, logging.StreamHandler) and handler.name == 'console' for handler in root_logger_handlers)
+        assert any(
+            isinstance(handler, logging.handlers.RotatingFileHandler) and handler.baseFilename == logfile_path for
+            handler in root_logger_handlers)
+        assert any(isinstance(handler, logging.StreamHandler) and handler.name == 'console' for handler in
+                   root_logger_handlers)
 
     def test_logger_with_non_existing_deci_logs_dir(self):
         user_dir = os.path.expanduser(r"~")
@@ -43,7 +46,8 @@ class SgTrainerLoggingTest(unittest.TestCase):
 
         _ = get_logger(module_name, training_log_path=None, logs_dir_path=logs_dir_path)
         root_logger_handlers = logging.root.handlers
-        assert any(isinstance(handler, logging.StreamHandler) and handler.name == 'console' for handler in root_logger_handlers)
+        assert any(isinstance(handler, logging.StreamHandler) and handler.name == 'console' for handler in
+                   root_logger_handlers)
 
 
 if __name__ == '__main__':
