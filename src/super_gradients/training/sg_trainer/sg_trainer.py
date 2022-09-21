@@ -194,9 +194,9 @@ class Trainer:
 
         # TRAIN
         res = trainer.train(model=model,
-                      train_loader=train_dataloader,
-                      valid_loader=val_dataloader,
-                      training_params=cfg.training_hyperparams)
+                            train_loader=train_dataloader,
+                            valid_loader=val_dataloader,
+                            training_params=cfg.training_hyperparams)
 
         return model, res
 
