@@ -40,7 +40,7 @@ defaults:
 train_dataloader: coco2017_train
 val_dataloader: coco2017_val
 
-model_checkpoints_location: local
+
 
 load_checkpoint: False
 resume: False
@@ -58,4 +58,9 @@ experiment_name: ${architecture}_coco2017_${experiment_suffix}
 ckpt_root_dir:
 
 
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
 

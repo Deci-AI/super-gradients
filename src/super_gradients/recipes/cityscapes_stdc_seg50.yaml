@@ -75,6 +75,9 @@ num_gpus: 2
 experiment_name: ${architecture}50_cityscapes
 ckpt_root_dir:
 
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
   run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
     dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

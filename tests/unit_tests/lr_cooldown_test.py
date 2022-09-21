@@ -10,7 +10,7 @@ class LRCooldownTest(unittest.TestCase):
     def test_lr_cooldown_with_lr_scheduling(self):
         # Define Model
         net = LeNet()
-        trainer = Trainer("lr_warmup_test", model_checkpoints_location='local')
+        trainer = Trainer("lr_warmup_test")
 
         lrs = []
         phase_callbacks = [TestLRCallback(lr_placeholder=lrs)]
