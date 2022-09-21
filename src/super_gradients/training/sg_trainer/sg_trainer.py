@@ -155,12 +155,12 @@ class Trainer:
         self.valid_monitored_values = {}
 
     @classmethod
-    def train_from_config(cls, cfg: Union[DictConfig, dict]) -> None:
+    def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
         """
         Trains according to cfg recipe configuration.
 
         @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
-        @return: output of trainer.train(...) (i.e results tuple)
+        @return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
         setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, 'multi_gpu', MultiGPUMode.OFF),
@@ -193,10 +193,12 @@ class Trainer:
                            )
 
         # TRAIN
-        trainer.train(model=model,
+        res = trainer.train(model=model,
                       train_loader=train_dataloader,
                       valid_loader=val_dataloader,
                       training_params=cfg.training_hyperparams)
+
+        return model, res
 
     @classmethod
     def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
