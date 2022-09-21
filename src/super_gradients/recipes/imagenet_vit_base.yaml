@@ -21,7 +21,7 @@ defaults:
 train_dataloader: imagenet_train
 val_dataloader: imagenet_val
 
-model_checkpoints_location: local
+
 
 resume: False
 training_hyperparams:

@@ -22,7 +22,7 @@ training_hyperparams:
   resume: ${resume}
 
 
-model_checkpoints_location: local
+
 ckpt_root_dir:
 
 architecture: resnet18_cifar

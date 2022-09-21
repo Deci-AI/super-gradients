@@ -44,7 +44,7 @@ arch_params:
   strict_load: no_key_matching
 
 load_checkpoint: False
-model_checkpoints_location: local
+
 ckpt_root_dir:
 
 resume: False

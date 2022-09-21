@@ -18,7 +18,7 @@ class SaveCkptListUnitTest(unittest.TestCase):
                         "greater_metric_to_watch_is_better": True}
 
         # Define Model
-        trainer = Trainer("save_ckpt_test", model_checkpoints_location='local')
+        trainer = Trainer("save_ckpt_test")
 
         # Build Model
         model = models.get("resnet18_cifar", arch_params={"num_classes": 10})

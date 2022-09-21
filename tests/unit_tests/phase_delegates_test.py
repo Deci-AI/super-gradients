@@ -31,7 +31,7 @@ class ContextMethodsCheckerCallback(PhaseCallback):
 class ContextMethodsTest(unittest.TestCase):
     def test_access_to_methods_by_phase(self):
         net = LeNet()
-        trainer = Trainer("test_access_to_methods_by_phase", model_checkpoints_location='local')
+        trainer = Trainer("test_access_to_methods_by_phase")
 
         phase_callbacks = []
         for phase in Phase:
