@@ -24,20 +24,36 @@ class STDCBlock(nn.Module):
     """
     STDC building block, known as Short Term Dense Concatenate module.
     In STDC module, the kernel size of first block is 1, and the rest of them are simply set as 3.
-    Args:
-        steps (int): The total number of convs in this module, 1 conv 1x1 and (steps - 1) conv3x3.
     """
-    def __init__(self, in_channels: int, out_channels: int, steps: int, stride: int = 1):
-        super(STDCBlock, self).__init__()
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 steps: int,
+                 stdc_downsample_mode: str,
+                 stride: int):
+        """
+        :param steps: The total number of convs in this module, 1 conv 1x1 and (steps - 1) conv3x3.
+        :param stdc_downsample_mode: downsample mode in stdc block, supported `avg_pool` for average-pooling and
+         `dw_conv` for depthwise-convolution.
+        """
+        super().__init__()
         assert steps in [2, 3, 4], f"only 2, 3, 4 steps number are supported, found: {steps}"
-
         self.stride = stride
-
         self.conv_list = nn.ModuleList()
         # build first step conv 1x1.
         self.conv_list.append(ConvBNReLU(in_channels, out_channels // 2, kernel_size=1, bias=False))
-        # avg pool in skip if stride = 2.
-        self.skip_step1 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1) if stride == 2 else nn.Identity()
+        # build skip connection after first convolution.
+        if stride == 1:
+            self.skip_step1 = nn.Identity()
+        elif stdc_downsample_mode == "avg_pool":
+            self.skip_step1 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
+        elif stdc_downsample_mode == "dw_conv":
+            self.skip_step1 = ConvBNReLU(out_channels // 2, out_channels // 2, kernel_size=3, stride=2, padding=1,
+                                         bias=False, groups=out_channels // 2,
+                                         use_activation=False)
+        else:
+            raise ValueError(f"stdc_downsample mode is not supported: found {stdc_downsample_mode},"
+                             f" must be in [avg_pool, dw_conv]")
 
         in_channels = out_channels // 2
         mid_channels = in_channels
@@ -54,7 +70,8 @@ class STDCBlock(nn.Module):
             self.conv_list[1] = nn.Sequential(
                 ConvBNReLU(out_channels // 2, out_channels // 2, kernel_size=3, stride=2, padding=1,
                            groups=out_channels // 2, use_activation=False, bias=False),
-                self.conv_list[1])
+                self.conv_list[1]
+            )
 
     def forward(self, x):
         out_list = []
@@ -93,6 +110,7 @@ class STDCBackbone(AbstractSTDCBackbone):
                  ch_widths: list,
                  num_blocks: list,
                  stdc_steps: int = 4,
+                 stdc_downsample_mode: str = "avg_pool",
                  in_channels: int = 3,
                  out_down_ratios: Union[tuple, list] = (32,)):
         """
@@ -100,6 +118,8 @@ class STDCBackbone(AbstractSTDCBackbone):
         :param ch_widths: list of output num of channels for each stage.
         :param num_blocks: list of the number of repeating blocks in each stage.
         :param stdc_steps: num of convs steps in each block.
+        :param stdc_downsample_mode: downsample mode in stdc block, supported `avg_pool` for average-pooling and
+         `dw_conv` for depthwise-convolution.
         :param in_channels: num channels of the input image.
         :param out_down_ratios: down ratio of output feature maps required from the backbone,
             default (32,) for classification.
@@ -117,7 +137,8 @@ class STDCBackbone(AbstractSTDCBackbone):
         for block_type, width, blocks in zip(block_types, ch_widths, num_blocks):
             block_name = f"block_s{down_ratio}"
             self.stages[block_name] = self._make_stage(in_channels=in_channels, out_channels=width,
-                                                       block_type=block_type, num_blocks=blocks, stdc_steps=stdc_steps)
+                                                       block_type=block_type, num_blocks=blocks, stdc_steps=stdc_steps,
+                                                       stdc_downsample_mode=stdc_downsample_mode)
             if down_ratio in out_down_ratios:
                 self.out_stage_keys.append(block_name)
                 self.out_widths.append(width)
@@ -129,6 +150,7 @@ class STDCBackbone(AbstractSTDCBackbone):
                     out_channels: int,
                     block_type: str,
                     num_blocks: int,
+                    stdc_downsample_mode: str,
                     stdc_steps: int = 4):
         """
         :param in_channels: input channels of stage.
@@ -136,6 +158,8 @@ class STDCBackbone(AbstractSTDCBackbone):
         :param block_type: stage building block, supported `conv` for 3x3 ConvBNRelu, or `stdc` for STDCBlock.
         :param num_blocks: num of blocks in each stage.
         :param stdc_steps: number of conv3x3 steps in each STDC block, referred as `num blocks` in paper.
+        :param stdc_downsample_mode: downsample mode in stdc block, supported `avg_pool` for average-pooling and
+         `dw_conv` for depthwise-convolution.
         :return: nn.Module
         """
         if block_type == "conv":
@@ -143,7 +167,7 @@ class STDCBackbone(AbstractSTDCBackbone):
             kwargs = {"kernel_size": 3, "padding": 1, "bias": False}
         elif block_type == "stdc":
             block = STDCBlock
-            kwargs = {"steps": stdc_steps}
+            kwargs = {"steps": stdc_steps, "stdc_downsample_mode": stdc_downsample_mode}
         else:
             raise ValueError(f"Block type not supported: {block_type}, excepted: `conv` or `stdc`")
 
