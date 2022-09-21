@@ -26,15 +26,15 @@ context_module_params:
 decoder_params:
   skip_expansion: 0.25
   decoder_scale: 0.25
-  up_blocks:
-  up_block_repeat_list: [ 1, 1, 1, 1 ]
+  up_block_types: [1, 1, 1, 1]                              # See unet_decoder.UpBlockType for options.
+  up_block_repeat_list: [ 1, 1, 1, 1]
   mode: bilinear
   align_corners: False
   up_factor: 2
   is_skip_list: [True, True, True, True]
 
 dropout: 0.
-final_upsample_factor: 1
+final_upsample_factor: 2
 head_upsample_mode: bilinear
 align_corners: False
 head_hidden_channels:

@@ -3,8 +3,9 @@ from typing import Optional, Union, List
 import math
 
 from super_gradients.training.utils import HpmStruct, get_param
+from super_gradients.training.models.model_factory import get_arch_params
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
-from super_gradients.training.utils.module_utils import make_upsample_module, UpsampleMode, load_yaml_params
+from super_gradients.training.utils.module_utils import make_upsample_module, UpsampleMode
 from super_gradients.training.utils.module_utils import ConvBNReLU, fuse_repvgg_blocks_residual_branches
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import UNetBackboneBase, Encoder
 from super_gradients.training.models.segmentation_models.context_modules import build_context_module
@@ -211,22 +212,19 @@ class UNetBase(SegmentationModule):
             self.seg_head.add_module("softmax", nn.Softmax(dim=1))
 
 
-DEFAULT_ARCH_PARAMS = load_yaml_params("arch_params", "unet_default.yaml")
-
-
 class UNetCustom(UNetBase):
     def __init__(self, arch_params: HpmStruct):
-        _arch_params = HpmStruct(**DEFAULT_ARCH_PARAMS)     # defaults
-        _arch_params.override(**arch_params.to_dict())      # user params override all defaults
-        super().__init__(num_classes=get_param(_arch_params, "num_classes"),
-                         use_aux_heads=get_param(_arch_params, "use_aux_heads", False),
-                         final_upsample_factor=get_param(_arch_params, "final_upsample_factor", 1),
-                         head_hidden_channels=get_param(_arch_params, "head_hidden_channels"),
-                         head_upsample_mode=get_param(_arch_params, "head_upsample_mode", UpsampleMode.BILINEAR),
-                         align_corners=get_param(_arch_params, "align_corners", False),
-                         backbone_params=get_param(_arch_params, "backbone_params"),
-                         context_module_name=get_param(_arch_params, "context_module"),
-                         context_module_params=get_param(_arch_params, "context_module_params"),
-                         decoder_params=get_param(_arch_params, "decoder_params"),
-                         aux_heads_params=get_param(_arch_params, "aux_heads_params"),
-                         dropout=get_param(_arch_params, "dropout", 0.))
+        arch_params = HpmStruct(**get_arch_params("unet_default_arch_params.yaml", arch_params.to_dict()))
+        super().__init__(num_classes=get_param(arch_params, "num_classes"),
+                         use_aux_heads=get_param(arch_params, "use_aux_heads", False),
+                         final_upsample_factor=get_param(arch_params, "final_upsample_factor", 1),
+                         head_hidden_channels=get_param(arch_params, "head_hidden_channels"),
+                         head_upsample_mode=get_param(arch_params, "head_upsample_mode", UpsampleMode.BILINEAR),
+                         align_corners=get_param(arch_params, "align_corners", False),
+                         backbone_params=get_param(arch_params, "backbone_params"),
+                         context_module_name=get_param(arch_params, "context_module"),
+                         context_module_params=get_param(arch_params, "context_module_params"),
+                         decoder_params=get_param(arch_params, "decoder_params"),
+                         aux_heads_params=get_param(arch_params, "aux_heads_params"),
+                         dropout=get_param(arch_params, "dropout", 0.))
+
