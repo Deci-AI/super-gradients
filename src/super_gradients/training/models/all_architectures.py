@@ -123,6 +123,7 @@ class ModelNames:
     PP_LITE_B_SEG = "pp_lite_b_seg"
     PP_LITE_B_SEG50 = "pp_lite_b_seg50"
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
+    UNET_CUSTOM = "unet_custom"
 
 
 ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
@@ -221,6 +222,7 @@ ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
                  ModelNames.PP_LITE_B_SEG: PPLiteSegB,
                  ModelNames.PP_LITE_B_SEG50: PPLiteSegB,
                  ModelNames.PP_LITE_B_SEG75: PPLiteSegB,
+                 ModelNames.UNET_CUSTOM: UNetCustom,
                  }
 
 KD_ARCHITECTURES = {
