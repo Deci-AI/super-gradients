@@ -4,6 +4,7 @@ import os
 import sys
 import socket
 from functools import wraps
+from typing import Any
 
 from omegaconf import OmegaConf
 
@@ -96,7 +97,7 @@ def register_hydra_resolvers():
     OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
 
 
-def pop_arg(arg_name: str, default_value: int = None) -> argparse.Namespace:
+def pop_arg(arg_name: str, default_value: Any = None) -> Any:
     """Get the specified args and remove them from argv"""
 
     parser = argparse.ArgumentParser()
