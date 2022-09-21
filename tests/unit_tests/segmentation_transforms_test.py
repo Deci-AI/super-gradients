@@ -2,7 +2,7 @@ import unittest
 
 import torch
 from torchvision.transforms import Compose, ToTensor
-from super_gradients.training.transforms.transforms import Rescale, RandomRescale, CropImageAndMask, PadShortToCropSize
+from super_gradients.training.transforms.transforms import SegRescale, SegRandomRescale, SegCropImageAndMask, SegPadShortToCropSize
 from PIL import Image
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
@@ -23,79 +23,79 @@ class SegmentationTransformsTest(unittest.TestCase):
     def test_rescale_with_scale_factor(self):
         # test raise exception for negative and zero scale factor
         kwargs = {"scale_factor": -2}
-        self.failUnlessRaises(ValueError, Rescale, **kwargs)
+        self.failUnlessRaises(ValueError, SegRescale, **kwargs)
         kwargs = {"scale_factor": 0}
-        self.failUnlessRaises(ValueError, Rescale, **kwargs)
+        self.failUnlessRaises(ValueError, SegRescale, **kwargs)
 
         # test scale down
         sample = self.create_sample((1024, 512))
-        rescale_scale05 = Rescale(scale_factor=0.5)
+        rescale_scale05 = SegRescale(scale_factor=0.5)
         out = rescale_scale05(sample)
         self.assertEqual((512, 256), out["image"].size)
 
         # test scale up
         sample = self.create_sample((1024, 512))
-        rescale_scale2 = Rescale(scale_factor=2.0)
+        rescale_scale2 = SegRescale(scale_factor=2.0)
         out = rescale_scale2(sample)
         self.assertEqual((2048, 1024), out["image"].size)
 
         # test scale_factor is stronger than other params
         sample = self.create_sample((1024, 512))
-        rescale_scale05 = Rescale(scale_factor=0.5, short_size=300, long_size=600)
+        rescale_scale05 = SegRescale(scale_factor=0.5, short_size=300, long_size=600)
         out = rescale_scale05(sample)
         self.assertEqual((512, 256), out["image"].size)
 
     def test_rescale_with_short_size(self):
         # test raise exception for negative and zero short_size
         kwargs = {"short_size": 0}
-        self.failUnlessRaises(ValueError, Rescale, **kwargs)
+        self.failUnlessRaises(ValueError, SegRescale, **kwargs)
         kwargs = {"short_size": -200}
-        self.failUnlessRaises(ValueError, Rescale, **kwargs)
+        self.failUnlessRaises(ValueError, SegRescale, **kwargs)
 
         # test scale by short size
         sample = self.create_sample((1024, 512))
-        rescale_short256 = Rescale(short_size=256)
+        rescale_short256 = SegRescale(short_size=256)
         out = rescale_short256(sample)
         self.assertEqual((512, 256), out["image"].size)
 
         # test short_size is stronger than long_size
         sample = self.create_sample((1024, 512))
-        rescale_scale05 = Rescale(short_size=301, long_size=301)
+        rescale_scale05 = SegRescale(short_size=301, long_size=301)
         out = rescale_scale05(sample)
         self.assertEqual((602, 301), out["image"].size)
 
     def test_rescale_with_long_size(self):
         # test raise exception for negative and zero short_size
         kwargs = {"long_size": 0}
-        self.failUnlessRaises(ValueError, Rescale, **kwargs)
+        self.failUnlessRaises(ValueError, SegRescale, **kwargs)
         kwargs = {"long_size": -200}
-        self.failUnlessRaises(ValueError, Rescale, **kwargs)
+        self.failUnlessRaises(ValueError, SegRescale, **kwargs)
 
         # test scale by long size
         sample = self.create_sample((1024, 512))
-        rescale_long256 = Rescale(long_size=256)
+        rescale_long256 = SegRescale(long_size=256)
         out = rescale_long256(sample)
         self.assertEqual((256, 128), out["image"].size)
 
     def test_random_rescale(self):
         # test passing scales argument
-        random_rescale = RandomRescale(scales=0.1)
+        random_rescale = SegRandomRescale(scales=0.1)
         self.assertEqual((0.1, 1), random_rescale.scales)
 
-        random_rescale = RandomRescale(scales=1.2)
+        random_rescale = SegRandomRescale(scales=1.2)
         self.assertEqual((1, 1.2), random_rescale.scales)
 
-        random_rescale = RandomRescale(scales=(0.5, 1.2))
+        random_rescale = SegRandomRescale(scales=(0.5, 1.2))
         self.assertEqual((0.5, 1.2), random_rescale.scales)
 
         kwargs = {"scales": -0.5}
-        self.failUnlessRaises(ValueError, RandomRescale, **kwargs)
+        self.failUnlessRaises(ValueError, SegRandomRescale, **kwargs)
 
         # test random rescale
         size = [1024, 512]
         scales = [0.8, 1.2]
         sample = self.create_sample(size)
-        random_rescale = RandomRescale(scales=(0.8, 1.2))
+        random_rescale = SegRandomRescale(scales=(0.8, 1.2))
         min_size = [scales[0] * s for s in size]
         max_size = [scales[1] * s for s in size]
 
@@ -106,30 +106,30 @@ class SegmentationTransformsTest(unittest.TestCase):
 
     def test_padding(self):
         # test arguments are valid
-        pad = PadShortToCropSize(crop_size=200)
+        pad = SegPadShortToCropSize(crop_size=200)
         self.assertEqual((200, 200), pad.crop_size)
 
         kwargs = {"crop_size": (0, 200)}
-        self.failUnlessRaises(ValueError, PadShortToCropSize, **kwargs)
+        self.failUnlessRaises(ValueError, SegPadShortToCropSize, **kwargs)
 
         kwargs = {"crop_size": 200, "fill_image": 256}
-        self.failUnlessRaises(ValueError, PadShortToCropSize, **kwargs)
+        self.failUnlessRaises(ValueError, SegPadShortToCropSize, **kwargs)
 
         kwargs = {"crop_size": 200, "fill_mask": 256}
-        self.failUnlessRaises(ValueError, PadShortToCropSize, **kwargs)
+        self.failUnlessRaises(ValueError, SegPadShortToCropSize, **kwargs)
 
         in_size = (512, 256)
 
         out_size = (512, 512)
         sample = self.create_sample(in_size)
-        padding = PadShortToCropSize(crop_size=out_size)
+        padding = SegPadShortToCropSize(crop_size=out_size)
         out = padding(sample)
         self.assertEqual(out_size, out["image"].size)
 
         # pad to odd size
         out_size = (512, 501)
         sample = self.create_sample(in_size)
-        padding = PadShortToCropSize(crop_size=out_size)
+        padding = SegPadShortToCropSize(crop_size=out_size)
         out = padding(sample)
         self.assertEqual(out_size, out["image"].size)
 
@@ -143,7 +143,7 @@ class SegmentationTransformsTest(unittest.TestCase):
         fill_image_value = 127
 
         sample = self.create_sample(in_size)
-        padding = PadShortToCropSize(crop_size=out_size, fill_mask=fill_mask_value, fill_image=fill_image_value)
+        padding = SegPadShortToCropSize(crop_size=out_size, fill_mask=fill_mask_value, fill_image=fill_image_value)
         out = padding(sample)
 
         out_mask = SegmentationDataSet.target_transform(out["mask"])
@@ -172,20 +172,20 @@ class SegmentationTransformsTest(unittest.TestCase):
 
     def test_crop(self):
         # test arguments are valid
-        pad = CropImageAndMask(crop_size=200, mode="center")
+        pad = SegCropImageAndMask(crop_size=200, mode="center")
         self.assertEqual((200, 200), pad.crop_size)
 
         kwargs = {"crop_size": (0, 200), "mode": "random"}
-        self.failUnlessRaises(ValueError, CropImageAndMask, **kwargs)
+        self.failUnlessRaises(ValueError, SegCropImageAndMask, **kwargs)
         # test unsupported mode
         kwargs = {"crop_size": (200, 200), "mode": "deci"}
-        self.failUnlessRaises(ValueError, CropImageAndMask, **kwargs)
+        self.failUnlessRaises(ValueError, SegCropImageAndMask, **kwargs)
 
         in_size = (1024, 512)
         out_size = (128, 256)
 
-        crop_center = CropImageAndMask(crop_size=out_size, mode="center")
-        crop_random = CropImageAndMask(crop_size=out_size, mode="random")
+        crop_center = SegCropImageAndMask(crop_size=out_size, mode="center")
+        crop_random = SegCropImageAndMask(crop_size=out_size, mode="random")
 
         sample = self.create_sample(in_size)
         out_center = crop_center(sample)
@@ -202,8 +202,8 @@ class SegmentationTransformsTest(unittest.TestCase):
         sample = self.create_sample(in_size)
 
         transform = Compose([
-            Rescale(long_size=out_size[0]),         # rescale to (512, 256)
-            PadShortToCropSize(crop_size=out_size)  # pad to (512, 512)
+            SegRescale(long_size=out_size[0]),         # rescale to (512, 256)
+            SegPadShortToCropSize(crop_size=out_size)  # pad to (512, 512)
         ])
         out = transform(sample)
         self.assertEqual(out_size, out["image"].size)
@@ -214,9 +214,9 @@ class SegmentationTransformsTest(unittest.TestCase):
         sample = self.create_sample(img_size)
 
         transform = Compose([
-            RandomRescale(scales=(0.1, 2.0)),
-            PadShortToCropSize(crop_size=crop_size),
-            CropImageAndMask(crop_size=crop_size, mode="random")
+            SegRandomRescale(scales=(0.1, 2.0)),
+            SegPadShortToCropSize(crop_size=crop_size),
+            SegCropImageAndMask(crop_size=crop_size, mode="random")
         ])
 
         out = transform(sample)

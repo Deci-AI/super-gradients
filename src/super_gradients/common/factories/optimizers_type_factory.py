@@ -1,11 +1,9 @@
 import importlib
 from typing import Union
 
-from torch import optim
 
 from super_gradients.common.factories.base_factory import AbstractFactory
-from super_gradients.training.utils.optimizers.rmsprop_tf import RMSpropTF
-from super_gradients.training.utils.optimizers.lamb import Lamb
+from super_gradients.training.utils.optimizers import OPTIMIZERS
 
 
 class OptimizersTypeFactory(AbstractFactory):
@@ -17,13 +15,7 @@ class OptimizersTypeFactory(AbstractFactory):
 
     def __init__(self):
 
-        self.type_dict = {
-            "SGD": optim.SGD,
-            "Adam": optim.Adam,
-            "RMSprop": optim.RMSprop,
-            "RMSpropTF": RMSpropTF,
-            "Lamb": Lamb
-        }
+        self.type_dict = OPTIMIZERS
 
     def get(self, conf: Union[str]):
         """
