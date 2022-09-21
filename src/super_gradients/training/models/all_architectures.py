@@ -22,6 +22,7 @@ from super_gradients.training.models.segmentation_models.stdc import STDC1Classi
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import beit_base_patch16_224, beit_large_patch16_224
 from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
+from super_gradients.training.models.segmentation_models.unet import UNetCustom
 # IF YOU UPDATE THE ARCHITECTURE DICT PLEASE ALSO UPDATE THE ENUM CLASS DOWN BELOW.
 
 
@@ -122,6 +123,7 @@ ARCHITECTURES = {"resnet18": resnet.ResNet18,
                  "pp_lite_b_seg": PPLiteSegB,
                  "pp_lite_b_seg50": PPLiteSegB,
                  "pp_lite_b_seg75": PPLiteSegB,
+                 "unet_custom": UNetCustom,
                  }
 
 KD_ARCHITECTURES = {

@@ -3,7 +3,7 @@ from typing import Optional, Union, List
 import math
 
 from super_gradients.training.utils import HpmStruct, get_param
-from super_gradients.training.models.model_factory import get_arch_params
+from super_gradients.training import models
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils.module_utils import make_upsample_module, UpsampleMode
 from super_gradients.training.utils.module_utils import ConvBNReLU, fuse_repvgg_blocks_residual_branches
@@ -214,7 +214,7 @@ class UNetBase(SegmentationModule):
 
 class UNetCustom(UNetBase):
     def __init__(self, arch_params: HpmStruct):
-        arch_params = HpmStruct(**get_arch_params("unet_default_arch_params.yaml", arch_params.to_dict()))
+        arch_params = HpmStruct(**models.get_arch_params("unet_default_arch_params.yaml", arch_params.to_dict()))
         super().__init__(num_classes=get_param(arch_params, "num_classes"),
                          use_aux_heads=get_param(arch_params, "use_aux_heads", False),
                          final_upsample_factor=get_param(arch_params, "final_upsample_factor", 1),
