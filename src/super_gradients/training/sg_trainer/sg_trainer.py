@@ -2,7 +2,7 @@ import inspect
 import os
 import sys
 from copy import deepcopy
-from typing import Union, Tuple, Mapping, List, Any
+from typing import Union, Tuple, Mapping
 from pathlib import Path
 
 import numpy as np
@@ -279,25 +279,6 @@ class Trainer:
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
         cls.evaluate_from_recipe(cfg)
 
-    def _set_dataset_properties(self, classes, test_loader, train_loader, valid_loader):
-        if any([train_loader, valid_loader, classes]) and not all([train_loader, valid_loader, classes]):
-            raise IllegalDataloaderInitialization()
-
-        dataset_params = {"batch_size": train_loader.batch_size if train_loader else None,
-                          "val_batch_size": valid_loader.batch_size if valid_loader else None,
-                          "test_batch_size": test_loader.batch_size if test_loader else None,
-                          "dataset_dir": None,
-                          "s3_link": None}
-
-        if train_loader and self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-            if not all([isinstance(train_loader.sampler, DistributedSampler),
-                        isinstance(valid_loader.sampler, DistributedSampler),
-                        test_loader is None or isinstance(test_loader.sampler, DistributedSampler)]):
-                logger.warning(
-                    "DDP training was selected but the dataloader samplers are not of type DistributedSamplers")
-
-        self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
-            HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
     def _set_dataset_params(self):
         self.dataset_params = {
             "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset,
