@@ -148,8 +148,7 @@ class Decoder(nn.Module):
         for i in range(len(up_block_types)):
             self.up_stages.append(
                 up_block_types[i].up_block_cls(in_channels, skip_channels_list[i], self.up_channels_list[i],
-                             num_repeats=up_block_repeat_list[i], **up_block_kwargs)
-            )
+                                               num_repeats=up_block_repeat_list[i], **up_block_kwargs))
             in_channels = self.up_channels_list[i]
 
     def make_skip_projection(self,

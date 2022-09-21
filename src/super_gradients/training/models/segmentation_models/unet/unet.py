@@ -227,4 +227,3 @@ class UNetCustom(UNetBase):
                          decoder_params=get_param(arch_params, "decoder_params"),
                          aux_heads_params=get_param(arch_params, "aux_heads_params"),
                          dropout=get_param(arch_params, "dropout", 0.))
-
