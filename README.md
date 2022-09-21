@@ -442,7 +442,7 @@ Detailed list can be found [here](docs/assets/SG_img/Implemented%20Model%20Archi
   
 ### Semantic Segmentation 
 
-- [PP-LiteSeg](https://bit.ly/3RrtMMO) - [https://arxiv.org/pdf/2204.02681v1.pdf](https://arxiv.org/pdf/2204.02681v1.pdf) 
+- [PP-LiteSeg](https://bit.ly/3RrtMMO)
 - [DDRNet (Deep Dual-resolution Networks)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/ddrnet.py) 
 - [LadderNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/laddernet.py)
 - [RegSeg](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/regseg.py)
