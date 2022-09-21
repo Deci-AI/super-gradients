@@ -6,14 +6,14 @@ from super_gradients.training.models.all_architectures import ARCHITECTURES
 
 def registry_factory(registry: Dict[str, Callable]) -> Callable:
     """
-    Factory that create a decorator that registers object of specified type (model, metric, ...)
+    Factory that creates a decorator that registers object of specified type (model, metric, ...)
 
     :param registry: The registry (maps name to object that you register)
     :return:         Register function
     """
     def register(name: Optional[str] = None) -> Callable:
         """
-        Set up a decorator.
+        Set up a register decorator.
 
         :param name: If specified, the decorated object will be registered with this name.
         :return:     Decorator that registers the callable.
