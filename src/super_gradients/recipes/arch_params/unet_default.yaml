@@ -1,0 +1,49 @@
+backbone_params:
+  in_channels: 3
+  strides_list: [2, 2, 2, 2, 2]
+  width_list: [32, 64, 128, 256, 512]
+  num_blocks_list: [2, 3, 3, 2, 2]
+  block_types_list: [1, 1, 1, 1, 1]                       # See unet_encoder.BlockType for options.
+  is_out_feature_list: [ True, True, True, True, True ]   # depends on final_upsample_factor
+  block_params:
+    anti_alias: True                # RepVGG stage param
+    droppath_prob: 0.               # XBlock stage param
+    bottleneck_ratio: 1.            # XBlock stage param
+    group_width: 16                 # XBlock stage param
+    se_ratio:                       # XBlock stage param
+    steps: 4                        # STDC stage params
+    stdc_downsample_mode: dw_conv   # STDC stage params
+
+
+context_module: aspp
+context_module_params:
+  dilation_list: [2, 4, 6]
+  in_out_ratio: 1.
+  # legacy parameter to support old trained checkpoints that were trained by mistake with extra redundant
+  # biases before batchnorm operators. should be set to `False` for new training processes.
+  use_bias: False
+
+decoder_params:
+  skip_expansion: 0.25
+  decoder_scale: 0.25
+  up_blocks:
+  up_block_repeat_list: [ 1, 1, 1, 1 ]
+  mode: bilinear
+  align_corners: False
+  up_factor: 2
+  is_skip_list: [True, True, True, True]
+
+dropout: 0.
+final_upsample_factor: 1
+head_upsample_mode: bilinear
+align_corners: False
+head_hidden_channels:
+
+use_aux_heads: False
+aux_heads_params:
+  use_aux_list: [False, False, True, True, True]
+  aux_heads_factor: [2, 4, 8, 16, 32]
+  aux_hidden_channels: [32, 32, 64, 64, 64]
+  aux_out_channels: [1, 1, 19, 19, 19]
+
+_convert_: all
