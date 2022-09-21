@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from super_gradients.training.models.all_architectures import ARCHITECTURES
-from super_gradients.training.models.model_registry import register_model
+from super_gradients.training.utils.registry import register_model
 
 
 class ModelRegistryTest(unittest.TestCase):
