@@ -3,10 +3,11 @@ import os
 import sys
 from copy import deepcopy
 from typing import Union, Tuple, Mapping
+from pathlib import Path
 
-import hydra
 import numpy as np
 import torch
+import hydra
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader
@@ -47,13 +48,14 @@ from super_gradients.training.utils.weight_averaging_utils import ModelWeightAve
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils import random_seed
 from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path, read_ckpt_state_dict, \
-    load_checkpoint_to_model, load_pretrained_weights
+    load_checkpoint_to_model, load_pretrained_weights, get_checkpoints_dir_path
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
+from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 
 logger = get_logger(__name__)
 
@@ -132,14 +134,7 @@ class Trainer:
         self.experiment_name = experiment_name
         self.ckpt_name = None
 
-        # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
-        if ckpt_root_dir:
-            self.checkpoints_dir_path = os.path.join(ckpt_root_dir, self.experiment_name)
-        elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
-            self.checkpoints_dir_path = os.path.join(environment_config.PKG_CHECKPOINTS_DIR, self.experiment_name)
-        else:
-            raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to"
-                             "resources.")
+        self.checkpoints_dir_path = get_checkpoints_dir_path(experiment_name, ckpt_root_dir)
 
         # INITIALIZE THE DEVICE FOR THE MODEL
         self._initialize_device(requested_device=device, requested_multi_gpu=multi_gpu)
@@ -202,6 +197,87 @@ class Trainer:
                       train_loader=train_dataloader,
                       valid_loader=val_dataloader,
                       training_params=cfg.training_hyperparams)
+
+    @classmethod
+    def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
+        """
+        Resume a training that was run using our recipes.
+
+        :param experiment_name:     Name of the experiment to resume
+        :param ckpt_root_dir:       Directory including the checkpoints
+        """
+        logger.info("Resume training using the checkpoint recipe, ignoring the current recipe")
+        cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
+        add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
+        cls.train_from_config(cfg)
+
+    @classmethod
+    def evaluate_from_recipe(cls, cfg: DictConfig) -> None:
+        """
+        Evaluate according to a cfg recipe configuration.
+
+        Note:   This script does NOT run training, only validation.
+                Please make sure that the config refers to a PRETRAINED MODEL either from one of your checkpoint or from pretrained weights from model zoo.
+        :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
+        """
+
+        # INSTANTIATE ALL OBJECTS IN CFG
+        cfg = hydra.utils.instantiate(cfg)
+
+        kwargs = parse_args(cfg, cls.__init__)
+
+        trainer = Trainer(**kwargs)
+
+        # INSTANTIATE DATA LOADERS
+        val_dataloader = dataloaders.get(name=cfg.val_dataloader,
+                                         dataset_params=cfg.dataset_params.val_dataset_params,
+                                         dataloader_params=cfg.dataset_params.val_dataloader_params)
+
+        checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
+        ckpt_name = core_utils.get_param(cfg, 'ckpt_name', 'ckpt_latest.pth')
+        checkpoint_path = str(checkpoints_dir / ckpt_name)
+
+        # BUILD NETWORK
+        model = models.get(model_name=cfg.architecture,
+                           num_classes=cfg.arch_params.num_classes,
+                           arch_params=cfg.arch_params,
+                           pretrained_weights=cfg.checkpoint_params.pretrained_weights,
+                           checkpoint_path=checkpoint_path,
+                           load_backbone=cfg.checkpoint_params.load_backbone)
+
+        # TEST
+        val_results_tuple = trainer.test(model=model,
+                                         test_loader=val_dataloader,
+                                         test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
+
+        valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics,
+                                              trainer.loss_logging_items_names)
+
+        results = ["Validate Results"]
+        results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
+        logger.info("\n".join(results))
+
+    @classmethod
+    def evaluate_checkpoint(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
+        """
+        Evaluate a checkpoint resulting from one of your previous experiment, using the same parameters (dataset, valid_metrics,...)
+        as used during the training of the experiment
+
+        Note:
+            The parameters will be unchanged even if the recipe used for that experiment was changed since then.
+            This is to ensure that validation of the experiment will remain exactly the same as during training.
+
+        Example, evaluate the checkpoint "average_model.pth" from experiment "my_experiment_name":
+            >> evaluate_checkpoint(experiment_name="my_experiment_name", ckpt_name="average_model.pth")
+
+        :param experiment_name:     Name of the experiment to validate
+        :param ckpt_name:           Name of the checkpoint to test ("ckpt_latest.pth", "average_model.pth" or "ckpt_best.pth" for instance)
+        :param ckpt_root_dir:       Directory including the checkpoints
+        """
+        logger.info("Evaluate checkpoint")
+        cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
+        add_params_to_cfg(cfg, params=["training_hyperparams.resume=True", f"ckpt_name={ckpt_name}"])
+        cls.evaluate_from_recipe(cfg)
 
     def _set_dataset_params(self):
         self.dataset_params = {
@@ -1129,6 +1205,10 @@ class Trainer:
     def _set_valid_metrics(self, valid_metrics_list):
         self.valid_metrics = MetricCollection(valid_metrics_list)
 
+    @resolve_param('test_metrics_list', ListFactory(MetricsFactory()))
+    def _set_test_metrics(self, test_metrics_list):
+        self.test_metrics = MetricCollection(test_metrics_list)
+
     def _initialize_mixed_precision(self, mixed_precision_enabled: bool):
         # SCALER IS ALWAYS INITIALIZED BUT IS DISABLED IF MIXED PRECISION WAS NOT SET
         self.scaler = GradScaler(enabled=mixed_precision_enabled)
@@ -1391,7 +1471,7 @@ class Trainer:
             self.phase_callbacks = []
 
         if test_metrics_list:
-            self.test_metrics = MetricCollection(test_metrics_list)
+            self._set_test_metrics(test_metrics_list)
             self._add_metrics_update_callback(Phase.TEST_BATCH_END)
             self.phase_callback_handler = CallbackHandler(self.phase_callbacks)
 
