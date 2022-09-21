@@ -4,9 +4,9 @@ from typing import Callable, Dict, Optional
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 
 
-def registry_factory(registry: Dict[str, Callable]) -> Callable:
+def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
     """
-    Factory that creates a decorator that registers object of specified type (model, metric, ...)
+    Create a decorator that registers object of specified type (model, metric, ...)
 
     :param registry: The registry (maps name to object that you register)
     :return:         Register function
@@ -32,4 +32,4 @@ def registry_factory(registry: Dict[str, Callable]) -> Callable:
     return register
 
 
-register_model = registry_factory(registry=ARCHITECTURES)
+register_model = create_register_decorator(registry=ARCHITECTURES)
