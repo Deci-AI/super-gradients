@@ -5,8 +5,8 @@ Pre-trained checkpoints converted to Deci's code base with the reported accuracy
 """
 #######################################################################################################################
 #   1. Since each net expects a specific image size, make sure to build the dataset with the correct image size:
-#         b0 - (224, 256), b1 - (240, 274), b2 - (260, 298), b3 - (300, 342), b4 - (380, 434),
-#         b5 - (456, 520), b6 - (528, 602), b7 - (600, 684), b8 - (672, 768), l2 - (800, 914)
+#         EfficientNetB0 - (224, 256), EfficientNetB1 - (240, 274), EfficientNetB2 - (260, 298), EfficientNetB3 - (300, 342), EfficientNetB4 - (380, 434),
+#         EfficientNetB5 - (456, 520), EfficientNetB6 - (528, 602), EfficientNetB7 - (600, 684), EfficientNetB8 - (672, 768), EfficientNetL2 - (800, 914)
 #         You should build the DataSetInterface with the following dictionary:
 #           ImageNetDatasetInterface(dataset_params = {'crop': 260, 'resize':  298})
 #   2. Pre-trained ImageNet models can be found in S3://deci-model-repository-research/efficientnet_b#/ckpt_best.pth
@@ -551,19 +551,10 @@ class EfficientNet(SgModule):
         super().load_state_dict(pretrained_model_weights_dict, strict)
 
 
-def build_efficientnet(width, depth, res, dropout, arch_params):
-    """
-
-    :param width:
-    :param depth:
-    :param res:
-    :param dropout:
-    :param arch_params:
-    :return:
-    """
+def get_efficientnet_params(width: float, depth: float, res: float, dropout: float, arch_params: HpmStruct):
     print(f"\nNOTICE: \nachieving EfficientNet\'s reported accuracy requires specific image resolution."
           f"\nPlease verify image size is {res}x{res} for this specific EfficientNet configuration\n")
-    # Blocks args for the whole model(efficientnet-b0 by default)
+    # Blocks args for the whole model(efficientnet-EfficientNetB0 by default)
     # It will be modified in the construction of EfficientNet Class according to model
     blocks_args = BlockDecoder.decode(['r1_k3_s11_e1_i32_o16_se0.25', 'r2_k3_s22_e6_i16_o24_se0.25',
                                        'r2_k5_s22_e6_i24_o40_se0.25', 'r3_k3_s22_e6_i40_o80_se0.25',
@@ -576,49 +567,74 @@ def build_efficientnet(width, depth, res, dropout, arch_params):
                                    "depth_divisor": 8, "min_depth": None, "backbone_mode": False})
     # Update arch_params
     arch_params_new.override(**arch_params.to_dict())
-    return EfficientNet(blocks_args, arch_params_new)
+    return blocks_args, arch_params_new
 
 
-def b0(arch_params):
-    return build_efficientnet(1.0, 1.0, 224, 0.2, arch_params)
+class EfficientNetB0(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=1.0, depth=1.0, res=224, dropout=0.2, arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
 
 
-def b1(arch_params):
-    return build_efficientnet(1.0, 1.1, 240, 0.2, arch_params)
+class EfficientNetB1(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=1.0, depth=1.1, res=240, dropout=0.2, arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
 
 
-def b2(arch_params):
-    return build_efficientnet(1.1, 1.2, 260, 0.3, arch_params)
+class EfficientNetB2(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=1.1, depth=1.2, res=260, dropout=0.3, arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
 
 
-def b3(arch_params):
-    return build_efficientnet(1.2, 1.4, 300, 0.3, arch_params)
+class EfficientNetB3(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=1.2, depth=1.4, res=300, dropout=0.3, arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
 
 
-def b4(arch_params):
-    return build_efficientnet(1.4, 1.8, 380, 0.4, arch_params)
+class EfficientNetB4(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=1.4, depth=1.8, res=380, dropout=0.4, arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
 
 
-def b5(arch_params):
-    return build_efficientnet(1.6, 2.2, 456, 0.4, arch_params)
+class EfficientNetB5(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=1.6, depth=2.2, res=456, dropout=0.4, arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
 
 
-def b6(arch_params):
-    return build_efficientnet(1.8, 2.6, 528, 0.5, arch_params)
+class EfficientNetB6(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=1.8, depth=2.6, res=528, dropout=0.5, arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
 
 
-def b7(arch_params):
-    return build_efficientnet(2.0, 3.1, 600, 0.5, arch_params)
+class EfficientNetB7(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=2.0, depth=3.1, res=600, dropout=0.5, arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
 
 
-def b8(arch_params):
-    return build_efficientnet(2.2, 3.6, 672, 0.5, arch_params)
+class EfficientNetB8(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=2.2, depth=3.6, res=672, dropout=0.5, arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
 
 
-def l2(arch_params):
-    return build_efficientnet(4.3, 5.3, 800, 0.5, arch_params)
+class EfficientNetL2(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=4.3, depth=5.3, res=800, dropout=0.5, arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
 
 
-def CustomizedEfficientnet(arch_params):
-    return build_efficientnet(arch_params.width_coefficient, arch_params.depth_coefficient, arch_params.res,
-                              arch_params.dropout_rate, arch_params)
+class CustomizedEfficientnet(EfficientNet):
+    def __init__(self, arch_params):
+        blocks_args, arch_params = get_efficientnet_params(width=arch_params.width_coefficient,
+                                                           depth=arch_params.depth_coefficient,
+                                                           res=arch_params.res,
+                                                           dropout=arch_params.dropout_rate,
+                                                           arch_params=arch_params)
+        super().__init__(blocks_args=blocks_args, arch_params=arch_params)
