@@ -97,7 +97,7 @@ from super_gradients.common.registry import register_model
 
 @register_model('my_conv_net')  # will be registered as "my_conv_net"
 class MyConvNet(nn.Module):
-   def __init__(self, num_classes):
+   def __init__(self, num_classes: int):
       super().__init__()
       self.conv1 = nn.Conv2d(3, 6, 5)
       self.pool = nn.MaxPool2d(2, 2)
@@ -125,15 +125,11 @@ init_trainer()
 main()
 ```
 
-*recipes/training_hyperparams/my_training_hyperparams.yaml* 
+*recipes/my_recipe.yaml* 
 ```yaml
-... # Other training hyperparams
+... # Other recipe params
 
-train_metrics_list:
-  - custom_accuracy
-
-valid_metrics_list:
-  - custom_accuracy
+architecture: my_conv_net
 ```
 
 *Launch the script*
