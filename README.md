@@ -66,7 +66,7 @@ model = models.get("yolox_s", pretrained_weights="coco")
 
 
 
-All Computer Vision Models - Pretrained Checkpoints can be found [here](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md)
+All Computer Vision Models - Pretrained Checkpoints can be found [here](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
 
 
 ### Easy to train SOTA Models
@@ -111,11 +111,11 @@ pip install super-gradients
 
 ## What's New
 __________________________________________________________________________________________________________
-* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md)  for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
-* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
+* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)  for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
+* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
 * 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
-* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md) on COCO - Tailored for edge devices! 📱
-* 【07/07/2022】 STDC  - new pre-trained [checkpoints](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
+* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) on COCO - Tailored for edge devices! 📱
+* 【07/07/2022】 STDC  - new pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
@@ -156,7 +156,7 @@ The most simple and straightforward way to start training SOTA performance model
 python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
-Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md)
+Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
 
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
@@ -279,7 +279,7 @@ Learn more about SuperGradients knowledge distillation training with our pre-tra
 
 ### Recipes
 To train a model, it is necessary to configure 4 main components. These components are aggregated into a single "main" recipe `.yaml` file that inherits the aforementioned dataset, architecture, raining and checkpoint params. It is also possible (and recomended for flexibility) to override default settings with custom ones.
-All recipes can be found [here](docs/assets/SG_img/Training_Recipes.md)
+All recipes can be found [here](src/super_gradients/recipes/Training_Recipes.md)
   <table class="tfo-notebook-buttons" align="left">
  <td>   
    <a target="_blank" href="https://bit.ly/3UiY5ab"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Use Recipes</a>
@@ -418,7 +418,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ## Implemented Model Architectures 
 __________________________________________________________________________________________________________
 
-Detailed list can be found [here](docs/assets/SG_img/Implemented%20Model%20Architectures.md) 
+Detailed list can be found [here](src/super_gradients/training/models/Implemented%20Model%20Architectures.md) 
 
 ### Image Classification
   
