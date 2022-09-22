@@ -9,8 +9,10 @@
 defaults:
   - training_hyperparams: cifar10_resnet_train_params
   - dataset_params: cifar10_dataset_params
-  - arch_params: resnet18_cifar_arch_params
   - checkpoint_params: default_checkpoint_params
+
+arch_params:
+  num_classes: 10
 
 train_dataloader: cifar10_train
 val_dataloader: cifar10_val
@@ -29,6 +31,9 @@ architecture: resnet18_cifar
 
 experiment_name: resnet18_cifar
 
+
+#architecture: my_conv_net
+#experiment_name: my_conv_net
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:

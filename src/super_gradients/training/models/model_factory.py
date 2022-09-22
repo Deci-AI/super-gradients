@@ -20,59 +20,70 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
-def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = None) -> SgModule:
+def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights: str):
+    is_remote = False
+    if not isinstance(model_name, str):
+        raise ValueError("Unsupported model model_name " + str(model_name) + ", see docs or all_architectures.py for supported nets.")
+    elif isinstance(model_name, str) and model_name not in ARCHITECTURES.keys():
+        logger.info(f'Required model {model_name} not found in local SuperGradients. Trying to load a model from remote deci lab')
+        deci_client = DeciClient()
+        _arch_params = deci_client.get_model_arch_params(model_name)
+        if _arch_params is None:
+            raise ValueError("Unsupported model name " + str(model_name) + ", see docs or all_architectures.py for supported nets.")
+        _arch_params = hydra.utils.instantiate(_arch_params)
+        _arch_params = HpmStruct(**_arch_params)
+        _arch_params.override(**arch_params.to_dict())
+        model_name, arch_params, is_remote = _arch_params["model_name"], _arch_params, True
+        pretrained_weights = deci_client.get_model_weights(model_name)
+    return ARCHITECTURES[model_name], arch_params, is_remote, pretrained_weights
+
+
+def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pretrained_weights: str = None) -> SgModule:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
         module manipulation (i.e head replacement).
 
-    :param name: Defines the model's architecture from models/ALL_ARCHITECTURES
+    :param model_name: Defines the model's architecture from models/ALL_ARCHITECTURES
     :param arch_params: Architecture's parameters passed to models c'tor.
     :param pretrained_weights: string describing the dataset of the pretrained weights (for example "imagenent")
 
     :return: instantiated model i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
 
     """
+    if arch_params is None:
+        arch_params = {}
+    arch_params = core_utils.HpmStruct(**arch_params)
 
-    if pretrained_weights is not None:
-        if hasattr(arch_params, "num_classes"):
-            num_classes_new_head = arch_params.num_classes
-        else:
-            num_classes_new_head = PRETRAINED_NUM_CLASSES[pretrained_weights]
+    architecture_cls, arch_params, is_remote, pretrained_weights = get_architecture(model_name, arch_params, pretrained_weights)
 
-        arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
-
-    remote_model = False
-    if isinstance(name, str) and name in ARCHITECTURES.keys():
-        architecture_cls = ARCHITECTURES[name]
-        net = architecture_cls(arch_params=arch_params)
-    elif isinstance(name, str):
-        logger.info(f'Required model {name} not found in local SuperGradients. Trying to load a model from remote deci lab')
-        deci_client = DeciClient()
-        _arch_params = deci_client.get_model_arch_params(name)
-
-        if _arch_params is not None:
-            _arch_params = hydra.utils.instantiate(_arch_params)
-            base_name = _arch_params["model_name"]
-            _arch_params = HpmStruct(**_arch_params)
-            architecture_cls = ARCHITECTURES[base_name]
-            _arch_params.override(**arch_params.to_dict())
-
-            net = architecture_cls(arch_params=_arch_params)
-            remote_model = True
-        else:
-            raise ValueError("Unsupported model name " + str(name) + ", see docs or all_architectures.py for supported nets.")
+    if not issubclass(architecture_cls, SgModule):
+        arch_params = arch_params.to_dict()
+        arch_params.pop('schema')
+        net = architecture_cls(**arch_params)
     else:
-        raise ValueError("Unsupported model model_name " + str(name) + ", see docs or all_architectures.py for supported nets.")
-    if pretrained_weights:
-        if remote_model:
-            weights_path = deci_client.get_model_weights(name)
-            load_pretrained_weights_local(net, name, weights_path)
-        else:
-            load_pretrained_weights(net, name, pretrained_weights)
-        if num_classes_new_head != arch_params.num_classes:
-            net.replace_head(new_num_classes=num_classes_new_head)
-            arch_params.num_classes = num_classes_new_head
+        if core_utils.get_param(arch_params, "num_classes"):
+            logger.warning("Passing num_classes through arch_params is deprecated and will be removed in the next version. "
+                           "Pass num_classes explicitly to models.get")
+            num_classes = arch_params.num_classes
 
+        if num_classes is not None:
+            arch_params.override(num_classes=num_classes)
+
+        if pretrained_weights is None and num_classes is None:
+            raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")
+
+        net = architecture_cls(arch_params)
+
+        if pretrained_weights:
+            num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
+            arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
+            if is_remote:
+                load_pretrained_weights_local(net, model_name, pretrained_weights)
+            else:
+                load_pretrained_weights(net, model_name, pretrained_weights)
+            if num_classes_new_head != arch_params.num_classes:
+                net.replace_head(new_num_classes=num_classes_new_head)
+                arch_params.num_classes = num_classes_new_head
     return net
 
 
@@ -96,22 +107,8 @@ def get(model_name: str, arch_params: Optional[dict] = None, num_classes: int = 
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
 
     """
-    if arch_params is None:
-        arch_params = {}
 
-    if arch_params.get("num_classes") is not None:
-        logger.warning("Passing num_classes through arch_params is dperecated and will be removed in the next version. "
-                       "Pass num_classes explicitly to models.get")
-    num_classes = num_classes or arch_params.get("num_classes")
-
-    if pretrained_weights is None and num_classes is None:
-        raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")
-
-    if num_classes is not None:
-        arch_params["num_classes"] = num_classes
-
-    arch_params = core_utils.HpmStruct(**arch_params)
-    net = instantiate_model(model_name, arch_params, pretrained_weights)
+    net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights)
 
     if checkpoint_path:
         load_ema_as_net = 'ema_net' in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
