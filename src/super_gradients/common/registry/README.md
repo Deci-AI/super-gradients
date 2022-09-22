@@ -82,7 +82,65 @@ python main.py --config-name=my_recipe.yaml
 
 
 ### B. Model
-Coming soon
+
+```python
+import omegaconf
+import hydra
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from super_gradients import Trainer, init_trainer
+from super_gradients.common.registry import register_model
+
+
+@register_model('my_conv_net')  # will be registered as "my_conv_net"
+class MyConvNet(nn.Module):
+   def __init__(self, num_classes):
+      super().__init__()
+      self.conv1 = nn.Conv2d(3, 6, 5)
+      self.pool = nn.MaxPool2d(2, 2)
+      self.conv2 = nn.Conv2d(6, 16, 5)
+      self.fc1 = nn.Linear(16 * 5 * 5, 120)
+      self.fc2 = nn.Linear(120, 84)
+      self.fc3 = nn.Linear(84, num_classes)
+
+   def forward(self, x):
+      x = self.pool(F.relu(self.conv1(x)))
+      x = self.pool(F.relu(self.conv2(x)))
+      x = torch.flatten(x, 1)
+      x = F.relu(self.fc1(x))
+      x = F.relu(self.fc2(x))
+      x = self.fc3(x)
+      return x
+
+
+@hydra.main(config_path="recipes")
+def main(cfg: omegaconf.DictConfig) -> None:
+   Trainer.train_from_config(cfg)
+
+
+init_trainer()
+main()
+```
+
+*recipes/training_hyperparams/my_training_hyperparams.yaml* 
+```yaml
+... # Other training hyperparams
+
+train_metrics_list:
+  - custom_accuracy
+
+valid_metrics_list:
+  - custom_accuracy
+```
+
+*Launch the script*
+```bash
+python main.py --config-name=my_recipe.yaml
+```
+
 
 ### C. Loss
 Coming soon
