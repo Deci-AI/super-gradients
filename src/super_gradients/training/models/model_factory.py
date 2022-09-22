@@ -88,11 +88,13 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pret
         if pretrained_weights is None and num_classes is None:
             raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")
 
-        net = architecture_cls(arch_params=arch_params)
-
         if pretrained_weights:
             num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
             arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
+
+        net = architecture_cls(arch_params=arch_params)
+
+        if pretrained_weights:
             if is_remote:
                 load_pretrained_weights_local(net, model_name, pretrained_weights)
             else:
