@@ -3,14 +3,17 @@ import unittest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchmetrics
 
 from super_gradients.training.models.all_architectures import ARCHITECTURES
-from super_gradients.training.utils.registry import register_model
+from super_gradients.training.metrics.all_metrics import METRICS
+from super_gradients.common.registry import register_model, register_metric
 
 
-class ModelRegistryTest(unittest.TestCase):
+class RegistryTest(unittest.TestCase):
 
     def setUp(self):
+
         @register_model('myconvnet')
         class MyConvNet(nn.Module):
             def __init__(self, num_classes):
@@ -35,19 +38,29 @@ class ModelRegistryTest(unittest.TestCase):
         def myconvnet_for_cifar10():
             return MyConvNet(num_classes=10)
 
+        @register_metric('custom_accuracy')  # Will be registered as "custom_accuracy"
+        class CustomAccuracy(torchmetrics.Accuracy):
+            def update(self, preds: torch.Tensor, target: torch.Tensor):
+                if target.shape == preds.shape:
+                    target = target.argmax(1)  # Supports smooth labels
+                    super().update(preds=preds.argmax(1), target=target)
+
     def tearDown(self):
         ARCHITECTURES.pop('myconvnet', None)
         ARCHITECTURES.pop('myconvnet_for_cifar10', None)
+        METRICS.pop('custom_accuracy', None)
 
     def test_cls_is_registered(self):
         assert ARCHITECTURES['myconvnet']
+        assert METRICS['custom_accuracy']
 
     def test_fn_is_registered(self):
         assert ARCHITECTURES['myconvnet_for_cifar10']
 
-    def test_model_is_instantiable(self):
+    def test_is_instantiable(self):
         assert ARCHITECTURES['myconvnet_for_cifar10']()
         assert ARCHITECTURES['myconvnet'](num_classes=10)
+        assert METRICS['custom_accuracy']()
 
     def test_model_outputs(self):
         torch.manual_seed(0)
