@@ -1,6 +1,8 @@
 from typing import Optional, Tuple
+from typing import Type
 
 import hydra
+import torch
 
 from super_gradients.common import StrictLoad
 from super_gradients.common.plugins.deci_client import DeciClient
@@ -20,15 +22,19 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
-def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights: str) -> Tuple[type, HpmStruct, bool, str]:
+def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights: str) -> Tuple[Type[torch.nn.Module], HpmStruct, str, bool]:
     """
-    Get the corresponding architecture class.s
+    Get the corresponding architecture class.
 
     :param model_name:          Define the model's architecture from models/ALL_ARCHITECTURES
     :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
     :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent")
 
-    :return:                    Class of the model i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
+    :return:
+        - architecture_cls:     Class of the model
+        - arch_params:          Might be updated if loading from remote deci lab
+        - pretrained_weights:   Might be updated if loading from remote deci lab
+        - is_remote:            True if loading from remote deci lab
     """
     is_remote = False
     if not isinstance(model_name, str):
@@ -44,7 +50,7 @@ def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights
         _arch_params.override(**arch_params.to_dict())
         model_name, arch_params, is_remote = _arch_params["model_name"], _arch_params, True
         pretrained_weights = deci_client.get_model_weights(model_name)
-    return ARCHITECTURES[model_name], arch_params, is_remote, pretrained_weights
+    return ARCHITECTURES[model_name], arch_params, pretrained_weights, is_remote
 
 
 def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pretrained_weights: str = None) -> SgModule:
@@ -64,7 +70,7 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pret
         arch_params = {}
     arch_params = core_utils.HpmStruct(**arch_params)
 
-    architecture_cls, arch_params, is_remote, pretrained_weights = get_architecture(model_name, arch_params, pretrained_weights)
+    architecture_cls, arch_params, pretrained_weights, is_remote = get_architecture(model_name, arch_params, pretrained_weights)
 
     if not issubclass(architecture_cls, SgModule):
         arch_params = arch_params.to_dict()
@@ -82,7 +88,7 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pret
         if pretrained_weights is None and num_classes is None:
             raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")
 
-        net = architecture_cls(arch_params)
+        net = architecture_cls(arch_params=arch_params)
 
         if pretrained_weights:
             num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
