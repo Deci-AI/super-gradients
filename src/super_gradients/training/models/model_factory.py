@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import hydra
 
@@ -20,7 +20,16 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
-def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights: str):
+def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights: str) -> Tuple[type, HpmStruct, bool, str]:
+    """
+    Get the corresponding architecture class.s
+
+    :param model_name:          Define the model's architecture from models/ALL_ARCHITECTURES
+    :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
+    :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent")
+
+    :return:                    Class of the model i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
+    """
     is_remote = False
     if not isinstance(model_name, str):
         raise ValueError("Unsupported model model_name " + str(model_name) + ", see docs or all_architectures.py for supported nets.")
@@ -43,12 +52,13 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pret
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
         module manipulation (i.e head replacement).
 
-    :param model_name: Defines the model's architecture from models/ALL_ARCHITECTURES
-    :param arch_params: Architecture's parameters passed to models c'tor.
-    :param pretrained_weights: string describing the dataset of the pretrained weights (for example "imagenent")
+    :param model_name:          Define the model's architecture from models/ALL_ARCHITECTURES
+    :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
+    :param num_classes:         Number of classes (defines the net's structure).
+                                    If None is given, will try to derrive from pretrained_weight's corresponding dataset.
+    :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent")
 
-    :return: instantiated model i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
-
+    :return:                    Instantiated model i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
     """
     if arch_params is None:
         arch_params = {}
@@ -91,21 +101,18 @@ def get(model_name: str, arch_params: Optional[dict] = None, num_classes: int = 
         strict_load: StrictLoad = StrictLoad.NO_KEY_MATCHING, checkpoint_path: str = None,
         pretrained_weights: str = None, load_backbone: bool = False) -> SgModule:
     """
-    :param model_name:               Defines the model's architecture from models/ALL_ARCHITECTURES
-    :param num_classes:        Number of classes (defines the net's structure). If None is given, will try to derrive from
-                                pretrained_weight's corresponding dataset.
-    :param arch_params:                Architecture hyper parameters. e.g.: block, num_blocks, etc.
-
-    :param strict_load:                See super_gradients.common.data_types.enum.strict_load.StrictLoad class documentation for details
-     (default=NO_KEY_MATCHING to suport SG trained checkpoints)
-    :param load_backbone:              loads the provided checkpoint to model.backbone instead of model.
-    :param checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
-                                       (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
-                                       load the checkpoint.
-    :param pretrained_weights: a string describing the dataset of the pretrained weights (for example "imagenent").
+    :param model_name:          Defines the model's architecture from models/ALL_ARCHITECTURES
+    :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
+    :param num_classes:         Number of classes (defines the net's structure).
+                                    If None is given, will try to derrive from pretrained_weight's corresponding dataset.
+    :param strict_load:         See super_gradients.common.data_types.enum.strict_load.StrictLoad class documentation for details
+                                    (default=NO_KEY_MATCHING to suport SG trained checkpoints)
+    :param checkpoint_path:     The path to the external checkpoint to be loaded. Can be absolute or relative (ie: path/to/checkpoint.pth).
+                                    If provided, will automatically attempt to load the checkpoint.
+    :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent").
+    :param load_backbone:       Load the provided checkpoint to model.backbone instead of model.
 
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
-
     """
 
     net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights)
