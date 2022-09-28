@@ -3,6 +3,7 @@ from typing import Callable, Dict, Optional
 
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.metrics.all_metrics import METRICS
+from super_gradients.training.losses.all_losses import LOSSES
 
 
 def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
@@ -35,3 +36,4 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
 
 register_model = create_register_decorator(registry=ARCHITECTURES)
 register_metric = create_register_decorator(registry=METRICS)
+register_loss = create_register_decorator(registry=LOSSES)
