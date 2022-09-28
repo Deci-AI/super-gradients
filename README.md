@@ -170,10 +170,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 #### Transfer Learning 
   <table class="tfo-notebook-buttons" align="left">
- <td>  
+ <td width="500">  
   <a target="_blank" href="https://bit.ly/3xzIutb"><img src="./docs/assets/SG_img/colab_logo.png" /> Classification Transfer Learning</a>
   </td>
- <td>    
+ <td width="200">    
  <a target="_blank" href="https://bit.ly/3xwYEn1"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -184,10 +184,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ####  Quick Start 
 <table class="tfo-notebook-buttons" align="left">
- <td>
+ <td width="500">
 <a target="_blank" href="https://bit.ly/3qKx9m8"><img src="./docs/assets/SG_img/colab_logo.png" /> Segmentation Quick Start</a>
  </td>
- <td>
+ <td width="200">
 <a target="_blank" href="https://bit.ly/3qJjxYq"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source </a>
  </td>
 </table>
@@ -197,10 +197,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
  
  ####  Transfer Learning 
 <table class="tfo-notebook-buttons" align="left">
- <td>
+ <td width="500">
 <a target="_blank" href="https://bit.ly/3qKwMbe"><img src="./docs/assets/SG_img/colab_logo.png" /> Segmentation Transfer Learning</a>
  </td>
- <td>
+ <td width="200">
 <a target="_blank" href="https://bit.ly/3ShJlXn"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -210,10 +210,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ####  How to Connect Custom Dataset 
   <table class="tfo-notebook-buttons" align="left">
- <td> 
+ <td width="500"> 
 <a target="_blank" href="https://bit.ly/3QQBVJp"><img src="./docs/assets/SG_img/colab_logo.png" /> Segmentation How to Connect Custom Dataset</a>
    </td>
- <td>
+ <td width="200">
  <a target="_blank" href="https://bit.ly/3Us2WGi"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -226,10 +226,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 #### Transfer Learning
   <table class="tfo-notebook-buttons" align="left">
- <td>   
+ <td width="500">   
 <a target="_blank" href="https://bit.ly/3SkMohx"><img src="./docs/assets/SG_img/colab_logo.png" /> Detection Transfer Learning</a>
    </td>
- <td>   
+ <td width="200">   
 <a target="_blank" href="https://bit.ly/3DF8siG"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -237,10 +237,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 #### How to Connect Custom Dataset 
   <table class="tfo-notebook-buttons" align="left">
- <td>  
+ <td width="500">  
   <a target="_blank" href="https://bit.ly/3dqDlg3"><img src="./docs/assets/SG_img/colab_logo.png" /> Detection How to Connect Custom Dataset</a>
   </td>
- <td>      
+ <td width="200">      
 <a target="_blank" href="https://bit.ly/3xBlcmq"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -252,10 +252,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 #### Segmentation, Detection and Classification Prediction 
   <table class="tfo-notebook-buttons" align="left">
- <td>    
+ <td width="500">    
 <a target="_blank" href="https://bit.ly/3f4mssd"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Predict Using Pre-trained Model</a>
   </td>
- <td>   
+ <td width="200">   
 <a target="_blank" href="https://bit.ly/3Sf59Tr"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -268,10 +268,10 @@ ________________________________________________________________________________
 Knowledge Distillation is a training technique that uses a large model, teacher model, to improve the performance of a smaller model, the student model.
 Learn more about SuperGradients knowledge distillation training with our pre-trained BEiT base teacher model and Resnet18 student model on CIFAR10 example notebook on Google Colab for an easy to use tutorial using free GPU hardware
   <table class="tfo-notebook-buttons" align="left">
- <td>   
+ <td width="500">   
    <a target="_blank" href="https://bit.ly/3BLA5oR"><img src="./docs/assets/SG_img/colab_logo.png" /> Knowledge Distillation Training</a>
   </td>
- <td>   
+ <td width="200">   
 <a target="_blank" href="https://bit.ly/3S9UlG4"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -281,10 +281,10 @@ Learn more about SuperGradients knowledge distillation training with our pre-tra
 To train a model, it is necessary to configure 4 main components. These components are aggregated into a single "main" recipe `.yaml` file that inherits the aforementioned dataset, architecture, raining and checkpoint params. It is also possible (and recomended for flexibility) to override default settings with custom ones.
 All recipes can be found [here](src/super_gradients/recipes/Training_Recipes.md)
   <table class="tfo-notebook-buttons" align="left">
- <td>   
+ <td width="500">   
    <a target="_blank" href="https://bit.ly/3UiY5ab"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Use Recipes</a>
   </td>
- <td>  
+ <td width="200">  
 <a target="_blank" href="https://bit.ly/3QSrHbm"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
