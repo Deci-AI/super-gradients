@@ -93,14 +93,13 @@ import omegaconf
 import hydra
 
 import torch
-from torch.nn.modules.loss import _Loss
 
 from super_gradients import Trainer, init_trainer
 from super_gradients.common.registry.registry import register_loss
 
 
 @register_loss("custom_rsquared_loss")
-class CustomRSquaredLoss(_Loss):
+class CustomRSquaredLoss(torch.nn.modules.loss._Loss): # The Loss needs to inherit from torch _Loss class.
    def forward(self, output, target):
        criterion_mse = torch.nn.MSELoss()
        return 1 - criterion_mse(output, target).item() / torch.var(target).item()
