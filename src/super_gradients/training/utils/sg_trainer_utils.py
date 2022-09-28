@@ -14,6 +14,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from treelib import Tree
 from termcolor import colored
 import torch
+
 from torch.utils.tensorboard import SummaryWriter
 
 from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
@@ -25,6 +26,7 @@ IS_BETTER_COLOR = {True: "green", False: "red"}
 IS_GREATER_SYMBOLS = {True: "↗", False: "↘"}
 
 logger = get_logger(__name__)
+
 
 @dataclass
 class MonitoredValue:

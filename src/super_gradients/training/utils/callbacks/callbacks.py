@@ -739,18 +739,6 @@ class CallbackHandler:
                 callback(context)
 
 
-# DICT FOR LEGACY LR HARD-CODED REGIMES, WILL BE DELETED IN THE FUTURE
-LR_SCHEDULERS_CLS_DICT = {
-    "step": StepLRCallback,
-    "poly": PolyLRCallback,
-    "cosine": CosineLRCallback,
-    "exp": ExponentialLRCallback,
-    "function": FunctionLRCallback,
-}
-
-LR_WARMUP_CLS_DICT = {"linear_step": WarmupLRCallback}
-
-
 class TestLRCallback(PhaseCallback):
     """
     Phase callback that collects the learning rates in lr_placeholder at the end of each epoch (used for testing). In

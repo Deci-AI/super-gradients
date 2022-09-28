@@ -1,13 +1,36 @@
 import os
 import tempfile
 import pkg_resources
+
 import torch
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
 from super_gradients.training.pretrained_models import MODEL_URLS
+from super_gradients.common.environment import environment_config
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
 except (ModuleNotFoundError, ImportError, NameError):
     from torch.hub import _download_url_to_file as download_url_to_file
+
+
+logger = get_logger(__name__)
+
+
+def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
+    """Creating the checkpoint directory of a given experiment.
+    :param experiment_name:     Name of the experiment.
+    :param ckpt_root_dir:       Local root directory path where all experiment logging directories will
+                                reside. When none is give, it is assumed that pkg_resources.resource_filename('checkpoints', "")
+                                exists and will be used.
+    :return:                    checkpoints_dir_path
+    """
+    if ckpt_root_dir:
+        return os.path.join(ckpt_root_dir, experiment_name)
+    elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
+        return os.path.join(environment_config.PKG_CHECKPOINTS_DIR, experiment_name)
+    else:
+        raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to resources.")
 
 
 def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, external_checkpoint_path: str):
@@ -173,7 +196,7 @@ def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: tor
         error_msg = 'Error - loading Model Checkpoint: Path {} does not exist'.format(ckpt_local_path)
         raise RuntimeError(error_msg)
 
-    if load_backbone and not hasattr(net.module, 'backbone'):
+    if load_backbone and not hasattr(net, 'backbone'):
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
 
     # LOAD THE LOCAL CHECKPOINT PATH INTO A state_dict OBJECT
@@ -187,7 +210,7 @@ def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: tor
 
     # LOAD THE CHECKPOINTS WEIGHTS TO THE MODEL
     if load_backbone:
-        adaptive_load_state_dict(net.module.backbone, checkpoint, strict)
+        adaptive_load_state_dict(net.backbone, checkpoint, strict)
     else:
         adaptive_load_state_dict(net, checkpoint, strict)
 

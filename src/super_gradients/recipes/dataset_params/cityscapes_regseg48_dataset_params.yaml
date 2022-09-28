@@ -5,23 +5,23 @@ defaults:
 train_dataset_params:
   transforms:
     # for more options see common.factories.transforms_factory.py
-    - ColorJitterSeg:
+    - SegColorJitter:
         brightness: 0.1
         contrast: 0.1
         saturation: 0.1
 
-    - RandomFlipSeg:
+    - SegRandomFlip:
         prob: 0.5
 
-    - RandomRescaleSeg:
+    - SegRandomRescale:
         scales: [ 0.4, 1.6 ]
 
-    - PadShortToCropSizeSeg:
+    - SegPadShortToCropSize:
         crop_size: 1024
         fill_image: [ 19, 0, 0 ]
         fill_mask: 19                     # ignored label idx
 
-    - CropImageAndMaskSeg:
+    - SegCropImageAndMask:
         crop_size: 1024
         mode: random
 
