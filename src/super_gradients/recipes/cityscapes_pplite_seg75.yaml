@@ -71,7 +71,6 @@ training_hyperparams:
       dice_ce_weights: [ 1., 1. ]
       ce_edge_weights: [ .5, .5 ]
       edge_kernel: 5
-  loss_logging_items_names: [main_loss, aux_loss1, aux_loss2, aux_loss3, loss]
 
 multi_gpu: DDP
 num_gpus: 4
