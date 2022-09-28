@@ -85,4 +85,44 @@ python main.py --config-name=my_recipe.yaml
 Coming soon
 
 ### C. Loss
-Coming soon
+
+*main.py*
+
+```python
+import omegaconf
+import hydra
+
+import torch
+
+from super_gradients import Trainer, init_trainer
+from super_gradients.common.registry.registry import register_loss
+
+
+@register_loss("custom_rsquared_loss")
+class CustomRSquaredLoss(torch.nn.modules.loss._Loss): # The Loss needs to inherit from torch _Loss class.
+   def forward(self, output, target):
+       criterion_mse = torch.nn.MSELoss()
+       return 1 - criterion_mse(output, target).item() / torch.var(target).item()
+
+
+@hydra.main(config_path="recipes")
+def main(cfg: omegaconf.DictConfig) -> None:
+   Trainer.train_from_config(cfg)
+
+
+init_trainer()
+main()
+```
+
+*recipes/training_hyperparams/my_training_hyperparams.yaml* 
+```yaml
+... # Other training hyperparams
+
+loss: custom_rsquared_loss
+```
+
+*Launch the script*
+```bash
+python main.py --config-name=my_recipe.yaml
+```
+

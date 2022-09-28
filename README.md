@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/assets/SG_img/SG - Horizontal.png" width="600"/>
+  <img src="docs/assets/SG_img/SG - Horizontal Glow 2.png" width="600"/>
  <br/><br/>
   
 **Build, train, and fine-tune production-ready deep learning  SOTA vision models**
@@ -51,22 +51,22 @@ model = models.get("yolox_s", pretrained_weights="coco")
 
 #### Classification
 <div align="center">
-<img src="./docs/assets/SG_img/Classification@2x.png" width="800px">
+<img src="./docs/assets/SG_img/Classification@2xDark.png" width="800px">
 </div>
 
 #### Semantic Segmentation
 <div align="center">
-<img src="./docs/assets/SG_img/Semantic Segmentation@2x.png" width="800px">
+<img src="./docs/assets/SG_img/Semantic Segmentation@2xDark.png" width="800px">
 </div>
 
 #### Object Detection 
 <div align="center">
-<img src="./docs/assets/SG_img/Object Detection@2x.png" width="800px">
+<img src="./docs/assets/SG_img/Object Detection@2xDark.png" width="800px">
 </div>
 
 
 
-All Computer Vision Models - Pretrained Checkpoints can be found [here](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md)
+All Computer Vision Models - Pretrained Checkpoints can be found [here](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
 
 
 ### Easy to train SOTA Models
@@ -88,7 +88,12 @@ All SuperGradients models’ are production ready in the sense that they are com
 # Load model with pretrained weights
 model = models.get("yolox_s", pretrained_weights="coco")
 
-# Prepare model for conversion & create dummy_input
+# Prepare model for conversion
+# Input size is in format of [Batch x Channels x Width x Height] where 640 is the standart COCO dataset dimensions
+model.eval()
+model.prep_model_for_conversion(input_size=[1, 3, 640, 640])
+    
+# Create dummy_input
 
 # Convert model to onnx
 torch.onnx.export(model, dummy_input,  "yolox_s.onnx")
@@ -106,11 +111,11 @@ pip install super-gradients
 
 ## What's New
 __________________________________________________________________________________________________________
-* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md)  for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
-* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
+* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)  for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
+* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
 * 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
-* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md) on COCO - Tailored for edge devices! 📱
-* 【07/07/2022】 STDC  - new pre-trained [checkpoints](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
+* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) on COCO - Tailored for edge devices! 📱
+* 【07/07/2022】 STDC  - new pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
@@ -151,7 +156,7 @@ The most simple and straightforward way to start training SOTA performance model
 python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
-Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](docs/assets/SG_img/Computer_Vision_Models_Pretrained_Checkpoints.md)
+Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
 
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
@@ -165,10 +170,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 #### Transfer Learning 
   <table class="tfo-notebook-buttons" align="left">
- <td>  
+ <td width="500">  
   <a target="_blank" href="https://bit.ly/3xzIutb"><img src="./docs/assets/SG_img/colab_logo.png" /> Classification Transfer Learning</a>
   </td>
- <td>    
+ <td width="200">    
  <a target="_blank" href="https://bit.ly/3xwYEn1"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -179,10 +184,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ####  Quick Start 
 <table class="tfo-notebook-buttons" align="left">
- <td>
+ <td width="500">
 <a target="_blank" href="https://bit.ly/3qKx9m8"><img src="./docs/assets/SG_img/colab_logo.png" /> Segmentation Quick Start</a>
  </td>
- <td>
+ <td width="200">
 <a target="_blank" href="https://bit.ly/3qJjxYq"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source </a>
  </td>
 </table>
@@ -192,10 +197,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
  
  ####  Transfer Learning 
 <table class="tfo-notebook-buttons" align="left">
- <td>
+ <td width="500">
 <a target="_blank" href="https://bit.ly/3qKwMbe"><img src="./docs/assets/SG_img/colab_logo.png" /> Segmentation Transfer Learning</a>
  </td>
- <td>
+ <td width="200">
 <a target="_blank" href="https://bit.ly/3ShJlXn"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -205,10 +210,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 ####  How to Connect Custom Dataset 
   <table class="tfo-notebook-buttons" align="left">
- <td> 
+ <td width="500"> 
 <a target="_blank" href="https://bit.ly/3QQBVJp"><img src="./docs/assets/SG_img/colab_logo.png" /> Segmentation How to Connect Custom Dataset</a>
    </td>
- <td>
+ <td width="200">
  <a target="_blank" href="https://bit.ly/3Us2WGi"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -221,10 +226,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 #### Transfer Learning
   <table class="tfo-notebook-buttons" align="left">
- <td>   
+ <td width="500">   
 <a target="_blank" href="https://bit.ly/3SkMohx"><img src="./docs/assets/SG_img/colab_logo.png" /> Detection Transfer Learning</a>
    </td>
- <td>   
+ <td width="200">   
 <a target="_blank" href="https://bit.ly/3DF8siG"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -232,10 +237,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 #### How to Connect Custom Dataset 
   <table class="tfo-notebook-buttons" align="left">
- <td>  
+ <td width="500">  
   <a target="_blank" href="https://bit.ly/3dqDlg3"><img src="./docs/assets/SG_img/colab_logo.png" /> Detection How to Connect Custom Dataset</a>
   </td>
- <td>      
+ <td width="200">      
 <a target="_blank" href="https://bit.ly/3xBlcmq"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -247,10 +252,10 @@ model = models.get("model-name", pretrained_weights="pretrained-model-name")
 
 #### Segmentation, Detection and Classification Prediction 
   <table class="tfo-notebook-buttons" align="left">
- <td>    
+ <td width="500">    
 <a target="_blank" href="https://bit.ly/3f4mssd"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Predict Using Pre-trained Model</a>
   </td>
- <td>   
+ <td width="200">   
 <a target="_blank" href="https://bit.ly/3Sf59Tr"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -263,10 +268,10 @@ ________________________________________________________________________________
 Knowledge Distillation is a training technique that uses a large model, teacher model, to improve the performance of a smaller model, the student model.
 Learn more about SuperGradients knowledge distillation training with our pre-trained BEiT base teacher model and Resnet18 student model on CIFAR10 example notebook on Google Colab for an easy to use tutorial using free GPU hardware
   <table class="tfo-notebook-buttons" align="left">
- <td>   
+ <td width="500">   
    <a target="_blank" href="https://bit.ly/3BLA5oR"><img src="./docs/assets/SG_img/colab_logo.png" /> Knowledge Distillation Training</a>
   </td>
- <td>   
+ <td width="200">   
 <a target="_blank" href="https://bit.ly/3S9UlG4"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -274,12 +279,12 @@ Learn more about SuperGradients knowledge distillation training with our pre-tra
 
 ### Recipes
 To train a model, it is necessary to configure 4 main components. These components are aggregated into a single "main" recipe `.yaml` file that inherits the aforementioned dataset, architecture, raining and checkpoint params. It is also possible (and recomended for flexibility) to override default settings with custom ones.
-All recipes can be found [here](docs/assets/SG_img/Training_Recipes.md)
+All recipes can be found [here](src/super_gradients/recipes/Training_Recipes.md)
   <table class="tfo-notebook-buttons" align="left">
- <td>   
+ <td width="500">   
    <a target="_blank" href="https://bit.ly/3UiY5ab"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Use Recipes</a>
   </td>
- <td>  
+ <td width="200">  
 <a target="_blank" href="https://bit.ly/3QSrHbm"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
@@ -413,7 +418,7 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ## Implemented Model Architectures 
 __________________________________________________________________________________________________________
 
-Detailed list can be found [here](docs/assets/SG_img/Implemented%20Model%20Architectures.md) 
+Detailed list can be found [here](src/super_gradients/training/models/Implemented%20Model%20Architectures.md) 
 
 ### Image Classification
   
@@ -437,7 +442,7 @@ Detailed list can be found [here](docs/assets/SG_img/Implemented%20Model%20Archi
   
 ### Semantic Segmentation 
 
-- [PP-LiteSeg](https://bit.ly/3RrtMMO) - [https://arxiv.org/pdf/2204.02681v1.pdf](https://arxiv.org/pdf/2204.02681v1.pdf) 
+- [PP-LiteSeg](https://bit.ly/3RrtMMO)
 - [DDRNet (Deep Dual-resolution Networks)](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/ddrnet.py) 
 - [LadderNet](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/laddernet.py)
 - [RegSeg](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/training/models/segmentation_models/regseg.py)
