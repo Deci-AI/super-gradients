@@ -196,7 +196,7 @@ def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: tor
         error_msg = 'Error - loading Model Checkpoint: Path {} does not exist'.format(ckpt_local_path)
         raise RuntimeError(error_msg)
 
-    if load_backbone and not hasattr(net.module, 'backbone'):
+    if load_backbone and not hasattr(net, 'backbone'):
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
 
     # LOAD THE LOCAL CHECKPOINT PATH INTO A state_dict OBJECT
@@ -210,7 +210,7 @@ def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: tor
 
     # LOAD THE CHECKPOINTS WEIGHTS TO THE MODEL
     if load_backbone:
-        adaptive_load_state_dict(net.module.backbone, checkpoint, strict)
+        adaptive_load_state_dict(net.backbone, checkpoint, strict)
     else:
         adaptive_load_state_dict(net, checkpoint, strict)
 
