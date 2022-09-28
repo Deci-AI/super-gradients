@@ -131,6 +131,9 @@ def get(model_name: str, arch_params: Optional[dict] = None, num_classes: int = 
     if load_backbone and not checkpoint_path:
         raise ValueError("Please set checkpoint_path when load_backbone=True")
 
+    if load_backbone and not checkpoint_path:
+        raise ValueError("Please set checkpoint_path when load_backbone=True")
+
     if checkpoint_path:
         load_ema_as_net = 'ema_net' in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
         _ = load_checkpoint_to_model(ckpt_local_path=checkpoint_path,
