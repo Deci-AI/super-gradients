@@ -6,6 +6,7 @@ import torch
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
+from super_gradients.common.environment.env_helpers import get_default_checkpoint_dir
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.common.environment import environment_config
 try:
@@ -27,8 +28,8 @@ def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
     """
     if ckpt_root_dir:
         return os.path.join(ckpt_root_dir, experiment_name)
-    elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
-        return os.path.join(environment_config.PKG_CHECKPOINTS_DIR, experiment_name)
+    elif os.path.exists(get_default_checkpoint_dir()):
+        return os.path.join(get_default_checkpoint_dir(), experiment_name)
     else:
         raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to resources.")
 
