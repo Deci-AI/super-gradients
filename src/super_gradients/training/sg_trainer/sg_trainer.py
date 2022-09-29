@@ -398,7 +398,7 @@ class Trainer:
 
             # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
             logging_values = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
-            gpu_memory_utilization = torch.cuda.memory_cached() / 1E9 if torch.cuda.is_available() else 0
+            gpu_memory_utilization = torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0
 
             # RENDER METRICS PROGRESS
             pbar_message_dict = get_train_loop_description_dict(logging_values,
