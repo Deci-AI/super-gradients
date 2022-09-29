@@ -43,15 +43,15 @@ pre_prediction_callback:
 phase_callbacks:
   - YoloXTrainingStageSwitchCallback:
       next_stage_start_epoch: 285
-  - DetectionVisualizationCallback:
-      phase: VALIDATION_BATCH_END
-      freq: 1
-      post_prediction_callback:
-        YoloV5PostPredictionCallback:
-          iou: 0.45
-          conf: 0.25
-      classes: 80
-      last_img_idx_in_batch: 4
+#  - DetectionVisualizationCallback:
+#      phase: VALIDATION_BATCH_END
+#      freq: 1
+#      post_prediction_callback:
+#        YoloPostPredictionCallback:
+#          iou: 0.45
+#          conf: 0.25
+#      classes: 80
+#      last_img_idx_in_batch: 4
 
 
 metric_to_watch: 'mAP@0.50:0.95'
