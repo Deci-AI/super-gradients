@@ -1,12 +1,12 @@
 import os
 import tempfile
 import pkg_resources
+from importlib.util import find_spec
 
 import torch
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
-from super_gradients.common.environment.env_helpers import get_default_checkpoint_dir
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.common.environment import environment_config
 try:
@@ -18,6 +18,22 @@ except (ModuleNotFoundError, ImportError, NameError):
 logger = get_logger(__name__)
 
 
+def get_checkpoints_root_dir_path(ckpt_root_dir: str = None) -> str:
+    """Creating the checkpoint root directory (where all the experiments are created).
+    :param ckpt_root_dir:       Local root directory path where all experiment logging directories will reside.
+    :return:                    checkpoints_dir_path
+    """
+    if ckpt_root_dir:
+        return ckpt_root_dir
+    try:
+        return pkg_resources.resource_filename("checkpoints", "")
+    except Exception:
+        new_ckpt_root_dir = os.path.join(os.getcwd(), "checkpoints")
+        os.makedirs(new_ckpt_root_dir, exist_ok=True)
+        logger.info(f"Checkpoint root dir was just created: {new_ckpt_root_dir}")
+        return new_ckpt_root_dir
+
+
 def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
     """Creating the checkpoint directory of a given experiment.
     :param experiment_name:     Name of the experiment.
@@ -26,12 +42,9 @@ def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
                                 exists and will be used.
     :return:                    checkpoints_dir_path
     """
-    if ckpt_root_dir:
-        return os.path.join(ckpt_root_dir, experiment_name)
-    elif os.path.exists(get_default_checkpoint_dir()):
-        return os.path.join(get_default_checkpoint_dir(), experiment_name)
-    else:
-        raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to resources.")
+    if ckpt_root_dir is None:
+        ckpt_root_dir = get_checkpoints_root_dir_path()
+    return os.path.join(ckpt_root_dir, experiment_name)
 
 
 def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, external_checkpoint_path: str):

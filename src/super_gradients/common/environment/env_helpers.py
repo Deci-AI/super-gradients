@@ -69,13 +69,12 @@ def get_default_checkpoint_dir() -> str:
     try:
         return pkg_resources.resource_filename("checkpoints", "")
     except Exception:
-        os.makedirs(os.path.join(os.getcwd(), "checkpoints"), exist_ok=True)
-        return os.path.join(os.getcwd(), "checkpoints")
+        return None
 
 
 def hydra_output_dir_resolver(ckpt_root_dir, experiment_name):
     if ckpt_root_dir is None:
-        output_dir_path = (get_default_checkpoint_dir() + os.path.sep + experiment_name)
+        output_dir_path = (CKPT_DIR_NAME + os.path.sep + experiment_name)
     else:
         output_dir_path = ckpt_root_dir + os.path.sep + experiment_name
     return output_dir_path

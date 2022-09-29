@@ -1,8 +1,6 @@
 import logging
 from os import environ
 
-
-
 # Controlling the default logging level via environment variable
 DEFAULT_LOGGING_LEVEL = environ.get("LOG_LEVEL", "INFO").upper()
 
