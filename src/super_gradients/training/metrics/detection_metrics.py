@@ -36,7 +36,7 @@ class DetectionMetrics(Metric):
     def __init__(self, num_cls: int,
                  post_prediction_callback: DetectionPostPredictionCallback = None,
                  normalize_targets: bool = False,
-                 iou_thres: IouThreshold = IouThreshold.MAP_05_TO_095,
+                 iou_thres: Union[IouThreshold, float] = IouThreshold.MAP_05_TO_095,
                  recall_thres: torch.Tensor = None,
                  score_thres: float = 0.1,
                  top_k_predictions: int = 100,
@@ -45,17 +45,26 @@ class DetectionMetrics(Metric):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.num_cls = num_cls
         self.iou_thres = iou_thres
-        self.map_str = 'mAP@%.1f' % iou_thres[0] if not iou_thres.is_range() else 'mAP@%.2f:%.2f' % iou_thres
-        self.component_names = ["Precision", "Recall", self.map_str, "F1"]
+
+        if isinstance(iou_thres, IouThreshold):
+            self.iou_thresholds = iou_thres.to_tensor()
+        else:
+            self.iou_thresholds = torch.tensor([iou_thres])
+
+        self.map_str = 'mAP' + self._get_range_str()
+        self.component_names = [f"Precision{self._get_range_str()}",
+                                f"Recall{self._get_range_str()}",
+                                f"mAP{self._get_range_str()}",
+                                f"F1{self._get_range_str()}"]
+
         self.components = len(self.component_names)
         self.post_prediction_callback = post_prediction_callback
         self.is_distributed = super_gradients.is_distributed()
         self.denormalize_targets = not normalize_targets
         self.world_size = None
         self.rank = None
-        self.add_state("matching_info", default=[], dist_reduce_fx=None)
+        self.add_state(f"matching_info{self._get_range_str()}", default=[], dist_reduce_fx=None)
 
-        self.iou_thresholds = iou_thres.to_tensor()
         self.recall_thresholds = torch.linspace(0, 1, 101) if recall_thres is None else recall_thres
         self.score_threshold = score_thres
         self.top_k_predictions = top_k_predictions
@@ -89,15 +98,15 @@ class DetectionMetrics(Metric):
             top_k=self.top_k_predictions, denormalize_targets=self.denormalize_targets,
             device=self.device, return_on_cpu=self.accumulate_on_cpu)
 
-        accumulated_matching_info = getattr(self, "matching_info")
-        setattr(self, "matching_info", accumulated_matching_info + new_matching_info)
+        accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
+        setattr(self, f"matching_info{self._get_range_str()}", accumulated_matching_info + new_matching_info)
 
     def compute(self) -> Dict[str, Union[float, torch.Tensor]]:
         """Compute the metrics for all the accumulated results.
             :return: Metrics of interest
         """
         mean_ap, mean_precision, mean_recall, mean_f1 = -1., -1., -1., -1.
-        accumulated_matching_info = getattr(self, "matching_info")
+        accumulated_matching_info = getattr(self, f"matching_info{self._get_range_str()}")
 
         if len(accumulated_matching_info):
             matching_info_tensors = [torch.cat(x, 0) for x in list(zip(*accumulated_matching_info))]
@@ -113,7 +122,12 @@ class DetectionMetrics(Metric):
             # MaP is averaged over IoU thresholds and over classes
             mean_ap = ap.mean()
 
-        return {"Precision": mean_precision, "Recall": mean_recall, self.map_str: mean_ap, "F1": mean_f1}
+        a = {f"Precision{self._get_range_str()}": mean_precision,
+             f"Recall{self._get_range_str()}": mean_recall,
+             f"mAP{self._get_range_str()}": mean_ap,
+             f"F1{self._get_range_str()}": mean_f1}
+        print(a)
+        return a
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
         """
@@ -135,7 +149,77 @@ class DetectionMetrics(Metric):
             torch.distributed.all_gather_object(gathered_state_dicts, local_state_dict)
             matching_info = []
             for state_dict in gathered_state_dicts:
-                matching_info += state_dict["matching_info"]
+                matching_info += state_dict[f"matching_info{self._get_range_str()}"]
             matching_info = tensor_container_to_device(matching_info, device="cpu" if self.accumulate_on_cpu else self.device)
 
-            setattr(self, "matching_info", matching_info)
+            setattr(self, f"matching_info{self._get_range_str()}", matching_info)
+
+    def _get_range_str(self):
+        return '@%.2f' % self.iou_thresholds[0] if not len(self.iou_thresholds) > 1 else '@%.2f:%.2f' % (self.iou_thresholds[0], self.iou_thresholds[-1])
+
+
+class DetectionMetrics_050(DetectionMetrics):
+
+    def __init__(self, num_cls: int,
+                 post_prediction_callback: DetectionPostPredictionCallback = None,
+                 normalize_targets: bool = False,
+                 recall_thres: torch.Tensor = None,
+                 score_thres: float = 0.1,
+                 top_k_predictions: int = 100,
+                 dist_sync_on_step: bool = False,
+                 accumulate_on_cpu: bool = True):
+
+        super().__init__(num_cls,
+                         post_prediction_callback,
+                         normalize_targets,
+                         IouThreshold.MAP_05,
+                         recall_thres,
+                         score_thres,
+                         top_k_predictions,
+                         dist_sync_on_step,
+                         accumulate_on_cpu)
+
+
+class DetectionMetrics_075(DetectionMetrics):
+
+    def __init__(self, num_cls: int,
+                 post_prediction_callback: DetectionPostPredictionCallback = None,
+                 normalize_targets: bool = False,
+                 recall_thres: torch.Tensor = None,
+                 score_thres: float = 0.1,
+                 top_k_predictions: int = 100,
+                 dist_sync_on_step: bool = False,
+                 accumulate_on_cpu: bool = True):
+
+        super().__init__(num_cls,
+                         post_prediction_callback,
+                         normalize_targets,
+                         0.75,
+                         recall_thres,
+                         score_thres,
+                         top_k_predictions,
+                         dist_sync_on_step,
+                         accumulate_on_cpu)
+
+
+class DetectionMetrics_050_095(DetectionMetrics):
+
+    def __init__(self, num_cls: int,
+                 post_prediction_callback: DetectionPostPredictionCallback = None,
+                 normalize_targets: bool = False,
+                 recall_thres: torch.Tensor = None,
+                 score_thres: float = 0.1,
+                 top_k_predictions: int = 100,
+                 dist_sync_on_step: bool = False,
+                 accumulate_on_cpu: bool = True):
+
+        super().__init__(num_cls,
+                         post_prediction_callback,
+                         normalize_targets,
+                         IouThreshold.MAP_05_TO_095,
+                         recall_thres,
+                         score_thres,
+                         top_k_predictions,
+                         dist_sync_on_step,
+                         accumulate_on_cpu)
+
