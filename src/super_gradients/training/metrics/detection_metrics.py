@@ -222,4 +222,3 @@ class DetectionMetrics_050_095(DetectionMetrics):
                          top_k_predictions,
                          dist_sync_on_step,
                          accumulate_on_cpu)
-
