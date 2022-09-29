@@ -108,7 +108,8 @@ class Callbacks:
     EARLY_STOP = 'EarlyStop'
     DETECTION_MULTISCALE_PREPREDICTION = 'DetectionMultiscalePrePredictionCallback'
     YOLOX_TRAINING_STAGE_SWITCH = 'YoloXTrainingStageSwitchCallback'
-
+    DETECTION_VISUALIZATION = 'DetectionVisualizationCallback'
+    BINARY_SEGMENTATION_VISUALIZATION = 'BinarySegmentationVisualizationCallback'
 
 class LRSchedulers:
     """Static class to hold all the supported LR Scheduler names"""""
