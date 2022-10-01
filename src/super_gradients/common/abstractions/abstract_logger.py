@@ -20,6 +20,10 @@ def get_logger(
     )
     logging.config.dictConfig(config_dict)
     logger: logging.Logger = logging.getLogger(logger_name)
+
+    if int(os.getenv("LOCAL_RANK", -1)) >= 1:
+        shutdown_all_logs()
+
     return logger
 
 
@@ -31,3 +35,18 @@ class ILogger:
     def __init__(self, logger_name: str = None):
         logger_name = logger_name if logger_name else str(self.__module__)
         self._logger: logging.Logger = get_logger(logger_name)
+
+
+def shutdown_all_logs():
+    # Ignore warnings
+    import warnings
+    warnings.filterwarnings("ignore")
+
+    # Ignore prints
+    import sys
+    sys.stdout = open(os.devnull, 'w')  # silent all printing for non master process
+
+    # Only show errors
+    loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+    for logger in loggers:
+        logger.setLevel(logging.ERROR)

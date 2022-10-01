@@ -16,12 +16,13 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
+from super_gradients.common.environment.env_helpers import get_ddp_local_rank
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
-from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.abstractions.abstract_logger import get_logger, shutdown_all_logs
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
@@ -52,7 +53,6 @@ from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path,
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
-from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
@@ -1394,13 +1394,12 @@ class Trainer:
         learning rates and schedules for large batch sizes.
         """
         logger.info("Distributed training starting...")
-        local_rank = environment_config.DDP_LOCAL_RANK
+        local_rank = get_ddp_local_rank()
         if not torch.distributed.is_initialized():
             torch.distributed.init_process_group(backend='nccl', init_method='env://')
 
         if local_rank > 0:
-            f = open(os.devnull, 'w')
-            sys.stdout = f  # silent all printing for non master process
+            shutdown_all_logs()
 
         torch.cuda.set_device(local_rank)
         self.device = 'cuda:%d' % local_rank

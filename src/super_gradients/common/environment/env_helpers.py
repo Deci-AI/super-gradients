@@ -71,9 +71,9 @@ def init_trainer():
     This function should be the first thing to be called by any code running super_gradients.
     It resolves conflicts between the different tools, packages and environments used and prepares the super_gradients environment.
     """
-    if not os.getenv("IS_TRAINER_INITIALIZED"):
+    register_hydra_resolvers()
 
-        register_hydra_resolvers()
+    if not os.getenv("IS_TRAINER_INITIALIZED"):
 
         # We pop local_rank if it was specified in the args, because it would break
         args_local_rank = pop_arg("local_rank", default_value="-1")
