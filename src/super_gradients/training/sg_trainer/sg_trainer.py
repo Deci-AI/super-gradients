@@ -16,7 +16,6 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
-from super_gradients.common.environment.env_helpers import get_ddp_local_rank
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
@@ -1395,7 +1394,7 @@ class Trainer:
         learning rates and schedules for large batch sizes.
         """
         logger.info("Distributed training starting...")
-        local_rank = get_ddp_local_rank()
+        local_rank = environment_config.DDP_LOCAL_RANK
         if not torch.distributed.is_initialized():
             torch.distributed.init_process_group(backend='nccl', init_method='env://')
 

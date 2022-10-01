@@ -6,10 +6,9 @@ import socket
 from functools import wraps
 from typing import Any
 
-import pkg_resources
 from omegaconf import OmegaConf
 
-from super_gradients.common.environment import environment_config
+from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
 
 
 class TerminalColours:
@@ -65,21 +64,6 @@ def get_environ_as_type(environment_variable_name: str, default=None, cast_to_ty
     return
 
 
-def get_default_checkpoint_dir() -> str:
-    try:
-        return pkg_resources.resource_filename("checkpoints", "")
-    except Exception:
-        return None
-
-
-def hydra_output_dir_resolver(ckpt_root_dir, experiment_name):
-    if ckpt_root_dir is None:
-        output_dir_path = (CKPT_DIR_NAME + os.path.sep + experiment_name)
-    else:
-        output_dir_path = ckpt_root_dir + os.path.sep + experiment_name
-    return output_dir_path
-
-
 def init_trainer():
     """
     Initialize the super_gradients environment.
@@ -94,15 +78,20 @@ def init_trainer():
         # We pop local_rank if it was specified in the args, because it would break
         args_local_rank = pop_arg("local_rank", default_value="-1")
 
-        # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
-        os.environ["LOCAL_RANK"] = os.getenv("LOCAL_RANK", default=args_local_rank)
+        # If DDP rank is not set yet, set it with the args value.
+        if "LOCAL_RANK" not in os.environ:
+            os.environ["LOCAL_RANK"] = str(args_local_rank)
         os.environ["IS_TRAINER_INITIALIZED"] = "True"
 
 
 def register_hydra_resolvers():
     """Register all the hydra resolvers required for the super-gradients recipes."""
-    OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
+    OmegaConf.register_new_resolver("hydra_output_dir", _hydra_output_dir_resolver, replace=True)
     OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
+
+
+def _hydra_output_dir_resolver(ckpt_root_dir: str, experiment_name: str) -> str:
+    return get_checkpoints_dir_path(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
 
 
 def pop_arg(arg_name: str, default_value: Any = None) -> Any:
@@ -118,8 +107,8 @@ def pop_arg(arg_name: str, default_value: Any = None) -> Any:
     return vars(args)[arg_name]
 
 
-def get_ddp_local_rank() -> int:
-    return int(os.getenv("LOCAL_RANK", default=-1))
+def get_ddp_local_rank(default_value: int = -1) -> int:
+    return int(os.getenv("LOCAL_RANK", default_value))
 
 
 def is_distributed() -> bool:

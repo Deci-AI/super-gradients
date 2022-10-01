@@ -1,8 +1,15 @@
+import os
 import logging
 import logging.config
 
 from super_gradients.common.auto_logging import AutoLoggerConfig
-from super_gradients.common.environment.environment_config import DEFAULT_LOGGING_LEVEL
+
+
+# Controlling the default logging level via environment variable
+DEFAULT_LOGGING_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+
+# Set the default level for all libraries - including 3rd party packages
+logging.basicConfig(level=DEFAULT_LOGGING_LEVEL)
 
 
 def get_logger(

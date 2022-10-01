@@ -11,8 +11,8 @@ class MultiOutputModule(nn.Module):
     """
     This module wraps around a container nn.Module (such as Module, Sequential and ModuleList) and allows to extract
     multiple output from its inner modules on each forward call() (as a list of output tensors)
-    note: the default output of the wrapped module will not be added to the output list by default. To get
-    the default output in the outputs list, explicitly include its path in the @output_paths parameter
+    note: the default_value output of the wrapped module will not be added to the output list by default_value. To get
+    the default_value output in the outputs list, explicitly include its path in the @output_paths parameter
 
     i.e.
     for module:
