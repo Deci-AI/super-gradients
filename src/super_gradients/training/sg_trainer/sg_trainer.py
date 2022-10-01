@@ -16,7 +16,6 @@ from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
-from super_gradients.common.environment.env_helpers import get_ddp_local_rank
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
@@ -53,6 +52,7 @@ from super_gradients.training.utils.checkpoint_utils import get_ckpt_local_path,
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
 from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_SCHEDULERS_CLS_DICT, PhaseContext, \
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
+from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
@@ -1394,7 +1394,7 @@ class Trainer:
         learning rates and schedules for large batch sizes.
         """
         logger.info("Distributed training starting...")
-        local_rank = get_ddp_local_rank()
+        local_rank = environment_config.DDP_LOCAL_RANK
         if not torch.distributed.is_initialized():
             torch.distributed.init_process_group(backend='nccl', init_method='env://')
 

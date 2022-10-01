@@ -7,6 +7,7 @@ import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
 from super_gradients.training.pretrained_models import MODEL_URLS
+from super_gradients.common.environment import environment_config
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
 except (ModuleNotFoundError, ImportError, NameError):
@@ -16,24 +17,7 @@ except (ModuleNotFoundError, ImportError, NameError):
 logger = get_logger(__name__)
 
 
-def get_checkpoints_root_dir_path(ckpt_root_dir: str = None) -> str:
-    """Creating the checkpoint root directory (where all the experiments will be created).
-    :param ckpt_root_dir:       Local root directory path where all experiment logging directories will reside.
-    :return:                    ckpt_root_dir
-    """
-    if ckpt_root_dir:
-        return ckpt_root_dir
-    else:
-        try:  # If cloned from GitHub, use the checkpoints directory
-            return pkg_resources.resource_filename("checkpoints", "")
-        except Exception:  # Otherwise, create a new directory
-            new_ckpt_root_dir = os.path.join(os.getcwd(), "checkpoints")
-            os.makedirs(new_ckpt_root_dir, exist_ok=True)
-            logger.info(f"Checkpoint root directory was just created here: {new_ckpt_root_dir}")
-            return new_ckpt_root_dir
-
-
-def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None) -> str:
+def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
     """Creating the checkpoint directory of a given experiment.
     :param experiment_name:     Name of the experiment.
     :param ckpt_root_dir:       Local root directory path where all experiment logging directories will
@@ -41,11 +25,12 @@ def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None) ->
                                 exists and will be used.
     :return:                    checkpoints_dir_path
     """
-    if ckpt_root_dir is None:
-        ckpt_root_dir = get_checkpoints_root_dir_path()
-    checkpoints_dir_path = os.path.join(ckpt_root_dir, experiment_name)
-    logger.info(f"The logs and artifacts of your experiment will be stored here: {checkpoints_dir_path}")
-    return checkpoints_dir_path
+    if ckpt_root_dir:
+        return os.path.join(ckpt_root_dir, experiment_name)
+    elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
+        return os.path.join(environment_config.PKG_CHECKPOINTS_DIR, experiment_name)
+    else:
+        raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to resources.")
 
 
 def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, external_checkpoint_path: str):

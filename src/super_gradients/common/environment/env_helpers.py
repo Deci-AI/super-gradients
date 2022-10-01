@@ -8,7 +8,7 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
-from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
+from super_gradients.common.environment import environment_config
 
 
 class TerminalColours:
@@ -64,6 +64,14 @@ def get_environ_as_type(environment_variable_name: str, default=None, cast_to_ty
     return
 
 
+def hydra_output_dir_resolver(ckpt_root_dir, experiment_name):
+    if ckpt_root_dir is None:
+        output_dir_path = (environment_config.PKG_CHECKPOINTS_DIR + os.path.sep + experiment_name)
+    else:
+        output_dir_path = ckpt_root_dir + os.path.sep + experiment_name
+    return output_dir_path
+
+
 def init_trainer():
     """
     Initialize the super_gradients environment.
@@ -71,27 +79,22 @@ def init_trainer():
     This function should be the first thing to be called by any code running super_gradients.
     It resolves conflicts between the different tools, packages and environments used and prepares the super_gradients environment.
     """
-    register_hydra_resolvers()
+    if not environment_config.INIT_TRAINER:
 
-    if not os.getenv("IS_TRAINER_INITIALIZED"):
+        register_hydra_resolvers()
 
         # We pop local_rank if it was specified in the args, because it would break
-        args_local_rank = pop_arg("local_rank", default_value="-1")
+        args_local_rank = pop_arg("local_rank", default_value=-1)
 
-        # If DDP rank is not set yet, set it with the args value.
-        if "LOCAL_RANK" not in os.environ:
-            os.environ["LOCAL_RANK"] = str(args_local_rank)
-        os.environ["IS_TRAINER_INITIALIZED"] = "True"
+        # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
+        environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=args_local_rank))
+        environment_config.INIT_TRAINER = True
 
 
 def register_hydra_resolvers():
     """Register all the hydra resolvers required for the super-gradients recipes."""
-    OmegaConf.register_new_resolver("hydra_output_dir", _hydra_output_dir_resolver, replace=True)
+    OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
     OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
-
-
-def _hydra_output_dir_resolver(ckpt_root_dir: str, experiment_name: str) -> str:
-    return get_checkpoints_dir_path(experiment_name=experiment_name, ckpt_root_dir=ckpt_root_dir)
 
 
 def pop_arg(arg_name: str, default_value: Any = None) -> Any:
@@ -107,12 +110,8 @@ def pop_arg(arg_name: str, default_value: Any = None) -> Any:
     return vars(args)[arg_name]
 
 
-def get_ddp_local_rank(default_value: int = -1) -> int:
-    return int(os.getenv("LOCAL_RANK", default_value))
-
-
 def is_distributed() -> bool:
-    return get_ddp_local_rank() >= 0
+    return environment_config.DDP_LOCAL_RANK >= 0
 
 
 def multi_process_safe(func):
@@ -128,7 +127,7 @@ def multi_process_safe(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if get_ddp_local_rank() <= 0:
+        if environment_config.DDP_LOCAL_RANK <= 0:
             return func(*args, **kwargs)
         else:
             return do_nothing(*args, **kwargs)
