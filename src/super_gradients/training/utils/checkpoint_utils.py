@@ -29,7 +29,7 @@ def get_checkpoints_root_dir_path(ckpt_root_dir: str = None) -> str:
         except Exception:  # Otherwise, create a new directory
             new_ckpt_root_dir = os.path.join(os.getcwd(), "checkpoints")
             os.makedirs(new_ckpt_root_dir, exist_ok=True)
-            logger.info(f"Checkpoint root directory was just created: {new_ckpt_root_dir}")
+            logger.info(f"Checkpoint root directory was just created here: {new_ckpt_root_dir}")
             return new_ckpt_root_dir
 
 
@@ -44,7 +44,7 @@ def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None) ->
     if ckpt_root_dir is None:
         ckpt_root_dir = get_checkpoints_root_dir_path()
     checkpoints_dir_path = os.path.join(ckpt_root_dir, experiment_name)
-    logger.info(f"The logs and artifacts of your experiment will be stored in {checkpoints_dir_path}")
+    logger.info(f"The logs and artifacts of your experiment will be stored here: {checkpoints_dir_path}")
     return checkpoints_dir_path
 
 

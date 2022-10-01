@@ -22,7 +22,7 @@ from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, Eva
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
-from super_gradients.common.abstractions.abstract_logger import get_logger, shutdown_all_logs
+from super_gradients.common.abstractions.abstract_logger import get_logger, silence_logs
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
@@ -1399,7 +1399,7 @@ class Trainer:
             torch.distributed.init_process_group(backend='nccl', init_method='env://')
 
         if local_rank > 0:
-            shutdown_all_logs()
+            silence_logs()
 
         torch.cuda.set_device(local_rank)
         self.device = 'cuda:%d' % local_rank

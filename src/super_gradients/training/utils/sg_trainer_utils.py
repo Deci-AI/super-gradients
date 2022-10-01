@@ -236,7 +236,7 @@ def init_summary_writer(tb_dir, checkpoint_loaded, user_prompt=False):
         for filename in os.listdir(tb_dir):
             if 'events' in filename:
                 if not user_prompt:
-                    print('"{}" will not be deleted'.format(filename))
+                    logger.debug('"{}" will not be deleted'.format(filename))
                     continue
 
                 while True:

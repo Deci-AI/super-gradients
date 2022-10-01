@@ -21,8 +21,8 @@ def get_logger(
     logging.config.dictConfig(config_dict)
     logger: logging.Logger = logging.getLogger(logger_name)
 
-    if int(os.getenv("LOCAL_RANK", -1)) >= 1:
-        shutdown_all_logs()
+    if int(os.getenv("LOCAL_RANK", -1)) > 0:
+        silence_logs()
 
     return logger
 
@@ -37,16 +37,17 @@ class ILogger:
         self._logger: logging.Logger = get_logger(logger_name)
 
 
-def shutdown_all_logs():
+def silence_logs():
+    """This restricts the logs to only ERRORS, and silences as well prints and warnings."""
     # Ignore warnings
     import warnings
     warnings.filterwarnings("ignore")
 
     # Ignore prints
     import sys
-    sys.stdout = open(os.devnull, 'w')  # silent all printing for non master process
+    sys.stdout = open(os.devnull, 'w')
 
-    # Only show errors
+    # Only show ERRORS
     loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
     for logger in loggers:
         logger.setLevel(logging.ERROR)
