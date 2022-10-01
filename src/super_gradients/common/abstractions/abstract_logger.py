@@ -22,7 +22,7 @@ def get_logger(
     logger: logging.Logger = logging.getLogger(logger_name)
 
     if int(os.getenv("LOCAL_RANK", -1)) > 0:
-        silence_logs()
+        mute_current_process()
 
     return logger
 
@@ -37,8 +37,8 @@ class ILogger:
         self._logger: logging.Logger = get_logger(logger_name)
 
 
-def silence_logs():
-    """This restricts the logs to only ERRORS, and silences as well prints and warnings."""
+def mute_current_process():
+    """Mute prints, warnings and all logs except ERRORS. This is meant when running multiple processes."""
     # Ignore warnings
     import warnings
     warnings.filterwarnings("ignore")
@@ -48,6 +48,6 @@ def silence_logs():
     sys.stdout = open(os.devnull, 'w')
 
     # Only show ERRORS
-    loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
-    for logger in loggers:
+    process_loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+    for logger in process_loggers:
         logger.setLevel(logging.ERROR)
