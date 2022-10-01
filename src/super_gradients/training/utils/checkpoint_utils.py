@@ -51,7 +51,7 @@ def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None) ->
 def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, external_checkpoint_path: str):
     """
     Gets the local path to the checkpoint file, which will be:
-        - By default_value: YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name.
+        - By default: YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name.
         - if the checkpoint file is remotely located:
             when overwrite_local_checkpoint=True then it will be saved in a temporary path which will be returned,
             otherwise it will be downloaded to YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name and overwrite
