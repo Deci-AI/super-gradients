@@ -36,7 +36,7 @@ def reduce_results_tuple_for_ddp(validation_results_tuple, device):
     """Gather all validation tuples from the various devices and average them"""
     validation_results_list = list(validation_results_tuple)
     for i, validation_result in enumerate(validation_results_list):
-        validation_results_list[i] = distributed_all_reduce_tensor_average(torch.tensor(validation_result).to(device),
+        validation_results_list[i] = distributed_all_reduce_tensor_average(validation_result.clone().detach().to(device),
                                                                            torch.distributed.get_world_size())
     validation_results_tuple = tuple(validation_results_list)
     return validation_results_tuple
