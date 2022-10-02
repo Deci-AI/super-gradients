@@ -50,9 +50,9 @@ architecture: pp_lite_t_seg
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 8
+    batch_size: 4
   val_dataloader_params:
-    batch_size: 8
+    batch_size: 4
 
 arch_params:
   num_classes: 19
@@ -61,7 +61,7 @@ arch_params:
 
 checkpoint_params:
   checkpoint_path:
-  load_backbone: True
+  load_backbone: False
   load_weights_only: True
   strict_load: no_key_matching
 
@@ -81,7 +81,7 @@ multi_gpu: DDP
 num_gpus: 4
 
 experiment_name: ${architecture}50_cityscapes
-ckpt_root_dir:
+ckpt_root_dir: /home/louis.dupont/PycharmProjects/super-gradients/checkpoints
 
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA

@@ -2,6 +2,8 @@ defaults:
   - cityscapes_dataset_params
   - _self_
 
+batch_size: 8
+
 train_dataset_params:
   transforms:
     # for more options see common.factories.transforms_factory.py

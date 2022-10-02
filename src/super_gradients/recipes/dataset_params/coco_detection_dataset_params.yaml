@@ -45,7 +45,7 @@ train_dataset_params:
 
 train_dataloader_params:
   batch_size: 16
-  num_workers: 8
+  num_workers: 2
   batch_sampler: True
   sampler:
     InfiniteSampler:
@@ -79,8 +79,8 @@ val_dataset_params:
   with_crowd: False
 
 val_dataloader_params:
-  batch_size: 64
-  num_workers: 8
+  batch_size: 16
+  num_workers: 2
   drop_last: False
   pin_memory: True
   collate_fn: # collate function for trainset

@@ -47,7 +47,7 @@ class ClearMLSGLogger(BaseSGLogger):
         super().__init__(project_name, experiment_name, storage_location, resumed, training_params,
                          checkpoints_dir_path, tb_files_user_prompt, launch_tensorboard, tensorboard_port,
                          self.s3_location_available, self.s3_location_available, self.s3_location_available)
-
+        self.setup(project_name, experiment_name)
         # TODO: Check if soemthing similar
         # if api_server is not None:
         #     if api_server != os.getenv('WANDB_BASE_URL'):
@@ -60,6 +60,12 @@ class ClearMLSGLogger(BaseSGLogger):
         # if self.resumed:
         #     wandb_id = self._get_wandb_id()
 
+    @multi_process_safe
+    def setup(self, project_name, experiment_name):
+        # pass
+        print("=============================================")
+        print("INIT")
+        print("=============================================")
         self.task = Task.init(
             project_name=project_name,  # project name of at least 3 characters
             task_name=experiment_name,  # task name of at least 3 characters
@@ -67,11 +73,11 @@ class ClearMLSGLogger(BaseSGLogger):
             tags=None,
             reuse_last_task_id=True,
             continue_last_task=0,  # This prevents clear_ml to add an offset to the epoch
-            output_uri=None,
-            auto_connect_arg_parser=True,
-            auto_connect_frameworks=True,
-            auto_resource_monitoring=True,
-            auto_connect_streams=True,
+            # output_uri=None,
+            auto_connect_arg_parser=False,
+            auto_connect_frameworks=False,
+            auto_resource_monitoring=False,
+            auto_connect_streams=False,
         )
         self.clearml_logger = self.task.get_logger()
         # run = Task.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
@@ -124,8 +130,9 @@ class ClearMLSGLogger(BaseSGLogger):
 
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
-        super(ClearMLSGLogger, self).add_config(tag=tag, config=config)
-        self.task.connect(config)  # TODO: Check if we run this when resuming
+        pass
+        # super(ClearMLSGLogger, self).add_config(tag=tag, config=config)
+        # self.task.connect(config)  # TODO: Check if we run this when resuming
 
     def __add_scalar(self, tag: str, scalar_value: float, global_step: int):
         pass
