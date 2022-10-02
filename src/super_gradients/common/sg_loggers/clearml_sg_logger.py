@@ -14,7 +14,7 @@ from super_gradients.common.environment.env_helpers import multi_process_safe
 logger = get_logger(__name__)
 
 try:
-    from clearml import Task
+    from clearml import Task, OutputModel
 except (ModuleNotFoundError, ImportError, NameError):
     pass  # no action or logging - this is normal in most cases
 
@@ -48,17 +48,16 @@ class ClearMLSGLogger(BaseSGLogger):
                          checkpoints_dir_path, tb_files_user_prompt, launch_tensorboard, tensorboard_port,
                          self.s3_location_available, self.s3_location_available, self.s3_location_available)
         self.setup(project_name, experiment_name)
-        # TODO: Check if soemthing similar
+
+        # TODO: Check if something similar
         # if api_server is not None:
         #     if api_server != os.getenv('WANDB_BASE_URL'):
         #         logger.warning(f'WANDB_BASE_URL environment parameter not set to {api_server}. Setting the parameter')
         #         os.putenv('WANDB_BASE_URL', api_server)
-
-        # TODO: Resume
-        # wandb_id = None
-        # self.resumed = resumed
-        # if self.resumed:
-        #     wandb_id = self._get_wandb_id()
+        save_checkpoints_remote, save_tensorboard_remote, save_logs_remote = True, True, True
+        self.save_checkpoints = save_checkpoints_remote
+        self.save_tensorboard = save_tensorboard_remote
+        self.save_logs = save_logs_remote
 
     @multi_process_safe
     def setup(self, project_name, experiment_name):
@@ -66,77 +65,29 @@ class ClearMLSGLogger(BaseSGLogger):
         print("=============================================")
         print("INIT")
         print("=============================================")
+        from multiprocessing.process import BaseProcess
+
+        # Prevent clearml modifying os.fork and BaseProcess.run, which can cause a DataLoader to crash (if num_worker > 0)
+        default_fork, default_run = os.fork, BaseProcess.run
         self.task = Task.init(
-            project_name=project_name,  # project name of at least 3 characters
-            task_name=experiment_name,  # task name of at least 3 characters
-            task_type=None,
-            tags=None,
-            reuse_last_task_id=True,
-            continue_last_task=0,  # This prevents clear_ml to add an offset to the epoch
-            # output_uri=None,
+            project_name=project_name,      # project name of at least 3 characters
+            task_name=experiment_name,      # task name of at least 3 characters
+            continue_last_task=0,           # This prevents clear_ml to add an offset to the epoch
             auto_connect_arg_parser=False,
             auto_connect_frameworks=False,
             auto_resource_monitoring=False,
-            auto_connect_streams=False,
+            auto_connect_streams=True,
         )
+        os.fork, BaseProcess.run = default_fork, default_run
         self.clearml_logger = self.task.get_logger()
-        # run = Task.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
-
-        # TODO: Save code
-        # if save_code:
-        #     self._save_code()
-
-        # self._set_wandb_id(run.id)
-        # self.save_checkpoints_wandb = save_checkpoints_remote
-        # self.save_tensorboard_wandb = save_tensorboard_remote
-        # self.save_logs_wandb = save_logs_remote
-
-    # @multi_process_safe
-    # def _save_code(self):
-    #     """
-    #     Save the current code to wandb.
-    #     If a file named .wandbinclude is avilable in the root dir of the project the settings will be taken from the file.
-    #     Otherwise, all python file in the current working dir (recursively) will be saved.
-    #     File structure: a single relative path or a single type in each line.
-    #     i.e:
-    #
-    #     src
-    #     tests
-    #     examples
-    #     *.py
-    #     *.yaml
-    #
-    #     The paths and types in the file are the paths and types to be included in code upload to wandb
-    #     """
-    #     base_path, paths, types = self._get_include_paths()
-    #
-    #     if len(types) > 0:
-    #         def func(path):
-    #             for p in paths:
-    #                 if path.startswith(p):
-    #                     for t in types:
-    #                         if path.endswith(t):
-    #                             return True
-    #             return False
-    #
-    #         include_fn = func
-    #     else:
-    #         include_fn = lambda path: path.endswith(".py")
-    #
-    #     if base_path != ".":
-    #         wandb.run.log_code(base_path, include_fn=include_fn)
-    #     else:
-    #         wandb.run.log_code(".", include_fn=include_fn)
 
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
-        pass
-        # super(ClearMLSGLogger, self).add_config(tag=tag, config=config)
-        # self.task.connect(config)  # TODO: Check if we run this when resuming
+        super(ClearMLSGLogger, self).add_config(tag=tag, config=config)
+        self.task.connect(config)  # TODO: Check if we run this when resuming
 
     def __add_scalar(self, tag: str, scalar_value: float, global_step: int):
-        pass
-        # self.clearml_logger.report_scalar(title=tag, series=tag, value=scalar_value, iteration=global_step)
+        self.clearml_logger.report_scalar(title=tag, series=tag, value=scalar_value, iteration=global_step)
 
     @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: int = 0):
@@ -150,12 +101,11 @@ class ClearMLSGLogger(BaseSGLogger):
             self.__add_scalar(tag=tag, scalar_value=scalar_value, global_step=global_step)
 
     def __add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], global_step: int):
-        pass
-        # if isinstance(image, torch.Tensor):
-        #     image = image.cpu().detach().numpy()
-        # if image.shape[0] < 5:
-        #     image = image.transpose([1, 2, 0])
-        # self.clearml_logger.report_image(title=tag, series=tag, image=image, iteration=global_step, max_image_history=-1)
+        if isinstance(image, torch.Tensor):
+            image = image.cpu().detach().numpy()
+        if image.shape[0] < 5:
+            image = image.transpose([1, 2, 0])
+        self.clearml_logger.report_image(title=tag, series=tag, image=image, iteration=global_step, max_image_history=-1)
 
     @multi_process_safe
     def add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], data_format='CHW', global_step: int = 0):
@@ -171,49 +121,45 @@ class ClearMLSGLogger(BaseSGLogger):
     @multi_process_safe
     def add_video(self, tag: str, video: Union[torch.Tensor, np.array], global_step: int = 0):
         super().add_video(tag, video, global_step)
-
-        # if video.ndim > 4:
-        #     for index, vid in enumerate(video):
-        #         self.add_video(tag=f'{tag}_{index}', video=vid, global_step=global_step)
-        # else:
-        #     if isinstance(video, torch.Tensor):
-        #         video = video.cpu().detach().numpy()
-        #     wandb.log({tag: wandb.Video(video, fps=4)}, step=global_step)
+        logger.warning("ClearMLSGLogger does not support uploading video to clearML from a tensor/array.")
 
     @multi_process_safe
     def add_histogram(self, tag: str, values: Union[torch.Tensor, np.array], bins: str, global_step: int = 0):
         super().add_histogram(tag, values, bins, global_step)
-        # wandb.log({tag: wandb.Histogram(values, num_bins=bins)}, step=global_step)
+        self.clearml_logger.report_histogram(title=tag, series=tag, iteration=global_step, values=values)
 
     @multi_process_safe
     def add_text(self, tag: str, text_string: str, global_step: int = 0):
         super().add_text(tag, text_string, global_step)
-        # wandb.log({tag: text_string}, step=global_step)
+        self.clearml_logger.report_text(text_string)
 
     @multi_process_safe
     def add_figure(self, tag: str, figure: plt.figure, global_step: int = 0):
         super().add_figure(tag, figure, global_step)
-        # wandb.log({tag: figure}, step=global_step)
+        logger.warning("ClearMLSGLogger does not support uploading any type of figure to clearML."
+                       "Only histograms are supported, in which case please use add_histogram instead of add_figure")
 
     @multi_process_safe
     def close(self):
         super().close()
-        # wandb.finish()
+        self.task.close()
 
     @multi_process_safe
     def add_file(self, file_name: str = None):
         super().add_file(file_name)
-        # wandb.save(glob_str=os.path.join(self._local_dir, file_name), base_path=self._local_dir, policy='now')
+        self.task.upload_artifact(name=file_name, artifact_object=self._local_dir)
 
     @multi_process_safe
     def upload(self):
         super().upload()
-        #
-        # if self.save_tensorboard_wandb:
-        #     wandb.save(glob_str=self._get_tensorboard_file_name(), base_path=self._local_dir, policy='now')
-        #
-        # if self.save_logs_wandb:
-        #     wandb.save(glob_str=self.log_file_path, base_path=self._local_dir, policy='now')
+
+        if self.save_tensorboard:
+            name = self._get_tensorboard_file_name().split('/')[-1]
+            self.task.upload_artifact(name=name, artifact_object=self._get_tensorboard_file_name())
+
+        if self.save_logs:
+            name = self.log_file_path.split('/')[-1]
+            self.task.upload_artifact(name=name, artifact_object=self.log_file_path)
 
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = 0):
@@ -224,10 +170,11 @@ class ClearMLSGLogger(BaseSGLogger):
         path = os.path.join(self._local_dir, name)
         torch.save(state_dict, path)
 
-        # if self.save_checkpoints_wandb:
-        #     if self.s3_location_available:
-        #         self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
-        #     wandb.save(glob_str=path, base_path=self._local_dir, policy='now')
+        if self.save_checkpoints:
+            if self.s3_location_available:
+                self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
+            name = path.split('/')[-1]
+            self.task.upload_artifact(name=name, artifact_object=path)
 
     def _get_tensorboard_file_name(self):
         try:
@@ -238,67 +185,5 @@ class ClearMLSGLogger(BaseSGLogger):
 
         return tb_file_path
 
-    # def _get_wandb_id(self):
-    #     for file in os.listdir(self._local_dir):
-    #         if file.startswith(WANDB_ID_PREFIX):
-    #             return file.replace(WANDB_ID_PREFIX, '')
-    #
-    # def _set_wandb_id(self, id):
-    #     for file in os.listdir(self._local_dir):
-    #         if file.startswith(WANDB_ID_PREFIX):
-    #             os.remove(os.path.join(self._local_dir, file))
-    #
-    #     os.mknod(os.path.join(self._local_dir, f'{WANDB_ID_PREFIX}{id}'))
-
     def add(self, tag: str, obj: Any, global_step: int = None):
         pass
-
-    # def _get_include_paths(self):
-    #     """
-    #     Look for .wandbinclude file in parent dirs and return the list of paths defined in the file.
-    #
-    #     file structure is a single relative (i.e. src/) or a single type (i.e *.py)in each line.
-    #     the paths and types in the file are the paths and types to be included in code upload to wandb
-    #     :return: if file exists, return the list of paths and a list of types defined in the file
-    #     """
-    #
-    #     wandb_include_file_path = self._search_upwards_for_file(WANDB_INCLUDE_FILE_NAME)
-    #     if wandb_include_file_path is not None:
-    #         with open(wandb_include_file_path) as file:
-    #             lines = file.readlines()
-    #
-    #         base_path = os.path.dirname(wandb_include_file_path)
-    #         paths = []
-    #         types = []
-    #         for line in lines:
-    #             line = line.strip().strip('/n')
-    #             if line == "" or line.startswith("#"):
-    #                 continue
-    #
-    #             if line.startswith('*.'):
-    #                 types.append(line.replace('*', ''))
-    #             else:
-    #                 paths.append(os.path.join(base_path, line))
-    #         return base_path, paths, types
-    #
-    #     return ".", [], []
-
-    @staticmethod
-    def _search_upwards_for_file(file_name: str):
-        """
-        Search in the current directory and all directories above it for a file of a particular name.
-        :param file_name: file name to look for.
-        :return: pathlib.Path, the location of the first file found or None, if none was found
-        """
-
-        try:
-            cur_dir = os.getcwd()
-            while cur_dir != '/':
-                if file_name in os.listdir(cur_dir):
-                    return os.path.join(cur_dir, file_name)
-                else:
-                    cur_dir = os.path.dirname(cur_dir)
-        except RuntimeError:
-            return None
-
-        return None

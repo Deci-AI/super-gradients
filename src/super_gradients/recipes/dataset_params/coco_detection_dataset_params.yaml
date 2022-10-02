@@ -40,12 +40,12 @@ train_dataset_params:
           value: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples: 1280
+  max_num_samples: 640
   with_crowd: False
 
 train_dataloader_params:
   batch_size: 16
-  num_workers: 2
+  num_workers: 8
   batch_sampler: True
   sampler:
     InfiniteSampler:
@@ -75,12 +75,12 @@ val_dataset_params:
         value: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples: 1280
+  max_num_samples: 640
   with_crowd: False
 
 val_dataloader_params:
   batch_size: 16
-  num_workers: 2
+  num_workers: 8
   drop_last: False
   pin_memory: True
   collate_fn: # collate function for trainset
