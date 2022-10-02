@@ -14,21 +14,16 @@ from super_gradients.common.environment.env_helpers import multi_process_safe
 logger = get_logger(__name__)
 
 try:
-    from clearml import Task, OutputModel
+    from clearml import Task
 except (ModuleNotFoundError, ImportError, NameError):
     pass  # no action or logging - this is normal in most cases
-
-
-# WANDB_ID_PREFIX = 'wandb_id.'
-# WANDB_INCLUDE_FILE_NAME = '.wandbinclude'
 
 
 class ClearMLSGLogger(BaseSGLogger):
 
     def __init__(self, project_name: str, experiment_name: str, storage_location: str, resumed: bool, training_params: dict, checkpoints_dir_path: str,
                  tb_files_user_prompt: bool = False, launch_tensorboard: bool = False, tensorboard_port: int = None, save_checkpoints_remote: bool = True,
-                 save_tensorboard_remote: bool = True, save_logs_remote: bool = True, entity: Optional[str] = None, api_server: Optional[str] = None,
-                 save_code: bool = False, **kwargs):
+                 save_tensorboard_remote: bool = True, save_logs_remote: bool = True, entity: Optional[str] = None, api_server: Optional[str] = None, **kwargs):
         """
 
         :param experiment_name:         Used for logging and loading purposes
@@ -41,7 +36,6 @@ class ClearMLSGLogger(BaseSGLogger):
         :param save_checkpoints_remote: Saves checkpoints in s3.
         :param save_tensorboard_remote: Saves tensorboard in s3.
         :param save_logs_remote:        Saves log files in s3.
-        :param save_code:               Save current code to wandb
         """
         self.s3_location_available = storage_location.startswith('s3')
         super().__init__(project_name, experiment_name, storage_location, resumed, training_params,
@@ -54,20 +48,16 @@ class ClearMLSGLogger(BaseSGLogger):
         #     if api_server != os.getenv('WANDB_BASE_URL'):
         #         logger.warning(f'WANDB_BASE_URL environment parameter not set to {api_server}. Setting the parameter')
         #         os.putenv('WANDB_BASE_URL', api_server)
-        save_checkpoints_remote, save_tensorboard_remote, save_logs_remote = True, True, True
         self.save_checkpoints = save_checkpoints_remote
         self.save_tensorboard = save_tensorboard_remote
         self.save_logs = save_logs_remote
 
     @multi_process_safe
     def setup(self, project_name, experiment_name):
-        # pass
-        print("=============================================")
-        print("INIT")
-        print("=============================================")
         from multiprocessing.process import BaseProcess
 
         # Prevent clearml modifying os.fork and BaseProcess.run, which can cause a DataLoader to crash (if num_worker > 0)
+        # Issue opened here: https://github.com/allegroai/clearml/issues/790
         default_fork, default_run = os.fork, BaseProcess.run
         self.task = Task.init(
             project_name=project_name,      # project name of at least 3 characters

@@ -111,6 +111,7 @@ class Callbacks:
     DETECTION_VISUALIZATION = 'DetectionVisualizationCallback'
     BINARY_SEGMENTATION_VISUALIZATION = 'BinarySegmentationVisualizationCallback'
 
+
 class LRSchedulers:
     """Static class to hold all the supported LR Scheduler names"""""
     STEP = "step"
