@@ -163,7 +163,6 @@ class ClearMLSGLogger(BaseSGLogger):
         if self.save_checkpoints:
             if self.s3_location_available:
                 self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
-            name = path.split('/')[-1]
             self.task.upload_artifact(name=name, artifact_object=path)
 
     def _get_tensorboard_file_name(self):
