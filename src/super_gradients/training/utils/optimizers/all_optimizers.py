@@ -1,5 +1,5 @@
 from torch import optim
-from super_gradients.training.object_names import Optimizers
+from super_gradients.common.object_names import Optimizers
 from super_gradients.training.utils.optimizers.rmsprop_tf import RMSpropTF
 from super_gradients.training.utils.optimizers.lamb import Lamb
 
