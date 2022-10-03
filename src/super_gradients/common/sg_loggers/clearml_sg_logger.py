@@ -127,7 +127,7 @@ class ClearMLSGLogger(BaseSGLogger):
     def add_figure(self, tag: str, figure: plt.figure, global_step: int = 0):
         super().add_figure(tag, figure, global_step)
         logger.warning("ClearMLSGLogger does not support uploading any type of figure to clearML."
-                       "Only histograms are supported, in which case please use add_histogram instead of add_figure")
+                       "Only histograms are supported, in which case please use add_histogram instead of add_figure.")
 
     @multi_process_safe
     def close(self):
