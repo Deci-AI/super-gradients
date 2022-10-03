@@ -225,3 +225,13 @@ def restart_script_with_ddp(num_gpus: int = None):
 
     # The code below should actually never be reached as the process will be in a loop inside elastic_launch until any subprocess crashes.
     sys.exit("Main process finished")
+
+
+def get_gpu_mem_utilization():
+    """GPU memory managed by the caching allocator in bytes for a given device."""
+
+    # Workaround to work on any torch version
+    if hasattr(torch.cuda, 'memory_reserved'):
+        return torch.cuda.memory_reserved()
+    else:
+        return torch.cuda.memory_cached()
