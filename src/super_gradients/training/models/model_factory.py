@@ -38,8 +38,8 @@ def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights
     """
     is_remote = False
     if not isinstance(model_name, str):
-        raise ValueError("Unsupported model model_name " + str(model_name) + ", see docs or all_architectures.py for supported nets.")
-    elif isinstance(model_name, str) and model_name not in ARCHITECTURES.keys():
+        raise ValueError("Parameter model_name is expected to be a string.")
+    elif model_name not in ARCHITECTURES.keys():
         logger.info(f'Required model {model_name} not found in local SuperGradients. Trying to load a model from remote deci lab')
         deci_client = DeciClient()
         _arch_params = deci_client.get_model_arch_params(model_name)
@@ -53,7 +53,7 @@ def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights
     return ARCHITECTURES[model_name], arch_params, pretrained_weights, is_remote
 
 
-def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pretrained_weights: str = None) -> SgModule:
+def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pretrained_weights: str = None) -> torch.nn.Module:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
         module manipulation (i.e head replacement).
@@ -124,6 +124,12 @@ def get(model_name: str, arch_params: Optional[dict] = None, num_classes: int = 
     """
 
     net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights)
+
+    if load_backbone and not checkpoint_path:
+        raise ValueError("Please set checkpoint_path when load_backbone=True")
+
+    if load_backbone and not checkpoint_path:
+        raise ValueError("Please set checkpoint_path when load_backbone=True")
 
     if checkpoint_path:
         load_ema_as_net = 'ema_net' in read_ckpt_state_dict(ckpt_path=checkpoint_path).keys()
