@@ -19,7 +19,7 @@ def readme():
 
 
 def get_requirements():
-    with open(REQ_LOCATION) as f:
+    with open(REQ_LOCATION, encoding="utf-8") as f:
         return f.read().splitlines()
 
 
