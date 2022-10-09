@@ -122,12 +122,10 @@ class DetectionMetrics(Metric):
             # MaP is averaged over IoU thresholds and over classes
             mean_ap = ap.mean()
 
-        a = {f"Precision{self._get_range_str()}": mean_precision,
+        return {f"Precision{self._get_range_str()}": mean_precision,
              f"Recall{self._get_range_str()}": mean_recall,
              f"mAP{self._get_range_str()}": mean_ap,
              f"F1{self._get_range_str()}": mean_f1}
-        print(a)
-        return a
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
         """
