@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 import hydra
@@ -20,7 +21,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
-def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = None) -> SgModule:
+def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = None, download_required_code: bool = True) -> SgModule:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
         module manipulation (i.e head replacement).
@@ -28,6 +29,8 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
     :param name: Defines the model's architecture from models/ALL_ARCHITECTURES
     :param arch_params: Architecture's parameters passed to models c'tor.
     :param pretrained_weights: string describing the dataset of the pretrained weights (for example "imagenent")
+    :param download_required_code: if model is not found in SG and is downloaded from a remote client, overriding this parameter with False
+                                        will prevent additional code from being downloaded. This affects only models from remote client.
 
     :return: instantiated model i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
 
@@ -49,6 +52,8 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
         logger.info(f'Required model {name} not found in local SuperGradients. Trying to load a model from remote deci lab')
         deci_client = DeciClient()
         _arch_params = deci_client.get_model_arch_params(name)
+        if download_required_code:
+            deci_client.download_and_load_model_additional_code(name, Path.cwd())
 
         if _arch_params is not None:
             _arch_params = hydra.utils.instantiate(_arch_params)
@@ -78,7 +83,7 @@ def instantiate_model(name: str, arch_params: dict, pretrained_weights: str = No
 
 def get(model_name: str, arch_params: Optional[dict] = None, num_classes: int = None,
         strict_load: StrictLoad = StrictLoad.NO_KEY_MATCHING, checkpoint_path: str = None,
-        pretrained_weights: str = None, load_backbone: bool = False) -> SgModule:
+        pretrained_weights: str = None, load_backbone: bool = False, download_required_code: bool = True) -> SgModule:
     """
     :param model_name:               Defines the model's architecture from models/ALL_ARCHITECTURES
     :param num_classes:        Number of classes (defines the net's structure). If None is given, will try to derrive from
@@ -92,6 +97,8 @@ def get(model_name: str, arch_params: Optional[dict] = None, num_classes: int = 
                                        (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
                                        load the checkpoint.
     :param pretrained_weights: a string describing the dataset of the pretrained weights (for example "imagenent").
+    :param download_required_code: if model is not found in SG and is downloaded from a remote client, overriding this parameter with False
+                                    will prevent additional code from being downloaded. This affects only models from remote client.
 
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
 
@@ -111,7 +118,7 @@ def get(model_name: str, arch_params: Optional[dict] = None, num_classes: int = 
         arch_params["num_classes"] = num_classes
 
     arch_params = core_utils.HpmStruct(**arch_params)
-    net = instantiate_model(model_name, arch_params, pretrained_weights)
+    net = instantiate_model(model_name, arch_params, pretrained_weights, download_required_code)
 
     if load_backbone and not checkpoint_path:
         raise ValueError("Please set checkpoint_path when load_backbone=True")

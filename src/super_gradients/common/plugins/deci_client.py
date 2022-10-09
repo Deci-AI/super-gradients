@@ -1,6 +1,12 @@
 import json
+import sys
+from zipfile import ZipFile
 
 import hydra
+
+import importlib.util
+
+import os
 import pkg_resources
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
@@ -81,3 +87,39 @@ class DeciClient:
             return None
 
         return self._get_file(model_name=model_name, file_name=AutoNACFileName.WEIGHTS_PTH)
+
+    def download_and_load_model_additional_code(self, model_name: str, target_path: str, package_name: str = "deci_model_code") -> None:
+        """
+        try to download code files for this model.
+        if found, code files will be placed in the target_path/package_name and imported dynamically
+        """
+
+        file = self._get_file(model_name=model_name, file_name="code.zip") # TODO fix after lab client new version
+
+        package_path = os.path.join(target_path, package_name)
+        if file is not None:
+            # crete the directory
+            os.makedirs(package_path, exist_ok=True)
+
+            # extract code files
+            with ZipFile(file) as zipfile:
+                zipfile.extractall(package_path)
+
+            # add an init file that imports all code files
+            with open(os.path.join(package_path, '__init__.py'), 'w') as init_file:
+                all_str = '\n\n__all__ = ['
+                for code_file in os.listdir(path=package_path):
+                    if code_file.endswith(".py") and not code_file.startswith("__init__"):
+                        init_file.write(f'import {code_file.replace(".py", "")}\n')
+                        all_str += f'"{code_file.replace(".py", "")}", '
+
+                all_str += "]\n\n"
+                init_file.write(all_str)
+
+            # include in path and import
+            sys.path.insert(1, package_path)
+            importlib.import_module(package_name)
+
+            logger.info(f'*** IMPORTANT ***: files required for the model {model_name} were downloaded and added to your code in:\n{package_path}\n'
+                        f'These files will be downloaded to the same location each time the model is fetched from the deci-client.\n'
+                        f'you can override this by passing models.get(... download_required_code=False) and importing the files yourself')
