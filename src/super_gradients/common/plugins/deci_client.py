@@ -94,7 +94,7 @@ class DeciClient:
         if found, code files will be placed in the target_path/package_name and imported dynamically
         """
 
-        file = self._get_file(model_name=model_name, file_name="code.zip") # TODO fix after lab client new version
+        file = self._get_file(model_name=model_name, file_name=AutoNACFileName.CODE_ZIP)
 
         package_path = os.path.join(target_path, package_name)
         if file is not None:
