@@ -6,6 +6,7 @@ from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.hydra_utils import normalize_path
 
 logger = get_logger(__name__)
 
@@ -66,7 +67,7 @@ class DeciClient:
             return None
 
         split_file = file.split("/")
-        with hydra.initialize_config_dir(config_dir=f"{'/'.join(split_file[:-1])}/", version_base=None):
+        with hydra.initialize_config_dir(config_dir=normalize_path(f"{'/'.join(split_file[:-1])}/"), version_base=None):
             cfg = hydra.compose(config_name=split_file[-1])
         return cfg
 
