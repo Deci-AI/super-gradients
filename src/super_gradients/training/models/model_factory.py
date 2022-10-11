@@ -54,9 +54,11 @@ def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights
         if _arch_params is None:
             raise ValueError("Unsupported model name " + str(model_name) + ", see docs or all_architectures.py for supported nets.")
         _arch_params = hydra.utils.instantiate(_arch_params)
+        model_name = _arch_params['model_name']
+        del _arch_params['model_name']
         _arch_params = HpmStruct(**_arch_params)
         _arch_params.override(**arch_params.to_dict())
-        model_name, arch_params, is_remote = _arch_params.model_name, _arch_params, True
+        arch_params, is_remote = _arch_params, True
         pretrained_weights = deci_client.get_model_weights(model_name)
     return ARCHITECTURES[model_name], arch_params, pretrained_weights, is_remote
 
