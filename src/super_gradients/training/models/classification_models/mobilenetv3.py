@@ -182,61 +182,63 @@ class MobileNetV3(MobileNetBase):
                 m.bias.data.zero_()
 
 
-def mobilenetv3_large(arch_params):
+class mobilenetv3_large(MobileNetV3):
     """
     Constructs a MobileNetV3-Large model
     """
-    width_mult = arch_params.width_mult if hasattr(arch_params, 'width_mult') else 1.
-    cfgs = [
-        # k, t, c, SE, HS, s
-        [3, 1, 16, 0, 0, 1],
-        [3, 4, 24, 0, 0, 2],
-        [3, 3, 24, 0, 0, 1],
-        [5, 3, 40, 1, 0, 2],
-        [5, 3, 40, 1, 0, 1],
-        [5, 3, 40, 1, 0, 1],
-        [3, 6, 80, 0, 1, 2],
-        [3, 2.5, 80, 0, 1, 1],
-        [3, 2.3, 80, 0, 1, 1],
-        [3, 2.3, 80, 0, 1, 1],
-        [3, 6, 112, 1, 1, 1],
-        [3, 6, 112, 1, 1, 1],
-        [5, 6, 160, 1, 1, 2],
-        [5, 6, 160, 1, 1, 1],
-        [5, 6, 160, 1, 1, 1]
-    ]
-    return MobileNetV3(cfgs, mode='large', num_classes=arch_params.num_classes, width_mult=width_mult,
-                       in_channels=get_param(arch_params, "in_channels", 3))
+    def __init__(self, arch_params):
+        width_mult = arch_params.width_mult if hasattr(arch_params, 'width_mult') else 1.
+        cfgs = [
+            # k, t, c, SE, HS, s
+            [3, 1, 16, 0, 0, 1],
+            [3, 4, 24, 0, 0, 2],
+            [3, 3, 24, 0, 0, 1],
+            [5, 3, 40, 1, 0, 2],
+            [5, 3, 40, 1, 0, 1],
+            [5, 3, 40, 1, 0, 1],
+            [3, 6, 80, 0, 1, 2],
+            [3, 2.5, 80, 0, 1, 1],
+            [3, 2.3, 80, 0, 1, 1],
+            [3, 2.3, 80, 0, 1, 1],
+            [3, 6, 112, 1, 1, 1],
+            [3, 6, 112, 1, 1, 1],
+            [5, 6, 160, 1, 1, 2],
+            [5, 6, 160, 1, 1, 1],
+            [5, 6, 160, 1, 1, 1]
+        ]
+        super().__init__(cfgs, mode='large', num_classes=arch_params.num_classes, width_mult=width_mult,
+                         in_channels=get_param(arch_params, "in_channels", 3))
 
 
-def mobilenetv3_small(arch_params):
+class mobilenetv3_small(MobileNetV3):
     """
     Constructs a MobileNetV3-Small model
     """
-    width_mult = arch_params.width_mult if hasattr(arch_params, 'width_mult') else 1.
-    cfgs = [
-        # k, t, c, SE, HS, s
-        [3, 1, 16, 1, 0, 2],
-        [3, 4.5, 24, 0, 0, 2],
-        [3, 3.67, 24, 0, 0, 1],
-        [5, 4, 40, 1, 1, 2],
-        [5, 6, 40, 1, 1, 1],
-        [5, 6, 40, 1, 1, 1],
-        [5, 3, 48, 1, 1, 1],
-        [5, 3, 48, 1, 1, 1],
-        [5, 6, 96, 1, 1, 2],
-        [5, 6, 96, 1, 1, 1],
-        [5, 6, 96, 1, 1, 1],
-    ]
+    def __init__(self, arch_params):
+        width_mult = arch_params.width_mult if hasattr(arch_params, 'width_mult') else 1.
+        cfgs = [
+            # k, t, c, SE, HS, s
+            [3, 1, 16, 1, 0, 2],
+            [3, 4.5, 24, 0, 0, 2],
+            [3, 3.67, 24, 0, 0, 1],
+            [5, 4, 40, 1, 1, 2],
+            [5, 6, 40, 1, 1, 1],
+            [5, 6, 40, 1, 1, 1],
+            [5, 3, 48, 1, 1, 1],
+            [5, 3, 48, 1, 1, 1],
+            [5, 6, 96, 1, 1, 2],
+            [5, 6, 96, 1, 1, 1],
+            [5, 6, 96, 1, 1, 1],
+        ]
+        super().__init__(cfgs, mode='small', num_classes=arch_params.num_classes, width_mult=width_mult,
+                         in_channels=get_param(arch_params, "in_channels", 3))
 
-    return MobileNetV3(cfgs, mode='small', num_classes=arch_params.num_classes, width_mult=width_mult,
-                       in_channels=get_param(arch_params, "in_channels", 3))
 
-
-def mobilenetv3_custom(arch_params):
+class mobilenetv3_custom(MobileNetV3):
     """
     Constructs a MobileNetV3-Customized model
     """
-    return MobileNetV3(cfgs=arch_params.structure, mode=arch_params.mode, num_classes=arch_params.num_classes,
-                       width_mult=arch_params.width_mult,
-                       in_channels=get_param(arch_params, "in_channels", 3))
+    def __init__(self, arch_params):
+        super().__init__(cfgs=arch_params.structure, mode=arch_params.mode, num_classes=arch_params.num_classes,
+                         width_mult=arch_params.width_mult,
+                         in_channels=get_param(arch_params, "in_channels", 3))

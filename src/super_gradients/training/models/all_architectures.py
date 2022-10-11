@@ -1,13 +1,13 @@
-from super_gradients.training.models import ResNeXt50, ResNeXt101, googlenet_v1
+from super_gradients.training.models import ResNeXt50, ResNeXt101, GoogleNetV1
 from super_gradients.training.models.classification_models import repvgg, efficientnet, densenet, resnet, regnet
-from super_gradients.training.models.classification_models.mobilenetv2 import mobile_net_v2, mobile_net_v2_135, \
-    custom_mobile_net_v2
+from super_gradients.training.models.classification_models.mobilenetv2 import MobileNetV2Base, MobileNetV2_135, \
+    CustomMobileNetV2
 from super_gradients.training.models.classification_models.mobilenetv3 import mobilenetv3_large, mobilenetv3_small, \
     mobilenetv3_custom
 from super_gradients.training.models.classification_models.shufflenetv2 import ShufflenetV2_x0_5, ShufflenetV2_x1_0, \
     ShufflenetV2_x1_5, \
     ShufflenetV2_x2_0, CustomizedShuffleNetV2
-from super_gradients.training.models.classification_models.vit import vit_base, vit_large, vit_huge
+from super_gradients.training.models.classification_models.vit import ViTBase, ViTLarge, ViTHuge
 from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
@@ -17,10 +17,10 @@ from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, \
     ShelfNet503343, ShelfNet101
 from super_gradients.training.models.segmentation_models.stdc import STDC1Classification, STDC2Classification, \
-    STDC1Seg, STDC2Seg
+    STDC1Seg, STDC2Seg, STDCSegmentationBase
 
 from super_gradients.training.models.kd_modules.kd_module import KDModule
-from super_gradients.training.models.classification_models.beit import beit_base_patch16_224, beit_large_patch16_224
+from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
 from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
 
 
@@ -79,6 +79,7 @@ class ModelNames:
     REGNETY600 = "regnetY600"
     REGNETY800 = "regnetY800"
     CUSTOM_REGNET = "custom_regnet"
+    CUSTOM_ANYNET = "custom_anynet"
     NAS_REGNET = "nas_regnet"
     YOLOX_N = "yolox_n"
     YOLOX_T = "yolox_t"
@@ -86,7 +87,7 @@ class ModelNames:
     YOLOX_M = "yolox_m"
     YOLOX_L = "yolox_l"
     YOLOX_X = "yolox_x"
-    CUSTOM_YOLO_X = "CustomYoloX"
+    CUSTOM_YOLO_X = "custom_yolox"
     SSD_MOBILENET_V1 = "ssd_mobilenet_v1"
     SSD_LITE_MOBILENET_V2 = "ssd_lite_mobilenet_v2"
     REPVGG_A0 = "repvgg_a0"
@@ -109,6 +110,7 @@ class ModelNames:
     STDC2_SEG = "stdc2_seg"
     STDC2_SEG50 = "stdc2_seg50"
     STDC2_SEG75 = "stdc2_seg75"
+    CUSTOM_STDC = 'custom_stdc'
     REGSEG48 = "regseg48"
     KD_MODULE = "kd_module"
     VIT_BASE = "vit_base"
@@ -135,17 +137,17 @@ ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
                  ModelNames.CUSTOM_RESNET50: resnet.CustomizedResnet50,
                  ModelNames.CUSTOM_RESNET_CIFAR: resnet.CustomizedResnetCifar,
                  ModelNames.CUSTOM_RESNET50_CIFAR: resnet.CustomizedResnet50Cifar,
-                 ModelNames.MOBILENET_V2: mobile_net_v2,
-                 ModelNames.MOBILE_NET_V2_135: mobile_net_v2_135,
-                 ModelNames.CUSTOM_MOBILENET_V2: custom_mobile_net_v2,
+                 ModelNames.MOBILENET_V2: MobileNetV2Base,
+                 ModelNames.MOBILE_NET_V2_135: MobileNetV2_135,
+                 ModelNames.CUSTOM_MOBILENET_V2: CustomMobileNetV2,
                  ModelNames.MOBILENET_V3_LARGE: mobilenetv3_large,
                  ModelNames.MOBILENET_V3_SMALL: mobilenetv3_small,
                  ModelNames.MOBILENET_V3_CUSTOM: mobilenetv3_custom,
                  ModelNames.CUSTOM_DENSENET: densenet.CustomizedDensnet,
-                 ModelNames.DENSENET121: densenet.densenet121,
-                 ModelNames.DENSENET161: densenet.densenet161,
-                 ModelNames.DENSENET169: densenet.densenet169,
-                 ModelNames.DENSENET201: densenet.densenet201,
+                 ModelNames.DENSENET121: densenet.DenseNet121,
+                 ModelNames.DENSENET161: densenet.DenseNet161,
+                 ModelNames.DENSENET169: densenet.DenseNet169,
+                 ModelNames.DENSENET201: densenet.DenseNet201,
                  ModelNames.SHELFNET18_LW: ShelfNet18_LW,
                  ModelNames.SHELFNET34_LW: ShelfNet34_LW,
                  ModelNames.SHELFNET50_3343: ShelfNet503343,
@@ -160,17 +162,17 @@ ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
                  ModelNames.CSP_DARKNET53: CSPDarknet53,
                  ModelNames.RESNEXT50: ResNeXt50,
                  ModelNames.RESNEXT101: ResNeXt101,
-                 ModelNames.GOOGLENET_V1: googlenet_v1,
-                 ModelNames.EFFICIENTNET_B0: efficientnet.b0,
-                 ModelNames.EFFICIENTNET_B1: efficientnet.b1,
-                 ModelNames.EFFICIENTNET_B2: efficientnet.b2,
-                 ModelNames.EFFICIENTNET_B3: efficientnet.b3,
-                 ModelNames.EFFICIENTNET_B4: efficientnet.b4,
-                 ModelNames.EFFICIENTNET_B5: efficientnet.b5,
-                 ModelNames.EFFICIENTNET_B6: efficientnet.b6,
-                 ModelNames.EFFICIENTNET_B7: efficientnet.b7,
-                 ModelNames.EFFICIENTNET_B8: efficientnet.b8,
-                 ModelNames.EFFICIENTNET_L2: efficientnet.l2,
+                 ModelNames.GOOGLENET_V1: GoogleNetV1,
+                 ModelNames.EFFICIENTNET_B0: efficientnet.EfficientNetB0,
+                 ModelNames.EFFICIENTNET_B1: efficientnet.EfficientNetB1,
+                 ModelNames.EFFICIENTNET_B2: efficientnet.EfficientNetB2,
+                 ModelNames.EFFICIENTNET_B3: efficientnet.EfficientNetB3,
+                 ModelNames.EFFICIENTNET_B4: efficientnet.EfficientNetB4,
+                 ModelNames.EFFICIENTNET_B5: efficientnet.EfficientNetB5,
+                 ModelNames.EFFICIENTNET_B6: efficientnet.EfficientNetB6,
+                 ModelNames.EFFICIENTNET_B7: efficientnet.EfficientNetB7,
+                 ModelNames.EFFICIENTNET_B8: efficientnet.EfficientNetB8,
+                 ModelNames.EFFICIENTNET_L2: efficientnet.EfficientNetL2,
                  ModelNames.CUSTOMIZEDEFFICIENTNET: efficientnet.CustomizedEfficientnet,
                  ModelNames.REGNETY200: regnet.RegNetY200,
                  ModelNames.REGNETY400: regnet.RegNetY400,
@@ -207,19 +209,21 @@ ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
                  ModelNames.STDC2_SEG: STDC2Seg,
                  ModelNames.STDC2_SEG50: STDC2Seg,
                  ModelNames.STDC2_SEG75: STDC2Seg,
+                 ModelNames.CUSTOM_STDC: STDCSegmentationBase,
                  ModelNames.REGSEG48: RegSeg48,
                  ModelNames.KD_MODULE: KDModule,
-                 ModelNames.VIT_BASE: vit_base,
-                 ModelNames.VIT_LARGE: vit_large,
-                 ModelNames.VIT_HUGE: vit_huge,
-                 ModelNames.BEIT_BASE_PATCH16_224: beit_base_patch16_224,
-                 ModelNames.BEIT_LARGE_PATCH16_224: beit_large_patch16_224,
+                 ModelNames.VIT_BASE: ViTBase,
+                 ModelNames.VIT_LARGE: ViTLarge,
+                 ModelNames.VIT_HUGE: ViTHuge,
+                 ModelNames.BEIT_BASE_PATCH16_224: BeitBasePatch16_224,
+                 ModelNames.BEIT_LARGE_PATCH16_224: BeitLargePatch16_224,
                  ModelNames.PP_LITE_T_SEG: PPLiteSegT,
                  ModelNames.PP_LITE_T_SEG50: PPLiteSegT,
                  ModelNames.PP_LITE_T_SEG75: PPLiteSegT,
                  ModelNames.PP_LITE_B_SEG: PPLiteSegB,
                  ModelNames.PP_LITE_B_SEG50: PPLiteSegB,
                  ModelNames.PP_LITE_B_SEG75: PPLiteSegB,
+                 ModelNames.CUSTOM_ANYNET: regnet.CustomAnyNet,
                  }
 
 KD_ARCHITECTURES = {

@@ -139,20 +139,23 @@ class ResNeXt(SgModule):
         return out
 
 
-def CustomizedResNeXt(arch_params):
-    return ResNeXt(layers=arch_params.structure if hasattr(arch_params, "structure") else [3, 3, 3],
-                   bottleneck_width=arch_params.num_init_features if hasattr(arch_params, "bottleneck_width") else 64,
-                   cardinality=arch_params.bn_size if hasattr(arch_params, "cardinality") else 32,
-                   num_classes=arch_params.num_classes,
-                   replace_stride_with_dilation=arch_params.replace_stride_with_dilation if
-                   hasattr(arch_params, "replace_stride_with_dilation") else None)
+class CustomizedResNeXt(ResNeXt):
+    def __init__(self, arch_params):
+        super(CustomizedResNeXt, self).__init__(layers=arch_params.structure if hasattr(arch_params, "structure") else [3, 3, 3],
+                                                bottleneck_width=arch_params.num_init_features if hasattr(arch_params, "bottleneck_width") else 64,
+                                                cardinality=arch_params.bn_size if hasattr(arch_params, "cardinality") else 32,
+                                                num_classes=arch_params.num_classes,
+                                                replace_stride_with_dilation=arch_params.replace_stride_with_dilation if
+                                                hasattr(arch_params, "replace_stride_with_dilation") else None)
 
 
-def ResNeXt50(arch_params):
-    return ResNeXt(layers=[3, 4, 6, 3], cardinality=32, bottleneck_width=4,
-                   num_classes=arch_params.num_classes)
+class ResNeXt50(ResNeXt):
+    def __init__(self, arch_params):
+        super(ResNeXt50, self).__init__(layers=[3, 4, 6, 3], cardinality=32, bottleneck_width=4,
+                                        num_classes=arch_params.num_classes)
 
 
-def ResNeXt101(arch_params):
-    return ResNeXt(layers=[3, 4, 23, 3], cardinality=32, bottleneck_width=8,
-                   num_classes=arch_params.num_classes)
+class ResNeXt101(ResNeXt):
+    def __init__(self, arch_params):
+        super(ResNeXt101, self).__init__(layers=[3, 4, 23, 3], cardinality=32, bottleneck_width=8,
+                                         num_classes=arch_params.num_classes)
