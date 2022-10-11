@@ -40,8 +40,8 @@ def reduce_results_tuple_for_ddp(validation_results_tuple, device):
             validation_result = validation_result.clone().detach()
         else:
             validation_result = torch.tensor(validation_result)
-        validation_results_list[i] = distributed_all_reduce_tensor_average(validation_result.to(device),
-                                                                           torch.distributed.get_world_size())
+        validation_results_list[i] = distributed_all_reduce_tensor_average(tensor=validation_result.to(device),
+                                                                           n=torch.distributed.get_world_size())
     validation_results_tuple = tuple(validation_results_list)
     return validation_results_tuple
 
