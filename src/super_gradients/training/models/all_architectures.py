@@ -24,7 +24,6 @@ from super_gradients.training.models.classification_models.beit import BeitBaseP
 from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
 from super_gradients.common.object_names import Models
 
-
 ARCHITECTURES = {Models.RESNET18: resnet.ResNet18,
                  Models.RESNET34: resnet.ResNet34,
                  Models.RESNET50_3343: resnet.ResNet50_3343,
@@ -108,6 +107,7 @@ ARCHITECTURES = {Models.RESNET18: resnet.ResNet18,
                  Models.STDC2_SEG: STDC2Seg,
                  Models.STDC2_SEG50: STDC2Seg,
                  Models.STDC2_SEG75: STDC2Seg,
+                 Models.CUSTOM_STDC: STDCSegmentationBase,
                  Models.REGSEG48: RegSeg48,
                  Models.KD_MODULE: KDModule,
                  Models.VIT_BASE: ViTBase,
@@ -121,6 +121,7 @@ ARCHITECTURES = {Models.RESNET18: resnet.ResNet18,
                  Models.PP_LITE_B_SEG: PPLiteSegB,
                  Models.PP_LITE_B_SEG50: PPLiteSegB,
                  Models.PP_LITE_B_SEG75: PPLiteSegB,
+                 Models.CUSTOM_ANYNET: regnet.CustomAnyNet,
                  }
 
 KD_ARCHITECTURES = {
