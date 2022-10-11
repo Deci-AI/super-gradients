@@ -122,8 +122,8 @@ class Decoder(nn.Module):
         is_skip_list.reverse()
         is_skip_list += [False]
 
-        self.projection_blocks, skip_channels_list = self.make_skip_projection(skip_channels_list, skip_expansion,
-                                                                               is_skip_list, min_decoder_channels)
+        self.projection_blocks, skip_channels_list = self._make_skip_projection(skip_channels_list, skip_expansion,
+                                                                                is_skip_list, min_decoder_channels)
         skip_channels_list = skip_channels_list.copy()
         skip_channels_list.reverse()
 
@@ -136,11 +136,11 @@ class Decoder(nn.Module):
                                   num_repeats=up_block_repeat_list[i], **up_block_kwargs))
             in_channels = self.up_channels_list[i]
 
-    def make_skip_projection(self,
-                             skip_channels_list: list,
-                             skip_expansion: float,
-                             is_skip_list: list,
-                             min_decoder_channels: int):
+    def _make_skip_projection(self,
+                              skip_channels_list: list,
+                              skip_expansion: float,
+                              is_skip_list: list,
+                              min_decoder_channels: int):
         if skip_expansion == 1.:
             return nn.ModuleList([nn.Identity()] * len(skip_channels_list)), skip_channels_list
 
