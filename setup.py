@@ -14,17 +14,17 @@ VERSION_FILE = "version.txt"
 
 def readme():
     """print long description"""
-    with open(README_LOCATION) as f:
+    with open(README_LOCATION, encoding="utf-8") as f:
         return f.read()
 
 
 def get_requirements():
-    with open(REQ_LOCATION) as f:
+    with open(REQ_LOCATION, encoding="utf-8") as f:
         return f.read().splitlines()
 
 
 def get_version():
-    with open(VERSION_FILE) as f:
+    with open(VERSION_FILE, encoding="utf-8") as f:
         return f.readline()
 
 

@@ -246,5 +246,6 @@ class BasicConv2d(nn.Module):
         return x
 
 
-def googlenet_v1(arch_params):
-    return GoogLeNet(aux_logits=False, num_classes=arch_params.num_classes, dropout=arch_params.dropout)
+class GoogleNetV1(GoogLeNet):
+    def __init__(self, arch_params):
+        super(GoogleNetV1, self).__init__(aux_logits=False, num_classes=arch_params.num_classes, dropout=arch_params.dropout)

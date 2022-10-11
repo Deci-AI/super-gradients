@@ -14,7 +14,8 @@ class AllArchitecturesTest(unittest.TestCase):
                                             'threshold': 1,
                                             'sml_net': torch.nn.Identity(),
                                             'big_net': torch.nn.Identity(),
-                                            'dropout': 0})
+                                            'dropout': 0,
+                                            'build_residual_branches': True})
 
     def test_architecture_is_sg_module(self):
         """
@@ -22,7 +23,7 @@ class AllArchitecturesTest(unittest.TestCase):
         """
         for arch_name in ARCHITECTURES:
             # skip custom constructors to keep all_arch_params as general as a possible
-            if 'custom' in arch_name.lower() or 'nas' in arch_name.lower():
+            if 'custom' in arch_name.lower() or 'nas' in arch_name.lower() or 'kd' in arch_name.lower():
                 continue
             self.assertTrue(isinstance(ARCHITECTURES[arch_name](arch_params=self.all_arch_params), SgModule))
 
