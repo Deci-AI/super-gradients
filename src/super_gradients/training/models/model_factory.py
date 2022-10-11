@@ -74,7 +74,7 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pret
     architecture_cls, arch_params, pretrained_weights, is_remote = get_architecture(model_name, arch_params, pretrained_weights)
 
     if not issubclass(architecture_cls, SgModule):
-        net = architecture_cls(**arch_params.to_dict(ignore_keys=["schema"]))
+        net = architecture_cls(**arch_params.to_dict(return_schema=False))
     else:
         if core_utils.get_param(arch_params, "num_classes"):
             logger.warning("Passing num_classes through arch_params is deprecated and will be removed in the next version. "
@@ -93,7 +93,7 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pret
 
         # Most of the SG models work with a single params names "arch_params" of type HpmStruct, but a few take **kwargs instead
         if "arch_params" not in get_callable_param_names(architecture_cls):
-            net = architecture_cls(**arch_params.to_dict(ignore_keys=["schema"]))
+            net = architecture_cls(**arch_params.to_dict(return_schema=False))
         else:
             net = architecture_cls(arch_params=arch_params)
 

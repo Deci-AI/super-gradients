@@ -47,10 +47,15 @@ class HpmStruct:
     def override(self, **entries):
         recursive_override(self.__dict__, entries)
 
-    def to_dict(self, ignore_keys: List[str] = None):
-        if ignore_keys is None:
-            return self.__dict__
-        return {k: v for k, v in self.__dict__ if k not in ignore_keys}
+    def to_dict(self, return_schema=True) -> dict:
+        """Convert this HpmStruct instance into a dict.
+        :param return_schema: If True, also return the field "schema"
+        :return: Dict representation of this HpmStruct instance.
+        """
+        out_dict = self.__dict__.copy()
+        if not return_schema:
+            out_dict.pop("schema")
+        return out_dict
 
     def validate(self):
         """
