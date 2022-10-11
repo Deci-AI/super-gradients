@@ -6,6 +6,9 @@ Based on original implementation: https://github.com/MichaelFan01/STDC-Seg, clon
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.training.utils.module_utils import ConvBNReLU
@@ -403,6 +406,7 @@ class STDCSegmentationBase(SgModule):
         set False.
     :param dropout: segmentation heads dropout.
     """
+    @resolve_param('backbone', BaseFactory({'STDCBackbone': STDCBackbone}))
     def __init__(self,
                  backbone: AbstractSTDCBackbone,
                  num_classes: int,
