@@ -47,13 +47,13 @@ class HpmStruct:
     def override(self, **entries):
         recursive_override(self.__dict__, entries)
 
-    def to_dict(self, return_schema=True) -> dict:
+    def to_dict(self, include_schema=True) -> dict:
         """Convert this HpmStruct instance into a dict.
-        :param return_schema: If True, also return the field "schema"
+        :param include_schema: If True, also return the field "schema"
         :return: Dict representation of this HpmStruct instance.
         """
         out_dict = self.__dict__.copy()
-        if not return_schema:
+        if not include_schema:
             out_dict.pop("schema")
         return out_dict
 
