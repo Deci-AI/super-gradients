@@ -47,8 +47,10 @@ class HpmStruct:
     def override(self, **entries):
         recursive_override(self.__dict__, entries)
 
-    def to_dict(self):
-        return self.__dict__
+    def to_dict(self, ignore_keys: List[str] = None):
+        if ignore_keys is None:
+            return self.__dict__
+        return {k: v for k, v in self.__dict__ if k not in ignore_keys}
 
     def validate(self):
         """

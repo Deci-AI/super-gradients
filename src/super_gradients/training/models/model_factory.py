@@ -18,6 +18,7 @@ from super_gradients.training.utils.checkpoint_utils import (
     load_pretrained_weights_local,
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 
 logger = get_logger(__name__)
 
@@ -73,9 +74,7 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pret
     architecture_cls, arch_params, pretrained_weights, is_remote = get_architecture(model_name, arch_params, pretrained_weights)
 
     if not issubclass(architecture_cls, SgModule):
-        arch_params = arch_params.to_dict()
-        arch_params.pop('schema')
-        net = architecture_cls(**arch_params)
+        net = architecture_cls(**arch_params.to_dict(ignore_keys=["schema"]))
     else:
         if core_utils.get_param(arch_params, "num_classes"):
             logger.warning("Passing num_classes through arch_params is deprecated and will be removed in the next version. "
@@ -92,7 +91,11 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pret
             num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
             arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
 
-        net = architecture_cls(arch_params=arch_params)
+        # Most of the SG models work with a single params names "arch_params" of type HpmStruct, but a few take **kwargs instead
+        if "arch_params" not in get_callable_param_names(architecture_cls):
+            net = architecture_cls(**arch_params.to_dict(ignore_keys=["schema"]))
+        else:
+            net = architecture_cls(arch_params=arch_params)
 
         if pretrained_weights:
             if is_remote:
