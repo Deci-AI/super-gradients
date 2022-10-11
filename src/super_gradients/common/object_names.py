@@ -130,7 +130,6 @@ class Samplers:
     REPEAT_AUG = "RepeatAugSampler"
     DISTRIBUTED = "DistributedSampler"
 
-
 class Models:
     """Static class to hold all the available model names"""""
     RESNET18 = "resnet18"
@@ -186,6 +185,7 @@ class Models:
     REGNETY600 = "regnetY600"
     REGNETY800 = "regnetY800"
     CUSTOM_REGNET = "custom_regnet"
+    CUSTOM_ANYNET = "custom_anynet"
     NAS_REGNET = "nas_regnet"
     YOLOX_N = "yolox_n"
     YOLOX_T = "yolox_t"
@@ -193,7 +193,7 @@ class Models:
     YOLOX_M = "yolox_m"
     YOLOX_L = "yolox_l"
     YOLOX_X = "yolox_x"
-    CUSTOM_YOLO_X = "CustomYoloX"
+    CUSTOM_YOLO_X = "custom_yolox"
     SSD_MOBILENET_V1 = "ssd_mobilenet_v1"
     SSD_LITE_MOBILENET_V2 = "ssd_lite_mobilenet_v2"
     REPVGG_A0 = "repvgg_a0"
@@ -216,6 +216,7 @@ class Models:
     STDC2_SEG = "stdc2_seg"
     STDC2_SEG50 = "stdc2_seg50"
     STDC2_SEG75 = "stdc2_seg75"
+    CUSTOM_STDC = 'custom_stdc'
     REGSEG48 = "regseg48"
     KD_MODULE = "kd_module"
     VIT_BASE = "vit_base"
