@@ -12,19 +12,19 @@ class TestShelfNet(unittest.TestCase):
         """
         dummy_input = torch.randn(1, 3, 512, 512)
 
-        shelfnet18_model = ShelfNet18_LW(classes_num=21)
+        shelfnet18_model = ShelfNet18_LW(num_classes=21)
         # VALIDATES INNER CONV LIST WAS INITIALIZED CORRECTLY
         self.assertTrue(shelfnet18_model.conv_out_list)
 
-        shelfnet34_model = ShelfNet34_LW(classes_num=21)
+        shelfnet34_model = ShelfNet34_LW(num_classes=21)
         # VALIDATES INNER CONV LIST WAS INITIALIZED CORRECTLY
         self.assertTrue(shelfnet34_model.conv_out_list)
 
-        shelfnet50_model = ShelfNet50(classes_num=21)
+        shelfnet50_model = ShelfNet50(num_classes=21)
         # VALIDATES INNER CONV LIST WAS INITIALIZED CORRECTLY
         self.assertTrue(shelfnet50_model.conv_out_list)
 
-        shelfnet101_model = ShelfNet101(classes_num=21)
+        shelfnet101_model = ShelfNet101(num_classes=21)
         # VALIDATES INNER CONV LIST WAS INITIALIZED CORRECTLY
         self.assertTrue(shelfnet101_model.conv_out_list)
 
