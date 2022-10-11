@@ -1,5 +1,5 @@
 import torch.nn as nn
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Type
 import math
 
 from super_gradients.training.utils import HpmStruct, get_param
@@ -8,7 +8,8 @@ from super_gradients.training.models.segmentation_models.segmentation_module imp
 from super_gradients.training.utils.module_utils import make_upsample_module, UpsampleMode
 from super_gradients.training.utils.module_utils import ConvBNReLU, fuse_repvgg_blocks_residual_branches
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import UNetBackboneBase, Encoder
-from super_gradients.training.models.segmentation_models.context_modules import build_context_module
+from super_gradients.training.models.segmentation_models.context_modules import build_context_module,\
+    AbstractContextModule
 from super_gradients.training.models.segmentation_models.unet.unet_decoder import Decoder
 
 
@@ -34,7 +35,7 @@ class UNetBase(SegmentationModule):
                  head_upsample_mode: Union[UpsampleMode, str],
                  align_corners: bool,
                  backbone_params: dict,
-                 context_module_name: Optional[str],
+                 context_module: Optional[Union[str, Type[AbstractContextModule]]],
                  context_module_params: dict,
                  decoder_params: dict,
                  aux_heads_params: dict,
@@ -82,8 +83,8 @@ class UNetBase(SegmentationModule):
         # Init Backbone
         backbone = UNetBackboneBase(**backbone_params)
         # Init Context Module
-        context_module = nn.Identity() if context_module_name is None else build_context_module(
-            context_module_name=context_module_name,
+        context_module = nn.Identity() if context_module is None else build_context_module(
+            context_module=context_module,
             context_module_params=context_module_params,
             in_channels=backbone.get_backbone_output_number_of_channels()[-1]
         )
@@ -222,7 +223,7 @@ class UNetCustom(UNetBase):
                          head_upsample_mode=get_param(arch_params, "head_upsample_mode", UpsampleMode.BILINEAR),
                          align_corners=get_param(arch_params, "align_corners", False),
                          backbone_params=get_param(arch_params, "backbone_params"),
-                         context_module_name=get_param(arch_params, "context_module"),
+                         context_module=get_param(arch_params, "context_module"),
                          context_module_params=get_param(arch_params, "context_module_params"),
                          decoder_params=get_param(arch_params, "decoder_params"),
                          aux_heads_params=get_param(arch_params, "aux_heads_params"),

@@ -7,6 +7,7 @@ import torch.nn.functional as F
 
 from super_gradients.training.utils.module_utils import ConvBNReLU, UpsampleMode
 from super_gradients.training.object_names import ContextModules
+from super_gradients.common.factories.contexts_type_factory import ContextsTypeFactory
 
 
 class AbstractContextModule(nn.Module, ABC):
@@ -119,7 +120,9 @@ CONTEXT_TYPE_DICT: MutableMapping[str, Type[AbstractContextModule]] = {
 }
 
 
-def build_context_module(context_module_name: str, context_module_params: dict, in_channels: int):
-    if context_module_name not in CONTEXT_TYPE_DICT.keys():
-        raise NotImplementedError(f"Context module type: '{context_module_name}' is not implemented.")
-    return CONTEXT_TYPE_DICT[context_module_name](in_channels=in_channels, **context_module_params)
+def build_context_module(context_module: Union[str, AbstractContextModule], context_module_params: dict, in_channels: int):
+    if isinstance(context_module, str):
+        context_cls = ContextsTypeFactory().get(context_module)
+    else:
+        context_cls = context_module
+    return context_cls(in_channels=in_channels, **context_module_params)
