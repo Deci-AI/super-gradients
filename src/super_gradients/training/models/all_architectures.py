@@ -79,6 +79,7 @@ class ModelNames:
     REGNETY600 = "regnetY600"
     REGNETY800 = "regnetY800"
     CUSTOM_REGNET = "custom_regnet"
+    CUSTOM_ANYNET = "custom_anynet"
     NAS_REGNET = "nas_regnet"
     YOLOX_N = "yolox_n"
     YOLOX_T = "yolox_t"
@@ -86,7 +87,7 @@ class ModelNames:
     YOLOX_M = "yolox_m"
     YOLOX_L = "yolox_l"
     YOLOX_X = "yolox_x"
-    CUSTOM_YOLO_X = "CustomYoloX"
+    CUSTOM_YOLO_X = "custom_yolox"
     SSD_MOBILENET_V1 = "ssd_mobilenet_v1"
     SSD_LITE_MOBILENET_V2 = "ssd_lite_mobilenet_v2"
     REPVGG_A0 = "repvgg_a0"
@@ -222,6 +223,7 @@ ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
                  ModelNames.PP_LITE_B_SEG: PPLiteSegB,
                  ModelNames.PP_LITE_B_SEG50: PPLiteSegB,
                  ModelNames.PP_LITE_B_SEG75: PPLiteSegB,
+                 ModelNames.CUSTOM_ANYNET: regnet.CustomAnyNet,
                  }
 
 KD_ARCHITECTURES = {
