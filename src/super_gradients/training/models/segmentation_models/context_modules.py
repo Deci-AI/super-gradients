@@ -1,17 +1,76 @@
-import torch.nn as nn
-import torch
-from typing import Type, List, MutableMapping
-from super_gradients.training.utils.module_utils import ConvBNReLU
+from typing import Type, List, Tuple, Union, MutableMapping
 from abc import ABC, abstractmethod
 
+import torch.nn as nn
+import torch
+import torch.nn.functional as F
 
-class AbstractContextModule(ABC):
+from super_gradients.training.utils.module_utils import ConvBNReLU, UpsampleMode
+
+
+class AbstractContextModule(nn.Module, ABC):
     @abstractmethod
     def output_channels(self):
         raise NotImplementedError
 
 
-class ASPP(nn.Module, AbstractContextModule):
+class SPPM(AbstractContextModule):
+    """
+    Simple Pyramid Pooling context Module.
+    """
+    def __init__(self,
+                 in_channels: int,
+                 inter_channels: int,
+                 out_channels: int,
+                 pool_sizes: List[Union[int, Tuple[int, int]]],
+                 upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
+                 align_corners: bool = False):
+        """
+        :param inter_channels: num channels in each pooling branch.
+        :param out_channels: The number of output channels after pyramid pooling module.
+        :param pool_sizes: spatial output sizes of the pooled feature maps.
+        """
+        super().__init__()
+        self.branches = nn.ModuleList([
+            nn.Sequential(
+                nn.AdaptiveAvgPool2d(pool_size),
+                ConvBNReLU(in_channels, inter_channels, kernel_size=1, bias=False),
+            ) for pool_size in pool_sizes
+        ])
+        self.conv_out = ConvBNReLU(inter_channels, out_channels, kernel_size=3, padding=1, bias=False)
+        self.out_channels = out_channels
+        self.upsample_mode = upsample_mode
+        self.align_corners = align_corners
+        self.pool_sizes = pool_sizes
+
+    def forward(self, x):
+        out = None
+        input_shape = x.shape[2:]
+        for branch in self.branches:
+            y = branch(x)
+            y = F.interpolate(y, size=input_shape, mode=self.upsample_mode, align_corners=self.align_corners)
+            out = y if out is None else out + y
+        out = self.conv_out(out)
+        return out
+
+    def output_channels(self):
+        return self.out_channels
+
+    def prep_model_for_conversion(self, input_size: Union[tuple, list], stride_ratio: int = 32, **kwargs):
+        """
+        Replace Global average pooling with fixed kernels Average pooling, since dynamic kernel sizes are not supported
+        when compiling to ONNX: `Unsupported: ONNX export of operator adaptive_avg_pool2d, input size not accessible.`
+        """
+        input_size = [x / stride_ratio for x in input_size[-2:]]
+        for branch in self.branches:
+            global_pool: nn.AdaptiveAvgPool2d = branch[0]
+            out_size = global_pool.output_size
+            out_size = out_size if isinstance(out_size, (tuple, list)) else (out_size, out_size)
+            kernel_size = [int(i / o) for i, o in zip(input_size, out_size)]
+            branch[0] = nn.AvgPool2d(kernel_size=kernel_size, stride=kernel_size)
+
+
+class ASPP(AbstractContextModule):
     """
     ASPP bottleneck block. Splits the input to len(dilation_list) + 1, (a 1x1 conv) heads of differently dilated convolutions.
     The different heads will be concatenated and the output channel of each will be the
@@ -55,6 +114,7 @@ class ASPP(nn.Module, AbstractContextModule):
 
 CONTEXT_TYPE_DICT: MutableMapping[str, Type[AbstractContextModule]] = {
     "aspp": ASPP,
+    "sppm": SPPM
 }
 
 
