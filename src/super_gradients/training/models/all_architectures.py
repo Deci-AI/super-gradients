@@ -17,7 +17,7 @@ from super_gradients.training.models.segmentation_models.regseg import RegSeg48
 from super_gradients.training.models.segmentation_models.shelfnet import ShelfNet18_LW, ShelfNet34_LW, ShelfNet50, \
     ShelfNet503343, ShelfNet101
 from super_gradients.training.models.segmentation_models.stdc import STDC1Classification, STDC2Classification, \
-    STDC1Seg, STDC2Seg
+    STDC1Seg, STDC2Seg, STDCSegmentationBase
 
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
@@ -110,6 +110,7 @@ class ModelNames:
     STDC2_SEG = "stdc2_seg"
     STDC2_SEG50 = "stdc2_seg50"
     STDC2_SEG75 = "stdc2_seg75"
+    CUSTOM_STDC = 'custom_stdc'
     REGSEG48 = "regseg48"
     KD_MODULE = "kd_module"
     VIT_BASE = "vit_base"
@@ -208,6 +209,7 @@ ARCHITECTURES = {ModelNames.RESNET18: resnet.ResNet18,
                  ModelNames.STDC2_SEG: STDC2Seg,
                  ModelNames.STDC2_SEG50: STDC2Seg,
                  ModelNames.STDC2_SEG75: STDC2Seg,
+                 ModelNames.CUSTOM_STDC: STDCSegmentationBase,
                  ModelNames.REGSEG48: RegSeg48,
                  ModelNames.KD_MODULE: KDModule,
                  ModelNames.VIT_BASE: ViTBase,
