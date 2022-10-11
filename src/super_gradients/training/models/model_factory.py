@@ -1,6 +1,5 @@
 from pathlib import Path
-from typing import Optional, Tuple
-from typing import Type
+from typing import Tuple, Type, Optional
 
 import hydra
 import torch

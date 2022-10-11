@@ -1,4 +1,4 @@
-from super_gradients.training.object_names import Metrics
+from super_gradients.common.object_names import Metrics
 from super_gradients.training.metrics import Accuracy, Top5, DetectionMetrics, IoU, PixelAccuracy, BinaryIOU, Dice,\
     BinaryDice
 
