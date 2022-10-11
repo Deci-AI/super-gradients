@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 from typing import Optional, Tuple
 from typing import Type
 
@@ -25,7 +24,8 @@ from super_gradients.training.utils.sg_trainer_utils import get_callable_param_n
 logger = get_logger(__name__)
 
 
-def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights: str, download_required_code: bool = True) -> Tuple[Type[torch.nn.Module], HpmStruct, str, bool]:
+def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights: str,
+                     download_required_code: bool = True) -> Tuple[Type[torch.nn.Module], HpmStruct, str, bool]:
     """
     Get the corresponding architecture class.
 
@@ -63,7 +63,8 @@ def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights
     return ARCHITECTURES[model_name], arch_params, pretrained_weights, is_remote
 
 
-def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pretrained_weights: str = None, download_required_code: bool = True) -> torch.nn.Module:
+def instantiate_model(model_name: str, arch_params: dict, num_classes: int,
+                      pretrained_weights: str = None, download_required_code: bool = True) -> torch.nn.Module:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
         module manipulation (i.e head replacement).
