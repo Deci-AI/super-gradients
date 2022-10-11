@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 
 from super_gradients.training.utils.module_utils import ConvBNReLU, UpsampleMode
+from super_gradients.training.object_names import ContextModules
 
 
 class AbstractContextModule(nn.Module, ABC):
@@ -113,8 +114,8 @@ class ASPP(AbstractContextModule):
 
 
 CONTEXT_TYPE_DICT: MutableMapping[str, Type[AbstractContextModule]] = {
-    "aspp": ASPP,
-    "sppm": SPPM
+    ContextModules.ASPP: ASPP,
+    ContextModules.SPPM: SPPM
 }
 
 

@@ -129,3 +129,9 @@ class Samplers:
     INFINITE = "InfiniteSampler"
     REPEAT_AUG = "RepeatAugSampler"
     DISTRIBUTED = "DistributedSampler"
+
+
+class ContextModules:
+    """Static class to hold all the segmentation context module names"""""
+    ASPP = "aspp"
+    SPPM = "sppm"
