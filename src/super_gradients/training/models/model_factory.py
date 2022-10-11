@@ -56,12 +56,12 @@ def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights
         _arch_params = hydra.utils.instantiate(_arch_params)
         _arch_params = HpmStruct(**_arch_params)
         _arch_params.override(**arch_params.to_dict())
-        model_name, arch_params, is_remote = _arch_params["model_name"], _arch_params, True
+        model_name, arch_params, is_remote = _arch_params.model_name, _arch_params, True
         pretrained_weights = deci_client.get_model_weights(model_name)
     return ARCHITECTURES[model_name], arch_params, pretrained_weights, is_remote
 
 
-def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pretrained_weights: str = None) -> torch.nn.Module:
+def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pretrained_weights: str = None, download_required_code: bool = True) -> torch.nn.Module:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
         module manipulation (i.e head replacement).
@@ -71,6 +71,8 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pret
     :param num_classes:         Number of classes (defines the net's structure).
                                     If None is given, will try to derrive from pretrained_weight's corresponding dataset.
     :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent")
+    :param download_required_code: if model is not found in SG and is downloaded from a remote client, overriding this parameter with False
+                                will prevent additional code from being downloaded. This affects only models from remote client.
 
     :return:                    Instantiated model i.e torch.nn.Module, architecture_class (will be none when architecture is not str)
     """
@@ -78,7 +80,7 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int, pret
         arch_params = {}
     arch_params = core_utils.HpmStruct(**arch_params)
 
-    architecture_cls, arch_params, pretrained_weights, is_remote = get_architecture(model_name, arch_params, pretrained_weights)
+    architecture_cls, arch_params, pretrained_weights, is_remote = get_architecture(model_name, arch_params, pretrained_weights, download_required_code)
 
     if not issubclass(architecture_cls, SgModule):
         net = architecture_cls(**arch_params.to_dict(include_schema=False))
