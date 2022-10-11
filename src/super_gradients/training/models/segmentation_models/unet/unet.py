@@ -202,10 +202,11 @@ class UNetBase(SegmentationModule):
         return multiply_lr_params.items(), no_multiply_params.items()
 
     def prep_model_for_conversion(self,
+                                  input_size: Union[tuple, list] = None,
                                   append_sigmoid: bool = False,
                                   append_softmax: bool = False,
-                                  *args, **kwargs):
-        super().prep_model_for_conversion(*args, **kwargs)
+                                  **kwargs):
+        super().prep_model_for_conversion(input_size=input_size, **kwargs)
         fuse_repvgg_blocks_residual_branches(self)
         if append_sigmoid:
             self.seg_head.add_module("sigmoid", nn.Sigmoid())

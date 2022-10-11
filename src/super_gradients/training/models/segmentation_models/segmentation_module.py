@@ -1,6 +1,7 @@
 from super_gradients.training.models.sg_module import SgModule
 import torch.nn as nn
 from abc import abstractmethod, ABC
+from typing import Union
 
 
 class SegmentationModule(SgModule, ABC):
@@ -30,7 +31,7 @@ class SegmentationModule(SgModule, ABC):
             self._remove_auxiliary_heads()
         self._use_aux_heads = use_aux
 
-    def prep_model_for_conversion(self, *args, **kwargs):
+    def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
         # set to false and delete auxiliary and detail heads modules.
         self.use_aux_heads = False
 
