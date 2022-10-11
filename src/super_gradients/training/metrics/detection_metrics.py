@@ -123,9 +123,9 @@ class DetectionMetrics(Metric):
             mean_ap = ap.mean()
 
         return {f"Precision{self._get_range_str()}": mean_precision,
-             f"Recall{self._get_range_str()}": mean_recall,
-             f"mAP{self._get_range_str()}": mean_ap,
-             f"F1{self._get_range_str()}": mean_f1}
+                f"Recall{self._get_range_str()}": mean_recall,
+                f"mAP{self._get_range_str()}": mean_ap,
+                f"F1{self._get_range_str()}": mean_f1}
 
     def _sync_dist(self, dist_sync_fn=None, process_group=None):
         """
