@@ -180,34 +180,37 @@ class ViT(SgModule):
             self.head = nn.Linear(self.head.in_features, new_num_classes)
 
 
-def vit_base(arch_params, num_classes=None, backbone_mode=None):
-    return ViT(image_size=get_param(arch_params, "image_size", (224, 224)),
-               patch_size=get_param(arch_params, "patch_size", (16, 16)),
-               num_classes=num_classes or arch_params.num_classes,
-               hidden_dim=768, depth=12, heads=12, mlp_dim=3072,
-               in_channels=get_param(arch_params, 'in_channels', 3),
-               dropout_prob=get_param(arch_params, "dropout_prob", 0),
-               emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
-               backbone_mode=backbone_mode)
+class ViTBase(ViT):
+    def __init__(self, arch_params, num_classes=None, backbone_mode=None):
+        super(ViTBase, self).__init__(image_size=get_param(arch_params, "image_size", (224, 224)),
+                                      patch_size=get_param(arch_params, "patch_size", (16, 16)),
+                                      num_classes=num_classes or arch_params.num_classes,
+                                      hidden_dim=768, depth=12, heads=12, mlp_dim=3072,
+                                      in_channels=get_param(arch_params, 'in_channels', 3),
+                                      dropout_prob=get_param(arch_params, "dropout_prob", 0),
+                                      emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
+                                      backbone_mode=backbone_mode)
 
 
-def vit_large(arch_params, num_classes=None, backbone_mode=None):
-    return ViT(image_size=get_param(arch_params, "image_size", (224, 224)),
-               patch_size=get_param(arch_params, "patch_size", (16, 16)),
-               num_classes=num_classes or arch_params.num_classes,
-               hidden_dim=1024, depth=24, heads=16, mlp_dim=4096,
-               in_channels=get_param(arch_params, 'in_channels', 3),
-               dropout_prob=get_param(arch_params, "dropout_prob", 0),
-               emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
-               backbone_mode=backbone_mode)
+class ViTLarge(ViT):
+    def __init__(self, arch_params, num_classes=None, backbone_mode=None):
+        super(ViTLarge, self).__init__(image_size=get_param(arch_params, "image_size", (224, 224)),
+                                       patch_size=get_param(arch_params, "patch_size", (16, 16)),
+                                       num_classes=num_classes or arch_params.num_classes,
+                                       hidden_dim=1024, depth=24, heads=16, mlp_dim=4096,
+                                       in_channels=get_param(arch_params, 'in_channels', 3),
+                                       dropout_prob=get_param(arch_params, "dropout_prob", 0),
+                                       emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
+                                       backbone_mode=backbone_mode)
 
 
-def vit_huge(arch_params, num_classes=None, backbone_mode=None):
-    return ViT(image_size=get_param(arch_params, "image_size", (224, 224)),
-               patch_size=get_param(arch_params, "patch_size", (16, 16)),
-               num_classes=num_classes or arch_params.num_classes,
-               hidden_dim=1280, depth=32, heads=16, mlp_dim=5120,
-               in_channels=get_param(arch_params, 'in_channels', 3),
-               dropout_prob=get_param(arch_params, "dropout_prob", 0),
-               emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
-               backbone_mode=backbone_mode)
+class ViTHuge(ViT):
+    def __init__(self, arch_params, num_classes=None, backbone_mode=None):
+        super(ViTHuge, self).__init__(image_size=get_param(arch_params, "image_size", (224, 224)),
+                                      patch_size=get_param(arch_params, "patch_size", (16, 16)),
+                                      num_classes=num_classes or arch_params.num_classes,
+                                      hidden_dim=1280, depth=32, heads=16, mlp_dim=5120,
+                                      in_channels=get_param(arch_params, 'in_channels', 3),
+                                      dropout_prob=get_param(arch_params, "dropout_prob", 0),
+                                      emb_dropout_prob=get_param(arch_params, "emb_dropout_prob", 0),
+                                      backbone_mode=backbone_mode)

@@ -70,7 +70,13 @@ class DiceCEEdgeLoss(_Loss):
         These correspond to 2nd item in the tuple returned in self.forward(...).
         See super_gradients.Trainer.train() docs for more info.
         """
-        return ["main_loss", "aux_loss1", "loss"]
+        names = ["main_loss"]
+        # Append aux losses names
+        names += [f"aux_loss{i}" for i in range(self.num_aux_heads)]
+        # Append detail losses names
+        names += [f"detail_loss{i}" for i in range(self.num_detail_heads)]
+        names += ["loss"]
+        return names
 
     def forward(self, preds: Tuple[torch.Tensor], target: torch.Tensor):
         """

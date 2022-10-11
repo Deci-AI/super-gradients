@@ -41,7 +41,7 @@ from super_gradients.training.metrics.metric_utils import get_metrics_titles, ge
     get_metrics_dict, get_train_loop_description_dict
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils.distributed_training_utils import MultiGPUModeAutocastWrapper, \
-    reduce_results_tuple_for_ddp, compute_precise_bn_stats, setup_gpu_mode, require_gpu_setup
+    reduce_results_tuple_for_ddp, compute_precise_bn_stats, setup_gpu_mode, require_gpu_setup, get_gpu_mem_utilization
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
@@ -155,12 +155,12 @@ class Trainer:
         self.valid_monitored_values = {}
 
     @classmethod
-    def train_from_config(cls, cfg: Union[DictConfig, dict]) -> None:
+    def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
         """
         Trains according to cfg recipe configuration.
 
         @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
-        @return: output of trainer.train(...) (i.e results tuple)
+        @return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
         setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, 'multi_gpu', MultiGPUMode.OFF),
@@ -193,10 +193,12 @@ class Trainer:
                            )
 
         # TRAIN
-        trainer.train(model=model,
-                      train_loader=train_dataloader,
-                      valid_loader=val_dataloader,
-                      training_params=cfg.training_hyperparams)
+        res = trainer.train(model=model,
+                            train_loader=train_dataloader,
+                            valid_loader=val_dataloader,
+                            training_params=cfg.training_hyperparams)
+
+        return model, res
 
     @classmethod
     def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
@@ -396,7 +398,7 @@ class Trainer:
 
             # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
             logging_values = loss_avg_meter.average + get_metrics_results_tuple(self.train_metrics)
-            gpu_memory_utilization = torch.cuda.memory_cached() / 1E9 if torch.cuda.is_available() else 0
+            gpu_memory_utilization = get_gpu_mem_utilization() / 1E9 if torch.cuda.is_available() else 0
 
             # RENDER METRICS PROGRESS
             pbar_message_dict = get_train_loop_description_dict(logging_values,
