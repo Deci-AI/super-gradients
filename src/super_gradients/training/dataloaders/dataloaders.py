@@ -59,10 +59,13 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
         local_rank = get_local_rank()
         with wait_for_the_master(local_rank):
             dataset = dataset_cls(**dataset_params)
+            if not hasattr(dataset, 'dataset_params'):
+                dataset.dataset_params = dataset_params
 
         dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
 
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
+        dataloader.dataloader_params = dataloader_params
         return dataloader
 
 
@@ -526,14 +529,14 @@ ALL_DATALOADERS = {"coco2017_train": coco2017_train,
                    }
 
 
-def get(name: str, dataset_params: Dict = None, dataloader_params: Dict = None):
+def get(name: str, dataset_params: Dict = None, dataloader_params: Dict = None) -> DataLoader:
     """
+    Get DataLoader of the recipe-configured dataset defined by name in ALL_DATALOADERS.
 
-    
-    :param name: 
-    :param dataset_params: 
-    :param dataloader_params: 
-    :return: 
+    :param name: dataset name in ALL_DATALOADERS.
+    :param dataset_params: dataset params that override the yaml configured defaults, then passed to the dataset_cls.__init__.
+    :param dataloader_params: DataLoader params that override the yaml configured defaults, then passed to the DataLoader.__init__
+    :return: initialized DataLoader.
     """
 
     if name not in ALL_DATALOADERS.keys():

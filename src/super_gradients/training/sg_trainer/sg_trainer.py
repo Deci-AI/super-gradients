@@ -6,9 +6,7 @@ from typing import Union, Tuple, Mapping, List, Any
 
 import hydra
 import numpy as np
-import pkg_resources
 import torch
-from deprecate import deprecated
 from omegaconf import DictConfig
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler
@@ -36,7 +34,7 @@ from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, \
-    IllegalDataloaderInitialization
+    IllegalDataloaderInitialization, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
     get_logging_values, \
@@ -44,7 +42,7 @@ from super_gradients.training.metrics.metric_utils import get_metrics_titles, ge
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 from super_gradients.training.utils.distributed_training_utils import MultiGPUModeAutocastWrapper, \
-    reduce_results_tuple_for_ddp, compute_precise_bn_stats
+    reduce_results_tuple_for_ddp, compute_precise_bn_stats, setup_gpu_mode, require_gpu_setup
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
@@ -157,8 +155,8 @@ class Trainer:
         # CREATING THE LOGGING DIR BASED ON THE INPUT PARAMS TO PREVENT OVERWRITE OF LOCAL VERSION
         if ckpt_root_dir:
             self.checkpoints_dir_path = os.path.join(ckpt_root_dir, self.experiment_name)
-        elif pkg_resources.resource_exists("checkpoints", ""):
-            self.checkpoints_dir_path = pkg_resources.resource_filename('checkpoints', self.experiment_name)
+        elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
+            self.checkpoints_dir_path = os.path.join(environment_config.PKG_CHECKPOINTS_DIR, self.experiment_name)
         else:
             raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to"
                              "resources.")
@@ -194,6 +192,10 @@ class Trainer:
         @param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         @return: output of trainer.train(...) (i.e results tuple)
         """
+
+        setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, 'multi_gpu', MultiGPUMode.OFF),
+                       num_gpus=core_utils.get_param(cfg, 'num_gpus'))
+
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
@@ -211,7 +213,7 @@ class Trainer:
                                          dataloader_params=cfg.dataset_params.val_dataloader_params)
 
         # BUILD NETWORK
-        model = models.get(name=cfg.architecture,
+        model = models.get(model_name=cfg.architecture,
                            num_classes=cfg.arch_params.num_classes,
                            arch_params=cfg.arch_params,
                            strict_load=cfg.checkpoint_params.strict_load,
@@ -245,48 +247,6 @@ class Trainer:
 
         self.dataset_params, self.train_loader, self.valid_loader, self.test_loader, self.classes = \
             HpmStruct(**dataset_params), train_loader, valid_loader, test_loader, classes
-
-    # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    @deprecated(target=None, deprecated_in='2.3.0', remove_in='3.0.0')
-    def build_model(self,  # noqa: C901 - too complex
-                    architecture: Union[str, nn.Module],
-                    arch_params={}, checkpoint_params={}, *args, **kwargs):
-        """
-        :param architecture:               Defines the network's architecture from models/ALL_ARCHITECTURES
-        :param arch_params:                Architecture H.P. e.g.: block, num_blocks, num_classes, etc.
-        :param checkpoint_params:          Dictionary like object with the following key:values:
-
-            load_checkpoint:            Load a pre-trained checkpoint
-            strict_load:                See StrictLoad class documentation for details.
-            source_ckpt_folder_name:    folder name to load the checkpoint from (self.experiment_name if none is given)
-            load_weights_only:          loads only the weight from the checkpoint and zeroize the training params
-            load_backbone:              loads the provided checkpoint to self.net.backbone instead of self.net
-            external_checkpoint_path:   The path to the external checkpoint to be loaded. Can be absolute or relative
-                                               (ie: path/to/checkpoint.pth). If provided, will automatically attempt to
-                                               load the checkpoint even if the load_checkpoint flag is not provided.
-
-        """
-        if 'num_classes' not in arch_params.keys():
-            if self.classes is None and self.dataset_interface is None:
-                raise Exception('Error', 'Number of classes not defined in arch params and dataset is not defined')
-            else:
-                arch_params['num_classes'] = len(self.classes)
-
-        self.arch_params = core_utils.HpmStruct(**arch_params)
-        self.checkpoint_params = core_utils.HpmStruct(**checkpoint_params)
-
-        self.net = self._instantiate_net(architecture, self.arch_params, checkpoint_params, *args, **kwargs)
-
-        # SAVE THE ARCHITECTURE FOR NEURAL ARCHITECTURE SEARCH
-
-        self.architecture = architecture
-
-        self._net_to_device()
-
-        # SET THE FLAG FOR DIFFERENT PARAMETER GROUP OPTIMIZER UPDATE
-        self.update_param_groups = hasattr(self.net.module, 'update_param_groups')
-
-        self._load_checkpoint_to_model()
 
     def _set_ckpt_loading_attributes(self):
         """
@@ -1271,6 +1231,9 @@ class Trainer:
             else:
                 raise RuntimeError('CUDA DEVICE NOT FOUND... EXITING')
 
+        if require_gpu_setup(requested_multi_gpu):
+            raise GPUModeNotSetupError()
+
         # SELECT CPU DEVICE
         elif requested_device == 'cpu':
             self.device = 'cpu'
@@ -1312,19 +1275,13 @@ class Trainer:
 
     def _initialize_ddp(self):
         """
-        Initializes Distributed Data Parallel
+        Initialize Distributed Data Parallel
 
-        Usage:
-
-            python -m torch.distributed.launch --nproc_per_node=n YOUR_TRAINING_SCRIPT.py
-            where n is the number of GPUs required, e.g., n=8
-
-            Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.
-            Whatever learning rate and schedule you specify will be applied to the each GPU individually.
-            Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch size is the
-            batch you specify times the number of GPUs. In the literature there are several "best practices" to set
-            learning rates and schedules for large batch sizes.
-
+        Important note: (1) in distributed training it is customary to specify learning rates and batch sizes per GPU.
+        Whatever learning rate and schedule you specify will be applied to the each GPU individually.
+        Since gradients are passed and summed (reduced) from all to all GPUs, the effective batch size is the
+        batch you specify times the number of GPUs. In the literature there are several "best practices" to set
+        learning rates and schedules for large batch sizes.
         """
         logger.info("Distributed training starting...")
         local_rank = environment_config.DDP_LOCAL_RANK
@@ -1395,7 +1352,7 @@ class Trainer:
     def _prep_for_test(self, test_loader: torch.utils.data.DataLoader = None, loss=None, post_prediction_callback=None,
                        test_metrics_list=None,
                        loss_logging_items_names=None, test_phase_callbacks=None):
-        """Run commands that are common to all SgModels"""
+        """Run commands that are common to all models"""
         # SET THE MODEL IN evaluation STATE
         self.net.eval()
 
@@ -1783,7 +1740,6 @@ class Trainer:
                                                set_net=self.set_net,
                                                set_ckpt_best_name=self.set_ckpt_best_name,
                                                reset_best_metric=self._reset_best_metric,
-                                               build_model=self.build_model,
                                                validate_epoch=self._validate_epoch,
                                                set_ema=self.set_ema)
         else:
