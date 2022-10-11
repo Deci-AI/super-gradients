@@ -1,4 +1,4 @@
-from typing import Type, List, Tuple, Union, MutableMapping
+from typing import Type, List, Tuple, Union, Dict
 from abc import ABC, abstractmethod
 
 import torch.nn as nn
@@ -114,7 +114,7 @@ class ASPP(AbstractContextModule):
         return x
 
 
-CONTEXT_TYPE_DICT: MutableMapping[str, Type[AbstractContextModule]] = {
+CONTEXT_TYPE_DICT: Dict[str, Type[AbstractContextModule]] = {
     ContextModules.ASPP: ASPP,
     ContextModules.SPPM: SPPM
 }

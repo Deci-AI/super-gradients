@@ -12,6 +12,8 @@ from super_gradients.training.models.classification_models.repvgg import RepVGGB
 from super_gradients.training.models.segmentation_models.stdc import STDCBlock
 from super_gradients.training.models import SgModule, HpmStruct
 from super_gradients.training.utils.module_utils import ConvBNReLU
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories import ListFactory, TypeFactory
 
 
 class AntiAliasDownsample(nn.Module):
@@ -156,34 +158,19 @@ class RegnetXStage(BackboneStage):
         return 1
 
 
-class BlockType(Enum):
-    XBlock = (0, RegnetXStage)
-    REPVGG = (1, RepVGGStage)
-    STDC = (2, STDCStage)
-
-    def __init__(self,
-                 block_id: int,
-                 stage_cls: Type[BackboneStage]):
-        self.block_id = block_id
-        self.stage_cls = stage_cls
-
-    @staticmethod
-    def from_block_id(block_id: int):
-        if block_id == BlockType.XBlock.block_id:
-            return BlockType.XBlock
-        elif block_id == BlockType.REPVGG.block_id:
-            return BlockType.REPVGG
-        elif block_id == BlockType.STDC.block_id:
-            return BlockType.STDC
-        raise NotImplementedError(f"block_id: {block_id} is not a valid option.")
+class DownBlockType(Enum):
+    XBlock = RegnetXStage
+    REPVGG = RepVGGStage
+    STDC = STDCStage
 
 
 class UNetBackboneBase(AbstractUNetBackbone):
+    @resolve_param("block_types_list", ListFactory(TypeFactory.from_enum_cls(DownBlockType)))
     def __init__(self,
                  strides_list: List[int],
                  width_list: List[int],
                  num_blocks_list: List[int],
-                 block_types_list: List[Union[BlockType, int]],
+                 block_types_list: List[Type[BackboneStage]],
                  is_out_feature_list: List[bool],
                  block_params: dict = {},
                  in_channels: int = 3):
@@ -191,7 +178,7 @@ class UNetBackboneBase(AbstractUNetBackbone):
         self.strides_list = strides_list
         self.width_list = width_list
         self.num_blocks_list = num_blocks_list
-        self.block_types_list = [BlockType.from_block_id(block_type) if isinstance(block_type, int) else block_type for block_type in block_types_list]
+        self.block_types_list = block_types_list
         self.is_out_feature_list = is_out_feature_list
         self.block_kwargs = block_params
         self.num_stages = len(self.strides_list)
@@ -202,8 +189,8 @@ class UNetBackboneBase(AbstractUNetBackbone):
         self.stages = nn.ModuleList()
         for i in range(self.num_stages):
             self.stages.append(
-                self.block_types_list[i].stage_cls(in_channels, width_list[i], stride=strides_list[i],
-                                                   num_blocks=num_blocks_list[i], **block_params)
+                self.block_types_list[i](in_channels, width_list[i], stride=strides_list[i],
+                                         num_blocks=num_blocks_list[i], **block_params)
             )
             in_channels = width_list[i]
 

@@ -52,7 +52,7 @@ class UNetBase(SegmentationModule):
             - strides_list: List[int], list of stride per stage.
             - width_list: List[int], list of num channels per stage.
             - num_blocks_list: List[int], list of num blocks per stage.
-            - block_types_list: List[Union[BlockType, int]], list of block types per stage.
+            - block_types_list: List[Union[DownBlockType, int]], list of block types per stage.
             - is_out_feature_list: List[bool], list of flags whether stage features should be an output.
             - in_channels: int, num channels of the input to the backbone module.
             - block_params: dict, argument to be passed to the block types constructors. i.e for `RegnetXStage`

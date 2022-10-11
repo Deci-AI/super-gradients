@@ -1,4 +1,4 @@
-from typing import List, Type, Union
+from typing import List, Type
 from abc import ABC, abstractmethod
 from enum import Enum
 
@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch
 
 from super_gradients.training.utils.module_utils import ConvBNReLU, make_upsample_module
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories import ListFactory, TypeFactory
 
 
 class AbstractUpFuseBlock(nn.Module, ABC):
@@ -78,31 +80,18 @@ class UpCatBlock(AbstractUpFuseBlock):
 
 
 class UpBlockType(Enum):
-    UP_FACTOR = (0, UpFactorBlock)
-    UP_CAT = (1, UpCatBlock)
-
-    def __init__(self,
-                 block_id: int,
-                 up_block_cls: Type[AbstractUpFuseBlock]):
-        self.block_id = block_id
-        self.up_block_cls = up_block_cls
-
-    @staticmethod
-    def from_block_id(block_id: int):
-        if block_id == UpBlockType.UP_FACTOR.block_id:
-            return UpBlockType.UP_FACTOR
-        elif block_id == UpBlockType.UP_CAT.block_id:
-            return UpBlockType.UP_CAT
-        raise NotImplementedError(f"block_id: {block_id} is not a valid option.")
+    UP_FACTOR = UpFactorBlock
+    UP_CAT = UpCatBlock
 
 
 class Decoder(nn.Module):
+    @resolve_param("up_block_types", ListFactory(TypeFactory.from_enum_cls(UpBlockType)))
     def __init__(self,
                  skip_channels_list: List[int],
                  up_block_repeat_list: List[int],
                  skip_expansion: float,
                  decoder_scale: float,
-                 up_block_types: List[Union[UpBlockType, int]],
+                 up_block_types: List[Type[AbstractUpFuseBlock]],
                  is_skip_list: List[bool],
                  min_decoder_channels: int = 1,
                  **up_block_kwargs):
@@ -117,16 +106,12 @@ class Decoder(nn.Module):
         :param min_decoder_channels: The minimum num_channels of decoder stages. Useful i.e if we want to keep the width
             above the num of classes. The num_channels of a decoder stage is determined as follows:
                 `decoder_channels = max(encoder_channels * decoder_scale, min_decoder_channels)`
-        :param up_block_types: list of UpBlockType.
+        :param up_block_types: list of AbstractUpFuseBlock.
         :param is_skip_list: List of flags whether to use feature-map from encoder stage as skip connection or not. Used
             to not apply projection convolutions if a certain encoder feature is not aggregate with the decoder.
         :param up_block_kwargs: init parameters for fuse blocks.
         """
         super().__init__()
-        up_block_types = [
-            UpBlockType.from_block_id(block_type) if isinstance(block_type, int) else block_type
-            for block_type in up_block_types
-        ]
         # num_channels list after encoder features projections.
         self.up_channels_list = [max(int(ch * decoder_scale), min_decoder_channels) for ch in skip_channels_list]
         # Reverse order to up-bottom order, i.e [stage4_ch, stage3_ch, ... , stage1_ch]
@@ -147,8 +132,8 @@ class Decoder(nn.Module):
         skip_channels_list.append(None)
         for i in range(len(up_block_types)):
             self.up_stages.append(
-                up_block_types[i].up_block_cls(in_channels, skip_channels_list[i], self.up_channels_list[i],
-                                               num_repeats=up_block_repeat_list[i], **up_block_kwargs))
+                up_block_types[i](in_channels, skip_channels_list[i], self.up_channels_list[i],
+                                  num_repeats=up_block_repeat_list[i], **up_block_kwargs))
             in_channels = self.up_channels_list[i]
 
     def make_skip_projection(self,
