@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union, Dict, List, Sequence
+from typing import Tuple, Union, Dict, Sequence
 import random
 
 import inspect
@@ -337,16 +337,24 @@ def log_uncaught_exceptions(logger):
     sys.excepthook = handle_exception
 
 
-def parse_args(cfg, arg_names: Union[List[str], callable]) -> dict:
+def parse_args(cfg, arg_names: Union[Sequence[str], callable]) -> dict:
     """
     parse args from a config.
     unlike get_param(), in this case only parameters that appear in the config will override default params from the function's signature
     """
     if not isinstance(arg_names, Sequence):
-        arg_names = list(inspect.signature(arg_names).parameters.keys())
+        arg_names = get_callable_param_names(arg_names)
 
     kwargs_dict = {}
     for arg_name in arg_names:
         if hasattr(cfg, arg_name) and getattr(cfg, arg_name) is not None:
             kwargs_dict[arg_name] = getattr(cfg, arg_name)
     return kwargs_dict
+
+
+def get_callable_param_names(obj: callable) -> Tuple[str]:
+    """Get the param names of a given callable (function, class, ...)
+    :param obj: Object to inspect
+    :return: Param names of that object
+    """
+    return tuple(inspect.signature(obj).parameters)

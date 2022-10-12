@@ -1,4 +1,4 @@
-from super_gradients.training.object_names import Callbacks, LRSchedulers, LRWarmups
+from super_gradients.common.object_names import Callbacks, LRSchedulers, LRWarmups
 from super_gradients.training.utils.callbacks.callbacks import DeciLabUploadCallback, LRCallbackBase, LRSchedulerCallback, MetricsUpdateCallback, \
     ModelConversionCheckCallback, YoloXTrainingStageSwitchCallback, StepLRCallback, PolyLRCallback,\
     CosineLRCallback, ExponentialLRCallback, FunctionLRCallback, WarmupLRCallback
