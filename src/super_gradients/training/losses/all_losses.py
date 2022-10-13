@@ -1,5 +1,5 @@
 from torch import nn
-from super_gradients.training.object_names import Losses
+from super_gradients.common.object_names import Losses
 from super_gradients.training.losses import LabelSmoothingCrossEntropyLoss, ShelfNetOHEMLoss, \
     ShelfNetSemanticEncodingLoss, RSquaredLoss, SSDLoss, BCEDiceLoss, YoloXDetectionLoss, YoloXFastDetectionLoss, KDLogitsLoss, DiceCEEdgeLoss
 from super_gradients.training.losses.stdc_loss import STDCLoss

@@ -39,7 +39,7 @@ class TestWithoutTrainTest(unittest.TestCase):
 
     @staticmethod
     def get_segmentation_trainer(name=''):
-        shelfnet_lw_arch_params = {"num_classes": 5, "load_checkpoint": False}
+        shelfnet_lw_arch_params = {"num_classes": 5}
         trainer = Trainer(name)
         model = models.get('shelfnet34_lw', arch_params=shelfnet_lw_arch_params)
         return trainer, model
