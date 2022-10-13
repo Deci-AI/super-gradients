@@ -133,6 +133,7 @@ class Samplers:
     REPEAT_AUG = "RepeatAugSampler"
     DISTRIBUTED = "DistributedSampler"
 
+
 class Models:
     """Static class to hold all the available model names"""""
     RESNET18 = "resnet18"
