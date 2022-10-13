@@ -3,6 +3,7 @@ import pkg_resources
 from hydra import compose, initialize_config_dir
 from hydra.core.global_hydra import GlobalHydra
 from super_gradients.training.utils.utils import override_default_params_without_nones
+from super_gradients.training.utils.hydra_utils import normalize_path
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from typing import Dict
 
@@ -21,8 +22,9 @@ def get(config_name, overriding_params: Dict = None) -> Dict:
     if overriding_params is None:
         overriding_params = dict()
     GlobalHydra.instance().clear()
-    with initialize_config_dir(config_dir=pkg_resources.resource_filename("super_gradients.recipes", "")):
-        cfg = compose(config_name=config_name)
+    sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
+    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir)):
+        cfg = compose(config_name=normalize_path(config_name))
         cfg = hydra.utils.instantiate(cfg)
         training_params = cfg.training_hyperparams
         training_params = override_default_params_without_nones(overriding_params, training_params)
