@@ -205,7 +205,7 @@ def restart_script_with_ddp(num_gpus: int = None):
     logger.info("Launching DDP with:\n"
                 f"   - ddp_port = {ddp_port}\n"
                 f"   - num_gpus = {num_gpus}/{torch.cuda.device_count()} available\n"
-                "-------------------------------------")
+                "-------------------------------------\n")
 
     config = LaunchConfig(
         nproc_per_node=num_gpus,
