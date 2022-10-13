@@ -14,7 +14,7 @@ torchvision>=0.10.0
 sphinx~=4.0.2
 sphinx-rtd-theme
 torchmetrics==0.8
-pillow>=6.2.0
+pillow>=9.2.0
 hydra-core>=1.2.0
 omegaconf
 onnxruntime
