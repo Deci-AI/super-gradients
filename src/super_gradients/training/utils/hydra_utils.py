@@ -32,13 +32,15 @@ def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> Dict
 
     resume_dir = Path(checkpoints_dir_path) / ".hydra"
     if not resume_dir.exists():
-        raise FileNotFoundError(f"The checkpoint directory {checkpoints_dir_path} does not include .hydra artifacts to resume the experiment.")
+        raise FileNotFoundError(
+            f"The checkpoint directory {checkpoints_dir_path} does not include .hydra artifacts to resume the experiment."
+        )
 
     # Load overrides that were used in previous run
     overrides_cfg = list(OmegaConf.load(resume_dir / "overrides.yaml"))
 
     GlobalHydra.instance().clear()
-    with initialize_config_dir(config_dir=str(resume_dir)):
+    with initialize_config_dir(config_dir=normalize_path(str(resume_dir))):
         cfg = compose(config_name="config.yaml", overrides=overrides_cfg)
     return cfg
 
@@ -51,3 +53,14 @@ def add_params_to_cfg(cfg: DictConfig, params: List[str]):
     new_cfg = OmegaConf.from_dotlist(params)
     with open_dict(cfg):  # This is required to add new fields to existing config
         cfg.merge_with(new_cfg)
+
+
+def normalize_path(path: str) -> str:
+    """Normalize the directory of file path. Replace the Windows-style (\\) path separators with unix ones (/).
+    This is necessary when running on Windows since Hydra compose fails to find a configuration file is the config
+    directory contains backward slash symbol.
+
+    :param path: Input path string
+    :return: Output path string with all \\ symbols replaces with /.
+    """
+    return path.replace("\\", "/")

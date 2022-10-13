@@ -1,9 +1,7 @@
 import json
 import os
-
+import logging
 import pkg_resources
-
-from super_gradients.common.environment.environment_config import DEFAULT_LOGGING_LEVEL
 
 
 class AutoLoggerConfig:
@@ -15,7 +13,7 @@ class AutoLoggerConfig:
     def generate_config_for_module_name(
         module_name,
         training_log_path=None,
-        log_level=DEFAULT_LOGGING_LEVEL,
+        log_level=logging.INFO,
         max_bytes=10485760,
         logs_dir_path=None,
         handlers_list=None,

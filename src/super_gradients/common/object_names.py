@@ -19,6 +19,9 @@ class Metrics:
     ACCURACY = 'Accuracy'
     TOP5 = 'Top5'
     DETECTION_METRICS = 'DetectionMetrics'
+    DETECTION_METRICS_050_095 = 'DetectionMetrics_050_095'
+    DETECTION_METRICS_050 = 'DetectionMetrics_050'
+    DETECTION_METRICS_075 = 'DetectionMetrics_075'
     IOU = 'IoU'
     BINARY_IOU = "BinaryIOU"
     DICE = "Dice"
