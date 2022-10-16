@@ -68,10 +68,15 @@ class PANNeck(nn.Module):
         super().__init__()
         c3_out_channels, c4_out_channels, c5_out_channels = in_channels
 
-        self.neck1 = arch_params.neck1.type(arch_params.neck1, [c5_out_channels, c4_out_channels])
-        self.neck2 = arch_params.neck2.type(arch_params.neck2, [self.neck1.out_channels[1], c3_out_channels])
-        self.neck3 = arch_params.neck3.type(arch_params.neck3, [self.neck2.out_channels[1], self.neck2.out_channels[0]])
-        self.neck4 = arch_params.neck4.type(arch_params.neck4, [self.neck3.out_channels, self.neck1.out_channels[0]])
+        NeckStage1Cls = arch_params.neck1.type
+        NeckStage2Cls = arch_params.neck2.type
+        NeckStage3Cls = arch_params.neck3.type
+        NeckStage4Cls = arch_params.neck4.type
+
+        self.neck1 = NeckStage1Cls(arch_params.neck1, [c5_out_channels, c4_out_channels])
+        self.neck2 = NeckStage2Cls(arch_params.neck2, [self.neck1.out_channels[1], c3_out_channels])
+        self.neck3 = NeckStage3Cls(arch_params.neck3, [self.neck2.out_channels[1], self.neck2.out_channels[0]])
+        self.neck4 = NeckStage4Cls(arch_params.neck4, [self.neck3.out_channels, self.neck1.out_channels[0]])
 
         self.out_channels = [
             self.neck2.out_channels[1],
@@ -98,9 +103,13 @@ class ThreeHeads(nn.Module):
         super().__init__()
         arch_params = self._pass_num_classes(arch_params)
 
-        self.head1 = arch_params.head1.type(arch_params.head1, in_channels[0])
-        self.head2 = arch_params.head2.type(arch_params.head2, in_channels[1])
-        self.head3 = arch_params.head3.type(arch_params.head3, in_channels[2])
+        Head1Cls = arch_params.head1.type
+        Head2Cls = arch_params.head2.type
+        Head3Cls = arch_params.head3.type
+
+        self.head1 = Head1Cls(arch_params.head1, in_channels[0])
+        self.head2 = Head2Cls(arch_params.head2, in_channels[1])
+        self.head3 = Head3Cls(arch_params.head3, in_channels[2])
 
     @staticmethod
     def _pass_num_classes(arch_params: HpmStruct):
