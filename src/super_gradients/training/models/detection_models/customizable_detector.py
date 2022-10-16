@@ -96,9 +96,17 @@ class ThreeHeads(nn.Module):
     """
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: List[int]):
         super().__init__()
+        arch_params = self._pass_num_classes(arch_params)
+
         self.head1 = arch_params.head1.type(arch_params.head1, in_channels[0])
         self.head2 = arch_params.head2.type(arch_params.head2, in_channels[1])
         self.head3 = arch_params.head3.type(arch_params.head3, in_channels[2])
+
+    @staticmethod
+    def _pass_num_classes(arch_params: HpmStruct):
+        for i in range(3):
+            arch_params[f'head{i + 1}'].num_classes = arch_params.num_classes
+        return arch_params
 
     def forward(self, inputs):
         p3, p4, p5 = inputs
@@ -123,7 +131,7 @@ class CustomizableDetector(SgModule):
       * neck - PANNeck
       * heads - ThreeHeads
 
-    By default initializes BatchNorm eps to 1e-3, momentum to 0.03 and sets all activations to be inplace
+    By default, initializes BatchNorm eps to 1e-3, momentum to 0.03 and sets all activations to be inplace
     """
 
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], type_mapping: Dict = None):
@@ -144,16 +152,19 @@ class CustomizableDetector(SgModule):
         self.neck = NeckCls(arch_params.neck, self.backbone.out_channels)
         self.heads = HeadsCls(arch_params.heads, self.neck.out_channels)
 
-        self.initialize_weights(get_param(arch_params, 'bn_eps', 1e-3),
-                                get_param(arch_params, 'bn_momentum', 0.03),
-                                get_param(arch_params, 'inplace_act', True))
+        self._initialize_weights(arch_params)
 
     def forward(self, x):
         x = self.backbone(x)
         x = self.neck(x)
         return self.heads(x)
 
-    def initialize_weights(self, bn_eps: float, bn_momentum: float, inplace_act: bool):
+    def _initialize_weights(self, arch_params: Union[HpmStruct, DictConfig]):
+
+        bn_eps = get_param(arch_params, 'bn_eps', 1e-3)
+        bn_momentum = get_param(arch_params, 'bn_momentum', 0.03)
+        inplace_act = get_param(arch_params, 'inplace_act', True)
+
         for m in self.modules():
             t = type(m)
             if t is nn.BatchNorm2d:
@@ -166,3 +177,14 @@ class CustomizableDetector(SgModule):
         for module in self.modules():
             if module != self and hasattr(module, 'prep_model_for_conversion'):
                 module.prep_model_for_conversion(input_size, **kwargs)
+
+    def replace_head(self, new_num_classes: int = None, new_head: nn.Module = None):
+        if new_num_classes is None and new_head is None:
+            raise ValueError("At least one of new_num_classes, new_head must be given to replace output layer.")
+        if new_head is not None:
+            self.heads = new_head
+        else:
+            self.arch_params.heads.num_classes = new_num_classes
+            HeadsCls = get_param(self.arch_params.heads, 'type', ThreeHeads)
+            self.heads = HeadsCls(self.arch_params.heads, self.neck.out_channels)
+            self._initialize_weights(self.arch_params)
