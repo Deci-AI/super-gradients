@@ -1,10 +1,11 @@
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 from hydra import initialize_config_dir, compose
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import OmegaConf, open_dict, DictConfig
 
+from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
 
 
@@ -64,3 +65,27 @@ def normalize_path(path: str) -> str:
     :return: Output path string with all \\ symbols replaces with /.
     """
     return path.replace("\\", "/")
+
+
+def recursive_type_name_to_type(arch_params: Union[HpmStruct, DictConfig], type_mapping_dict):
+    """
+    Iterate over arch_params recursively and on any level look for a pair 'type': 'type_name'
+    Replace inplace each type_name with a corresponding type, based on type_mapping_dict
+
+    Example:
+    With type_mapping_dict = {'spp': SPPModule, 'aspp': ASPPModule}
+    and arch_params with
+        context_module:
+            type: aspp
+    arch_params will be changed inplace to
+        context_module:
+            type: ASPPModule
+    """
+    iterable = arch_params.__dict__ if isinstance(arch_params, HpmStruct) else arch_params
+    if not hasattr(iterable, 'items'):
+        return
+    for k, value in iterable.items():
+        if k == 'type' and isinstance(value, str) and value in type_mapping_dict:
+            setattr(arch_params, k, type_mapping_dict[value])
+        else:
+            recursive_type_name_to_type(getattr(arch_params, k), type_mapping_dict)
