@@ -60,12 +60,12 @@ training_hyperparams:
       dice_ce_weights: [ 1., 1. ]
       ce_edge_weights: [ .5, .5 ]
       edge_kernel: 5
+  sync_bn: True
 
 
 arch_params:
   num_classes: 19
   aux_head: True
-  sync_bn: True
 
 
 

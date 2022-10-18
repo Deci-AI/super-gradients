@@ -1,6 +1,3 @@
-defaults:
-  - default_arch_params
-
 anchors:
   _target_: super_gradients.training.utils.detection_utils.Anchors
   anchors_list: [[10, 13, 16, 30, 33, 23],[30, 61, 62, 45, 59, 119],[116, 90, 156, 198, 373, 326]]
