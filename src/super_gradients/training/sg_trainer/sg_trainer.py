@@ -316,11 +316,11 @@ class Trainer:
         self.net.to(self.device)
 
         # FOR MULTI-GPU TRAINING (not distributed)
-        self.training_params.sync_bn = core_utils.get_param(self.training_params, 'sync_bn', default_val=False)
+        sync_bn = core_utils.get_param(self.training_params, 'sync_bn', default_val=False)
         if self.multi_gpu == MultiGPUMode.DATA_PARALLEL:
             self.net = torch.nn.DataParallel(self.net, device_ids=self.device_ids)
         elif self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-            if self.training_params.sync_bn:
+            if sync_bn:
                 if not self.ddp_silent_mode:
                     logger.info('DDP - Using Sync Batch Norm... Training time will be affected accordingly')
                 self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net).to(self.device)
