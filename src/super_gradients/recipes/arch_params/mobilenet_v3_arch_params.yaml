@@ -1,6 +1,3 @@
-defaults:
-  - default_arch_params
-
 structure: # model structure
 mode: # mode (i.e backbone)
 num_classes: # number of outputs of the classification head

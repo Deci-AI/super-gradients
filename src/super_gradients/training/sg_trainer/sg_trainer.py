@@ -1,6 +1,5 @@
 import inspect
 import os
-import sys
 from copy import deepcopy
 from typing import Union, Tuple, Mapping
 from pathlib import Path
@@ -21,7 +20,7 @@ from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, Eva
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.environment import env_helpers
-from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.abstractions.abstract_logger import get_logger, mute_current_process
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
 from super_gradients.common.factories.metrics_factory import MetricsFactory
@@ -317,11 +316,11 @@ class Trainer:
         self.net.to(self.device)
 
         # FOR MULTI-GPU TRAINING (not distributed)
-        self.arch_params.sync_bn = core_utils.get_param(self.arch_params, 'sync_bn', default_val=False)
+        sync_bn = core_utils.get_param(self.training_params, 'sync_bn', default_val=False)
         if self.multi_gpu == MultiGPUMode.DATA_PARALLEL:
             self.net = torch.nn.DataParallel(self.net, device_ids=self.device_ids)
         elif self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-            if self.arch_params.sync_bn:
+            if sync_bn:
                 if not self.ddp_silent_mode:
                     logger.info('DDP - Using Sync Batch Norm... Training time will be affected accordingly')
                 self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net).to(self.device)
@@ -576,7 +575,7 @@ class Trainer:
         self._load_checkpoint_to_model()
 
     def _init_arch_params(self):
-        default_arch_params = HpmStruct(sync_bn=False)
+        default_arch_params = HpmStruct()
         arch_params = getattr(self.net, "arch_params", default_arch_params)
         self.arch_params = default_arch_params
         if arch_params is not None:
@@ -1393,14 +1392,13 @@ class Trainer:
         batch you specify times the number of GPUs. In the literature there are several "best practices" to set
         learning rates and schedules for large batch sizes.
         """
-        logger.info("Distributed training starting...")
         local_rank = environment_config.DDP_LOCAL_RANK
+        if local_rank > 0:
+            mute_current_process()
+
+        logger.info("Distributed training starting...")
         if not torch.distributed.is_initialized():
             torch.distributed.init_process_group(backend='nccl', init_method='env://')
-
-        if local_rank > 0:
-            f = open(os.devnull, 'w')
-            sys.stdout = f  # silent all printing for non master process
 
         torch.cuda.set_device(local_rank)
         self.device = 'cuda:%d' % local_rank
