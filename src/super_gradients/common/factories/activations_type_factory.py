@@ -1,7 +1,7 @@
 from typing import Union, Type, Mapping
 
 from super_gradients.common.factories.base_factory import AbstractFactory
-from super_gradients.training.utils.activations_uilts import get_activation_type
+from super_gradients.training.utils.activations_utils import get_activation_type
 
 
 class ActivationsTypeFactory(AbstractFactory):
