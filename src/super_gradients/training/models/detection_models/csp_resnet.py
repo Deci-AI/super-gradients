@@ -197,8 +197,8 @@ class CSPResNet(nn.Module):
         use_alpha: bool = False,
     ):
         super().__init__()
-        channels = [max(round(c * width_mult), 1) for c in channels]
-        layers = [max(round(l * depth_mult), 1) for l in layers]
+        channels = [max(round(num_channels * width_mult), 1) for num_channels in channels]
+        layers = [max(round(num_layers * depth_mult), 1) for num_layers in layers]
 
         if use_large_stem:
             self.stem = nn.Sequential(
