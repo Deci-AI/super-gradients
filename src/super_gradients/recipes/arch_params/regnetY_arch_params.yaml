@@ -1,6 +1,3 @@
-defaults:
-  - default_arch_params
-
 backbone_mode: False # cuts off classification head
 dropout_prob: 0 # dropout probability
 droppath_prob: 0 # connection dropout probability

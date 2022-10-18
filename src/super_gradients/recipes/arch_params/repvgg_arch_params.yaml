@@ -1,6 +1,3 @@
-defaults:
-  - default_arch_params
-
 struct: # model's structure
 num_classes: # number of outputs of the classification head
 width_multiplier: # model's width multiplier

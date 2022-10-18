@@ -154,7 +154,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim", "stdc1_seg50", "regseg48"]
         self.cityscapes_pretrained_arch_params = {
-            "ddrnet_23": {"aux_head": True, "sync_bn": True},
+            "ddrnet_23": {"aux_head": True},
             "regseg48": {},
             "stdc": {"use_aux_heads": True, "aux_head": True},
             "pplite_seg": {"use_aux_heads": True},

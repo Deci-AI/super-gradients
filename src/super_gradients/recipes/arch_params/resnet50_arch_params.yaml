@@ -1,4 +1,1 @@
-defaults:
-  - default_arch_params
-
 num_classes: 1000

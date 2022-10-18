@@ -64,7 +64,8 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "resume": False,
                            "resume_path": None,
                            "ckpt_name": 'ckpt_latest.pth',
-                           "resume_strict_load": False
+                           "resume_strict_load": False,
+                           "sync_bn": False
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}
