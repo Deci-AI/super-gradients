@@ -316,11 +316,11 @@ class Trainer:
         self.net.to(self.device)
 
         # FOR MULTI-GPU TRAINING (not distributed)
-        self.arch_params.sync_bn = core_utils.get_param(self.arch_params, 'sync_bn', default_val=False)
+        self.training_params.sync_bn = core_utils.get_param(self.training_params, 'sync_bn', default_val=False)
         if self.multi_gpu == MultiGPUMode.DATA_PARALLEL:
             self.net = torch.nn.DataParallel(self.net, device_ids=self.device_ids)
         elif self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-            if self.arch_params.sync_bn:
+            if self.training_params.sync_bn:
                 if not self.ddp_silent_mode:
                     logger.info('DDP - Using Sync Batch Norm... Training time will be affected accordingly')
                 self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net).to(self.device)
@@ -575,7 +575,7 @@ class Trainer:
         self._load_checkpoint_to_model()
 
     def _init_arch_params(self):
-        default_arch_params = HpmStruct(sync_bn=False)
+        default_arch_params = HpmStruct()
         arch_params = getattr(self.net, "arch_params", default_arch_params)
         self.arch_params = default_arch_params
         if arch_params is not None:
