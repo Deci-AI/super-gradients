@@ -5,6 +5,8 @@ from super_gradients.common.factories.metrics_factory import MetricsFactory
 from super_gradients.common.factories.optimizers_type_factory import OptimizersTypeFactory
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
+from super_gradients.common.factories.detection_modules_factory import DetectionModulesFactory
 
 
-__all__ = ["CallbacksFactory", "ListFactory", "LossesFactory", "MetricsFactory", "OptimizersTypeFactory", "SamplersFactory", "TransformsFactory"]
+__all__ = ["CallbacksFactory", "ListFactory", "LossesFactory", "MetricsFactory", "OptimizersTypeFactory",
+           "SamplersFactory", "TransformsFactory", "DetectionModulesFactory"]

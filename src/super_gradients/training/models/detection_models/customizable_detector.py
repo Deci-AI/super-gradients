@@ -9,7 +9,7 @@ A base for a detection network built according to the following scheme:
 """
 
 
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Type
 
 import torch
 from torch import nn
@@ -17,7 +17,7 @@ from omegaconf import DictConfig
 
 from super_gradients.training.utils.utils import HpmStruct, get_param
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.utils.hydra_utils import recursive_type_name_to_type
+from super_gradients.common.factories import DetectionModulesFactory
 
 
 class FourStageBackbone(nn.Module):
@@ -28,19 +28,13 @@ class FourStageBackbone(nn.Module):
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int):
         super().__init__()
 
-        StemCls = arch_params.stem.type
-        Stage1Cls = arch_params.stage1.type
-        Stage2Cls = arch_params.stage2.type
-        Stage3Cls = arch_params.stage3.type
-        Stage4Cls = arch_params.stage4.type
-        ContextCls = arch_params.context_module.type
-
-        self.stem = StemCls(arch_params.stem, in_channels)
-        self.stage1 = Stage1Cls(arch_params.stage1, self.stem.out_channels)
-        self.stage2 = Stage2Cls(arch_params.stage2, self.stage1.out_channels)
-        self.stage3 = Stage3Cls(arch_params.stage3, self.stage2.out_channels)
-        self.stage4 = Stage4Cls(arch_params.stage4, self.stage3.out_channels)
-        self.context_module = ContextCls(arch_params.context_module, self.stage4.out_channels)
+        factory = arch_params.factory
+        self.stem = factory.get(arch_params.stem, in_channels)
+        self.stage1 = factory.get(arch_params.stage1, self.stem.out_channels)
+        self.stage2 = factory.get(arch_params.stage2, self.stage1.out_channels)
+        self.stage3 = factory.get(arch_params.stage3, self.stage2.out_channels)
+        self.stage4 = factory.get(arch_params.stage4, self.stage3.out_channels)
+        self.context_module = factory.get(arch_params.context_module, self.stage4.out_channels)
 
         self.out_channels = [
             self.stage2.out_channels,
@@ -68,15 +62,11 @@ class PANNeck(nn.Module):
         super().__init__()
         c3_out_channels, c4_out_channels, c5_out_channels = in_channels
 
-        NeckStage1Cls = arch_params.neck1.type
-        NeckStage2Cls = arch_params.neck2.type
-        NeckStage3Cls = arch_params.neck3.type
-        NeckStage4Cls = arch_params.neck4.type
-
-        self.neck1 = NeckStage1Cls(arch_params.neck1, [c5_out_channels, c4_out_channels])
-        self.neck2 = NeckStage2Cls(arch_params.neck2, [self.neck1.out_channels[1], c3_out_channels])
-        self.neck3 = NeckStage3Cls(arch_params.neck3, [self.neck2.out_channels[1], self.neck2.out_channels[0]])
-        self.neck4 = NeckStage4Cls(arch_params.neck4, [self.neck3.out_channels, self.neck1.out_channels[0]])
+        factory = arch_params.factory
+        self.neck1 = factory.get(arch_params.neck1, [c5_out_channels, c4_out_channels])
+        self.neck2 = factory.get(arch_params.neck2, [self.neck1.out_channels[1], c3_out_channels])
+        self.neck3 = factory.get(arch_params.neck3, [self.neck2.out_channels[1], self.neck2.out_channels[0]])
+        self.neck4 = factory.get(arch_params.neck4, [self.neck3.out_channels, self.neck1.out_channels[0]])
 
         self.out_channels = [
             self.neck2.out_channels[1],
@@ -103,18 +93,16 @@ class ThreeHeads(nn.Module):
         super().__init__()
         arch_params = self._pass_num_classes(arch_params)
 
-        Head1Cls = arch_params.head1.type
-        Head2Cls = arch_params.head2.type
-        Head3Cls = arch_params.head3.type
-
-        self.head1 = Head1Cls(arch_params.head1, in_channels[0])
-        self.head2 = Head2Cls(arch_params.head2, in_channels[1])
-        self.head3 = Head3Cls(arch_params.head3, in_channels[2])
+        factory = arch_params.factory
+        self.head1 = factory.get(arch_params.head1, in_channels[0])
+        self.head2 = factory.get(arch_params.head2, in_channels[1])
+        self.head3 = factory.get(arch_params.head3, in_channels[2])
 
     @staticmethod
     def _pass_num_classes(arch_params: HpmStruct):
         for i in range(3):
-            arch_params[f'head{i + 1}'].num_classes = arch_params.num_classes
+            head_type = list(arch_params[f'head{i + 1}'].keys())[0]
+            arch_params[f'head{i + 1}'][head_type].num_classes = arch_params.num_classes
         return arch_params
 
     def forward(self, inputs):
@@ -143,23 +131,17 @@ class CustomizableDetector(SgModule):
     By default, initializes BatchNorm eps to 1e-3, momentum to 0.03 and sets all activations to be inplace
     """
 
-    def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3, type_mapping: Dict = None):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig], type_mapping: Dict[str, Type], in_channels: int = 3):
         """
-        :param arch_params:
-        :param type_mapping: can be passed to recursively resolve string type names in arch_params to actual types
+        :param type_mapping: can be passed to resolve string type names in arch_params to actual types
         """
         super().__init__()
-        if type_mapping is not None:
-            recursive_type_name_to_type(arch_params, type_mapping)
 
+        self.factory = DetectionModulesFactory(type_mapping)
         self.arch_params = arch_params
-        BackboneCls = get_param(arch_params.backbone, 'type', FourStageBackbone)
-        NeckCls = get_param(arch_params.neck, 'type', PANNeck)
-        HeadsCls = get_param(arch_params.heads, 'type', ThreeHeads)
-
-        self.backbone = BackboneCls(arch_params.backbone, in_channels)
-        self.neck = NeckCls(arch_params.neck, self.backbone.out_channels)
-        self.heads = HeadsCls(arch_params.heads, self.neck.out_channels)
+        self.backbone = self.factory.get(arch_params.backbone, in_channels)
+        self.neck = self.factory.get(arch_params.neck, self.backbone.out_channels)
+        self.heads = self.factory.get(arch_params.heads, self.neck.out_channels)
 
         self._initialize_weights(arch_params)
 
@@ -193,7 +175,7 @@ class CustomizableDetector(SgModule):
         if new_head is not None:
             self.heads = new_head
         else:
-            self.arch_params.heads.num_classes = new_num_classes
-            HeadsCls = get_param(self.arch_params.heads, 'type', ThreeHeads)
-            self.heads = HeadsCls(self.arch_params.heads, self.neck.out_channels)
+            heads_type = list(self.arch_params.heads.keys())[0]
+            self.arch_params.heads[heads_type].num_classes = new_num_classes
+            self.heads = self.factory.get(self.arch_params.heads, self.neck.out_channels)
             self._initialize_weights(self.arch_params)
