@@ -143,7 +143,7 @@ class CustomizableDetector(SgModule):
     By default, initializes BatchNorm eps to 1e-3, momentum to 0.03 and sets all activations to be inplace
     """
 
-    def __init__(self, arch_params: Union[HpmStruct, DictConfig], type_mapping: Dict = None):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3, type_mapping: Dict = None):
         """
         :param arch_params:
         :param type_mapping: can be passed to recursively resolve string type names in arch_params to actual types
@@ -157,7 +157,7 @@ class CustomizableDetector(SgModule):
         NeckCls = get_param(arch_params.neck, 'type', PANNeck)
         HeadsCls = get_param(arch_params.heads, 'type', ThreeHeads)
 
-        self.backbone = BackboneCls(arch_params.backbone, 3)
+        self.backbone = BackboneCls(arch_params.backbone, in_channels)
         self.neck = NeckCls(arch_params.neck, self.backbone.out_channels)
         self.heads = HeadsCls(arch_params.heads, self.neck.out_channels)
 
