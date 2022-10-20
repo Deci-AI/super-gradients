@@ -1,11 +1,10 @@
 from pathlib import Path
-from typing import List, Union
+from typing import List
 
 from hydra import initialize_config_dir, compose
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import OmegaConf, open_dict, DictConfig
 
-from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils.checkpoint_utils import get_checkpoints_dir_path
 
 

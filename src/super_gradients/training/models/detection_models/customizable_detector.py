@@ -101,8 +101,7 @@ class ThreeHeads(nn.Module):
     @staticmethod
     def _pass_num_classes(arch_params: HpmStruct):
         for i in range(3):
-            head_type = list(arch_params[f'head{i + 1}'].keys())[0]
-            arch_params[f'head{i + 1}'][head_type].num_classes = arch_params.num_classes
+            arch_params[f'head{i + 1}'].num_classes = arch_params.num_classes
         return arch_params
 
     def forward(self, inputs):
@@ -175,7 +174,6 @@ class CustomizableDetector(SgModule):
         if new_head is not None:
             self.heads = new_head
         else:
-            heads_type = list(self.arch_params.heads.keys())[0]
-            self.arch_params.heads[heads_type].num_classes = new_num_classes
+            self.arch_params.heads.num_classes = new_num_classes
             self.heads = self.factory.get(self.arch_params.heads, self.neck.out_channels)
             self._initialize_weights(self.arch_params)

@@ -1,4 +1,8 @@
-from typing import Union, Mapping, Dict
+from typing import Any, Dict, List, Union
+
+from omegaconf import DictConfig
+
+from super_gradients.training.utils.utils import HpmStruct
 
 
 class DetectionModulesFactory:
@@ -14,23 +18,16 @@ class DetectionModulesFactory:
         """
         self.type_dict = type_dict
 
-    def get(self, conf: Union[str, dict, Dict], in_channels: Union[int, List[int]]):
+    def get(self, arch_params: Union[DictConfig, HpmStruct, Dict[str, Any]], in_channels: Union[int, List[int]]):
         """
         Get an instantiated module
-        :param conf: a configuration, either a type_name(str) or {type_name(str): {arch_params...}}
+        :param arch_params: a configuration {'type': 'type_name', other_arch_params... }}
         :param in_channels: will be passed into the module during construction
         """
-        assert isinstance(conf, str) or (isinstance(conf, Mapping) and len(conf) == 1), \
-            'Received a wrong config for a module, expected either a string type name (without parameters) ' \
-            f'or a mapping of a type name to its arch_params. The config is {conf}'
+        module_type = arch_params['type']
+        if module_type not in self.type_dict:
+            raise RuntimeError(f'Unknown object type: {module_type} in configuration. '
+                               f'Valid types are: {self.type_dict.keys()}')
 
-        module_type = conf if isinstance(conf, str) else list(conf.keys())[0]
-        assert  module_type in self.type_dict, f'Unknown object type: {conf} in configuration. ' \
-                                         f'Valid types are: {self.type_dict.keys()}'
-
-        if isinstance(conf, str):
-            return self.type_dict[module_type](in_channels)
-        else:
-            arch_params = list(conf.values())[0]
-            arch_params['factory'] = self
-            return self.type_dict[module_type](arch_params, in_channels)
+        arch_params['factory'] = self
+        return self.type_dict[module_type](arch_params, in_channels)
