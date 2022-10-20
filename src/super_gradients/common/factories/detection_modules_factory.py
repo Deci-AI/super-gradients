@@ -21,13 +21,18 @@ class DetectionModulesFactory:
     def get(self, arch_params: Union[DictConfig, HpmStruct, Dict[str, Any]], in_channels: Union[int, List[int]]):
         """
         Get an instantiated module
-        :param arch_params: a configuration {'type': 'type_name', other_arch_params... }}
+        :param arch_params: a configuration {type: 'type_name', other_arch_params... }},
+                            where type is a string type name or the actual type
         :param in_channels: will be passed into the module during construction
         """
+        arch_params['factory'] = self
+
         module_type = arch_params['type']
+        if isinstance(module_type, type):
+            return module_type(arch_params, in_channels)
+
         if module_type not in self.type_dict:
             raise RuntimeError(f'Unknown object type: {module_type} in configuration. '
                                f'Valid types are: {self.type_dict.keys()}')
 
-        arch_params['factory'] = self
         return self.type_dict[module_type](arch_params, in_channels)
