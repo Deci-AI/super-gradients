@@ -20,37 +20,42 @@ from super_gradients.training.models.sg_module import SgModule
 from super_gradients.common.factories import DetectionModulesFactory
 
 
-class FourStageBackbone(nn.Module):
+class NStageBackbone(nn.Module):
     """
-    A backbone with a stem -> 4 stages -> context module
-    Returns outputs of stage 2, stage 3, context module
+    A backbone with a stem -> N stages -> context module
+    Returns outputs of the layers listed in arch_params.out_layers
     """
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int):
         super().__init__()
-
         factory = arch_params.factory
+
+        self.num_stages = max([int(k.replace('stage', '')) for k in arch_params.keys() if k.startswith('stage')])
         self.stem = factory.get(arch_params.stem, in_channels)
-        self.stage1 = factory.get(arch_params.stage1, self.stem.out_channels)
-        self.stage2 = factory.get(arch_params.stage2, self.stage1.out_channels)
-        self.stage3 = factory.get(arch_params.stage3, self.stage2.out_channels)
-        self.stage4 = factory.get(arch_params.stage4, self.stage3.out_channels)
+        prev_channels = self.stem.out_channels
+        for i in range(1, self.num_stages + 1):
+            setattr(self, f'stage{i}', factory.get(arch_params[f'stage{i}'], prev_channels))
+            prev_channels = getattr(self, f'stage{i}').out_channels
         self.context_module = factory.get(arch_params.context_module, self.stage4.out_channels)
 
-        self.out_channels = [
-            self.stage2.out_channels,
-            self.stage3.out_channels,
-            self.context_module.out_channels
-        ]
+        self.out_layers = arch_params.out_layers
+        self.out_channels = self._get_out_channels()
+
+    def _get_out_channels(self):
+        out_channels = []
+        for layer in self.out_layers:
+            out_channels.append(getattr(self, layer).out_channels)
+        return out_channels
 
     def forward(self, x):
-        c1 = self.stem(x)
-        c2 = self.stage1(c1)
-        c3 = self.stage2(c2)
-        c4 = self.stage3(c3)
-        c5_ = self.stage4(c4)
-        c5 = self.context_module(c5_)
 
-        return c3, c4, c5
+        outputs = []
+        all_layers = ['stem'] + [f'stage{i}' for i in range(1, self.num_stages + 1)] + ['context_module']
+        for layer in all_layers:
+            x = getattr(self, layer)(x)
+            if layer in self.out_layers:
+                outputs.append(x)
+
+        return outputs
 
 
 class PANNeck(nn.Module):
@@ -85,18 +90,18 @@ class PANNeck(nn.Module):
         return p3, p4, p5
 
 
-class ThreeHeads(nn.Module):
+class NHeads(nn.Module):
     """
-    Apply three heads and combine predictions into the shape expected by SG detection losses
+    Apply N heads in parallel and combine predictions into the shape expected by SG detection losses
     """
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: List[int]):
         super().__init__()
         arch_params = self._pass_num_classes(arch_params)
-
         factory = arch_params.factory
-        self.head1 = factory.get(arch_params.head1, in_channels[0])
-        self.head2 = factory.get(arch_params.head2, in_channels[1])
-        self.head3 = factory.get(arch_params.head3, in_channels[2])
+
+        self.num_heads = max([int(k.replace('head', '')) for k in arch_params.keys() if k.startswith('head')])
+        for i in range(self.num_heads):
+            setattr(self, f'head{i + 1}', factory.get(arch_params[f'head{i + 1}'], in_channels[i]))
 
     @staticmethod
     def _pass_num_classes(arch_params: HpmStruct):
@@ -105,8 +110,11 @@ class ThreeHeads(nn.Module):
         return arch_params
 
     def forward(self, inputs):
-        p3, p4, p5 = inputs
-        return self.combine_preds([self.head1(p3), self.head2(p4), self.head3(p5)])
+        outputs = []
+        for i in range(self.num_heads):
+            outputs.append(getattr(self, f'head{i + 1}')(inputs[i]))
+
+        return self.combine_preds(outputs)
 
     def combine_preds(self, preds):
         outputs = []
