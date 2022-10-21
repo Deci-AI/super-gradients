@@ -10,6 +10,78 @@ class AutoLoggerConfig:
     """
 
     @staticmethod
+    def log_everything_to_file(filename: str):
+        """
+        Redirect all logging to a file logger (Debug and above) and to console (Warnings and above)
+        :param self:
+        :param filename:
+        :return:
+        """
+
+        # These does not help, TODO: Remove when finished investigating
+        # Delete all previously created handlers for individual logger
+        # process_loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+        # for l in process_loggers:
+        #     del l.handlers
+        #     l.handlers = []
+        #
+        # logging.basicConfig(
+        #     level=logging.DEBUG,
+        #     format="%(asctime)s - %(module)s - %(levelname)s - %(message)s",
+        #     datefmt="[%Y-%m-%d %H:%M:%S]",
+        #     filename=filename,
+        #     filemode="w",
+        #     encoding="utf-8",
+        #     force=True,
+        # )
+        #
+        # config_dict = {
+        #     "version": 1,
+        #     "disable_existing_loggers": True,
+        #     "formatters": {
+        #         "fileFormatter": {
+        #             "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        #             "datefmt": "[%Y-%m-%d %H:%M:%S]",
+        #         },
+        #         "consoleFormatter": {
+        #             "format": "%(module)s -%(levelname)s- %(message)s",
+        #             "datefmt": "[%Y-%m-%d %H:%M:%S]",
+        #         },
+        #     },
+        #     "handlers": {
+        #         "training": {
+        #             "class": "logging.handlers.RotatingFileHandler",
+        #             "level": "DEBUG",
+        #             "formatter": "fileFormatter",
+        #             "filename": filename,
+        #             "maxBytes": 1024**3,
+        #             "backupCount": 20,
+        #             "encoding": "utf8",
+        #         }
+        #     },
+        #     "root": {"level": "DEBUG", "handlers": ["training"]},
+        # }
+        #
+        # logging.config.dictConfig(config_dict)
+
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s - %(module)s - %(levelname)s - %(message)s",
+            datefmt="[%Y-%m-%d %H:%M:%S]",
+            filename=filename,
+            filemode="w",
+            encoding="utf-8",
+            force=True,
+        )
+
+    @staticmethod
+    def add_console_logging(log_level):
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(log_level)
+        console_handler.setFormatter(logging.Formatter("%(module)s - %(levelname)s - %(message)s"))
+        logging.getLogger().addHandler(console_handler)
+
+    @staticmethod
     def generate_config_for_module_name(
         module_name,
         training_log_path=None,
