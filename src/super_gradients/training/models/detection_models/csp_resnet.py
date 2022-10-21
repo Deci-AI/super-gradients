@@ -8,11 +8,19 @@ __all__ = ["CSPResNet"]
 
 
 class ConvBNLayer(nn.Module):
-    def __init__(self, ch_in, ch_out, kernel_size: int, stride: int, padding: int, activation_type: Type[nn.Module]):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int,
+        padding: int,
+        activation_type: Type[nn.Module],
+    ):
         super().__init__()
         self.conv = nn.Conv2d(
-            in_channels=ch_in,
-            out_channels=ch_out,
+            in_channels=in_channels,
+            out_channels=out_channels,
             kernel_size=kernel_size,
             stride=stride,
             padding=padding,
@@ -20,7 +28,7 @@ class ConvBNLayer(nn.Module):
             bias=False,
         )
 
-        self.bn = nn.BatchNorm2d(ch_out)
+        self.bn = nn.BatchNorm2d(out_channels)
         self.act = activation_type()
 
     def forward(self, x):
@@ -31,12 +39,16 @@ class ConvBNLayer(nn.Module):
 
 
 class RepVggBlock(nn.Module):
-    def __init__(self, ch_in: int, ch_out: int, act: Type, alpha: bool = False):
-        super(RepVggBlock, self).__init__()
-        self.ch_in = ch_in
-        self.ch_out = ch_out
-        self.conv1 = ConvBNLayer(ch_in, ch_out, kernel_size=3, stride=1, padding=1, activation_type=nn.Identity)
-        self.conv2 = ConvBNLayer(ch_in, ch_out, kernel_size=1, stride=1, padding=0, activation_type=nn.Identity)
+    def __init__(self, in_channels: int, out_channels: int, act: Type, alpha: bool = False):
+        super().__init__()
+        self.ch_in = in_channels
+        self.ch_out = out_channels
+        self.conv1 = ConvBNLayer(
+            in_channels, out_channels, kernel_size=3, stride=1, padding=1, activation_type=nn.Identity
+        )
+        self.conv2 = ConvBNLayer(
+            in_channels, out_channels, kernel_size=1, stride=1, padding=0, activation_type=nn.Identity
+        )
         self.act = act()
         if alpha:
             self.alpha = torch.nn.Parameter(torch.tensor([1]), requires_grad=True)
@@ -103,11 +115,18 @@ class RepVggBlock(nn.Module):
 
 
 class BasicBlock(nn.Module):
-    def __init__(self, ch_in, ch_out, activation_type: Type[nn.Module], shortcut=True, use_alpha=False):
-        super(BasicBlock, self).__init__()
-        assert ch_in == ch_out
-        self.conv1 = ConvBNLayer(ch_in, ch_out, kernel_size=3, stride=1, padding=1, activation_type=activation_type)
-        self.conv2 = RepVggBlock(ch_out, ch_out, act=activation_type, alpha=use_alpha)
+    def __init__(
+        self, in_channels: int, out_channels: int, activation_type: Type[nn.Module], shortcut=True, use_alpha=False
+    ):
+        super().__init__()
+        if shortcut and in_channels != out_channels:
+            raise RuntimeError(
+                "Number of input channels must be equal to the number of output channels when shortcut=True"
+            )
+        self.conv1 = ConvBNLayer(
+            in_channels, out_channels, kernel_size=3, stride=1, padding=1, activation_type=activation_type
+        )
+        self.conv2 = RepVggBlock(out_channels, out_channels, act=activation_type, alpha=use_alpha)
         self.shortcut = shortcut
 
     def forward(self, x):
@@ -138,40 +157,50 @@ class EffectiveSELayer(nn.Module):
 class CSPResStage(nn.Module):
     def __init__(
         self,
-        block_fn,
-        ch_in: int,
-        ch_out: int,
-        n,
+        block_fn: Type[nn.Module],
+        in_channels: int,
+        out_channels: int,
+        num_blocks,
         stride: int,
         activation_type: Type[nn.Module],
         use_attention: bool = True,
         use_alpha: bool = False,
     ):
-        super(CSPResStage, self).__init__()
+        super().__init__()
 
-        ch_mid = (ch_in + ch_out) // 2
+        mid_channels = (in_channels + out_channels) // 2
         if stride == 2:
-            self.conv_down = ConvBNLayer(ch_in, ch_mid, 3, stride=2, padding=1, activation_type=activation_type)
+            self.conv_down = ConvBNLayer(
+                in_channels, mid_channels, 3, stride=2, padding=1, activation_type=activation_type
+            )
         else:
             self.conv_down = None
         self.conv1 = ConvBNLayer(
-            ch_mid, ch_mid // 2, kernel_size=1, stride=1, padding=0, activation_type=activation_type
+            mid_channels, mid_channels // 2, kernel_size=1, stride=1, padding=0, activation_type=activation_type
         )
         self.conv2 = ConvBNLayer(
-            ch_mid, ch_mid // 2, kernel_size=1, stride=1, padding=0, activation_type=activation_type
+            mid_channels, mid_channels // 2, kernel_size=1, stride=1, padding=0, activation_type=activation_type
         )
         self.blocks = nn.Sequential(
             *[
-                block_fn(ch_mid // 2, ch_mid // 2, activation_type=activation_type, shortcut=True, use_alpha=use_alpha)
-                for i in range(n)
+                block_fn(
+                    mid_channels // 2,
+                    mid_channels // 2,
+                    activation_type=activation_type,
+                    shortcut=True,
+                    use_alpha=use_alpha,
+                )
+                for _ in range(num_blocks)
             ]
         )
         if use_attention:
-            self.attn = EffectiveSELayer(ch_mid)
+            self.attn = EffectiveSELayer(mid_channels)
         else:
             self.attn = nn.Identity()
 
-        self.conv3 = ConvBNLayer(ch_mid, ch_out, kernel_size=1, stride=1, padding=0, activation_type=activation_type)
+        self.conv3 = ConvBNLayer(
+            mid_channels, out_channels, kernel_size=1, stride=1, padding=0, activation_type=activation_type
+        )
 
     def forward(self, x):
         if self.conv_down is not None:
@@ -254,7 +283,7 @@ class CSPResNet(nn.Module):
                     channels[i],
                     channels[i + 1],
                     layers[i],
-                    2,
+                    stride=2,
                     activation_type=activation_type,
                     use_alpha=use_alpha,
                 )
