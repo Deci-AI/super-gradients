@@ -16,10 +16,7 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
 
-__all__ = [
-    'ShuffleNetV2Base', 'ShufflenetV2_x0_5', 'ShufflenetV2_x1_0',
-    'ShufflenetV2_x1_5', 'ShufflenetV2_x2_0', 'CustomizedShuffleNetV2'
-]
+__all__ = ["ShuffleNetV2Base", "ShufflenetV2_x0_5", "ShufflenetV2_x1_0", "ShufflenetV2_x1_5", "ShufflenetV2_x2_0", "CustomizedShuffleNetV2"]
 
 
 class ChannelShuffleInvertedResidual(nn.Module):
@@ -37,12 +34,12 @@ class ChannelShuffleInvertedResidual(nn.Module):
 
     Channel shuffle is performed on a concatenation in both cases.
     """
+
     def __init__(self, inp: int, out: int, stride: int) -> None:
         super(ChannelShuffleInvertedResidual, self).__init__()
 
         assert 1 <= stride <= 3, "Illegal stride value"
-        assert (stride != 1) or (inp == out), \
-            "When stride == 1 num of input channels should be equal to the requested num of out output channels"
+        assert (stride != 1) or (inp == out), "When stride == 1 num of input channels should be equal to the requested num of out output channels"
 
         self.stride = stride
         # half of requested out channels will be produced by each branch
@@ -52,7 +49,6 @@ class ChannelShuffleInvertedResidual(nn.Module):
             self.branch1 = nn.Sequential(
                 nn.Conv2d(inp, inp, kernel_size=3, stride=self.stride, padding=1, bias=False, groups=inp),
                 nn.BatchNorm2d(inp),
-
                 nn.Conv2d(inp, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
                 nn.BatchNorm2d(branch_features),
                 nn.ReLU(inplace=True),
@@ -63,18 +59,14 @@ class ChannelShuffleInvertedResidual(nn.Module):
 
         self.branch2 = nn.Sequential(
             # branch 2 operates on the whole input when stride > 1 and on half of it otherwise
-            nn.Conv2d(inp if (self.stride > 1) else inp // 2, branch_features, kernel_size=1, stride=1, padding=0,
-                      bias=False),
+            nn.Conv2d(inp if (self.stride > 1) else inp // 2, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(branch_features),
             nn.ReLU(inplace=True),
-
-            nn.Conv2d(branch_features, branch_features, kernel_size=3, stride=self.stride, padding=1, bias=False,
-                      groups=branch_features),
+            nn.Conv2d(branch_features, branch_features, kernel_size=3, stride=self.stride, padding=1, bias=False, groups=branch_features),
             nn.BatchNorm2d(branch_features),
-
             nn.Conv2d(branch_features, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(branch_features),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
         )
 
     @staticmethod
@@ -119,18 +111,22 @@ class ChannelShuffleInvertedResidual(nn.Module):
 
 
 class ShuffleNetV2Base(SgModule):
-
-    def __init__(self, structure: List[int], stages_out_channels: List[int],
-                 backbone_mode: bool = False, num_classes: int = 1000,
-                 block: nn.Module = ChannelShuffleInvertedResidual):
+    def __init__(
+        self,
+        structure: List[int],
+        stages_out_channels: List[int],
+        backbone_mode: bool = False,
+        num_classes: int = 1000,
+        block: nn.Module = ChannelShuffleInvertedResidual,
+    ):
         super(ShuffleNetV2Base, self).__init__()
 
         self.backbone_mode = backbone_mode
 
         if len(structure) != 3:
-            raise ValueError('expected structure as list of 3 positive ints')
+            raise ValueError("expected structure as list of 3 positive ints")
         if len(stages_out_channels) != 5:
-            raise ValueError('expected stages_out_channels as list of 5 positive ints')
+            raise ValueError("expected stages_out_channels as list of 5 positive ints")
         self.structure = structure
         self.out_channels = stages_out_channels
 
@@ -181,7 +177,7 @@ class ShuffleNetV2Base(SgModule):
 
         if self.backbone_mode:
             # removing fc weights first not to break strict loading
-            fc_weights_keys = [k for k in pretrained_model_weights_dict if 'fc' in k]
+            fc_weights_keys = [k for k in pretrained_model_weights_dict if "fc" in k]
 
             for key in fc_weights_keys:
                 pretrained_model_weights_dict.pop(key)
@@ -204,40 +200,27 @@ class ShuffleNetV2Base(SgModule):
 
 
 class ShufflenetV2_x0_5(ShuffleNetV2Base):
-
     def __init__(self, arch_params: HpmStruct, num_classes: int = 1000, backbone_mode: bool = False):
-        super().__init__([4, 8, 4], [24, 48, 96, 192, 1024],
-                         backbone_mode=backbone_mode,
-                         num_classes=num_classes or arch_params.num_classes)
+        super().__init__([4, 8, 4], [24, 48, 96, 192, 1024], backbone_mode=backbone_mode, num_classes=num_classes or arch_params.num_classes)
 
 
 class ShufflenetV2_x1_0(ShuffleNetV2Base):
-
     def __init__(self, arch_params: HpmStruct, num_classes: int = 1000, backbone_mode: bool = False):
-        super().__init__([4, 8, 4], [24, 116, 232, 464, 1024],
-                         backbone_mode=backbone_mode,
-                         num_classes=num_classes or arch_params.num_classes)
+        super().__init__([4, 8, 4], [24, 116, 232, 464, 1024], backbone_mode=backbone_mode, num_classes=num_classes or arch_params.num_classes)
 
 
 class ShufflenetV2_x1_5(ShuffleNetV2Base):
-
     def __init__(self, arch_params: HpmStruct, num_classes: int = 1000, backbone_mode: bool = False):
-        super().__init__([4, 8, 4], [24, 176, 352, 704, 1024],
-                         backbone_mode=backbone_mode,
-                         num_classes=num_classes or arch_params.num_classes)
+        super().__init__([4, 8, 4], [24, 176, 352, 704, 1024], backbone_mode=backbone_mode, num_classes=num_classes or arch_params.num_classes)
 
 
 class ShufflenetV2_x2_0(ShuffleNetV2Base):
-
     def __init__(self, arch_params: HpmStruct, num_classes: int = 1000, backbone_mode: bool = False):
-        super().__init__([4, 8, 4], [24, 244, 488, 976, 2048],
-                         backbone_mode=backbone_mode,
-                         num_classes=num_classes or arch_params.num_classes)
+        super().__init__([4, 8, 4], [24, 244, 488, 976, 2048], backbone_mode=backbone_mode, num_classes=num_classes or arch_params.num_classes)
 
 
 class CustomizedShuffleNetV2(ShuffleNetV2Base):
-
     def __init__(self, arch_params: HpmStruct, num_classes: int = 1000, backbone_mode: bool = False):
-        super().__init__(arch_params.structure, arch_params.stages_out_channels,
-                         backbone_mode=backbone_mode,
-                         num_classes=num_classes or arch_params.num_classes)
+        super().__init__(
+            arch_params.structure, arch_params.stages_out_channels, backbone_mode=backbone_mode, num_classes=num_classes or arch_params.num_classes
+        )

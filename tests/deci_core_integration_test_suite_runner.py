@@ -5,7 +5,6 @@ from tests.integration_tests import TestDataset, EMAIntegrationTest, LRTest
 
 
 class CoreIntegrationTestSuiteRunner:
-
     def __init__(self):
         self.test_loader = unittest.TestLoader()
         self.integration_tests_suite = unittest.TestSuite()
@@ -22,5 +21,5 @@ class CoreIntegrationTestSuiteRunner:
         self.integration_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRTest))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

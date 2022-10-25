@@ -8,15 +8,14 @@ from super_gradients.training.transforms import TRANSFORMS
 
 
 class TransformsFactory(BaseFactory):
-
     def __init__(self):
         super().__init__(TRANSFORMS)
 
     def get(self, conf: Union[str, dict]):
 
         # SPECIAL HANDLING FOR COMPOSE
-        if isinstance(conf, Mapping) and 'Compose' in conf:
-            conf['Compose']['transforms'] = ListFactory(TransformsFactory()).get(conf['Compose']['transforms'])
+        if isinstance(conf, Mapping) and "Compose" in conf:
+            conf["Compose"]["transforms"] = ListFactory(TransformsFactory()).get(conf["Compose"]["transforms"])
         elif isinstance(conf, (list, ListConfig)):
             conf = ListFactory(TransformsFactory()).get(conf)
 

@@ -17,8 +17,22 @@ from tests.unit_tests.conv_bn_relu_test import TestConvBnRelu
 from tests.unit_tests.initialize_with_dataloaders_test import InitializeWithDataloadersTest
 from tests.unit_tests.training_params_factory_test import TrainingParamsTest
 
-__all__ = ['ZeroWdForBnBiasTest', 'SaveCkptListUnitTest',
-           'AllArchitecturesTest', 'TestAverageMeter', 'TestRepVgg', 'TestWithoutTrainTest',
-           'StrictLoadEnumTest', 'TrainWithInitializedObjectsTest', 'TestAutoAugment',
-           'OhemLossTest', 'EarlyStopTest', 'SegmentationTransformsTest', 'PretrainedModelsUnitTest', 'TestConvBnRelu',
-           'FactoriesTest', 'InitializeWithDataloadersTest', 'TrainingParamsTest']
+__all__ = [
+    "ZeroWdForBnBiasTest",
+    "SaveCkptListUnitTest",
+    "AllArchitecturesTest",
+    "TestAverageMeter",
+    "TestRepVgg",
+    "TestWithoutTrainTest",
+    "StrictLoadEnumTest",
+    "TrainWithInitializedObjectsTest",
+    "TestAutoAugment",
+    "OhemLossTest",
+    "EarlyStopTest",
+    "SegmentationTransformsTest",
+    "PretrainedModelsUnitTest",
+    "TestConvBnRelu",
+    "FactoriesTest",
+    "InitializeWithDataloadersTest",
+    "TrainingParamsTest",
+]

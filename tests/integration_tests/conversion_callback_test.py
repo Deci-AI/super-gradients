@@ -5,8 +5,7 @@ import re
 from super_gradients.training import models
 
 from super_gradients import Trainer
-from super_gradients.training.dataloaders.dataloaders import segmentation_test_dataloader, \
-    classification_test_dataloader
+from super_gradients.training.dataloaders.dataloaders import segmentation_test_dataloader, classification_test_dataloader
 from super_gradients.training.utils.callbacks import ModelConversionCheckCallback
 from super_gradients.training.metrics import Accuracy, Top5, IoU
 from super_gradients.training.losses.stdc_loss import STDCLoss
@@ -63,18 +62,17 @@ class ConversionCallbackTest(unittest.TestCase):
                 "criterion_params": {},
                 "train_metrics_list": [Accuracy(), Top5()],
                 "valid_metrics_list": [Accuracy(), Top5()],
-
                 "metric_to_watch": "Accuracy",
                 "greater_metric_to_watch_is_better": True,
                 "phase_callbacks": phase_callbacks,
             }
 
-            trainer = Trainer(f"{architecture}_example",
-                              ckpt_root_dir=checkpoint_dir)
+            trainer = Trainer(f"{architecture}_example", ckpt_root_dir=checkpoint_dir)
             model = models.get(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
             try:
-                trainer.train(model=model, training_params=train_params, train_loader=classification_test_dataloader(),
-                              valid_loader=classification_test_dataloader())
+                trainer.train(
+                    model=model, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+                )
             except Exception as e:
                 self.fail(f"Model training didn't succeed due to {e}")
             else:
@@ -84,17 +82,14 @@ class ConversionCallbackTest(unittest.TestCase):
         def get_architecture_custom_config(architecture_name: str):
             if re.search(r"ddrnet", architecture_name):
                 return {
-
                     "loss": DDRNetLoss(num_pixels_exclude_ignored=False),
                 }
             elif re.search(r"stdc", architecture_name):
                 return {
-
                     "loss": STDCLoss(num_classes=5),
                 }
             elif re.search(r"regseg", architecture_name):
                 return {
-
                     "loss": "cross_entropy",
                 }
             else:
@@ -102,8 +97,7 @@ class ConversionCallbackTest(unittest.TestCase):
 
         for architecture in SEMANTIC_SEGMENTATION:
             model_meta_data = generate_model_metadata(architecture=architecture, task=Task.SEMANTIC_SEGMENTATION)
-            trainer = Trainer(f"{architecture}_example",
-                              ckpt_root_dir=checkpoint_dir)
+            trainer = Trainer(f"{architecture}_example", ckpt_root_dir=checkpoint_dir)
             model = models.get(model_name=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
 
             phase_callbacks = [
@@ -128,8 +122,12 @@ class ConversionCallbackTest(unittest.TestCase):
             train_params.update(custom_config)
 
             try:
-                trainer.train(model=model, training_params=train_params, train_loader=segmentation_test_dataloader(image_size=512),
-                              valid_loader=segmentation_test_dataloader(image_size=512))
+                trainer.train(
+                    model=model,
+                    training_params=train_params,
+                    train_loader=segmentation_test_dataloader(image_size=512),
+                    valid_loader=segmentation_test_dataloader(image_size=512),
+                )
             except Exception as e:
                 self.fail(f"Model training didn't succeed for {architecture} due to {e}")
             else:

@@ -84,7 +84,6 @@ def main(architecture_name: str):
         "criterion_params": {},
         "train_metrics_list": [Accuracy(), Top5()],
         "valid_metrics_list": [Accuracy(), Top5()],
-
         "metric_to_watch": "Accuracy",
         "greater_metric_to_watch_is_better": True,
         "phase_callbacks": phase_callbacks,
@@ -92,8 +91,7 @@ def main(architecture_name: str):
 
     # RUN TRAINING. ONCE ALL EPOCHS ARE DONE THE OPTIMIZED MODEL FILE WILL BE LOCATED IN THE EXPERIMENT'S
     # CHECKPOINT DIRECTORY
-    trainer.train(model=model, training_params=train_params, train_loader=classification_test_dataloader(),
-                  valid_loader=classification_test_dataloader())
+    trainer.train(model=model, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
 
 
 if __name__ == "__main__":

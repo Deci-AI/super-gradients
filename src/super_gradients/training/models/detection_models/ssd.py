@@ -7,15 +7,19 @@ from super_gradients.training.utils import HpmStruct, utils
 from super_gradients.training.utils.module_utils import MultiOutputModule
 from super_gradients.training.utils.ssd_utils import DefaultBoxes
 
-DEFAULT_SSD_ARCH_PARAMS = {
-    "additional_blocks_bottleneck_channels": [256, 256, 128, 128, 128]
-}
+DEFAULT_SSD_ARCH_PARAMS = {"additional_blocks_bottleneck_channels": [256, 256, 128, 128, 128]}
 
 DEFAULT_SSD_MOBILENET_V1_ARCH_PARAMS = {
     "out_channels": [512, 1024, 512, 256, 256, 256],
     "kernel_sizes": [3, 3, 3, 3, 2],
-    "anchors": DefaultBoxes(fig_size=320, feat_size=[40, 20, 10, 5, 3, 2], scales=[22, 48, 106, 163, 221, 278, 336],
-                            aspect_ratios=[[2], [2, 3], [2, 3], [2, 3], [2], [2]], scale_xy=0.1, scale_wh=0.2)
+    "anchors": DefaultBoxes(
+        fig_size=320,
+        feat_size=[40, 20, 10, 5, 3, 2],
+        scales=[22, 48, 106, 163, 221, 278, 336],
+        aspect_ratios=[[2], [2, 3], [2, 3], [2, 3], [2], [2]],
+        scale_xy=0.1,
+        scale_wh=0.2,
+    ),
 }
 
 DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
@@ -24,21 +28,25 @@ DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS = {
     "lite": True,
     "width_mult": 1.0,
     # "output_paths": [[7,'conv',2], [14, 'conv', 2]], output paths for a model with output levels of stride 8 plus
-    "output_paths": [[14, 'conv', 2], 18],
-    "anchors": DefaultBoxes(fig_size=320, feat_size=[20, 10, 5, 3, 2, 1], scales=[32, 82, 133, 184, 235, 285, 336],
-                            aspect_ratios=[[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]], scale_xy=0.1, scale_wh=0.2)
+    "output_paths": [[14, "conv", 2], 18],
+    "anchors": DefaultBoxes(
+        fig_size=320,
+        feat_size=[20, 10, 5, 3, 2, 1],
+        scales=[32, 82, 133, 184, 235, 285, 336],
+        aspect_ratios=[[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]],
+        scale_xy=0.1,
+        scale_wh=0.2,
+    ),
 }
 
 
 def SeperableConv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=True):
-    """Replace Conv2d with a depthwise Conv2d and Pointwise Conv2d.
-    """
+    """Replace Conv2d with a depthwise Conv2d and Pointwise Conv2d."""
     return nn.Sequential(
-        nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size,
-                  groups=in_channels, stride=stride, padding=padding, bias=bias),
+        nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, groups=in_channels, stride=stride, padding=padding, bias=bias),
         nn.BatchNorm2d(in_channels),
         nn.ReLU(),
-        nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
+        nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1),
     )
 
 
@@ -54,7 +62,7 @@ class SSD(SgModule):
         self.arch_params = HpmStruct(**DEFAULT_SSD_ARCH_PARAMS)
         self.arch_params.override(**arch_params.to_dict())
 
-        paths = utils.get_param(self.arch_params, 'output_paths')
+        paths = utils.get_param(self.arch_params, "output_paths")
         if paths is not None:
             self.backbone = MultiOutputModule(backbone, paths)
         else:
@@ -63,8 +71,8 @@ class SSD(SgModule):
         # num classes in a dataset
         # the model will predict self.num_classes + 1 values to also include background
         self.num_classes = self.arch_params.num_classes
-        self.dboxes_xy = nn.Parameter(self.arch_params.anchors('xywh')[:, :2], requires_grad=False)
-        self.dboxes_wh = nn.Parameter(self.arch_params.anchors('xywh')[:, 2:], requires_grad=False)
+        self.dboxes_xy = nn.Parameter(self.arch_params.anchors("xywh")[:, :2], requires_grad=False)
+        self.dboxes_wh = nn.Parameter(self.arch_params.anchors("xywh")[:, 2:], requires_grad=False)
         scale_xy = self.arch_params.anchors.scale_xy
         scale_wh = self.arch_params.anchors.scale_wh
         scales = torch.tensor([scale_xy, scale_xy, scale_wh, scale_wh])
@@ -87,7 +95,7 @@ class SSD(SgModule):
         self.conf = []
 
         out_channels = self.arch_params.out_channels
-        lite = utils.get_param(self.arch_params, 'lite', False)
+        lite = utils.get_param(self.arch_params, "lite", False)
         for i, (nd, oc) in enumerate(zip(self.num_anchors, out_channels)):
             conv = SeperableConv2d if lite and i < len(self.num_anchors) - 1 else nn.Conv2d
             if build_loc:
@@ -104,11 +112,9 @@ class SSD(SgModule):
         bottleneck_channels = self.arch_params.additional_blocks_bottleneck_channels
 
         self.additional_blocks = []
-        for i, (input_size, output_size, channels, kernel_size) in enumerate(
-                zip(input_size[:-1], input_size[1:], bottleneck_channels, kernel_sizes)):
+        for i, (input_size, output_size, channels, kernel_size) in enumerate(zip(input_size[:-1], input_size[1:], bottleneck_channels, kernel_sizes)):
             if i < 3:
-                middle_layer = nn.Conv2d(channels, output_size, kernel_size=kernel_size, padding=1, stride=2,
-                                         bias=False)
+                middle_layer = nn.Conv2d(channels, output_size, kernel_size=kernel_size, padding=1, stride=2, bias=False)
             else:
                 middle_layer = nn.Conv2d(channels, output_size, kernel_size=kernel_size, bias=False)
 
@@ -133,7 +139,7 @@ class SSD(SgModule):
                     nn.init.xavier_uniform_(param)
 
     def bbox_view(self, feature_maps):
-        """ Shape the classifier to the view of bboxes """
+        """Shape the classifier to the view of bboxes"""
         ret = []
         for features, loc, conf in zip(feature_maps, self.loc, self.conf):
             boxes_preds = loc(features).view(features.size(0), 4, -1)
@@ -203,8 +209,7 @@ class SSDLiteMobileNetV2(SSD):
         self.arch_params = HpmStruct(**DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS)
         self.arch_params.override(**arch_params.to_dict())
         self.arch_params.out_channels[0] = int(round(self.arch_params.out_channels[0] * self.arch_params.width_mult))
-        mobilenetv2 = MobileNetV2(num_classes=None, dropout=0.,
-                                  backbone_mode=True, width_mult=self.arch_params.width_mult)
+        mobilenetv2 = MobileNetV2(num_classes=None, dropout=0.0, backbone_mode=True, width_mult=self.arch_params.width_mult)
         super().__init__(backbone=mobilenetv2.features, arch_params=self.arch_params)
 
     # OVERRIDE THE DEFAULT FUNCTION FROM SSD. ADD THE SDD BLOCKS AFTER THE BACKBONE.
@@ -213,7 +218,6 @@ class SSDLiteMobileNetV2(SSD):
         expand_ratios = self.arch_params.expand_ratios
         self.additional_blocks = []
         for in_channels, out_channels, expand_ratio in zip(channels[1:-1], channels[2:], expand_ratios):
-            self.additional_blocks.append(
-                InvertedResidual(in_channels, out_channels, stride=2, expand_ratio=expand_ratio))
+            self.additional_blocks.append(InvertedResidual(in_channels, out_channels, stride=2, expand_ratio=expand_ratio))
 
         self.additional_blocks = nn.ModuleList(self.additional_blocks)

@@ -1,9 +1,9 @@
-'''PNASNet in PyTorch.
+"""PNASNet in PyTorch.
 
 Paper: Progressive Neural Architecture Search
 
 https://github.com/kuangliu/pytorch-cifar/blob/master/models/pnasnet.py
-'''
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,14 +11,11 @@ from super_gradients.training.models.sg_module import SgModule
 
 
 class SepConv(nn.Module):
-    '''Separable Convolution.'''
+    """Separable Convolution."""
 
     def __init__(self, in_planes, out_planes, kernel_size, stride):
         super(SepConv, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes, out_planes,
-                               kernel_size, stride,
-                               padding=(kernel_size - 1) // 2,
-                               bias=False, groups=in_planes)
+        self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding=(kernel_size - 1) // 2, bias=False, groups=in_planes)
         self.bn1 = nn.BatchNorm2d(out_planes)
 
     def forward(self, x):
@@ -128,5 +125,6 @@ def test():
     x = torch.randn(1, 3, 32, 32)
     y = net(x)
     print(y)
+
 
 # test()

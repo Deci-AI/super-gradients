@@ -14,5 +14,5 @@ class TrainingParamsTest(unittest.TestCase):
         self.assertTrue(train_params["max_epochs"] == 5)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

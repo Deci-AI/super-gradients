@@ -6,5 +6,14 @@ from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.kd_trainer import KDTrainer
 from super_gradients.common import MultiGPUMode, StrictLoad, EvaluationType
 
-__all__ = ['distributed_training_utils', 'datasets_utils', 'DataAugmentation',
-           'ARCHITECTURES', 'Trainer', 'KDTrainer', 'MultiGPUMode', 'StrictLoad', 'EvaluationType']
+__all__ = [
+    "distributed_training_utils",
+    "datasets_utils",
+    "DataAugmentation",
+    "ARCHITECTURES",
+    "Trainer",
+    "KDTrainer",
+    "MultiGPUMode",
+    "StrictLoad",
+    "EvaluationType",
+]

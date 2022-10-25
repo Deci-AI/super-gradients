@@ -128,13 +128,9 @@ class MobileNetV2(MobileNetBase):
             output_channel = make_divisible(c * width_mult) if t > 1 else c
             for i in range(n):
                 if i == 0:
-                    self.features.append(
-                        block(curr_channels, output_channel, s, expand_ratio=t, grouped_conv_size=grouped_conv_size)
-                    )
+                    self.features.append(block(curr_channels, output_channel, s, expand_ratio=t, grouped_conv_size=grouped_conv_size))
                 else:
-                    self.features.append(
-                        block(curr_channels, output_channel, 1, expand_ratio=t, grouped_conv_size=grouped_conv_size)
-                    )
+                    self.features.append(block(curr_channels, output_channel, 1, expand_ratio=t, grouped_conv_size=grouped_conv_size))
                 curr_channels = output_channel
         # building last several layers
         self.features.append(conv_1x1_bn(curr_channels, self.last_channel))
@@ -159,9 +155,7 @@ class MobileNetV2(MobileNetBase):
         """
         Extracts the number of channels out when using mobilenetV2 as yolo backbone
         """
-        curr_layer_input = torch.rand(
-            1, self.in_channels, 320, 320
-        )  # input dims are used to extract number of channels
+        curr_layer_input = torch.rand(1, self.in_channels, 320, 320)  # input dims are used to extract number of channels
         layers_num_to_extract = [np.array(self.interverted_residual_setting)[:stage, 2].sum() for stage in [3, 5]]
         connection_layers_input_channel_size = []
         for layer_idx, feature in enumerate(self.features):

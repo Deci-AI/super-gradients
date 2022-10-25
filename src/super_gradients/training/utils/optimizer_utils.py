@@ -4,17 +4,23 @@ from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.modules.conv import _ConvNd
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.factories.optimizers_type_factory import OptimizersTypeFactory
-from super_gradients.training.params import DEFAULT_OPTIMIZER_PARAMS_SGD, DEFAULT_OPTIMIZER_PARAMS_ADAM, \
-    DEFAULT_OPTIMIZER_PARAMS_RMSPROP, DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF
+from super_gradients.training.params import (
+    DEFAULT_OPTIMIZER_PARAMS_SGD,
+    DEFAULT_OPTIMIZER_PARAMS_ADAM,
+    DEFAULT_OPTIMIZER_PARAMS_RMSPROP,
+    DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF,
+)
 from super_gradients.training.utils import get_param
 from super_gradients.training.utils.optimizers.rmsprop_tf import RMSpropTF
 
 logger = get_logger(__name__)
 
-OPTIMIZERS_DEFAULT_PARAMS = {optim.SGD: DEFAULT_OPTIMIZER_PARAMS_SGD,
-                             optim.Adam: DEFAULT_OPTIMIZER_PARAMS_ADAM,
-                             optim.RMSprop: DEFAULT_OPTIMIZER_PARAMS_RMSPROP,
-                             RMSpropTF: DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF}
+OPTIMIZERS_DEFAULT_PARAMS = {
+    optim.SGD: DEFAULT_OPTIMIZER_PARAMS_SGD,
+    optim.Adam: DEFAULT_OPTIMIZER_PARAMS_ADAM,
+    optim.RMSprop: DEFAULT_OPTIMIZER_PARAMS_RMSPROP,
+    RMSpropTF: DEFAULT_OPTIMIZER_PARAMS_RMSPROPTF,
+}
 
 
 def separate_zero_wd_params_groups_for_optimizer(module: nn.Module, net_named_params, weight_decay: float):
@@ -40,8 +46,7 @@ def separate_zero_wd_params_groups_for_optimizer(module: nn.Module, net_named_pa
             else:
                 decay_params.append(param)
         # append two param groups from the original param group, with and without weight decay.
-        extra_optim_params = {key: param_group[key] for key in param_group
-                              if key not in ["named_params", "weight_decay"]}
+        extra_optim_params = {key: param_group[key] for key in param_group if key not in ["named_params", "weight_decay"]}
         optimizer_param_groups.append({"params": no_decay_params, "weight_decay": 0.0, **extra_optim_params})
         optimizer_param_groups.append({"params": decay_params, "weight_decay": weight_decay, **extra_optim_params})
 
@@ -65,9 +70,11 @@ def _get_no_decay_param_ids(module: nn.Module):
             no_decay_ids.append(id(m.bias))
         elif hasattr(m, "bias") and isinstance(m.bias, nn.Parameter):
             if not isinstance(m, torch_weight_with_bias_types):
-                logger.warning(f"Module class: {m.__class__}, have a `bias` parameter attribute but is not instance of"
-                               f" torch primitive modules, this bias parameter will be part of param group with zero"
-                               f" weight decay.")
+                logger.warning(
+                    f"Module class: {m.__class__}, have a `bias` parameter attribute but is not instance of"
+                    f" torch primitive modules, this bias parameter will be part of param group with zero"
+                    f" weight decay."
+                )
             no_decay_ids.append(id(m.bias))
     return no_decay_ids
 
@@ -84,26 +91,24 @@ def build_optimizer(net, lr, training_params):
     else:
         optimizer_cls = training_params.optimizer
     default_optimizer_params = OPTIMIZERS_DEFAULT_PARAMS[optimizer_cls] if optimizer_cls in OPTIMIZERS_DEFAULT_PARAMS else {}
-    training_params.optimizer_params = get_param(training_params, 'optimizer_params', default_optimizer_params)
+    training_params.optimizer_params = get_param(training_params, "optimizer_params", default_optimizer_params)
 
-    weight_decay = get_param(training_params.optimizer_params, 'weight_decay', 0.)
+    weight_decay = get_param(training_params.optimizer_params, "weight_decay", 0.0)
     # OPTIMIZER PARAM GROUPS ARE SET USING DEFAULT OR MODEL SPECIFIC INIT
-    if hasattr(net.module, 'initialize_param_groups'):
+    if hasattr(net.module, "initialize_param_groups"):
         # INITIALIZE_PARAM_GROUPS MUST RETURN A LIST OF DICTS WITH 'named_params' AND OPTIMIZER's ATTRIBUTES PER GROUP
         net_named_params = net.module.initialize_param_groups(lr, training_params)
     else:
-        net_named_params = [{'named_params': net.named_parameters()}]
+        net_named_params = [{"named_params": net.named_parameters()}]
 
     if training_params.zero_weight_decay_on_bias_and_bn:
-        optimizer_training_params = separate_zero_wd_params_groups_for_optimizer(
-            net.module, net_named_params, weight_decay
-        )
+        optimizer_training_params = separate_zero_wd_params_groups_for_optimizer(net.module, net_named_params, weight_decay)
 
     else:
         # Overwrite groups to include params instead of named params
         for ind_group, param_group in enumerate(net_named_params):
-            param_group['params'] = [param[1] for param in list(param_group['named_params'])]
-            del param_group['named_params']
+            param_group["params"] = [param[1] for param in list(param_group["named_params"])]
+            del param_group["named_params"]
             net_named_params[ind_group] = param_group
         optimizer_training_params = net_named_params
 

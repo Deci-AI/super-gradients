@@ -1,4 +1,3 @@
-
 class IllegalDatasetParameterException(Exception):
     """
     Exception raised illegal dataset param.
@@ -33,8 +32,10 @@ class UnsupportedBatchItemsFormat(ValueError):
     """
 
     def __init__(self):
-        self.message = "Batch items returned by the data loader expected format: \n" \
-                       "1. torch.Tensor or tuple, s.t inputs = batch_items[0], targets = batch_items[1] and len(" \
-                       "batch_items) = 2 \n" \
-                       "2. tuple: (inputs, targets, additional_batch_items)"
+        self.message = (
+            "Batch items returned by the data loader expected format: \n"
+            "1. torch.Tensor or tuple, s.t inputs = batch_items[0], targets = batch_items[1] and len("
+            "batch_items) = 2 \n"
+            "2. tuple: (inputs, targets, additional_batch_items)"
+        )
         super().__init__(self.message)

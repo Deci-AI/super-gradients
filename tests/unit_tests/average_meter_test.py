@@ -14,7 +14,7 @@ class TestAverageMeter(unittest.TestCase):
         cls.avg_tensor = AverageMeter()
         cls.left_empty = AverageMeter()
         cls.list_of_avg_meter = [cls.avg_float, cls.avg_tuple, cls.avg_list, cls.avg_tensor]
-        cls.score_types = [1.2, (3., 4.), [5., 6., 7.], torch.FloatTensor([8., 9., 10.])]
+        cls.score_types = [1.2, (3.0, 4.0), [5.0, 6.0, 7.0], torch.FloatTensor([8.0, 9.0, 10.0])]
         cls.batch_size = 3
 
     def test_empty_return_0(self):
@@ -42,5 +42,5 @@ class TestAverageMeter(unittest.TestCase):
                     self.assertListEqual(list(avg_meter.average), list(score))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

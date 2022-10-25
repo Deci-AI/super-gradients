@@ -34,7 +34,7 @@ def _copy_to_new_dir(mode: str, n_images: int, input_data_dir: Path, dest_data_d
     image_ids = {instance["id"] for instance in instances["images"]}
     annotation_image_ids = {instance["image_id"] for instance in instances["annotations"]}
 
-    kept_image_ids = list(image_ids & annotation_image_ids)[: n_images]  # Make sure that the ids taken include both image and annotation
+    kept_image_ids = list(image_ids & annotation_image_ids)[:n_images]  # Make sure that the ids taken include both image and annotation
     kept_annotations = [image for image in instances["annotations"] if image["image_id"] in kept_image_ids]
     kept_images = [image for image in instances["images"] if image["id"] in kept_image_ids]
 
@@ -54,8 +54,8 @@ def _copy_to_new_dir(mode: str, n_images: int, input_data_dir: Path, dest_data_d
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Extract a sub set of Coco into specified dir')
-    parser.add_argument('--input_data_dir', help='Where the full coco dataset is stored', default="/data/coco")
-    parser.add_argument('--dest_data_dir', help='Where the resulting data should be stored', required=True)
+    parser = argparse.ArgumentParser(description="Extract a sub set of Coco into specified dir")
+    parser.add_argument("--input_data_dir", help="Where the full coco dataset is stored", default="/data/coco")
+    parser.add_argument("--dest_data_dir", help="Where the resulting data should be stored", required=True)
     args = parser.parse_args()
     copy_train_val_to_new_dir(args.input_data_dir, args.dest_data_dir)

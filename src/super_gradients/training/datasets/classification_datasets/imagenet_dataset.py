@@ -9,6 +9,6 @@ from super_gradients.common.factories.list_factory import ListFactory
 class ImageNetDataset(torch_datasets.ImageFolder):
     """ImageNetDataset dataset"""
 
-    @resolve_param('transforms', factory=ListFactory(TransformsFactory()))
+    @resolve_param("transforms", factory=ListFactory(TransformsFactory()))
     def __init__(self, root: str, transforms: list = [], *args, **kwargs):
         super(ImageNetDataset, self).__init__(root, transform=Compose(transforms), *args, **kwargs)

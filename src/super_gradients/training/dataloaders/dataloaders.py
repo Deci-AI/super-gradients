@@ -95,9 +95,7 @@ def _process_dataset_params(cfg, dataset_params, train):
 
 
 def _process_dataloader_params(cfg, dataloader_params, dataset, train):
-    default_dataloader_params = (
-        cfg.dataset_params.train_dataloader_params if train else cfg.dataset_params.val_dataloader_params
-    )
+    default_dataloader_params = cfg.dataset_params.train_dataloader_params if train else cfg.dataset_params.val_dataloader_params
     default_dataloader_params = hydra.utils.instantiate(default_dataloader_params)
     is_dist = super_gradients.is_distributed()
 

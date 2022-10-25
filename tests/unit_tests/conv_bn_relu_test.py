@@ -20,14 +20,20 @@ class TestConvBnRelu(unittest.TestCase):
                     for stride in self.test_strides:
                         for bias in self.biases:
 
-                            conv_bn_relu = ConvBNReLU(32, 32, kernel_size=kernel, stride=stride, padding=kernel // 2,
-                                                      bias=bias, use_activation=use_activation,
-                                                      use_normalization=use_normalization)
+                            conv_bn_relu = ConvBNReLU(
+                                32,
+                                32,
+                                kernel_size=kernel,
+                                stride=stride,
+                                padding=kernel // 2,
+                                bias=bias,
+                                use_activation=use_activation,
+                                use_normalization=use_normalization,
+                            )
                             conv_bn_relu_seq = nn.Sequential(
-                                nn.Conv2d(32, 32, kernel_size=kernel, stride=stride, padding=kernel // 2,
-                                          bias=bias),
+                                nn.Conv2d(32, 32, kernel_size=kernel, stride=stride, padding=kernel // 2, bias=bias),
                                 nn.BatchNorm2d(32) if use_normalization else nn.Identity(),
-                                nn.ReLU() if use_activation else nn.Identity()
+                                nn.ReLU() if use_activation else nn.Identity(),
                             )
                             # apply same conv weights and biases to compare output,
                             # because conv weight and biases have random initialization.
@@ -35,10 +41,12 @@ class TestConvBnRelu(unittest.TestCase):
                             if bias:
                                 conv_bn_relu.seq[0].bias = conv_bn_relu_seq[0].bias
 
-                            self.assertTrue(torch.equal(conv_bn_relu(self.sample), conv_bn_relu_seq(self.sample)),
-                                            msg=f"ConvBnRelu test failed for configuration: activation: "
-                                                f"{use_activation}, normalization: {use_normalization}, "
-                                                f"kernel: {kernel}, stride: {stride}")
+                            self.assertTrue(
+                                torch.equal(conv_bn_relu(self.sample), conv_bn_relu_seq(self.sample)),
+                                msg=f"ConvBnRelu test failed for configuration: activation: "
+                                f"{use_activation}, normalization: {use_normalization}, "
+                                f"kernel: {kernel}, stride: {stride}",
+                            )
 
     def test_conv_bn_relu_with_default_torch_arguments(self):
         """
@@ -46,20 +54,17 @@ class TestConvBnRelu(unittest.TestCase):
         Check that behavior of ConvBNRelu doesn't change with torch package upgrades.
         """
         conv_bn_relu = ConvBNReLU(32, 32, kernel_size=1)
-        conv_bn_relu_defaults_torch = nn.Sequential(
-            nn.Conv2d(32, 32, kernel_size=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU()
-        )
+        conv_bn_relu_defaults_torch = nn.Sequential(nn.Conv2d(32, 32, kernel_size=1), nn.BatchNorm2d(32), nn.ReLU())
         # apply same conv weights and biases to compare output,
         # because conv weight and biases have random initialization.
         conv_bn_relu.seq[0].weight = conv_bn_relu_defaults_torch[0].weight
         conv_bn_relu.seq[0].bias = conv_bn_relu_defaults_torch[0].bias
 
-        self.assertTrue(torch.equal(conv_bn_relu(self.sample), conv_bn_relu_defaults_torch(self.sample)),
-                        msg="ConvBnRelu test failed for defaults arguments configuration: ConvBNRelu default"
-                            "arguments are not aligned with torch defaults.")
+        self.assertTrue(
+            torch.equal(conv_bn_relu(self.sample), conv_bn_relu_defaults_torch(self.sample)),
+            msg="ConvBnRelu test failed for defaults arguments configuration: ConvBNRelu default" "arguments are not aligned with torch defaults.",
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

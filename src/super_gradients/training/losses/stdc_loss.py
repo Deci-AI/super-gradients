@@ -13,14 +13,11 @@ class DetailAggregateModule(nn.Module):
     DetailAggregateModule to create ground-truth spatial details map. Given ground-truth segmentation masks and using
      laplacian kernels this module create feature-maps with special attention to classes edges aka details.
     """
-    _LAPLACIAN_KERNEL = [-1, -1, -1, -1, 8, -1, -1, -1, -1]
-    _INITIAL_FUSE_KERNEL = [[6. / 10], [3. / 10], [1. / 10]]
 
-    def __init__(self,
-                 num_classes: int,
-                 ignore_label: int,
-                 detail_threshold: float = 1.,
-                 learnable_fusing_kernel: bool = True):
+    _LAPLACIAN_KERNEL = [-1, -1, -1, -1, 8, -1, -1, -1, -1]
+    _INITIAL_FUSE_KERNEL = [[6.0 / 10], [3.0 / 10], [1.0 / 10]]
+
+    def __init__(self, num_classes: int, ignore_label: int, detail_threshold: float = 1.0, learnable_fusing_kernel: bool = True):
         """
         :param detail_threshold: threshold to define a pixel as edge after laplacian. must be a value between 1 and 8,
             lower value for smooth edges, high value for fine edges.
@@ -35,11 +32,9 @@ class DetailAggregateModule(nn.Module):
         self.ignore_label = ignore_label
 
         # laplacian dw-convolution, each channel is a class label. apply laplacian filter once for each channel.
-        self.laplacian_kernel = torch.tensor(self._LAPLACIAN_KERNEL, dtype=torch.float32)\
-            .reshape(1, 1, 3, 3).expand(num_classes, 1, 3, 3).requires_grad_(False)
+        self.laplacian_kernel = torch.tensor(self._LAPLACIAN_KERNEL, dtype=torch.float32).reshape(1, 1, 3, 3).expand(num_classes, 1, 3, 3).requires_grad_(False)
         # init param for 1x1 conv of strided gaussian feature maps.
-        self.fuse_kernel = torch.tensor(self._INITIAL_FUSE_KERNEL, dtype=torch.float32).reshape(1, 3, 1, 1)\
-            .requires_grad_(learnable_fusing_kernel)
+        self.fuse_kernel = torch.tensor(self._INITIAL_FUSE_KERNEL, dtype=torch.float32).reshape(1, 3, 1, 1).requires_grad_(learnable_fusing_kernel)
         if learnable_fusing_kernel:
             self.fuse_kernel = torch.nn.Parameter(self.fuse_kernel)
 
@@ -59,8 +54,8 @@ class DetailAggregateModule(nn.Module):
         boundary_targets_x2 = self._to_one_channel_binary(boundary_targets_x2, self.detail_threshold)
         boundary_targets_x4 = self._to_one_channel_binary(boundary_targets_x4, self.detail_threshold)
 
-        boundary_targets_x4 = F.interpolate(boundary_targets_x4, boundary_targets.shape[2:], mode='nearest')
-        boundary_targets_x2 = F.interpolate(boundary_targets_x2, boundary_targets.shape[2:], mode='nearest')
+        boundary_targets_x4 = F.interpolate(boundary_targets_x4, boundary_targets.shape[2:], mode="nearest")
+        boundary_targets_x2 = F.interpolate(boundary_targets_x2, boundary_targets.shape[2:], mode="nearest")
 
         boundary_targets = torch.cat((boundary_targets, boundary_targets_x2, boundary_targets_x4), dim=1)
 
@@ -91,7 +86,8 @@ class DetailLoss(_Loss):
     STDC DetailLoss applied on  details features from higher resolution and ground-truth details map.
     Loss combination of BCE loss and BinaryDice loss
     """
-    def __init__(self, weights: list = [1., 1.]):
+
+    def __init__(self, weights: list = [1.0, 1.0]):
         """
         :param weights: weight to apply for each part of the loss contributions, [BCE, Dice] respectively.
         """
@@ -115,18 +111,21 @@ class STDCLoss(_Loss):
     """
     Loss class of STDC-Seg training.
     """
-    def __init__(self,
-                 num_classes: int,
-                 threshold: float = 0.7,
-                 num_aux_heads: int = 2,
-                 num_detail_heads: int = 1,
-                 weights: Union[tuple, list] = (1, 1, 1, 1),
-                 detail_weights: Union[tuple, list] = (1, 1),
-                 mining_percent: float = 0.1,
-                 detail_threshold: float = 1.,
-                 learnable_fusing_kernel: bool = True,
-                 ignore_index: int = None,
-                 ohem_criteria: OhemLoss = None):
+
+    def __init__(
+        self,
+        num_classes: int,
+        threshold: float = 0.7,
+        num_aux_heads: int = 2,
+        num_detail_heads: int = 1,
+        weights: Union[tuple, list] = (1, 1, 1, 1),
+        detail_weights: Union[tuple, list] = (1, 1),
+        mining_percent: float = 0.1,
+        detail_threshold: float = 1.0,
+        learnable_fusing_kernel: bool = True,
+        ignore_index: int = None,
+        ohem_criteria: OhemLoss = None,
+    ):
         """
         :param threshold: Online hard-mining probability threshold.
         :param num_aux_heads: num of auxiliary heads.
@@ -141,8 +140,7 @@ class STDCLoss(_Loss):
         """
         super().__init__()
 
-        assert len(weights) == num_aux_heads + num_detail_heads + 1,\
-            "Lambda loss weights must be in same size as loss items."
+        assert len(weights) == num_aux_heads + num_detail_heads + 1, "Lambda loss weights must be in same size as loss items."
 
         self.weights = weights
         self.use_detail = num_detail_heads > 0
@@ -151,9 +149,9 @@ class STDCLoss(_Loss):
         self.num_detail_heads = num_detail_heads
 
         if self.use_detail:
-            self.detail_module = DetailAggregateModule(num_classes=num_classes, detail_threshold=detail_threshold,
-                                                       ignore_label=ignore_index,
-                                                       learnable_fusing_kernel=learnable_fusing_kernel)
+            self.detail_module = DetailAggregateModule(
+                num_classes=num_classes, detail_threshold=detail_threshold, ignore_label=ignore_index, learnable_fusing_kernel=learnable_fusing_kernel
+            )
             self.detail_loss = DetailLoss(weights=detail_weights)
 
         if ohem_criteria is None:
@@ -179,8 +177,9 @@ class STDCLoss(_Loss):
         :param preds: Model output predictions, must be in the followed format:
          [Main-feats, Aux-feats[0], ..., Aux-feats[num_auxs-1], Detail-feats[0], ..., Detail-feats[num_details-1]
         """
-        assert len(preds) == self.num_aux_heads + self.num_detail_heads + 1,\
-            f"Wrong num of predictions tensors for STDC loss, expected {self.num_aux_heads + self.num_detail_heads + 1} found {len(preds)}"
+        assert (
+            len(preds) == self.num_aux_heads + self.num_detail_heads + 1
+        ), f"Wrong num of predictions tensors for STDC loss, expected {self.num_aux_heads + self.num_detail_heads + 1} found {len(preds)}"
         losses = []
         total_loss = 0
 

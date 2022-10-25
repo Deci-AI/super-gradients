@@ -14,6 +14,7 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
     :param registry: The registry (maps name to object that you register)
     :return:         Register function
     """
+
     def register(name: Optional[str] = None) -> Callable:
         """
         Set up a register decorator.
@@ -21,6 +22,7 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
         :param name: If specified, the decorated object will be registered with this name.
         :return:     Decorator that registers the callable.
         """
+
         def decorator(cls: Callable) -> Callable:
             """Register the decorated callable"""
             cls_name = name if name is not None else cls.__name__
@@ -31,7 +33,9 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
 
             registry[cls_name] = cls
             return cls
+
         return decorator
+
     return register
 
 

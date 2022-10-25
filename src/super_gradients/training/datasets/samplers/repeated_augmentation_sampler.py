@@ -6,6 +6,7 @@ import torch.distributed as dist
 
 # TODO: Add unit test for RepeatAugSampler once DDP unit tests are supported.
 
+
 class RepeatAugSampler(Sampler):
     """
     Sampler that restricts data loading to a subset of the dataset for distributed,
@@ -36,14 +37,14 @@ class RepeatAugSampler(Sampler):
     """
 
     def __init__(
-            self,
-            dataset: torch.utils.data.Dataset,
-            num_replicas: int = None,
-            rank: int = None,
-            shuffle: bool = True,
-            num_repeats: int = 3,
-            selected_round: int = 256,
-            selected_ratio: int = 0,
+        self,
+        dataset: torch.utils.data.Dataset,
+        num_replicas: int = None,
+        rank: int = None,
+        shuffle: bool = True,
+        num_repeats: int = 3,
+        selected_round: int = 256,
+        selected_ratio: int = 0,
     ):
         if num_replicas is None:
             if not dist.is_available():
@@ -67,8 +68,7 @@ class RepeatAugSampler(Sampler):
         selected_ratio = selected_ratio or num_replicas  # ratio to reduce selected samples by, num_replicas if 0
 
         if selected_round:
-            self.num_selected_samples = int(math.floor(
-                len(self.dataset) // selected_round * selected_round / selected_ratio))
+            self.num_selected_samples = int(math.floor(len(self.dataset) // selected_round * selected_round / selected_ratio))
         else:
             self.num_selected_samples = int(math.ceil(len(self.dataset) / selected_ratio))
 
@@ -96,11 +96,11 @@ class RepeatAugSampler(Sampler):
         assert len(indices) == self.total_size
 
         # subsample per rank
-        indices = indices[self.rank:self.total_size:self.num_replicas]
+        indices = indices[self.rank : self.total_size : self.num_replicas]
         assert len(indices) == self.num_samples
 
         # return up to num selected samples
-        return iter(indices[:self.num_selected_samples])
+        return iter(indices[: self.num_selected_samples])
 
     def __len__(self):
         return self.num_selected_samples

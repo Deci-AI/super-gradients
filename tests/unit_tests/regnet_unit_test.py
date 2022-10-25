@@ -2,15 +2,24 @@ import torch
 import torch.nn as nn
 import unittest
 
-from super_gradients.training.models.classification_models.regnet import CustomRegNet, NASRegNet, RegNetY200, RegNetY400, RegNetY600, RegNetY800, \
-    Stem, Stage, XBlock
+from super_gradients.training.models.classification_models.regnet import (
+    CustomRegNet,
+    NASRegNet,
+    RegNetY200,
+    RegNetY400,
+    RegNetY600,
+    RegNetY800,
+    Stem,
+    Stage,
+    XBlock,
+)
 from super_gradients.training.utils.utils import HpmStruct
 
 
 class TestRegnet(unittest.TestCase):
     @classmethod
     def setUp(cls):
-        cls.arch_params = HpmStruct(**{'num_classes': 1000})
+        cls.arch_params = HpmStruct(**{"num_classes": 1000})
 
     @staticmethod
     def verify_2_archs_are_identical(model_1: nn.Module, model_2: nn.Module):
@@ -21,10 +30,17 @@ class TestRegnet(unittest.TestCase):
         """Test that when build Nas Regnet and Custom Regnet with the correct params - they build RegnetY200"""
         regnet_y_200 = RegNetY200(arch_params=self.arch_params)
         # Parameters identical to regnet_y_200
-        nas_regnet = NASRegNet(arch_params=HpmStruct(**{'structure': [24, 36, 2.5, 13, 1, 8, 2, 4],
-                                                        'num_classes': 1000}))
-        regnet_y_200_arch_params = {'initial_width': 24, 'slope': 36, 'quantized_param': 2.5, 'network_depth': 13,
-                                    'bottleneck_ratio': 1, 'group_width': 8, 'stride': 2, 'num_classes': 1000}
+        nas_regnet = NASRegNet(arch_params=HpmStruct(**{"structure": [24, 36, 2.5, 13, 1, 8, 2, 4], "num_classes": 1000}))
+        regnet_y_200_arch_params = {
+            "initial_width": 24,
+            "slope": 36,
+            "quantized_param": 2.5,
+            "network_depth": 13,
+            "bottleneck_ratio": 1,
+            "group_width": 8,
+            "stride": 2,
+            "num_classes": 1000,
+        }
         custom_regnet = CustomRegNet(arch_params=HpmStruct(**regnet_y_200_arch_params))
 
         self.verify_2_archs_are_identical(regnet_y_200, nas_regnet)
@@ -50,7 +66,7 @@ class TestRegnet(unittest.TestCase):
         """
         Test that output is stochastic in training and is fixed in eval with Dropout.
         """
-        arch_params = HpmStruct(**{'num_classes': 1000, 'dropout_prob': 0.3})
+        arch_params = HpmStruct(**{"num_classes": 1000, "dropout_prob": 0.3})
         model = RegNetY200(arch_params=arch_params)
         dummy_input = torch.randn(1, 3, 224, 224)
 
@@ -64,7 +80,7 @@ class TestRegnet(unittest.TestCase):
         """
         Test that output is stochastic in training and is fixed in eval with DropPath.
         """
-        arch_params = HpmStruct(**{'num_classes': 1000, 'droppath_prob': 0.2})
+        arch_params = HpmStruct(**{"num_classes": 1000, "droppath_prob": 0.2})
         model = RegNetY200(arch_params=arch_params)
         dummy_input = torch.randn(1, 3, 224, 224)
 
@@ -81,34 +97,79 @@ class TestRegnet(unittest.TestCase):
         """
         # THE LIST CONSISTS SEVERAL CUSTOM REGNET "ENCODINGS" AND THE CORRESPONDING XBLOCK STRUCTURE OF THE MODEL
         selected_arch_and_corresponding_configs = [
-            {"struct": [56, 10, 2.2, 8, 2, 8, 2, 0],
-             "expected_config": [3, 32, 32,
-                                 32, 16, 16, 16, 2, (2, 2), None,
-                                 32, 32, 32, 32, 4, (2, 2), None]},
-            {"struct": [56, 10, 2.3, 11, 1, 1, 3, 0],
-             "expected_config": [3, 32, 32,
-                                 32, 56, 56, 56, 56, (3, 3), None,
-                                 56, 128, 128, 128, 128, (3, 3), None]},
-            {"struct": [70, 20, 2.6, 13, 0.5, 16, 2, 4],
-             "expected_config": [3, 32, 32,
-                                 32, 288, 288, 288, 18, (2, 2), nn.Module,
-                                 144, 736, 736, 736, 46, (2, 2), nn.Module,
-                                 368, 1888, 1888, 1888, 118, (2, 2), nn.Module]},
-            {"struct": [8, 20, 2.3, 13, 0.16666666666666666, 1, 2, 2],
-             "expected_config": [3, 32, 32,
-                                 32, 288, 288, 288, 288, (2, 2), nn.Module,
-                                 48, 1440, 1440, 1440, 1440, (2, 2), nn.Module,
-                                 240, 3456, 3456, 3456, 3456, (2, 2), nn.Module,
-                                 576, 8064, 8064, 8064, 8064, (2, 2), nn.Module]},
-            {"struct": [56, 10, 2.4, 13, 2, 8, 1, 0],
-             "expected_config": [3, 32, 32,
-                                 32, 16, 16, 16, 2, (1, 1), None,
-                                 32, 32, 32, 32, 4, (1, 1), None]},
+            {"struct": [56, 10, 2.2, 8, 2, 8, 2, 0], "expected_config": [3, 32, 32, 32, 16, 16, 16, 2, (2, 2), None, 32, 32, 32, 32, 4, (2, 2), None]},
+            {"struct": [56, 10, 2.3, 11, 1, 1, 3, 0], "expected_config": [3, 32, 32, 32, 56, 56, 56, 56, (3, 3), None, 56, 128, 128, 128, 128, (3, 3), None]},
+            {
+                "struct": [70, 20, 2.6, 13, 0.5, 16, 2, 4],
+                "expected_config": [
+                    3,
+                    32,
+                    32,
+                    32,
+                    288,
+                    288,
+                    288,
+                    18,
+                    (2, 2),
+                    nn.Module,
+                    144,
+                    736,
+                    736,
+                    736,
+                    46,
+                    (2, 2),
+                    nn.Module,
+                    368,
+                    1888,
+                    1888,
+                    1888,
+                    118,
+                    (2, 2),
+                    nn.Module,
+                ],
+            },
+            {
+                "struct": [8, 20, 2.3, 13, 0.16666666666666666, 1, 2, 2],
+                "expected_config": [
+                    3,
+                    32,
+                    32,
+                    32,
+                    288,
+                    288,
+                    288,
+                    288,
+                    (2, 2),
+                    nn.Module,
+                    48,
+                    1440,
+                    1440,
+                    1440,
+                    1440,
+                    (2, 2),
+                    nn.Module,
+                    240,
+                    3456,
+                    3456,
+                    3456,
+                    3456,
+                    (2, 2),
+                    nn.Module,
+                    576,
+                    8064,
+                    8064,
+                    8064,
+                    8064,
+                    (2, 2),
+                    nn.Module,
+                ],
+            },
+            {"struct": [56, 10, 2.4, 13, 2, 8, 1, 0], "expected_config": [3, 32, 32, 32, 16, 16, 16, 2, (1, 1), None, 32, 32, 32, 32, 4, (1, 1), None]},
         ]
 
         for arch_conf_pair in selected_arch_and_corresponding_configs:
-            expected_config = iter(arch_conf_pair['expected_config'])
-            model = NASRegNet(HpmStruct(**{'structure': arch_conf_pair['struct'], 'num_classes': 1000}))
+            expected_config = iter(arch_conf_pair["expected_config"])
+            model = NASRegNet(HpmStruct(**{"structure": arch_conf_pair["struct"], "num_classes": 1000}))
 
             for stage in model.net.children():
                 # CHECK CORRECTNESS OF THE STEM
@@ -132,5 +193,5 @@ class TestRegnet(unittest.TestCase):
                             break
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

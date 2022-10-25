@@ -26,9 +26,9 @@ from super_gradients.training.utils import HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
 # Parameters for an individual model block
-BlockArgs = collections.namedtuple('BlockArgs', [
-    'num_repeat', 'kernel_size', 'stride', 'expand_ratio',
-    'input_filters', 'output_filters', 'se_ratio', 'id_skip'])
+BlockArgs = collections.namedtuple(
+    "BlockArgs", ["num_repeat", "kernel_size", "stride", "expand_ratio", "input_filters", "output_filters", "se_ratio", "id_skip"]
+)
 
 # Set BlockArgs's defaults
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
@@ -83,7 +83,7 @@ def drop_connect(inputs, p, training):
     Returns:
         output: Output after drop connection.
     """
-    assert p >= 0 and p <= 1, 'p must be in range of [0,1]'
+    assert p >= 0 and p <= 1, "p must be in range of [0,1]"
 
     if not training:
         return inputs
@@ -126,6 +126,7 @@ def calculate_output_image_size(input_image_size, stride):
 # Only when stride equals 1, can the output size be the same as input size.
 # Don't be confused by their function names ! ! !
 
+
 def get_same_padding_conv2d(image_size=None):
     """Chooses static padding if you have specified an image size, and dynamic padding otherwise.
        Static padding is necessary for ONNX exporting of models.
@@ -142,7 +143,7 @@ def get_same_padding_conv2d(image_size=None):
 
 class Conv2dDynamicSamePadding(nn.Conv2d):
     """2D Convolutions like TensorFlow, for a dynamic image size.
-       The padding is operated in forward function by calculating dynamically.
+    The padding is operated in forward function by calculating dynamically.
     """
 
     # Tips for 'SAME' mode padding.
@@ -175,7 +176,7 @@ class Conv2dDynamicSamePadding(nn.Conv2d):
 
 class Conv2dStaticSamePadding(nn.Conv2d):
     """2D Convolutions like TensorFlow's 'SAME' mode, with the given input image size.
-       The padding mudule is calculated in construction function, then used in forward.
+    The padding mudule is calculated in construction function, then used in forward.
     """
 
     # With the same calculation as Conv2dDynamicSamePadding
@@ -205,7 +206,7 @@ class Conv2dStaticSamePadding(nn.Conv2d):
 
 class Identity(nn.Module):
     """Identity mapping.
-       Send input to output directly.
+    Send input to output directly.
     """
 
     def __init__(self):
@@ -218,6 +219,7 @@ class Identity(nn.Module):
 # BlockDecoder: A Class for encoding and decoding BlockArgs
 # get_model_params and efficientnet:
 #     Functions to get BlockArgs and GlobalParams for efficientnet
+
 
 class BlockDecoder(object):
     """Block Decoder for readability, straight from the official TensorFlow repository."""
@@ -233,26 +235,27 @@ class BlockDecoder(object):
         """
         assert isinstance(block_string, str)
 
-        ops = block_string.split('_')
+        ops = block_string.split("_")
         options = {}
         for op in ops:
-            splits = re.split(r'(\d.*)', op)
+            splits = re.split(r"(\d.*)", op)
             if len(splits) >= 2:
                 key, value = splits[:2]
                 options[key] = value
 
         # Check stride
-        assert (('s' in options and len(options['s']) == 1) or (len(options['s']) == 2 and options['s'][0] == options['s'][1]))
+        assert ("s" in options and len(options["s"]) == 1) or (len(options["s"]) == 2 and options["s"][0] == options["s"][1])
 
         return BlockArgs(
-            num_repeat=int(options['r']),
-            kernel_size=int(options['k']),
-            stride=[int(options['s'][0])],
-            expand_ratio=int(options['e']),
-            input_filters=int(options['i']),
-            output_filters=int(options['o']),
-            se_ratio=float(options['se']) if 'se' in options else None,
-            id_skip=('noskip' not in block_string))
+            num_repeat=int(options["r"]),
+            kernel_size=int(options["k"]),
+            stride=[int(options["s"][0])],
+            expand_ratio=int(options["e"]),
+            input_filters=int(options["i"]),
+            output_filters=int(options["o"]),
+            se_ratio=float(options["se"]) if "se" in options else None,
+            id_skip=("noskip" not in block_string),
+        )
 
     @staticmethod
     def _encode_block_string(block):
@@ -263,18 +266,18 @@ class BlockDecoder(object):
             block_string: A String form of BlockArgs.
         """
         args = [
-            'r%d' % block.num_repeat,
-            'k%d' % block.kernel_size,
-            's%d%d' % (block.strides[0], block.strides[1]),
-            'e%s' % block.expand_ratio,
-            'i%d' % block.input_filters,
-            'o%d' % block.output_filters
+            "r%d" % block.num_repeat,
+            "k%d" % block.kernel_size,
+            "s%d%d" % (block.strides[0], block.strides[1]),
+            "e%s" % block.expand_ratio,
+            "i%d" % block.input_filters,
+            "o%d" % block.output_filters,
         ]
         if 0 < block.se_ratio <= 1:
-            args.append('se%s' % block.se_ratio)
+            args.append("se%s" % block.se_ratio)
         if block.id_skip is False:
-            args.append('noskip')
-        return '_'.join(args)
+            args.append("noskip")
+        return "_".join(args)
 
     @staticmethod
     def decode(string_list):
@@ -336,9 +339,7 @@ class MBConvBlock(nn.Module):
         k = self._block_args.kernel_size
         s = self._block_args.stride
         Conv2d = get_same_padding_conv2d(image_size=image_size)
-        self._depthwise_conv = Conv2d(
-            in_channels=oup, out_channels=oup, groups=oup,  # groups makes it depthwise
-            kernel_size=k, stride=s, bias=False)
+        self._depthwise_conv = Conv2d(in_channels=oup, out_channels=oup, groups=oup, kernel_size=k, stride=s, bias=False)  # groups makes it depthwise
         self._bn1 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
         image_size = calculate_output_image_size(image_size, s)
 
@@ -409,8 +410,8 @@ class EfficientNet(SgModule):
 
     def __init__(self, blocks_args=None, arch_params=None):
         super().__init__()
-        assert isinstance(blocks_args, list), 'blocks_args should be a list'
-        assert len(blocks_args) > 0, 'block args must be greater than 0'
+        assert isinstance(blocks_args, list), "blocks_args should be a list"
+        assert len(blocks_args) > 0, "block args must be greater than 0"
         self._arch_params = arch_params
         self._blocks_args = blocks_args
         self.backbone_mode = arch_params.backbone_mode
@@ -425,8 +426,9 @@ class EfficientNet(SgModule):
 
         # Stem
         in_channels = 3  # rgb
-        out_channels = round_filters(32, self._arch_params.width_coefficient, self._arch_params.depth_divisor,
-                                     self._arch_params.min_depth)  # number of output channels
+        out_channels = round_filters(
+            32, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth
+        )  # number of output channels
         self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
         self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         image_size = calculate_output_image_size(image_size, 2)
@@ -437,27 +439,27 @@ class EfficientNet(SgModule):
 
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                input_filters=round_filters(block_args.input_filters, self._arch_params.width_coefficient,
-                                            self._arch_params.depth_divisor, self._arch_params.min_depth),
-                output_filters=round_filters(block_args.output_filters, self._arch_params.width_coefficient,
-                                             self._arch_params.depth_divisor, self._arch_params.min_depth),
-                num_repeat=round_repeats(block_args.num_repeat, self._arch_params.depth_coefficient))
+                input_filters=round_filters(
+                    block_args.input_filters, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth
+                ),
+                output_filters=round_filters(
+                    block_args.output_filters, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth
+                ),
+                num_repeat=round_repeats(block_args.num_repeat, self._arch_params.depth_coefficient),
+            )
 
             # The first block needs to take care of stride and filter size increase.
-            self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum,
-                                            self._arch_params.batch_norm_epsilon, image_size=image_size))
+            self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum, self._arch_params.batch_norm_epsilon, image_size=image_size))
             image_size = calculate_output_image_size(image_size, block_args.stride)
             if block_args.num_repeat > 1:  # modify block_args to keep same output size
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)
             for _ in range(block_args.num_repeat - 1):
-                self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum,
-                                                self._arch_params.batch_norm_epsilon, image_size=image_size))
+                self._blocks.append(MBConvBlock(block_args, self._arch_params.batch_norm_momentum, self._arch_params.batch_norm_epsilon, image_size=image_size))
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
         # Head
         in_channels = block_args.output_filters  # output of final block
-        out_channels = round_filters(1280, self._arch_params.width_coefficient, self._arch_params.depth_divisor,
-                                     self._arch_params.min_depth)
+        out_channels = round_filters(1280, self._arch_params.width_coefficient, self._arch_params.depth_divisor, self._arch_params.min_depth)
         Conv2d = get_same_padding_conv2d(image_size=image_size)
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
@@ -540,7 +542,7 @@ class EfficientNet(SgModule):
             pretrained_backbone_weights_dict = OrderedDict()
             for layer_name, weights in pretrained_model_weights_dict.items():
                 # GET THE LAYER NAME WITHOUT THE 'module.' PREFIX
-                name_without_module_prefix = layer_name.split('module.')[1]
+                name_without_module_prefix = layer_name.split("module.")[1]
 
                 # MAKE SURE THESE ARE NOT THE FINAL LAYERS
                 pretrained_backbone_weights_dict[name_without_module_prefix] = weights
@@ -552,19 +554,39 @@ class EfficientNet(SgModule):
 
 
 def get_efficientnet_params(width: float, depth: float, res: float, dropout: float, arch_params: HpmStruct):
-    print(f"\nNOTICE: \nachieving EfficientNet\'s reported accuracy requires specific image resolution."
-          f"\nPlease verify image size is {res}x{res} for this specific EfficientNet configuration\n")
+    print(
+        f"\nNOTICE: \nachieving EfficientNet's reported accuracy requires specific image resolution."
+        f"\nPlease verify image size is {res}x{res} for this specific EfficientNet configuration\n"
+    )
     # Blocks args for the whole model(efficientnet-EfficientNetB0 by default)
     # It will be modified in the construction of EfficientNet Class according to model
-    blocks_args = BlockDecoder.decode(['r1_k3_s11_e1_i32_o16_se0.25', 'r2_k3_s22_e6_i16_o24_se0.25',
-                                       'r2_k5_s22_e6_i24_o40_se0.25', 'r3_k3_s22_e6_i40_o80_se0.25',
-                                       'r3_k5_s11_e6_i80_o112_se0.25', 'r4_k5_s22_e6_i112_o192_se0.25',
-                                       'r1_k3_s11_e6_i192_o320_se0.25', ])
+    blocks_args = BlockDecoder.decode(
+        [
+            "r1_k3_s11_e1_i32_o16_se0.25",
+            "r2_k3_s22_e6_i16_o24_se0.25",
+            "r2_k5_s22_e6_i24_o40_se0.25",
+            "r3_k3_s22_e6_i40_o80_se0.25",
+            "r3_k5_s11_e6_i80_o112_se0.25",
+            "r4_k5_s22_e6_i112_o192_se0.25",
+            "r1_k3_s11_e6_i192_o320_se0.25",
+        ]
+    )
     # Default values
-    arch_params_new = HpmStruct(**{"width_coefficient": width, "depth_coefficient": depth, "image_size": res,
-                                   "dropout_rate": dropout, "num_classes": arch_params.num_classes,
-                                   "batch_norm_momentum": 0.99, "batch_norm_epsilon": 1e-3, "drop_connect_rate": 0.2,
-                                   "depth_divisor": 8, "min_depth": None, "backbone_mode": False})
+    arch_params_new = HpmStruct(
+        **{
+            "width_coefficient": width,
+            "depth_coefficient": depth,
+            "image_size": res,
+            "dropout_rate": dropout,
+            "num_classes": arch_params.num_classes,
+            "batch_norm_momentum": 0.99,
+            "batch_norm_epsilon": 1e-3,
+            "drop_connect_rate": 0.2,
+            "depth_divisor": 8,
+            "min_depth": None,
+            "backbone_mode": False,
+        }
+    )
     # Update arch_params
     arch_params_new.override(**arch_params.to_dict())
     return blocks_args, arch_params_new
@@ -632,9 +654,11 @@ class EfficientNetL2(EfficientNet):
 
 class CustomizedEfficientnet(EfficientNet):
     def __init__(self, arch_params):
-        blocks_args, arch_params = get_efficientnet_params(width=arch_params.width_coefficient,
-                                                           depth=arch_params.depth_coefficient,
-                                                           res=arch_params.res,
-                                                           dropout=arch_params.dropout_rate,
-                                                           arch_params=arch_params)
+        blocks_args, arch_params = get_efficientnet_params(
+            width=arch_params.width_coefficient,
+            depth=arch_params.depth_coefficient,
+            res=arch_params.res,
+            dropout=arch_params.dropout_rate,
+            arch_params=arch_params,
+        )
         super().__init__(blocks_args=blocks_args, arch_params=arch_params)

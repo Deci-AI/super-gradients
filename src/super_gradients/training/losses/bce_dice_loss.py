@@ -14,6 +14,7 @@ class BCEDiceLoss(torch.nn.Module):
         loss_weights: list of size 2 s.t loss_weights[0], loss_weights[1] are the weights for BCE, Dice
         respectively.
     """
+
     def __init__(self, loss_weights=[0.5, 0.5], logits=True):
         super(BCEDiceLoss, self).__init__()
         self.loss_weights = loss_weights

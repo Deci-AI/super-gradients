@@ -18,6 +18,7 @@ class Cifar10(CIFAR10):
     :param target_transform:        Transform to apply to target output
     :param download:                Download (True) the dataset from source
     """
+
     @resolve_param("transforms", ListFactory(TransformsFactory()))
     def __init__(
         self,

@@ -18,11 +18,13 @@ class FCNHead(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         inter_channels = in_channels // 4
-        self.fcn = nn.Sequential(nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
-                                 nn.BatchNorm2d(inter_channels),
-                                 nn.ReLU(),
-                                 nn.Dropout2d(0.1, False),
-                                 nn.Conv2d(inter_channels, out_channels, 1))
+        self.fcn = nn.Sequential(
+            nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
+            nn.BatchNorm2d(inter_channels),
+            nn.ReLU(),
+            nn.Dropout2d(0.1, False),
+            nn.Conv2d(inter_channels, out_channels, 1),
+        )
 
     def forward(self, x):
         return self.fcn(x)
@@ -75,8 +77,7 @@ class ShelfResNetBackBone(ResNet):
     """
 
     def __init__(self, block, num_blocks, num_classes=10, width_mult=1):
-        super().__init__(block=block, num_blocks=num_blocks, num_classes=num_classes, width_mult=width_mult,
-                         backbone_mode=True)
+        super().__init__(block=block, num_blocks=num_blocks, num_classes=num_classes, width_mult=width_mult, backbone_mode=True)
 
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
@@ -139,12 +140,7 @@ class ShelfNetModuleBase(SgModule):
 class ConvBNReLU(ShelfNetModuleBase):
     def __init__(self, in_chan: int, out_chan: int, ks: int = 3, stride: int = 1, padding: int = 1):
         super(ConvBNReLU, self).__init__()
-        self.conv = nn.Conv2d(in_chan,
-                              out_chan,
-                              kernel_size=ks,
-                              stride=stride,
-                              padding=padding,
-                              bias=False)
+        self.conv = nn.Conv2d(in_chan, out_chan, kernel_size=ks, stride=stride, padding=padding, bias=False)
 
         self.bn = nn.BatchNorm2d(out_chan)
         self.init_weight()
@@ -193,8 +189,10 @@ class DecoderHW(DecoderBase):
 
         for i in range(0, layers - 1):
             self.up_conv_list.append(
-                nn.ConvTranspose2d(planes * 2 ** (layers - 1 - i), planes * 2 ** max(0, layers - i - 2), kernel_size=3,
-                                   stride=2, padding=1, output_padding=1, bias=True))
+                nn.ConvTranspose2d(
+                    planes * 2 ** (layers - 1 - i), planes * 2 ** max(0, layers - i - 2), kernel_size=3, stride=2, padding=1, output_padding=1, bias=True
+                )
+            )
             self.up_dense_list.append(block(planes * 2 ** max(0, layers - i - 2), planes * 2 ** max(0, layers - i - 2)))
 
     def forward(self, x):
@@ -223,11 +221,8 @@ class DecoderLW(DecoderBase):
         super().__init__(planes=planes, layers=layers, block=block, *args, **kwargs)
 
         for i in range(0, layers - 1):
-            self.up_conv_list.append(
-                AttentionRefinementModule(planes * 2 ** (layers - 1 - i), planes * 2 ** max(0, layers - i - 2)))
-            self.up_dense_list.append(
-                ConvBNReLU(in_chan=planes * 2 ** max(0, layers - i - 2), out_chan=planes * 2 ** max(0, layers - i - 2),
-                           ks=3, stride=1))
+            self.up_conv_list.append(AttentionRefinementModule(planes * 2 ** (layers - 1 - i), planes * 2 ** max(0, layers - i - 2)))
+            self.up_dense_list.append(ConvBNReLU(in_chan=planes * 2 ** max(0, layers - i - 2), out_chan=planes * 2 ** max(0, layers - i - 2), ks=3, stride=1))
 
     def forward(self, x):
         # BOTTOM BRANCH
@@ -240,7 +235,7 @@ class DecoderLW(DecoderBase):
 
         for j in range(0, self.layers - 1):
             out = self.up_conv_list[j](out)
-            out_interpolate = F.interpolate(out, (out.size(2) * 2, out.size(3) * 2), mode='nearest')
+            out_interpolate = F.interpolate(out, (out.size(2) * 2, out.size(3) * 2), mode="nearest")
             out = out_interpolate + x[self.layers - j - 2]
             out = self.up_dense_list[j](out)
             up_out.append(out)
@@ -288,13 +283,12 @@ class LadderBlockBase(ShelfNetModuleBase):
         # CREATE MODULE LIST FOR DOWN BRANCH
         self.down_module_list = nn.ModuleList()
         for i in range(0, layers - 1):
-            self.down_module_list.append(block(planes * (2 ** i), planes * (2 ** i)))
+            self.down_module_list.append(block(planes * (2**i), planes * (2**i)))
 
         # USE STRIDED CONV INSTEAD OF POOLING
         self.down_conv_list = nn.ModuleList()
         for i in range(0, layers - 1):
-            self.down_conv_list.append(
-                nn.Conv2d(planes * 2 ** i, planes * 2 ** (i + 1), stride=2, kernel_size=kernel, padding=self.padding))
+            self.down_conv_list.append(nn.Conv2d(planes * 2**i, planes * 2 ** (i + 1), stride=2, kernel_size=kernel, padding=self.padding))
 
         # CREATE MODULE FOR BOTTOM BLOCK
         self.bottom = block(planes * (2 ** (layers - 1)), planes * (2 ** (layers - 1)))
@@ -316,13 +310,11 @@ class LadderBlockHW(LadderBlockBase):
         super().__init__(planes=planes, layers=layers, block=block, *args, **kwargs)
 
         for i in range(0, layers - 1):
-            self.up_conv_list.append(nn.ConvTranspose2d(planes * 2 ** (layers - i - 1),
-                                                        planes * 2 ** max(0, layers - i - 2),
-                                                        kernel_size=3,
-                                                        stride=2,
-                                                        padding=1,
-                                                        output_padding=1,
-                                                        bias=True))
+            self.up_conv_list.append(
+                nn.ConvTranspose2d(
+                    planes * 2 ** (layers - i - 1), planes * 2 ** max(0, layers - i - 2), kernel_size=3, stride=2, padding=1, output_padding=1, bias=True
+                )
+            )
 
             self.up_dense_list.append(block(planes * 2 ** max(0, layers - i - 2), planes * 2 ** max(0, layers - i - 2)))
 
@@ -364,12 +356,8 @@ class LadderBlockLW(LadderBlockBase):
         super().__init__(planes=planes, layers=layers, block=block, *args, **kwargs)
 
         for i in range(0, layers - 1):
-            self.up_conv_list.append(
-                AttentionRefinementModule(planes * 2 ** (layers - 1 - i), planes * 2 ** max(0, layers - i - 2))
-            )
-            self.up_dense_list.append(
-                ConvBNReLU(in_chan=planes * 2 ** max(0, layers - i - 2), out_chan=planes * 2 ** max(0, layers - i - 2),
-                           ks=3, stride=1))
+            self.up_conv_list.append(AttentionRefinementModule(planes * 2 ** (layers - 1 - i), planes * 2 ** max(0, layers - i - 2)))
+            self.up_dense_list.append(ConvBNReLU(in_chan=planes * 2 ** max(0, layers - i - 2), out_chan=planes * 2 ** max(0, layers - i - 2), ks=3, stride=1))
 
     def forward(self, x):
         out = self.inconv(x[-1])
@@ -394,7 +382,7 @@ class LadderBlockLW(LadderBlockBase):
 
         for j in range(0, self.layers - 1):
             out = self.up_conv_list[j](out)
-            out = F.interpolate(out, (out.size(2) * 2, out.size(3) * 2), mode='nearest') + down_out[self.layers - j - 2]
+            out = F.interpolate(out, (out.size(2) * 2, out.size(3) * 2), mode="nearest") + down_out[self.layers - j - 2]
             out = self.up_dense_list[j](out)
             up_out.append(out)
 
@@ -405,8 +393,7 @@ class NetOutput(ShelfNetModuleBase):
     def __init__(self, in_chan: int, mid_chan: int, num_classes: int):
         super(NetOutput, self).__init__()
         self.conv = ConvBNReLU(in_chan, mid_chan, ks=3, stride=1, padding=1)
-        self.conv_out = nn.Conv2d(mid_chan, num_classes, kernel_size=3, bias=False,
-                                  padding=1)
+        self.conv_out = nn.Conv2d(mid_chan, num_classes, kernel_size=3, bias=False, padding=1)
         self.init_weight()
 
     def forward(self, x):
@@ -427,11 +414,18 @@ class ShelfNetBase(ShelfNetModuleBase):
     ShelfNetBase - ShelfNet Base Generic Architecture
     """
 
-    def __init__(self, backbone: ShelfResNetBackBone, planes: int, layers: int, num_classes: int = 21,
-                 image_size: int = 512,
-                 net_output_mid_channels_num: int = 64, arch_params: HpmStruct = None):
-        self.num_classes = arch_params.num_classes if (arch_params and hasattr(arch_params, 'num_classes')) else num_classes
-        self.image_size = arch_params.image_size if (arch_params and hasattr(arch_params, 'image_size')) else image_size
+    def __init__(
+        self,
+        backbone: ShelfResNetBackBone,
+        planes: int,
+        layers: int,
+        num_classes: int = 21,
+        image_size: int = 512,
+        net_output_mid_channels_num: int = 64,
+        arch_params: HpmStruct = None,
+    ):
+        self.num_classes = arch_params.num_classes if (arch_params and hasattr(arch_params, "num_classes")) else num_classes
+        self.image_size = arch_params.image_size if (arch_params and hasattr(arch_params, "image_size")) else image_size
 
         super().__init__()
         self.net_output_mid_channels_num = net_output_mid_channels_num
@@ -452,17 +446,15 @@ class ShelfNetBase(ShelfNetModuleBase):
     def forward(self, x):
         raise NotImplementedError
 
-    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
-                            total_batch: int) \
-            -> list:
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         """
         update_optimizer_for_param_groups - Updates the specific parameters with different LR
         """
         # LEARNING RATE FOR THE BACKBONE IS lr
-        param_groups[0]['lr'] = lr
+        param_groups[0]["lr"] = lr
         for i in range(1, len(param_groups)):
             # LEARNING RATE FOR OTHER SHELFNET PARAMS IS lr * 10
-            param_groups[i]['lr'] = lr * 10
+            param_groups[i]["lr"] = lr * 10
 
         return param_groups
 
@@ -476,7 +468,7 @@ class ShelfNetHW(ShelfNetBase):
         super().__init__(*args, **kwargs)
         self.ladder = LadderBlockHW(planes=self.net_output_mid_channels_num, layers=self.layers)
         self.decoder = DecoderHW(planes=self.net_output_mid_channels_num, layers=self.layers)
-        self.se_layer = nn.Linear(self.net_output_mid_channels_num * 2 ** 3, self.num_classes)
+        self.se_layer = nn.Linear(self.net_output_mid_channels_num * 2**3, self.num_classes)
         self.aux_head = FCNHead(1024, self.num_classes)
         self.final = nn.Conv2d(self.net_output_mid_channels_num, self.num_classes, 1)
 
@@ -486,8 +478,7 @@ class ShelfNetHW(ShelfNetBase):
 
         # INITIALIZE THE conv_out_list
         for i in range(self.layers):
-            self.conv_out_list.append(
-                ConvBNReLU(in_chan=net_out_planes, out_chan=mid_channels_num, ks=1, padding=0))
+            self.conv_out_list.append(ConvBNReLU(in_chan=net_out_planes, out_chan=mid_channels_num, ks=1, padding=0))
 
             mid_channels_num *= 2
             net_out_planes *= 2
@@ -515,12 +506,12 @@ class ShelfNetHW(ShelfNetBase):
         preds.append(se)
 
         # UP SAMPLING THE TOP LAYER FOR PREDICTION
-        preds[0] = F.interpolate(preds[0], image_size, mode='bilinear', align_corners=True)
+        preds[0] = F.interpolate(preds[0], image_size, mode="bilinear", align_corners=True)
 
         # AUXILARY HEAD OUTPUT (ONLY RELEVANT FOR LOSS CALCULATION) - USE self.auxilary_head_outputs=FALSE FOR INFERENCE
         if self.auxilary_head_outputs or self.training:
             aux_out = self.aux_head(backbone_features_list[2])
-            aux_out = F.interpolate(aux_out, image_size, mode='bilinear', align_corners=True)
+            aux_out = F.interpolate(aux_out, image_size, mode="bilinear", align_corners=True)
             preds.append(aux_out)
 
             return tuple(preds)
@@ -541,13 +532,20 @@ class ShelfNetHW(ShelfNetBase):
         params_list = []
 
         # OPTIMIZE BACKBONE USING DIFFERENT LR
-        params_list.append({'named_params': self.backbone.named_parameters(), 'lr': lr})
+        params_list.append({"named_params": self.backbone.named_parameters(), "lr": lr})
 
         # OPTIMIZE MAIN SHELFNET ARCHITECTURE LAYERS
-        params_list.append({'named_params': list(self.ladder.named_parameters()) + list(
-            self.decoder.named_parameters()) + list(self.se_layer.named_parameters()) + list(
-            self.conv_out_list.named_parameters()) + list(self.final.named_parameters()) + list(
-            self.aux_head.named_parameters()), 'lr': lr * 10})
+        params_list.append(
+            {
+                "named_params": list(self.ladder.named_parameters())
+                + list(self.decoder.named_parameters())
+                + list(self.se_layer.named_parameters())
+                + list(self.conv_out_list.named_parameters())
+                + list(self.final.named_parameters())
+                + list(self.aux_head.named_parameters()),
+                "lr": lr * 10,
+            }
+        )
 
         return params_list
 
@@ -586,16 +584,16 @@ class ShelfNetLW(ShelfNetBase):
         ladder_out_list = self.ladder(decoder_out_list)
 
         # GET THE LAST ELEMENTS OF THE LADDER_BLOCK BASED ON THE AMOUNT OF SHELVES IN THE ARCHITECTURE AND REVERSE LIST
-        feat_cp_list = list(reversed(ladder_out_list[(-1 * self.layers):]))
+        feat_cp_list = list(reversed(ladder_out_list[(-1 * self.layers) :]))
 
         feat_out = self.net_output_list[0](feat_cp_list[0])
-        feat_out = F.interpolate(feat_out, (H, W), mode='bilinear', align_corners=True)
+        feat_out = F.interpolate(feat_out, (H, W), mode="bilinear", align_corners=True)
 
         if self.auxilary_head_outputs or self.training:
             features_out_list = [feat_out]
             for conv_output_layer, feat_cp in zip(self.net_output_list[1:], feat_cp_list[1:]):
                 feat_out_res = conv_output_layer(feat_cp)
-                feat_out_res = F.interpolate(feat_out_res, (H, W), mode='bilinear', align_corners=True)
+                feat_out_res = F.interpolate(feat_out_res, (H, W), mode="bilinear", align_corners=True)
                 features_out_list.append(feat_out_res)
 
             return tuple(features_out_list)
@@ -617,12 +615,15 @@ class ShelfNetLW(ShelfNetBase):
         params_list = []
 
         # OPTIMIZE BACKBONE USING DIFFERENT LR
-        params_list.append({'named_params': self.backbone.named_parameters(), 'lr': lr})
+        params_list.append({"named_params": self.backbone.named_parameters(), "lr": lr})
 
         # OPTIMIZE MAIN SHELFNET ARCHITECTURE LAYERS
-        params_list.append({'named_params': list(self.ladder.named_parameters()) + list(
-            self.decoder.named_parameters()) + list(
-            self.conv_out_list.named_parameters()), 'lr': lr * 10})
+        params_list.append(
+            {
+                "named_params": list(self.ladder.named_parameters()) + list(self.decoder.named_parameters()) + list(self.conv_out_list.named_parameters()),
+                "lr": lr * 10,
+            }
+        )
 
         return params_list
 
@@ -637,12 +638,9 @@ class ShelfNet18_LW(ShelfNetLW):
             # THE MID CHANNELS NUMBER OF THE NET OUTPUT BLOCK
             mid_channels_num = self.planes if i == 0 else self.net_output_mid_channels_num
 
-            self.net_output_list.append(
-                NetOutput(out_planes, mid_channels_num, self.num_classes))
+            self.net_output_list.append(NetOutput(out_planes, mid_channels_num, self.num_classes))
 
-            self.conv_out_list.append(
-                ConvBNReLU(out_planes * 2, out_planes, ks=1, stride=1, padding=0)
-            )
+            self.conv_out_list.append(ConvBNReLU(out_planes * 2, out_planes, ks=1, stride=1, padding=0))
 
             out_planes *= 2
 
@@ -656,8 +654,7 @@ class ShelfNet34_LW(ShelfNetLW):
         for i in range(self.layers):
             # IF IT'S THE FIRST LAYER THAN THE MID-CHANNELS NUM IS ACTUALLY self.planes
             mid_channels_num = self.planes if i == 0 else self.net_output_mid_channels_num
-            self.net_output_list.append(
-                NetOutput(net_out_planes, mid_channels_num, self.num_classes))
+            self.net_output_list.append(NetOutput(net_out_planes, mid_channels_num, self.num_classes))
 
             net_out_planes *= 2
 

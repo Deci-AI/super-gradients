@@ -4,7 +4,7 @@ import torch
 from super_gradients.training.utils.utils import HpmStruct
 from super_gradients.training.utils import get_param
 
-KDOutput = namedtuple('KDOutput', 'student_output teacher_output')
+KDOutput = namedtuple("KDOutput", "student_output teacher_output")
 
 
 class KDModule(SgModule):
@@ -58,17 +58,14 @@ class KDModule(SgModule):
 
     def forward(self, x):
         if self.teacher_input_adapter is not None:
-            return KDOutput(student_output=self.student(x),
-                            teacher_output=self.teacher(self.teacher_input_adapter(x)))
+            return KDOutput(student_output=self.student(x), teacher_output=self.teacher(self.teacher_input_adapter(x)))
         else:
-            return KDOutput(student_output=self.student(x),
-                            teacher_output=self.teacher(x))
+            return KDOutput(student_output=self.student(x), teacher_output=self.teacher(x))
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         return self.student.initialize_param_groups(lr, training_params)
 
-    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
-                            total_batch: int) -> list:
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         return self.student.update_param_groups(param_groups, lr, epoch, iter, training_params, total_batch)
 
     def replace_head(self, **kwargs):

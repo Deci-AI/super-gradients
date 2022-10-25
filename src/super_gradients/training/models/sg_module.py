@@ -13,9 +13,7 @@ class SgModule(nn.Module):
         """
         return [{"named_params": self.named_parameters()}]
 
-    def update_param_groups(
-        self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int
-    ) -> list:
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         """
 
         :param param_groups: list of dictionaries containing the params

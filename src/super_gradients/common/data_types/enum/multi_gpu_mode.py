@@ -10,7 +10,8 @@ class MultiGPUMode(str, Enum):
             DATA_PARALLEL             - Multiple GPUs, Synchronous
             DISTRIBUTED_DATA_PARALLEL - Multiple GPUs, Asynchronous
     """
-    OFF = 'Off'
-    DATA_PARALLEL = 'DP'
-    DISTRIBUTED_DATA_PARALLEL = 'DDP'
+
+    OFF = "Off"
+    DATA_PARALLEL = "DP"
+    DISTRIBUTED_DATA_PARALLEL = "DDP"
     AUTO = "AUTO"

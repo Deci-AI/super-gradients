@@ -24,8 +24,7 @@ def width_multiplier(original, factor):
 
 
 class BasicBlock(nn.Module):
-
-    def __init__(self, in_planes, planes, stride=1, expansion=1, final_relu=True, droppath_prob=0.):
+    def __init__(self, in_planes, planes, stride=1, expansion=1, final_relu=True, droppath_prob=0.0):
         super(BasicBlock, self).__init__()
         self.expansion = expansion
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -38,8 +37,7 @@ class BasicBlock(nn.Module):
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(self.expansion * planes)
+                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False), nn.BatchNorm2d(self.expansion * planes)
             )
 
     def forward(self, x):
@@ -53,8 +51,7 @@ class BasicBlock(nn.Module):
 
 
 class Bottleneck(nn.Module):
-
-    def __init__(self, in_planes, planes, stride=1, expansion=4, final_relu=True, droppath_prob=0.):
+    def __init__(self, in_planes, planes, stride=1, expansion=4, final_relu=True, droppath_prob=0.0):
         super(Bottleneck, self).__init__()
         self.expansion = expansion
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
@@ -69,8 +66,7 @@ class Bottleneck(nn.Module):
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion * planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(self.expansion * planes)
+                nn.Conv2d(in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False), nn.BatchNorm2d(self.expansion * planes)
             )
 
     def forward(self, x):
@@ -110,10 +106,7 @@ class CifarResNet(SgModule):
             # When the number of blocks is zero but spatial dimension and/or number of filters about to change we put 1
             # 3X3 conv layer to make this change to the new dimensions.
             if stride != 1 or self.in_planes != planes:
-                layers.append(nn.Sequential(
-                    nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1),
-                    nn.BatchNorm2d(planes))
-                )
+                layers.append(nn.Sequential(nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1), nn.BatchNorm2d(planes)))
                 self.in_planes = planes
 
         else:
@@ -135,8 +128,17 @@ class CifarResNet(SgModule):
 
 
 class ResNet(SgModule):
-    def __init__(self, block, num_blocks: list, num_classes: int = 10, width_mult: float = 1, expansion: int = 1,
-                 droppath_prob=0., input_batchnorm: bool = False, backbone_mode: bool = False):
+    def __init__(
+        self,
+        block,
+        num_blocks: list,
+        num_classes: int = 10,
+        width_mult: float = 1,
+        expansion: int = 1,
+        droppath_prob=0.0,
+        input_batchnorm: bool = False,
+        backbone_mode: bool = False,
+    ):
         super(ResNet, self).__init__()
         self.expansion = expansion
         self.backbone_mode = backbone_mode
@@ -150,14 +152,10 @@ class ResNet(SgModule):
         self.bn1 = nn.BatchNorm2d(width_multiplier(64, width_mult))
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.layer1 = self._make_layer(block, width_multiplier(64, width_mult), num_blocks[0], stride=1,
-                                       droppath_prob=droppath_prob)
-        self.layer2 = self._make_layer(block, width_multiplier(128, width_mult), num_blocks[1], stride=2,
-                                       droppath_prob=droppath_prob)
-        self.layer3 = self._make_layer(block, width_multiplier(256, width_mult), num_blocks[2], stride=2,
-                                       droppath_prob=droppath_prob)
-        self.layer4 = self._make_layer(block, width_multiplier(512, width_mult), num_blocks[3], stride=2,
-                                       droppath_prob=droppath_prob)
+        self.layer1 = self._make_layer(block, width_multiplier(64, width_mult), num_blocks[0], stride=1, droppath_prob=droppath_prob)
+        self.layer2 = self._make_layer(block, width_multiplier(128, width_mult), num_blocks[1], stride=2, droppath_prob=droppath_prob)
+        self.layer3 = self._make_layer(block, width_multiplier(256, width_mult), num_blocks[2], stride=2, droppath_prob=droppath_prob)
+        self.layer4 = self._make_layer(block, width_multiplier(512, width_mult), num_blocks[3], stride=2, droppath_prob=droppath_prob)
 
         if not self.backbone_mode:
             # IF RESNET IS IN BACK_BONE MODE WE DON'T NEED THE FINAL CLASSIFIER LAYERS, BUT ONLY THE NET BLOCK STRUCTURE
@@ -173,10 +171,7 @@ class ResNet(SgModule):
             # When the number of blocks is zero but spatial dimension and/or number of filters about to change we put 1
             # 3X3 conv layer to make this change to the new dimensions.
             if stride != 1 or self.in_planes != planes:
-                layers.append(nn.Sequential(
-                    nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1),
-                    nn.BatchNorm2d(planes))
-                )
+                layers.append(nn.Sequential(nn.Conv2d(self.in_planes, planes, kernel_size=3, stride=stride, bias=False, padding=1), nn.BatchNorm2d(planes)))
                 self.in_planes = planes
 
         else:
@@ -219,7 +214,7 @@ class ResNet(SgModule):
             pretrained_backbone_weights_dict = OrderedDict()
             for layer_name, weights in pretrained_model_weights_dict.items():
                 # GET THE LAYER NAME WITHOUT THE 'module.' PREFIX
-                name_without_module_prefix = layer_name.split('module.')[1]
+                name_without_module_prefix = layer_name.split("module.")[1]
 
                 # MAKE SURE THESE ARE NOT THE FINAL LAYERS
                 pretrained_backbone_weights_dict[name_without_module_prefix] = weights
@@ -240,9 +235,13 @@ class ResNet(SgModule):
 
 class ResNet18(ResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(BasicBlock, [2, 2, 2, 2], num_classes=num_classes or arch_params.num_classes,
-                         droppath_prob=get_param(arch_params, "droppath_prob", 0),
-                         backbone_mode=get_param(arch_params, "backbone_mode", False))
+        super().__init__(
+            BasicBlock,
+            [2, 2, 2, 2],
+            num_classes=num_classes or arch_params.num_classes,
+            droppath_prob=get_param(arch_params, "droppath_prob", 0),
+            backbone_mode=get_param(arch_params, "backbone_mode", False),
+        )
 
 
 class ResNet18Cifar(CifarResNet):
@@ -252,62 +251,93 @@ class ResNet18Cifar(CifarResNet):
 
 class ResNet34(ResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(BasicBlock, [3, 4, 6, 3], num_classes=num_classes or arch_params.num_classes,
-                         droppath_prob=get_param(arch_params, "droppath_prob", 0),
-                         backbone_mode=get_param(arch_params, "backbone_mode", False))
+        super().__init__(
+            BasicBlock,
+            [3, 4, 6, 3],
+            num_classes=num_classes or arch_params.num_classes,
+            droppath_prob=get_param(arch_params, "droppath_prob", 0),
+            backbone_mode=get_param(arch_params, "backbone_mode", False),
+        )
 
 
 class ResNet50(ResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(Bottleneck, [3, 4, 6, 3], num_classes=num_classes or arch_params.num_classes,
-                         droppath_prob=get_param(arch_params, "droppath_prob", 0),
-                         backbone_mode=get_param(arch_params, "backbone_mode", False), expansion=4)
+        super().__init__(
+            Bottleneck,
+            [3, 4, 6, 3],
+            num_classes=num_classes or arch_params.num_classes,
+            droppath_prob=get_param(arch_params, "droppath_prob", 0),
+            backbone_mode=get_param(arch_params, "backbone_mode", False),
+            expansion=4,
+        )
 
 
 class ResNet50_3343(ResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(Bottleneck, [3, 3, 4, 3], num_classes=num_classes or arch_params.num_classes,
-                         droppath_prob=get_param(arch_params, "droppath_prob", 0),
-                         backbone_mode=get_param(arch_params, "backbone_mode", False), expansion=4)
+        super().__init__(
+            Bottleneck,
+            [3, 3, 4, 3],
+            num_classes=num_classes or arch_params.num_classes,
+            droppath_prob=get_param(arch_params, "droppath_prob", 0),
+            backbone_mode=get_param(arch_params, "backbone_mode", False),
+            expansion=4,
+        )
 
 
 class ResNet101(ResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(Bottleneck, [3, 4, 23, 3], num_classes=num_classes or arch_params.num_classes,
-                         droppath_prob=get_param(arch_params, "droppath_prob", 0),
-                         backbone_mode=get_param(arch_params, "backbone_mode", False), expansion=4)
+        super().__init__(
+            Bottleneck,
+            [3, 4, 23, 3],
+            num_classes=num_classes or arch_params.num_classes,
+            droppath_prob=get_param(arch_params, "droppath_prob", 0),
+            backbone_mode=get_param(arch_params, "backbone_mode", False),
+            expansion=4,
+        )
 
 
 class ResNet152(ResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(Bottleneck, [3, 8, 36, 3], num_classes=num_classes or arch_params.num_classes,
-                         droppath_prob=get_param(arch_params, "droppath_prob", 0),
-                         backbone_mode=get_param(arch_params, "backbone_mode", False), expansion=4)
+        super().__init__(
+            Bottleneck,
+            [3, 8, 36, 3],
+            num_classes=num_classes or arch_params.num_classes,
+            droppath_prob=get_param(arch_params, "droppath_prob", 0),
+            backbone_mode=get_param(arch_params, "backbone_mode", False),
+            expansion=4,
+        )
 
 
 class CustomizedResnetCifar(CifarResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(BasicBlock, arch_params.structure, width_mult=arch_params.width_mult,
-                         num_classes=num_classes or arch_params.num_classes)
+        super().__init__(BasicBlock, arch_params.structure, width_mult=arch_params.width_mult, num_classes=num_classes or arch_params.num_classes)
 
 
 class CustomizedResnet50Cifar(CifarResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(Bottleneck, arch_params.structure, width_mult=arch_params.width_mult,
-                         num_classes=num_classes or arch_params.num_classes, expansion=4)
+        super().__init__(Bottleneck, arch_params.structure, width_mult=arch_params.width_mult, num_classes=num_classes or arch_params.num_classes, expansion=4)
 
 
 class CustomizedResnet(ResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(BasicBlock, arch_params.structure, width_mult=arch_params.width_mult,
-                         num_classes=num_classes or arch_params.num_classes,
-                         droppath_prob=get_param(arch_params, "droppath_prob", 0),
-                         backbone_mode=get_param(arch_params, "backbone_mode", False))
+        super().__init__(
+            BasicBlock,
+            arch_params.structure,
+            width_mult=arch_params.width_mult,
+            num_classes=num_classes or arch_params.num_classes,
+            droppath_prob=get_param(arch_params, "droppath_prob", 0),
+            backbone_mode=get_param(arch_params, "backbone_mode", False),
+        )
 
 
 class CustomizedResnet50(ResNet):
     def __init__(self, arch_params, num_classes=None):
-        super().__init__(Bottleneck, arch_params.structure, width_mult=arch_params.width_mult,
-                         num_classes=num_classes or arch_params.num_classes,
-                         droppath_prob=get_param(arch_params, "droppath_prob", 0),
-                         backbone_mode=get_param(arch_params, "backbone_mode", False), expansion=4)
+        super().__init__(
+            Bottleneck,
+            arch_params.structure,
+            width_mult=arch_params.width_mult,
+            num_classes=num_classes or arch_params.num_classes,
+            droppath_prob=get_param(arch_params, "droppath_prob", 0),
+            backbone_mode=get_param(arch_params, "backbone_mode", False),
+            expansion=4,
+        )

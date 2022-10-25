@@ -12,7 +12,7 @@ class FocalLoss(_Loss):
         self.gamma = gamma
         self.alpha = alpha
         self.reduction = loss_fcn.reduction
-        self.loss_fcn.reduction = 'none'  # required to apply FocalLoss to each element
+        self.loss_fcn.reduction = "none"  # required to apply FocalLoss to each element
 
     def forward(self, pred, true):
         loss = self.loss_fcn(pred, true)
@@ -23,9 +23,9 @@ class FocalLoss(_Loss):
         modulating_factor = (1.0 - p_t) ** self.gamma
         loss *= alpha_factor * modulating_factor
 
-        if self.reduction == 'mean':
+        if self.reduction == "mean":
             return loss.mean()
-        elif self.reduction == 'sum':
+        elif self.reduction == "sum":
             return loss.sum()
         else:  # 'none'
             return loss

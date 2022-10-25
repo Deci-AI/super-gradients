@@ -23,6 +23,7 @@ class BaseFactory(AbstractFactory):
     """
     The basic factory fo a *single* object generation.
     """
+
     def __init__(self, type_dict: Dict[str, type]):
         """
         :param type_dict: a dictionary mapping a name to a type
@@ -31,12 +32,12 @@ class BaseFactory(AbstractFactory):
 
     def get(self, conf: Union[str, dict]):
         """
-         Get an instantiated object.
-            :param conf: a configuration
-            if string - assumed to be a type name (not the real name, but a name defined in the Factory)
-            if dictionary - assumed to be {type_name(str): {parameters...}} (single item in dict)
+        Get an instantiated object.
+           :param conf: a configuration
+           if string - assumed to be a type name (not the real name, but a name defined in the Factory)
+           if dictionary - assumed to be {type_name(str): {parameters...}} (single item in dict)
 
-            If provided value is not one of the three above, the value will be returned as is
+           If provided value is not one of the three above, the value will be returned as is
         """
         if isinstance(conf, str):
             if conf in self.type_dict:
@@ -45,9 +46,11 @@ class BaseFactory(AbstractFactory):
                 raise RuntimeError(f"Unknown object type: {conf} in configuration. valid types are: {self.type_dict.keys()}")
         elif isinstance(conf, Mapping):
             if len(conf.keys()) > 1:
-                raise RuntimeError("Malformed object definition in configuration. Expecting either a string of object type or a single entry dictionary"
-                                   "{type_name(str): {parameters...}}."
-                                   f"received: {conf}")
+                raise RuntimeError(
+                    "Malformed object definition in configuration. Expecting either a string of object type or a single entry dictionary"
+                    "{type_name(str): {parameters...}}."
+                    f"received: {conf}"
+                )
 
             _type = list(conf.keys())[0]  # THE TYPE NAME
             _params = list(conf.values())[0]  # A DICT CONTAINING THE PARAMETERS FOR INIT

@@ -5,10 +5,28 @@ import numpy as np
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 
 PASCAL_VOC_2012_CLASSES = [
-    'background', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
-    'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse',
-    'motorbike', 'person', 'potted-plant', 'sheep', 'sofa', 'train',
-    'tv/monitor', 'ambigious'
+    "background",
+    "aeroplane",
+    "bicycle",
+    "bird",
+    "boat",
+    "bottle",
+    "bus",
+    "car",
+    "cat",
+    "chair",
+    "cow",
+    "diningtable",
+    "dog",
+    "horse",
+    "motorbike",
+    "person",
+    "potted-plant",
+    "sheep",
+    "sofa",
+    "train",
+    "tv/monitor",
+    "ambigious",
 ]
 
 
@@ -18,8 +36,8 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
     """
 
     def __init__(self, sample_suffix=None, target_suffix=None, *args, **kwargs):
-        self.sample_suffix = '.jpg' if sample_suffix is None else sample_suffix
-        self.target_suffix = '.png' if target_suffix is None else target_suffix
+        self.sample_suffix = ".jpg" if sample_suffix is None else sample_suffix
+        self.target_suffix = ".png" if target_suffix is None else target_suffix
         super().__init__(*args, **kwargs)
 
         # THERE ARE 21 CLASSES, AND BACKGROUND
@@ -57,8 +75,8 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
         # GENERATE SAMPLES AND TARGETS HERE SPECIFICALLY FOR PASCAL VOC 2012
         with open(self.root + os.path.sep + self.list_file_path, "r", encoding="utf-8") as lines:
             for line in lines:
-                image_path = os.path.join(self.root, self.samples_sub_directory, line.rstrip('\n') + self.sample_suffix)
-                mask_path = os.path.join(self.root, self.targets_sub_directory, line.rstrip('\n') + self.target_suffix)
+                image_path = os.path.join(self.root, self.samples_sub_directory, line.rstrip("\n") + self.sample_suffix)
+                mask_path = os.path.join(self.root, self.targets_sub_directory, line.rstrip("\n") + self.target_suffix)
 
                 if os.path.exists(mask_path) and os.path.exists(image_path):
                     self.samples_targets_tuples_list.append((image_path, mask_path))

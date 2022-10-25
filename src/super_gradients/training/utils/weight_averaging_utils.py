@@ -14,12 +14,16 @@ class ModelWeightAveraging:
     The snapshot dict will be managed on cpu.
     """
 
-    def __init__(self, ckpt_dir,
-                 greater_is_better,
-                 source_ckpt_folder_name=None, metric_to_watch='acc',
-                 metric_idx=1, load_checkpoint=False,
-                 number_of_models_to_average=10,
-                 ):
+    def __init__(
+        self,
+        ckpt_dir,
+        greater_is_better,
+        source_ckpt_folder_name=None,
+        metric_to_watch="acc",
+        metric_idx=1,
+        load_checkpoint=False,
+        number_of_models_to_average=10,
+    ):
         """
         Init the ModelWeightAveraging
         :param checkpoint_dir: the directory where the checkpoints are saved
@@ -30,9 +34,9 @@ class ModelWeightAveraging:
         """
 
         if source_ckpt_folder_name is not None:
-            source_ckpt_file = os.path.join(source_ckpt_folder_name, 'averaging_snapshots.pkl')
-            source_ckpt_file = pkg_resources.resource_filename('checkpoints', source_ckpt_file)
-        self.averaging_snapshots_file = os.path.join(ckpt_dir, 'averaging_snapshots.pkl')
+            source_ckpt_file = os.path.join(source_ckpt_folder_name, "averaging_snapshots.pkl")
+            source_ckpt_file = pkg_resources.resource_filename("checkpoints", source_ckpt_file)
+        self.averaging_snapshots_file = os.path.join(ckpt_dir, "averaging_snapshots.pkl")
         self.number_of_models_to_average = number_of_models_to_average
         self.metric_to_watch = metric_to_watch
         self.metric_idx = metric_idx
@@ -40,19 +44,21 @@ class ModelWeightAveraging:
 
         # if continuing training, copy previous snapshot dict if exist
         if load_checkpoint and source_ckpt_folder_name is not None and os.path.isfile(source_ckpt_file):
-            averaging_snapshots_dict = core_utils.load_checkpoint(ckpt_destination_dir=ckpt_dir,
-                                                                  source_ckpt_folder_name=source_ckpt_folder_name,
-                                                                  ckpt_filename="averaging_snapshots.pkl",
-                                                                  load_weights_only=False,
-                                                                  overwrite_local_ckpt=True)
+            averaging_snapshots_dict = core_utils.load_checkpoint(
+                ckpt_destination_dir=ckpt_dir,
+                source_ckpt_folder_name=source_ckpt_folder_name,
+                ckpt_filename="averaging_snapshots.pkl",
+                load_weights_only=False,
+                overwrite_local_ckpt=True,
+            )
 
         else:
-            averaging_snapshots_dict = {'snapshot' + str(i): None for i in range(self.number_of_models_to_average)}
+            averaging_snapshots_dict = {"snapshot" + str(i): None for i in range(self.number_of_models_to_average)}
             # if metric to watch is acc, hold a zero array, if loss hold inf array
             if self.greater_is_better:
-                averaging_snapshots_dict['snapshots_metric'] = -1 * np.inf * np.ones(self.number_of_models_to_average)
+                averaging_snapshots_dict["snapshots_metric"] = -1 * np.inf * np.ones(self.number_of_models_to_average)
             else:
-                averaging_snapshots_dict['snapshots_metric'] = np.inf * np.ones(self.number_of_models_to_average)
+                averaging_snapshots_dict["snapshots_metric"] = np.inf * np.ones(self.number_of_models_to_average)
 
         torch.save(averaging_snapshots_dict, self.averaging_snapshots_file)
 
@@ -69,10 +75,10 @@ class ModelWeightAveraging:
         if require_update:
             # moving state dict to cpu
             new_sd = model.state_dict()
-            new_sd = move_state_dict_to_device(new_sd, 'cpu')
+            new_sd = move_state_dict_to_device(new_sd, "cpu")
 
-            averaging_snapshots_dict['snapshot' + str(update_ind)] = new_sd
-            averaging_snapshots_dict['snapshots_metric'][update_ind] = validation_results_tuple[self.metric_idx]
+            averaging_snapshots_dict["snapshot" + str(update_ind)] = new_sd
+            averaging_snapshots_dict["snapshots_metric"][update_ind] = validation_results_tuple[self.metric_idx]
 
         return averaging_snapshots_dict
 
@@ -91,15 +97,13 @@ class ModelWeightAveraging:
             averaging_snapshots_dict = self._get_averaging_snapshots_dict()
 
         torch.save(averaging_snapshots_dict, self.averaging_snapshots_file)
-        average_model_sd = averaging_snapshots_dict['snapshot0']
+        average_model_sd = averaging_snapshots_dict["snapshot0"]
         for n_model in range(1, self.number_of_models_to_average):
-            if averaging_snapshots_dict['snapshot' + str(n_model)] is not None:
-                net_sd = averaging_snapshots_dict['snapshot' + str(n_model)]
+            if averaging_snapshots_dict["snapshot" + str(n_model)] is not None:
+                net_sd = averaging_snapshots_dict["snapshot" + str(n_model)]
                 # USING MOVING AVERAGE
                 for key in average_model_sd:
-                    average_model_sd[key] = torch.true_divide(
-                        average_model_sd[key] * n_model + net_sd[key],
-                        (n_model + 1))
+                    average_model_sd[key] = torch.true_divide(average_model_sd[key] * n_model + net_sd[key], (n_model + 1))
 
         return average_model_sd
 
@@ -115,7 +119,7 @@ class ModelWeightAveraging:
         :param averaging_snapshots_dict: snapshot dict
         :param validation_results_tuple: latest model performance
         """
-        snapshot_metric_array = averaging_snapshots_dict['snapshots_metric']
+        snapshot_metric_array = averaging_snapshots_dict["snapshots_metric"]
         val = validation_results_tuple[self.metric_idx]
 
         if self.greater_is_better:
@@ -123,8 +127,7 @@ class ModelWeightAveraging:
         else:
             update_ind = np.argmax(snapshot_metric_array)
 
-        if (self.greater_is_better and val > snapshot_metric_array[update_ind]) or (
-                not self.greater_is_better and val < snapshot_metric_array[update_ind]):
+        if (self.greater_is_better and val > snapshot_metric_array[update_ind]) or (not self.greater_is_better and val < snapshot_metric_array[update_ind]):
             return True, update_ind
 
         return False, None

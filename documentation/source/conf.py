@@ -12,16 +12,17 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../src'))
+
+sys.path.insert(0, os.path.abspath("../../src"))
 
 # -- Project information -----------------------------------------------------
 
-project = 'SuperGradients'
-copyright = '2021, SuperGradients team'
-author = 'SuperGradients team'
+project = "SuperGradients"
+copyright = "2021, SuperGradients team"
+author = "SuperGradients team"
 
 # The full version, including alpha/beta/rc tags
-release = '1.0'
+release = "1.0"
 
 # Imports for auto documentation
 import super_gradients
@@ -37,18 +38,18 @@ import super_gradients.training
 extensions = []
 
 autodoc_default_options = {
-    'member-order': 'bysource',
+    "member-order": "bysource",
 }
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 todo_include_todos = False
 
 # -- Options for HTML output -------------------------------------------------
@@ -57,29 +58,28 @@ todo_include_todos = False
 # a list of builtin themes.
 #
 
-extensions.append('sphinx.ext.todo')
-extensions.append('sphinx.ext.autodoc')
-extensions.append('sphinx.ext.autosummary')
-extensions.append('sphinx.ext.intersphinx')
-extensions.append('sphinx.ext.mathjax')
-extensions.append('sphinx.ext.viewcode')
-extensions.append('sphinx.ext.graphviz')
-extensions.append('sphinxcontrib.napoleon')
-extensions.append('myst_parser')
+extensions.append("sphinx.ext.todo")
+extensions.append("sphinx.ext.autodoc")
+extensions.append("sphinx.ext.autosummary")
+extensions.append("sphinx.ext.intersphinx")
+extensions.append("sphinx.ext.mathjax")
+extensions.append("sphinx.ext.viewcode")
+extensions.append("sphinx.ext.graphviz")
+extensions.append("sphinxcontrib.napoleon")
+extensions.append("myst_parser")
 
 autosummary_generate = True
 
 # html_theme = 'default'
 # html_theme = 'alabaster'
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 source_suffix = {
-    '.rst': 'restructuredtext',
-    '.md': 'markdown',
+    ".rst": "restructuredtext",
+    ".md": "markdown",
 }
-

@@ -26,12 +26,8 @@ from super_gradients.training.utils.utils import get_param
 class SEBlock(nn.Module):
     def __init__(self, input_channels, internal_neurons):
         super(SEBlock, self).__init__()
-        self.down = nn.Conv2d(
-            in_channels=input_channels, out_channels=internal_neurons, kernel_size=1, stride=1, bias=True
-        )
-        self.up = nn.Conv2d(
-            in_channels=internal_neurons, out_channels=input_channels, kernel_size=1, stride=1, bias=True
-        )
+        self.down = nn.Conv2d(in_channels=input_channels, out_channels=internal_neurons, kernel_size=1, stride=1, bias=True)
+        self.up = nn.Conv2d(in_channels=internal_neurons, out_channels=input_channels, kernel_size=1, stride=1, bias=True)
         self.input_channels = input_channels
 
     def forward(self, inputs):
@@ -97,9 +93,7 @@ class RepVGGBlock(nn.Module):
         self.nonlinearity = nn.ReLU() if use_relu else nn.Identity()
         self.se = nn.Identity() if not use_se else SEBlock(out_channels, internal_neurons=out_channels // 16)
 
-        self.no_conv_branch = (
-            nn.BatchNorm2d(num_features=in_channels) if out_channels == in_channels and stride == 1 else None
-        )
+        self.no_conv_branch = nn.BatchNorm2d(num_features=in_channels) if out_channels == in_channels and stride == 1 else None
         self.branch_3x3 = conv_bn(
             in_channels=in_channels,
             out_channels=out_channels,
@@ -109,9 +103,7 @@ class RepVGGBlock(nn.Module):
             padding=padding,
             groups=groups,
         )
-        self.branch_1x1 = conv_bn(
-            in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride, padding=0, groups=groups
-        )
+        self.branch_1x1 = conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride, padding=0, groups=groups)
 
         if not build_residual_branches:
             self.fuse_block_residual_branches()
@@ -313,8 +305,7 @@ class RepVGG(SgModule):
     def train(self, mode: bool = True):
 
         assert not mode or self.build_residual_branches, (
-            "Trying to train a model without residual branches, "
-            "set arch_params.build_residual_branches to True and retrain the model"
+            "Trying to train a model without residual branches, " "set arch_params.build_residual_branches to True and retrain the model"
         )
         super(RepVGG, self).train(mode=mode)
 

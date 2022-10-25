@@ -21,13 +21,12 @@ def onehot(indexes, N=None, ignore_index=None):
 
 
 def _is_long(x):
-    if hasattr(x, 'data'):
+    if hasattr(x, "data"):
         x = x.data
     return isinstance(x, torch.LongTensor) or isinstance(x, torch.cuda.LongTensor)
 
 
-def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction='mean',  # noqa: C901
-                  smooth_eps=None, smooth_dist=None, from_logits=True):
+def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction="mean", smooth_eps=None, smooth_dist=None, from_logits=True):  # noqa: C901
     """cross entropy loss, with support for target distributions and label smoothing https://arxiv.org/abs/1512.00567"""
     smooth_eps = smooth_eps or 0
 
@@ -61,7 +60,7 @@ def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction='mea
         lsm = lsm * weight.unsqueeze(0)
 
     if _is_long(target):
-        eps_nll = 1. - smooth_eps
+        eps_nll = 1.0 - smooth_eps
         likelihood = lsm.gather(dim=-1, index=target.unsqueeze(-1)).squeeze(-1)
         loss = -(eps_nll * likelihood + smooth_eps * lsm.mean(-1))
     else:
@@ -70,9 +69,9 @@ def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction='mea
     if masked_indices is not None:
         loss.masked_fill_(masked_indices, 0)
 
-    if reduction == 'sum':
+    if reduction == "sum":
         loss = loss.sum()
-    elif reduction == 'mean':
+    elif reduction == "mean":
         if masked_indices is None:
             loss = loss.mean()
         else:
@@ -84,10 +83,8 @@ def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction='mea
 class LabelSmoothingCrossEntropyLoss(nn.CrossEntropyLoss):
     """CrossEntropyLoss - with ability to recieve distrbution as targets, and optional label smoothing"""
 
-    def __init__(self, weight=None, ignore_index=-100, reduction='mean', smooth_eps=None, smooth_dist=None,
-                 from_logits=True):
-        super(LabelSmoothingCrossEntropyLoss, self).__init__(weight=weight,
-                                                             ignore_index=ignore_index, reduction=reduction)
+    def __init__(self, weight=None, ignore_index=-100, reduction="mean", smooth_eps=None, smooth_dist=None, from_logits=True):
+        super(LabelSmoothingCrossEntropyLoss, self).__init__(weight=weight, ignore_index=ignore_index, reduction=reduction)
         self.smooth_eps = smooth_eps
         self.smooth_dist = smooth_dist
         self.from_logits = from_logits
@@ -95,9 +92,16 @@ class LabelSmoothingCrossEntropyLoss(nn.CrossEntropyLoss):
     def forward(self, input, target, smooth_dist=None):
         if smooth_dist is None:
             smooth_dist = self.smooth_dist
-        loss = cross_entropy(input, target, weight=self.weight, ignore_index=self.ignore_index,
-                             reduction=self.reduction, smooth_eps=self.smooth_eps,
-                             smooth_dist=smooth_dist, from_logits=self.from_logits)
+        loss = cross_entropy(
+            input,
+            target,
+            weight=self.weight,
+            ignore_index=self.ignore_index,
+            reduction=self.reduction,
+            smooth_eps=self.smooth_eps,
+            smooth_dist=smooth_dist,
+            from_logits=self.from_logits,
+        )
         # CHANGED TO THE CURRENT FORMAT- OUR CRITERION FUNCTIONS SHOULD ALL NPW RETURN A TUPLE OF (LOSS_FOR_BACKPROP, ADDITIONAL_ITEMS)
         # WHERE ADDITIONAL ITEMS ARE TORCH TENSORS OF SIZE (N_ITEMS,...) DETACHED FROM THEIR GRADIENTS FOR LOGGING
         return loss, loss.unsqueeze(0).detach()

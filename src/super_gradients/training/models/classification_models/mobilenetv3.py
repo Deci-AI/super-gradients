@@ -54,7 +54,7 @@ class SELayer(nn.Module):
             nn.Linear(channel, _make_divisible(channel // reduction, 8)),
             nn.ReLU(inplace=True),
             nn.Linear(_make_divisible(channel // reduction, 8), channel),
-            h_sigmoid()
+            h_sigmoid(),
         )
 
     def forward(self, x):
@@ -65,19 +65,11 @@ class SELayer(nn.Module):
 
 
 def conv_3x3_bn(inp, oup, stride):
-    return nn.Sequential(
-        nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
-        nn.BatchNorm2d(oup),
-        h_swish()
-    )
+    return nn.Sequential(nn.Conv2d(inp, oup, 3, stride, 1, bias=False), nn.BatchNorm2d(oup), h_swish())
 
 
 def conv_1x1_bn(inp, oup):
-    return nn.Sequential(
-        nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
-        nn.BatchNorm2d(oup),
-        h_swish()
-    )
+    return nn.Sequential(nn.Conv2d(inp, oup, 1, 1, 0, bias=False), nn.BatchNorm2d(oup), h_swish())
 
 
 class InvertedResidual(nn.Module):
@@ -90,8 +82,7 @@ class InvertedResidual(nn.Module):
         if inp == hidden_dim:
             self.conv = nn.Sequential(
                 # dw
-                nn.Conv2d(hidden_dim, hidden_dim, kernel_size, stride, (kernel_size - 1) // 2, groups=hidden_dim,
-                          bias=False),
+                nn.Conv2d(hidden_dim, hidden_dim, kernel_size, stride, (kernel_size - 1) // 2, groups=hidden_dim, bias=False),
                 nn.BatchNorm2d(hidden_dim),
                 h_swish() if use_hs else nn.ReLU(inplace=True),
                 # Squeeze-and-Excite
@@ -107,8 +98,7 @@ class InvertedResidual(nn.Module):
                 nn.BatchNorm2d(hidden_dim),
                 h_swish() if use_hs else nn.ReLU(inplace=True),
                 # dw
-                nn.Conv2d(hidden_dim, hidden_dim, kernel_size, stride, (kernel_size - 1) // 2, groups=hidden_dim,
-                          bias=False),
+                nn.Conv2d(hidden_dim, hidden_dim, kernel_size, stride, (kernel_size - 1) // 2, groups=hidden_dim, bias=False),
                 nn.BatchNorm2d(hidden_dim),
                 # Squeeze-and-Excite
                 SELayer(hidden_dim) if use_se else nn.Identity(),
@@ -126,11 +116,11 @@ class InvertedResidual(nn.Module):
 
 
 class MobileNetV3(MobileNetBase):
-    def __init__(self, cfgs, mode, num_classes=1000, width_mult=1., in_channels=3):
+    def __init__(self, cfgs, mode, num_classes=1000, width_mult=1.0, in_channels=3):
         super(MobileNetV3, self).__init__()
         # setting of inverted residual blocks
         self.cfgs = cfgs
-        assert mode in ['large', 'small']
+        assert mode in ["large", "small"]
 
         # building first layer
         curr_channels = _make_divisible(16 * width_mult, 8)
@@ -146,9 +136,8 @@ class MobileNetV3(MobileNetBase):
         # building last several layers
         self.conv = conv_1x1_bn(curr_channels, exp_size)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        output_channel = {'large': 1280, 'small': 1024}
-        output_channel = _make_divisible(output_channel[mode] * width_mult, 8) if width_mult > 1.0 else output_channel[
-            mode]
+        output_channel = {"large": 1280, "small": 1024}
+        output_channel = _make_divisible(output_channel[mode] * width_mult, 8) if width_mult > 1.0 else output_channel[mode]
         self.classifier = nn.Sequential(
             nn.Linear(exp_size, output_channel),
             h_swish(),
@@ -170,7 +159,7 @@ class MobileNetV3(MobileNetBase):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
+                m.weight.data.normal_(0, math.sqrt(2.0 / n))
                 if m.bias is not None:
                     m.bias.data.zero_()
             elif isinstance(m, nn.BatchNorm2d):
@@ -186,8 +175,9 @@ class mobilenetv3_large(MobileNetV3):
     """
     Constructs a MobileNetV3-Large model
     """
+
     def __init__(self, arch_params):
-        width_mult = arch_params.width_mult if hasattr(arch_params, 'width_mult') else 1.
+        width_mult = arch_params.width_mult if hasattr(arch_params, "width_mult") else 1.0
         cfgs = [
             # k, t, c, SE, HS, s
             [3, 1, 16, 0, 0, 1],
@@ -204,18 +194,18 @@ class mobilenetv3_large(MobileNetV3):
             [3, 6, 112, 1, 1, 1],
             [5, 6, 160, 1, 1, 2],
             [5, 6, 160, 1, 1, 1],
-            [5, 6, 160, 1, 1, 1]
+            [5, 6, 160, 1, 1, 1],
         ]
-        super().__init__(cfgs, mode='large', num_classes=arch_params.num_classes, width_mult=width_mult,
-                         in_channels=get_param(arch_params, "in_channels", 3))
+        super().__init__(cfgs, mode="large", num_classes=arch_params.num_classes, width_mult=width_mult, in_channels=get_param(arch_params, "in_channels", 3))
 
 
 class mobilenetv3_small(MobileNetV3):
     """
     Constructs a MobileNetV3-Small model
     """
+
     def __init__(self, arch_params):
-        width_mult = arch_params.width_mult if hasattr(arch_params, 'width_mult') else 1.
+        width_mult = arch_params.width_mult if hasattr(arch_params, "width_mult") else 1.0
         cfgs = [
             # k, t, c, SE, HS, s
             [3, 1, 16, 1, 0, 2],
@@ -230,15 +220,19 @@ class mobilenetv3_small(MobileNetV3):
             [5, 6, 96, 1, 1, 1],
             [5, 6, 96, 1, 1, 1],
         ]
-        super().__init__(cfgs, mode='small', num_classes=arch_params.num_classes, width_mult=width_mult,
-                         in_channels=get_param(arch_params, "in_channels", 3))
+        super().__init__(cfgs, mode="small", num_classes=arch_params.num_classes, width_mult=width_mult, in_channels=get_param(arch_params, "in_channels", 3))
 
 
 class mobilenetv3_custom(MobileNetV3):
     """
     Constructs a MobileNetV3-Customized model
     """
+
     def __init__(self, arch_params):
-        super().__init__(cfgs=arch_params.structure, mode=arch_params.mode, num_classes=arch_params.num_classes,
-                         width_mult=arch_params.width_mult,
-                         in_channels=get_param(arch_params, "in_channels", 3))
+        super().__init__(
+            cfgs=arch_params.structure,
+            mode=arch_params.mode,
+            num_classes=arch_params.num_classes,
+            width_mult=arch_params.width_mult,
+            in_channels=get_param(arch_params, "in_channels", 3),
+        )

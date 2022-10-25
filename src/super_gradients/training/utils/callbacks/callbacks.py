@@ -45,6 +45,7 @@ class ContextSgMethods:
     """
     Class for delegating Trainer's methods, so that only the relevant ones are ("phase wise") are accessible.
     """
+
     def __init__(self, **methods):
         for attr, attr_val in methods.items():
             setattr(self, attr, attr_val)
@@ -56,13 +57,38 @@ class PhaseContext:
 
     """
 
-    def __init__(self, epoch=None, batch_idx=None, optimizer=None, metrics_dict=None, inputs=None, preds=None,
-                 target=None, metrics_compute_fn=None, loss_avg_meter=None, loss_log_items=None, criterion=None,
-                 device=None, experiment_name=None, ckpt_dir=None, net=None, lr_warmup_epochs=None, sg_logger=None,
-                 train_loader=None, valid_loader=None,
-                 training_params=None, ddp_silent_mode=None, checkpoint_params=None, architecture=None,
-                 arch_params=None, metric_idx_in_results_tuple=None,
-                 metric_to_watch=None, valid_metrics=None, context_methods=None, ema_model=None):
+    def __init__(
+        self,
+        epoch=None,
+        batch_idx=None,
+        optimizer=None,
+        metrics_dict=None,
+        inputs=None,
+        preds=None,
+        target=None,
+        metrics_compute_fn=None,
+        loss_avg_meter=None,
+        loss_log_items=None,
+        criterion=None,
+        device=None,
+        experiment_name=None,
+        ckpt_dir=None,
+        net=None,
+        lr_warmup_epochs=None,
+        sg_logger=None,
+        train_loader=None,
+        valid_loader=None,
+        training_params=None,
+        ddp_silent_mode=None,
+        checkpoint_params=None,
+        architecture=None,
+        arch_params=None,
+        metric_idx_in_results_tuple=None,
+        metric_to_watch=None,
+        valid_metrics=None,
+        context_methods=None,
+        ema_model=None,
+    ):
         self.epoch = epoch
         self.batch_idx = batch_idx
         self.optimizer = optimizer
@@ -141,9 +167,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         self.model_meta_data = model_meta_data
 
         self.opset_version = kwargs.get("opset_version", 10)
-        self.do_constant_folding = (
-            kwargs.get("do_constant_folding", None) if kwargs.get("do_constant_folding", None) else True
-        )
+        self.do_constant_folding = kwargs.get("do_constant_folding", None) if kwargs.get("do_constant_folding", None) else True
         self.input_names = kwargs.get("input_names") or ["input"]
         self.output_names = kwargs.get("output_names") or ["output"]
         self.dynamic_axes = kwargs.get("dynamic_axes") or {"input": {0: "batch_size"}, "output": {0: "batch_size"}}
@@ -159,9 +183,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         if hasattr(model, "prep_model_for_conversion"):
             model.prep_model_for_conversion(input_size=self.model_meta_data.input_dimensions)
 
-        x = torch.randn(
-            self.model_meta_data.primary_batch_size, *self.model_meta_data.input_dimensions, requires_grad=False
-        )
+        x = torch.randn(self.model_meta_data.primary_batch_size, *self.model_meta_data.input_dimensions, requires_grad=False)
 
         tmp_model_path = os.path.join(context.ckpt_dir, self.model_meta_data.name + "_tmp.onnx")
 
@@ -183,9 +205,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         onnx_model = onnx.load(tmp_model_path)
         onnx.checker.check_model(onnx_model)
 
-        ort_session = onnxruntime.InferenceSession(
-            tmp_model_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
-        )
+        ort_session = onnxruntime.InferenceSession(tmp_model_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
 
         # compute ONNX Runtime output prediction
         ort_inputs = {ort_session.get_inputs()[0].name: x.cpu().numpy()}
@@ -239,10 +259,10 @@ class DeciLabUploadCallback(PhaseCallback):
 
     def upload_model(self, model):
         """
-            This function will upload the trained model to the Deci Lab
+        This function will upload the trained model to the Deci Lab
 
-            Args:
-                model: The resulting model from the training process
+        Args:
+            model: The resulting model from the training process
         """
         self.platform_client.add_model(
             add_model_request=self.model_meta_data,
@@ -252,13 +272,13 @@ class DeciLabUploadCallback(PhaseCallback):
 
     def get_optimization_status(self, optimized_model_name: str):
         """
-            This function will do fetch the optimized version of the trained model and check on its benchmark status.
-            The status will be checked against the server every 30 seconds and the process will timeout after 30 minutes
-            or log about the successful optimization - whichever happens first.
-            Args:
-                optimized_model_name (str): Optimized model name
-            Returns:
-                bool: whether or not the optimized model has been benchmarked
+        This function will do fetch the optimized version of the trained model and check on its benchmark status.
+        The status will be checked against the server every 30 seconds and the process will timeout after 30 minutes
+        or log about the successful optimization - whichever happens first.
+        Args:
+            optimized_model_name (str): Optimized model name
+        Returns:
+            bool: whether or not the optimized model has been benchmarked
         """
 
         def handler(_signum, _frame):
@@ -281,12 +301,12 @@ class DeciLabUploadCallback(PhaseCallback):
 
     def __call__(self, context: PhaseContext):
         """
-            This function will attempt to upload the trained model and schedule an optimization for it.
-            Args:
-                context (PhaseContext): Training phase context
-            Returns:
-                bool: whether or not the optimized model has been benchmarked
-            """
+        This function will attempt to upload the trained model and schedule an optimization for it.
+        Args:
+            context (PhaseContext): Training phase context
+        Returns:
+            bool: whether or not the optimized model has been benchmarked
+        """
         try:
             model = copy.deepcopy(context.net)
             model_state_dict_path = os.path.join(context.ckpt_dir, self.ckpt_name)
@@ -350,9 +370,7 @@ class LRCallbackBase(PhaseCallback):
 
     def update_lr(self, optimizer, epoch, batch_idx=None):
         if self.update_param_groups:
-            param_groups = self.net.module.update_param_groups(
-                optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len
-            )
+            param_groups = self.net.module.update_param_groups(optimizer.param_groups, self.lr, epoch, batch_idx, self.training_params, self.train_loader_len)
             optimizer.param_groups = param_groups
         else:
             # UPDATE THE OPTIMIZERS PARAMETER
@@ -370,9 +388,7 @@ class WarmupLRCallback(LRCallbackBase):
 
     def __init__(self, **kwargs):
         super(WarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
-        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (
-            self.training_params.lr_warmup_epochs + 1
-        )
+        self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
         self.warmup_step_size = (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs
 
     def perform_scheduling(self, context):
@@ -391,22 +407,16 @@ class StepLRCallback(LRCallbackBase):
     def __init__(self, lr_updates, lr_decay_factor, step_lr_update_freq=None, **kwargs):
         super(StepLRCallback, self).__init__(Phase.TRAIN_EPOCH_END, **kwargs)
         if step_lr_update_freq and len(lr_updates):
-            raise ValueError(
-                "Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor"
-            )
+            raise ValueError("Only one of [lr_updates, step_lr_update_freq] should be passed to StepLRCallback constructor")
 
         if step_lr_update_freq:
             max_epochs = self.training_params.max_epochs - self.training_params.lr_cooldown_epochs
             warmup_epochs = self.training_params.lr_warmup_epochs
             lr_updates = [
-                int(np.ceil(step_lr_update_freq * x))
-                for x in range(1, max_epochs)
-                if warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs
+                int(np.ceil(step_lr_update_freq * x)) for x in range(1, max_epochs) if warmup_epochs <= int(np.ceil(step_lr_update_freq * x)) < max_epochs
             ]
         elif self.training_params.lr_cooldown_epochs > 0:
-            logger.warning(
-                "Specific lr_updates were passed along with cooldown_epochs > 0," " cooldown will have no effect."
-            )
+            logger.warning("Specific lr_updates were passed along with cooldown_epochs > 0," " cooldown will have no effect.")
         self.lr_updates = lr_updates
         self.lr_decay_factor = lr_decay_factor
 
@@ -450,12 +460,8 @@ class PolyLRCallback(LRCallbackBase):
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = (
-            self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        )
-        current_iter = (
-            self.train_loader_len * effective_epoch + context.batch_idx
-        ) / self.training_params.batch_accumulate
+        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
+        current_iter = (self.train_loader_len * effective_epoch + context.batch_idx) / self.training_params.batch_accumulate
         max_iter = self.train_loader_len * effective_max_epochs / self.training_params.batch_accumulate
         self.lr = self.initial_lr * pow((1.0 - (current_iter / max_iter)), 0.9)
         self.update_lr(context.optimizer, context.epoch, context.batch_idx)
@@ -477,9 +483,7 @@ class CosineLRCallback(LRCallbackBase):
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = (
-            self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        )
+        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
         current_iter = self.train_loader_len * effective_epoch + context.batch_idx
         max_iter = self.train_loader_len * effective_max_epochs
         lr = 0.5 * self.initial_lr * (1.0 + math.cos(current_iter / (max_iter + 1) * math.pi))
@@ -509,9 +513,7 @@ class FunctionLRCallback(LRCallbackBase):
 
     def perform_scheduling(self, context):
         effective_epoch = context.epoch - self.training_params.lr_warmup_epochs
-        effective_max_epochs = (
-            self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
-        )
+        effective_max_epochs = self.max_epochs - self.training_params.lr_warmup_epochs - self.training_params.lr_cooldown_epochs
         self.lr = self.lr_schedule_function(
             initial_lr=self.initial_lr,
             epoch=effective_epoch,
@@ -530,9 +532,7 @@ class IllegalLRSchedulerMetric(Exception):
     """
 
     def __init__(self, metric_name, metrics_dict):
-        self.message = (
-            "Illegal metric name: " + metric_name + ". Expected one of metics_dics keys: " + str(metrics_dict.keys())
-        )
+        self.message = "Illegal metric name: " + metric_name + ". Expected one of metics_dics keys: " + str(metrics_dict.keys())
         super().__init__(self.message)
 
 
@@ -631,15 +631,11 @@ class DetectionVisualizationCallback(PhaseCallback):
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
             preds = (context.preds[0].clone(), None)
             preds = self.post_prediction_callback(preds)
-            batch_imgs = DetectionVisualization.visualize_batch(
-                context.inputs, preds, context.target, self.batch_idx, self.classes
-            )
+            batch_imgs = DetectionVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx, self.classes)
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
-            context.sg_logger.add_images(
-                tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch, data_format="NHWC"
-            )
+            context.sg_logger.add_images(tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch, data_format="NHWC")
 
 
 class BinarySegmentationVisualizationCallback(PhaseCallback):
@@ -663,14 +659,11 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
                 preds = context.preds[0].clone()
             else:
                 preds = context.preds.clone()
-            batch_imgs = BinarySegmentationVisualization.visualize_batch(
-                context.inputs, preds, context.target, self.batch_idx
-            )
+            batch_imgs = BinarySegmentationVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx)
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
             tag = "batch_" + str(self.batch_idx) + "_images"
-            context.sg_logger.add_images(tag=tag, images=batch_imgs[:self.last_img_idx_in_batch],
-                                         global_step=context.epoch, data_format='NHWC')
+            context.sg_logger.add_images(tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch, data_format="NHWC")
 
 
 class TrainingStageSwitchCallbackBase(PhaseCallback):

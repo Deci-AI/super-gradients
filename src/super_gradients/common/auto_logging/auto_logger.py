@@ -36,9 +36,7 @@ class AutoLoggerConfig:
 
         # LOADING THE ORIGINAL ROOT CONFIG FILE
         conf_file_name = "auto_logging_conf.json"
-        conf_file_path = os.path.join(
-            pkg_resources.resource_filename("super_gradients", "/common/auto_logging/"), conf_file_name
-        )
+        conf_file_path = os.path.join(pkg_resources.resource_filename("super_gradients", "/common/auto_logging/"), conf_file_name)
 
         with open(conf_file_path, "r") as logging_configuration_file:
             config_dict = json.load(logging_configuration_file)

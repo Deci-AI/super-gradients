@@ -13,13 +13,19 @@ from super_gradients.training.datasets.sg_dataset import DirectoryDataSet, ListD
 
 
 class SegmentationDataSet(DirectoryDataSet, ListDataset):
-
-    @resolve_param('transforms', factory=TransformsFactory())
-    def __init__(self, root: str, list_file: str = None, samples_sub_directory: str = None,
-                 targets_sub_directory: str = None,
-                 cache_labels: bool = False, cache_images: bool = False,
-                 collate_fn: Callable = None, target_extension: str = '.png',
-                 transforms: Iterable = None):
+    @resolve_param("transforms", factory=TransformsFactory())
+    def __init__(
+        self,
+        root: str,
+        list_file: str = None,
+        samples_sub_directory: str = None,
+        targets_sub_directory: str = None,
+        cache_labels: bool = False,
+        cache_images: bool = False,
+        collate_fn: Callable = None,
+        target_extension: str = ".png",
+        transforms: Iterable = None,
+    ):
         """
         SegmentationDataSet
             :param root:                        Root folder of the Data Set
@@ -40,16 +46,30 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
 
         # CREATE A DIRECTORY DATASET OR A LIST DATASET BASED ON THE list_file INPUT VARIABLE
         if list_file is not None:
-            ListDataset.__init__(self, root=root, file=list_file, target_extension=target_extension,
-                                 sample_loader=self.sample_loader, sample_transform=self.sample_transform,
-                                 target_loader=self.target_loader, target_transform=self.target_transform,
-                                 collate_fn=collate_fn)
+            ListDataset.__init__(
+                self,
+                root=root,
+                file=list_file,
+                target_extension=target_extension,
+                sample_loader=self.sample_loader,
+                sample_transform=self.sample_transform,
+                target_loader=self.target_loader,
+                target_transform=self.target_transform,
+                collate_fn=collate_fn,
+            )
         else:
-            DirectoryDataSet.__init__(self, root=root, samples_sub_directory=samples_sub_directory,
-                                      targets_sub_directory=targets_sub_directory, target_extension=target_extension,
-                                      sample_loader=self.sample_loader, sample_transform=self.sample_transform,
-                                      target_loader=self.target_loader, target_transform=self.target_transform,
-                                      collate_fn=collate_fn)
+            DirectoryDataSet.__init__(
+                self,
+                root=root,
+                samples_sub_directory=samples_sub_directory,
+                targets_sub_directory=targets_sub_directory,
+                target_extension=target_extension,
+                sample_loader=self.sample_loader,
+                sample_transform=self.sample_transform,
+                target_loader=self.target_loader,
+                target_transform=self.target_transform,
+                collate_fn=collate_fn,
+            )
 
         self.transforms = transform.Compose(transforms if transforms else [])
 
@@ -80,7 +100,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             :param sample_path: The path to the sample image
             :return:            The loaded Image
         """
-        image = Image.open(sample_path).convert('RGB')
+        image = Image.open(sample_path).convert("RGB")
         return image
 
     @staticmethod
@@ -91,9 +111,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             :param image:  The input image to transform
             :return:       The transformed image
         """
-        sample_transform = transform.Compose([
-            transform.ToTensor(),
-            transform.Normalize([.485, .456, .406], [.229, .224, .225])])
+        sample_transform = transform.Compose([transform.ToTensor(), transform.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
         return sample_transform(image)
 
@@ -133,17 +151,17 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         if self.cache_images:
             # CREATE AN EMPTY LIST FOR THE LABELS
             self.imgs = len(self) * [None]
-            cached_images_mem_in_gb = 0.
-            pbar = tqdm(image_files, desc='Caching images')
+            cached_images_mem_in_gb = 0.0
+            pbar = tqdm(image_files, desc="Caching images")
             for i, img_path in enumerate(pbar):
                 img = self.sample_loader(img_path)
                 if img is None:
                     image_indices_to_remove.append(i)
 
-                cached_images_mem_in_gb += os.path.getsize(image_files[i]) / 1024. ** 3.
+                cached_images_mem_in_gb += os.path.getsize(image_files[i]) / 1024.0**3.0
 
                 self.imgs[i] = img
-                pbar.desc = 'Caching images (%.1fGB)' % (cached_images_mem_in_gb)
+                pbar.desc = "Caching images (%.1fGB)" % (cached_images_mem_in_gb)
             self.img_files = [e for i, e in enumerate(image_files) if i not in image_indices_to_remove]
             self.imgs = [e for i, e in enumerate(self.imgs) if i not in image_indices_to_remove]
 
@@ -151,7 +169,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
         if self.cache_labels:
             # CREATE AN EMPTY LIST FOR THE LABELS
             self.labels = len(self) * [None]
-            pbar = tqdm(label_files, desc='Caching labels')
+            pbar = tqdm(label_files, desc="Caching labels")
             missing_labels, found_labels, duplicate_labels = 0, 0, 0
 
             for i, file in enumerate(pbar):
@@ -165,9 +183,13 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
                 self.labels[i] = labels
                 found_labels += 1
 
-                pbar.desc = 'Caching labels (%g found, %g missing, %g duplicate, for %g images)' % (
-                    found_labels, missing_labels, duplicate_labels, len(image_files))
-            assert found_labels > 0, 'No labels found.'
+                pbar.desc = "Caching labels (%g found, %g missing, %g duplicate, for %g images)" % (
+                    found_labels,
+                    missing_labels,
+                    duplicate_labels,
+                    len(image_files),
+                )
+            assert found_labels > 0, "No labels found."
 
             #  REMOVE THE IRRELEVANT ENTRIES FROM THE DATA
             self.label_files = [e for i, e in enumerate(label_files) if i not in image_indices_to_remove]
@@ -175,9 +197,9 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
 
     def _transform_image_and_mask(self, image, mask) -> tuple:
         """
-            :param image:           The input image
-            :param mask:            The input mask
-            :return:                The transformed image, mask
+        :param image:           The input image
+        :param mask:            The input mask
+        :return:                The transformed image, mask
         """
         transformed = self.transforms({"image": image, "mask": mask})
         return transformed["image"], transformed["mask"]

@@ -5,5 +5,11 @@ from super_gradients.training.datasets.segmentation_datasets.pascal_voc_segmenta
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
 
-__all__ = ['SegmentationDataSet', 'CoCoSegmentationDataSet', 'PascalAUG2012SegmentationDataSet',
-           'PascalVOC2012SegmentationDataSet', 'CityscapesDataset', 'SuperviselyPersonsDataset']
+__all__ = [
+    "SegmentationDataSet",
+    "CoCoSegmentationDataSet",
+    "PascalAUG2012SegmentationDataSet",
+    "PascalVOC2012SegmentationDataSet",
+    "CityscapesDataset",
+    "SuperviselyPersonsDataset",
+]

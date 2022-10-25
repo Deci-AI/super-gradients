@@ -4,10 +4,27 @@ from PIL import Image
 from super_gradients.training.datasets.segmentation_datasets.pascal_voc_segmentation import PascalVOC2012SegmentationDataSet
 
 PASCAL_AUG_CLASSES = [
-    'background', 'airplane', 'bicycle', 'bird', 'boat', 'bottle',
-    'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse',
-    'motorcycle', 'person', 'potted-plant', 'sheep', 'sofa', 'train',
-    'tv'
+    "background",
+    "airplane",
+    "bicycle",
+    "bird",
+    "boat",
+    "bottle",
+    "bus",
+    "car",
+    "cat",
+    "chair",
+    "cow",
+    "diningtable",
+    "dog",
+    "horse",
+    "motorcycle",
+    "person",
+    "potted-plant",
+    "sheep",
+    "sofa",
+    "train",
+    "tv",
 ]
 
 
@@ -17,8 +34,8 @@ class PascalAUG2012SegmentationDataSet(PascalVOC2012SegmentationDataSet):
     """
 
     def __init__(self, *args, **kwargs):
-        self.sample_suffix = '.jpg'
-        self.target_suffix = '.mat'
+        self.sample_suffix = ".jpg"
+        self.target_suffix = ".mat"
         super().__init__(sample_suffix=self.sample_suffix, target_suffix=self.target_suffix, *args, **kwargs)
 
         # THERE ARE 21 CLASSES, INCLUDING BACKGROUND
@@ -31,7 +48,6 @@ class PascalAUG2012SegmentationDataSet(PascalVOC2012SegmentationDataSet):
             :param target_path: The path to the target data
             :return:            The loaded target
         """
-        mat = scipy.io.loadmat(target_path, mat_dtype=True, squeeze_me=True,
-                               struct_as_record=False)
-        mask = mat['GTcls'].Segmentation
+        mat = scipy.io.loadmat(target_path, mat_dtype=True, squeeze_me=True, struct_as_record=False)
+        mask = mat["GTcls"].Segmentation
         return Image.fromarray(mask)

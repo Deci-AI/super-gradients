@@ -14,18 +14,17 @@ def count_parameters(model):
 
 
 class TestUtil(unittest.TestCase):
-
     def test_fuse_conv_bn_real_archs(self):
         """
         test the fuse_conv_bn function. run the function on some Sg architectures and assert
         the result of the original net are the same as the results of the fused net
         """
 
-        archs = ['resnet18', 'mobilenet_v2', 'densenet121', 'regnetY200']
+        archs = ["resnet18", "mobilenet_v2", "densenet121", "regnetY200"]
 
         for arch_name in archs:
 
-            model1 = ARCHITECTURES[arch_name](HpmStruct(**{'num_classes': 10, 'dropout': 0.1}))
+            model1 = ARCHITECTURES[arch_name](HpmStruct(**{"num_classes": 10, "dropout": 0.1}))
             model2 = copy.deepcopy(model1)
 
             model1.eval()
@@ -41,7 +40,7 @@ class TestUtil(unittest.TestCase):
             param_count2 = count_parameters(model2)
 
             self.assertTrue(torch.allclose(output1, output2, atol=1e-6))
-            print(f'Tested fuse Conv BN on {arch_name}: OK ({param_count1 - param_count2} less params)')
+            print(f"Tested fuse Conv BN on {arch_name}: OK ({param_count1 - param_count2} less params)")
 
     def test_fuse_conv_bn_on_sequential_models(self):
 
@@ -50,35 +49,33 @@ class TestUtil(unittest.TestCase):
         model.eval()
         fuse_conv_bn(model, replace_bn_with_identity=True)
         self.assertEqual(len(model._modules), 2)
-        self.assertIsInstance(model._modules['0'], nn.Conv2d)
-        self.assertIsInstance(model._modules['1'], nn.Identity)
+        self.assertIsInstance(model._modules["0"], nn.Conv2d)
+        self.assertIsInstance(model._modules["1"], nn.Identity)
 
         # assert the bn module was removed
         model = nn.Sequential(nn.Conv2d(3, 3, 3), nn.BatchNorm2d(3))
         model.eval()
         fuse_conv_bn(model, replace_bn_with_identity=False)
         self.assertEqual(len(model._modules), 1)
-        self.assertIsInstance(model._modules['0'], nn.Conv2d)
+        self.assertIsInstance(model._modules["0"], nn.Conv2d)
 
         # assert all bn module were removed
         model = nn.Sequential(nn.Conv2d(3, 3, 3), nn.BatchNorm2d(3), nn.Conv2d(3, 3, 3), nn.BatchNorm2d(3))
         model.eval()
         fuse_conv_bn(model, replace_bn_with_identity=False)
         self.assertEqual(len(model._modules), 2)
-        self.assertIsInstance(model._modules['0'], nn.Conv2d)
+        self.assertIsInstance(model._modules["0"], nn.Conv2d)
 
         # assert only merged bn module were removed
         model = nn.Sequential(nn.Conv2d(3, 3, 3), nn.Conv2d(3, 3, 3), nn.BatchNorm2d(3))
         model.eval()
         fuse_conv_bn(model, replace_bn_with_identity=False)
         self.assertEqual(len(model._modules), 2)
-        self.assertIsInstance(model._modules['0'], nn.Conv2d)
-        self.assertIsInstance(model._modules['1'], nn.Conv2d)
+        self.assertIsInstance(model._modules["0"], nn.Conv2d)
+        self.assertIsInstance(model._modules["1"], nn.Conv2d)
 
     def test_fuse_conv_bn_on_toy_models(self):
-
         class Toy(nn.Module):
-
             def __init__(self):
                 super().__init__()
                 self.conv1 = nn.Conv2d(3, 3, 3)
@@ -105,16 +102,16 @@ class TestUtil(unittest.TestCase):
         model = Toy()
         model.eval()
         fuse_conv_bn(model, replace_bn_with_identity=False)
-        self.assertFalse(hasattr(model, 'bn1'))
+        self.assertFalse(hasattr(model, "bn1"))
         self.assertIsInstance(model.conv1, nn.Conv2d)
 
         # assert all bn module were removed
         model = Toy()
         model.eval()
         fuse_conv_bn(model, replace_bn_with_identity=False)
-        self.assertFalse(hasattr(model, 'bn1'))
+        self.assertFalse(hasattr(model, "bn1"))
         self.assertIsInstance(model.conv1, nn.Conv2d)
-        self.assertFalse(hasattr(model, 'bn2'))
+        self.assertFalse(hasattr(model, "bn2"))
         self.assertIsInstance(model.conv2, nn.Conv2d)
 
         # assert correct number of parameters removed
@@ -126,5 +123,5 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(before - after, 12)  # each bn of 3 channels has 6 parameters (12 together)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

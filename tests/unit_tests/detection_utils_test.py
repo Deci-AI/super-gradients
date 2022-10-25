@@ -12,7 +12,7 @@ class TestDetectionUtils(unittest.TestCase):
     def test_visualization(self):
 
         # Create Yolo model
-        trainer = Trainer('visualization_test')
+        trainer = Trainer("visualization_test")
         model = models.get("yolox_n", pretrained_weights="coco")
         post_prediction_callback = YoloPostPredictionCallback()
 
@@ -24,16 +24,15 @@ class TestDetectionUtils(unittest.TestCase):
         output = model(imgs)
         output = post_prediction_callback(output)
         # Visualize the batch
-        DetectionVisualization.visualize_batch(imgs, output, targets, batch_i,
-                                               COCO_DETECTION_CLASSES_LIST, trainer.checkpoints_dir_path)
+        DetectionVisualization.visualize_batch(imgs, output, targets, batch_i, COCO_DETECTION_CLASSES_LIST, trainer.checkpoints_dir_path)
 
         # Assert images ware created and delete them
-        img_name = '{}/{}_{}.jpg'
+        img_name = "{}/{}_{}.jpg"
         for i in range(4):
             img_path = img_name.format(trainer.checkpoints_dir_path, batch_i, i)
             self.assertTrue(os.path.exists(img_path))
             os.remove(img_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
