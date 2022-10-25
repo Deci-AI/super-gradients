@@ -50,13 +50,17 @@ jobs:
                   equal: [ master, << pipeline.git.branch >> ]
           steps:
             - run:
-                name: install Flake8 python linter
+                name: install Black Flake8 python linter
                 command: |
-                  pip install --user flake8
+                  pip install --user black flake8
             - run:
                 name: Lint all python files changed since develop branch
                 command: |
                   flake8 --statistics --config scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$' | grep -v 'experimental/' | grep -v 'experimental_models/')
+            - run:
+                name: Run Black on changed files against master branch
+                command: |
+                  black --check $(git diff --diff-filter ACM origin/master --name-only | grep 'py$' | grep -v 'experimental/' | grep -v 'experimental_models/')
       - run:
           name: add requirements.txt to source code
           command: |
@@ -225,4 +229,3 @@ workflows:
           requires:
             - "build3.7"
           <<: *release_candidate_filter
-
