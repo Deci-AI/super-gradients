@@ -60,7 +60,7 @@ jobs:
             - run:
                 name: Run Black on changed files against master branch
                 command: |
-                  black --check $(git diff --diff-filter ACM origin/master --name-only | grep 'py$' | grep -v 'experimental/' | grep -v 'experimental_models/')
+                  black --check setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$' | grep -v 'experimental/' | grep -v 'experimental_models/')
       - run:
           name: add requirements.txt to source code
           command: |
