@@ -162,6 +162,9 @@ class Trainer:
         @return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
+        if not os.environ["DECI_PLATFORM_TOKEN"]:
+            os.environ["DECI_PLATFORM_TOKEN"] = core_utils.get_param(cfg, 'premium_token', '')
+
         setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, 'multi_gpu', MultiGPUMode.OFF),
                        num_gpus=core_utils.get_param(cfg, 'num_gpus'))
 
