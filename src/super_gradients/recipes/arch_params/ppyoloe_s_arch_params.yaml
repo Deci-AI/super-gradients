@@ -6,7 +6,7 @@ anchors:
   anchors_list: [[], [], []]
   strides: [8, 16, 32]
 
-yolo_type: 'ppyoloe'
+yolo_type: 'pp_yolo_e'
 
 depth_mult_factor: 1.33
 width_mult_factor: 1.25

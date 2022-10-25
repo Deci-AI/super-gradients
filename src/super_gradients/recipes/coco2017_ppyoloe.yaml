@@ -39,7 +39,7 @@ resume: False
 training_hyperparams:
   resume: ${resume}
 
-architecture: ppyoloe_s
+architecture: pp_yoloe_s
 
 #multi_gpu: DDP
 #num_gpus: 8
