@@ -52,7 +52,7 @@ jobs:
             - run:
                 name: install Black Flake8 python linter
                 command: |
-                  pip install --user black flake8
+                  pip install --user black==22.10.0 flake8==5.0.4
             - run:
                 name: Lint all python files changed since develop branch
                 command: |
