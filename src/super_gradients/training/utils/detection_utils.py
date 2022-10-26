@@ -1165,28 +1165,30 @@ def compute_detection_metrics_per_cls(
     return ap, precision, recall
 
 
-class DetectionOutputFormat(Enum):
+class DetectionOutputFormat:
     """
     Enum class for the different detection output formats
 
     """
 
-    XYXY_SCORE_LABEL = "XYXY_SCORE_LABEL"
-    XYXY_LABEL_SCORE = "XYXY_LABEL_SCORE"
+    BBOXES_FORMAT_XYXY = "XYXY"
+    BBOXES_FORMAT_XYWH = "XYWH"
+    BBOXES_FORMAT_CXCYWH = "CXCYWH"
 
-    LABEL_XYXY = "LABEL_XYXY"
-    LABEL_NORMALIZED_XYXY = "LABEL_NORMALIZED_XYXY"
-    NORMALIZED_XYXY_LABEL = "NORMALIZED_XYXY_LABEL"
-    LABEL_CXCYWH = "LABEL_CXCYWH"
-    CXCYWH_LABEL = "CXCYWH_LABEL"
-    LABEL_NORMALIZED_CXCYWH = "LABEL_NORMALIZED_CXCYWH"
-    NORMALIZED_CXCYWH_LABEL = "NORMALIZED_CXCYWH_LABEL"
+    BBOXES_FORMAT_NORMALIZED_XYXY = "NORMALIZED_XYXY"
+    BBOXES_FORMAT_NORMALIZED_XYWH = "NORMALIZED_XYWH"
+    BBOXES_FORMAT_NORMALIZED_CXCYWH = "NORMALIZED_CXCYWH"
+
+    CLASS_CONFIDENCE = "CLASS_CONFIDENCE"
+    CLASS_INDEX = "CLASS_INDEX"
+
+    INDEX_PREFIX = "INDEX_"
+
+    def element_at_index(self, index):
+        return f"{self.INDEX_PREFIX}{index}"
 
 
-SUPPORTED_BOX_FORMATS = {"XYXY", "XYWH", "CXCYWH", "NORMALIZED_XYXY", "NORMALIZED_CXCYWH", "NORMALIZED_XYWH"}
-
-
-class DetectionFormatConversionAdapter(nn.Module):
+class DetectionOutputAdapter(nn.Module):
 
     """
     Converts the output format of the bounding boxes to the desired format.
@@ -1196,6 +1198,15 @@ class DetectionFormatConversionAdapter(nn.Module):
     >>> output_format=[['NORMALIZED_XYWH'], ['CLS_CONF', 'CLS_INDEX']] # Output format is [(Tensor(N),), (Tensor[N,4], Tensor[N])]
     >>> output_format=[['XYWH'],['CLS_INDEX', 'CLS_CONF'], ['INDEX_7']] # Output format is [(Tensor(N,4),), (Tensor[N], Tensor[N],), (Tensor[N],)]
     """
+
+    SUPPORTED_BOX_FORMATS = {
+        DetectionOutputFormat.BBOXES_FORMAT_XYXY,
+        DetectionOutputFormat.BBOXES_FORMAT_XYWH,
+        DetectionOutputFormat.BBOXES_FORMAT_CXCYWH,
+        DetectionOutputFormat.BBOXES_FORMAT_NORMALIZED_XYXY,
+        DetectionOutputFormat.BBOXES_FORMAT_NORMALIZED_XYWH,
+        DetectionOutputFormat.BBOXES_FORMAT_NORMALIZED_CXCYWH,
+    }
 
     @staticmethod
     def noop(x):
@@ -1212,16 +1223,16 @@ class DetectionFormatConversionAdapter(nn.Module):
         if bbox_format is None:
             raise RuntimeError(
                 f"Could not infer format of output bounding boxes. "
-                f"Ensure that you specify one of {SUPPORTED_BOX_FORMATS} constants in `output_format` argument."
+                f"Ensure that you specify one of {self.SUPPORTED_BOX_FORMATS} constants in `output_format` argument."
             )
 
         self.convert_boxes_to_output_format = {
-            "XYXY": self.noop,
-            "CXCYWH": xyxy2cxcywh,
-            "XYWH": xyxy2xywh,
-            "NORMALIZED_XYXY": partial(xyxy2normalizedxyxy, image_shape=image_shape),
-            "NORMALIZED_CXCYWH": partial(xyxy2normalizedcxcywh, image_shape=image_shape),
-            "NORMALIZED_XYWH": partial(xyxy2normalizedxywh, image_shape=image_shape),
+            DetectionOutputFormat.BBOXES_FORMAT_XYXY: self.noop,
+            DetectionOutputFormat.BBOXES_FORMAT_XYWH: xyxy2xywh,
+            DetectionOutputFormat.BBOXES_FORMAT_CXCYWH: xyxy2cxcywh,
+            DetectionOutputFormat.BBOXES_FORMAT_NORMALIZED_XYXY: partial(xyxy2normalizedxyxy, image_shape=image_shape),
+            DetectionOutputFormat.BBOXES_FORMAT_NORMALIZED_XYWH: partial(xyxy2normalizedxywh, image_shape=image_shape),
+            DetectionOutputFormat.BBOXES_FORMAT_NORMALIZED_CXCYWH: partial(xyxy2normalizedcxcywh, image_shape=image_shape),
         }[bbox_format]
 
         self.output_slices = self.build_output_slices(output_format)
@@ -1250,7 +1261,7 @@ class DetectionFormatConversionAdapter(nn.Module):
     @classmethod
     def infer_bbox_format(cls, output_format: Union[List[str], List[List[str]]]) -> Union[str, None]:
         if isinstance(output_format, str):
-            if output_format in SUPPORTED_BOX_FORMATS:
+            if output_format in cls.SUPPORTED_BOX_FORMATS:
                 return output_format
         elif isinstance(output_format, Iterable):
             formats = [cls.infer_bbox_format(x) for x in output_format]
@@ -1267,13 +1278,13 @@ class DetectionFormatConversionAdapter(nn.Module):
 
     @classmethod
     def build_output_slices(cls, output_format: Union[List[str], List[List[str]]]) -> Union[int, slice, Tuple]:
-        if isinstance(output_format, str) and output_format in SUPPORTED_BOX_FORMATS:
+        if isinstance(output_format, str) and output_format in cls.SUPPORTED_BOX_FORMATS:
             return slice(0, 4)
-        if isinstance(output_format, str) and output_format.startswith("INDEX_"):
-            return int(output_format.replace("INDEX_", ""))
-        if output_format == "CLS_CONF":
+        if isinstance(output_format, str) and output_format.startswith(DetectionOutputFormat.INDEX_PREFIX):
+            return int(output_format.replace(DetectionOutputFormat.INDEX_PREFIX, ""))
+        if output_format == DetectionOutputFormat.CLASS_CONFIDENCE:
             return 4
-        if output_format == "CLS_INDEX":
+        if output_format == DetectionOutputFormat.CLASS_INDEX:
             return 5
         if isinstance(output_format, Iterable) and not isinstance(output_format, str):
             return tuple([cls.build_output_slices(x) for x in output_format])
