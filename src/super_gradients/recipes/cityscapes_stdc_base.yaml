@@ -13,7 +13,6 @@ data_loader_num_workers: 10
 arch_params:
   num_classes: 19
   use_aux_heads: True
-  sync_bn: True
 
 checkpoint_params:
   checkpoint_path:
@@ -23,6 +22,10 @@ checkpoint_params:
 
 architecture: stdc1_seg
 experiment_name: ${architecture}_cityscapes
+
+training_hyperparams:
+  sync_bn: True
+
 
 
 ckpt_root_dir:
