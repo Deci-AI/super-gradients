@@ -7,7 +7,7 @@ from super_gradients.training import Trainer, utils as core_utils, models
 from super_gradients.training.dataloaders.dataloaders import coco2017_val
 from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
-from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionFormatConversionAdapter
+from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionOutputAdapter, DetectionOutputFormat
 
 
 class TestDetectionUtils(unittest.TestCase):
@@ -46,15 +46,34 @@ class TestDetectionUtils(unittest.TestCase):
 
         batch_size = len(input_boxes)
         image_shape = (480, 640)
-        output_format = ["XYWH", "CLS_INDEX"]
-        adapter = DetectionFormatConversionAdapter(output_format, image_shape)
+
+        output_format = [DetectionOutputFormat.BBOXES_FORMAT_XYWH, DetectionOutputFormat.CLASS_INDEX]
+        adapter = DetectionOutputAdapter(output_format, image_shape)
         outputs = adapter(input_boxes)
         self.assertEqual(len(outputs), batch_size)
-        for output in outputs:
-            self.assertEqual(len(output), 2)
-            self.assertEqual(output[1].size(0), output[0].size(0))
-            self.assertEqual(output[0].size(1), 4)
-            self.assertEqual(len(output[1].size()), 1)
+        for (bboxes, cls_index) in outputs:
+            self.assertEqual(cls_index.size(0), bboxes.size(0))
+            self.assertEqual(bboxes.size(1), 4)
+            self.assertEqual(len(cls_index.size()), 1)
+
+        output_format = ["CXCYWH", ["INDEX_4", "INDEX_5"]]
+        adapter = DetectionOutputAdapter(output_format, image_shape)
+        outputs = adapter(input_boxes)
+        self.assertEqual(len(outputs), batch_size)
+        for (bboxes, (index_4, index_5)) in outputs:
+            self.assertEqual(index_4.size(0), bboxes.size(0))
+            self.assertEqual(index_5.size(0), bboxes.size(0))
+            self.assertEqual(bboxes.size(1), 4)
+            self.assertEqual(len(index_4.size()), 1)
+            self.assertEqual(len(index_5.size()), 1)
+
+        output_format = [[DetectionOutputFormat.CLASS_INDEX, DetectionOutputFormat.CLASS_CONFIDENCE], DetectionOutputFormat.BBOXES_FORMAT_NORMALIZED_XYWH]
+        adapter = DetectionOutputAdapter(output_format, image_shape)
+        outputs = adapter(input_boxes)
+        self.assertEqual(len(outputs), batch_size)
+        for ((cls_index, cls_conf), bboxes) in outputs:
+            self.assertEqual(bboxes.size(1), 4)
+            self.assertEqual(len(cls_index.size()), 1)
 
 
 if __name__ == "__main__":
