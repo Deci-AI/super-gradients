@@ -1194,9 +1194,9 @@ class DetectionOutputAdapter(nn.Module):
     Converts the output format of the bounding boxes to the desired format.
 
     >>> output_format=['XYWH', 'CLS_INDEX'] # Output format is [Tensor(N,4), Tensor[N]]
-    >>> output_format=['CLS_CONF', 'XYXY', 'CLS_INDEX'] # Output format is [Tensor(N), Tensor[N,4], Tensor[N]]
-    >>> output_format=[['NORMALIZED_XYWH'], ['CLS_CONF', 'CLS_INDEX']] # Output format is [(Tensor(N),), (Tensor[N,4], Tensor[N])]
-    >>> output_format=[['XYWH'],['CLS_INDEX', 'CLS_CONF'], ['INDEX_7']] # Output format is [(Tensor(N,4),), (Tensor[N], Tensor[N],), (Tensor[N],)]
+    >>> output_format=['CLS_CONF', 'XYXY', 'CLASS_INDEX'] # Output format is [Tensor(N), Tensor[N,4], Tensor[N]]
+    >>> output_format=[['NORMALIZED_XYWH'], ['CLASS_CONFIDENCE', 'CLASS_INDEX']] # Output format is [(Tensor(N),), (Tensor[N,4], Tensor[N])]
+    >>> output_format=[['XYWH'],['CLASS_INDEX', 'CLASS_CONFIDENCE'], ['INDEX_7']] # Output format is [(Tensor(N,4),), (Tensor[N], Tensor[N],), (Tensor[N],)]
     """
 
     SUPPORTED_BOX_FORMATS = {
