@@ -26,9 +26,7 @@ class TestDetectionUtils(unittest.TestCase):
         output = model(imgs)
         output = post_prediction_callback(output)
         # Visualize the batch
-        DetectionVisualization.visualize_batch(
-            imgs, output, targets, batch_i, COCO_DETECTION_CLASSES_LIST, trainer.checkpoints_dir_path
-        )
+        DetectionVisualization.visualize_batch(imgs, output, targets, batch_i, COCO_DETECTION_CLASSES_LIST, trainer.checkpoints_dir_path)
 
         # Assert images ware created and delete them
         img_name = "{}/{}_{}.jpg"
