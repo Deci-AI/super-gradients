@@ -109,6 +109,11 @@ ________________________________________________________________________________
 pip install super-gradients
 ```
 
+If you are a premium user of Deci, please run instead:
+```bash
+pip install super-gradients[deci-client]
+```
+
 ## What's New
 __________________________________________________________________________________________________________
 * 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)  for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
