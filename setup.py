@@ -33,7 +33,7 @@ def get_version():
     with open(VERSION_FILE, encoding="utf-8") as f:
         return f.readline()
 
-print({"deci-client": get_deci_client_requirements()})
+
 setup(
     name='super-gradients',
     version=get_version(),
