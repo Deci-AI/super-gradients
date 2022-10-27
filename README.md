@@ -109,7 +109,7 @@ ________________________________________________________________________________
 pip install super-gradients
 ```
 
-If you are a premium user of Deci, please run instead:
+Note: If you are a premium user of Deci, please run instead
 ```bash
 pip install super-gradients[deci-client]
 ```
