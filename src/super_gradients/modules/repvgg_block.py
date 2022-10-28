@@ -8,9 +8,10 @@ from torch import nn
 class RepVGGBlock(nn.Module):
     """
     Repvgg block consists of three branches
-    3x3: a branch of a 3x3 convolution + batchnorm + activation
-    1x1: a branch of a 1x1 convolution + batchnorm + activation
-    no_conv_branch: a branch with only batchnorm which will only be used if input channel == output channel
+    3x3: a branch of a 3x3 Convolution + BatchNorm + Activation
+    1x1: a branch of a 1x1 Convolution + BatchNorm + Activation
+    no_conv_branch: a branch with only BatchNorm which will only be used if
+        input channel == output channel and use_residual_connection is True
     (usually in all but the first block of each stage)
     """
 
@@ -36,8 +37,8 @@ class RepVGGBlock(nn.Module):
         :param activation_type: Type of the nonlinearity
         :param se_type: Type of the se block (Use nn.Identity to disable SE)
         :param stride: Output stride
-        :param dilation:
-        :param groups:
+        :param dilation: Dilation factor for 3x3 conv
+        :param groups: Number of groups used in convolutions
         :param activation_kwargs: Additional arguments for instantiating activation module.
         :param se_kwargs: Additional arguments for instantiating SE module.
         :param build_residual_branches: Whether to initialize block with already fused paramters (for deployment)
