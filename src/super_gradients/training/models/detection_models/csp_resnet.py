@@ -11,20 +11,28 @@ __all__ = ["CSPResNet"]
 
 
 class CSPResNetBasicBlock(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, activation_type: Type[nn.Module], shortcut=True, use_alpha=False):
+    def __init__(self, in_channels: int, out_channels: int, activation_type: Type[nn.Module], use_residual_connection: bool = True, use_alpha=False):
+        """
+
+        :param in_channels:
+        :param out_channels:
+        :param activation_type:
+        :param use_residual_connection: Whether to add input x to the output
+        :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch in RepVGGBlock
+        """
         super().__init__()
-        if shortcut and in_channels != out_channels:
+        if use_residual_connection and in_channels != out_channels:
             raise RuntimeError("Number of input channels must be equal to the number of output channels when shortcut=True")
         self.conv1 = ConvBNAct(in_channels, out_channels, kernel_size=3, stride=1, padding=1, activation_type=activation_type, bias=False)
         self.conv2 = RepVGGBlock(
             out_channels, out_channels, activation_type=activation_type, se_type=nn.Identity, use_residual_connection=False, use_alpha=use_alpha
         )
-        self.shortcut = shortcut
+        self.use_residual_connection = use_residual_connection
 
     def forward(self, x):
         y = self.conv1(x)
         y = self.conv2(y)
-        if self.shortcut:
+        if self.use_residual_connection:
             return x + y
         else:
             return y
@@ -43,13 +51,12 @@ class CSPResStage(nn.Module):
     ):
         """
 
-        :param block_type:
-        :param in_channels:
-        :param out_channels:
-        :param num_blocks:
-        :param stride: Desired downsampling for the stage (Usually 2)
-        :param activation_type:
-        :param use_attention:
+        :param in_channels: Number of input channels
+        :param out_channels: Number of output channels
+        :param num_blocks: Number of blocks in stage
+        :param stride: Desired down-sampling for the stage (Usually 2)
+        :param activation_type: Non-linearity type used in child modules.
+        :param use_attention: If True, adds EffectiveSEBlock at the end of each stage
         :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch in underlying RepVGG blocks (PP-Yolo-E Plus)
         """
         super().__init__()
@@ -67,7 +74,6 @@ class CSPResStage(nn.Module):
                     in_channels=mid_channels // 2,
                     out_channels=mid_channels // 2,
                     activation_type=activation_type,
-                    shortcut=True,
                     use_alpha=use_alpha,
                 )
                 for _ in range(num_blocks)
@@ -109,14 +115,14 @@ class CSPResNet(nn.Module):
     ):
         """
 
-        :param layers:
-        :param channels:
-        :param activation_type:
-        :param return_idx:
-        :param use_large_stem:
-        :param width_mult:
-        :param depth_mult:
-        :param use_alpha:
+        :param layers: Number of blocks in each stage
+        :param channels: Number of channels [stem, stage 0, stage 1, stage 2, ...]
+        :param activation_type: Used activation type for all child modules.
+        :param return_idx: Indexes of returned feature maps
+        :param use_large_stem: If True, uses 3 conv+bn+act instead of 2 in stem blocks
+        :param width_mult: Scaling factor for a number of channels
+        :param depth_mult: Scaling factor for a number of blocks in each stage
+        :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch in RepVGGBlock
         """
         super().__init__()
         channels = [max(round(num_channels * width_mult), 1) for num_channels in channels]
