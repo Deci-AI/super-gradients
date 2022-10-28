@@ -1,81 +1,13 @@
 import collections
-from typing import List, Union, Type
+from typing import List, Type
 
 import torch
 from torch import nn, Tensor
+
+from super_gradients.modules import RepVGGBlock
 from super_gradients.training.utils.module_utils import ConvBNAct
 
 __all__ = ["CSPResNet"]
-
-
-class RepVggBlock(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, act: Type, alpha: bool = False):
-        super().__init__()
-        self.ch_in = in_channels
-        self.ch_out = out_channels
-        self.conv1 = ConvBNAct(in_channels, out_channels, kernel_size=3, stride=1, padding=1, activation_type=nn.Identity, bias=False)
-        self.conv2 = ConvBNAct(in_channels, out_channels, kernel_size=1, stride=1, padding=0, activation_type=nn.Identity, bias=False)
-        self.act = act()
-        if alpha:
-            self.alpha = torch.nn.Parameter(torch.tensor([1]), requires_grad=True)
-        else:
-            self.alpha = None
-
-    def forward(self, x):
-        if hasattr(self, "conv"):
-            y = self.conv(x)
-        else:
-            if self.alpha:
-                y = self.conv1(x) + self.alpha * self.conv2(x)
-            else:
-                y = self.conv1(x) + self.conv2(x)
-        y = self.act(y)
-        return y
-
-    def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
-        """
-        Prepare the model to be converted to ONNX or other frameworks.
-        Typically, this function will freeze the size of layers which is otherwise flexible, replace some modules
-        with convertible substitutes and remove all auxiliary or training related parts.
-        :param input_size: [H,W]
-        """
-        if self.training:
-            raise RuntimeError("Module has to be in eval mode to be converted")
-
-        if not hasattr(self, "conv"):
-            self.conv = nn.Conv2d(in_channels=self.ch_in, out_channels=self.ch_out, kernel_size=3, stride=1, padding=1, groups=1)
-        kernel, bias = self._get_equivalent_kernel_bias()
-        self.conv.weight.data = kernel
-        self.conv.bias.data = bias
-        self.__delattr__("conv1")
-        self.__delattr__("conv2")
-
-    def _get_equivalent_kernel_bias(self):
-        kernel3x3, bias3x3 = self._fuse_bn_tensor(self.conv1)
-        kernel1x1, bias1x1 = self._fuse_bn_tensor(self.conv2)
-        if self.alpha:
-            return kernel3x3 + self.alpha * self._pad_1x1_to_3x3_tensor(kernel1x1), bias3x3 + self.alpha * bias1x1
-        else:
-            return kernel3x3 + self._pad_1x1_to_3x3_tensor(kernel1x1), bias3x3 + bias1x1
-
-    def _pad_1x1_to_3x3_tensor(self, kernel1x1):
-        if kernel1x1 is None:
-            return 0
-        else:
-            return torch.nn.functional.pad(kernel1x1, [1, 1, 1, 1])
-
-    def _fuse_bn_tensor(self, branch):
-        if branch is None:
-            return 0, 0
-        kernel = branch.conv.weight
-        running_mean = branch.bn.running_mean
-        running_var = branch.bn.running_var
-        gamma = branch.bn.weight
-        beta = branch.bn.bias
-        eps = branch.bn.eps
-        std = (running_var + eps).sqrt()
-        t = (gamma / std).reshape((-1, 1, 1, 1))
-        return kernel * t, beta - running_mean * gamma / std
 
 
 class BasicBlock(nn.Module):
@@ -84,7 +16,9 @@ class BasicBlock(nn.Module):
         if shortcut and in_channels != out_channels:
             raise RuntimeError("Number of input channels must be equal to the number of output channels when shortcut=True")
         self.conv1 = ConvBNAct(in_channels, out_channels, kernel_size=3, stride=1, padding=1, activation_type=activation_type, bias=False)
-        self.conv2 = RepVggBlock(out_channels, out_channels, act=activation_type, alpha=use_alpha)
+        self.conv2 = RepVGGBlock(
+            out_channels, out_channels, activation_type=activation_type, se_type=nn.Identity, use_residual_connection=False, use_alpha=use_alpha
+        )
         self.shortcut = shortcut
 
     def forward(self, x):
@@ -101,9 +35,9 @@ class EffectiveSELayer(nn.Module):
     From `CenterMask : Real-Time Anchor-Free Instance Segmentation` - https://arxiv.org/abs/1911.06667
     """
 
-    def __init__(self, channels: int):
+    def __init__(self, in_channels: int):
         super(EffectiveSELayer, self).__init__()
-        self.fc = nn.Conv2d(channels, channels, kernel_size=1, padding=0)
+        self.fc = nn.Conv2d(in_channels, in_channels, kernel_size=1, padding=0)
         self.act = nn.Hardsigmoid(inplace=True)
 
     def forward(self, x):
@@ -251,14 +185,3 @@ class CSPResNet(nn.Module):
                 outs.append(x)
 
         return outs
-
-    def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
-        """
-        Prepare the model to be converted to ONNX or other frameworks.
-        Typically, this function will freeze the size of layers which is otherwise flexible, replace some modules
-        with convertible substitutes and remove all auxiliary or training related parts.
-        :param input_size: [H,W]
-        """
-        for module in self.modules():
-            if isinstance(module, RepVggBlock):
-                module.prep_model_for_conversion(input_size)
