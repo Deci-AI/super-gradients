@@ -4,13 +4,13 @@ from typing import List, Type
 import torch
 from torch import nn, Tensor
 
-from super_gradients.modules import RepVGGBlock
+from super_gradients.modules import RepVGGBlock, EffectiveSEBlock
 from super_gradients.training.utils.module_utils import ConvBNAct
 
 __all__ = ["CSPResNet"]
 
 
-class BasicBlock(nn.Module):
+class CSPResNetBasicBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, activation_type: Type[nn.Module], shortcut=True, use_alpha=False):
         super().__init__()
         if shortcut and in_channels != out_channels:
@@ -30,26 +30,9 @@ class BasicBlock(nn.Module):
             return y
 
 
-class EffectiveSELayer(nn.Module):
-    """Effective Squeeze-Excitation
-    From `CenterMask : Real-Time Anchor-Free Instance Segmentation` - https://arxiv.org/abs/1911.06667
-    """
-
-    def __init__(self, in_channels: int):
-        super(EffectiveSELayer, self).__init__()
-        self.fc = nn.Conv2d(in_channels, in_channels, kernel_size=1, padding=0)
-        self.act = nn.Hardsigmoid(inplace=True)
-
-    def forward(self, x):
-        x_se = x.mean((2, 3), keepdim=True)
-        x_se = self.fc(x_se)
-        return x * self.act(x_se)
-
-
 class CSPResStage(nn.Module):
     def __init__(
         self,
-        block_fn: Type[nn.Module],
         in_channels: int,
         out_channels: int,
         num_blocks,
@@ -58,20 +41,31 @@ class CSPResStage(nn.Module):
         use_attention: bool = True,
         use_alpha: bool = False,
     ):
+        """
+
+        :param block_type:
+        :param in_channels:
+        :param out_channels:
+        :param num_blocks:
+        :param stride: Desired downsampling for the stage (Usually 2)
+        :param activation_type:
+        :param use_attention:
+        :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch in underlying RepVGG blocks (PP-Yolo-E Plus)
+        """
         super().__init__()
 
         mid_channels = (in_channels + out_channels) // 2
-        if stride == 2:
-            self.conv_down = ConvBNAct(in_channels, mid_channels, 3, stride=2, padding=1, activation_type=activation_type, bias=False)
+        if stride != 1:
+            self.conv_down = ConvBNAct(in_channels, mid_channels, 3, stride=stride, padding=1, activation_type=activation_type, bias=False)
         else:
             self.conv_down = None
         self.conv1 = ConvBNAct(mid_channels, mid_channels // 2, kernel_size=1, stride=1, padding=0, activation_type=activation_type, bias=False)
         self.conv2 = ConvBNAct(mid_channels, mid_channels // 2, kernel_size=1, stride=1, padding=0, activation_type=activation_type, bias=False)
         self.blocks = nn.Sequential(
             *[
-                block_fn(
-                    mid_channels // 2,
-                    mid_channels // 2,
+                CSPResNetBasicBlock(
+                    in_channels=mid_channels // 2,
+                    out_channels=mid_channels // 2,
                     activation_type=activation_type,
                     shortcut=True,
                     use_alpha=use_alpha,
@@ -80,7 +74,7 @@ class CSPResStage(nn.Module):
             ]
         )
         if use_attention:
-            self.attn = EffectiveSELayer(mid_channels)
+            self.attn = EffectiveSEBlock(mid_channels)
         else:
             self.attn = nn.Identity()
 
@@ -98,6 +92,10 @@ class CSPResStage(nn.Module):
 
 
 class CSPResNet(nn.Module):
+    """
+    CSPResNet backbone
+    """
+
     def __init__(
         self,
         layers=[3, 6, 6, 3],
@@ -105,10 +103,21 @@ class CSPResNet(nn.Module):
         activation_type: Type[nn.Module] = torch.nn.SiLU,
         return_idx=[1, 2, 3],
         use_large_stem: bool = True,
-        width_mult=1.0,
-        depth_mult=1.0,
+        width_mult: float = 1.0,
+        depth_mult: float = 1.0,
         use_alpha: bool = False,
     ):
+        """
+
+        :param layers:
+        :param channels:
+        :param activation_type:
+        :param return_idx:
+        :param use_large_stem:
+        :param width_mult:
+        :param depth_mult:
+        :param use_alpha:
+        """
         super().__init__()
         channels = [max(round(num_channels * width_mult), 1) for num_channels in channels]
         layers = [max(round(num_layers * depth_mult), 1) for num_layers in layers]
@@ -160,7 +169,6 @@ class CSPResNet(nn.Module):
         self.stages = nn.ModuleList(
             [
                 CSPResStage(
-                    BasicBlock,
                     channels[i],
                     channels[i + 1],
                     layers[i],
