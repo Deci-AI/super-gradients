@@ -35,7 +35,7 @@ class NStageBackbone(nn.Module):
         for i in range(1, self.num_stages + 1):
             setattr(self, f'stage{i}', factory.get(arch_params[f'stage{i}'], prev_channels))
             prev_channels = getattr(self, f'stage{i}').out_channels
-        self.context_module = factory.get(arch_params.context_module, self.stage4.out_channels)
+        self.context_module = factory.get(arch_params.context_module, prev_channels)
 
         self.out_layers = arch_params.out_layers
         self.out_channels = self._get_out_channels()
