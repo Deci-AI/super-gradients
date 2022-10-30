@@ -58,9 +58,10 @@ jobs:
                 command: |
                   flake8 --statistics --config scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$' | grep -v 'experimental/' | grep -v 'experimental_models/')
       - run:
-          name: add requirements.txt to source code
+          name: add requirements.txt and requirements.pro.txt to source code
           command: |
             cp requirements.txt src/super_gradients/requirements.txt
+            cp requirements.pro.txt src/super_gradients/requirements.pro.txt
       - run:
           name: install python dependencies
           command: |
