@@ -10,11 +10,9 @@ import hydra
 import pkg_resources
 
 from super_gradients import Trainer, init_trainer
-from super_gradients.common.upload_feedback import log_exceptions
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
-@log_exceptions
 def main(cfg: DictConfig) -> None:
     Trainer.train_from_config(cfg)
 

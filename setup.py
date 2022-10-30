@@ -28,29 +28,6 @@ def get_version():
         return f.readline()
 
 
-def get_extra_requires(path, add_all=True):
-    import re
-    from collections import defaultdict
-
-    with open(path) as fp:
-        extra_deps = defaultdict(set)
-        for k in fp:
-            if k.strip() and not k.startswith('#'):
-                tags = set()
-                if ':' in k:
-                    k, v = k.split(':')
-                    tags.update(vv.strip() for vv in v.split(','))
-                tags.add(re.split('[<=>]', k)[0])
-                for t in tags:
-                    extra_deps[t].add(k)
-
-        # add tag `all` at the end
-        if add_all:
-            extra_deps['all'] = set(vv for v in extra_deps.values() for vv in v)
-
-    return extra_deps
-
-
 setup(
     name='super-gradients',
     version=get_version(),
@@ -69,6 +46,5 @@ setup(
         'super_gradients': ['requirements.txt'],
     },
     long_description=readme(),
-    long_description_content_type="text/markdown",
-    extras_require={}
+    long_description_content_type="text/markdown"
 )

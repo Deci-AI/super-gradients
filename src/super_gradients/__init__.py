@@ -1,5 +1,5 @@
 from super_gradients.training import ARCHITECTURES, losses, utils, datasets_utils, DataAugmentation, Trainer, KDTrainer
-from super_gradients.common import init_trainer, is_distributed, object_names, upload_feedback
+from super_gradients.common import init_trainer, is_distributed, object_names
 from super_gradients.examples.train_from_recipe_example import train_from_recipe
 from super_gradients.examples.train_from_kd_recipe_example import train_from_kd_recipe
 from super_gradients.sanity_check import env_sanity_check
@@ -10,6 +10,3 @@ __all__ = ['ARCHITECTURES', 'losses', 'utils', 'datasets_utils', 'DataAugmentati
            'env_sanity_check']
 
 env_sanity_check()
-# from super_gradients.common import upload_feedback
-
-raise ValueError("This is an arror")
