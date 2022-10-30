@@ -21,6 +21,17 @@ class HydraResolversTest(unittest.TestCase):
         assert conf["a_plus_b"] == 3
         assert conf["a_plus_b_plus_c"] == 6
 
+    def test_list(self):
+        conf = OmegaConf.create({
+            "my_list": [10, 20, 30, 40, 50],
+            "third_of_list": "${list_get: ${my_list}, 2}",
+            "first_of_list": "${first: ${my_list}}",
+            "last_of_list": "${last: ${my_list}}",
+        })
+        self.assertEqual(conf["third_of_list"], 30)
+        self.assertEqual(conf["first_of_list"], 10)
+        self.assertEqual(conf["last_of_list"], 50)
+
     def test_cond(self):
         conf = OmegaConf.create({
             "boolean": True,

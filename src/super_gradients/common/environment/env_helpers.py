@@ -96,6 +96,9 @@ def register_hydra_resolvers():
     OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
     OmegaConf.register_new_resolver("add", lambda *args: sum(args), replace=True)
     OmegaConf.register_new_resolver("cond", lambda boolean, x, y: x if boolean else y, replace=True)
+    OmegaConf.register_new_resolver("list_get", lambda lst, i: lst[i], replace=True)                    # get the i'th object from a list (0 based)
+    OmegaConf.register_new_resolver("first", lambda lst: lst[0], replace=True)                          # get the first object from a list
+    OmegaConf.register_new_resolver("last", lambda lst: lst[-1], replace=True)                          # get the last object from a list
 
 
 def pop_arg(arg_name: str, default_value: Any = None) -> Any:
