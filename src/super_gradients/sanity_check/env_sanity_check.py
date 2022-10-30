@@ -109,7 +109,7 @@ def verify_os() -> List[str]:
 
 def env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
-    os.environ["DISPLAY_SANITY_CHECK"] = "True"
+
     display_sanity_check = os.getenv("DISPLAY_SANITY_CHECK", "False") == "True"
     stdout_log_level = logging.INFO if display_sanity_check else logging.DEBUG
 
