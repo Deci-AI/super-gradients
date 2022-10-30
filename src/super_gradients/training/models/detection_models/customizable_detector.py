@@ -159,8 +159,8 @@ class CustomizableDetector(SgModule):
 
     def _initialize_weights(self, arch_params: Union[HpmStruct, DictConfig]):
 
-        bn_eps = get_param(arch_params, 'bn_eps', 1e-3)
-        bn_momentum = get_param(arch_params, 'bn_momentum', 0.03)
+        bn_eps = get_param(arch_params, 'bn_eps', 1e-05)
+        bn_momentum = get_param(arch_params, 'bn_momentum', 0.1)
         inplace_act = get_param(arch_params, 'inplace_act', True)
 
         for m in self.modules():
