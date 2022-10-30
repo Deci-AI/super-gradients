@@ -144,6 +144,10 @@ class CustomizableDetector(SgModule):
         """
         super().__init__()
 
+        # move num_classes into heads params
+        if get_param(arch_params, 'num_classes'):
+            arch_params.heads.num_classes = arch_params.num_classes
+
         self.factory = DetectionModulesFactory(type_mapping)
         self.arch_params = arch_params
         self.backbone = self.factory.get(arch_params.backbone, in_channels)
