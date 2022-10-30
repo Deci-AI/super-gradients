@@ -159,15 +159,15 @@ class CustomizableDetector(SgModule):
 
     def _initialize_weights(self, arch_params: Union[HpmStruct, DictConfig]):
 
-        bn_eps = get_param(arch_params, 'bn_eps', 1e-05)
-        bn_momentum = get_param(arch_params, 'bn_momentum', 0.1)
+        bn_eps = get_param(arch_params, 'bn_eps', None)
+        bn_momentum = get_param(arch_params, 'bn_momentum', None)
         inplace_act = get_param(arch_params, 'inplace_act', True)
 
         for m in self.modules():
             t = type(m)
             if t is nn.BatchNorm2d:
-                m.eps = bn_eps
-                m.momentum = bn_momentum
+                m.eps = bn_eps if bn_eps else m.eps
+                m.momentum = bn_momentum if bn_momentum else m.momentum
             elif inplace_act and t in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU, nn.Mish]:
                 m.inplace = True
 
