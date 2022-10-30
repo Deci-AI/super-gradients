@@ -18,6 +18,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
+from super_gradients.common.data_types.enum import MultiGPUMode
 
 
 # TODO: These utils should move to sg_trainer package as internal (private) helper functions
@@ -360,9 +361,10 @@ def get_callable_param_names(obj: callable) -> Tuple[str]:
     return tuple(inspect.signature(obj).parameters)
 
 
-def log_main_training_params(num_gpus: int, batch_size: int, batch_accumulate: int, len_train_set: int):
+def log_main_training_params(gpu_mode: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, len_train_set: int):
     """Log training parameters"""
     msg = "TRAINING PARAMETERS:\n" \
+          f"    - Mode:                         {gpu_mode.name}\n"\
           f"    - Number of GPUs:               {num_gpus}/{torch.cuda.device_count():<8} [num_gpus]\n" \
           f"    - Dataset size:                 {len_train_set:<10} [len(train_set)]\n" \
           f"    - Batch size per GPU:           {batch_size:<10} [batch_size]\n" \

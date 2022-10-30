@@ -1099,7 +1099,7 @@ class Trainer:
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
         first_batch, _ = next(iter(self.train_loader))
-        log_main_training_params(num_gpus=get_world_size(), batch_size=len(first_batch),
+        log_main_training_params(gpu_mode=self.multi_gpu, num_gpus=get_world_size(), batch_size=len(first_batch),
                                  batch_accumulate=self.batch_accumulate, len_train_set=len(self.train_loader.dataset))
 
         try:
