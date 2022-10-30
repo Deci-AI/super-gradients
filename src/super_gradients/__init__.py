@@ -10,4 +10,6 @@ __all__ = ['ARCHITECTURES', 'losses', 'utils', 'datasets_utils', 'DataAugmentati
            'env_sanity_check']
 
 env_sanity_check()
-from super_gradients.common import upload_feedback
+# from super_gradients.common import upload_feedback
+
+raise ValueError("This is an arror")
