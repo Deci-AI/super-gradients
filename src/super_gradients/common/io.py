@@ -1,6 +1,7 @@
 import sys
-from datetime import datetime
 import logging
+from datetime import datetime
+from pathlib import Path
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -43,10 +44,14 @@ class StderrTee(object):
         self.file.flush()
 
 
-def _log_std_streams():
+def log_std_streams():
     """Log the standard streams (stdout/stderr) into a local file."""
     current_time = datetime.today().isoformat()
-    log_file = f"/home/louis.dupont/PycharmProjects/super-gradients/console.log.{current_time}"
+
+    # TODO: check how we handle the log file names, I dont think this is the right way to do
+    file_path = Path(__file__)  # super-gradients/src/super_gradients/sanity_check/env_sanity_check.py
+    package_root = file_path.parent.parent  # super-gradients
+    log_file = package_root / f"console.log.{current_time}"
 
     f = open(log_file, "a")
     f.write(f'Run from {current_time}\n')
@@ -57,9 +62,3 @@ def _log_std_streams():
     StderrTee(f)
 
     logger.info(f"The console stream is logged into {log_file}")
-
-
-# This is called on import.
-# TODO: Do we want to call it by default or to only call for pro users ?
-# TODO: Should this be the default behavior, or we only use this when LOG_STD_STREAMS=True ?
-_log_std_streams()
