@@ -111,7 +111,7 @@ pip install super-gradients
 
 Note: If you are a premium user of Deci, please run instead
 ```bash
-pip install super-gradients[deci-client]
+pip install super-gradients[pro]
 ```
 
 ## What's New

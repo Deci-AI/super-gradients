@@ -9,7 +9,7 @@ from setuptools import find_packages
 
 README_LOCATION = 'README.md'
 REQ_LOCATION = 'requirements.txt'
-REQ_DECI_CLIENT_LOCATION = 'requirements.deci_client.txt'
+REQ_PRO_LOCATION = 'requirements.pro.txt'
 VERSION_FILE = "version.txt"
 
 
@@ -24,8 +24,8 @@ def get_requirements():
         return f.read().splitlines()
 
 
-def get_deci_client_requirements():
-    with open(REQ_DECI_CLIENT_LOCATION, encoding="utf-8") as f:
+def get_pro_requirements():
+    with open(REQ_PRO_LOCATION, encoding="utf-8") as f:
         return f.read().splitlines()
 
 
@@ -53,5 +53,5 @@ setup(
     },
     long_description=readme(),
     long_description_content_type="text/markdown",
-    extras_require={"deci-client": get_deci_client_requirements()}
+    extras_require={"pro": get_pro_requirements()}
 )
