@@ -1376,8 +1376,11 @@ class DetectionOutputFormat:
 @dataclasses.dataclass
 class ConcatenatedTensorDetectionOutputFormat(DetectionOutputFormat):
     """
-    Returns a single tensor of shape [N,M] (N - number of detections, M - sum of bbox attributes) that is a
-    concatenated from boxes and other fields
+    Define the output format that return a single tensor of shape [N,M] (N - number of detections,
+    M - sum of bbox attributes) that is a concatenated from bbox coordinates and other fields.
+    A layout defines the order of concatenated tensors. For instance:
+    - layout: (bboxes, scores, labels) gives a Tensor that is product of torch.cat([bboxes, scores, labels], dim=1)
+    - layout: (labels, bboxes) produce a Tensor from torch.cat([labels, bboxes], dim=1)
     """
     layout: Tuple[str, ...]
 
@@ -1389,11 +1392,15 @@ class ConcatenatedTensorDetectionOutputFormat(DetectionOutputFormat):
 @dataclasses.dataclass
 class TupleOfTensorsDetectionOutputFormat(DetectionOutputFormat):
     """
-    Returns a tuple of tensors
+    Define the output format that return a tuple of tensors.
+    A layout defines the order of tensors that is returned. For instance:
+    - bboxes, scores, labels
+    - labels, bboxes
+
     """
     layout: Tuple[str, ...]
 
-    def convert(self, input: PostNMSDetections) -> Tuple[Tensor, ...]
+    def convert(self, input: PostNMSDetections) -> Tuple[Tensor, ...]:
         components = self.rearrange_components(input)
         return tuple(components)
 
@@ -1401,7 +1408,10 @@ class TupleOfTensorsDetectionOutputFormat(DetectionOutputFormat):
 @dataclasses.dataclass
 class DictDetectionOutputFormat(DetectionOutputFormat):
     """
-    Returns a dictionary of tensors
+    Define the output format that return a dictionary of tensors.
+    A layout defines the key-value correspondence:
+    - { bboxes: Tensor, scores: Tensor, labels: Tensor }
+    - { labels: Tensor, bboxes: Tensor }
     """
 
     layout: Dict[str, str]
