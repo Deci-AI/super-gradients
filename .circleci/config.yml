@@ -62,6 +62,7 @@ jobs:
           command: |
             cp requirements.txt src/super_gradients/requirements.txt
             cp requirements.pro.txt src/super_gradients/requirements.pro.txt
+            ls src/super_gradients
       - run:
           name: install python dependencies
           command: |
