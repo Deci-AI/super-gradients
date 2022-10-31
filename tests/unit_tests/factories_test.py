@@ -49,5 +49,6 @@ class FactoriesTest(unittest.TestCase):
         model = DummyModel(activation_in_head="leaky_relu")
         self.assertIsInstance(model.activation_in_head, nn.LeakyReLU)
 
+
 if __name__ == '__main__':
     unittest.main()
