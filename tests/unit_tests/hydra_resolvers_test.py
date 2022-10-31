@@ -24,7 +24,7 @@ class HydraResolversTest(unittest.TestCase):
     def test_list(self):
         conf = OmegaConf.create({
             "my_list": [10, 20, 30, 40, 50],
-            "third_of_list": "${list_get: ${my_list}, 2}",
+            "third_of_list": "${getitem: ${my_list}, 2}",
             "first_of_list": "${first: ${my_list}}",
             "last_of_list": "${last: ${my_list}}",
         })
