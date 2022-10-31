@@ -115,9 +115,9 @@ class RepVGG(SgModule):
 
     def train(self, mode: bool = True):
 
-        assert not mode or self.build_residual_branches, (
-            "Trying to train a model without residual branches, " "set arch_params.build_residual_branches to True and retrain the model"
-        )
+        assert (
+            not mode or self.build_residual_branches
+        ), "Trying to train a model without residual branches, set arch_params.build_residual_branches to True and retrain the model"
         super(RepVGG, self).train(mode=mode)
 
     def replace_head(self, new_num_classes=None, new_head=None):

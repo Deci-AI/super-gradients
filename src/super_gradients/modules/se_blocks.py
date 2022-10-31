@@ -16,7 +16,7 @@ class SEBlock(nn.Module):
         self.up = nn.Conv2d(in_channels=internal_neurons, out_channels=in_channels, kernel_size=1, stride=1, bias=True)
         self.input_channels = in_channels
 
-    def forward(self, inputs):
+    def forward(self, inputs: Tensor) -> Tensor:
         x = F.avg_pool2d(inputs, kernel_size=inputs.size(3))
         x = self.down(x)
         x = F.relu(x)
