@@ -1,11 +1,13 @@
 import sys
 import logging
 from datetime import datetime
-from pathlib import Path
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.environment.environment_config import PKG_CHECKPOINTS_DIR
 
-logger = get_logger(__name__, log_level=logging.DEBUG)
+
+logger = get_logger(__name__)
+CONSOLE_LOG_PATH = f"{PKG_CHECKPOINTS_DIR}/console.log"  # TODO: move to experiment, but how do we get it ?
 
 
 class StdoutTee(object):
@@ -46,19 +48,14 @@ class StderrTee(object):
 
 def log_std_streams():
     """Log the standard streams (stdout/stderr) into a local file."""
-    current_time = datetime.today().isoformat()
 
-    # TODO: check how we handle the log file names, I dont think this is the right way to do
-    file_path = Path(__file__)  # super-gradients/src/super_gradients/sanity_check/env_sanity_check.py
-    package_root = file_path.parent.parent  # super-gradients
-    log_file = package_root / f"console.log.{current_time}"
-
-    f = open(log_file, "a")
-    f.write(f'Run from {current_time}\n')
+    f = open(CONSOLE_LOG_PATH, "a")
+    f.write("=======================================================\n")
+    f.write(f'New run started at {datetime.today().isoformat()}\n')
     f.write(f'sys.argv: "{" ".join(sys.argv)}"\n')
-    f.write('-' * 20 + "\n\n")
+    f.write("=======================================================\n")
 
     StdoutTee(f)
     StderrTee(f)
 
-    logger.info(f"The console stream is logged into {log_file}")
+    logger.info(f"The console stream is logged into {CONSOLE_LOG_PATH}")
