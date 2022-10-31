@@ -56,9 +56,13 @@ def verify_installed_libraries() -> List[str]:
 
     if requirements_path is None:
         return [LIB_CHECK_IMPOSSIBLE_MSG]
-
+    logger.setLevel(logging.DEBUG)
+    logger.info(requirements_path)
     with open(requirements_path, "r") as f:
         requirements = f.readlines()
+
+    files = [str(x) for x in requirements_path.parent.glob('*') if x.is_file()]
+    logger.info("\n".join(files))
     with open(pro_requirements_path, "r") as f:
         pro_requirements = f.readlines()
 
