@@ -1,0 +1,28 @@
+defaults:
+  - imagenet_dataset_params
+
+train_dataset_params:
+  root: /data/Imagenet/train
+  transforms:
+    - RandomResizedCropAndInterpolation:
+        size: 224
+        interpolation: random
+    - RandomHorizontalFlip
+    - RandAugmentTransform:
+        config_str: rand-m9-mstd0.5
+        crop_size: 224
+        img_mean: ${dataset_params.img_mean}  # Use default value from imagenet_dataset_params
+    - ToTensor
+    - Normalize:
+        mean: ${dataset_params.img_mean}      # Use default value from imagenet_dataset_params
+        std: ${dataset_params.img_std}        # Use default value from imagenet_dataset_params
+    - RandomErase:
+        probability: 0.2
+        value: random
+
+train_dataloader_params:
+  drop_last: True
+  batch_size: 256
+
+val_dataloader_params:
+  batch_size: 256

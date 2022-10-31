@@ -1,10 +1,15 @@
 #  STDC segmentation training example with Cityscapes dataset.
 #  Reproduction and refinement of paper: Rethinking BiSeNet For Real-time Semantic Segmentation.
 #
-#  Usage STDC1-Seg75:
-#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc1-backbone-pretrained-path>
-#  Usage STDC2-Seg75:
-#      python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe.py --config-name=cityscapes_stdc_seg75 external_checkpoint_path=<stdc2-backbone-pretrained-path> architecture=stdc2_seg
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       STDC1-Seg75: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75
+#       STDC2-Seg75: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg75 architecture=stdc2_seg
+# Note: add "external_checkpoint_path=<stdc1-backbone-pretrained-path>" to use pretrained backbone
+#
 #
 #
 #  Validation mIoU - Cityscapes, training time:
@@ -34,18 +39,32 @@
 #      * Pretrained backbones were used.
 #      * Results with Deci code are higher than original implementation, mostly thanks to changes in Detail loss and
 #          module, different auxiliary feature maps and different loss weights.
-defaults:
-  - cityscapes_stdc_base
 
-dataset_params:
-  batch_size: 4
-  val_batch_size: 4
-  crop_size: [1536, 768]
-  eval_scale: 0.75
-  random_scales: [ 0.125, 1.5 ]
+defaults:
+  - training_hyperparams: cityscapes_default_train_params
+  - dataset_params: cityscapes_stdc_seg75_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+train_dataloader: cityscapes_train
+val_dataloader: cityscapes_val
+
+
+architecture: stdc1_seg
+
+arch_params:
+  num_classes: 19
+  use_aux_heads: True
+
+checkpoint_params:
+  checkpoint_path:
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
 
 training_hyperparams:
   initial_lr: 0.005
+  sync_bn: True
 
   loss:
     stdc_loss:
@@ -54,4 +73,16 @@ training_hyperparams:
       mining_percent: 0.0625 # mining percentage is 1/16 of pixels following original implementation.
       weights: [ 1., 0.6, 0.4, 1. ]
 
+multi_gpu: DDP
+num_gpus: 4
+
 experiment_name: ${architecture}75_cityscapes
+ckpt_root_dir:
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
+

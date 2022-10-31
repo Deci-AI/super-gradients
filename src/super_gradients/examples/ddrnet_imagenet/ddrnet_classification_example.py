@@ -14,16 +14,14 @@ Paper:              https://arxiv.org/pdf/2101.06085.pdf
 
 import torch
 
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ImageNetDatasetInterface
-
+from super_gradients.common import MultiGPUMode
+from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation
+from torchvision.transforms import RandomHorizontalFlip, ColorJitter, ToTensor, Normalize
 import super_gradients
-from super_gradients.training import SgModel, MultiGPUMode
-from super_gradients.training.models import HpmStruct
+from super_gradients.training import Trainer, models, dataloaders
 import argparse
-
 from super_gradients.training.metrics import Accuracy, Top5
-
-
+from super_gradients.training.datasets.data_augmentation import RandomErase
 parser = argparse.ArgumentParser()
 super_gradients.init_trainer()
 
@@ -47,7 +45,7 @@ train_params_ddr = {"max_epochs": args.max_epochs,
                     "loss": "cross_entropy",
                     "train_metrics_list": [Accuracy(), Top5()],
                     "valid_metrics_list": [Accuracy(), Top5()],
-                    "loss_logging_items_names": ["Loss"],
+
                     "metric_to_watch": "Accuracy",
                     "greater_metric_to_watch_is_better": True
                     }
@@ -57,19 +55,27 @@ dataset_params = {"batch_size": args.batch,
                   "random_erase_prob": 0.2,
                   "random_erase_value": 'random',
                   "train_interpolation": 'random',
-                  "auto_augment_config_string": 'rand-m9-mstd0.5'
                   }
 
-model = SgModel(experiment_name=args.experiment_name,
-                multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
-                device='cuda')
 
-dataset = ImageNetDatasetInterface(dataset_params=dataset_params)
+train_transforms = [RandomResizedCropAndInterpolation(size=224, interpolation="random"),
+                    RandomHorizontalFlip(),
+                    ColorJitter(0.4, 0.4, 0.4),
+                    ToTensor(),
+                    Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                    RandomErase(0.2, "random")
+                    ]
 
-model.connect_dataset_interface(dataset, data_loader_num_workers=8 * devices)
+trainer = Trainer(experiment_name=args.experiment_name,
+                  multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL if distributed else MultiGPUMode.DATA_PARALLEL,
+                  device='cuda')
 
-arch_params = HpmStruct(**{"num_classes": 1000, "aux_head": False, "classification_mode": True, 'dropout_prob': 0.3})
+train_loader = dataloaders.imagenet_train(dataset_params={"transforms": train_transforms},
+                                          dataloader_params={"batch_size": args.batch})
+valid_loader = dataloaders.imagenet_val()
 
-model.build_model(architecture="ddrnet_23_slim" if args.slim else "ddrnet_23",
-                  arch_params=arch_params)
-model.train(training_params=train_params_ddr)
+model = models.get("ddrnet_23_slim" if args.slim else "ddrnet_23",
+                   arch_params={"aux_head": False, "classification_mode": True, 'dropout_prob': 0.3},
+                   num_classes=1000)
+
+trainer.train(model=model, training_params=train_params_ddr, train_loader=train_loader, valid_loader=valid_loader)

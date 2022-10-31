@@ -1,7 +1,8 @@
 import unittest
+
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.utils.callbacks import PhaseContextTestCallback, Phase
-from super_gradients import SgModel, \
-    ClassificationTestDatasetInterface
+from super_gradients import Trainer
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
 import torch
@@ -11,13 +12,9 @@ from torchmetrics import MetricCollection
 
 class PhaseContextTest(unittest.TestCase):
     def context_information_in_train_test(self):
-        model = SgModel("context_information_in_train_test", model_checkpoints_location='local')
-        dataset_params = {"batch_size": 10}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
+        trainer = Trainer("context_information_in_train_test")
 
         net = ResNet18(num_classes=5, arch_params={})
-        model.build_model(net)
 
         phase_callbacks = [PhaseContextTestCallback(Phase.TRAIN_BATCH_END),
                            PhaseContextTestCallback(Phase.TRAIN_BATCH_STEP),
@@ -29,11 +26,13 @@ class PhaseContextTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Top5",
+                        "metric_to_watch": "Top5",
                         "greater_metric_to_watch_is_better": True, "phase_callbacks": phase_callbacks}
 
-        model.train(train_params)
-        context_callbacks = list(filter(lambda cb: isinstance(cb, PhaseContextTestCallback), model.phase_callbacks))
+        trainer.train(model=net, training_params=train_params,
+                      train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
+        context_callbacks = list(filter(lambda cb: isinstance(cb, PhaseContextTestCallback), trainer.phase_callbacks))
 
         # CHECK THAT PHASE CONTEXES HAVE THE EXACT INFORMATION THERY'RE SUPPOSE TO HOLD
         for phase_callback in context_callbacks:

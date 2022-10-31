@@ -1,0 +1,40 @@
+train_dataset_params:
+  root_dir: /data/supervisely-persons
+  list_file: train.csv
+  cache_labels: False
+  cache_images: False
+  transforms:
+    - SegRandomRescale:
+        scales: [ 0.25, 1. ]
+    - SegColorJitter:
+        brightness: 0.5
+        contrast: 0.5
+        saturation: 0.5
+    - SegRandomFlip:
+        prob: 0.5
+    - SegPadShortToCropSize:
+        crop_size: [ 320, 480 ]
+        fill_mask: 0
+    - SegCropImageAndMask:
+        crop_size: [ 320, 480 ]
+        mode: random
+
+val_dataset_params:
+  root_dir: /data/supervisely-persons
+  list_file: val.csv
+  cache_labels: False
+  cache_images: False
+  transforms:
+    - SegResize:
+        h: 480
+        w: 320
+
+train_dataloader_params:
+  batch_size: 8
+  drop_last: True
+
+val_dataloader_params:
+  batch_size: 8
+  drop_last: False
+
+_convert_: all

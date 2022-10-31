@@ -1,7 +1,7 @@
 import unittest
 import os
-from super_gradients.training import SgModel
-from super_gradients.training.datasets.dataset_interfaces.dataset_interface import ClassificationTestDatasetInterface
+from super_gradients.training import Trainer, models
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 
 
@@ -14,23 +14,21 @@ class SaveCkptListUnitTest(unittest.TestCase):
                         "save_ckpt_epoch_list": [1, 3],
                         "loss": "cross_entropy", "train_metrics_list": [Accuracy(), Top5()],
                         "valid_metrics_list": [Accuracy(), Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
 
         # Define Model
-        model = SgModel("save_ckpt_test", model_checkpoints_location='local')
-
-        # Connect Dataset
-        dataset = ClassificationTestDatasetInterface()
-        model.connect_dataset_interface(dataset, data_loader_num_workers=8)
+        trainer = Trainer("save_ckpt_test")
 
         # Build Model
-        model.build_model("resnet18_cifar")
+        model = models.get("resnet18_cifar", arch_params={"num_classes": 10})
 
         # Train Model (and save ckpt_epoch_list)
-        model.train(training_params=train_params)
+        trainer.train(model=model, training_params=train_params,
+                      train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
-        dir_path = model.checkpoints_dir_path
+        dir_path = trainer.checkpoints_dir_path
         self.file_names_list = [dir_path + f'/ckpt_epoch_{epoch}.pth' for epoch in train_params["save_ckpt_epoch_list"]]
 
     def test_save_ckpt_epoch_list(self):

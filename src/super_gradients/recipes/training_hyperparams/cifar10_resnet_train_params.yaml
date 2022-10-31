@@ -2,7 +2,13 @@ defaults:
   - default_train_params
 
 max_epochs: 250
-lr_updates: [100, 150, 200]
+
+lr_updates:
+  _target_: numpy.arange
+  start: 100
+  stop: 250
+  step: 50
+
 lr_decay_factor: 0.1
 lr_mode: step
 lr_warmup_epochs: 0
@@ -15,7 +21,7 @@ optimizer_params:
   weight_decay: 1e-4
   momentum: 0.9
 
-loss_logging_items_names: [Loss]
+
 metric_to_watch: Accuracy
 greater_metric_to_watch_is_better: True
 

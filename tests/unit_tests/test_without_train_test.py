@@ -1,15 +1,14 @@
 import shutil
 import unittest
 import os
-from super_gradients import SgModel, \
-    ClassificationTestDatasetInterface, \
-    SegmentationTestDatasetInterface, DetectionTestDatasetInterface
+from super_gradients import Trainer
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader, \
+    detection_test_dataloader, segmentation_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
-from super_gradients.training import MultiGPUMode
-from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
-from super_gradients.training.utils.detection_utils import DetectionCollateFN
+from super_gradients.training import MultiGPUMode, models
 from super_gradients.training.metrics.detection_metrics import DetectionMetrics
 from super_gradients.training.metrics.segmentation_metrics import PixelAccuracy, IoU
+from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 
 
 class TestWithoutTrainTest(unittest.TestCase):
@@ -27,67 +26,39 @@ class TestWithoutTrainTest(unittest.TestCase):
 
     @staticmethod
     def get_classification_trainer(name=''):
-        model = SgModel(name, model_checkpoints_location='local')
-        dataset_params = {"batch_size": 4}
-        dataset = ClassificationTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset)
-        model.build_model("resnet18_cifar")
-        return model
+        trainer = Trainer(name)
+        model = models.get("resnet18", num_classes=5)
+        return trainer, model
 
     @staticmethod
     def get_detection_trainer(name=''):
-        dataset_params = {"batch_size": 4,
-                          "test_batch_size": 4,
-                          "dataset_dir": "/data/coco/",
-                          "s3_link": None,
-                          "image_size": 320,
-                          "test_collate_fn": DetectionCollateFN(),
-                          "train_collate_fn": DetectionCollateFN(),
-                          }
-
-        model = SgModel(name, model_checkpoints_location='local',
-                        multi_gpu=MultiGPUMode.OFF,
-                        post_prediction_callback=YoloPostPredictionCallback())
-        dataset_interface = DetectionTestDatasetInterface(dataset_params=dataset_params)
-        model.connect_dataset_interface(dataset_interface, data_loader_num_workers=4)
-        model.build_model('yolox_s')
-        return model
+        trainer = Trainer(name,
+                          multi_gpu=MultiGPUMode.OFF)
+        model = models.get("yolox_s", num_classes=5)
+        return trainer, model
 
     @staticmethod
     def get_segmentation_trainer(name=''):
-        shelfnet_lw_arch_params = {"num_classes": 5, "load_checkpoint": False}
-        model = SgModel(name, model_checkpoints_location='local', multi_gpu=False)
-
-        dataset_interface = SegmentationTestDatasetInterface()
-        model.connect_dataset_interface(dataset_interface, data_loader_num_workers=8)
-        model.build_model('shelfnet34_lw', arch_params=shelfnet_lw_arch_params)
-        return model
+        shelfnet_lw_arch_params = {"num_classes": 5}
+        trainer = Trainer(name)
+        model = models.get('shelfnet34_lw', arch_params=shelfnet_lw_arch_params)
+        return trainer, model
 
     def test_test_without_train(self):
-        model = self.get_classification_trainer(self.folder_names[0])
-        assert isinstance(model.test(silent_mode=True, test_metrics_list=[Accuracy(), Top5()]), tuple)
+        trainer, model = self.get_classification_trainer(self.folder_names[0])
+        assert isinstance(trainer.test(model=model, silent_mode=True,
+                                       test_metrics_list=[Accuracy(), Top5()], test_loader=classification_test_dataloader()), tuple)
 
-        model = self.get_detection_trainer(self.folder_names[1])
+        trainer, model = self.get_detection_trainer(self.folder_names[1])
 
-        test_metrics = [DetectionMetrics(post_prediction_callback=model.post_prediction_callback, num_cls=5)]
+        test_metrics = [DetectionMetrics(post_prediction_callback=YoloPostPredictionCallback(), num_cls=5)]
 
-        assert isinstance(model.test(silent_mode=True, test_metrics_list=test_metrics), tuple)
+        assert isinstance(trainer.test(model=model, silent_mode=True,
+                                       test_metrics_list=test_metrics, test_loader=detection_test_dataloader(image_size=320)), tuple)
 
-        model = self.get_segmentation_trainer(self.folder_names[2])
-        assert isinstance(model.test(silent_mode=True, test_metrics_list=[IoU(21), PixelAccuracy()]), tuple)
-
-    def test_test_on_valid_loader_without_train(self):
-        model = self.get_classification_trainer(self.folder_names[0])
-        assert isinstance(model.test(test_loader=model.valid_loader, silent_mode=True, test_metrics_list=[Accuracy(), Top5()]), tuple)
-
-        model = self.get_detection_trainer(self.folder_names[1])
-
-        test_metrics = [DetectionMetrics(post_prediction_callback=model.post_prediction_callback, num_cls=5)]
-
-        assert isinstance(model.test(test_loader=model.valid_loader, silent_mode=True, test_metrics_list=test_metrics), tuple)
-
-        model = self.get_segmentation_trainer(self.folder_names[2])
-        assert isinstance(model.test(test_loader=model.valid_loader, silent_mode=True, test_metrics_list=[IoU(21), PixelAccuracy()]), tuple)
+        trainer, model = self.get_segmentation_trainer(self.folder_names[2])
+        assert isinstance(trainer.test(model=model, silent_mode=True,
+                                       test_metrics_list=[IoU(21), PixelAccuracy()], test_loader=segmentation_test_dataloader()), tuple)
 
 
 if __name__ == '__main__':

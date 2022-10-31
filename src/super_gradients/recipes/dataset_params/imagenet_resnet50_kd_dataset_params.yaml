@@ -1,0 +1,39 @@
+defaults:
+  - imagenet_dataset_params
+
+train_transform_args:
+  interpolation: random
+  color_jitter: [0.4, 0.4, 0.4]
+  random_erase_prob: 0.
+  random_erase_value: random
+  auto_augment_config_string: rand-m7-mstd0.5
+
+train_dataset_params:
+  root: /data/Imagenet/train
+  transforms:
+    - RandomResizedCropAndInterpolation:
+        size: 224
+        interpolation: random
+    - RandomHorizontalFlip
+    - RandAugmentTransform:
+        config_str: rand-m7-mstd0.5
+        crop_size: 224
+        img_mean: ${dataset_params.img_mean}  # Use default value from imagenet_dataset_params
+    - ToTensor
+    - Normalize:
+        mean: ${dataset_params.img_mean}      # Use default value from imagenet_dataset_params
+        std: ${dataset_params.img_std}        # Use default value from imagenet_dataset_params
+
+train_dataloader_params:
+  batch_size: 192
+  collate_fn:
+    _target_: super_gradients.training.datasets.mixup.CollateMixup
+    mixup_alpha: 0.2
+    cutmix_alpha: 1.0
+    label_smoothing: 0.1
+  sampler:
+    RepeatAugSampler:
+        num_repeats: 3
+
+val_dataloader_params:
+  batch_size: 256

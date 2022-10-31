@@ -1,5 +1,5 @@
 from super_gradients.training.utils import HpmStruct
-
+from copy import deepcopy
 DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "lr_cooldown_epochs": 0,
                            "warmup_initial_lr": None,
@@ -26,7 +26,7 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "lr_schedule_function": None,
                            "train_metrics_list": [],
                            "valid_metrics_list": [],
-                           "loss_logging_items_names": ["Loss"],
+
                            "greater_metric_to_watch_is_better": True,
                            "precise_bn": False,
                            "precise_bn_batch_size": None,
@@ -60,7 +60,12 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                                "calib_data_loader": None,
                                "num_calib_batches": 2,
                                "percentile": 99.99
-                           }
+                           },
+                           "resume": False,
+                           "resume_path": None,
+                           "ckpt_name": 'ckpt_latest.pth',
+                           "resume_strict_load": False,
+                           "sync_bn": False
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}
@@ -96,7 +101,8 @@ class TrainingParams(HpmStruct):
 
     def __init__(self, **entries):
         # WE initialize by the default training params, overridden by the provided params
-        super().__init__(**DEFAULT_TRAINING_PARAMS)
+        default_training_params = deepcopy(DEFAULT_TRAINING_PARAMS)
+        super().__init__(**default_training_params)
         self.set_schema(TRAINING_PARAM_SCHEMA)
         if len(entries) > 0:
             self.override(**entries)

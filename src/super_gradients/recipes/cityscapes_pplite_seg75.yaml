@@ -1,0 +1,87 @@
+#  PPLiteSeg segmentation training example with Cityscapes dataset.
+#  Torch implementation of the paper:
+#     Juncai Peng, Yi Liu, Shiyu Tang, Yuying Hao, Lutao Chu, Guowei Chen, Zewu Wu, Zeyu Chen, Zhiliang Yu, Yuning Du,
+#     Qingqing Dang,Baohua Lai, Qiwen Liu, Xiaoguang Hu, Dianhai Yu, Yanjun Ma.
+#     PP-LiteSeg: A Superior Real-Time Semantic Segmentation Model.
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       PPLite-T-Seg75: python src/super_gradients/examples/train_from_recipe.py --config-name=cityscapes_pplite_seg75 checkpoint_params.checkpoint_path=<stdc1-backbone-pretrained-path> architecture=pp_lite_t_seg
+#       PPLite-B-Seg75: python src/super_gradients/examples/train_from_recipe.py --config-name=cityscapes_pplite_seg75 checkpoint_params.checkpoint_path=<stdc2-backbone-pretrained-path> architecture=pp_lite_b_seg
+#
+#
+#  Validation mIoU - Cityscapes, training time:
+#      PPLite-T-Seg75:    input-size: [768, 1536]     mIoU: 77.56     4 X RTX A5000, 13 H
+#      PPLite-B-Seg75:    input-size: [768, 1536]     mIoU: 78.52     4 X RTX A5000, 14 H
+#
+#  Official git repo:
+#      https://github.com/PaddlePaddle/PaddleSeg/
+#  Paper:
+#      https://arxiv.org/abs/2204.02681
+#
+#  Pretrained checkpoints:
+#      Backbones- downloaded from the STDC author's official repo.
+#       PPLite-T-Seg75, (STDC1-backbone):   https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc1_imagenet_pretrained.pth
+#       PPLite-B-Seg75, (STDC2-backbone):   https://deci-pretrained-models.s3.amazonaws.com/stdc_backbones/stdc2_imagenet_pretrained.pth
+#
+#      Logs, tensorboards and network checkpoints:
+#       PPLite-T-Seg75: https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_t_seg75/
+#       PPLite-B-Seg75: https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_b_seg75/
+#
+#  Learning rate and batch size parameters, using 2 RTX A5000 with DDP:
+#      PPLite-T-Seg75:    input-size: [768, 768]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
+#      PPLite-B-Seg75:    input-size: [768, 768]     initial_lr: 0.01    batch-size: 8 * 4gpus = 32
+#
+#  Comments:
+#      * ImageNet Pretrained backbones were used.
+
+defaults:
+  - training_hyperparams: cityscapes_default_train_params
+  - dataset_params: cityscapes_pplite_seg75_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+train_dataloader: cityscapes_train
+val_dataloader: cityscapes_val
+
+
+architecture: pp_lite_t_seg
+
+arch_params:
+  num_classes: 19
+  use_aux_heads: True
+
+checkpoint_params:
+  checkpoint_path:
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
+
+training_hyperparams:
+  sync_bn: True
+  loss:
+    dice_ce_edge_loss:
+      num_classes: 19
+      ignore_index: 19
+      num_aux_heads: 3
+      num_detail_heads: 0
+      weights: [ 1., 1., 1., 1. ]
+      dice_ce_weights: [ 1., 1. ]
+      ce_edge_weights: [ .5, .5 ]
+      edge_kernel: 5
+
+multi_gpu: DDP
+num_gpus: 4
+
+experiment_name: ${architecture}75_cityscapes
+ckpt_root_dir:
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
+

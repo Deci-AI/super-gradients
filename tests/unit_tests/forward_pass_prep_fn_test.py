@@ -1,7 +1,7 @@
 import unittest
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer, models
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy
-from super_gradients.training.datasets import ClassificationTestDatasetInterface
 from super_gradients.training.utils.callbacks import PhaseCallback, Phase, PhaseContext
 import torch
 
@@ -27,16 +27,11 @@ def test_forward_pass_prep_fn(inputs, targets, *args, **kwargs):
 
 
 class ForwardpassPrepFNTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.dataset_params = {"batch_size": 4}
-        self.dataset = ClassificationTestDatasetInterface(dataset_params=self.dataset_params)
-        self.arch_params = {'num_classes': 10}
 
     def test_resizing_with_forward_pass_prep_fn(self):
         # Define Model
-        model = SgModel("ForwardpassPrepFNTest")
-        model.connect_dataset_interface(self.dataset)
-        model.build_model("resnet18", arch_params=self.arch_params)
+        trainer = Trainer("ForwardpassPrepFNTest")
+        model = models.get("resnet18", num_classes=5)
 
         sizes = []
         phase_callbacks = [TestInputSizesCallback(sizes)]
@@ -46,10 +41,11 @@ class ForwardpassPrepFNTest(unittest.TestCase):
                         "lr_warmup_epochs": 3, "initial_lr": 1, "loss": "cross_entropy", "optimizer": 'SGD',
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks,
                         "pre_prediction_callback": test_forward_pass_prep_fn}
-        model.train(train_params)
+        trainer.train(model=model, training_params=train_params, train_loader=classification_test_dataloader(),
+                      valid_loader=classification_test_dataloader())
 
         # ALTHOUGH NOT SEEN IN HERE, THE 4TH EPOCH USES LR=1, SO THIS IS THE EXPECTED LIST AS WE COLLECT
         # THE LRS AFTER THE UPDATE

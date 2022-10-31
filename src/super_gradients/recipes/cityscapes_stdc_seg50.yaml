@@ -1,10 +1,15 @@
 #  STDC segmentation training example with Cityscapes dataset.
 #  Reproduction and refinement of paper: Rethinking BiSeNet For Real-time Semantic Segmentation.
 #
-#  Usage STDC1-Seg50:
-#      python -m torch.distributed.launch --nproc_per_node=2 train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path>
-#  Usage STDC2-Seg50:
-#      python -m torch.distributed.launch --nproc_per_node=2 train_from_recipe.py --config-name=cityscapes_stdc_seg50 checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path> architecture=stdc2_seg
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       STDC1-Seg50: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50
+#       STDC2-Seg50: python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cityscapes_stdc_seg50 architecture=stdc2_seg
+# Note: add "checkpoint_params.external_checkpoint_path=<stdc1-backbone-pretrained-path>" to use pretrained backbone
+#
 #
 #
 #  Validation mIoU - Cityscapes, training time:
@@ -33,18 +38,28 @@
 #      * Pretrained backbones were used.
 
 defaults:
-  - cityscapes_stdc_base
+  - training_hyperparams: cityscapes_default_train_params
+  - dataset_params: cityscapes_stdc_seg50_dataset_params # TODO: uncomment after DatasetInterface refactor
+  - checkpoint_params: default_checkpoint_params
   - _self_
 
-dataset_params:
-  _convert_: all
-  batch_size: 16
-  val_batch_size: 16
-  crop_size: [1024, 512]
-  eval_scale: 0.5
-  random_scales: [ 0.125, 1.5 ]
+train_dataloader: cityscapes_train
+val_dataloader: cityscapes_val
+
+architecture: stdc1_seg
+
+arch_params:
+  num_classes: 19
+  use_aux_heads: True
+
+checkpoint_params:
+  checkpoint_path:
+  load_backbone: True
+  load_weights_only: True
+  strict_load: no_key_matching
 
 training_hyperparams:
+  sync_bn: True
   loss:
     dice_ce_edge_loss:
       num_classes: 19
@@ -54,4 +69,15 @@ training_hyperparams:
       ce_edge_weights: [ .5, .5 ]
       edge_kernel: 3
 
+multi_gpu: DDP
+num_gpus: 2
+
 experiment_name: ${architecture}50_cityscapes
+ckpt_root_dir:
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

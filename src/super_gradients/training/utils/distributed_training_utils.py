@@ -1,9 +1,21 @@
-import torch
-from torch import distributed as dist
-from torch.cuda.amp import autocast
-import torch.nn as nn
+
+import sys
 import itertools
 from contextlib import contextmanager
+
+import torch
+import torch.nn as nn
+from torch import distributed as dist
+from torch.cuda.amp import autocast
+from torch.distributed.elastic.multiprocessing import Std
+from torch.distributed.elastic.multiprocessing.errors import record
+from torch.distributed.launcher.api import LaunchConfig, elastic_launch
+
+from super_gradients.common.data_types.enum import MultiGPUMode
+from super_gradients.common.environment.env_helpers import find_free_port, is_distributed
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def distributed_all_reduce_tensor_average(tensor, n):
@@ -24,8 +36,12 @@ def reduce_results_tuple_for_ddp(validation_results_tuple, device):
     """Gather all validation tuples from the various devices and average them"""
     validation_results_list = list(validation_results_tuple)
     for i, validation_result in enumerate(validation_results_list):
-        validation_results_list[i] = distributed_all_reduce_tensor_average(torch.tensor(validation_result).to(device),
-                                                                           torch.distributed.get_world_size())
+        if torch.is_tensor(validation_result):
+            validation_result = validation_result.clone().detach()
+        else:
+            validation_result = torch.tensor(validation_result)
+        validation_results_list[i] = distributed_all_reduce_tensor_average(tensor=validation_result.to(device),
+                                                                           n=torch.distributed.get_world_size())
     validation_results_tuple = tuple(validation_results_list)
     return validation_results_tuple
 
@@ -72,8 +88,8 @@ def scaled_all_reduce(tensors: torch.Tensor, num_gpus: int):
 @torch.no_grad()
 def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoader, precise_bn_batch_size: int, num_gpus: int):
     '''
-    :param model:                   The model being trained (ie: SgModel.net)
-    :param loader:                  Training dataloader (ie: SgModel.train_loader)
+    :param model:                   The model being trained (ie: Trainer.net)
+    :param loader:                  Training dataloader (ie: Trainer.train_loader)
     :param precise_bn_batch_size:   The effective batch size we want to calculate the batchnorm on. For example, if we are training a model
                                     on 8 gpus, with a batch of 128 on each gpu, a good rule of thumb would be to give it 8192
                                     (ie: effective_batch_size * num_gpus = batch_per_gpu * num_gpus * num_gpus).
@@ -153,3 +169,75 @@ def wait_for_the_master(local_rank: int):
             return
         else:
             dist.barrier()
+
+
+def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
+    """
+    If required, launch ddp subprocesses.
+    :param gpu_mode:    DDP, DP or Off
+    :param num_gpus:    Number of GPU's to use.
+    """
+    if gpu_mode == MultiGPUMode.AUTO and torch.cuda.device_count() > 1:
+        gpu_mode = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
+    if require_gpu_setup(gpu_mode):
+        num_gpus = num_gpus or torch.cuda.device_count()
+        if num_gpus > torch.cuda.device_count():
+            raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
+        restart_script_with_ddp(num_gpus)
+
+
+def require_gpu_setup(gpu_mode: MultiGPUMode) -> bool:
+    """Check if the environment requires a setup in order to work with DDP."""
+    return (gpu_mode == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL) and (not is_distributed())
+
+
+@record
+def restart_script_with_ddp(num_gpus: int = None):
+    """Launch the same script as the one that was launched (i.e. the command used to start the current process is re-used) but on subprocesses (i.e. with DDP).
+
+    :param num_gpus: How many gpu's you want to run the script on. If not specified, every available device will be used.
+    """
+    ddp_port = find_free_port()
+
+    # Get the value fom recipe if specified, otherwise take all available devices.
+    num_gpus = num_gpus if num_gpus else torch.cuda.device_count()
+    if num_gpus > torch.cuda.device_count():
+        raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
+
+    logger.info("Launching DDP with:\n"
+                f"   - ddp_port = {ddp_port}\n"
+                f"   - num_gpus = {num_gpus}/{torch.cuda.device_count()} available\n"
+                "-------------------------------------\n")
+
+    config = LaunchConfig(
+        nproc_per_node=num_gpus,
+        min_nodes=1,
+        max_nodes=1,
+        run_id='none',
+        role='default',
+        rdzv_endpoint=f'127.0.0.1:{ddp_port}',
+        rdzv_backend='static',
+        rdzv_configs={'rank': 0, 'timeout': 900},
+        rdzv_timeout=-1,
+        max_restarts=0,
+        monitor_interval=5,
+        start_method='spawn',
+        log_dir=None,
+        redirects=Std.NONE,
+        tee=Std.NONE,
+        metrics_cfg={})
+
+    elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv)
+
+    # The code below should actually never be reached as the process will be in a loop inside elastic_launch until any subprocess crashes.
+    sys.exit("Main process finished")
+
+
+def get_gpu_mem_utilization():
+    """GPU memory managed by the caching allocator in bytes for a given device."""
+
+    # Workaround to work on any torch version
+    if hasattr(torch.cuda, 'memory_reserved'):
+        return torch.cuda.memory_reserved()
+    else:
+        return torch.cuda.memory_cached()

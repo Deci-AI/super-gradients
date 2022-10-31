@@ -63,6 +63,21 @@ class DiceCEEdgeLoss(_Loss):
         )
         self.dice_loss = DiceLoss(apply_softmax=True, ignore_index=ignore_index)
 
+    @property
+    def component_names(self):
+        """
+        Component names for logging during training.
+        These correspond to 2nd item in the tuple returned in self.forward(...).
+        See super_gradients.Trainer.train() docs for more info.
+        """
+        names = ["main_loss"]
+        # Append aux losses names
+        names += [f"aux_loss{i}" for i in range(self.num_aux_heads)]
+        # Append detail losses names
+        names += [f"detail_loss{i}" for i in range(self.num_detail_heads)]
+        names += ["loss"]
+        return names
+
     def forward(self, preds: Tuple[torch.Tensor], target: torch.Tensor):
         """
         :param preds: Model output predictions, must be in the followed format:

@@ -3,46 +3,48 @@
 # Trained using 4 X 2080 Ti using DDP- takes ~ 2d 7h with batch size of 8 and batch accumulate of 3 (i.e effective batch
 # size is 4*8*3 = 96)
 # Logs and tensorboards: s3://deci-pretrained-models/shelfnet34_coco_segmentation_tensorboard/
-# python train_from_recipe_example/train_from_recipe.py --config-name=coco_segmentation_shelfnet_lw
+
+
+# Instructions:
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=coco_segmentation_shelfnet_lw
+
+
+# /!\ THIS RECIPE IS NOT SUPPORTED AT THE MOMENT /!\
 
 defaults:
   - training_hyperparams: coco_segmentation_shelfnet_lw_train_params
   - dataset_params: coco_segmentation_dataset_params
   - arch_params: shelfnet34_lw_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
-sub_classes:
-  _target_: super_gradients.training.utils.segmentation_utils.coco_sub_classes_inclusion_tuples_list
+train_dataloader: coco_segmentation_train
+val_dataloader: coco_segmentation_val
 
-dataset_interface:
-  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.CoCoSegmentationDatasetInterface
-  dataset_params: ${dataset_params}
-  dataset_classes_inclusion_tuples_list: ${sub_classes}
-
-data_loader_num_workers: 8
-
-load_checkpoint: True
 checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
   strict_load: True
-  load_weights_only: True
   load_backbone: True
-  source_ckpt_folder_name: resnet_34
+  checkpoint_path:
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: coco_segmentation_21_subclass_shelfnet34
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
+num_gpus: 4
 
 ckpt_root_dir:
 
-sg_model:
-  _target_: super_gradients.SgModel
-  experiment_name: ${experiment_name}
-  model_checkpoints_location: ${model_checkpoints_location}
-  ckpt_root_dir: ${ckpt_root_dir}
-  multi_gpu: ${multi_gpu}
-
-
 architecture: shelfnet34_lw
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

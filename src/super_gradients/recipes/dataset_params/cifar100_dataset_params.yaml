@@ -1,0 +1,49 @@
+train_dataset_params:
+  root: /data/cifar100
+  train: True
+  transforms:
+    - RandomCrop:
+        size: 32
+        padding: 4
+    - RandomHorizontalFlip
+    - ToTensor
+    - Normalize:
+        mean:
+          - 0.5071
+          - 0.4865
+          - 0.4409
+        std:
+          - 0.2673
+          - 0.2564
+          - 0.2762
+  target_transform: null
+  download: True
+
+train_dataloader_params:
+  batch_size: 256
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+
+val_dataset_params:
+  root: /data/cifar100
+  train: False
+  transforms:
+    - ToTensor
+    - Normalize:
+        mean:
+          - 0.5071
+          - 0.4865
+          - 0.4409
+        std:
+          - 0.2673
+          - 0.2564
+          - 0.2762
+  target_transform: null
+  download: True
+
+val_dataloader_params:
+  batch_size: 512
+  num_workers: 8
+  drop_last: False
+  pin_memory: True

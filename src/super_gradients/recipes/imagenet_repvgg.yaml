@@ -4,46 +4,42 @@
 #  Reach => 72.05 Top1 accuracy.
 #
 #  Log and tensorboard at s3://deci-pretrained-models/repvggg-a0-imagenet-tensorboard/
-
+#
 # Instructions:
-# Set the PYTHONPATH environment variable: (Replace "YOUR_LOCAL_PATH" with the path to the downloaded repo):
-#   export PYTHONPATH="YOUR_LOCAL_PATH"/super_gradients/
-# Then for 320x320 image size for training:
-#   python -m torch.distributed.launch --nproc_per_node=4 train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
+#   0. Make sure that the data is stored in dataset_params.dataset_dir or add "dataset_params.data_dir=<PATH-TO-DATASET>" at the end of the command below (feel free to check ReadMe)
+#   1. Move to the project root (where you will find the ReadMe and src folder)
+#   2. Run the command:
+#       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=imagenet_repvgg
 
 defaults:
   - training_hyperparams: imagenet_repvgg_train_params
   - dataset_params: imagenet_dataset_params
-  - arch_params: default_arch_params
+  - arch_params: repvgg_arch_params
   - checkpoint_params: default_checkpoint_params
 
 arch_params:
+  num_classes: 1000
   build_residual_branches: True
 
-dataset_interface:
-  _target_: super_gradients.training.datasets.dataset_interfaces.dataset_interface.ImageNetDatasetInterface
-  dataset_params: ${dataset_params}
-  data_dir: /data/Imagenet
-
-data_loader_num_workers: 8
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
 
 
-model_checkpoints_location: local
-load_checkpoint: False
-checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
 
 experiment_name: repvgg_a0_imagenet_reproduce_fix
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
-
-sg_model:
-  _target_: super_gradients.SgModel
-  experiment_name: ${experiment_name}
-  model_checkpoints_location: ${model_checkpoints_location}
-  ckpt_root_dir: ${ckpt_root_dir}
-  multi_gpu: ${multi_gpu}
+multi_gpu: DDP
+num_gpus: 4
 
 architecture: repvgg_a0
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

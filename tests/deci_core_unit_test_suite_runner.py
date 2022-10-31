@@ -4,9 +4,8 @@ import unittest
 from tests.integration_tests.ema_train_integration_test import EMAIntegrationTest
 from tests.unit_tests import ZeroWdForBnBiasTest, SaveCkptListUnitTest, TestAverageMeter, \
     TestRepVgg, TestWithoutTrainTest, OhemLossTest, EarlyStopTest, SegmentationTransformsTest, \
-    TestConvBnRelu, FactoriesTest, InitializeWithDataloadersTest
+    TestConvBnRelu, FactoriesTest, InitializeWithDataloadersTest, TrainingParamsTest
 from tests.end_to_end_tests import TestTrainer
-from tests.unit_tests.load_checkpoint_from_direct_path_test import LoadCheckpointFromDirectPathTest
 from tests.unit_tests.phase_delegates_test import ContextMethodsTest
 from tests.unit_tests.quantization_utility_tests import QuantizationUtilityTest
 from tests.unit_tests.random_erase_test import RandomEraseTest
@@ -15,7 +14,7 @@ from tests.unit_tests.train_with_intialized_param_args_test import TrainWithInit
 from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTest
 from tests.unit_tests.lr_warmup_test import LRWarmupTest
 from tests.unit_tests.kd_ema_test import KDEMATest
-from tests.unit_tests.kd_model_test import KDModelTest
+from tests.unit_tests.kd_trainer_test import KDTrainerTest
 from tests.unit_tests.dice_loss_test import DiceLossTest
 from tests.unit_tests.iou_loss_test import IoULossTest
 from tests.unit_tests.update_param_groups_unit_test import UpdateParamGroupsTest
@@ -27,6 +26,8 @@ from tests.unit_tests.forward_pass_prep_fn_test import ForwardpassPrepFNTest
 from tests.unit_tests.mask_loss_test import MaskAttentionLossTest
 from tests.unit_tests.detection_sub_sampling_test import TestDetectionDatasetSubsampling
 from tests.unit_tests.detection_sub_classing_test import TestDetectionDatasetSubclassing
+from tests.unit_tests.detection_caching import TestDetectionDatasetCaching
+from tests.unit_tests.multi_scaling_test import MultiScaleTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -50,7 +51,6 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestRepVgg))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestWithoutTrainTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(StrictLoadEnumTest))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LoadCheckpointFromDirectPathTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainWithInitializedObjectsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(RandomEraseTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(OhemLossTest))
@@ -63,7 +63,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DiceLossTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestViT))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(KDEMATest))
-        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(KDModelTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(KDTrainerTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestYOLOX))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(InitializeWithDataloadersTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LRCooldownTest))
@@ -76,6 +76,9 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetSubsampling))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetSubclassing))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(QuantizationUtilityTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetCaching))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MultiScaleTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainingParamsTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

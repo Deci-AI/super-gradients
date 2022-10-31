@@ -1,0 +1,52 @@
+train_dataset_params:
+  root: /data/pascal_voc_2012/VOCaug/dataset/
+  list_file: trainval.txt
+  samples_sub_directory: img
+  targets_sub_directory: cls
+  cache_labels: False
+  cache_images: False
+  transforms:
+    # for more options see common.factories.transforms_factory.py
+    - SegRandomFlip:
+        prob: 0.5
+
+    - SegRescale: # consider removing this step
+        long_size: 608
+
+    - SegRandomRescale:
+        scales: [ 0.5, 2.0 ]
+
+    - SegPadShortToCropSize:
+        crop_size: 512
+
+    - SegCropImageAndMask:
+        crop_size: 512
+        mode: random
+
+val_dataset_params:
+  root: /data/pascal_voc_2012/VOCaug/dataset/
+  list_file: val.txt
+  samples_sub_directory: img
+  targets_sub_directory: cls
+  cache_labels: False
+  cache_images: False
+  transforms:
+    - SegRescale:
+        short_size: 512
+
+    - SegCropImageAndMask:
+        crop_size: 512
+        mode: center
+
+
+train_dataloader_params:
+  batch_size: 64
+  num_workers: 8
+  drop_last: False
+  pin_memory: True
+
+val_dataloader_params:
+  batch_size: 200
+  num_workers: 8
+  drop_last: False
+  pin_memory: True

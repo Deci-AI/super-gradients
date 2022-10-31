@@ -4,7 +4,10 @@ Deci-lab model export example.
 The main purpose of this code is to demonstrate how to upload the model to the platform, optimize and download it
  after training is complete, using DeciPlatformCallback.
 """
-from super_gradients import SgModel, ClassificationTestDatasetInterface
+from super_gradients.training import models
+
+from super_gradients import Trainer
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.utils.callbacks import DeciLabUploadCallback, ModelConversionCheckCallback
 from deci_lab_client.models import (
@@ -23,15 +26,13 @@ def main(architecture_name: str):
 
     auth_token = "YOUR_API_TOKEN_HERE"
 
-    model = SgModel(
+    trainer = Trainer(
         f"lab_optimization_{architecture_name}_example",
         model_checkpoints_location="local",
         ckpt_root_dir=checkpoint_dir,
     )
-    dataset = ClassificationTestDatasetInterface(dataset_params={"batch_size": 10})
-    model.connect_dataset_interface(dataset, data_loader_num_workers=0)
 
-    model.build_model(architecture=architecture_name, arch_params={"use_aux_heads": True, "aux_head": True})
+    model = models.get(architecture=architecture_name, arch_params={"use_aux_heads": True, "aux_head": True})
 
     # CREATE META-DATA, AND OPTIMIZATION REQUEST FORM FOR DECI PLATFORM POST TRAINING CALLBACK
     model_name = f"{architecture_name}_for_deci_lab_export_example"
@@ -83,7 +84,7 @@ def main(architecture_name: str):
         "criterion_params": {},
         "train_metrics_list": [Accuracy(), Top5()],
         "valid_metrics_list": [Accuracy(), Top5()],
-        "loss_logging_items_names": ["Loss"],
+
         "metric_to_watch": "Accuracy",
         "greater_metric_to_watch_is_better": True,
         "phase_callbacks": phase_callbacks,
@@ -91,7 +92,8 @@ def main(architecture_name: str):
 
     # RUN TRAINING. ONCE ALL EPOCHS ARE DONE THE OPTIMIZED MODEL FILE WILL BE LOCATED IN THE EXPERIMENT'S
     # CHECKPOINT DIRECTORY
-    model.train(train_params)
+    trainer.train(model=model, training_params=train_params, train_loader=classification_test_dataloader(),
+                  valid_loader=classification_test_dataloader())
 
 
 if __name__ == "__main__":

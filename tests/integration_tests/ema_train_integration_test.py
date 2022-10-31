@@ -1,6 +1,6 @@
-from super_gradients import ClassificationTestDatasetInterface
-from super_gradients.training import MultiGPUMode
-from super_gradients.training import SgModel
+from super_gradients.training import MultiGPUMode, models
+from super_gradients.training import Trainer
+from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 import unittest
 
@@ -23,11 +23,9 @@ class CallWrapper:
 class EMAIntegrationTest(unittest.TestCase):
 
     def _init_model(self) -> None:
-        self.model = SgModel("resnet18_cifar_ema_test", model_checkpoints_location='local',
-                             device='cpu', multi_gpu=MultiGPUMode.OFF)
-        dataset_interface = ClassificationTestDatasetInterface({"batch_size": 32})
-        self.model.connect_dataset_interface(dataset_interface, 8)
-        self.model.build_model("resnet18_cifar")
+        self.trainer = Trainer("resnet18_cifar_ema_test",
+                               device='cpu', multi_gpu=MultiGPUMode.OFF)
+        self.model = models.get("resnet18_cifar", arch_params={"num_classes": 5})
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -53,21 +51,23 @@ class EMAIntegrationTest(unittest.TestCase):
                            "ema_params": ema_params,
                            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                            "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
-                           "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                           "metric_to_watch": "Accuracy",
                            "greater_metric_to_watch_is_better": True}
 
         def before_test():
-            self.assertEqual(self.model.net, self.model.ema_model.ema)
+            self.assertEqual(self.trainer.net, self.trainer.ema_model.ema)
 
         def before_train_epoch():
-            self.assertNotEqual(self.model.net, self.model.ema_model.ema)
+            self.assertNotEqual(self.trainer.net, self.trainer.ema_model.ema)
 
-        self.model.test = CallWrapper(self.model.test, check_before=before_test)
-        self.model._train_epoch = CallWrapper(self.model._train_epoch, check_before=before_train_epoch)
+        self.trainer.test = CallWrapper(self.trainer.test, check_before=before_test)
+        self.trainer._train_epoch = CallWrapper(self.trainer._train_epoch, check_before=before_train_epoch)
 
-        self.model.train(training_params=training_params)
+        self.trainer.train(model=self.model, training_params=training_params,
+                           train_loader=classification_test_dataloader(),
+                           valid_loader=classification_test_dataloader())
 
-        self.assertIsNotNone(self.model.ema_model)
+        self.assertIsNotNone(self.trainer.ema_model)
 
 
 if __name__ == '__main__':

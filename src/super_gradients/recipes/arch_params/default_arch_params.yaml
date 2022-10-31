@@ -1,4 +1,0 @@
-sync_bn: False # whether to convert bn to sync.bn
-
-
-

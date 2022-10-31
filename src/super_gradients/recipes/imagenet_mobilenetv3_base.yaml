@@ -1,0 +1,30 @@
+# TODO: PRODUCE RESULTS AND ADD TENSORBOARDS, LOGS, TRAINING TIME ETC.
+
+defaults:
+  - training_hyperparams: imagenet_mobilenetv3_train_params
+  - dataset_params: imagenet_mobilenetv3_dataset_params
+  - checkpoint_params: default_checkpoint_params
+
+train_dataloader: imagenet_train
+val_dataloader: imagenet_val
+
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
+
+experiment_name: mobileNetv3_large_training
+
+ckpt_root_dir:
+
+multi_gpu: DDP
+num_gpus: 2
+
+architecture: mobilenet_v3_large
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

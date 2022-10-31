@@ -1,0 +1,38 @@
+defaults:
+  - imagenet_dataset_params
+
+train_dataset_params:
+  root: /data/Imagenet/train
+  transforms:
+    - RandomResizedCropAndInterpolation:
+        size: 224
+        interpolation: random
+    - RandomHorizontalFlip
+    - RandAugmentTransform:
+        config_str: rand-m7-mstd0.5
+        crop_size: 224
+        img_mean: [0.5, 0.5, 0.5]
+    - ToTensor
+    - Normalize:
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
+
+val_dataset_params:
+  root: /data/Imagenet/val
+  transforms:
+    - Resize:
+        size: 249
+    - CenterCrop:
+        size: 224
+    - ToTensor
+    - Normalize:
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
+
+train_dataloader_params:
+  batch_size: 64
+  collate_fn:
+    _target_: super_gradients.training.datasets.mixup.CollateMixup
+    mixup_alpha: 0.2
+    cutmix_alpha: 1.0
+    label_smoothing: 0.1

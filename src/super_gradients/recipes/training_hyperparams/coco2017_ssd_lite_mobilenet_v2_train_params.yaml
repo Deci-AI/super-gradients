@@ -5,7 +5,7 @@ cosine_final_lr_ratio: 0.01
 batch_accumulate: 1
 initial_lr: 0.02
 loss: ssd_loss
-loss_logging_items_names: [ smooth_l1, closs, Loss ]
+
 criterion_params:
   alpha: 1.0
   dboxes: # OVERRIDEN IN MAIN RECIPE YAML FILE ONCE DBOXES ARE CHOSEN.

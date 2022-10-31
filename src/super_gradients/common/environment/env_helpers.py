@@ -1,7 +1,12 @@
 import argparse
+import importlib
 import os
+import socket
 import sys
 from functools import wraps
+from typing import Any
+
+from omegaconf import OmegaConf
 
 from super_gradients.common.environment import environment_config
 
@@ -30,6 +35,18 @@ class ColouredTextFormatter:
         return print(''.join([colour, text, TerminalColours.ENDC]))
 
 
+def get_cls(cls_path):
+    """
+    A resolver for Hydra/OmegaConf to allow getting a class instead on an instance.
+    usage:
+    class_of_optimizer: ${class:torch.optim.Adam}
+    """
+    module = '.'.join(cls_path.split('.')[:-1])
+    name = cls_path.split('.')[-1]
+    importlib.import_module(module)
+    return getattr(sys.modules[module], name)
+
+
 def get_environ_as_type(environment_variable_name: str, default=None, cast_to_type: type = str) -> object:
     """
     Tries to get an environment variable and cast it into a requested type.
@@ -47,24 +64,51 @@ def get_environ_as_type(environment_variable_name: str, default=None, cast_to_ty
     return
 
 
+def hydra_output_dir_resolver(ckpt_root_dir, experiment_name):
+    if ckpt_root_dir is None:
+        output_dir_path = (environment_config.PKG_CHECKPOINTS_DIR + os.path.sep + experiment_name)
+    else:
+        output_dir_path = ckpt_root_dir + os.path.sep + experiment_name
+    return output_dir_path
+
+
 def init_trainer():
     """
-    a function to initialize the super_gradients environment. This function should be the first thing to be called
-    by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used
-    and prepares the super_gradients environment.
+    Initialize the super_gradients environment.
+
+    This function should be the first thing to be called by any code running super_gradients.
+    It resolves conflicts between the different tools, packages and environments used and prepares the super_gradients environment.
     """
+    if not environment_config.INIT_TRAINER:
+        register_hydra_resolvers()
+
+        # We pop local_rank if it was specified in the args, because it would break
+        args_local_rank = pop_arg("local_rank", default_value=-1)
+
+        # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
+        environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=args_local_rank))
+        environment_config.INIT_TRAINER = True
+
+
+def register_hydra_resolvers():
+    """Register all the hydra resolvers required for the super-gradients recipes."""
+    OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
+    OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
+    OmegaConf.register_new_resolver("add", lambda *args: sum(args), replace=True)
+    OmegaConf.register_new_resolver("cond", lambda boolean, x, y: x if boolean else y, replace=True)
+
+
+def pop_arg(arg_name: str, default_value: Any = None) -> Any:
+    """Get the specified args and remove them from argv"""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int, default=-1)  # used by DDP
+    parser.add_argument(f"--{arg_name}", default=default_value)
     args, _ = parser.parse_known_args()
 
-    # remove any flags starting with --local_rank from the argv list
-    to_remove = list(filter(lambda x: x.startswith('--local_rank'), sys.argv))
-    if len(to_remove) > 0:
-        for val in to_remove:
-            sys.argv.remove(val)
-
-    environment_config.DDP_LOCAL_RANK = args.local_rank
+    # Remove the ddp args to not have a conflict with the use of hydra
+    for val in filter(lambda x: x.startswith(f"--{arg_name}"), sys.argv):
+        sys.argv.remove(val)
+    return vars(args)[arg_name]
 
 
 def is_distributed() -> bool:
@@ -78,6 +122,7 @@ def multi_process_safe(func):
     If in DDP mode, the function will run only in the main process (local_rank = 0)
     This works only for functions with no return value
     """
+
     def do_nothing(*args, **kwargs):
         pass
 
@@ -89,3 +134,14 @@ def multi_process_safe(func):
             return do_nothing(*args, **kwargs)
 
     return wrapper
+
+
+def find_free_port() -> int:
+    """Find an available port of current machine/node.
+    Note: there is still a chance the port could be taken by other processes."""
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        # Binding to port 0 will cause the OS to find an available port for us
+        sock.bind(("", 0))
+        _ip, port = sock.getsockname()
+    return port

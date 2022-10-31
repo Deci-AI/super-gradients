@@ -5,51 +5,17 @@ defaults:
   - dataset_params: cityscapes_dataset_params
   - checkpoint_params: default_checkpoint_params
 
-
-dataset_params:
-  color_jitter: 0.5
-  image_mask_transforms_aug:
-    Compose:
-      transforms:
-        - ColorJitterSeg:
-            brightness: ${dataset_params.color_jitter}
-            contrast: ${dataset_params.color_jitter}
-            saturation: ${dataset_params.color_jitter}
-
-        - RandomFlipSeg
-
-        - RandomRescaleSeg:
-            scales: ${dataset_params.random_scales}
-
-        - PadShortToCropSizeSeg:
-            crop_size: ${dataset_params.crop_size}
-            fill_mask: ${dataset_params.cityscapes_ignored_label}
-
-        - CropImageAndMaskSeg:
-            crop_size: ${dataset_params.crop_size}
-            mode: random
-
-  image_mask_transforms:
-    Compose:
-      transforms:
-        - RescaleSeg:
-            scale_factor: ${dataset_params.eval_scale}
-
-dataset_interface:
-  cityscapes:
-    dataset_params: ${dataset_params}
+train_dataloader: cityscapes_train
+val_dataloader: cityscapes_val
 
 data_loader_num_workers: 10
 
 arch_params:
   num_classes: 19
   use_aux_heads: True
-  sync_bn: True
 
-load_checkpoint: False
 checkpoint_params:
-  load_checkpoint: ${load_checkpoint}
-  external_checkpoint_path:
+  checkpoint_path:
   load_backbone: True
   load_weights_only: True
   strict_load: no_key_matching
@@ -57,17 +23,18 @@ checkpoint_params:
 architecture: stdc1_seg
 experiment_name: ${architecture}_cityscapes
 
-model_checkpoints_location: local
+training_hyperparams:
+  sync_bn: True
+
+
+
 ckpt_root_dir:
 
-multi_gpu:
-  _target_: super_gradients.training.sg_model.MultiGPUMode
-  value: 'DDP'
+multi_gpu: DDP
 
-sg_model:
-  _target_: super_gradients.SgModel
-  experiment_name: ${experiment_name}
-  model_checkpoints_location: ${model_checkpoints_location}
-  ckpt_root_dir: ${ckpt_root_dir}
-  multi_gpu: ${multi_gpu}
 
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

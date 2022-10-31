@@ -2,7 +2,7 @@ import math
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Mapping, Optional, Tuple, Union, List
+from typing import Mapping, Optional, Tuple, Union, List, Dict
 from zipfile import ZipFile
 import os
 from jsonschema import validate
@@ -24,6 +24,11 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 logger = get_logger(__name__)
 
 
+def empty_list():
+    """Instantiate an empty list. This is a workaround to generate a list with a function call in hydra, instead of the "[]"."""
+    return list()
+
+
 def convert_to_tensor(array):
     """Converts numpy arrays and lists to Torch tensors before calculation losses
     :param array: torch.tensor / Numpy array / List
@@ -42,8 +47,15 @@ class HpmStruct:
     def override(self, **entries):
         recursive_override(self.__dict__, entries)
 
-    def to_dict(self):
-        return self.__dict__
+    def to_dict(self, include_schema=True) -> dict:
+        """Convert this HpmStruct instance into a dict.
+        :param include_schema: If True, also return the field "schema"
+        :return: Dict representation of this HpmStruct instance.
+        """
+        out_dict = self.__dict__.copy()
+        if not include_schema:
+            out_dict.pop("schema")
+        return out_dict
 
     def validate(self):
         """
@@ -413,7 +425,7 @@ def get_orientation_key() -> int:
 def exif_size(image: Image) -> Tuple[int, int]:
     """Get the size of image.
     :param image:   The image to get size from
-    :return:        (width, height)
+    :return:        (height, width)
     """
 
     orientation_key = get_orientation_key()
@@ -431,11 +443,24 @@ def exif_size(image: Image) -> Tuple[int, int]:
                 image_size = (image_size[1], image_size[0])
     except Exception as ex:
         print('Caught Exception trying to rotate: ' + str(image) + str(ex))
-    height, width = image_size
-    return width, height
+    width, height = image_size
+    return height, width
 
 
 def get_image_size_from_path(img_path: str) -> Tuple[int, int]:
     """Get the image size of an image at a specific path"""
     with open(img_path, 'rb') as f:
         return exif_size(Image.open(f))
+
+
+def override_default_params_without_nones(params: Dict, default_params: Dict) -> Dict:
+    """
+    Helper method for overriding default dictionary's entries excluding entries with None values.
+    :param params: dict, output dictionary which will take the defaults.
+    :param default_params: dict, dictionary for the defaults.
+    :return: dict, params after manipulation,
+    """
+    for key, val in default_params.items():
+        if key not in params.keys() or params[key] is None:
+            params[key] = val
+    return params
