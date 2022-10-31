@@ -26,7 +26,7 @@ class TestTrainer(unittest.TestCase):
                                "lr_mode": "step",
                                "loss": "cross_entropy", "train_metrics_list": [Accuracy(), Top5()],
                                "valid_metrics_list": [Accuracy(), Top5()],
-                               "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                               "metric_to_watch": "Accuracy",
                                "greater_metric_to_watch_is_better": True}
 
     @classmethod
@@ -38,7 +38,7 @@ class TestTrainer(unittest.TestCase):
 
     @staticmethod
     def get_classification_trainer(name=''):
-        trainer = Trainer(name, model_checkpoints_location='local')
+        trainer = Trainer(name)
         model = models.get("resnet18", num_classes=5)
         return trainer, model
 
@@ -55,7 +55,8 @@ class TestTrainer(unittest.TestCase):
         resume_training_params["resume"] = True
         resume_training_params["max_epochs"] = 2
         trainer, model = self.get_classification_trainer(self.folder_names[1])
-        trainer.train(model=model, training_params=resume_training_params, train_loader=classification_test_dataloader(),
+        trainer.train(model=model, training_params=resume_training_params,
+                      train_loader=classification_test_dataloader(),
                       valid_loader=classification_test_dataloader())
 
     def test_checkpoint_content(self):

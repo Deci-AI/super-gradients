@@ -24,7 +24,6 @@
 defaults:
   - training_hyperparams: coco2017_ssd_lite_mobilenet_v2_train_params
   - dataset_params: coco_detection_ssd_lite_mobilenet_v2_dataset_params
-  - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
   - anchors: ssd_anchors
 
@@ -34,7 +33,7 @@ val_dataloader: coco2017_val
 architecture: ssd_lite_mobilenet_v2
 
 data_loader_num_workers: 8
-model_checkpoints_location: local
+
 experiment_suffix: res${dataset_params.train_image_size}
 experiment_name: ${architecture}_coco_${experiment_suffix}
 
@@ -55,3 +54,10 @@ training_hyperparams:
 
 multi_gpu: DDP
 num_gpus: 8
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

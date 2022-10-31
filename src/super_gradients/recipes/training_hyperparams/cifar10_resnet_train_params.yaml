@@ -21,7 +21,7 @@ optimizer_params:
   weight_decay: 1e-4
   momentum: 0.9
 
-loss_logging_items_names: [Loss]
+
 metric_to_watch: Accuracy
 greater_metric_to_watch_is_better: True
 

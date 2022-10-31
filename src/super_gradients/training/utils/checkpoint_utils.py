@@ -1,17 +1,39 @@
 import os
 import tempfile
 import pkg_resources
+
 import torch
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
 from super_gradients.training.pretrained_models import MODEL_URLS
+from super_gradients.common.environment import environment_config
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
 except (ModuleNotFoundError, ImportError, NameError):
     from torch.hub import _download_url_to_file as download_url_to_file
 
 
-def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, model_checkpoints_location: str, external_checkpoint_path: str,
-                        overwrite_local_checkpoint: bool, load_weights_only: bool):
+logger = get_logger(__name__)
+
+
+def get_checkpoints_dir_path(experiment_name: str, ckpt_root_dir: str = None):
+    """Creating the checkpoint directory of a given experiment.
+    :param experiment_name:     Name of the experiment.
+    :param ckpt_root_dir:       Local root directory path where all experiment logging directories will
+                                reside. When none is give, it is assumed that pkg_resources.resource_filename('checkpoints', "")
+                                exists and will be used.
+    :return:                    checkpoints_dir_path
+    """
+    if ckpt_root_dir:
+        return os.path.join(ckpt_root_dir, experiment_name)
+    elif os.path.exists(environment_config.PKG_CHECKPOINTS_DIR):
+        return os.path.join(environment_config.PKG_CHECKPOINTS_DIR, experiment_name)
+    else:
+        raise ValueError("Illegal checkpoints directory: pass ckpt_root_dir that exists, or add 'checkpoints' to resources.")
+
+
+def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt_name: str, external_checkpoint_path: str):
     """
     Gets the local path to the checkpoint file, which will be:
         - By default: YOUR_REPO_ROOT/super_gradients/checkpoints/experiment_name.
@@ -24,30 +46,11 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
     @param source_ckpt_folder_name: The folder where the checkpoint is saved. When set to None- uses the experiment_name.
     @param experiment_name: experiment name attr in trainer
     @param ckpt_name: checkpoint filename
-    @param model_checkpoints_location: S3, local ot URL
     @param external_checkpoint_path: full path to checkpoint file (that might be located outside of super_gradients/checkpoints directory)
-    @param overwrite_local_checkpoint: whether to overwrite the checkpoint file with the same name when downloading from S3.
-    @param load_weights_only: whether to load the network's state dict only.
     @return:
     """
     source_ckpt_folder_name = source_ckpt_folder_name or experiment_name
-    if model_checkpoints_location == 'local':
-        ckpt_local_path = external_checkpoint_path or pkg_resources.resource_filename('checkpoints', source_ckpt_folder_name + os.path.sep + ckpt_name)
-
-    # COPY THE DATA FROM 'S3'/'URL' INTO A LOCAL DIRECTORY
-    elif model_checkpoints_location.startswith('s3') or model_checkpoints_location == 'url':
-        # COPY REMOTE DATA TO A LOCAL DIRECTORY AND GET THAT DIRECTORYs NAME
-        ckpt_local_path = copy_ckpt_to_local_folder(local_ckpt_destination_dir=experiment_name,
-                                                    ckpt_filename=ckpt_name,
-                                                    remote_ckpt_source_dir=source_ckpt_folder_name,
-                                                    path_src=model_checkpoints_location,
-                                                    overwrite_local_ckpt=overwrite_local_checkpoint,
-                                                    load_weights_only=load_weights_only)
-
-    else:
-        # ERROR IN USER CODE FLOW - THIS WILL EVENTUALLY RAISE AN EXCEPTION
-        raise NotImplementedError(
-            'model_checkpoints_data_source: ' + str(model_checkpoints_location) + 'not supported')
+    ckpt_local_path = external_checkpoint_path or pkg_resources.resource_filename('checkpoints', source_ckpt_folder_name + os.path.sep + ckpt_name)
 
     return ckpt_local_path
 
@@ -193,7 +196,7 @@ def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: tor
         error_msg = 'Error - loading Model Checkpoint: Path {} does not exist'.format(ckpt_local_path)
         raise RuntimeError(error_msg)
 
-    if load_backbone and not hasattr(net.module, 'backbone'):
+    if load_backbone and not hasattr(net, 'backbone'):
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
 
     # LOAD THE LOCAL CHECKPOINT PATH INTO A state_dict OBJECT
@@ -207,7 +210,7 @@ def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: tor
 
     # LOAD THE CHECKPOINTS WEIGHTS TO THE MODEL
     if load_backbone:
-        adaptive_load_state_dict(net.module.backbone, checkpoint, strict)
+        adaptive_load_state_dict(net.backbone, checkpoint, strict)
     else:
         adaptive_load_state_dict(net, checkpoint, strict)
 

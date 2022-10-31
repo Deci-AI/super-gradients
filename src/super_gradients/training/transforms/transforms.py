@@ -25,7 +25,7 @@ class SegmentationTransform:
         return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')
 
 
-class ResizeSeg(SegmentationTransform):
+class SegResize(SegmentationTransform):
     def __init__(self, h, w):
         self.h = h
         self.w = w
@@ -38,7 +38,7 @@ class ResizeSeg(SegmentationTransform):
         return sample
 
 
-class RandomFlip(SegmentationTransform):
+class SegRandomFlip(SegmentationTransform):
     """
     Randomly flips the image and mask (synchronously) with probability 'prob'.
     """
@@ -59,7 +59,7 @@ class RandomFlip(SegmentationTransform):
         return sample
 
 
-class Rescale(SegmentationTransform):
+class SegRescale(SegmentationTransform):
     """
     Rescales the image and mask (synchronously) while preserving aspect ratio.
     The rescaling can be done according to scale_factor, short_size or long_size.
@@ -118,7 +118,7 @@ class Rescale(SegmentationTransform):
             raise ValueError(f"Long size must be a positive number, found: {self.long_size}")
 
 
-class RandomRescale:
+class SegRandomRescale:
     """
     Random rescale the image and mask (synchronously) while preserving aspect ratio.
     Scale factor is randomly picked between scales [min, max]
@@ -159,13 +159,13 @@ class RandomRescale:
                 self.scales = (1, self.scales)
 
         if self.scales[0] < 0 or self.scales[1] < 0:
-            raise ValueError(f"RandomRescale scale values must be positive numbers, found: {self.scales}")
+            raise ValueError(f"SegRandomRescale scale values must be positive numbers, found: {self.scales}")
         if self.scales[0] > self.scales[1]:
             self.scales = (self.scales[1], self.scales[0])
         return self.scales
 
 
-class RandomRotate(SegmentationTransform):
+class SegRandomRotate(SegmentationTransform):
     """
     Randomly rotates image and mask (synchronously) between 'min_deg' and 'max_deg'.
     """
@@ -197,7 +197,7 @@ class RandomRotate(SegmentationTransform):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
 
-class CropImageAndMask(SegmentationTransform):
+class SegCropImageAndMask(SegmentationTransform):
     """
     Crops image and mask (synchronously).
     In "center" mode a center crop is performed while, in "random" mode the drop will be positioned around
@@ -248,7 +248,7 @@ class CropImageAndMask(SegmentationTransform):
             raise ValueError(f"Crop size must be positive numbers, found: {self.crop_size}")
 
 
-class RandomGaussianBlur(SegmentationTransform):
+class SegRandomGaussianBlur(SegmentationTransform):
     """
     Adds random Gaussian Blur to image with probability 'prob'.
     """
@@ -271,10 +271,10 @@ class RandomGaussianBlur(SegmentationTransform):
         return sample
 
 
-class PadShortToCropSize(SegmentationTransform):
+class SegPadShortToCropSize(SegmentationTransform):
     """
     Pads image to 'crop_size'.
-    Should be called only after "Rescale" or "RandomRescale" in augmentations pipeline.
+    Should be called only after "SegRescale" or "SegRandomRescale" in augmentations pipeline.
     """
 
     def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0,
@@ -321,9 +321,9 @@ class PadShortToCropSize(SegmentationTransform):
         self.fill_mask, self.fill_image = _validate_fill_values_arguments(self.fill_mask, self.fill_image)
 
 
-class ColorJitterSeg(transforms.ColorJitter):
+class SegColorJitter(transforms.ColorJitter):
     def __call__(self, sample):
-        sample["image"] = super(ColorJitterSeg, self).__call__(sample["image"])
+        sample["image"] = super(SegColorJitter, self).__call__(sample["image"])
         return sample
 
 
@@ -646,14 +646,15 @@ class DetectionPaddedRescale(DetectionTransform):
 
     """
 
-    def __init__(self, input_dim, swap=(2, 0, 1), max_targets=50):
+    def __init__(self, input_dim, swap=(2, 0, 1), max_targets=50, pad_value=114):
         self.swap = swap
         self.input_dim = input_dim
         self.max_targets = max_targets
+        self.pad_value = pad_value
 
     def __call__(self, sample: Dict[str, np.array]):
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
-        img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap)
+        img, r = rescale_and_pad_to_size(img, self.input_dim, self.swap, self.pad_value)
 
         sample["image"] = img
         sample["target"] = self._rescale_target(targets, r)
@@ -662,11 +663,11 @@ class DetectionPaddedRescale(DetectionTransform):
         return sample
 
     def _rescale_target(self, targets: np.array, r: float) -> np.array:
-        """Rescale the target according to a coefficient used to rescale the image.
+        """SegRescale the target according to a coefficient used to rescale the image.
         This is done to have images and targets at the same scale.
 
         :param targets:  Targets to rescale, shape (batch_size, 6)
-        :param r:        Rescale coefficient that was applied to the image
+        :param r:        SegRescale coefficient that was applied to the image
 
         :return:         Rescaled targets, shape (batch_size, 6)
         """
@@ -710,16 +711,17 @@ class DetectionHSV(DetectionTransform):
     Detection HSV transform.
     """
 
-    def __init__(self, prob: float, hgain: float = 0.5, sgain: float = 0.5, vgain: float = 0.5):
+    def __init__(self, prob: float, hgain: float = 0.5, sgain: float = 0.5, vgain: float = 0.5, bgr_channels=(0, 1, 2)):
         super(DetectionHSV, self).__init__()
         self.prob = prob
         self.hgain = hgain
         self.sgain = sgain
         self.vgain = vgain
+        self.bgr_channels = bgr_channels
 
     def __call__(self, sample: dict) -> dict:
         if random.random() < self.prob:
-            augment_hsv(sample["image"], self.hgain, self.sgain, self.vgain)
+            augment_hsv(sample["image"], self.hgain, self.sgain, self.vgain, self.bgr_channels)
         return sample
 
 
@@ -1036,17 +1038,17 @@ def _mirror(image, boxes, prob=0.5):
     return image, flipped_boxes
 
 
-def augment_hsv(img: np.array, hgain: float, sgain: float, vgain: float):
+def augment_hsv(img: np.array, hgain: float, sgain: float, vgain: float, bgr_channels=(0, 1, 2)):
     hsv_augs = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain]  # random gains
     hsv_augs *= np.random.randint(0, 2, 3)  # random selection of h, s, v
     hsv_augs = hsv_augs.astype(np.int16)
-    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.int16)
+    img_hsv = cv2.cvtColor(img[..., bgr_channels], cv2.COLOR_BGR2HSV).astype(np.int16)
 
     img_hsv[..., 0] = (img_hsv[..., 0] + hsv_augs[0]) % 180
     img_hsv[..., 1] = np.clip(img_hsv[..., 1] + hsv_augs[1], 0, 255)
     img_hsv[..., 2] = np.clip(img_hsv[..., 2] + hsv_augs[2], 0, 255)
 
-    cv2.cvtColor(img_hsv.astype(img.dtype), cv2.COLOR_HSV2BGR, dst=img)  # no return needed
+    img[..., bgr_channels] = cv2.cvtColor(img_hsv.astype(img.dtype), cv2.COLOR_HSV2BGR)  # no return needed
 
 
 def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
@@ -1060,7 +1062,7 @@ def rescale_and_pad_to_size(img, input_size, swap=(2, 0, 1), pad_val=114):
     :return: rescaled image, ratio
     """
     if len(img.shape) == 3:
-        padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * pad_val
+        padded_img = np.ones((input_size[0], input_size[1], img.shape[-1]), dtype=np.uint8) * pad_val
     else:
         padded_img = np.ones(input_size, dtype=np.uint8) * pad_val
 

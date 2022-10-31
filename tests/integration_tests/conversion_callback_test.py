@@ -63,13 +63,13 @@ class ConversionCallbackTest(unittest.TestCase):
                 "criterion_params": {},
                 "train_metrics_list": [Accuracy(), Top5()],
                 "valid_metrics_list": [Accuracy(), Top5()],
-                "loss_logging_items_names": ["Loss"],
+
                 "metric_to_watch": "Accuracy",
                 "greater_metric_to_watch_is_better": True,
                 "phase_callbacks": phase_callbacks,
             }
 
-            trainer = Trainer(f"{architecture}_example", model_checkpoints_location="local",
+            trainer = Trainer(f"{architecture}_example",
                               ckpt_root_dir=checkpoint_dir)
             model = models.get(architecture=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
             try:
@@ -84,17 +84,17 @@ class ConversionCallbackTest(unittest.TestCase):
         def get_architecture_custom_config(architecture_name: str):
             if re.search(r"ddrnet", architecture_name):
                 return {
-                    "loss_logging_items_names": ["main_loss", "aux_loss", "Loss"],
+
                     "loss": DDRNetLoss(num_pixels_exclude_ignored=False),
                 }
             elif re.search(r"stdc", architecture_name):
                 return {
-                    "loss_logging_items_names": ["main_loss", "aux_loss1", "aux_loss2", "detail_loss", "loss"],
+
                     "loss": STDCLoss(num_classes=5),
                 }
             elif re.search(r"regseg", architecture_name):
                 return {
-                    "loss_logging_items_names": ["Loss"],
+
                     "loss": "cross_entropy",
                 }
             else:
@@ -102,7 +102,7 @@ class ConversionCallbackTest(unittest.TestCase):
 
         for architecture in SEMANTIC_SEGMENTATION:
             model_meta_data = generate_model_metadata(architecture=architecture, task=Task.SEMANTIC_SEGMENTATION)
-            trainer = Trainer(f"{architecture}_example", model_checkpoints_location="local",
+            trainer = Trainer(f"{architecture}_example",
                               ckpt_root_dir=checkpoint_dir)
             model = models.get(model_name=architecture, arch_params={"use_aux_heads": True, "aux_head": True})
 

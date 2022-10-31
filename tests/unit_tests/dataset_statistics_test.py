@@ -18,9 +18,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
         """
         # Create dataset
 
-        trainer = Trainer('dataset_statistics_visual_test',
-                          model_checkpoints_location='local',
-                          post_prediction_callback=YoloPostPredictionCallback())
+        trainer = Trainer('dataset_statistics_visual_test')
 
         model = models.get("yolox_s")
 
@@ -36,7 +34,7 @@ class TestDatasetStatisticsTensorboardLogger(unittest.TestCase):
                                                 normalize_targets=True,
                                                 num_cls=80)],
 
-                           "loss_logging_items_names": ["iou", "obj", "cls", "l1", "num_fg", "Loss"],
+
                            "metric_to_watch": "mAP@0.50:0.95",
                            }
         trainer.train(model=model, training_params=training_params, train_loader=coco2017_train(), valid_loader=coco2017_val())

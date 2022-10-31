@@ -12,7 +12,7 @@ from torchmetrics import MetricCollection
 
 class PhaseContextTest(unittest.TestCase):
     def context_information_in_train_test(self):
-        trainer = Trainer("context_information_in_train_test", model_checkpoints_location='local')
+        trainer = Trainer("context_information_in_train_test")
 
         net = ResNet18(num_classes=5, arch_params={})
 
@@ -26,7 +26,7 @@ class PhaseContextTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Top5",
+                        "metric_to_watch": "Top5",
                         "greater_metric_to_watch_is_better": True, "phase_callbacks": phase_callbacks}
 
         trainer.train(model=net, training_params=train_params,

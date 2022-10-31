@@ -40,15 +40,15 @@ architecture: regseg48
 
 arch_params:
   num_classes: 19
-  sync_bn: True
   strict_load: no_key_matching
 
 load_checkpoint: False
-model_checkpoints_location: local
+
 ckpt_root_dir:
 
 resume: False
 training_hyperparams:
+  sync_bn: True
   resume: ${resume}
   max_epochs: 800
   lr_mode: poly
@@ -90,8 +90,9 @@ experiment_name: ${architecture}_cityscapes
 multi_gpu: AUTO
 num_gpus: 4
 
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
-  searchpath:
-    - pkg://super_gradients.recipes
   run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
     dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

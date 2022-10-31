@@ -10,7 +10,7 @@ from super_gradients.training.utils.quantization_utils import PostQATConversionC
 class QATIntegrationTest(unittest.TestCase):
     def _get_trainer(self, experiment_name):
         trainer = Trainer(experiment_name,
-                          model_checkpoints_location='local',
+
                           multi_gpu=MultiGPUMode.OFF)
         model = models.get("resnet18", pretrained_weights="imagenet")
         return trainer, model
@@ -24,7 +24,7 @@ class QATIntegrationTest(unittest.TestCase):
                         "initial_lr": 0.001, "loss": "cross_entropy",
                         "train_metrics_list": [Accuracy()],
                         "valid_metrics_list": [Accuracy()],
-                        "loss_logging_items_names": ["Loss"],
+
                         "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True,
                         "average_best_models": False,

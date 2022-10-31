@@ -36,8 +36,12 @@ def reduce_results_tuple_for_ddp(validation_results_tuple, device):
     """Gather all validation tuples from the various devices and average them"""
     validation_results_list = list(validation_results_tuple)
     for i, validation_result in enumerate(validation_results_list):
-        validation_results_list[i] = distributed_all_reduce_tensor_average(torch.tensor(validation_result).to(device),
-                                                                           torch.distributed.get_world_size())
+        if torch.is_tensor(validation_result):
+            validation_result = validation_result.clone().detach()
+        else:
+            validation_result = torch.tensor(validation_result)
+        validation_results_list[i] = distributed_all_reduce_tensor_average(tensor=validation_result.to(device),
+                                                                           n=torch.distributed.get_world_size())
     validation_results_tuple = tuple(validation_results_list)
     return validation_results_tuple
 
@@ -173,6 +177,8 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = No
     :param gpu_mode:    DDP, DP or Off
     :param num_gpus:    Number of GPU's to use.
     """
+    if gpu_mode == MultiGPUMode.AUTO and torch.cuda.device_count() > 1:
+        gpu_mode = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
     if require_gpu_setup(gpu_mode):
         num_gpus = num_gpus or torch.cuda.device_count()
         if num_gpus > torch.cuda.device_count():
@@ -201,7 +207,7 @@ def restart_script_with_ddp(num_gpus: int = None):
     logger.info("Launching DDP with:\n"
                 f"   - ddp_port = {ddp_port}\n"
                 f"   - num_gpus = {num_gpus}/{torch.cuda.device_count()} available\n"
-                "-------------------------------------")
+                "-------------------------------------\n")
 
     config = LaunchConfig(
         nproc_per_node=num_gpus,
@@ -225,3 +231,13 @@ def restart_script_with_ddp(num_gpus: int = None):
 
     # The code below should actually never be reached as the process will be in a loop inside elastic_launch until any subprocess crashes.
     sys.exit("Main process finished")
+
+
+def get_gpu_mem_utilization():
+    """GPU memory managed by the caching allocator in bytes for a given device."""
+
+    # Workaround to work on any torch version
+    if hasattr(torch.cuda, 'memory_reserved'):
+        return torch.cuda.memory_reserved()
+    else:
+        return torch.cuda.memory_cached()

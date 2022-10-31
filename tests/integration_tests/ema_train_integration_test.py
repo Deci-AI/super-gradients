@@ -23,7 +23,7 @@ class CallWrapper:
 class EMAIntegrationTest(unittest.TestCase):
 
     def _init_model(self) -> None:
-        self.trainer = Trainer("resnet18_cifar_ema_test", model_checkpoints_location='local',
+        self.trainer = Trainer("resnet18_cifar_ema_test",
                                device='cpu', multi_gpu=MultiGPUMode.OFF)
         self.model = models.get("resnet18_cifar", arch_params={"num_classes": 5})
 
@@ -51,7 +51,7 @@ class EMAIntegrationTest(unittest.TestCase):
                            "ema_params": ema_params,
                            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                            "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
-                           "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                           "metric_to_watch": "Accuracy",
                            "greater_metric_to_watch_is_better": True}
 
         def before_test():

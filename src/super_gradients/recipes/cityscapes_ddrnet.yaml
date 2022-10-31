@@ -60,12 +60,12 @@ training_hyperparams:
       dice_ce_weights: [ 1., 1. ]
       ce_edge_weights: [ .5, .5 ]
       edge_kernel: 5
-  loss_logging_items_names: [ main_loss, aux_loss1, loss ]
+  sync_bn: True
+
 
 arch_params:
   num_classes: 19
   aux_head: True
-  sync_bn: True
 
 
 
@@ -78,14 +78,15 @@ checkpoint_params:
 
 experiment_name: ${architecture}_cityscapes
 
-model_checkpoints_location: local
+
 ckpt_root_dir:
 
 multi_gpu: DDP
 num_gpus: 4
 
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
   run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
     dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}
-
-

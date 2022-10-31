@@ -25,7 +25,6 @@ from super_gradients.training.utils.quantization_utils import PostQATConversionC
 super_gradients.init_trainer()
 
 trainer = Trainer("resnet18_qat_example",
-                  model_checkpoints_location='local',
                   multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
 
 train_loader = dataloaders.imagenet_train()
@@ -41,7 +40,7 @@ train_params = {"max_epochs": 1,
                 "initial_lr": 0.001, "loss": "cross_entropy",
                 "train_metrics_list": [Accuracy()],
                 "valid_metrics_list": [Accuracy()],
-                "loss_logging_items_names": ["Loss"],
+
                 "metric_to_watch": "Accuracy",
                 "greater_metric_to_watch_is_better": True,
                 "average_best_models": False,

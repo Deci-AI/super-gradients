@@ -19,7 +19,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
     """
 
     def test_train_with_external_criterion(self):
-        trainer = Trainer("external_criterion_test", model_checkpoints_location='local')
+        trainer = Trainer("external_criterion_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
         model = models.get("resnet18", arch_params={"num_classes": 5})
@@ -33,7 +33,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
 
     def test_train_with_external_optimizer(self):
-        trainer = Trainer("external_optimizer_test", model_checkpoints_location='local')
+        trainer = Trainer("external_optimizer_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
         model = models.get("resnet18", arch_params={"num_classes": 5})
@@ -42,12 +42,12 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": optimizer,
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
 
     def test_train_with_external_scheduler(self):
-        trainer = Trainer("external_scheduler_test", model_checkpoints_location='local')
+        trainer = Trainer("external_scheduler_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
         lr = 0.3
@@ -60,13 +60,13 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": lr, "loss": "cross_entropy", "optimizer": optimizer,
                         "criterion_params": {},
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
         self.assertTrue(lr_scheduler.get_last_lr()[0] == lr * 0.1 * 0.1)
 
     def test_train_with_external_scheduler_class(self):
-        trainer = Trainer("external_scheduler_test", model_checkpoints_location='local')
+        trainer = Trainer("external_scheduler_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
         model = models.get("resnet18", arch_params={"num_classes": 5})
@@ -76,12 +76,12 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.3, "loss": "cross_entropy", "optimizer": optimizer,
                         "criterion_params": {},
                         "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
 
     def test_train_with_reduce_on_plateau(self):
-        trainer = Trainer("external_reduce_on_plateau_scheduler_test", model_checkpoints_location='local')
+        trainer = Trainer("external_reduce_on_plateau_scheduler_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
         lr = 0.3
@@ -95,13 +95,13 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "criterion_params": {},
                         "train_metrics_list": [Accuracy(), Top5()],
                         "valid_metrics_list": [Accuracy(), Top5(), ToyTestClassificationMetric()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
         self.assertTrue(lr_scheduler._last_lr[0] == lr * 0.1)
 
     def test_train_with_external_metric(self):
-        trainer = Trainer("external_metric_test", model_checkpoints_location='local')
+        trainer = Trainer("external_metric_test")
         dataloader = classification_test_dataloader(batch_size=10)
 
         model = models.get("resnet18", arch_params={"num_classes": 5})
@@ -109,12 +109,12 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
+                        "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=dataloader, valid_loader=dataloader)
 
     def test_train_with_external_dataloaders(self):
-        trainer = Trainer("external_data_loader_test", model_checkpoints_location='local')
+        trainer = Trainer("external_data_loader_test")
 
         batch_size = 5
         trainset = torch.utils.data.TensorDataset(torch.Tensor(np.random.random((10, 3, 32, 32))),
@@ -131,7 +131,7 @@ class TrainWithInitializedObjectsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 0.1, "loss": "cross_entropy", "optimizer": "SGD",
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [F1Score()], "valid_metrics_list": [F1Score()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "F1Score",
+                        "metric_to_watch": "F1Score",
                         "greater_metric_to_watch_is_better": True}
         trainer.train(model=model, training_params=train_params, train_loader=train_loader, valid_loader=val_loader)
 

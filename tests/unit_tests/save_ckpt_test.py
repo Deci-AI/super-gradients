@@ -14,11 +14,11 @@ class SaveCkptListUnitTest(unittest.TestCase):
                         "save_ckpt_epoch_list": [1, 3],
                         "loss": "cross_entropy", "train_metrics_list": [Accuracy(), Top5()],
                         "valid_metrics_list": [Accuracy(), Top5()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True}
 
         # Define Model
-        trainer = Trainer("save_ckpt_test", model_checkpoints_location='local')
+        trainer = Trainer("save_ckpt_test")
 
         # Build Model
         model = models.get("resnet18_cifar", arch_params={"num_classes": 10})

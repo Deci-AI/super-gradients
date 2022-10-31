@@ -13,7 +13,6 @@ data_loader_num_workers: 10
 arch_params:
   num_classes: 19
   use_aux_heads: True
-  sync_bn: True
 
 checkpoint_params:
   checkpoint_path:
@@ -24,8 +23,18 @@ checkpoint_params:
 architecture: stdc1_seg
 experiment_name: ${architecture}_cityscapes
 
-model_checkpoints_location: local
+training_hyperparams:
+  sync_bn: True
+
+
+
 ckpt_root_dir:
 
 multi_gpu: DDP
 
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

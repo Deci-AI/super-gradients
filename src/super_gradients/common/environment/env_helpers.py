@@ -1,9 +1,10 @@
 import argparse
 import importlib
 import os
-import sys
 import socket
+import sys
 from functools import wraps
+from typing import Any
 
 from omegaconf import OmegaConf
 
@@ -79,7 +80,6 @@ def init_trainer():
     It resolves conflicts between the different tools, packages and environments used and prepares the super_gradients environment.
     """
     if not environment_config.INIT_TRAINER:
-
         register_hydra_resolvers()
 
         # We pop local_rank if it was specified in the args, because it would break
@@ -94,9 +94,11 @@ def register_hydra_resolvers():
     """Register all the hydra resolvers required for the super-gradients recipes."""
     OmegaConf.register_new_resolver("hydra_output_dir", hydra_output_dir_resolver, replace=True)
     OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
+    OmegaConf.register_new_resolver("add", lambda *args: sum(args), replace=True)
+    OmegaConf.register_new_resolver("cond", lambda boolean, x, y: x if boolean else y, replace=True)
 
 
-def pop_arg(arg_name: str, default_value: int = None) -> argparse.Namespace:
+def pop_arg(arg_name: str, default_value: Any = None) -> Any:
     """Get the specified args and remove them from argv"""
 
     parser = argparse.ArgumentParser()

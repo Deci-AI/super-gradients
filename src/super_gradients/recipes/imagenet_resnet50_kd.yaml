@@ -15,7 +15,6 @@
 defaults:
   - training_hyperparams: imagenet_resnet50_kd_train_params
   - dataset_params: imagenet_resnet50_kd_dataset_params
-  - arch_params: default_arch_params
   - checkpoint_params: default_checkpoint_params
 
 train_dataloader: imagenet_train
@@ -66,7 +65,7 @@ student_checkpoint_params:
   pretrained_weights: # a string describing the dataset of the pretrained weights (for example "imagenent").
 
 
-model_checkpoints_location: local
+
 
 
 run_teacher_on_eval: True
@@ -81,3 +80,10 @@ num_gpus: 8
 architecture: kd_module
 student_architecture: resnet50
 teacher_architecture: beit_base_patch16_224
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

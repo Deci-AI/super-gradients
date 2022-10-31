@@ -2,21 +2,21 @@ from super_gradients.training import models, dataloaders
 
 from super_gradients.training.sg_trainer import Trainer
 from super_gradients.training.metrics import BinaryIOU
-from super_gradients.training.transforms.transforms import ResizeSeg, RandomFlip, RandomRescale, CropImageAndMask, \
-    PadShortToCropSize, ColorJitterSeg
+from super_gradients.training.transforms.transforms import SegResize, SegRandomFlip, SegRandomRescale, SegCropImageAndMask, \
+    SegPadShortToCropSize, SegColorJitter
 from super_gradients.training.utils.callbacks import BinarySegmentationVisualizationCallback, Phase
 
 # DEFINE DATA TRANSFORMATIONS
 
 dl_train = dataloaders.supervisely_persons_train(
-    dataset_params={"transforms": [ColorJitterSeg(brightness=0.5, contrast=0.5, saturation=0.5),
-                                   RandomFlip(),
-                                   RandomRescale(scales=[0.25, 1.]),
-                                   PadShortToCropSize([320, 480]),
-                                   CropImageAndMask(crop_size=[320, 480],
-                                                    mode="random")]})
+    dataset_params={"transforms": [SegColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+                                   SegRandomFlip(),
+                                   SegRandomRescale(scales=[0.25, 1.]),
+                                   SegPadShortToCropSize([320, 480]),
+                                   SegCropImageAndMask(crop_size=[320, 480],
+                                                       mode="random")]})
 
-dl_val = dataloaders.supervisely_persons_val(dataset_params={"transforms": [ResizeSeg(h=480, w=320)]})
+dl_val = dataloaders.supervisely_persons_val(dataset_params={"transforms": [SegResize(h=480, w=320)]})
 
 trainer = Trainer("regseg48_transfer_learning_old_dice_diff_lrs_head_fixed_50_epochs")
 
@@ -45,7 +45,7 @@ train_params = {"max_epochs": 50,
                 "greater_metric_to_watch_is_better": True,
                 "train_metrics_list": [BinaryIOU()],
                 "valid_metrics_list": [BinaryIOU()],
-                "loss_logging_items_names": ["loss"],
+
                 "phase_callbacks": [BinarySegmentationVisualizationCallback(phase=Phase.VALIDATION_BATCH_END,
                                                                             freq=1,
                                                                             last_img_idx_in_batch=4)],

@@ -31,7 +31,7 @@ class ContextMethodsCheckerCallback(PhaseCallback):
 class ContextMethodsTest(unittest.TestCase):
     def test_access_to_methods_by_phase(self):
         net = LeNet()
-        trainer = Trainer("test_access_to_methods_by_phase", model_checkpoints_location='local')
+        trainer = Trainer("test_access_to_methods_by_phase")
 
         phase_callbacks = []
         for phase in Phase:
@@ -57,7 +57,7 @@ class ContextMethodsTest(unittest.TestCase):
                         "lr_warmup_epochs": 0, "initial_lr": 1, "loss": "cross_entropy", "optimizer": 'SGD',
                         "criterion_params": {}, "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
                         "train_metrics_list": [Accuracy()], "valid_metrics_list": [Accuracy()],
-                        "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                        "metric_to_watch": "Accuracy",
                         "greater_metric_to_watch_is_better": True, "ema": False, "phase_callbacks": phase_callbacks}
 
         trainer.train(model=net, training_params=train_params,

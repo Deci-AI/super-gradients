@@ -19,7 +19,7 @@ class LRTest(unittest.TestCase):
                                "initial_lr": 0.1,
                                "loss": "cross_entropy", "train_metrics_list": [Accuracy(), Top5()],
                                "valid_metrics_list": [Accuracy(), Top5()],
-                               "loss_logging_items_names": ["Loss"], "metric_to_watch": "Accuracy",
+                               "metric_to_watch": "Accuracy",
                                "greater_metric_to_watch_is_better": True}
 
     @classmethod
@@ -30,7 +30,7 @@ class LRTest(unittest.TestCase):
 
     @staticmethod
     def get_trainer(name=''):
-        trainer = Trainer(name, model_checkpoints_location='local')
+        trainer = Trainer(name)
         model = models.get("resnet18_cifar", num_classes=5)
         return trainer, model
 

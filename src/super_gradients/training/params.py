@@ -26,7 +26,7 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            "lr_schedule_function": None,
                            "train_metrics_list": [],
                            "valid_metrics_list": [],
-                           "loss_logging_items_names": ["Loss"],
+
                            "greater_metric_to_watch_is_better": True,
                            "precise_bn": False,
                            "precise_bn_batch_size": None,
@@ -63,7 +63,9 @@ DEFAULT_TRAINING_PARAMS = {"lr_warmup_epochs": 0,
                            },
                            "resume": False,
                            "resume_path": None,
-                           "resume_strict_load": False
+                           "ckpt_name": 'ckpt_latest.pth',
+                           "resume_strict_load": False,
+                           "sync_bn": False
                            }
 
 DEFAULT_OPTIMIZER_PARAMS_SGD = {"weight_decay": 1e-4, "momentum": 0.9}
