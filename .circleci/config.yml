@@ -69,6 +69,7 @@ jobs:
             . venv/bin/activate
             python3 -m pip install pip==22.0.4 
             cat requirements.txt | cut -f1 -d"#" | xargs -n 1 -L 1 pip install --progress-bar off
+            cat requirements.pro.txt | cut -f1 -d"#" | xargs -n 1 -L 1 pip install --progress-bar off
       - run:
           name: edit package version
           command: |
@@ -142,6 +143,7 @@ jobs:
           command: |
             cp requirements.txt src/super_gradients/requirements.txt
             cp requirements.pro.txt src/super_gradients/requirements.pro.txt
+            ls src/super_gradients
       - run:
           name: edit package version
           command: |
