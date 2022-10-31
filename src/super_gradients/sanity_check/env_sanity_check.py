@@ -62,11 +62,11 @@ def verify_installed_libraries() -> List[str]:
 
     installed_libs_with_version = get_installed_libs_with_version()
 
-    if pro_requirements_path is not None:
-        with open(pro_requirements_path, "r") as f:
-            pro_requirements = f.readlines()
-        if "deci-lab-client" in installed_libs_with_version:
-            requirements += pro_requirements
+    # if pro_requirements_path is not None:
+    with open(pro_requirements_path, "r") as f:
+        pro_requirements = f.readlines()
+    if "deci-lab-client" in installed_libs_with_version:
+        requirements += pro_requirements
 
     errors = []
     for requirement in requirements:
