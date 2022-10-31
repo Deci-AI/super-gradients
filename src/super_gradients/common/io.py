@@ -1,9 +1,9 @@
 import sys
-import logging
 from datetime import datetime
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment.environment_config import PKG_CHECKPOINTS_DIR
+from super_gradients.common.environment.env_helpers import multi_process_safe, is_distributed
 
 
 logger = get_logger(__name__)
@@ -11,6 +11,7 @@ CONSOLE_LOG_PATH = f"{PKG_CHECKPOINTS_DIR}/console.log"  # TODO: move to experim
 
 
 class StdoutTee(object):
+
     def __init__(self, file):
         self.file = file
         self.stdout = sys.stdout
@@ -29,6 +30,7 @@ class StdoutTee(object):
 
 
 class StderrTee(object):
+
     def __init__(self, file):
         self.file = file
         self.stderr = sys.stderr
@@ -46,14 +48,16 @@ class StderrTee(object):
         self.file.flush()
 
 
+@multi_process_safe
 def log_std_streams():
     """Log the standard streams (stdout/stderr) into a local file."""
 
     f = open(CONSOLE_LOG_PATH, "a")
-    f.write("=======================================================\n")
-    f.write(f'New run started at {datetime.today().isoformat()}\n')
-    f.write(f'sys.argv: "{" ".join(sys.argv)}"\n')
-    f.write("=======================================================\n")
+    if not is_distributed():
+        f.write("\n\n============================================================\n")
+        f.write(f'New run started at {datetime.today().isoformat()}\n')
+        f.write(f'sys.argv: "{" ".join(sys.argv)}"\n')
+        f.write("============================================================\n")
 
     StdoutTee(f)
     StderrTee(f)
