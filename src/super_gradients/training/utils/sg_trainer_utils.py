@@ -364,7 +364,7 @@ def get_callable_param_names(obj: callable) -> Tuple[str]:
 def log_main_training_params(gpu_mode: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, len_train_set: int):
     """Log training parameters"""
     msg = "TRAINING PARAMETERS:\n" \
-          f"    - Mode:                         {gpu_mode.name if gpu_mode else None}\n"\
+          f"    - Mode:                         {gpu_mode.name if gpu_mode else 'Single GPU'}\n"\
           f"    - Number of GPUs:               {num_gpus:<10} ({torch.cuda.device_count()} available on the machine)\n" \
           f"    - Dataset size:                 {len_train_set:<10} (len(train_set))\n" \
           f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n" \
