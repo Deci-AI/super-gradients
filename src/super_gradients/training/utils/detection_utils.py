@@ -1,10 +1,11 @@
+import dataclasses
 import math
 import os
 import pathlib
 from abc import ABC, abstractmethod
 from enum import Enum
 from functools import partial
-from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable
+from typing import Callable, List, Union, Tuple, Optional, Dict, Iterable, Any
 
 import cv2
 import matplotlib.pyplot as plt
@@ -1306,3 +1307,138 @@ class DetectionOutputAdapter(nn.Module):
             return tuple([cls.rearrange_outputs(predictions, s) for s in output_slices])
 
         return predictions[:, output_slices]
+
+
+@dataclasses.dataclass
+class CoordinatesFormat:
+    order: str
+    normalized: bool
+
+    def convert_from(self, bboxes: Tensor, format: "CoordinatesFormat") -> Tensor:
+        """
+        Convert boxes from arbitrary input format to the format specified by this instance
+        :param bboxes:
+        :param format:
+        :return:
+        """
+        raise NotImplementedError()
+
+@dataclasses.dataclass
+class XYXYCoordinateFormat(CoordinatesFormat):
+    def __init__(self):
+        super().__init__()
+        self.order = 'XYXY'
+        self.normalized = False
+
+
+
+@dataclasses.dataclass
+class XYXYNormalizedCoordinateFormat(CoordinatesFormat):
+    def __init__(self):
+        super().__init__()
+        self.order = 'XYXY'
+        self.normalized = True
+
+@dataclasses.dataclass
+class DetectionOutputType:
+    BOXES = "BOXES"
+    ClassLabel = "CLASS_LABEL"
+    ClassConfidence = "CLASS_CONFIDENCE"
+
+
+
+
+@dataclasses.dataclass
+class PostNMSDetections:
+    """
+    This class defines the possible output of the post-nms predictions
+    """
+
+    image_size: Union[Tensor, Tuple[int,int]]
+    bboxes_format: CoordinatesFormat # Description of bounding boxes format
+
+    bboxes: Tensor # List of final output bboxes [N, 4]
+    labels: Tensor # List of class labels [N]
+    scores: Tensor # List of predicted class confidence of each box [N]
+
+    objectness: Optional[Tensor] = None
+
+
+
+
+@dataclasses.dataclass
+class DetectionOutputFormat:
+    bboxes_format: CoordinatesFormat
+
+    def convert(self, input: PostNMSDetections) -> Any:
+        raise NotImplementedError()
+
+@dataclasses.dataclass
+class ConcatenatedTensorDetectionOutputFormat(DetectionOutputFormat):
+    """
+    Returns a single tensor of shape [N,M] (N - number of detections, M - sum of bbox attributes) that is a
+    concatenated from boxes and other fields
+    """
+    layout: Tuple[str, ...]
+
+    def convert(self, input: PostNMSDetections) -> Tensor:
+        components = self.rearrange_components(input)
+        return torch.cat(components, dim=1)
+
+
+@dataclasses.dataclass
+class TupleOfTensorsDetectionOutputFormat(DetectionOutputFormat):
+    """
+    Returns a tuple of tensors
+    """
+    layout: Tuple[str, ...]
+
+    def convert(self, input: PostNMSDetections) -> Tuple[Tensor, ...]
+        components = self.rearrange_components(input)
+        return tuple(components)
+
+
+@dataclasses.dataclass
+class DictDetectionOutputFormat(DetectionOutputFormat):
+    """
+    Returns a dictionary of tensors
+    """
+
+    layout: Dict[str, str]
+
+    def convert(self, input: PostNMSDetections) -> List[Dict[str, Tensor]]:
+        components = self.rearrange_components(input)
+        return dict(components)
+
+
+class WellKnownFormats:
+    YoloX = ConcatenatedTensorDetectionOutputFormat(bboxes_format=XYXYCoordinateFormat(),
+                                                    layout=(DetectionOutputType.BOXES,
+                                                            DetectionOutputType.ClassLabel,
+                                                            DetectionOutputType.ClassConfidence))
+
+    RetinaNet = TupleOfTensorsDetectionOutputFormat(bboxes_format=XYXYCoordinateFormat(),
+                                                    layout=(DetectionOutputType.BOXES,
+                                                            DetectionOutputType.ClassLabel,
+                                                            DetectionOutputType.ClassConfidence))
+
+    FasterRCNN = DictDetectionOutputFormat(bboxes_format=XYXYCoordinateFormat(),
+                                           layout=(("bboxes", DetectionOutputType.BOXES),
+                                                   ("labels", DetectionOutputType.ClassLabel),
+                                                   ("scores", DetectionOutputType.ClassConfidence)))
+
+
+class DetectionOutputAdapter(nn.Module):
+    def __init__(self, output_format: DetectionOutputFormat):
+        super().__init__()
+        self.output_format = output_format
+
+
+    def forward(self, inputs: List[PostNMSDetections]):
+        """
+        Convert output detections to the user-specified format
+        :param inputs: List of post-nms detections. Since number of detections in each sample may be different, we
+        use List to iterate across samples in batch
+        :return: List of detections in the output format
+        """
+        return [self.output_format.convert(x) for x in inputs]
