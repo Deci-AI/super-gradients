@@ -1,3 +1,4 @@
+import os
 import sys
 from datetime import datetime
 
@@ -11,6 +12,7 @@ CONSOLE_LOG_PATH = f"{PKG_CHECKPOINTS_DIR}/console.log"  # TODO: move to experim
 
 
 class StdoutTee(object):
+    """Duplicate the stdout stream to save it into a given file."""
 
     def __init__(self, file):
         self.file = file
@@ -30,6 +32,7 @@ class StdoutTee(object):
 
 
 class StderrTee(object):
+    """Duplicate the stderr stream to save it into a given file."""
 
     def __init__(self, file):
         self.file = file
@@ -50,7 +53,10 @@ class StderrTee(object):
 
 @multi_process_safe
 def log_std_streams():
-    """Log the standard streams (stdout/stderr) into a local file."""
+    """Duplicate the standard streams (stdout/stderr) into a local file."""
+
+    if os.getenv("LOG_STD_STREAMS") == "False":
+        return
 
     f = open(CONSOLE_LOG_PATH, "a")
     if not is_distributed():
