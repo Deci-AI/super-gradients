@@ -32,7 +32,7 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.training.utils.quantization_utils import QATCallback
-from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args
+from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import get_metrics_titles, get_metrics_results_tuple, \
@@ -40,7 +40,7 @@ from super_gradients.training.metrics.metric_utils import get_metrics_titles, ge
     get_metrics_dict, get_train_loop_description_dict
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils.distributed_training_utils import MultiGPUModeAutocastWrapper, \
-    reduce_results_tuple_for_ddp, compute_precise_bn_stats, setup_gpu_mode, require_gpu_setup, get_gpu_mem_utilization
+    reduce_results_tuple_for_ddp, compute_precise_bn_stats, setup_gpu_mode, require_gpu_setup, get_gpu_mem_utilization, get_world_size
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
@@ -1097,6 +1097,10 @@ class Trainer:
                                context_methods=self._get_context_methods(Phase.PRE_TRAINING),
                                ema_model=self.ema_model)
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
+
+        first_batch, _ = next(iter(self.train_loader))
+        log_main_training_params(gpu_mode=self.multi_gpu, num_gpus=get_world_size(), batch_size=len(first_batch),
+                                 batch_accumulate=self.batch_accumulate, len_train_set=len(self.train_loader.dataset))
 
         try:
             # HEADERS OF THE TRAINING PROGRESS
