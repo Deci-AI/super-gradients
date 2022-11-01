@@ -625,6 +625,10 @@ def xyxy2xywh(bboxes: Tensor):
     bboxes[:, 3] = bboxes[:, 3] - bboxes[:, 1]
     return bboxes
 
+def normalizedxyxy2xyxy(bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
+    scale = torch.tensor([[image_shape[1], image_shape[0], image_shape[1], image_shape[0]]],
+                         dtype=bboxes.dtype, device=bboxes.device)
+    return bboxes * scale
 
 def xyxy2normalizedxyxy(bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
     """
@@ -634,7 +638,8 @@ def xyxy2normalizedxyxy(bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
     :return: modified bboxes
     """
 
-    scale = torch.reciprocal(torch.tensor([[image_shape[1], image_shape[0], image_shape[1], image_shape[0]]], dtype=bboxes.dtype, device=bboxes.device))
+    scale = torch.reciprocal(torch.tensor([[image_shape[1], image_shape[0], image_shape[1], image_shape[0]]],
+                                          dtype=bboxes.dtype, device=bboxes.device))
     return bboxes * scale
 
 
@@ -1438,9 +1443,69 @@ class WellKnownFormats:
                                                    ("scores", DetectionOutputType.ClassConfidence)))
 
 
+
+@dataclasses.dataclass
+class PredictionsElement:
+    location: slice
+    name: str
+
+@dataclasses.dataclass
+class BoundingBoxesElement(PredictionsElement):
+    format: str
+
+
+
+@dataclasses.dataclass
+class ConcatenatedTensorPredictionsFormat:
+    layout: Tuple[PredictionsElement, ...]
+
+
+
+
+class WellKnownInputLayouts:
+    YoloX = ConcatenatedTensorPredictionsFormat(
+        layout=(
+            BoundingBoxesElement(location=slice(0,4), name="bboxes", format="xyxy"),
+            PredictionsElement(location=slice(4,None), name="scores")
+        )
+    )
+
+    YoloXWithDistance = ConcatenatedTensorPredictionsFormat(
+        layout=(
+            BoundingBoxesElement(location=slice(0, 4), name="bboxes", format="xywh"),
+            PredictionsElement(location=slice(4, 5), name="objectness"),
+            PredictionsElement(location=slice(5, -1), name="scores"),
+            PredictionsElement(location=slice(-1, None), name="distance")
+        )
+    )
+
+        bboxes_format=XYXYCoordinateFormat(),
+                                                    layout=(DetectionOutputType.BOXES,
+                                                            DetectionOutputType.ClassLabel,
+                                                            DetectionOutputType.ClassConfidence))
+
+    RetinaNet = TupleOfTensorsDetectionOutputFormat(bboxes_format=XYXYCoordinateFormat(),
+                                                    layout=(DetectionOutputType.BOXES,
+                                                            DetectionOutputType.ClassLabel,
+                                                            DetectionOutputType.ClassConfidence))
+
+    FasterRCNN = DictDetectionOutputFormat(bboxes_format=XYXYCoordinateFormat(),
+                                           layout=(("bboxes", DetectionOutputType.BOXES),
+                                                   ("labels", DetectionOutputType.ClassLabel),
+                                                   ("scores", DetectionOutputType.ClassConfidence)))
+
 class DetectionOutputAdapter(nn.Module):
-    def __init__(self, output_format: DetectionOutputFormat):
+    """
+
+    >>> adapter = DetectionOutputAdapter(
+    >>>
+    >>> )
+    """
+    def __init__(self,
+                 input_format: ConcatenatedTensorPredictionsFormat,
+                 output_format: DetectionOutputFormat):
         super().__init__()
+        self.input_format = input_format
         self.output_format = output_format
 
 
