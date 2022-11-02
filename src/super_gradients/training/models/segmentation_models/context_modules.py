@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from super_gradients.modules import ConvBNReLU
 from super_gradients.training.utils.module_utils import UpsampleMode
 from super_gradients.common.object_names import ContextModules
-from super_gradients.common.factories.contexts_type_factory import ContextsTypeFactory
 
 
 class AbstractContextModule(nn.Module, ABC):
@@ -119,11 +118,3 @@ CONTEXT_TYPE_DICT: Dict[str, Type[AbstractContextModule]] = {
     ContextModules.ASPP: ASPP,
     ContextModules.SPPM: SPPM
 }
-
-
-def build_context_module(context_module: Union[str, AbstractContextModule], context_module_params: dict, in_channels: int):
-    if isinstance(context_module, str):
-        context_cls = ContextsTypeFactory().get(context_module)
-    else:
-        context_cls = context_module
-    return context_cls(in_channels=in_channels, **context_module_params)

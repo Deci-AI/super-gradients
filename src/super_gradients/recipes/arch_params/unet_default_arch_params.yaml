@@ -15,13 +15,15 @@ backbone_params:
     stdc_downsample_mode: dw_conv   # STDC stage params
 
 
-context_module: aspp
-context_module_params:
-  dilation_list: [2, 4, 6]
-  in_out_ratio: 1.
-  # legacy parameter to support old trained checkpoints that were trained by mistake with extra redundant
-  # biases before batchnorm operators. should be set to `False` for new training processes.
-  use_bias: False
+context_module:
+  ASPP:
+    in_channels: 512
+#    in_channels: ${last:${backbone_params.width_list}}
+    dilation_list: [2, 4, 6]
+    in_out_ratio: 1.
+    # legacy parameter to support old trained checkpoints that were trained by mistake with extra redundant
+    # biases before batchnorm operators. should be set to `False` for new training processes.
+    use_bias: False
 
 decoder_params:
   # skip expansion ratio value, before fusing the skip features from the encoder with the decoder features, a projection

@@ -1,5 +1,5 @@
 import torch.nn as nn
-from typing import Optional, Union, List, Type
+from typing import Optional, Union, List
 import math
 
 from super_gradients.training.utils import HpmStruct, get_param
@@ -9,9 +9,10 @@ from super_gradients.training.utils.module_utils import make_upsample_module, Up
     fuse_repvgg_blocks_residual_branches
 from super_gradients.modules import ConvBNReLU
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import UNetBackboneBase, Encoder
-from super_gradients.training.models.segmentation_models.context_modules import build_context_module,\
-    AbstractContextModule
+from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
 from super_gradients.training.models.segmentation_models.unet.unet_decoder import Decoder
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
 
 
 class SegmentationHead(nn.Module):
@@ -28,6 +29,7 @@ class SegmentationHead(nn.Module):
 
 
 class UNetBase(SegmentationModule):
+    @resolve_param("context_module", ContextModulesFactory())
     def __init__(self,
                  num_classes: int,
                  use_aux_heads: bool,
@@ -36,8 +38,7 @@ class UNetBase(SegmentationModule):
                  head_upsample_mode: Union[UpsampleMode, str],
                  align_corners: bool,
                  backbone_params: dict,
-                 context_module: Optional[Union[str, Type[AbstractContextModule]]],
-                 context_module_params: dict,
+                 context_module: AbstractContextModule,
                  decoder_params: dict,
                  aux_heads_params: dict,
                  dropout: float):
@@ -58,9 +59,6 @@ class UNetBase(SegmentationModule):
             - in_channels: int, num channels of the input to the backbone module.
             - block_params: dict, argument to be passed to the block types constructors. i.e for `RegnetXStage`
                 block_params should include bottleneck_ratio, group_width and se_ratio.
-        :param context_module_params: params to build the context module currently only `ASPP` is supported, include the
-            following keys:
-            - dilation_list: List[int], dilation rates for the ASPP module.
         :param decoder_params: params to build a `Decoder`, include the following keys:
             - up_block_repeat_list: List[int], num of blocks per decoder stage, the `block` implementation depends on
                 the up-block type.
@@ -83,12 +81,6 @@ class UNetBase(SegmentationModule):
         self.num_classes = num_classes
         # Init Backbone
         backbone = UNetBackboneBase(**backbone_params)
-        # Init Context Module
-        context_module = nn.Identity() if context_module is None else build_context_module(
-            context_module=context_module,
-            context_module_params=context_module_params,
-            in_channels=backbone.get_backbone_output_number_of_channels()[-1]
-        )
         # Init Encoder
         self.encoder = Encoder(backbone, context_module)
         # Init Decoder
@@ -225,8 +217,7 @@ class UNetCustom(UNetBase):
                          head_upsample_mode=get_param(arch_params, "head_upsample_mode", UpsampleMode.BILINEAR),
                          align_corners=get_param(arch_params, "align_corners", False),
                          backbone_params=get_param(arch_params, "backbone_params"),
-                         context_module=get_param(arch_params, "context_module"),
-                         context_module_params=get_param(arch_params, "context_module_params"),
+                         context_module=get_param(arch_params, "context_module", nn.Identity()),
                          decoder_params=get_param(arch_params, "decoder_params"),
                          aux_heads_params=get_param(arch_params, "aux_heads_params"),
                          dropout=get_param(arch_params, "dropout", 0.))
