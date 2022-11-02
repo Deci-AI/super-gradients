@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Union, List, Tuple
 
-from super_gradients.training.utils.module_utils import ConvBNReLU, make_upsample_module
+from super_gradients.modules import ConvBNReLU
+from super_gradients.training.utils.module_utils import make_upsample_module
 from super_gradients.common import UpsampleMode
 from super_gradients.training.models.segmentation_models.stdc import SegmentationHead, AbstractSTDCBackbone,\
     STDC1Backbone, STDC2Backbone

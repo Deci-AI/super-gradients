@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import HpmStruct, get_param
-from super_gradients.training.utils.module_utils import ConvBNReLU
+from super_gradients.modules import ConvBNReLU
 
 DEFAULT_REGSEG48_BACKBONE_PARAMS = {
     "stages": [
