@@ -1,5 +1,6 @@
 class Losses:
-    """Static class holding all the supported loss names"""""
+    """Static class holding all the supported loss names""" ""
+
     CROSS_ENTROPY = "cross_entropy"
     MSE = "mse"
     R_SQUARED_LOSS = "r_squared_loss"
@@ -15,22 +16,24 @@ class Losses:
 
 
 class Metrics:
-    """Static class holding all the supported metric names"""""
-    ACCURACY = 'Accuracy'
-    TOP5 = 'Top5'
-    DETECTION_METRICS = 'DetectionMetrics'
-    DETECTION_METRICS_050_095 = 'DetectionMetrics_050_095'
-    DETECTION_METRICS_050 = 'DetectionMetrics_050'
-    DETECTION_METRICS_075 = 'DetectionMetrics_075'
-    IOU = 'IoU'
+    """Static class holding all the supported metric names""" ""
+
+    ACCURACY = "Accuracy"
+    TOP5 = "Top5"
+    DETECTION_METRICS = "DetectionMetrics"
+    DETECTION_METRICS_050_095 = "DetectionMetrics_050_095"
+    DETECTION_METRICS_050 = "DetectionMetrics_050"
+    DETECTION_METRICS_075 = "DetectionMetrics_075"
+    IOU = "IoU"
     BINARY_IOU = "BinaryIOU"
     DICE = "Dice"
     BINARY_DICE = "BinaryDice"
-    PIXEL_ACCURACY = 'PixelAccuracy'
+    PIXEL_ACCURACY = "PixelAccuracy"
 
 
 class Transforms:
-    """Static class holding all the supported transform names"""""
+    """Static class holding all the supported transform names""" ""
+
     # From SG
     SegRandomFlip = "SegRandomFlip"
     SegResize = "SegResize"
@@ -93,7 +96,8 @@ class Transforms:
 
 
 class Optimizers:
-    """Static class holding all the supported optimizer names"""""
+    """Static class holding all the supported optimizer names""" ""
+
     SGD = "SGD"
     ADAM = "Adam"
     RMS_PROP = "RMSprop"
@@ -102,19 +106,21 @@ class Optimizers:
 
 
 class Callbacks:
-    """Static class holding all the supported callback names"""""
-    DECI_LAB_UPLOAD = 'DeciLabUploadCallback'
-    LR_CALLBACK_BASE = 'LRCallbackBase'
-    LR_SCHEDULER = 'LRSchedulerCallback'
-    METRICS_UPDATE = 'MetricsUpdateCallback'
-    MODEL_CONVERSION_CHECK = 'ModelConversionCheckCallback'
-    EARLY_STOP = 'EarlyStop'
-    DETECTION_MULTISCALE_PREPREDICTION = 'DetectionMultiscalePrePredictionCallback'
-    YOLOX_TRAINING_STAGE_SWITCH = 'YoloXTrainingStageSwitchCallback'
+    """Static class holding all the supported callback names""" ""
+
+    DECI_LAB_UPLOAD = "DeciLabUploadCallback"
+    LR_CALLBACK_BASE = "LRCallbackBase"
+    LR_SCHEDULER = "LRSchedulerCallback"
+    METRICS_UPDATE = "MetricsUpdateCallback"
+    MODEL_CONVERSION_CHECK = "ModelConversionCheckCallback"
+    EARLY_STOP = "EarlyStop"
+    DETECTION_MULTISCALE_PREPREDICTION = "DetectionMultiscalePrePredictionCallback"
+    YOLOX_TRAINING_STAGE_SWITCH = "YoloXTrainingStageSwitchCallback"
 
 
 class LRSchedulers:
-    """Static class to hold all the supported LR Scheduler names"""""
+    """Static class to hold all the supported LR Scheduler names""" ""
+
     STEP = "step"
     POLY = "poly"
     COSINE = "cosine"
@@ -123,19 +129,29 @@ class LRSchedulers:
 
 
 class LRWarmups:
-    """Static class to hold all the supported LR Warmup names"""""
+    """Static class to hold all the supported LR Warmup names""" ""
+
     LINEAR_STEP = "linear_step"
 
 
 class Samplers:
-    """Static class to hold all the supported Samplers names"""""
+    """Static class to hold all the supported Samplers names""" ""
+
     INFINITE = "InfiniteSampler"
     REPEAT_AUG = "RepeatAugSampler"
     DISTRIBUTED = "DistributedSampler"
 
 
+class ContextModules:
+    """Static class to hold all the segmentation context module names""" ""
+
+    ASPP = "ASPP"
+    SPPM = "SPPM"
+
+
 class Models:
-    """Static class to hold all the available model names"""""
+    """Static class to hold all the available model names""" ""
+
     RESNET18 = "resnet18"
     RESNET34 = "resnet34"
     RESNET50_3343 = "resnet50_3343"
@@ -220,7 +236,7 @@ class Models:
     STDC2_SEG = "stdc2_seg"
     STDC2_SEG50 = "stdc2_seg50"
     STDC2_SEG75 = "stdc2_seg75"
-    CUSTOM_STDC = 'custom_stdc'
+    CUSTOM_STDC = "custom_stdc"
     REGSEG48 = "regseg48"
     KD_MODULE = "kd_module"
     VIT_BASE = "vit_base"
@@ -234,3 +250,4 @@ class Models:
     PP_LITE_B_SEG = "pp_lite_b_seg"
     PP_LITE_B_SEG50 = "pp_lite_b_seg50"
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
+    UNET_CUSTOM = "unet_custom"
