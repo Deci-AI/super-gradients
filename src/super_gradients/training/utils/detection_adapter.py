@@ -23,37 +23,6 @@ class ConcatenatedTensorDetectionOutputFormat(DetectionOutputFormat):
         return torch.cat(components, dim=1)
 
 
-@dataclasses.dataclass
-class TupleOfTensorsDetectionOutputFormat(DetectionOutputFormat):
-    """
-    Define the output format that return a tuple of tensors.
-    A layout defines the order of tensors that is returned. For instance:
-    - bboxes, scores, labels
-    - labels, bboxes
-
-    """
-    layout: Tuple[str, ...]
-
-    def convert(self, input: PostNMSDetections) -> Tuple[Tensor, ...]:
-        components = self.rearrange_components(input)
-        return tuple(components)
-
-
-@dataclasses.dataclass
-class DictDetectionOutputFormat(DetectionOutputFormat):
-    """
-    Define the output format that return a dictionary of tensors.
-    A layout defines the key-value correspondence:
-    - { bboxes: Tensor, scores: Tensor, labels: Tensor }
-    - { labels: Tensor, bboxes: Tensor }
-    """
-
-    layout: Dict[str, str]
-
-    def convert(self, input: PostNMSDetections) -> List[Dict[str, Tensor]]:
-        components = self.rearrange_components(input)
-        return dict(components)
-
 
 
 
