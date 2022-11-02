@@ -123,8 +123,8 @@ class RepVGGStage(BackboneStage):
             stride = 1
         # RepVGG blocks
         blocks.extend([
-            RepVGGBlock(in_channels, out_channels, kernel_size=3, stride=stride, padding=1),
-            *[RepVGGBlock(out_channels, out_channels, kernel_size=3, padding=1) for _ in range(num_blocks - 1)]
+            RepVGGBlock(in_channels, out_channels, stride=stride),
+            *[RepVGGBlock(out_channels, out_channels) for _ in range(num_blocks - 1)]
         ])
         return nn.Sequential(*blocks)
 
