@@ -1,5 +1,2 @@
-defaults:
-  - default_arch_params
-
 num_classes: 21
 image_size: 512

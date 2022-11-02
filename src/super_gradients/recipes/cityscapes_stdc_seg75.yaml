@@ -55,7 +55,6 @@ architecture: stdc1_seg
 arch_params:
   num_classes: 19
   use_aux_heads: True
-  sync_bn: True
 
 checkpoint_params:
   checkpoint_path:
@@ -65,6 +64,7 @@ checkpoint_params:
 
 training_hyperparams:
   initial_lr: 0.005
+  sync_bn: True
 
   loss:
     stdc_loss:

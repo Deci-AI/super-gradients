@@ -11,7 +11,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param, HpmStruct
-from super_gradients.training.utils.module_utils import ConvBNReLU
+from super_gradients.modules import ConvBNReLU
 from typing import Union, List
 from abc import ABC, abstractmethod
 
