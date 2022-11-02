@@ -5,7 +5,8 @@ from enum import Enum
 import torch.nn as nn
 import torch
 
-from super_gradients.training.utils.module_utils import ConvBNReLU, make_upsample_module
+from super_gradients.modules import ConvBNReLU
+from super_gradients.training.utils.module_utils import make_upsample_module
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories import ListFactory, TypeFactory
 

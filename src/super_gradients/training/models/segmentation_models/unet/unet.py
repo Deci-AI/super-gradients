@@ -5,8 +5,9 @@ import math
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training import models
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
-from super_gradients.training.utils.module_utils import make_upsample_module, UpsampleMode
-from super_gradients.training.utils.module_utils import ConvBNReLU, fuse_repvgg_blocks_residual_branches
+from super_gradients.training.utils.module_utils import make_upsample_module, UpsampleMode,\
+    fuse_repvgg_blocks_residual_branches
+from super_gradients.modules import ConvBNReLU
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import UNetBackboneBase, Encoder
 from super_gradients.training.models.segmentation_models.context_modules import build_context_module,\
     AbstractContextModule
