@@ -13,7 +13,7 @@ LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients 
 logger = get_logger(__name__, log_level=logging.DEBUG)
 
 
-def get_requirements_path() -> Union[None, Path]:
+def get_requirements_path(requirements_file_name: str) -> Union[None, Path]:
     """Get the path of requirement.txt from the root if exist.
     There is a difference when installed from artifact or locally.
         - In the first case, requirements.txt is copied to the package during the CI.
@@ -30,10 +30,10 @@ def get_requirements_path() -> Union[None, Path]:
     project_root = package_root.parent.parent  # moving to super-gradients
 
     # If installed from artifact, requirements.txt is in package_root, if installed locally it is in project_root
-    if (package_root / "requirements.txt").exists():
-        return package_root / "requirements.txt"
-    elif (project_root / "requirements.txt").exists():
-        return project_root / "requirements.txt"
+    if (package_root / requirements_file_name).exists():
+        return package_root / requirements_file_name
+    elif (project_root / requirements_file_name).exists():
+        return project_root / requirements_file_name
     else:
         return None  # Could happen when installed through github directly ("pip install git+https://github.com/...")
 
@@ -51,7 +51,9 @@ def get_installed_libs_with_version() -> Dict[str, str]:
 def verify_installed_libraries() -> List[str]:
     """Check that all installed libs respect the requirement.txt"""
 
-    requirements_path = get_requirements_path()
+    requirements_path = get_requirements_path("requirements.txt")
+    pro_requirements_path = get_requirements_path("requirements.pro.txt")
+
     if requirements_path is None:
         return [LIB_CHECK_IMPOSSIBLE_MSG]
 
@@ -59,6 +61,12 @@ def verify_installed_libraries() -> List[str]:
         requirements = f.readlines()
 
     installed_libs_with_version = get_installed_libs_with_version()
+
+    # if pro_requirements_path is not None:
+    with open(pro_requirements_path, "r") as f:
+        pro_requirements = f.readlines()
+    if "deci-lab-client" in installed_libs_with_version:
+        requirements += pro_requirements
 
     errors = []
     for requirement in requirements:
