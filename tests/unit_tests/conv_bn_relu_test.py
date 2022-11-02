@@ -1,7 +1,7 @@
 import torch
 import unittest
 import torch.nn as nn
-from super_gradients.training.utils.module_utils import ConvBNReLU
+from super_gradients.modules import ConvBNReLU
 
 
 class TestConvBnRelu(unittest.TestCase):
