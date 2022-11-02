@@ -56,7 +56,6 @@ from super_gradients.training.utils.callbacks import CallbackHandler, Phase, LR_
     MetricsUpdateCallback, LR_WARMUP_CLS_DICT, ContextSgMethods, LRCallbackBase
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
-from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 
 logger = get_logger(__name__)
