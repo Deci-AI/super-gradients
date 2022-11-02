@@ -9,6 +9,7 @@ from setuptools import find_packages
 
 README_LOCATION = 'README.md'
 REQ_LOCATION = 'requirements.txt'
+REQ_PRO_LOCATION = 'requirements.pro.txt'
 VERSION_FILE = "version.txt"
 
 
@@ -20,6 +21,11 @@ def readme():
 
 def get_requirements():
     with open(REQ_LOCATION, encoding="utf-8") as f:
+        return f.read().splitlines()
+
+
+def get_pro_requirements():
+    with open(REQ_PRO_LOCATION, encoding="utf-8") as f:
         return f.read().splitlines()
 
 
@@ -43,8 +49,9 @@ setup(
         'super_gradients.recipes': ['*.yaml', '**/*.yaml'],
         'super_gradients.common': ['auto_logging/auto_logging_conf.json'],
         'super_gradients.examples': ['*.ipynb', '**/*.ipynb'],
-        'super_gradients': ['requirements.txt'],
+        'super_gradients': ['requirements.txt', 'requirements.pro.txt'],
     },
     long_description=readme(),
-    long_description_content_type="text/markdown"
+    long_description_content_type="text/markdown",
+    extras_require={"pro": get_pro_requirements()}
 )
