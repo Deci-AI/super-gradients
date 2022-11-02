@@ -932,9 +932,11 @@ class Trainer:
 
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             if isinstance(self.train_loader.sampler, SequentialSampler):
-                raise ValueError("You are not using a DistributedSampler on you training dataloader, while working on DDP."
+                raise ValueError("You are using a SequentialSampler on you training dataloader, while working on DDP. "
                                  "This cancels the DDP benefits since it makes each process iterate through the entire dataset")
-            if not isinstance(self.train_loader.sampler, )
+            if not isinstance(self.train_loader.sampler, (DistributedSampler, InfiniteSampler, RepeatAugSampler)):
+                logger.warning("The training sampler you are using might not support DDP. "
+                               "If it doesnt, please use one of the following sampler: DistributedSampler, InfiniteSampler, RepeatAugSampler")
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
