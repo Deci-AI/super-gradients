@@ -50,13 +50,17 @@ jobs:
                   equal: [ master, << pipeline.git.branch >> ]
           steps:
             - run:
-                name: install Flake8 python linter
+                name: install Black Flake8 python linter
                 command: |
-                  pip install --user flake8
+                  pip install --user -r requirements.dev.txt
             - run:
                 name: Lint all python files changed since develop branch
                 command: |
                   flake8 --statistics --config scripts/flake8-config setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$' | grep -v 'experimental/' | grep -v 'experimental_models/')
+            - run:
+                name: Run Black on changed files against master branch
+                command: |
+                  black --check setup.py $(git diff --diff-filter ACM origin/master --name-only | grep 'py$' | grep -v 'experimental/' | grep -v 'experimental_models/')
       - run:
           name: add requirements.txt and requirements.pro.txt to source code
           command: |
@@ -67,7 +71,7 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            python3 -m pip install pip==22.0.4 
+            python3 -m pip install pip==22.0.4
             cat requirements.txt | cut -f1 -d"#" | xargs -n 1 -L 1 pip install --progress-bar off
       - run:
           name: edit package version
@@ -122,7 +126,7 @@ jobs:
       - deci-common/git_config_automation_user
       - run:
           name: "commit version file"
-          command: | 
+          command: |
             git commit version.txt -m "Deci Services - Changed version to $NEW_VERSION"
       - deci-common/git_commit_and_tag:
           version: $NEW_VERSION
@@ -227,4 +231,3 @@ workflows:
           requires:
             - "build3.7"
           <<: *release_candidate_filter
-
