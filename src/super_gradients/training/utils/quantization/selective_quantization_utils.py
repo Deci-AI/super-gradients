@@ -84,8 +84,8 @@ class SelectiveQuantizer:
                                             action=QuantizedMetadata.ReplacementAction.UNWRAP)
     }  # DEFAULT MAPPING INSTRUCTIONS
 
-    def __init__(self, *, custom_mappings: dict = None, default_quant_modules_calib_method: str = 'percentile',
-                 default_per_channel_quant_modules: bool = False) -> None:
+    def __init__(self, *, custom_mappings: dict = None, default_quant_modules_calib_method: str = 'max',
+                 default_per_channel_quant_modules: bool = True) -> None:
         super().__init__()
         self.default_quant_modules_calib_method = default_quant_modules_calib_method
         self.default_per_channel_quant_modules = default_per_channel_quant_modules

@@ -64,11 +64,11 @@ class QATCallback(PhaseCallback):
         start_epoch: int, first epoch to start QAT.
 
         quant_modules_calib_method: str, One of [percentile, mse, entropy, max]. Statistics method for amax
-         computation of the quantized modules (default=percentile).
+         computation of the quantized modules (default=max).
 
         per_channel_quant_modules: bool, whether quant modules should be per channel (default=False).
 
-        calibrate: bool, whether to perform calibration (default=False).
+        calibrate: bool, whether to perform calibration (default=True).
 
         calibrated_model_path: str, path to a calibrated checkpoint (default=None).
 
@@ -84,8 +84,8 @@ class QATCallback(PhaseCallback):
 
     """
 
-    def __init__(self, start_epoch: int, quantization_mappings: list, quant_modules_calib_method: str = "percentile",
-                 per_channel_quant_modules: bool = False, calibrate: bool = True, calibrated_model_path: str = None,
+    def __init__(self, start_epoch: int, quantization_mappings: list, quant_modules_calib_method: str = "max",
+                 per_channel_quant_modules: bool = True, calibrate: bool = True, calibrated_model_path: str = None,
                  calib_data_loader: DataLoader = None, num_calib_batches: int = 2, percentile: float = 99.99):
         super(QATCallback, self).__init__(Phase.TRAIN_EPOCH_START)
         self._validate_args(start_epoch, quant_modules_calib_method, calibrate, calibrated_model_path)

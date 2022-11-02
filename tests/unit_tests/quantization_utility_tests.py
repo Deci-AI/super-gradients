@@ -4,7 +4,7 @@ import torchvision
 from torch import nn
 
 import super_gradients.training.utils.quantization.quantized_modules.pytorch_quantization_resnet
-from super_gradients import SgModel
+from super_gradients import Trainer
 from super_gradients.common import MultiGPUMode
 from super_gradients.training import utils
 from super_gradients.training.models import Bottleneck
@@ -757,12 +757,7 @@ class QuantizationUtilityTest(unittest.TestCase):
             torch.testing.assert_close(y_sg, y_pyquant)
 
     def test_sg_resnet_sg_vanilla_quantization_matches_pytorch_quantization(self):
-        sg_model = SgModel("test1_1",
-                           model_checkpoints_location='local',
-                           multi_gpu=MultiGPUMode.AUTO)
-        sg_model.build_model("resnet50",
-                             arch_params={'num_classes': 1000},
-                             checkpoint_params={"pretrained_weights": "imagenet"})
+
         # SG SELECTIVE QUANTIZATION
         sq = SelectiveQuantizer(custom_mappings={
             torch.nn.Conv2d:
@@ -781,7 +776,9 @@ class QuantizationUtilityTest(unittest.TestCase):
                                   input_quant_descriptor=QuantDescriptor(calib_method='max'))
         }, default_per_channel_quant_modules=True)
 
-        resnet_sg = sg_model.net
+        resnet_sg: nn.Module = super_gradients.training.models.get("resnet50",
+                                                                   pretrained_weights="imagenet",
+                                                                   num_classes=1000)
         sq.quantize_module(resnet_sg, preserve_state_dict=True)
 
         # PYTORCH-QUANTIZATION
@@ -790,13 +787,10 @@ class QuantizationUtilityTest(unittest.TestCase):
         quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
 
         quant_modules.initialize()
-        sg_model = SgModel("test1_2",
-                           model_checkpoints_location='local',
-                           multi_gpu=MultiGPUMode.AUTO)
-        sg_model.build_model("resnet50",
-                             arch_params={'num_classes': 1000},
-                             checkpoint_params={"pretrained_weights": "imagenet"})
-        resnet_pyquant = sg_model.net
+        resnet_pyquant: nn.Module = super_gradients.training.models.get("resnet50",
+                                                                        pretrained_weights="imagenet",
+                                                                        num_classes=1000)
+
         quant_modules.deactivate()
 
         for (n1, p1), (n2, p2) in zip(resnet_sg.named_parameters(), resnet_pyquant.named_parameters()):
@@ -809,12 +803,6 @@ class QuantizationUtilityTest(unittest.TestCase):
             torch.testing.assert_close(y_sg, y_pyquant)
 
     def test_sg_resnet_sg_custom_quantization_matches_pytorch_quantization(self):
-        sg_model = SgModel("test2_1",
-                           model_checkpoints_location='local',
-                           multi_gpu=MultiGPUMode.AUTO)
-        sg_model.build_model("resnet50",
-                             arch_params={'num_classes': 1000},
-                             checkpoint_params={"pretrained_weights": "imagenet"})
         # SG SELECTIVE QUANTIZATION
         sq = SelectiveQuantizer(custom_mappings={
             Bottleneck:
@@ -835,7 +823,10 @@ class QuantizationUtilityTest(unittest.TestCase):
                                   input_quant_descriptor=QuantDescriptor(calib_method='max'))
         }, default_per_channel_quant_modules=True)
 
-        resnet_sg: nn.Module = sg_model.net
+        resnet_sg: nn.Module = super_gradients.training.models.get("resnet50",
+                                                                   pretrained_weights="imagenet",
+                                                                   num_classes=1000)
+
         sq.quantize_module(resnet_sg, preserve_state_dict=True)
 
         # PYTORCH-QUANTIZATION
