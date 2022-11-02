@@ -8,5 +8,6 @@ class OptimizersTypeFactory(TypeFactory):
     This factory does not instantiate an object but rather return the type, since optimizer instantiation
     requires the model to be instantiated first
     """
+
     def __init__(self):
         super().__init__(OPTIMIZERS)

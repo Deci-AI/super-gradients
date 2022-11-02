@@ -23,12 +23,12 @@ class AntiAliasDownsample(nn.Module):
         self.stride = stride
         self.channels = in_channels
 
-        a = torch.tensor([1., 2., 1.])
+        a = torch.tensor([1.0, 2.0, 1.0])
 
-        filt = (a[:, None] * a[None, :])
+        filt = a[:, None] * a[None, :]
         filt = filt / torch.sum(filt)
 
-        self.register_buffer('filt', filt[None, None, :, :].repeat((self.channels, 1, 1, 1)))
+        self.register_buffer("filt", filt[None, None, :, :].repeat((self.channels, 1, 1, 1)))
 
     def forward(self, x):
         return F.conv2d(x, self.filt, stride=self.stride, padding=1, groups=self.channels)
@@ -38,6 +38,7 @@ class AbstractUNetBackbone(nn.Module, ABC):
     """
     All backbones for UNet segmentation models must implement this class.
     """
+
     @abstractmethod
     def get_backbone_output_number_of_channels(self) -> List[int]:
         """
@@ -57,12 +58,8 @@ class BackboneStage(nn.Module, ABC):
     BackboneStage abstract class to define a stage in UnetBackbone. Each stage include blocks which their amounts is
     defined by `num_blocks`.
     """
-    def __init__(self,
-                 in_channels: int,
-                 out_channels: int,
-                 stride: int,
-                 num_blocks: int,
-                 **kwargs):
+
+    def __init__(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, **kwargs):
         super().__init__()
         self.blocks = self.build_stage(in_channels, out_channels, stride=stride, num_blocks=num_blocks, **kwargs)
 
@@ -78,8 +75,8 @@ class STDCStage(BackboneStage):
     """
     STDC stage with STDCBlock as building block.
     """
-    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, steps: int,
-                    stdc_downsample_mode: str, **kwargs):
+
+    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, steps: int, stdc_downsample_mode: str, **kwargs):
         """
         :param steps: The total number of convs in this module, 1 conv 1x1 and (steps - 1) conv3x3.
         :param stdc_downsample_mode: downsample mode in stdc block, supported `avg_pool` for average-pooling and
@@ -89,11 +86,12 @@ class STDCStage(BackboneStage):
         self.assert_divisible_channels(out_channels, steps)
         blocks = []
         # STDC blocks
-        blocks.extend([
-            STDCBlock(in_channels, out_channels, stride=stride, steps=steps, stdc_downsample_mode=stdc_downsample_mode),
-            *[STDCBlock(out_channels, out_channels, stride=1, steps=steps, stdc_downsample_mode=stdc_downsample_mode)
-              for _ in range(num_blocks - 1)]
-        ])
+        blocks.extend(
+            [
+                STDCBlock(in_channels, out_channels, stride=stride, steps=steps, stdc_downsample_mode=stdc_downsample_mode),
+                *[STDCBlock(out_channels, out_channels, stride=1, steps=steps, stdc_downsample_mode=stdc_downsample_mode) for _ in range(num_blocks - 1)],
+            ]
+        )
         return nn.Sequential(*blocks)
 
     @staticmethod
@@ -105,8 +103,10 @@ class STDCStage(BackboneStage):
         """
         channels_ratio = 2 ** (steps - 1)
         if num_channels % channels_ratio != 0:
-            raise AssertionError(f"Num channels: {num_channels}, isn't divisible by the channels width ratio:"
-                                 f" {channels_ratio}, when initiating an STDC block with steps: {steps}")
+            raise AssertionError(
+                f"Num channels: {num_channels}, isn't divisible by the channels width ratio:"
+                f" {channels_ratio}, when initiating an STDC block with steps: {steps}"
+            )
 
 
 class RepVGGStage(BackboneStage):
@@ -114,18 +114,15 @@ class RepVGGStage(BackboneStage):
     RepVGG stage with RepVGGBlock as building block. If `anti_alias=True`, `AntiAliasDownsample` module is used for
     downsampling.
     """
-    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool,
-                    **kwargs):
+
+    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, anti_alias: bool, **kwargs):
         blocks = []
         # Anti alias gaussian down-sampling
         if anti_alias and stride == 2:
             blocks.append(AntiAliasDownsample(in_channels, stride))
             stride = 1
         # RepVGG blocks
-        blocks.extend([
-            RepVGGBlock(in_channels, out_channels, stride=stride),
-            *[RepVGGBlock(out_channels, out_channels) for _ in range(num_blocks - 1)]
-        ])
+        blocks.extend([RepVGGBlock(in_channels, out_channels, stride=stride), *[RepVGGBlock(out_channels, out_channels) for _ in range(num_blocks - 1)]])
         return nn.Sequential(*blocks)
 
 
@@ -133,13 +130,23 @@ class RegnetXStage(BackboneStage):
     """
     RegNetX stage with XBlock as building block.
     """
-    def build_stage(self, in_channels: int, out_channels: int, stride: int, num_blocks: int, bottleneck_ratio: float,
-                    group_width: int, se_ratio: float, droppath_prob: float, **kwargs):
+
+    def build_stage(
+        self,
+        in_channels: int,
+        out_channels: int,
+        stride: int,
+        num_blocks: int,
+        bottleneck_ratio: float,
+        group_width: int,
+        se_ratio: float,
+        droppath_prob: float,
+        **kwargs,
+    ):
         group_width = self._get_divisable_group_width(out_channels, bottleneck_ratio, group_width)
         return nn.Sequential(
             XBlock(in_channels, out_channels, bottleneck_ratio, group_width, stride, se_ratio, droppath_prob),
-            *[XBlock(out_channels, out_channels, bottleneck_ratio, group_width, 1, se_ratio, droppath_prob)
-              for _ in range(num_blocks - 1)]
+            *[XBlock(out_channels, out_channels, bottleneck_ratio, group_width, 1, se_ratio, droppath_prob) for _ in range(num_blocks - 1)],
         )
 
     @staticmethod
@@ -153,8 +160,8 @@ class RegnetXStage(BackboneStage):
             return inter_channels
         group_pow = int(math.log2(group_width))
         for pow in range(group_pow, -1, -1):
-            if (inter_channels / 2 ** pow) % 1 == 0:
-                return int(2 ** pow)
+            if (inter_channels / 2**pow) % 1 == 0:
+                return int(2**pow)
         return 1
 
 
@@ -166,14 +173,16 @@ class DownBlockType(Enum):
 
 class UNetBackboneBase(AbstractUNetBackbone):
     @resolve_param("block_types_list", ListFactory(TypeFactory.from_enum_cls(DownBlockType)))
-    def __init__(self,
-                 strides_list: List[int],
-                 width_list: List[int],
-                 num_blocks_list: List[int],
-                 block_types_list: List[Type[BackboneStage]],
-                 is_out_feature_list: List[bool],
-                 block_params: dict = {},
-                 in_channels: int = 3):
+    def __init__(
+        self,
+        strides_list: List[int],
+        width_list: List[int],
+        num_blocks_list: List[int],
+        block_types_list: List[Type[BackboneStage]],
+        is_out_feature_list: List[bool],
+        block_params: dict = {},
+        in_channels: int = 3,
+    ):
         super().__init__()
         self.strides_list = strides_list
         self.width_list = width_list
@@ -188,15 +197,13 @@ class UNetBackboneBase(AbstractUNetBackbone):
         # Build backbone stages
         self.stages = nn.ModuleList()
         for i in range(self.num_stages):
-            self.stages.append(
-                self.block_types_list[i](in_channels, width_list[i], stride=strides_list[i],
-                                         num_blocks=num_blocks_list[i], **block_params)
-            )
+            self.stages.append(self.block_types_list[i](in_channels, width_list[i], stride=strides_list[i], num_blocks=num_blocks_list[i], **block_params))
             in_channels = width_list[i]
 
     def validate_backbone_arguments(self):
-        assert self.num_stages == len(self.width_list) == len(self.num_blocks_list) == len(self.block_types_list) == len(self.is_out_feature_list), \
-            f"Backbone specification arguments must match to the num of stages: {self.num_stages}"
+        assert (
+            self.num_stages == len(self.width_list) == len(self.num_blocks_list) == len(self.block_types_list) == len(self.is_out_feature_list)
+        ), f"Backbone specification arguments must match to the num of stages: {self.num_stages}"
 
     def get_backbone_output_number_of_channels(self) -> List[int]:
         return [ch for ch, is_out in zip(self.width_list, self.is_out_feature_list) if is_out]
@@ -211,9 +218,7 @@ class UNetBackboneBase(AbstractUNetBackbone):
 
 
 class Encoder(nn.Module):
-    def __init__(self,
-                 backbone: AbstractUNetBackbone,
-                 context_module: Optional[nn.Module]):
+    def __init__(self, backbone: AbstractUNetBackbone, context_module: Optional[nn.Module]):
         super().__init__()
         self.backbone = backbone
         self.context_module = nn.Identity() if context_module is None else context_module
@@ -237,9 +242,7 @@ class Encoder(nn.Module):
 class UnetClassification(SgModule):
     def __init__(self, arch_params: HpmStruct):
         super().__init__()
-        self.backbone = UNetBackboneBase(
-            **arch_params.backbone_params
-        )
+        self.backbone = UNetBackboneBase(**arch_params.backbone_params)
         out_channels = self.backbone.get_backbone_output_number_of_channels()[-1]
 
         self.classifier_head = nn.Sequential(
@@ -247,7 +250,7 @@ class UnetClassification(SgModule):
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Dropout(arch_params.dropout),
-            nn.Linear(1024, arch_params.num_classes)
+            nn.Linear(1024, arch_params.num_classes),
         )
 
     def forward(self, x):

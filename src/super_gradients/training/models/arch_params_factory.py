@@ -17,8 +17,7 @@ def get_arch_params(config_name, overriding_params: Dict = None) -> Dict:
     if overriding_params is None:
         overriding_params = dict()
     GlobalHydra.instance().clear()
-    with initialize_config_dir(config_dir=pkg_resources.resource_filename("super_gradients.recipes", "arch_params/"),
-                               version_base="1.2"):
+    with initialize_config_dir(config_dir=pkg_resources.resource_filename("super_gradients.recipes", "arch_params/"), version_base="1.2"):
         cfg = compose(config_name=config_name)
         arch_params = hydra.utils.instantiate(cfg)
         arch_params.update(**overriding_params)

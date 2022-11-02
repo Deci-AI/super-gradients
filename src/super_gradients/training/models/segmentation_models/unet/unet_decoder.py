@@ -15,6 +15,7 @@ class AbstractUpFuseBlock(nn.Module, ABC):
     """
     Abstract class for upsample and fuse UNet decoder building block.
     """
+
     def __init__(self, in_channels: int, skip_channels: int, out_channels: int, **kwargs):
         """
         :param in_channels: num_channels of the feature map to be upsample.
@@ -32,15 +33,8 @@ class UpFactorBlock(AbstractUpFuseBlock):
     """
     Ignore Skip features, simply apply upsampling and ConvBNRelu layers.
     """
-    def __init__(self,
-                 in_channels: int,
-                 skip_channels: int,
-                 out_channels: int,
-                 up_factor: int,
-                 mode: str,
-                 num_repeats: int,
-                 **kwargs
-                 ):
+
+    def __init__(self, in_channels: int, skip_channels: int, out_channels: int, up_factor: int, mode: str, num_repeats: int, **kwargs):
         super().__init__(in_channels=in_channels, skip_channels=0, out_channels=out_channels)
         self.up_path = make_upsample_module(scale_factor=up_factor, upsample_mode=mode, align_corners=False)
 
@@ -58,15 +52,8 @@ class UpCatBlock(AbstractUpFuseBlock):
     """
     Fuse features with concatenation and followed Convolutions.
     """
-    def __init__(self,
-                 in_channels: int,
-                 skip_channels: int,
-                 out_channels: int,
-                 up_factor: int,
-                 mode: str,
-                 num_repeats: int,
-                 **kwargs
-                 ):
+
+    def __init__(self, in_channels: int, skip_channels: int, out_channels: int, up_factor: int, mode: str, num_repeats: int, **kwargs):
         super().__init__(in_channels=in_channels, skip_channels=skip_channels, out_channels=out_channels)
         self.up_path = make_upsample_module(scale_factor=up_factor, upsample_mode=mode, align_corners=False)
         self.last_convs = nn.Sequential(
@@ -87,15 +74,17 @@ class UpBlockType(Enum):
 
 class Decoder(nn.Module):
     @resolve_param("up_block_types", ListFactory(TypeFactory.from_enum_cls(UpBlockType)))
-    def __init__(self,
-                 skip_channels_list: List[int],
-                 up_block_repeat_list: List[int],
-                 skip_expansion: float,
-                 decoder_scale: float,
-                 up_block_types: List[Type[AbstractUpFuseBlock]],
-                 is_skip_list: List[bool],
-                 min_decoder_channels: int = 1,
-                 **up_block_kwargs):
+    def __init__(
+        self,
+        skip_channels_list: List[int],
+        up_block_repeat_list: List[int],
+        skip_expansion: float,
+        decoder_scale: float,
+        up_block_types: List[Type[AbstractUpFuseBlock]],
+        is_skip_list: List[bool],
+        min_decoder_channels: int = 1,
+        **up_block_kwargs,
+    ):
         """
 
         :param skip_channels_list: num_channels list of skip feature maps from the encoder.
@@ -123,8 +112,7 @@ class Decoder(nn.Module):
         is_skip_list.reverse()
         is_skip_list += [False]
 
-        self.projection_blocks, skip_channels_list = self._make_skip_projection(skip_channels_list, skip_expansion,
-                                                                                is_skip_list, min_decoder_channels)
+        self.projection_blocks, skip_channels_list = self._make_skip_projection(skip_channels_list, skip_expansion, is_skip_list, min_decoder_channels)
         skip_channels_list = skip_channels_list.copy()
         skip_channels_list.reverse()
 
@@ -133,16 +121,12 @@ class Decoder(nn.Module):
         skip_channels_list.append(None)
         for i in range(len(up_block_types)):
             self.up_stages.append(
-                up_block_types[i](in_channels, skip_channels_list[i], self.up_channels_list[i],
-                                  num_repeats=up_block_repeat_list[i], **up_block_kwargs))
+                up_block_types[i](in_channels, skip_channels_list[i], self.up_channels_list[i], num_repeats=up_block_repeat_list[i], **up_block_kwargs)
+            )
             in_channels = self.up_channels_list[i]
 
-    def _make_skip_projection(self,
-                              skip_channels_list: list,
-                              skip_expansion: float,
-                              is_skip_list: list,
-                              min_decoder_channels: int):
-        if skip_expansion == 1.:
+    def _make_skip_projection(self, skip_channels_list: list, skip_expansion: float, is_skip_list: list, min_decoder_channels: int):
+        if skip_expansion == 1.0:
             return nn.ModuleList([nn.Identity()] * len(skip_channels_list)), skip_channels_list
 
         projection_channels = [max(int(ch * skip_expansion), min_decoder_channels) for ch in skip_channels_list]
@@ -152,8 +136,7 @@ class Decoder(nn.Module):
                 blocks.append(nn.Identity())
                 projection_channels[i] = skip_channels_list[i]
             else:
-                blocks.append(ConvBNReLU(skip_channels_list[i], projection_channels[i], kernel_size=1, bias=False,
-                                         use_activation=False))
+                blocks.append(ConvBNReLU(skip_channels_list[i], projection_channels[i], kernel_size=1, bias=False, use_activation=False))
 
         return blocks, projection_channels
 

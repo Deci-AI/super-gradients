@@ -20,25 +20,31 @@ class SPPM(AbstractContextModule):
     """
     Simple Pyramid Pooling context Module.
     """
-    def __init__(self,
-                 in_channels: int,
-                 inter_channels: int,
-                 out_channels: int,
-                 pool_sizes: List[Union[int, Tuple[int, int]]],
-                 upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
-                 align_corners: bool = False):
+
+    def __init__(
+        self,
+        in_channels: int,
+        inter_channels: int,
+        out_channels: int,
+        pool_sizes: List[Union[int, Tuple[int, int]]],
+        upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
+        align_corners: bool = False,
+    ):
         """
         :param inter_channels: num channels in each pooling branch.
         :param out_channels: The number of output channels after pyramid pooling module.
         :param pool_sizes: spatial output sizes of the pooled feature maps.
         """
         super().__init__()
-        self.branches = nn.ModuleList([
-            nn.Sequential(
-                nn.AdaptiveAvgPool2d(pool_size),
-                ConvBNReLU(in_channels, inter_channels, kernel_size=1, bias=False),
-            ) for pool_size in pool_sizes
-        ])
+        self.branches = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.AdaptiveAvgPool2d(pool_size),
+                    ConvBNReLU(in_channels, inter_channels, kernel_size=1, bias=False),
+                )
+                for pool_size in pool_sizes
+            ]
+        )
         self.conv_out = ConvBNReLU(inter_channels, out_channels, kernel_size=3, padding=1, bias=False)
         self.out_channels = out_channels
         self.upsample_mode = upsample_mode
@@ -79,12 +85,7 @@ class ASPP(AbstractContextModule):
     input channel / len(dilation_list) + 1 so as to keep the same output channel as input channel.
     """
 
-    def __init__(self,
-                 in_channels: int,
-                 dilation_list: List[int],
-                 in_out_ratio: float = 1.,
-                 use_bias: bool = False,
-                 **kwargs):
+    def __init__(self, in_channels: int, dilation_list: List[int], in_out_ratio: float = 1.0, use_bias: bool = False, **kwargs):
         """
         :param dilation_list: list of dilation rates, the num of dilation branches should be set so that there is a
             whole division of the input channels, see assertion below.
@@ -98,11 +99,12 @@ class ASPP(AbstractContextModule):
         assert in_channels % inter_ratio == 0
         inter_channels = int(in_channels / inter_ratio)
 
-        self.dilated_conv_list = nn.ModuleList([
-            ConvBNReLU(in_channels, inter_channels, kernel_size=1, dilation=1, bias=use_bias),
-            *[ConvBNReLU(in_channels, inter_channels, kernel_size=3, dilation=d, padding=d, bias=use_bias)
-              for d in dilation_list]
-        ])
+        self.dilated_conv_list = nn.ModuleList(
+            [
+                ConvBNReLU(in_channels, inter_channels, kernel_size=1, dilation=1, bias=use_bias),
+                *[ConvBNReLU(in_channels, inter_channels, kernel_size=3, dilation=d, padding=d, bias=use_bias) for d in dilation_list],
+            ]
+        )
 
         self.out_channels = inter_channels * num_dilation_branches
 
@@ -114,7 +116,4 @@ class ASPP(AbstractContextModule):
         return x
 
 
-CONTEXT_TYPE_DICT: Dict[str, Type[AbstractContextModule]] = {
-    ContextModules.ASPP: ASPP,
-    ContextModules.SPPM: SPPM
-}
+CONTEXT_TYPE_DICT: Dict[str, Type[AbstractContextModule]] = {ContextModules.ASPP: ASPP, ContextModules.SPPM: SPPM}

@@ -8,6 +8,7 @@ class SegmentationModule(SgModule, ABC):
     """
     Base SegmentationModule class
     """
+
     def __init__(self, use_aux_heads: bool):
         super().__init__()
         self._use_aux_heads = use_aux_heads
@@ -25,8 +26,10 @@ class SegmentationModule(SgModule, ABC):
             aux and detail heads outside init method is not allowed, and the module should be recreated.
         """
         if use_aux is True and self._use_aux_heads is False:
-            raise ValueError("Cant turn use_aux_heads from False to True. Try initiating the module again with"
-                             " `use_aux_heads=True` or initiating the auxiliary heads modules manually.")
+            raise ValueError(
+                "Cant turn use_aux_heads from False to True. Try initiating the module again with"
+                " `use_aux_heads=True` or initiating the auxiliary heads modules manually."
+            )
         if not use_aux:
             self._remove_auxiliary_heads()
         self._use_aux_heads = use_aux
@@ -50,7 +53,7 @@ class SegmentationModule(SgModule, ABC):
     def init_params(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity="relu")
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm2d):
