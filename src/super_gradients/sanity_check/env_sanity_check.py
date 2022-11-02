@@ -137,7 +137,7 @@ def env_sanity_check():
         elif len(errors) > 0:
             sanity_check_errors[test_name] = errors
             for error in errors:
-                logger.log(stdout_log_level, f"Failed to verify {test_name}: {error}")
+                logger.log(logging.ERROR, f"\33[31mFailed to verify {test_name}: {error}\33[0m")
         else:
             logger.log(stdout_log_level, f'{test_name} OK')
         logger.log(stdout_log_level, '_' * 20)
