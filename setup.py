@@ -46,12 +46,12 @@ setup(
     packages=find_packages(where="./src"),
     package_dir={"": "src"},
     package_data={
-        'super_gradients.recipes': ['*.yaml', '**/*.yaml'],
-        'super_gradients.common': ['auto_logging/auto_logging_conf.json'],
-        'super_gradients.examples': ['*.ipynb', '**/*.ipynb'],
-        'super_gradients': ['requirements.txt', 'requirements.pro.txt'],
+        "super_gradients.recipes": ["*.yaml", "**/*.yaml"],
+        "super_gradients.common": ["auto_logging/auto_logging_conf.json"],
+        "super_gradients.examples": ["*.ipynb", "**/*.ipynb"],
+        "super_gradients": ["requirements.txt", "requirements.pro.txt"],
     },
     long_description=readme(),
     long_description_content_type="text/markdown",
-    extras_require={"pro": get_pro_requirements()}
+    extras_require={"pro": get_pro_requirements()},
 )
