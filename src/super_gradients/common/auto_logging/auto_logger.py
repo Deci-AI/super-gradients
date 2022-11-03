@@ -10,9 +10,18 @@ class AutoLoggerConfig:
     """
 
     FILE_LOGGING_LEVEL = os.environ.get("LOG_LEVEL", "DEBUG").upper()
-    CONSOLE_LOGGING_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+    CONSOLE_LOGGING_LEVEL = os.environ.get("CONSOLE_LOG_LEVEL", "INFO").upper()
 
     filename: str = None
+
+    @classmethod
+    def get_log_file_path(cls) -> str:
+        """
+        Return the current log file used to store log messages
+        :return: Full path to log file
+        """
+        self = cls.getInstance()
+        return self.filename
 
     @classmethod
     def setup_default_logging(self, log_level: str = None) -> None:
