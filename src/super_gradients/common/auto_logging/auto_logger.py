@@ -28,6 +28,7 @@ class AutoLoggerConfig:
         self._setup_logging(
             filename=os.path.expanduser(f"~/sg_logs/last_{os.getppid()}.log"),
             copy_already_logged_messages=False,
+            filemode="w",
             log_level=log_level,
         )
 
