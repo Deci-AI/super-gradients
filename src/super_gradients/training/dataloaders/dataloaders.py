@@ -653,14 +653,13 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
     :return: initialized DataLoader.
     """
 
-    if name not in ALL_DATALOADERS.keys():
-        raise ValueError("Unsupported dataloader: " + str(name))
-
     if dataset is not None:
         if name or dataset_params:
             raise ValueError("'name' and 'dataset_params' cannot be passed with initialized dataset.")
         dataloader_params = _process_sampler_params(dataloader_params, dataset, {})
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
+    elif name not in ALL_DATALOADERS.keys():
+        raise ValueError("Unsupported dataloader: " + str(name))
     else:
         dataloader_cls = ALL_DATALOADERS[name]
         dataloader = dataloader_cls(dataset_params=dataset_params, dataloader_params=dataloader_params)
