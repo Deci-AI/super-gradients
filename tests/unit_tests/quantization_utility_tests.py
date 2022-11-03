@@ -3,10 +3,8 @@ import torch
 import torchvision
 from torch import nn
 
-import super_gradients.training.utils.quantization.quantized_modules.pytorch_quantization_resnet
 from super_gradients.training import utils
 from super_gradients.training.models import Bottleneck
-from super_gradients.training.utils.quantization.quantized_modules.resnet_bottleneck import QuantBottleneck
 
 try:
     from pytorch_quantization import nn as quant_nn
@@ -16,6 +14,8 @@ try:
     from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, QuantizedMetadata
     from pytorch_quantization.nn import QuantConv2d
     from pytorch_quantization.tensor_quant import QuantDescriptor
+    import super_gradients.training.utils.quantization.quantized_modules.pytorch_quantization_resnet
+    from super_gradients.training.utils.quantization.quantized_modules.resnet_bottleneck import QuantBottleneck
 
     _imported_pytorch_quantization_failure = False
 
