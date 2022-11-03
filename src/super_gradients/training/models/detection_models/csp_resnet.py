@@ -1,7 +1,9 @@
 import collections
-from typing import List, Type
+from typing import List, Type, Tuple
 
 import torch
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories import ActivationsTypeFactory
 from torch import nn, Tensor
 
 from super_gradients.modules import RepVGGBlock, EffectiveSEBlock
@@ -102,16 +104,17 @@ class CSPResNet(nn.Module):
     CSPResNet backbone
     """
 
+    @resolve_param("activation_type", ActivationsTypeFactory())
     def __init__(
         self,
-        layers=[3, 6, 6, 3],
-        channels=[64, 128, 256, 512, 1024],
-        activation_type: Type[nn.Module] = torch.nn.SiLU,
-        return_idx=[1, 2, 3],
-        use_large_stem: bool = True,
-        width_mult: float = 1.0,
-        depth_mult: float = 1.0,
-        use_alpha: bool = False,
+        layers: Tuple[int, ...],
+        channels: Tuple[int, ...],
+        activation_type: Type[nn.Module],
+        return_idx: Tuple[int, int, int],
+        use_large_stem: bool,
+        width_mult: float,
+        depth_mult: float,
+        use_alpha: bool,
     ):
         """
 
