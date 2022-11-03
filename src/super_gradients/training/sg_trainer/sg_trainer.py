@@ -30,7 +30,6 @@ from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils.quantization_callbacks import QATCallback
 from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
@@ -81,6 +80,14 @@ from super_gradients.training.datasets.samplers.infinite_sampler import Infinite
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 
 logger = get_logger(__name__)
+
+try:
+    from super_gradients.training.utils.quantization_callbacks import QATCallback
+
+    _imported_quantization_failure = None
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    logger.warning("Failed to import QATCallback. QAT will not be available.")
+    _imported_quantization_failure = import_err
 
 
 class Trainer:
@@ -1033,6 +1040,9 @@ class Trainer:
         # ADD CALLBACK FOR QAT
         self.enable_qat = core_utils.get_param(self.training_params, "enable_qat", False)
         if self.enable_qat:
+            if _imported_quantization_failure is not None:
+                raise ImportError(_imported_quantization_failure)
+
             self.qat_params = core_utils.get_param(self.training_params, "qat_params")
             if self.qat_params is None:
                 raise ValueError("Must pass QAT params when enable_qat=True")

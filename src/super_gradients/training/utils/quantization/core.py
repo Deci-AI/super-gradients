@@ -3,20 +3,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Union, Type, Optional, Set
 
+from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
+from pytorch_quantization.tensor_quant import QuantDescriptor
 from torch import nn
-
-from super_gradients.common.abstractions.abstract_logger import get_logger
-
-logger = get_logger(__name__)
-
-try:
-    from pytorch_quantization.nn.modules._utils import QuantMixin, QuantInputMixin
-    from pytorch_quantization.tensor_quant import QuantDescriptor
-
-    _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warning("Failed to import pytorch_quantization")
-    _imported_pytorch_quantization_failure = import_err
 
 
 def _extract_init_args(cls, float_instance, ignore_init_args: Set[str] = ()):
