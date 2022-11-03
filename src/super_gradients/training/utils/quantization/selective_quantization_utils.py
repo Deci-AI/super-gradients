@@ -9,8 +9,7 @@ try:
     from pytorch_quantization.tensor_quant import QuantDescriptor
     from pytorch_quantization import nn as quant_nn
 
-    from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, \
-        QuantizedMetadata
+    from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, QuantizedMetadata
 
     _imported_pytorch_quantization_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
@@ -25,6 +24,7 @@ class RegisterQuantizedModule(object):
     :param input_quant_descriptor:      the input quantization descriptor
     :param weights_quant_descriptor:    the weight quantization descriptor
     """
+
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
 
@@ -34,15 +34,17 @@ class RegisterQuantizedModule(object):
         self.weights_quant_descriptor = weights_quant_descriptor
 
     def __call__(self, quant_module: Type[SGQuantMixin]):
-        SelectiveQuantizer.mapping_instructions.update({
-            self.float_module: QuantizedMetadata(
-                float_source=self.float_module,
-                quantized_target_class=quant_module,
-                input_quant_descriptor=self.input_quant_descriptor,
-                weights_quant_descriptor=self.weights_quant_descriptor,
-                action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES
-            )
-        })
+        SelectiveQuantizer.mapping_instructions.update(
+            {
+                self.float_module: QuantizedMetadata(
+                    float_source=self.float_module,
+                    quantized_target_class=quant_module,
+                    input_quant_descriptor=self.input_quant_descriptor,
+                    weights_quant_descriptor=self.weights_quant_descriptor,
+                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+                )
+            }
+        )
         return quant_module  # this is required since the decorator assigns the result to the `quant_module`
 
 
@@ -53,6 +55,7 @@ class SelectiveQuantizer:
     :param default_quant_modules_calib_method:  default calibration method (default='percentile')
     :param default_per_channel_quant_modules:   whether quant modules should be per channel (default=False)
     """
+
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
     mapping_instructions: Dict[Union[str, Type], QuantizedMetadata] = {
@@ -60,7 +63,7 @@ class SelectiveQuantizer:
             float_type: QuantizedMetadata(
                 float_source=float_type,
                 quantized_target_class=quantized_target_class,
-                action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES
+                action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
             )
             for (float_type, quantized_target_class) in [
                 (nn.Conv1d, quant_nn.QuantConv1d),
@@ -80,12 +83,12 @@ class SelectiveQuantizer:
                 (nn.AdaptiveAvgPool3d, quant_nn.QuantAdaptiveAvgPool3d),
             ]
         },
-        SkipQuantization: QuantizedMetadata(float_source=SkipQuantization, quantized_target_class=None,
-                                            action=QuantizedMetadata.ReplacementAction.UNWRAP)
+        SkipQuantization: QuantizedMetadata(float_source=SkipQuantization, quantized_target_class=None, action=QuantizedMetadata.ReplacementAction.UNWRAP),
     }  # DEFAULT MAPPING INSTRUCTIONS
 
-    def __init__(self, *, custom_mappings: dict = None, default_quant_modules_calib_method: str = 'max',
-                 default_per_channel_quant_modules: bool = True) -> None:
+    def __init__(
+        self, *, custom_mappings: dict = None, default_quant_modules_calib_method: str = "max", default_per_channel_quant_modules: bool = True
+    ) -> None:
         super().__init__()
         self.default_quant_modules_calib_method = default_quant_modules_calib_method
         self.default_per_channel_quant_modules = default_per_channel_quant_modules
@@ -95,34 +98,34 @@ class SelectiveQuantizer:
 
     def _get_default_quant_descriptor(self, for_weights=False):
         if self.default_quant_modules_calib_method in ["percentile", "mse", "entropy"]:
-            calib_method_type = 'histogram'
+            calib_method_type = "histogram"
         else:
-            calib_method_type = 'max'
+            calib_method_type = "max"
 
         if self.default_per_channel_quant_modules and for_weights:
             return QuantDescriptor(calib_method=calib_method_type, axis=0)
         return QuantDescriptor(calib_method=calib_method_type)
 
     def register_skip_quantization(self, *, layer_names: Set[str]):
-        self.mapping_instructions.update({
-            name: QuantizedMetadata(float_source=name,
-                                    quantized_target_class=None,
-                                    action=QuantizedMetadata.ReplacementAction.SKIP)
-            for name in layer_names
-        })
+        self.mapping_instructions.update(
+            {name: QuantizedMetadata(float_source=name, quantized_target_class=None, action=QuantizedMetadata.ReplacementAction.SKIP) for name in layer_names}
+        )
 
-    def register_quantization_mapping(self, *, layer_names: Set[str],
-                                      quantized_target_class: Type[SGQuantMixin],
-                                      input_quant_descriptor=None,
-                                      weights_quant_descriptor=None):
-        self.mapping_instructions.update({
-            name: QuantizedMetadata(float_source=name,
-                                    quantized_target_class=quantized_target_class,
-                                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
-                                    input_quant_descriptor=input_quant_descriptor,
-                                    weights_quant_descriptor=weights_quant_descriptor)
-            for name in layer_names
-        })
+    def register_quantization_mapping(
+        self, *, layer_names: Set[str], quantized_target_class: Type[SGQuantMixin], input_quant_descriptor=None, weights_quant_descriptor=None
+    ):
+        self.mapping_instructions.update(
+            {
+                name: QuantizedMetadata(
+                    float_source=name,
+                    quantized_target_class=quantized_target_class,
+                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+                    input_quant_descriptor=input_quant_descriptor,
+                    weights_quant_descriptor=weights_quant_descriptor,
+                )
+                for name in layer_names
+            }
+        )
 
     def _preprocess_skips_and_custom_mappings(self, module: nn.Module, nesting: Tuple[str, ...] = ()):
         """
@@ -132,12 +135,10 @@ class SelectiveQuantizer:
         """
         mapping_instructions = dict()
         for name, child_module in module.named_children():
-            nested_name = '.'.join(nesting + (name,))
+            nested_name = ".".join(nesting + (name,))
             if isinstance(child_module, SkipQuantization):
                 mapping_instructions[nested_name] = QuantizedMetadata(
-                    float_source=nested_name,
-                    quantized_target_class=None,
-                    action=QuantizedMetadata.ReplacementAction.UNWRAP
+                    float_source=nested_name, quantized_target_class=None, action=QuantizedMetadata.ReplacementAction.UNWRAP
                 )
 
             if isinstance(child_module, QuantizedMapping):
@@ -146,7 +147,7 @@ class SelectiveQuantizer:
                     quantized_target_class=child_module.quantized_target_class,
                     input_quant_descriptor=child_module.input_quant_descriptor,
                     weights_quant_descriptor=child_module.weights_quant_descriptor,
-                    action=child_module.action
+                    action=child_module.action,
                 )
 
             if isinstance(child_module, nn.Module):  # recursive call
@@ -157,27 +158,23 @@ class SelectiveQuantizer:
     def _instantiate_quantized_from_float(self, float_module, metadata, preserve_state_dict):
         base_classes = (QuantMixin, QuantInputMixin, SGQuantMixin)
         if not issubclass(metadata.quantized_target_class, base_classes):
-            raise AssertionError(f"Quantization suite for {type(float_module).__name__} is invalid. "
-                                 f"{metadata.quantized_target_class.__name__} must inherit one of "
-                                 f"{', '.join(map(lambda _: _.__name__, base_classes))}")
+            raise AssertionError(
+                f"Quantization suite for {type(float_module).__name__} is invalid. "
+                f"{metadata.quantized_target_class.__name__} must inherit one of "
+                f"{', '.join(map(lambda _: _.__name__, base_classes))}"
+            )
 
         # USE PROVIDED QUANT DESCRIPTORS, OR DEFAULT IF NONE PROVIDED
         quant_descriptors = dict()
         if issubclass(metadata.quantized_target_class, (SGQuantMixin, QuantMixin, QuantInputMixin)):
-            quant_descriptors = {
-                'quant_desc_input':
-                    metadata.input_quant_descriptor or self._get_default_quant_descriptor(for_weights=False)
-            }
+            quant_descriptors = {"quant_desc_input": metadata.input_quant_descriptor or self._get_default_quant_descriptor(for_weights=False)}
         if issubclass(metadata.quantized_target_class, (SGQuantMixin, QuantMixin)):
-            quant_descriptors.update({
-                'quant_desc_weight':
-                    metadata.weights_quant_descriptor or self._get_default_quant_descriptor(for_weights=True)
-            })
+            quant_descriptors.update({"quant_desc_weight": metadata.weights_quant_descriptor or self._get_default_quant_descriptor(for_weights=True)})
 
-        if not hasattr(metadata.quantized_target_class, 'from_float'):
-            assert isinstance(metadata.quantized_target_class, SGQuantMixin), \
-                f'{metadata.quantized_target_class.__name__} must inherit from ' \
-                f'{SGQuantMixin.__name__}, so that it would include `from_float` class method'
+        if not hasattr(metadata.quantized_target_class, "from_float"):
+            assert isinstance(metadata.quantized_target_class, SGQuantMixin), (
+                f"{metadata.quantized_target_class.__name__} must inherit from " f"{SGQuantMixin.__name__}, so that it would include `from_float` class method"
+            )
 
         q_instance = metadata.quantized_target_class.from_float(float_module, **quant_descriptors)
 
@@ -193,12 +190,15 @@ class SelectiveQuantizer:
 
         return q_instance
 
-    def _maybe_quantize_one_layer(self, module: nn.Module,
-                                  child_name: str,
-                                  nesting: Tuple[str, ...],
-                                  child_module: nn.Module,
-                                  mapping_instructions: Dict[Union[str, Type], QuantizedMetadata],
-                                  preserve_state_dict: bool) -> bool:
+    def _maybe_quantize_one_layer(
+        self,
+        module: nn.Module,
+        child_name: str,
+        nesting: Tuple[str, ...],
+        child_module: nn.Module,
+        mapping_instructions: Dict[Union[str, Type], QuantizedMetadata],
+        preserve_state_dict: bool,
+    ) -> bool:
         """
         Does the heavy lifting of (maybe) quantizing a layer: creates a quantized instance based on a float instance,
         and replaces it in the "parent" module
@@ -216,7 +216,7 @@ class SelectiveQuantizer:
         # NOTE! IT IS IMPORTANT TO FIRST PROCESS THE NAME AND ONLY THEN THE TYPE
         if _imported_pytorch_quantization_failure is not None:
             raise _imported_pytorch_quantization_failure
-        for candidate_key in ('.'.join(nesting + (child_name,)), type(child_module)):
+        for candidate_key in (".".join(nesting + (child_name,)), type(child_module)):
             if candidate_key not in mapping_instructions:
                 continue
             metadata: QuantizedMetadata = mapping_instructions[candidate_key]
@@ -226,23 +226,23 @@ class SelectiveQuantizer:
                 assert isinstance(child_module, SkipQuantization)
                 setattr(module, child_name, child_module.float_module)
                 return True
-            elif metadata.action in (QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
-                                     QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILD_MODULES,
-                                     QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE):
+            elif metadata.action in (
+                QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+                QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILD_MODULES,
+                QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE,
+            ):
                 if isinstance(child_module, QuantizedMapping):  # UNWRAP MAPPING
                     child_module = child_module.float_module
-                q_instance: nn.Module = self._instantiate_quantized_from_float(float_module=child_module,
-                                                                               metadata=metadata,
-                                                                               preserve_state_dict=preserve_state_dict)
+                q_instance: nn.Module = self._instantiate_quantized_from_float(
+                    float_module=child_module, metadata=metadata, preserve_state_dict=preserve_state_dict
+                )
 
                 # ACTUAL REPLACEMENT
                 def replace():
                     setattr(module, child_name, q_instance)
 
                 def recurse_quantize():
-                    self.quantize_module(getattr(module, child_name),
-                                         nesting=nesting + (child_name,),
-                                         preserve_state_dict=preserve_state_dict)
+                    self.quantize_module(getattr(module, child_name), nesting=nesting + (child_name,), preserve_state_dict=preserve_state_dict)
 
                 if metadata.action == QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES:
                     replace()
@@ -265,8 +265,7 @@ class SelectiveQuantizer:
         }  # we first regard the per layer mappings, and then override with the custom mappings in case there is overlap
 
         for name, child_module in module.named_children():
-            found = self._maybe_quantize_one_layer(module, name, nesting, child_module,
-                                                   mapping_instructions, preserve_state_dict)
+            found = self._maybe_quantize_one_layer(module, name, nesting, child_module, mapping_instructions, preserve_state_dict)
 
             # RECURSIVE CALL, to support module_list, sequential, custom (nested) modules
             if not found and isinstance(child_module, nn.Module):

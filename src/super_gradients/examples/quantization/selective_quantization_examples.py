@@ -44,7 +44,7 @@ def non_default_calibrators_example():
     module = MyModel()
 
     # Initialize the quantization utility, with different calibrators, and quantize the module
-    q_util = SelectiveQuantizer(default_quant_modules_calib_method='max', default_per_channel_quant_modules=True)
+    q_util = SelectiveQuantizer(default_quant_modules_calib_method="max", default_per_channel_quant_modules=True)
     q_util.quantize_module(module)
 
     print(module)  # You should expect to see QuantConv2d, with different calibrators
@@ -69,7 +69,7 @@ def skipping_quantization_example():
 
     # Initialize the quantization utility, register layers to skip, and quantize the module
     q_util = SelectiveQuantizer()
-    q_util.register_skip_quantization(layer_names={'conv1'})  # can also configure skip by layer names
+    q_util.register_skip_quantization(layer_names={"conv1"})  # can also configure skip by layer names
     q_util.quantize_module(module)
 
     print(module)  # You should expect to see Conv2d, with different calibrators
@@ -104,7 +104,7 @@ def dynamic_quantized_mapping():
     class MyModel(nn.Module):
         def __init__(self, res, n_classes) -> None:
             super().__init__()
-            self.my_block = MyBlock(3 * (res ** 2), n_classes)
+            self.my_block = MyBlock(3 * (res**2), n_classes)
 
         def forward(self, x):
             return self.my_block(x)
@@ -114,7 +114,7 @@ def dynamic_quantized_mapping():
     module = MyModel(res, n_clss)
 
     q_util = SelectiveQuantizer()
-    q_util.register_quantization_mapping(layer_names={'my_block'}, quantized_type=MyQuantizedBlock)
+    q_util.register_quantization_mapping(layer_names={"my_block"}, quantized_type=MyQuantizedBlock)
     q_util.quantize_module(module)
 
     print(module)  # You should expect to see QuantizedMyBlock, with different calibrators
@@ -149,7 +149,7 @@ def e2e_example():
     class MyModel(nn.Module):
         def __init__(self, res, n_classes) -> None:
             super().__init__()
-            self.my_block = MyBlock(3 * (res ** 2), n_classes)
+            self.my_block = MyBlock(3 * (res**2), n_classes)
 
         def forward(self, x):
             return self.my_block(x)
@@ -160,7 +160,7 @@ def e2e_example():
 
     # QUANTIZE
     q_util = SelectiveQuantizer()
-    q_util.register_quantization_mapping(layer_names={'my_block'}, quantized_type=MyQuantizedBlock)
+    q_util.register_quantization_mapping(layer_names={"my_block"}, quantized_type=MyQuantizedBlock)
     q_util.quantize_module(module)
 
     # CALIBRATE (PTQ)
@@ -171,7 +171,7 @@ def e2e_example():
     calib.calibrate_model(module, method=q_util.default_quant_modules_calib_method, calib_data_loader=train_loader)
 
     # SANITY
-    x = torch.rand(1, 3, res, res, device='cuda')
+    x = torch.rand(1, 3, res, res, device="cuda")
     with torch.no_grad():
         y = module(x)
         torch.testing.assert_close(y.size(), (1, n_clss))
@@ -180,7 +180,7 @@ def e2e_example():
     export_quantized_module_to_onnx(module, "my_quantized_model.onnx", input_shape=(1, 3, res, res))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     vanilla_quantize_all_example()
     non_default_calibrators_example()
     skipping_quantization_example()

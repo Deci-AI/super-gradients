@@ -15,25 +15,27 @@ def _extract_init_args(cls, float_instance, ignore_init_args: Set[str] = ()):
     """
     required_init_params = list(inspect.signature(cls.__init__).parameters)[1:]  # [0] is self
 
-    if 'kwargs' in required_init_params:  # we don't want to search for a state named `kwargs`
-        required_init_params.pop(required_init_params.index('kwargs'))
+    if "kwargs" in required_init_params:  # we don't want to search for a state named `kwargs`
+        required_init_params.pop(required_init_params.index("kwargs"))
 
     float_instance_state = {}
     for p in required_init_params:
         if p in ignore_init_args:  # ignore these args and don't pick state from the instance
             continue
         if not hasattr(float_instance, p):
-            raise ValueError(f"{float_instance.__class__.__name__} is missing `{p}` which is required "
-                             f"in {cls.__name__}.__init__. Either override `SGQuantBase.from_float` "
-                             f"or add {p} as state for {float_instance.__class__.__name__}.")
+            raise ValueError(
+                f"{float_instance.__class__.__name__} is missing `{p}` which is required "
+                f"in {cls.__name__}.__init__. Either override `SGQuantBase.from_float` "
+                f"or add {p} as state for {float_instance.__class__.__name__}."
+            )
         float_instance_state[p] = getattr(float_instance, p)
 
     # Edge-cases
-    if 'bias' in float_instance_state:
-        if float_instance_state['bias'] is None:  # None is the state when bias=False in torch.nn
-            float_instance_state['bias'] = False
-        elif not isinstance(float_instance_state['bias'], bool):  # Tensor is the state when bias=True in torch.nn
-            float_instance_state['bias'] = True
+    if "bias" in float_instance_state:
+        if float_instance_state["bias"] is None:  # None is the state when bias=False in torch.nn
+            float_instance_state["bias"] = False
+        elif not isinstance(float_instance_state["bias"], bool):  # Tensor is the state when bias=True in torch.nn
+            float_instance_state["bias"] = True
         # in case bias is a boolean - we don't do anything, so it is taken as-is, either True or False
     return float_instance_state
 
@@ -63,12 +65,12 @@ class SGQuantMixin(nn.Module):
 
         # if cls.__init__ has explicit `quant_desc_input` or `quant_desc_weight` - we don't search the state of the
         # float module, because it would not contain this state. these values are injected by the framework
-        ignore_init_args = {'quant_desc_input', 'quant_desc_weight'}.intersection(set(required_init_params))
+        ignore_init_args = {"quant_desc_input", "quant_desc_weight"}.intersection(set(required_init_params))
 
         # if cls.__init__ doesn't have neither **kwargs, nor `quant_desc_input` and `quant_desc_weight`,
         # we should also remove these keys from the passed kwargs and make sure there's nothing more!
-        if 'kwargs' not in required_init_params:
-            for arg in ('quant_desc_input', 'quant_desc_weight'):
+        if "kwargs" not in required_init_params:
+            for arg in ("quant_desc_input", "quant_desc_weight"):
                 if arg in ignore_init_args:
                     continue
                 kwargs.pop(arg, None)  # we ignore if not existing
@@ -116,11 +118,11 @@ class QuantizedMetadata:
     """
 
     class ReplacementAction(Enum):
-        REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES = 'replace'
-        REPLACE_THEN_QUANTIZE_CHILD_MODULES = 'replace_then_quantize_children'
-        QUANTIZE_CHILD_MODULES_THEN_REPLACE = 'quantize_children_then_replace'
-        UNWRAP = 'unwrap'
-        SKIP = 'skip'
+        REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES = "replace"
+        REPLACE_THEN_QUANTIZE_CHILD_MODULES = "replace_then_quantize_children"
+        QUANTIZE_CHILD_MODULES_THEN_REPLACE = "quantize_children_then_replace"
+        UNWRAP = "unwrap"
+        SKIP = "skip"
 
     float_source: Union[str, Type]
     quantized_target_class: Optional[Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]]]
@@ -129,19 +131,21 @@ class QuantizedMetadata:
     weights_quant_descriptor: QuantDescriptor = None  # default is used if None
 
     def __post_init__(self):
-        if self.action in (QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
-                           QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILD_MODULES,
-                           QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE):
+        if self.action in (
+            QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+            QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILD_MODULES,
+            QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE,
+        ):
             assert issubclass(self.quantized_target_class, (SGQuantMixin, QuantMixin, QuantInputMixin))
 
     @staticmethod
     def from_dict(d: dict):
         return QuantizedMetadata(
-            float_source=d['float_source'],
-            quantized_target_class=d['quantized_target_class'],
-            action=QuantizedMetadata.ReplacementAction(d['action']),
-            input_quant_descriptor=d.get('input_quant_descriptor'),  # these have defaults
-            weights_quant_descriptor=d.get('weights_quant_descriptor'),  # these have defaults
+            float_source=d["float_source"],
+            quantized_target_class=d["quantized_target_class"],
+            action=QuantizedMetadata.ReplacementAction(d["action"]),
+            input_quant_descriptor=d.get("input_quant_descriptor"),  # these have defaults
+            weights_quant_descriptor=d.get("weights_quant_descriptor"),  # these have defaults
         )
 
 
@@ -154,11 +158,15 @@ class QuantizedMapping(nn.Module):
         self.my_block = QuantizedMapping(float_module=MyBlock(4, n_classes), quantized_target_class=MyQuantizedBlock)
     """
 
-    def __init__(self, *, float_module: nn.Module,
-                 quantized_target_class: Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]],
-                 action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
-                 input_quant_descriptor: QuantDescriptor = None,
-                 weights_quant_descriptor: QuantDescriptor = None) -> None:
+    def __init__(
+        self,
+        *,
+        float_module: nn.Module,
+        quantized_target_class: Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]],
+        action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+        input_quant_descriptor: QuantDescriptor = None,
+        weights_quant_descriptor: QuantDescriptor = None,
+    ) -> None:
         super().__init__()
         self.float_module = float_module
         self.quantized_target_class = quantized_target_class
@@ -174,6 +182,7 @@ def _inject_class_methods_to_default_quant_types():
     It allows SG to support these modules out of the box
     """
     import pytorch_quantization.quant_modules
+
     for quant_entry in pytorch_quantization.quant_modules._DEFAULT_QUANT_MAP:
         quant_cls = quant_entry.replace_mod
         quant_cls.from_float = classmethod(_from_float)

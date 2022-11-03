@@ -11,8 +11,7 @@ import torch
 from tqdm import tqdm
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.distributed_training_utils import get_local_rank, \
-    get_world_size
+from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
 from torch.distributed import all_gather
 
 logger = get_logger(__name__)
@@ -28,16 +27,20 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
 
 
 class QuantizationCalibrator:
-
     def __init__(self, verbose: bool = True) -> None:
         if _imported_pytorch_quantization_failure is not None:
             raise _imported_pytorch_quantization_failure
         super().__init__()
         self.verbose = verbose
 
-    def calibrate_model(self, model: torch.nn.Module, calib_data_loader: torch.utils.data.DataLoader,
-                        method: str = "percentile",
-                        num_calib_batches: int = 2, percentile: float = 99.99):
+    def calibrate_model(
+        self,
+        model: torch.nn.Module,
+        calib_data_loader: torch.utils.data.DataLoader,
+        method: str = "percentile",
+        num_calib_batches: int = 2,
+        percentile: float = 99.99,
+    ):
         """
         Calibrates torch model with quantized modules.
 
@@ -62,9 +65,7 @@ class QuantizationCalibrator:
                 else:
                     self._compute_amax(model, method=method)
         else:
-            raise ValueError(
-                f"Unsupported quantization calibration method, "
-                f"expected one of: {'.'.join(acceptable_methods)}, however, received: {method}")
+            raise ValueError(f"Unsupported quantization calibration method, " f"expected one of: {'.'.join(acceptable_methods)}, however, received: {method}")
 
     def _collect_stats(self, model, data_loader, num_batches):
         """Feed data to the network and collect statistics"""
@@ -77,7 +78,7 @@ class QuantizationCalibrator:
         # Feed data to the network for collecting stats
         for i, (image, _) in tqdm(enumerate(data_loader), total=num_batches, disable=local_rank > 0):
             if world_size > 1:
-                all_batches = [torch.zeros_like(image, device='cuda') for _ in range(world_size)]
+                all_batches = [torch.zeros_like(image, device="cuda") for _ in range(world_size)]
                 all_gather(all_batches, image.cuda())
             else:
                 all_batches = [image]
@@ -117,5 +118,5 @@ class QuantizationCalibrator:
                     else:
                         module.load_calib_amax(**kwargs)
                 if self.verbose:
-                    print(F"{name:40}: {module}")
+                    print(f"{name:40}: {module}")
         model.cuda()

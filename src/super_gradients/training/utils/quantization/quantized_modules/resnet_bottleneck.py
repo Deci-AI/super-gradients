@@ -16,13 +16,14 @@ class QuantBottleneck(SGQuantMixin):
 
     @classmethod
     def from_float(cls, float_instance: Bottleneck, **kwargs):
-        float_instance.shortcut.add_module("residual_quantizer",
-                                           quant_nn.TensorQuantizer(kwargs.get('quant_desc_input')))
+        float_instance.shortcut.add_module("residual_quantizer", quant_nn.TensorQuantizer(kwargs.get("quant_desc_input")))
         return float_instance
 
     @staticmethod
     def get_quantized_metadata_for_source(float_source: Union[str, Type]):
-        return QuantizedMetadata(float_source=float_source,
-                                 quantized_target_class=QuantBottleneck,
-                                 input_quant_descriptor=QuantDescriptor(calib_method='histogram'),
-                                 action=QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE)
+        return QuantizedMetadata(
+            float_source=float_source,
+            quantized_target_class=QuantBottleneck,
+            input_quant_descriptor=QuantDescriptor(calib_method="histogram"),
+            action=QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE,
+        )
