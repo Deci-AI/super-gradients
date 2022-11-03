@@ -95,9 +95,7 @@ def _process_dataset_params(cfg, dataset_params, train):
 
 
 def _process_dataloader_params(cfg, dataloader_params, dataset, train):
-    default_dataloader_params = (
-        cfg.dataset_params.train_dataloader_params if train else cfg.dataset_params.val_dataloader_params
-    )
+    default_dataloader_params = cfg.dataset_params.train_dataloader_params if train else cfg.dataset_params.val_dataloader_params
     default_dataloader_params = hydra.utils.instantiate(default_dataloader_params)
     dataloader_params = _process_sampler_params(dataloader_params, dataset, default_dataloader_params)
 
