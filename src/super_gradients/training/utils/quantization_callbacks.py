@@ -14,9 +14,9 @@ from super_gradients.training.utils.quantization.selective_quantization_utils im
 logger = get_logger(__name__)
 
 try:
-    from pytorch_quantization import nn as quant_nn, quant_modules
-    from pytorch_quantization import calib
-    from pytorch_quantization.tensor_quant import QuantDescriptor
+    from pytorch_quantization import nn as quant_nn, quant_modules  # noqa: F401
+    from pytorch_quantization import calib  # noqa: F401
+    from pytorch_quantization.tensor_quant import QuantDescriptor  # noqa: F401
 
     _imported_pytorch_quantization_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
@@ -25,21 +25,21 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
 
 
 class QuantizationLevel(str, Enum):
-    FP32 = 'FP32'
-    FP16 = 'FP16'
-    INT8 = 'INT8'
-    HYBRID = 'Hybrid'
+    FP32 = "FP32"
+    FP16 = "FP16"
+    INT8 = "INT8"
+    HYBRID = "Hybrid"
 
     @staticmethod
     def from_string(quantization_level: str) -> Enum:
         quantization_level = quantization_level.lower()
-        if quantization_level == 'fp32':
+        if quantization_level == "fp32":
             return QuantizationLevel.FP32
-        elif quantization_level == 'fp16':
+        elif quantization_level == "fp16":
             return QuantizationLevel.FP16
-        elif quantization_level == 'int8':
+        elif quantization_level == "int8":
             return QuantizationLevel.INT8
-        elif quantization_level == 'hybrid':
+        elif quantization_level == "hybrid":
             return QuantizationLevel.HYBRID
         else:
             raise NotImplementedError(f'Quantization Level: "{quantization_level}" is not supported')
@@ -84,9 +84,18 @@ class QATCallback(PhaseCallback):
 
     """
 
-    def __init__(self, start_epoch: int, quantization_mappings: list, quant_modules_calib_method: str = "max",
-                 per_channel_quant_modules: bool = True, calibrate: bool = True, calibrated_model_path: str = None,
-                 calib_data_loader: DataLoader = None, num_calib_batches: int = 2, percentile: float = 99.99):
+    def __init__(
+        self,
+        start_epoch: int,
+        quantization_mappings: list,
+        quant_modules_calib_method: str = "max",
+        per_channel_quant_modules: bool = True,
+        calibrate: bool = True,
+        calibrated_model_path: str = None,
+        calib_data_loader: DataLoader = None,
+        num_calib_batches: int = 2,
+        percentile: float = 99.99,
+    ):
         super(QATCallback, self).__init__(Phase.TRAIN_EPOCH_START)
         self._validate_args(start_epoch, quant_modules_calib_method, calibrate, calibrated_model_path)
         self.start_epoch = start_epoch
@@ -100,7 +109,7 @@ class QATCallback(PhaseCallback):
         self.selective_quantizer = SelectiveQuantizer(
             custom_mappings=self._process_quantization_mappings(quantization_mappings),
             default_quant_modules_calib_method=quant_modules_calib_method,
-            default_per_channel_quant_modules=per_channel_quant_modules
+            default_per_channel_quant_modules=per_channel_quant_modules,
         )
         self.calibrator = QuantizationCalibrator()
 
@@ -124,26 +133,25 @@ class QATCallback(PhaseCallback):
         if quant_modules_calib_method not in accepted_methods:
             raise ValueError(
                 f"Unsupported quantization calibration method, "
-                f"expected one of: {', '.join(accepted_methods)}, however, received: {quant_modules_calib_method}")
+                f"expected one of: {', '.join(accepted_methods)}, however, received: {quant_modules_calib_method}"
+            )
         if not calibrate and calibrated_model_path is None:
-            logger.warning(
-                "calibrate=False and no calibrated_model_path is given. QAT will be on an uncalibrated model.")
+            logger.warning("calibrate=False and no calibrated_model_path is given. QAT will be on an uncalibrated model.")
 
     def __call__(self, context: PhaseContext):
         if context.epoch == self.start_epoch:
             # SET CHECKPOINT PARAMS SO WE LOAD THE BEST CHECKPOINT SO FAR
             checkpoint_params_qat = context.checkpoint_params.to_dict()
-            checkpoint_params_qat['ckpt_name'] = 'ckpt_best.pth'
+            checkpoint_params_qat["ckpt_name"] = "ckpt_best.pth"
 
             if self.calibrated_model_path is not None:
-                checkpoint_params_qat['external_checkpoint_path'] = self.calibrated_model_path
-                checkpoint_params_qat['load_ema_as_net'] = 'ema_net' in read_ckpt_state_dict(
-                    self.calibrated_model_path).keys()
-                checkpoint_params_qat['load_checkpoint'] = True
+                checkpoint_params_qat["external_checkpoint_path"] = self.calibrated_model_path
+                checkpoint_params_qat["load_ema_as_net"] = "ema_net" in read_ckpt_state_dict(self.calibrated_model_path).keys()
+                checkpoint_params_qat["load_checkpoint"] = True
             elif self.start_epoch > 0:
-                checkpoint_params_qat['load_ema_as_net'] = context.training_params.ema
-                checkpoint_params_qat['load_checkpoint'] = True
-                if checkpoint_params_qat['load_ema_as_net']:
+                checkpoint_params_qat["load_ema_as_net"] = context.training_params.ema
+                checkpoint_params_qat["load_checkpoint"] = True
+                if checkpoint_params_qat["load_ema_as_net"]:
                     logger.warning("EMA net loaded from best checkpoint, continuing QAT without EMA.")
                     context.context_methods.set_ema(False)
 
@@ -165,7 +173,7 @@ class QATCallback(PhaseCallback):
             context.context_methods.reset_best_metric()
 
             # SET NEW FILENAME FOR THE BEST CHECKPOINT SO WE DON'T OVERRIDE THE PREVIOUS ONES
-            context.context_methods.set_ckpt_best_name('qat_ckpt_best.pth')
+            context.context_methods.set_ckpt_best_name("qat_ckpt_best.pth")
 
     def _calibrate_model(self, context: PhaseContext):
         """
@@ -174,13 +182,16 @@ class QATCallback(PhaseCallback):
         :param context: PhaseContext, current phase context.
         """
         self.calib_data_loader = self.calib_data_loader or context.train_loader
-        self.calibrator.calibrate_model(model=context.net,
-                                        calib_data_loader=self.calib_data_loader,
-                                        method=self.quant_modules_calib_method,
-                                        num_calib_batches=self.num_calib_batches,
-                                        percentile=self.percentile)
-        method_desc = self.quant_modules_calib_method + '_' + str(
-            self.percentile) if self.quant_modules_calib_method == 'percentile' else self.quant_modules_calib_method
+        self.calibrator.calibrate_model(
+            model=context.net,
+            calib_data_loader=self.calib_data_loader,
+            method=self.quant_modules_calib_method,
+            num_calib_batches=self.num_calib_batches,
+            percentile=self.percentile,
+        )
+        method_desc = (
+            self.quant_modules_calib_method + "_" + str(self.percentile) if self.quant_modules_calib_method == "percentile" else self.quant_modules_calib_method
+        )
 
         if not context.ddp_silent_mode:
             logger.info("Performing additional validation on calibrated model...")
@@ -190,11 +201,8 @@ class QATCallback(PhaseCallback):
 
         if not context.ddp_silent_mode:
             logger.info("Calibrate model " + context.metric_to_watch + ": " + str(calibrated_acc))
-            context.sg_logger.add_checkpoint(tag='ckpt_calibrated_' + method_desc + '.pth',
-                                             state_dict={"net": context.net.state_dict(), "acc": calibrated_acc})
-            context.sg_logger.add_scalar("Calibrated_Model_" + context.metric_to_watch,
-                                         calibrated_acc,
-                                         global_step=self.start_epoch)
+            context.sg_logger.add_checkpoint(tag="ckpt_calibrated_" + method_desc + ".pth", state_dict={"net": context.net.state_dict(), "acc": calibrated_acc})
+            context.sg_logger.add_scalar("Calibrated_Model_" + context.metric_to_watch, calibrated_acc, global_step=self.start_epoch)
 
 
 class PostQATConversionCallback(PhaseCallback):
@@ -215,13 +223,14 @@ class PostQATConversionCallback(PhaseCallback):
             best_ckpt_path = os.path.join(context.ckpt_dir, "qat_ckpt_best.pth")
             onnx_path = os.path.join(context.ckpt_dir, "qat_ckpt_best.onnx")
 
-            load_checkpoint_to_model(ckpt_local_path=best_ckpt_path,
-                                     net=context.net,
-                                     load_weights_only=True,
-                                     load_ema_as_net=context.training_params.ema,
-                                     strict=True,
-                                     load_backbone=False
-                                     )
+            load_checkpoint_to_model(
+                ckpt_local_path=best_ckpt_path,
+                net=context.net,
+                load_weights_only=True,
+                load_ema_as_net=context.training_params.ema,
+                strict=True,
+                load_backbone=False,
+            )
             export_quantized_module_to_onnx(context.net.module, onnx_path, self.dummy_input_size)
 
             context.sg_logger.add_file("qat_ckpt_best.onnx")
