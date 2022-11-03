@@ -6,8 +6,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories import ActivationsTypeFactory
 from torch import nn, Tensor
 
-from super_gradients.modules import RepVGGBlock, EffectiveSEBlock
-from super_gradients.training.utils.module_utils import ConvBNAct
+from super_gradients.modules import RepVGGBlock, EffectiveSEBlock, ConvBNAct
 
 __all__ = ["CSPResNet"]
 
@@ -104,12 +103,12 @@ class CSPResNet(nn.Module):
     CSPResNet backbone
     """
 
-    @resolve_param("activation_type", ActivationsTypeFactory())
+    @resolve_param("activation", ActivationsTypeFactory())
     def __init__(
         self,
         layers: Tuple[int, ...],
         channels: Tuple[int, ...],
-        activation_type: Type[nn.Module],
+        activation: Type[nn.Module],
         return_idx: Tuple[int, int, int],
         use_large_stem: bool,
         width_mult: float,
@@ -120,7 +119,7 @@ class CSPResNet(nn.Module):
 
         :param layers: Number of blocks in each stage
         :param channels: Number of channels [stem, stage 0, stage 1, stage 2, ...]
-        :param activation_type: Used activation type for all child modules.
+        :param activation: Used activation type for all child modules.
         :param return_idx: Indexes of returned feature maps
         :param use_large_stem: If True, uses 3 conv+bn+act instead of 2 in stem blocks
         :param width_mult: Scaling factor for a number of channels
@@ -137,7 +136,7 @@ class CSPResNet(nn.Module):
                     [
                         (
                             "conv1",
-                            ConvBNAct(3, channels[0] // 2, 3, stride=2, padding=1, activation_type=activation_type, bias=False),
+                            ConvBNAct(3, channels[0] // 2, 3, stride=2, padding=1, activation_type=activation, bias=False),
                         ),
                         (
                             "conv2",
@@ -147,13 +146,13 @@ class CSPResNet(nn.Module):
                                 3,
                                 stride=1,
                                 padding=1,
-                                activation_type=activation_type,
+                                activation_type=activation,
                                 bias=False,
                             ),
                         ),
                         (
                             "conv3",
-                            ConvBNAct(channels[0] // 2, channels[0], 3, stride=1, padding=1, activation_type=activation_type, bias=False),
+                            ConvBNAct(channels[0] // 2, channels[0], 3, stride=1, padding=1, activation_type=activation, bias=False),
                         ),
                     ]
                 )
@@ -164,11 +163,11 @@ class CSPResNet(nn.Module):
                     [
                         (
                             "conv1",
-                            ConvBNAct(3, channels[0] // 2, 3, stride=2, padding=1, activation_type=activation_type, bias=False),
+                            ConvBNAct(3, channels[0] // 2, 3, stride=2, padding=1, activation_type=activation, bias=False),
                         ),
                         (
                             "conv2",
-                            ConvBNAct(channels[0] // 2, channels[0], 3, stride=1, padding=1, activation_type=activation_type, bias=False),
+                            ConvBNAct(channels[0] // 2, channels[0], 3, stride=1, padding=1, activation_type=activation, bias=False),
                         ),
                     ]
                 )
@@ -182,7 +181,7 @@ class CSPResNet(nn.Module):
                     channels[i + 1],
                     layers[i],
                     stride=2,
-                    activation_type=activation_type,
+                    activation_type=activation,
                     use_alpha=use_alpha,
                 )
                 for i in range(n)
