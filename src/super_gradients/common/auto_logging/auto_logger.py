@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from typing import Optional, Union
+from typing import Union
 
 
 class AutoLoggerConfig:
@@ -109,4 +109,4 @@ class AutoLoggerConfig:
         self._setup_logging(filename, copy_already_logged_messages, filemode, log_level)
 
 
-_sg_logger: Optional[AutoLoggerConfig] = None
+_sg_logger = None
