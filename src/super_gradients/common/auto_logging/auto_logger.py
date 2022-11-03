@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from typing import Optional
+from typing import Optional, Union
 
 
 class AutoLoggerConfig:
@@ -12,27 +12,37 @@ class AutoLoggerConfig:
     FILE_LOGGING_LEVEL = os.environ.get("LOG_LEVEL", "DEBUG").upper()
     CONSOLE_LOGGING_LEVEL = os.environ.get("CONSOLE_LOG_LEVEL", "INFO").upper()
 
-    filename: str = None
+    filename: Union[str, None]
 
-    @classmethod
-    def get_log_file_path(cls) -> str:
-        """
-        Return the current log file used to store log messages
-        :return: Full path to log file
-        """
-        self = cls.getInstance()
-        return self.filename
+    def __init__(self):
+        self.filename = None
 
-    @classmethod
-    def setup_default_logging(self, log_level: str = None) -> None:
-        self.setup_logging(
+    def _setup_default_logging(self, log_level: str = None) -> None:
+        """
+        Setup default logging configuration. Usually happens when app starts, and we don't have
+        experiment dir yet.
+        The default log directory will be `~/sg_logs`
+        :param log_level: The default log level to use. If None, uses LOG_LEVEL and CONSOLE_LOG_LEVEL environment vars.
+        :return: None
+        """
+        self._setup_logging(
             filename=os.path.expanduser(f"~/sg_logs/last_{os.getppid()}.log"),
             copy_already_logged_messages=False,
             log_level=log_level,
         )
 
-    @classmethod
-    def setup_logging(self, filename: str, copy_already_logged_messages: bool, log_level: str = None) -> None:
+    def _setup_logging(self, filename: str, copy_already_logged_messages: bool, filemode: str = "a", log_level: str = None) -> None:
+        """
+        Sets the logging configuration to store messages to specific file
+        :param filename: Output log file
+        :param filemode: Open mode for file
+        :param copy_already_logged_messages: Controls whether messages from previous log configuration should be copied
+               to new place. This is helpful to transfer diagnostic messages (from the app start) to experiment dir.
+        :param log_level: The default log level to use. If None, uses LOG_LEVEL and CONSOLE_LOG_LEVEL environment vars.
+        :return:
+        """
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+
         if copy_already_logged_messages and self.filename is not None and os.path.exists(self.filename):
             with open(self.filename, "r", encoding="utf-8") as src:
                 with open(filename, "w") as dst:
@@ -60,7 +70,7 @@ class AutoLoggerConfig:
 
         logging.basicConfig(
             filename=filename,
-            filemode="a",
+            filemode=filemode,
             format="%(asctime)s %(levelname)s - %(name)s - %(message)s",
             datefmt="[%Y-%m-%d %H:%M:%S]",
             level=file_logging_level,
@@ -80,9 +90,23 @@ class AutoLoggerConfig:
         global _sg_logger
         if _sg_logger is None:
             _sg_logger = cls()
-            _sg_logger.setup_default_logging()
+            _sg_logger._setup_default_logging()
 
         return _sg_logger
+
+    @classmethod
+    def get_log_file_path(cls) -> str:
+        """
+        Return the current log file used to store log messages
+        :return: Full path to log file
+        """
+        self = cls.getInstance()
+        return self.filename
+
+    @classmethod
+    def setup_logging(cls, filename: str, copy_already_logged_messages: bool, filemode: str = "a", log_level: str = None) -> None:
+        self = cls.getInstance()
+        self._setup_logging(filename, copy_already_logged_messages, filemode, log_level)
 
 
 _sg_logger: Optional[AutoLoggerConfig] = None
