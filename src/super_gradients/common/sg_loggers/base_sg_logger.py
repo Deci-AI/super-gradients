@@ -1,40 +1,41 @@
 import json
 import os
-import time
 import signal
-
+import time
 from typing import Union, Any
 
-import psutil
-import numpy as np
-from PIL import Image
 import matplotlib.pyplot as plt
+import numpy as np
+import psutil
 import torch
-
+from PIL import Image
 from super_gradients.common import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
+from super_gradients.common.auto_logging import AutoLoggerConfig
 from super_gradients.common.environment.env_helpers import multi_process_safe
-from super_gradients.training.utils import sg_trainer_utils
+from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.params import TrainingParams
+from super_gradients.training.utils import sg_trainer_utils
 
 logger = get_logger(__name__)
 
 
 class BaseSGLogger(AbstractSGLogger):
-
-    def __init__(self, project_name: str,
-                 experiment_name: str,
-                 storage_location: str,
-                 resumed: bool,
-                 training_params: TrainingParams,
-                 checkpoints_dir_path: str,
-                 tb_files_user_prompt: bool = False,
-                 launch_tensorboard: bool = False,
-                 tensorboard_port: int = None,
-                 save_checkpoints_remote: bool = True,
-                 save_tensorboard_remote: bool = True,
-                 save_logs_remote: bool = True):
+    def __init__(
+        self,
+        project_name: str,
+        experiment_name: str,
+        storage_location: str,
+        resumed: bool,
+        training_params: TrainingParams,
+        checkpoints_dir_path: str,
+        tb_files_user_prompt: bool = False,
+        launch_tensorboard: bool = False,
+        tensorboard_port: int = None,
+        save_checkpoints_remote: bool = True,
+        save_tensorboard_remote: bool = True,
+        save_logs_remote: bool = True,
+    ):
         """
 
         :param experiment_name: Used for logging and loading purposes
@@ -56,7 +57,7 @@ class BaseSGLogger(AbstractSGLogger):
         self.experiment_name = experiment_name
         self.storage_location = storage_location
 
-        if storage_location.startswith('s3'):
+        if storage_location.startswith("s3"):
             self.save_checkpoints_remote = save_checkpoints_remote
             self.save_tensorboard_remote = save_tensorboard_remote
             self.save_logs_remote = save_logs_remote
@@ -64,11 +65,11 @@ class BaseSGLogger(AbstractSGLogger):
         else:
             self.remote_storage_available = False
             if save_checkpoints_remote:
-                logger.error('save_checkpoints_remote == True but storage_location is not s3 path. Files will not be saved remotely')
+                logger.error("save_checkpoints_remote == True but storage_location is not s3 path. Files will not be saved remotely")
             if save_tensorboard_remote:
-                logger.error('save_tensorboard_remote == True but storage_location is not s3 path. Files will not be saved remotely')
+                logger.error("save_tensorboard_remote == True but storage_location is not s3 path. Files will not be saved remotely")
             if save_logs_remote:
-                logger.error('save_logs_remote == True but storage_location is not s3 path. Files will not be saved remotely')
+                logger.error("save_logs_remote == True but storage_location is not s3 path. Files will not be saved remotely")
 
             self.save_checkpoints_remote = False
             self.save_tensorboard_remote = False
@@ -102,27 +103,30 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def _init_log_file(self):
-        time_string = time.strftime('%b%d_%H_%M_%S', time.localtime())
-        self.log_file_path = f'{self._local_dir}/log_{time_string}.txt'
+        time_string = time.strftime("%m_%d_%H_%M_%S", time.localtime())
+        # There are two log files, since the regular log_file_path used for `manual` logging of configs/other info
+        self.log_file_path = f"{self._local_dir}/log_{time_string}.txt"
+        self.log_full_file_path = f"{self._local_dir}/sg_logs_{time_string}.txt"
+        AutoLoggerConfig.setup_logging(filename=self.log_full_file_path, copy_already_logged_messages=True)
 
     @multi_process_safe
     def _write_to_log_file(self, lines: list):
-        with open(self.log_file_path, 'a' if os.path.exists(self.log_file_path) else 'w') as log_file:
+        with open(self.log_file_path, "a" if os.path.exists(self.log_file_path) else "w") as log_file:
             for line in lines:
-                log_file.write(line + '\n')
+                log_file.write(line + "\n")
 
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
-        log_lines = ['--------- config parameters ----------']
+        log_lines = ["--------- config parameters ----------"]
         log_lines.append(json.dumps(config, indent=4, default=str))
-        log_lines.append('------- config parameters end --------')
+        log_lines.append("------- config parameters end --------")
 
         self.tensorboard_writer.add_text("Hyper_parameters", json.dumps(config, indent=4, default=str).replace(" ", "&nbsp;").replace("\n", "  \n  "))
         self._write_to_log_file(log_lines)
 
     @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: int = None):
-        self.tensorboard_writer.add_scalar(tag=tag.lower().replace(' ', '_'), scalar_value=scalar_value, global_step=global_step)
+        self.tensorboard_writer.add_scalar(tag=tag.lower().replace(" ", "_"), scalar_value=scalar_value, global_step=global_step)
 
     @multi_process_safe
     def add_scalars(self, tag_scalar_dict: dict, global_step: int = None):
@@ -132,12 +136,12 @@ class BaseSGLogger(AbstractSGLogger):
         Instead, scalars are added to tensorboard like in add_scalar and are written in log together.
         """
         for tag, value in tag_scalar_dict.items():
-            self.tensorboard_writer.add_scalar(tag=tag.lower().replace(' ', '_'), scalar_value=value, global_step=global_step)
+            self.tensorboard_writer.add_scalar(tag=tag.lower().replace(" ", "_"), scalar_value=value, global_step=global_step)
 
         self.tensorboard_writer.flush()
 
         # WRITE THE EPOCH RESULTS TO LOG FILE
-        log_line = f'\nEpoch ({global_step}/{self.max_global_steps})  - '
+        log_line = f"\nEpoch ({global_step}/{self.max_global_steps})  - "
         for tag, value in tag_scalar_dict.items():
             if isinstance(value, torch.Tensor):
                 value = value.item()
@@ -146,11 +150,11 @@ class BaseSGLogger(AbstractSGLogger):
         self._write_to_log_file([log_line])
 
     @multi_process_safe
-    def add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], data_format='CHW', global_step: int = None):
+    def add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], data_format="CHW", global_step: int = None):
         self.tensorboard_writer.add_image(tag=tag, img_tensor=image, dataformats=data_format, global_step=global_step)
 
     @multi_process_safe
-    def add_images(self, tag: str, images: Union[torch.Tensor, np.array], data_format='NCHW', global_step: int = None):
+    def add_images(self, tag: str, images: Union[torch.Tensor, np.array], data_format="NCHW", global_step: int = None):
         """
         Add multiple images to SGLogger.
         Typically, this function will add a set of images to tensorboard, save them to disk or add it to experiment management framework.
@@ -173,7 +177,9 @@ class BaseSGLogger(AbstractSGLogger):
         :param global_step: Global step value to record
         """
         if video.ndim < 5:
-            video = video[None, ]
+            video = video[
+                None,
+            ]
         self.tensorboard_writer.add_video(tag=tag, video=video, global_step=global_step)
 
     @multi_process_safe
@@ -219,7 +225,7 @@ class BaseSGLogger(AbstractSGLogger):
             self.model_checkpoints_data_interface.save_remote_tensorboard_event_files(self.experiment_name, self._local_dir)
 
         if self.save_logs_remote:
-            log_file_name = self.log_file_path.split('/')[-1]
+            log_file_name = self.log_file_path.split("/")[-1]
             self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, log_file_name)
 
     @multi_process_safe
@@ -231,23 +237,23 @@ class BaseSGLogger(AbstractSGLogger):
         self.tensorboard_writer.close()
         if self.tensor_board_process is not None:
             try:
-                logger.info('[CLEANUP] - Stopping tensorboard process')
+                logger.info("[CLEANUP] - Stopping tensorboard process")
                 process = psutil.Process(self.tensor_board_process.pid)
                 process.send_signal(signal.SIGTERM)
-                logger.info('[CLEANUP] - Successfully stopped tensorboard process')
+                logger.info("[CLEANUP] - Successfully stopped tensorboard process")
             except Exception as ex:
-                logger.info('[CLEANUP] - Could not stop tensorboard process properly: ' + str(ex))
+                logger.info("[CLEANUP] - Could not stop tensorboard process properly: " + str(ex))
 
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = None):
 
-        name = f'ckpt_{global_step}.pth' if tag is None else tag
-        if not name.endswith('.pth'):
-            name += '.pth'
+        name = f"ckpt_{global_step}.pth" if tag is None else tag
+        if not name.endswith(".pth"):
+            name += ".pth"
 
         path = os.path.join(self._local_dir, name)
         torch.save(state_dict, path)
-        if 'best' in tag:
+        if "best" in tag:
             logger.info("Checkpoint saved in " + path)
         if self.save_checkpoints_remote:
             self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
