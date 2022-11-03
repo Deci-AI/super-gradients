@@ -63,7 +63,7 @@ class AutoLoggerConfig:
             )
         else:
             # If the logging does not support force=True, we should manually delete handlers
-            del manager.root.handlers
+            del manager.root.handlers[:]
 
         if cur_version >= python_39:
             extra_kwargs["encoding"] = "utf-8"
