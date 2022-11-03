@@ -23,7 +23,7 @@ from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogge
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.datasets.datasets_utils import DatasetStatisticsTensorboardLogger
-from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
+from super_gradients.training.datasets.samplers import InfiniteSampler
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics import Accuracy, Top5
@@ -38,25 +38,23 @@ from super_gradients.training.models import SgModule
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import HpmStruct
-from super_gradients.training.utils import random_seed
-from super_gradients.training.utils import sg_trainer_utils
+from super_gradients.training.utils import sg_trainer_utils, HpmStruct, random_seed
 from super_gradients.training.utils.callbacks import (
-    CallbackHandler,
-    Phase,
-    LR_SCHEDULERS_CLS_DICT,
     PhaseContext,
-    MetricsUpdateCallback,
-    LR_WARMUP_CLS_DICT,
+    Phase,
+    CallbackHandler,
     ContextSgMethods,
+    LR_WARMUP_CLS_DICT,
+    LR_SCHEDULERS_CLS_DICT,
     LRCallbackBase,
+    MetricsUpdateCallback,
 )
 from super_gradients.training.utils.checkpoint_utils import (
-    get_ckpt_local_path,
-    read_ckpt_state_dict,
     load_checkpoint_to_model,
-    load_pretrained_weights,
+    get_ckpt_local_path,
     get_checkpoints_dir_path,
+    load_pretrained_weights,
+    read_ckpt_state_dict,
 )
 from super_gradients.training.utils.distributed_training_utils import (
     MultiGPUModeAutocastWrapper,
@@ -65,12 +63,14 @@ from super_gradients.training.utils.distributed_training_utils import (
     setup_gpu_mode,
     require_gpu_setup,
     get_gpu_mem_utilization,
+    get_world_size,
 )
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 from super_gradients.training.utils.optimizer_utils import build_optimizer
 from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args
+from super_gradients.training.utils.sg_trainer_utils import log_main_training_params
 from super_gradients.training.utils.weight_averaging_utils import ModelWeightAveraging
 from torch import nn
 from torch.cuda.amp import GradScaler, autocast
@@ -171,9 +171,7 @@ class Trainer:
 
         self.results_titles = default_results_titles
 
-        default_train_metrics, default_valid_metrics = MetricCollection([Accuracy(), Top5()]), MetricCollection(
-            [Accuracy(), Top5()]
-        )
+        default_train_metrics, default_valid_metrics = MetricCollection([Accuracy(), Top5()]), MetricCollection([Accuracy(), Top5()])
 
         self.train_metrics, self.valid_metrics = default_train_metrics, default_valid_metrics
 
@@ -272,9 +270,7 @@ class Trainer:
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
-        checkpoints_dir = Path(
-            get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
-        )
+        checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
         ckpt_name = core_utils.get_param(cfg, "ckpt_name", "ckpt_latest.pth")
         checkpoint_path = str(checkpoints_dir / ckpt_name)
 
@@ -289,9 +285,7 @@ class Trainer:
         )
 
         # TEST
-        val_results_tuple = trainer.test(
-            model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list
-        )
+        val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
 
         valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
 
@@ -300,9 +294,7 @@ class Trainer:
         logger.info("\n".join(results))
 
     @classmethod
-    def evaluate_checkpoint(
-        cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None
-    ) -> None:
+    def evaluate_checkpoint(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
         """
         Evaluate a checkpoint resulting from one of your previous experiment, using the same parameters (dataset, valid_metrics,...)
         as used during the training of the experiment
@@ -325,18 +317,10 @@ class Trainer:
 
     def _set_dataset_params(self):
         self.dataset_params = {
-            "train_dataset_params": self.train_loader.dataset.dataset_params
-            if hasattr(self.train_loader.dataset, "dataset_params")
-            else None,
-            "train_dataloader_params": self.train_loader.dataloader_params
-            if hasattr(self.train_loader, "dataloader_params")
-            else None,
-            "valid_dataset_params": self.valid_loader.dataset.dataset_params
-            if hasattr(self.valid_loader.dataset, "dataset_params")
-            else None,
-            "valid_dataloader_params": self.valid_loader.dataloader_params
-            if hasattr(self.valid_loader, "dataloader_params")
-            else None,
+            "train_dataset_params": self.train_loader.dataset.dataset_params if hasattr(self.train_loader.dataset, "dataset_params") else None,
+            "train_dataloader_params": self.train_loader.dataloader_params if hasattr(self.train_loader, "dataloader_params") else None,
+            "valid_dataset_params": self.valid_loader.dataset.dataset_params if hasattr(self.valid_loader.dataset, "dataset_params") else None,
+            "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader, "dataloader_params") else None,
         }
         self.dataset_params = HpmStruct(**self.dataset_params)
 
@@ -352,9 +336,7 @@ class Trainer:
         self.load_backbone = core_utils.get_param(self.checkpoint_params, "load_backbone", default_val=False)
         self.external_checkpoint_path = core_utils.get_param(self.checkpoint_params, "external_checkpoint_path")
         if self.load_checkpoint or self.external_checkpoint_path:
-            self.load_weights_only = core_utils.get_param(
-                self.checkpoint_params, "load_weights_only", default_val=False
-            )
+            self.load_weights_only = core_utils.get_param(self.checkpoint_params, "load_weights_only", default_val=False)
         self.ckpt_name = core_utils.get_param(self.checkpoint_params, "ckpt_name", default_val=self.ckpt_name)
 
     def _net_to_device(self):
@@ -374,9 +356,7 @@ class Trainer:
                 self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net).to(self.device)
 
             local_rank = int(self.device.split(":")[1])
-            self.net = torch.nn.parallel.DistributedDataParallel(
-                self.net, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True
-            )
+            self.net = torch.nn.parallel.DistributedDataParallel(self.net, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
 
         else:
             self.net = core_utils.WrappedModel(self.net)
@@ -391,9 +371,7 @@ class Trainer:
         # SET THE MODEL IN training STATE
         self.net.train()
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
-        progress_bar_train_loader = tqdm(
-            self.train_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode
-        )
+        progress_bar_train_loader = tqdm(self.train_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode)
         progress_bar_train_loader.set_description(f"Train epoch {epoch}")
 
         # RESET/INIT THE METRIC LOGGERS
@@ -497,19 +475,15 @@ class Trainer:
         return loss, loss_logging_items
 
     def _init_monitored_items(self):
-        self.metric_idx_in_results_tuple = (
-            self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
-        ).index(self.metric_to_watch)
+        self.metric_idx_in_results_tuple = (self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)).index(self.metric_to_watch)
         # Instantiate the values to monitor (loss/metric)
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
             self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
-        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(
-            name=self.metric_to_watch, greater_is_better=True
-        )
-        self.results_titles = [
-            "Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)
-        ] + ["Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)]
+        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch, greater_is_better=True)
+        self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
+            "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
+        ]
 
         if self.training_params.average_best_models:
             self.model_weight_averaging = ModelWeightAveraging(
@@ -553,18 +527,14 @@ class Trainer:
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
 
-    def _save_checkpoint(
-        self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None
-    ):
+    def _save_checkpoint(self, optimizer=None, epoch: int = None, validation_results_tuple: tuple = None, context: PhaseContext = None):
         """
         Save the current state dict as latest (always), best (if metric was improved), epoch# (if determined in training
         params)
         """
         # WHEN THE validation_results_tuple IS NONE WE SIMPLY SAVE THE state_dict AS LATEST AND Return
         if validation_results_tuple is None:
-            self.sg_logger.add_checkpoint(
-                tag="ckpt_latest_weights_only.pth", state_dict={"net": self.net.state_dict()}, global_step=epoch
-            )
+            self.sg_logger.add_checkpoint(tag="ckpt_latest_weights_only.pth", state_dict={"net": self.net.state_dict()}, global_step=epoch)
             return
 
         # COMPUTE THE CURRENT metric
@@ -593,9 +563,7 @@ class Trainer:
             self.sg_logger.add_checkpoint(tag=f"ckpt_epoch_{epoch}.pth", state_dict=state, global_step=epoch)
 
         # OVERRIDE THE BEST CHECKPOINT AND best_metric IF metric GOT BETTER THAN THE PREVIOUS BEST
-        if (metric > self.best_metric and self.greater_metric_to_watch_is_better) or (
-            metric < self.best_metric and not self.greater_metric_to_watch_is_better
-        ):
+        if (metric > self.best_metric and self.greater_metric_to_watch_is_better) or (metric < self.best_metric and not self.greater_metric_to_watch_is_better):
             # STORE THE CURRENT metric AS BEST
             self.best_metric = metric
             self._save_best_checkpoint(epoch, state)
@@ -609,12 +577,8 @@ class Trainer:
 
         if self.training_params.average_best_models:
             net_for_averaging = self.ema_model.ema if self.ema else self.net
-            averaged_model_sd = self.model_weight_averaging.get_average_model(
-                net_for_averaging, validation_results_tuple=validation_results_tuple
-            )
-            self.sg_logger.add_checkpoint(
-                tag=self.average_model_checkpoint_filename, state_dict={"net": averaged_model_sd}, global_step=epoch
-            )
+            averaged_model_sd = self.model_weight_averaging.get_average_model(net_for_averaging, validation_results_tuple=validation_results_tuple)
+            self.sg_logger.add_checkpoint(tag=self.average_model_checkpoint_filename, state_dict={"net": averaged_model_sd}, global_step=epoch)
 
     def _save_best_checkpoint(self, epoch, state):
         self.sg_logger.add_checkpoint(tag=self.ckpt_best_name, state_dict=state, global_step=epoch)
@@ -1056,9 +1020,7 @@ class Trainer:
                     self.ema_model.ema.load_state_dict(self.checkpoint["ema_net"])
                 else:
                     self.ema = False
-                    logger.warning(
-                        "[Warning] Checkpoint does not include EMA weights, continuing training without EMA."
-                    )
+                    logger.warning("[Warning] Checkpoint does not include EMA weights, continuing training without EMA.")
 
         self.run_validation_freq = self.training_params.run_validation_freq
         validation_results_tuple = (0, 0)
@@ -1139,12 +1101,9 @@ class Trainer:
             load_opt_params = False
 
         if isinstance(self.training_params.optimizer, str) or (
-            inspect.isclass(self.training_params.optimizer)
-            and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
+            inspect.isclass(self.training_params.optimizer) and issubclass(self.training_params.optimizer, torch.optim.Optimizer)
         ):
-            self.optimizer = build_optimizer(
-                net=self.net, lr=self.training_params.initial_lr, training_params=self.training_params
-            )
+            self.optimizer = build_optimizer(net=self.net, lr=self.training_params.initial_lr, training_params=self.training_params)
         elif isinstance(self.training_params.optimizer, torch.optim.Optimizer):
             self.optimizer = self.training_params.optimizer
         else:
@@ -1161,11 +1120,8 @@ class Trainer:
 
         self._initialize_mixed_precision(self.training_params.mixed_precision)
 
-        self._infinite_train_loader = (
-            hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)
-        ) or (
-            hasattr(self.train_loader, "batch_sampler")
-            and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler)
+        self._infinite_train_loader = (hasattr(self.train_loader, "sampler") and isinstance(self.train_loader.sampler, InfiniteSampler)) or (
+            hasattr(self.train_loader, "batch_sampler") and isinstance(self.train_loader.batch_sampler.sampler, InfiniteSampler)
         )
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
@@ -1192,13 +1148,19 @@ class Trainer:
         )
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
+        first_batch, _ = next(iter(self.train_loader))
+        log_main_training_params(
+            gpu_mode=self.multi_gpu,
+            num_gpus=get_world_size(),
+            batch_size=len(first_batch),
+            batch_accumulate=self.batch_accumulate,
+            len_train_set=len(self.train_loader.dataset),
+        )
+
         try:
             # HEADERS OF THE TRAINING PROGRESS
             if not silent_mode:
-                logger.info(
-                    f"Started training for {self.max_epochs - self.start_epoch} epochs ({self.start_epoch}/"
-                    f"{self.max_epochs - 1})\n"
-                )
+                logger.info(f"Started training for {self.max_epochs - self.start_epoch} epochs ({self.start_epoch}/" f"{self.max_epochs - 1})\n")
             for epoch in range(self.start_epoch, self.max_epochs):
                 if context.stop_training:
                     logger.info("Request to stop training has been received, stopping training")
@@ -1222,9 +1184,7 @@ class Trainer:
 
                 # Phase.TRAIN_EPOCH_END
                 # RUN PHASE CALLBACKS
-                train_metrics_dict = get_metrics_dict(
-                    train_metrics_tuple, self.train_metrics, self.loss_logging_items_names
-                )
+                train_metrics_dict = get_metrics_dict(train_metrics_tuple, self.train_metrics, self.loss_logging_items_names)
 
                 context.update_context(metrics_dict=train_metrics_dict)
                 self.phase_callback_handler(Phase.TRAIN_EPOCH_END, context)
@@ -1260,9 +1220,7 @@ class Trainer:
 
                     # Phase.VALIDATION_EPOCH_END
                     # RUN PHASE CALLBACKS
-                    valid_metrics_dict = get_metrics_dict(
-                        validation_results_tuple, self.valid_metrics, self.loss_logging_items_names
-                    )
+                    valid_metrics_dict = get_metrics_dict(validation_results_tuple, self.valid_metrics, self.loss_logging_items_names)
 
                     context.update_context(metrics_dict=valid_metrics_dict)
                     self.phase_callback_handler(Phase.VALIDATION_EPOCH_END, context)
@@ -1272,9 +1230,7 @@ class Trainer:
 
                 if not self.ddp_silent_mode:
                     # SAVING AND LOGGING OCCURS ONLY IN THE MAIN PROCESS (IN CASES THERE ARE SEVERAL PROCESSES - DDP)
-                    self._write_to_disk_operations(
-                        train_metrics_tuple, validation_results_tuple, inf_time, epoch, context
-                    )
+                    self._write_to_disk_operations(train_metrics_tuple, validation_results_tuple, inf_time, epoch, context)
 
             # Evaluating the average model and removing snapshot averaging file if training is completed
             if self.training_params.average_best_models:
@@ -1337,10 +1293,7 @@ class Trainer:
             if self.load_checkpoint:
                 scaler_state_dict = core_utils.get_param(self.checkpoint, "scaler_state_dict")
                 if scaler_state_dict is None:
-                    logger.warning(
-                        "Mixed Precision - scaler state_dict not found in loaded model. This may case issues "
-                        "with loss scaling"
-                    )
+                    logger.warning("Mixed Precision - scaler state_dict not found in loaded model. This may case issues " "with loss scaling")
                 else:
                     self.scaler.load_state_dict(scaler_state_dict)
 
@@ -1368,15 +1321,11 @@ class Trainer:
             # Adding values to sg_logger
             # looping over last titles which corresponds to validation (and average model) metrics.
             all_titles = self.results_titles[-1 * len(averaged_model_results_tuple) :]
-            result_dict = {
-                all_titles[i]: averaged_model_results_tuple[i] for i in range(len(averaged_model_results_tuple))
-            }
+            result_dict = {all_titles[i]: averaged_model_results_tuple[i] for i in range(len(averaged_model_results_tuple))}
 
             self.sg_logger.add_scalars(tag_scalar_dict=result_dict, global_step=self.max_epochs)
 
-            average_model_tb_titles = [
-                "Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]
-            ]
+            average_model_tb_titles = ["Averaged Model " + x for x in self.results_titles[-1 * len(averaged_model_results_tuple) :]]
             write_struct = ""
             for ind, title in enumerate(average_model_tb_titles):
                 write_struct += "%s: %.3f  \n  " % (title, averaged_model_results_tuple[ind])
@@ -1424,11 +1373,7 @@ class Trainer:
 
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
             logger.warning("Warning: distributed training is not supported in re_build_model()")
-        self.net = (
-            torch.nn.DataParallel(self.net, device_ids=self.device_ids)
-            if self.multi_gpu
-            else core_utils.WrappedModel(self.net)
-        )
+        self.net = torch.nn.DataParallel(self.net, device_ids=self.device_ids) if self.multi_gpu else core_utils.WrappedModel(self.net)
 
     @property
     def get_module(self):
@@ -1479,9 +1424,7 @@ class Trainer:
                     self.multi_gpu = MultiGPUMode.OFF
                     if requested_multi_gpu != MultiGPUMode.AUTO:
                         # if AUTO mode was set - do not log a warning
-                        logger.warning(
-                            "\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n"
-                        )
+                        logger.warning("\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n")
                 else:
                     if requested_multi_gpu == MultiGPUMode.AUTO:
                         if env_helpers.is_distributed():
@@ -1610,9 +1553,7 @@ class Trainer:
                 "calling test or through training_params when calling train(...)"
             )
         if self.test_loader is None:
-            raise ValueError(
-                "Test dataloader is required to perform test. Make sure to either pass it through " "test_loader arg."
-            )
+            raise ValueError("Test dataloader is required to perform test. Make sure to either pass it through " "test_loader arg.")
 
         # RESET METRIC RUNNERS
         self._reset_metrics()
@@ -1695,9 +1636,7 @@ class Trainer:
         }
         return hyper_param_config
 
-    def _write_to_disk_operations(
-        self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int, context: PhaseContext
-    ):
+    def _write_to_disk_operations(self, train_metrics: tuple, validation_results: tuple, inf_time: float, epoch: int, context: PhaseContext):
         """Run the various logging operations, e.g.: log file, Tensorboard, save checkpoint etc."""
         # STORE VALUES IN A TENSORBOARD FILE
         train_results = list(train_metrics) + list(validation_results) + [inf_time]
@@ -1712,11 +1651,7 @@ class Trainer:
 
     def _write_lrs(self, epoch):
         lrs = [self.optimizer.param_groups[i]["lr"] for i in range(len(self.optimizer.param_groups))]
-        lr_titles = (
-            ["LR/Param_group_" + str(i) for i in range(len(self.optimizer.param_groups))]
-            if len(self.optimizer.param_groups) > 1
-            else ["LR"]
-        )
+        lr_titles = ["LR/Param_group_" + str(i) for i in range(len(self.optimizer.param_groups))] if len(self.optimizer.param_groups) > 1 else ["LR"]
         lr_dict = {lr_titles[i]: lrs[i] for i in range(len(lrs))}
         self.sg_logger.add_scalars(tag_scalar_dict=lr_dict, global_step=epoch)
 
@@ -1825,9 +1760,7 @@ class Trainer:
         """
 
         # THE DISABLE FLAG CONTROLS WHETHER THE PROGRESS BAR IS SILENT OR PRINTS THE LOGS
-        progress_bar_data_loader = tqdm(
-            data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode
-        )
+        progress_bar_data_loader = tqdm(data_loader, bar_format="{l_bar}{bar:10}{r_bar}", dynamic_ncols=True, disable=silent_mode)
         loss_avg_meter = core_utils.utils.AverageMeter()
         logging_values = None
         loss_tuple = None
@@ -1878,9 +1811,7 @@ class Trainer:
                 if metrics_progress_verbose and not silent_mode:
                     # COMPUTE THE RUNNING USER METRICS AND LOSS RUNNING ITEMS. RESULT TUPLE IS THEIR CONCATENATION.
                     logging_values = get_logging_values(loss_avg_meter, metrics, self.criterion)
-                    pbar_message_dict = get_train_loop_description_dict(
-                        logging_values, metrics, self.loss_logging_items_names
-                    )
+                    pbar_message_dict = get_train_loop_description_dict(logging_values, metrics, self.loss_logging_items_names)
 
                     progress_bar_data_loader.set_postfix(**pbar_message_dict)
 
@@ -2041,9 +1972,7 @@ class Trainer:
             component_names = ["loss_" + str(i) for i in range(len(loss_logging_items))]
 
         if component_names is not None:
-            self.loss_logging_items_names = [
-                criterion_name + "/" + component_name for component_name in component_names
-            ]
+            self.loss_logging_items_names = [criterion_name + "/" + component_name for component_name in component_names]
             if self.metric_to_watch in component_names:
                 self.metric_to_watch = criterion_name + "/" + self.metric_to_watch
         else:
