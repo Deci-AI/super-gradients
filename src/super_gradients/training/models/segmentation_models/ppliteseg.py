@@ -1,81 +1,30 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from typing import Union, List, Tuple
+from typing import Union, List
 
 from super_gradients.modules import ConvBNReLU
 from super_gradients.training.utils.module_utils import make_upsample_module
 from super_gradients.common import UpsampleMode
-from super_gradients.training.models.segmentation_models.stdc import SegmentationHead, AbstractSTDCBackbone,\
-    STDC1Backbone, STDC2Backbone
+from super_gradients.training.models.segmentation_models.stdc import SegmentationHead, AbstractSTDCBackbone, STDC1Backbone, STDC2Backbone
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils import HpmStruct, get_param
-
-
-class SPPM(nn.Module):
-    """
-    Simple Pyramid Pooling context Module.
-    """
-    def __init__(self,
-                 in_channels: int,
-                 inter_channels: int,
-                 out_channels: int,
-                 pool_sizes: List[Union[int, Tuple[int, int]]],
-                 upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
-                 align_corners: bool = False):
-        """
-        :param inter_channels: num channels in each pooling branch.
-        :param out_channels: The number of output channels after pyramid pooling module.
-        :param pool_sizes: spatial output sizes of the pooled feature maps.
-        """
-        super().__init__()
-        self.branches = nn.ModuleList([
-            nn.Sequential(
-                nn.AdaptiveAvgPool2d(pool_size),
-                ConvBNReLU(in_channels, inter_channels, kernel_size=1, bias=False),
-            ) for pool_size in pool_sizes
-        ])
-        self.conv_out = ConvBNReLU(inter_channels, out_channels, kernel_size=3, padding=1, bias=False)
-        self.out_channels = out_channels
-        self.upsample_mode = upsample_mode
-        self.align_corners = align_corners
-        self.pool_sizes = pool_sizes
-
-    def forward(self, x):
-        out = None
-        input_shape = x.shape[2:]
-        for branch in self.branches:
-            y = branch(x)
-            y = F.interpolate(y, size=input_shape, mode=self.upsample_mode, align_corners=self.align_corners)
-            out = y if out is None else out + y
-        out = self.conv_out(out)
-        return out
-
-    def prep_model_for_conversion(self, input_size: Union[tuple, list], stride_ratio: int = 32, **kwargs):
-        """
-        Replace Global average pooling with fixed kernels Average pooling, since dynamic kernel sizes are not supported
-        when compiling to ONNX: `Unsupported: ONNX export of operator adaptive_avg_pool2d, input size not accessible.`
-        """
-        input_size = [x / stride_ratio for x in input_size[-2:]]
-        for branch in self.branches:
-            global_pool: nn.AdaptiveAvgPool2d = branch[0]
-            out_size = global_pool.output_size
-            out_size = out_size if isinstance(out_size, (tuple, list)) else (out_size, out_size)
-            kernel_size = [int(i / o) for i, o in zip(input_size, out_size)]
-            branch[0] = nn.AvgPool2d(kernel_size=kernel_size, stride=kernel_size)
+from super_gradients.training.models.segmentation_models.context_modules import SPPM
 
 
 class UAFM(nn.Module):
     """
     Unified Attention Fusion Module, which uses mean and max values across the spatial dimensions.
     """
-    def __init__(self,
-                 in_channels: int,
-                 skip_channels: int,
-                 out_channels: int,
-                 up_factor: int,
-                 upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
-                 align_corners: bool = False):
+
+    def __init__(
+        self,
+        in_channels: int,
+        skip_channels: int,
+        out_channels: int,
+        up_factor: int,
+        upsample_mode: Union[UpsampleMode, str] = UpsampleMode.BILINEAR,
+        align_corners: bool = False,
+    ):
         """
         :params in_channels: num_channels of input feature map.
         :param skip_channels: num_channels of skip connection feature map.
@@ -85,14 +34,11 @@ class UAFM(nn.Module):
         """
         super().__init__()
         self.conv_atten = nn.Sequential(
-            ConvBNReLU(4, 2, kernel_size=3, padding=1, bias=False),
-            ConvBNReLU(2, 1, kernel_size=3, padding=1, bias=False, use_activation=False)
+            ConvBNReLU(4, 2, kernel_size=3, padding=1, bias=False), ConvBNReLU(2, 1, kernel_size=3, padding=1, bias=False, use_activation=False)
         )
 
-        self.proj_skip = nn.Identity() if skip_channels == in_channels else \
-            ConvBNReLU(skip_channels, in_channels, kernel_size=3, padding=1, bias=False)
-        self.up_x = nn.Identity() if up_factor == 1 else \
-            make_upsample_module(scale_factor=up_factor, upsample_mode=upsample_mode, align_corners=align_corners)
+        self.proj_skip = nn.Identity() if skip_channels == in_channels else ConvBNReLU(skip_channels, in_channels, kernel_size=3, padding=1, bias=False)
+        self.up_x = nn.Identity() if up_factor == 1 else make_upsample_module(scale_factor=up_factor, upsample_mode=upsample_mode, align_corners=align_corners)
         self.conv_out = ConvBNReLU(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
 
     def forward(self, x, skip):
@@ -103,10 +49,7 @@ class UAFM(nn.Module):
         x = self.up_x(x)
         skip = self.proj_skip(skip)
 
-        atten = torch.cat([
-            *self._avg_max_spatial_reduce(x, use_concat=False),
-            *self._avg_max_spatial_reduce(skip, use_concat=False)
-        ], dim=1)
+        atten = torch.cat([*self._avg_max_spatial_reduce(x, use_concat=False), *self._avg_max_spatial_reduce(skip, use_concat=False)], dim=1)
         atten = self.conv_atten(atten)
         atten = torch.sigmoid(atten)
 
@@ -116,10 +59,7 @@ class UAFM(nn.Module):
 
     @staticmethod
     def _avg_max_spatial_reduce(x, use_concat: bool = False):
-        reduced = [
-            torch.mean(x, dim=1, keepdim=True),
-            torch.max(x, dim=1, keepdim=True)[0]
-        ]
+        reduced = [torch.mean(x, dim=1, keepdim=True), torch.max(x, dim=1, keepdim=True)[0]]
         if use_concat:
             reduced = torch.cat(reduced, dim=1)
         return reduced
@@ -129,18 +69,15 @@ class PPLiteSegEncoder(nn.Module):
     """
     Encoder for PPLiteSeg, include backbone followed by a context module.
     """
-    def __init__(self,
-                 backbone: AbstractSTDCBackbone,
-                 projection_channels_list: List[int],
-                 context_module: nn.Module):
+
+    def __init__(self, backbone: AbstractSTDCBackbone, projection_channels_list: List[int], context_module: nn.Module):
         super().__init__()
         self.backbone = backbone
         self.context_module = context_module
         feats_channels = backbone.get_backbone_output_number_of_channels()
-        self.proj_convs = nn.ModuleList([
-            ConvBNReLU(feat_ch, proj_ch, kernel_size=3, padding=1, bias=False)
-            for feat_ch, proj_ch in zip(feats_channels, projection_channels_list)
-        ])
+        self.proj_convs = nn.ModuleList(
+            [ConvBNReLU(feat_ch, proj_ch, kernel_size=3, padding=1, bias=False) for feat_ch, proj_ch in zip(feats_channels, projection_channels_list)]
+        )
         self.projection_channels_list = projection_channels_list
 
     def get_output_number_of_channels(self) -> List[int]:
@@ -160,12 +97,8 @@ class PPLiteSegDecoder(nn.Module):
     """
     PPLiteSegDecoder using UAFM blocks to fuse feature maps.
     """
-    def __init__(self,
-                 encoder_channels: List[int],
-                 up_factors: List[int],
-                 out_channels: List[int],
-                 upsample_mode,
-                 align_corners: bool):
+
+    def __init__(self, encoder_channels: List[int], up_factors: List[int], out_channels: List[int], upsample_mode, align_corners: bool):
         super().__init__()
         # Make a copy of channels list, to prevent out of scope changes.
         encoder_channels = encoder_channels.copy()
@@ -175,14 +108,16 @@ class PPLiteSegDecoder(nn.Module):
         # TODO - assert argument length
         self.up_stages = nn.ModuleList()
         for skip_ch, up_factor, out_ch in zip(encoder_channels, up_factors, out_channels):
-            self.up_stages.append(UAFM(
-                in_channels=in_channels,
-                skip_channels=skip_ch,
-                out_channels=out_ch,
-                up_factor=up_factor,
-                upsample_mode=upsample_mode,
-                align_corners=align_corners
-            ))
+            self.up_stages.append(
+                UAFM(
+                    in_channels=in_channels,
+                    skip_channels=skip_ch,
+                    out_channels=out_ch,
+                    up_factor=up_factor,
+                    upsample_mode=upsample_mode,
+                    align_corners=align_corners,
+                )
+            )
             in_channels = out_ch
 
     def forward(self, feats: List[torch.Tensor]):
@@ -201,26 +136,28 @@ class PPLiteSegBase(SegmentationModule):
     Qiwen Liu, Xiaoguang Hu, Dianhai Yu, Yanjun Ma. PP-LiteSeg: A Superior Real-Time Semantic
     Segmentation Model. https://arxiv.org/abs/2204.02681".
     """
-    def __init__(self,
-                 num_classes,
-                 backbone: AbstractSTDCBackbone,
-                 projection_channels_list: List[int],
-                 sppm_inter_channels: int,
-                 sppm_out_channels: int,
-                 sppm_pool_sizes: List[int],
-                 sppm_upsample_mode: Union[UpsampleMode, str],
-                 align_corners: bool,
-                 decoder_up_factors: List[int],
-                 decoder_channels: List[int],
-                 decoder_upsample_mode: Union[UpsampleMode, str],
-                 head_scale_factor: int,
-                 head_upsample_mode: Union[UpsampleMode, str],
-                 head_mid_channels: int,
-                 dropout: float,
-                 use_aux_heads: bool,
-                 aux_hidden_channels: List[int],
-                 aux_scale_factors: List[int]
-                 ):
+
+    def __init__(
+        self,
+        num_classes,
+        backbone: AbstractSTDCBackbone,
+        projection_channels_list: List[int],
+        sppm_inter_channels: int,
+        sppm_out_channels: int,
+        sppm_pool_sizes: List[int],
+        sppm_upsample_mode: Union[UpsampleMode, str],
+        align_corners: bool,
+        decoder_up_factors: List[int],
+        decoder_channels: List[int],
+        decoder_upsample_mode: Union[UpsampleMode, str],
+        head_scale_factor: int,
+        head_upsample_mode: Union[UpsampleMode, str],
+        head_mid_channels: int,
+        dropout: float,
+        use_aux_heads: bool,
+        aux_hidden_channels: List[int],
+        aux_scale_factors: List[int],
+    ):
         """
         :param backbone: Backbone nn.Module should implement the abstract class `AbstractSTDCBackbone`.
         :param projection_channels_list: channels list to project encoder features before fusing with the decoder
@@ -243,47 +180,46 @@ class PPLiteSegBase(SegmentationModule):
 
         # Init Encoder
         backbone_out_channels = backbone.get_backbone_output_number_of_channels()
-        assert len(backbone_out_channels) == len(projection_channels_list), \
-            f"The length of backbone outputs ({backbone_out_channels}) should match the length of projection channels" \
-            f"({len(projection_channels_list)})."
-        context = SPPM(in_channels=backbone_out_channels[-1],
-                       inter_channels=sppm_inter_channels,
-                       out_channels=sppm_out_channels,
-                       pool_sizes=sppm_pool_sizes,
-                       upsample_mode=sppm_upsample_mode,
-                       align_corners=align_corners)
-        self.encoder = PPLiteSegEncoder(backbone=backbone,
-                                        context_module=context,
-                                        projection_channels_list=projection_channels_list)
+        assert len(backbone_out_channels) == len(projection_channels_list), (
+            f"The length of backbone outputs ({backbone_out_channels}) should match the length of projection channels" f"({len(projection_channels_list)})."
+        )
+        context = SPPM(
+            in_channels=backbone_out_channels[-1],
+            inter_channels=sppm_inter_channels,
+            out_channels=sppm_out_channels,
+            pool_sizes=sppm_pool_sizes,
+            upsample_mode=sppm_upsample_mode,
+            align_corners=align_corners,
+        )
+        self.encoder = PPLiteSegEncoder(backbone=backbone, context_module=context, projection_channels_list=projection_channels_list)
         encoder_channels = self.encoder.get_output_number_of_channels()
 
         # Init Decoder
-        self.decoder = PPLiteSegDecoder(encoder_channels=encoder_channels,
-                                        up_factors=decoder_up_factors,
-                                        out_channels=decoder_channels,
-                                        upsample_mode=decoder_upsample_mode,
-                                        align_corners=align_corners)
+        self.decoder = PPLiteSegDecoder(
+            encoder_channels=encoder_channels,
+            up_factors=decoder_up_factors,
+            out_channels=decoder_channels,
+            upsample_mode=decoder_upsample_mode,
+            align_corners=align_corners,
+        )
 
         # Init Segmentation classification heads
         self.seg_head = nn.Sequential(
-            SegmentationHead(in_channels=decoder_channels[-1],
-                             mid_channels=head_mid_channels,
-                             num_classes=num_classes,
-                             dropout=dropout),
-            make_upsample_module(scale_factor=head_scale_factor, upsample_mode=head_upsample_mode,
-                                 align_corners=align_corners)
+            SegmentationHead(in_channels=decoder_channels[-1], mid_channels=head_mid_channels, num_classes=num_classes, dropout=dropout),
+            make_upsample_module(scale_factor=head_scale_factor, upsample_mode=head_upsample_mode, align_corners=align_corners),
         )
         # Auxiliary heads
         if self.use_aux_heads:
             encoder_out_channels = projection_channels_list
-            self.aux_heads = nn.ModuleList([
-                nn.Sequential(
-                    SegmentationHead(backbone_ch, hidden_ch, num_classes, dropout=dropout),
-                    make_upsample_module(scale_factor=scale_factor, upsample_mode=head_upsample_mode,
-                                         align_corners=align_corners)
-                ) for backbone_ch, hidden_ch, scale_factor in zip(encoder_out_channels, aux_hidden_channels,
-                                                                  aux_scale_factors)
-            ])
+            self.aux_heads = nn.ModuleList(
+                [
+                    nn.Sequential(
+                        SegmentationHead(backbone_ch, hidden_ch, num_classes, dropout=dropout),
+                        make_upsample_module(scale_factor=scale_factor, upsample_mode=head_upsample_mode, align_corners=align_corners),
+                    )
+                    for backbone_ch, hidden_ch, scale_factor in zip(encoder_out_channels, aux_hidden_channels, aux_scale_factors)
+                ]
+            )
         self.init_params()
 
     def _remove_auxiliary_heads(self):
@@ -315,17 +251,18 @@ class PPLiteSegBase(SegmentationModule):
         """
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
         multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
-        param_groups = [{"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
-                        {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"}]
+        param_groups = [
+            {"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
+            {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"},
+        ]
         return param_groups
 
-    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct,
-                            total_batch: int) -> list:
+    def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
         for param_group in param_groups:
-            param_group['lr'] = lr
+            param_group["lr"] = lr
             if param_group["name"] == "multiply_lr_params":
-                param_group['lr'] *= multiply_head_lr
+                param_group["lr"] *= multiply_head_lr
         return param_groups
 
     def _separate_lr_multiply_params(self):
@@ -354,47 +291,49 @@ class PPLiteSegBase(SegmentationModule):
 
 class PPLiteSegB(PPLiteSegBase):
     def __init__(self, arch_params: HpmStruct):
-        backbone = STDC2Backbone(in_channels=get_param(arch_params, "in_channels", 3),
-                                 out_down_ratios=[8, 16, 32])
-        super().__init__(num_classes=get_param(arch_params, "num_classes"),
-                         backbone=backbone,
-                         projection_channels_list=[96, 128, 128],
-                         sppm_inter_channels=128,
-                         sppm_out_channels=128,
-                         sppm_pool_sizes=[1, 2, 4],
-                         sppm_upsample_mode="bilinear",
-                         align_corners=False,
-                         decoder_up_factors=[1, 2, 2],
-                         decoder_channels=[128, 96, 64],
-                         decoder_upsample_mode="bilinear",
-                         head_scale_factor=8,
-                         head_upsample_mode="bilinear",
-                         head_mid_channels=64,
-                         dropout=get_param(arch_params, "dropout", 0.),
-                         use_aux_heads=get_param(arch_params, "use_aux_heads", False),
-                         aux_hidden_channels=[32, 64, 64],
-                         aux_scale_factors=[8, 16, 32])
+        backbone = STDC2Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])
+        super().__init__(
+            num_classes=get_param(arch_params, "num_classes"),
+            backbone=backbone,
+            projection_channels_list=[96, 128, 128],
+            sppm_inter_channels=128,
+            sppm_out_channels=128,
+            sppm_pool_sizes=[1, 2, 4],
+            sppm_upsample_mode="bilinear",
+            align_corners=False,
+            decoder_up_factors=[1, 2, 2],
+            decoder_channels=[128, 96, 64],
+            decoder_upsample_mode="bilinear",
+            head_scale_factor=8,
+            head_upsample_mode="bilinear",
+            head_mid_channels=64,
+            dropout=get_param(arch_params, "dropout", 0.0),
+            use_aux_heads=get_param(arch_params, "use_aux_heads", False),
+            aux_hidden_channels=[32, 64, 64],
+            aux_scale_factors=[8, 16, 32],
+        )
 
 
 class PPLiteSegT(PPLiteSegBase):
     def __init__(self, arch_params: HpmStruct):
-        backbone = STDC1Backbone(in_channels=get_param(arch_params, "in_channels", 3),
-                                 out_down_ratios=[8, 16, 32])
-        super().__init__(num_classes=get_param(arch_params, "num_classes"),
-                         backbone=backbone,
-                         projection_channels_list=[64, 128, 128],
-                         sppm_inter_channels=128,
-                         sppm_out_channels=128,
-                         sppm_pool_sizes=[1, 2, 4],
-                         sppm_upsample_mode="bilinear",
-                         align_corners=False,
-                         decoder_up_factors=[1, 2, 2],
-                         decoder_channels=[128, 64, 32],
-                         decoder_upsample_mode="bilinear",
-                         head_scale_factor=8,
-                         head_upsample_mode="bilinear",
-                         head_mid_channels=32,
-                         dropout=get_param(arch_params, "dropout", 0.),
-                         use_aux_heads=get_param(arch_params, "use_aux_heads", False),
-                         aux_hidden_channels=[32, 64, 64],
-                         aux_scale_factors=[8, 16, 32])
+        backbone = STDC1Backbone(in_channels=get_param(arch_params, "in_channels", 3), out_down_ratios=[8, 16, 32])
+        super().__init__(
+            num_classes=get_param(arch_params, "num_classes"),
+            backbone=backbone,
+            projection_channels_list=[64, 128, 128],
+            sppm_inter_channels=128,
+            sppm_out_channels=128,
+            sppm_pool_sizes=[1, 2, 4],
+            sppm_upsample_mode="bilinear",
+            align_corners=False,
+            decoder_up_factors=[1, 2, 2],
+            decoder_channels=[128, 64, 32],
+            decoder_upsample_mode="bilinear",
+            head_scale_factor=8,
+            head_upsample_mode="bilinear",
+            head_mid_channels=32,
+            dropout=get_param(arch_params, "dropout", 0.0),
+            use_aux_heads=get_param(arch_params, "use_aux_heads", False),
+            aux_hidden_channels=[32, 64, 64],
+            aux_scale_factors=[8, 16, 32],
+        )
