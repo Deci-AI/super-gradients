@@ -1,9 +1,10 @@
 import collections
-from typing import Type, Tuple, Union
+from typing import Type, Tuple, List
 
 import torch
 from torch import nn, Tensor
-from super_gradients.training.models.detection_models.csp_resnet import ConvBNLayer, BasicBlock, RepVggBlock
+from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBasicBlock
+from super_gradients.modules import ConvBNAct
 
 __all__ = ["CustomCSPPAN"]
 
@@ -24,9 +25,7 @@ class SPP(nn.Module):
             pool = nn.MaxPool2d(kernel_size=size, stride=1, padding=size // 2, ceil_mode=False)
             pools.append(pool)
         self.pool = nn.ModuleList(pools)
-        self.conv = ConvBNLayer(
-            mid_channels, out_channels, kernel_size, padding=kernel_size // 2, activation_type=activation_type, stride=1
-        )
+        self.conv = ConvBNAct(mid_channels, out_channels, kernel_size, padding=kernel_size // 2, activation_type=activation_type, stride=1)
 
     def forward(self, x: Tensor) -> Tensor:
         outs = [x]
@@ -41,25 +40,19 @@ class CSPStage(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, n, activation_type: Type[nn.Module], spp: bool):
         super().__init__()
         ch_mid = int(out_channels // 2)
-        self.conv1 = ConvBNLayer(
-            in_channels, ch_mid, kernel_size=1, padding=0, activation_type=activation_type, stride=1
-        )
-        self.conv2 = ConvBNLayer(
-            in_channels, ch_mid, kernel_size=1, padding=0, activation_type=activation_type, stride=1
-        )
+        self.conv1 = ConvBNAct(in_channels, ch_mid, kernel_size=1, padding=0, activation_type=activation_type, stride=1)
+        self.conv2 = ConvBNAct(in_channels, ch_mid, kernel_size=1, padding=0, activation_type=activation_type, stride=1)
 
         convs = []
         next_ch_in = ch_mid
         for i in range(n):
-            convs.append((str(i), BasicBlock(next_ch_in, ch_mid, activation_type=activation_type, shortcut=False)))
+            convs.append((str(i), CSPResNetBasicBlock(next_ch_in, ch_mid, activation_type=activation_type, use_residual_connection=False)))
             if i == (n - 1) // 2 and spp:
                 convs.append(("spp", SPP(ch_mid, ch_mid, 1, (5, 9, 13), activation_type=activation_type)))
             next_ch_in = ch_mid
 
         self.convs = nn.Sequential(collections.OrderedDict(convs))
-        self.conv3 = ConvBNLayer(
-            ch_mid * 2, out_channels, kernel_size=1, padding=0, activation_type=activation_type, stride=1
-        )
+        self.conv3 = ConvBNAct(ch_mid * 2, out_channels, kernel_size=1, padding=0, activation_type=activation_type, stride=1)
 
     def forward(self, x):
         y1 = self.conv1(x)
@@ -93,6 +86,7 @@ class CustomCSPPAN(nn.Module):
         in_channels = in_channels[::-1]
         fpn_stages = []
         fpn_routes = []
+        ch_pre = None
         for i, (ch_in, ch_out) in enumerate(zip(in_channels, out_channels)):
             if i > 0:
                 ch_in += ch_pre // 2
@@ -116,7 +110,7 @@ class CustomCSPPAN(nn.Module):
 
             if i < self.num_blocks - 1:
                 fpn_routes.append(
-                    ConvBNLayer(
+                    ConvBNAct(
                         in_channels=ch_out,
                         out_channels=ch_out // 2,
                         kernel_size=1,
@@ -135,7 +129,7 @@ class CustomCSPPAN(nn.Module):
         pan_routes = []
         for i in reversed(range(self.num_blocks - 1)):
             pan_routes.append(
-                ConvBNLayer(
+                ConvBNAct(
                     in_channels=out_channels[i + 1],
                     out_channels=out_channels[i + 1],
                     kernel_size=3,
@@ -167,10 +161,10 @@ class CustomCSPPAN(nn.Module):
         self.pan_stages = nn.ModuleList(pan_stages[::-1])
         self.pan_routes = nn.ModuleList(pan_routes[::-1])
 
-    def forward(self, blocks):
+    def forward(self, blocks: List[Tensor]) -> List[Tensor]:
         blocks = blocks[::-1]
         fpn_feats = []
-
+        route = None
         for i, block in enumerate(blocks):
             if i > 0:
                 block = torch.concat([route, block], dim=1)
@@ -193,22 +187,3 @@ class CustomCSPPAN(nn.Module):
             pan_feats.append(route)
 
         return pan_feats[::-1]
-
-    def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
-        """
-        Prepare the model to be converted to ONNX or other frameworks.
-        Typically, this function will freeze the size of layers which is otherwise flexible, replace some modules
-        with convertible substitutes and remove all auxiliary or training related parts.
-        :param input_size: [H,W]
-        """
-        for module in self.modules():
-            if isinstance(module, RepVggBlock):
-                module.prep_model_for_conversion(input_size)
-
-
-if __name__ == "__main__":
-    import numpy as np
-    import paddle
-    import ppdet
-    import paddle
-    from paddle import load as paddle_load

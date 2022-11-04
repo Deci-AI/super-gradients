@@ -8,7 +8,7 @@ from torch import nn, Tensor
 
 from super_gradients.modules import RepVGGBlock, EffectiveSEBlock, ConvBNAct
 
-__all__ = ["CSPResNet"]
+__all__ = ["CSPResNet", "CSPResNetBasicBlock"]
 
 
 class CSPResNetBasicBlock(nn.Module):

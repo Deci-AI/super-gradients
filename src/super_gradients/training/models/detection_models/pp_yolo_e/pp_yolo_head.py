@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import nn, Tensor
 
-from super_gradients.training.models.detection_models.csp_resnet import ConvBNLayer
+from super_gradients.modules import ConvBNAct
 from super_gradients.training.models.detection_models.pp_yolo_e.assigner import (
     batch_distance2bbox,
 )
@@ -19,9 +19,7 @@ def bias_init_with_prob(prior_prob=0.01):
 
 
 @torch.no_grad()
-def generate_anchors_for_grid_cell(
-    feats: Tuple[Tensor, ...], fpn_strides: Tuple[int, ...], grid_cell_size=5.0, grid_cell_offset=0.5, dtype=torch.float
-):
+def generate_anchors_for_grid_cell(feats: Tuple[Tensor, ...], fpn_strides: Tuple[int, ...], grid_cell_size=5.0, grid_cell_offset=0.5, dtype=torch.float):
     r"""
     Like ATSS, generate anchors based on grid size.
     Args:
@@ -68,9 +66,7 @@ class ESEAttn(nn.Module):
     def __init__(self, feat_channels: int, activation_type: Type[nn.Module]):
         super(ESEAttn, self).__init__()
         self.fc = nn.Conv2d(feat_channels, feat_channels, kernel_size=1)
-        self.conv = ConvBNLayer(
-            feat_channels, feat_channels, kernel_size=1, padding=0, stride=1, activation_type=activation_type
-        )
+        self.conv = ConvBNAct(feat_channels, feat_channels, kernel_size=1, padding=0, stride=1, activation_type=activation_type)
 
         self._init_weights()
 
@@ -181,20 +177,18 @@ class PPYOLOEHead(nn.Module):
         cls_score_list, reg_dist_list = [], []
         for i, feat in enumerate(feats):
             b, _, h, w = feat.shape
-            l = h * w
+            height_mul_width = h * w
             avg_feat = torch.nn.functional.adaptive_avg_pool2d(feat, (1, 1))
             cls_logit = self.pred_cls[i](self.stem_cls[i](feat, avg_feat) + feat)
             reg_dist = self.pred_reg[i](self.stem_reg[i](feat, avg_feat))
-            reg_dist = torch.permute(reg_dist.reshape([-1, 4, self.reg_max + 1, l]), [0, 2, 3, 1])
+            reg_dist = torch.permute(reg_dist.reshape([-1, 4, self.reg_max + 1, height_mul_width]), [0, 2, 3, 1])
 
             # reg_dist = self.proj_conv(torch.nn.functional.softmax(reg_dist, dim=1)).squeeze(1)
-            reg_dist = torch.nn.functional.conv2d(
-                torch.nn.functional.softmax(reg_dist, dim=1), weight=self.proj_conv
-            ).squeeze(1)
+            reg_dist = torch.nn.functional.conv2d(torch.nn.functional.softmax(reg_dist, dim=1), weight=self.proj_conv).squeeze(1)
 
             # cls and reg
             cls_score = torch.sigmoid(cls_logit)
-            cls_score_list.append(cls_score.reshape([b, self.num_classes, l]))
+            cls_score_list.append(cls_score.reshape([b, self.num_classes, height_mul_width]))
             reg_dist_list.append(reg_dist)
 
         cls_score_list = torch.concat(cls_score_list, dim=-1)  # [B, C, Anchors]
