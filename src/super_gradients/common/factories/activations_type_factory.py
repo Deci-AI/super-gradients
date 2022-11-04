@@ -1,14 +1,13 @@
 from typing import Union, Type, Mapping
 
 from super_gradients.common.factories.base_factory import AbstractFactory
-from super_gradients.training.utils.activations_utils import get_activation_type
+from super_gradients.training.utils.activations_utils import get_builtin_activation_type
 
 
 class ActivationsTypeFactory(AbstractFactory):
     """
-    This is a special factory for torch.optim.Optimizer.
-    This factory does not instantiate an object but rather return the type, since optimizer instantiation
-    requires the model to be instantiated first
+    This is a special factory for getting a type of the activation function by name.
+    This factory does not instantiate a module, but rather return the type to be instantiated via call method.
     """
 
     def get(self, conf: Union[str, Mapping]) -> Type:
@@ -21,11 +20,11 @@ class ActivationsTypeFactory(AbstractFactory):
            If provided value is not one of the three above, the value will be returned as is
         """
         if isinstance(conf, str):
-            return get_activation_type(conf)
+            return get_builtin_activation_type(conf)
 
         if isinstance(conf, Mapping):
             (type_name,) = list(conf.keys())
             type_args = conf[type_name]
-            return get_activation_type(type_name, **type_args)
+            return get_builtin_activation_type(type_name, **type_args)
 
         raise RuntimeError(f"Unsupported conf param type {type(conf)}")

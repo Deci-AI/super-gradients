@@ -1,5 +1,10 @@
 [flake8]
-ignore = E731, C901, W504 # lambda functions, function too complex, line break after binary operator
+ignore = E731, C901, W503, W504 # lambda functions, function too complex, line break after binary operator
+
+# In order to make flake8 compatible with black formatting
+# https://black.readthedocs.io/en/stable/guides/using_black_with_other_tools.html
+extend-ignore = E203
+
 max-line-length = 160
 max-complexity = 10
 exclude =

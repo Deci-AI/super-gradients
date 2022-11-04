@@ -1,0 +1,8 @@
+layers: [3, 6, 6, 3]                # model's structure
+channels: [64, 128, 256, 512, 1024] # number of outputs channels for step and consecutive feature maps
+activation: silu                    # model's width multiplier
+return_idx: [1,2,3]                 # Indexes of feature maps to output
+use_large_stem: True                # If True, uses 3 conv+bn+act instead of 2 in stem blocks
+width_mult:                         # scaling factor to number of channels
+depth_mult:                         # scaling factor to number of layers
+use_alpha: False                    # If True, enables additional learnable weighting parameter for 1x1 branch in RepVGGBlock

@@ -142,6 +142,13 @@ class Samplers:
     DISTRIBUTED = "DistributedSampler"
 
 
+class ContextModules:
+    """Static class to hold all the segmentation context module names""" ""
+
+    ASPP = "ASPP"
+    SPPM = "SPPM"
+
+
 class Models:
     """Static class to hold all the available model names"""
 
@@ -243,6 +250,7 @@ class Models:
     PP_LITE_B_SEG = "pp_lite_b_seg"
     PP_LITE_B_SEG50 = "pp_lite_b_seg50"
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
+    UNET_CUSTOM = "unet_custom"
     PP_YOLOE_S = "pp_yoloe_s"
     PP_YOLOE_M = "pp_yoloe_m"
     PP_YOLOE_L = "pp_yoloe_l"
