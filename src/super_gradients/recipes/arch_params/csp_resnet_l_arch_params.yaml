@@ -1,5 +1,6 @@
 defaults:
   - csp_resnet_arch_params
+  - _self_
 
 depth_mult: 1.0
 width_mult: 1.0

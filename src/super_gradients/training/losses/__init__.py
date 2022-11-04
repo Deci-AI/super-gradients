@@ -8,7 +8,22 @@ from super_gradients.training.losses.yolox_loss import YoloXDetectionLoss, YoloX
 from super_gradients.training.losses.ssd_loss import SSDLoss
 from super_gradients.training.losses.bce_dice_loss import BCEDiceLoss
 from super_gradients.training.losses.dice_ce_edge_loss import DiceCEEdgeLoss
+from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
 from super_gradients.training.losses.all_losses import LOSSES, Losses
 
-__all__ = ['LOSSES', 'Losses', 'FocalLoss', 'LabelSmoothingCrossEntropyLoss', 'ShelfNetOHEMLoss', 'ShelfNetSemanticEncodingLoss',
-           'YoloXDetectionLoss', 'YoloXFastDetectionLoss', 'RSquaredLoss', 'SSDLoss', 'BCEDiceLoss', 'KDLogitsLoss', 'DiceCEEdgeLoss']
+__all__ = [
+    "BCEDiceLoss",
+    "DiceCEEdgeLoss",
+    "FocalLoss",
+    "KDLogitsLoss",
+    "LOSSES",
+    "LabelSmoothingCrossEntropyLoss",
+    "Losses",
+    "PPYoloELoss",
+    "RSquaredLoss",
+    "SSDLoss",
+    "ShelfNetOHEMLoss",
+    "ShelfNetSemanticEncodingLoss",
+    "YoloXDetectionLoss",
+    "YoloXFastDetectionLoss",
+]

@@ -4,12 +4,10 @@ import numpy as np
 import torch
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories import ActivationsTypeFactory
+from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from torch import nn, Tensor
 
 from super_gradients.modules import ConvBNAct
-from super_gradients.training.models.detection_models.pp_yolo_e.assigner import (
-    batch_distance2bbox,
-)
 from super_gradients.training.models.detection_models.pp_yolo_e.nms import MultiClassNMS
 
 
@@ -181,7 +179,7 @@ class PPYOLOEHead(nn.Module):
 
         return cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor
 
-    def forward_eval(self, feats: Tuple[Tensor, ...]):
+    def forward_eval(self, feats: Tuple[Tensor, ...]) -> Tuple[Tensor, Tensor]:
         if self.eval_size:
             anchor_points, stride_tensor = self.anchor_points, self.stride_tensor
         else:
@@ -206,7 +204,10 @@ class PPYOLOEHead(nn.Module):
         cls_score_list = torch.concat(cls_score_list, dim=-1)  # [B, C, Anchors]
         reg_dist_list = torch.concat(reg_dist_list, dim=1)  # [B, Anchors, 4]
 
-        return cls_score_list, reg_dist_list, anchor_points, stride_tensor
+        # Decode bboxes
+        pred_scores = torch.permute(cls_score_list, [0, 2, 1])  # # [B, Anchors, C]
+        pred_bboxes = batch_distance2bbox(anchor_points, reg_dist_list) * stride_tensor  # [B, Anchors, 4]
+        return pred_bboxes, pred_scores
 
     def _generate_anchors(self, feats=None, dtype=torch.float):
         # just use in eval time
@@ -233,21 +234,3 @@ class PPYOLOEHead(nn.Module):
             return self.forward_train(feats)
         else:
             return self.forward_eval(feats)
-
-    def post_process(self, head_outs: Tuple[Tensor, Tensor, Tensor, Tensor], scale_factor: Tensor):
-        pred_scores, pred_dist, anchor_points, stride_tensor = head_outs
-        pred_bboxes = batch_distance2bbox(anchor_points, pred_dist)
-        pred_bboxes *= stride_tensor
-        if self.exclude_post_process:
-            return torch.concat([pred_bboxes, torch.permute(pred_scores, [0, 2, 1])], dim=-1), None
-        else:
-            # scale bbox to origin
-            scale_y, scale_x = torch.split(scale_factor, 2, dim=-1)
-            scale_factor = torch.concat([scale_x, scale_y, scale_x, scale_y], dim=-1).reshape([-1, 1, 4])
-            pred_bboxes /= scale_factor
-            if self.exclude_nms:
-                # `exclude_nms=True` just use in benchmark
-                return pred_bboxes, pred_scores
-            else:
-                bbox_pred, bbox_num, _ = self.nms(pred_bboxes, pred_scores)
-                return bbox_pred, bbox_num

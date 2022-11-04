@@ -3,7 +3,7 @@ from typing import Tuple
 from torch import Tensor
 
 
-class MultiClassNMS(object):
+class MultiClassNMS:
     def __init__(
         self,
         score_threshold=0.05,

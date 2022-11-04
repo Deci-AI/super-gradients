@@ -9,7 +9,7 @@ from paddle import load as paddle_load
 from ppdet.modeling.backbones import CSPResNet as PPCSPResNet
 from ppdet.modeling.heads import PPYOLOEHead as Paddle_PPYOLOEHead
 from pytorch_toolbelt.utils import count_parameters, describe_outputs
-from super_gradients.training.losses.ppyolo_loss import PPYoloLoss
+from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNet
 from super_gradients.training.models.detection_models.pp_yolo_e.nms import MultiClassNMS
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN
@@ -113,9 +113,7 @@ class PPYoloTestCast(unittest.TestCase):
             ),
         ]:
             paddle_weights = paddle_load(pretrain)
-            neck_weights = collections.OrderedDict(
-                [(k.replace("neck.", ""), v) for (k, v) in paddle_weights.items() if k.startswith("neck")]
-            )
+            neck_weights = collections.OrderedDict([(k.replace("neck.", ""), v) for (k, v) in paddle_weights.items() if k.startswith("neck")])
 
             in_channels = (256, 512, 1024)
             in_channels = tuple([max(round(num_channels * config["width_mult"]), 1) for num_channels in in_channels])
@@ -197,7 +195,7 @@ class PPYoloTestCast(unittest.TestCase):
             nms=MultiClassNMS(nms_top_k=1000, keep_top_k=300, score_threshold=0.01, nms_threshold=0.7),
         )
         pt_head.train().cuda()
-        pt_loss = PPYoloLoss(num_classes=pt_head.num_classes, use_static_assigner=True).cuda()
+        pt_loss = PPYoloELoss(num_classes=pt_head.num_classes, use_static_assigner=True).cuda()
 
         pt_inputs = [torch.from_numpy(fm1).cuda(), torch.from_numpy(fm2).cuda(), torch.from_numpy(fm3).cuda()]
         pp_inputs = [paddle.to_tensor(fm1), paddle.to_tensor(fm2), paddle.to_tensor(fm3)]
@@ -278,18 +276,10 @@ class PPYoloTestCast(unittest.TestCase):
         print(describe_outputs(pt_outputs))
 
         np.testing.assert_allclose(pt_outputs["loss"].detach().cpu().numpy(), pp_outputs["loss"].numpy(), atol=1e-4)
-        np.testing.assert_allclose(
-            pt_outputs["loss_l1"].detach().cpu().numpy(), pp_outputs["loss_l1"].numpy(), atol=1e-4
-        )
-        np.testing.assert_allclose(
-            pt_outputs["loss_cls"].detach().cpu().numpy(), pp_outputs["loss_cls"].numpy(), atol=1e-4
-        )
-        np.testing.assert_allclose(
-            pt_outputs["loss_iou"].detach().cpu().numpy(), pp_outputs["loss_iou"].numpy(), atol=1e-4
-        )
-        np.testing.assert_allclose(
-            pt_outputs["loss_dfl"].detach().cpu().numpy(), pp_outputs["loss_dfl"].numpy(), atol=1e-4
-        )
+        np.testing.assert_allclose(pt_outputs["loss_l1"].detach().cpu().numpy(), pp_outputs["loss_l1"].numpy(), atol=1e-4)
+        np.testing.assert_allclose(pt_outputs["loss_cls"].detach().cpu().numpy(), pp_outputs["loss_cls"].numpy(), atol=1e-4)
+        np.testing.assert_allclose(pt_outputs["loss_iou"].detach().cpu().numpy(), pp_outputs["loss_iou"].numpy(), atol=1e-4)
+        np.testing.assert_allclose(pt_outputs["loss_dfl"].detach().cpu().numpy(), pp_outputs["loss_dfl"].numpy(), atol=1e-4)
 
         # With ATSS assigner
         print("Testing whether PP-Yolo-E head produced same output for ATSS assigner")
@@ -303,18 +293,10 @@ class PPYoloTestCast(unittest.TestCase):
         print(describe_outputs(pt_outputs))
 
         np.testing.assert_allclose(pt_outputs["loss"].detach().cpu().numpy(), pp_outputs["loss"].numpy(), atol=1e-4)
-        np.testing.assert_allclose(
-            pt_outputs["loss_l1"].detach().cpu().numpy(), pp_outputs["loss_l1"].numpy(), atol=1e-4
-        )
-        np.testing.assert_allclose(
-            pt_outputs["loss_cls"].detach().cpu().numpy(), pp_outputs["loss_cls"].numpy(), atol=1e-4
-        )
-        np.testing.assert_allclose(
-            pt_outputs["loss_iou"].detach().cpu().numpy(), pp_outputs["loss_iou"].numpy(), atol=1e-4
-        )
-        np.testing.assert_allclose(
-            pt_outputs["loss_dfl"].detach().cpu().numpy(), pp_outputs["loss_dfl"].numpy(), atol=1e-4
-        )
+        np.testing.assert_allclose(pt_outputs["loss_l1"].detach().cpu().numpy(), pp_outputs["loss_l1"].numpy(), atol=1e-4)
+        np.testing.assert_allclose(pt_outputs["loss_cls"].detach().cpu().numpy(), pp_outputs["loss_cls"].numpy(), atol=1e-4)
+        np.testing.assert_allclose(pt_outputs["loss_iou"].detach().cpu().numpy(), pp_outputs["loss_iou"].numpy(), atol=1e-4)
+        np.testing.assert_allclose(pt_outputs["loss_dfl"].detach().cpu().numpy(), pp_outputs["loss_dfl"].numpy(), atol=1e-4)
 
         # In eval mode
         print("Testing whether PP-Yolo-E head produced same output in eval mode")
@@ -334,18 +316,10 @@ class PPYoloTestCast(unittest.TestCase):
                 pp_outputs_eval = pp_head(pp_inputs, pp_targets)
 
                 print(describe_outputs(pt_outputs_eval))
-                np.testing.assert_allclose(
-                    pt_outputs_eval[0].detach().cpu().numpy(), pp_outputs_eval[0].numpy(), atol=1e-4
-                )
-                np.testing.assert_allclose(
-                    pt_outputs_eval[1].detach().cpu().numpy(), pp_outputs_eval[1].numpy(), atol=1e-4
-                )
-                np.testing.assert_allclose(
-                    pt_outputs_eval[2].detach().cpu().numpy(), pp_outputs_eval[2].numpy(), atol=1e-4
-                )
-                np.testing.assert_allclose(
-                    pt_outputs_eval[3].detach().cpu().numpy(), pp_outputs_eval[3].numpy(), atol=1e-4
-                )
+                np.testing.assert_allclose(pt_outputs_eval[0].detach().cpu().numpy(), pp_outputs_eval[0].numpy(), atol=1e-4)
+                np.testing.assert_allclose(pt_outputs_eval[1].detach().cpu().numpy(), pp_outputs_eval[1].numpy(), atol=1e-4)
+                np.testing.assert_allclose(pt_outputs_eval[2].detach().cpu().numpy(), pp_outputs_eval[2].numpy(), atol=1e-4)
+                np.testing.assert_allclose(pt_outputs_eval[3].detach().cpu().numpy(), pp_outputs_eval[3].numpy(), atol=1e-4)
 
 
 if __name__ == "__main__":

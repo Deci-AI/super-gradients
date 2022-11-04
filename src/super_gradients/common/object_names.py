@@ -7,6 +7,7 @@ class Losses:
     SHELFNET_OHEM_LOSS = "shelfnet_ohem_loss"
     SHELFNET_SE_LOSS = "shelfnet_se_loss"
     YOLOX_LOSS = "yolox_loss"
+    PPYOLOE_LOSS = "ppyoloe_loss"
     YOLOX_FAST_LOSS = "yolox_fast_loss"
     SSD_LOSS = "ssd_loss"
     STDC_LOSS = "stdc_loss"
@@ -116,6 +117,7 @@ class Callbacks:
     EARLY_STOP = "EarlyStop"
     DETECTION_MULTISCALE_PREPREDICTION = "DetectionMultiscalePrePredictionCallback"
     YOLOX_TRAINING_STAGE_SWITCH = "YoloXTrainingStageSwitchCallback"
+    PPYOLOE_TRAINING_STAGE_SWITCH = "PPYoloETrainingStageSwitchCallback"
 
 
 class LRSchedulers:
@@ -251,7 +253,4 @@ class Models:
     PP_LITE_B_SEG50 = "pp_lite_b_seg50"
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
     UNET_CUSTOM = "unet_custom"
-    PP_YOLOE_S = "pp_yoloe_s"
-    PP_YOLOE_M = "pp_yoloe_m"
-    PP_YOLOE_L = "pp_yoloe_l"
-    PP_YOLOE_X = "pp_yoloe_x"
+    PP_YOLOE = "ppyoloe"
