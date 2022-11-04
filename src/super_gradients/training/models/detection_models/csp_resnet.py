@@ -66,17 +66,20 @@ class CSPResStage(nn.Module):
         super().__init__()
 
         mid_channels = (in_channels + out_channels) // 2
+        half_mid_channels = mid_channels // 2
+        mid_channels = 2 * half_mid_channels
+
         if stride != 1:
             self.conv_down = ConvBNAct(in_channels, mid_channels, 3, stride=stride, padding=1, activation_type=activation_type, bias=False)
         else:
             self.conv_down = None
-        self.conv1 = ConvBNAct(mid_channels, mid_channels // 2, kernel_size=1, stride=1, padding=0, activation_type=activation_type, bias=False)
-        self.conv2 = ConvBNAct(mid_channels, mid_channels // 2, kernel_size=1, stride=1, padding=0, activation_type=activation_type, bias=False)
+        self.conv1 = ConvBNAct(mid_channels, half_mid_channels, kernel_size=1, stride=1, padding=0, activation_type=activation_type, bias=False)
+        self.conv2 = ConvBNAct(mid_channels, half_mid_channels, kernel_size=1, stride=1, padding=0, activation_type=activation_type, bias=False)
         self.blocks = nn.Sequential(
             *[
                 CSPResNetBasicBlock(
-                    in_channels=mid_channels // 2,
-                    out_channels=mid_channels // 2,
+                    in_channels=half_mid_channels,
+                    out_channels=half_mid_channels,
                     activation_type=activation_type,
                     use_alpha=use_alpha,
                 )
