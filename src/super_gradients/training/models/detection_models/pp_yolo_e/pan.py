@@ -2,6 +2,8 @@ import collections
 from typing import Type, Tuple, List
 
 import torch
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories import ActivationsTypeFactory
 from torch import nn, Tensor
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBasicBlock
 from super_gradients.modules import ConvBNAct
@@ -64,22 +66,22 @@ class CSPStage(nn.Module):
 
 
 class CustomCSPPAN(nn.Module):
+    @resolve_param("activation", ActivationsTypeFactory())
     def __init__(
         self,
-        in_channels: Tuple[int, ...] = (256, 512, 1024),
-        out_channels: Tuple[int, ...] = (1024, 512, 256),
-        activation_type: Type[nn.Module] = nn.SiLU,
-        stage_num=1,
-        block_num=3,
-        block_size=3,
-        keep_prob=0.9,
-        spp: bool = False,
-        width_mult: float = 1.0,
-        depth_mult: float = 1.0,
+        in_channels: Tuple[int, ...],
+        out_channels: Tuple[int, ...],
+        activation: Type[nn.Module],
+        stage_num: int,
+        block_num: int,
+        spp: bool,
+        width_mult: float,
+        depth_mult: float,
     ):
-
-        super(CustomCSPPAN, self).__init__()
+        super().__init__()
+        in_channels = [max(round(c * width_mult), 1) for c in in_channels]
         out_channels = [max(round(c * width_mult), 1) for c in out_channels]
+
         block_num = max(round(block_num * depth_mult), 1)
         self.num_blocks = len(in_channels)
         self._out_channels = out_channels
@@ -100,7 +102,7 @@ class CustomCSPPAN(nn.Module):
                             ch_in if j == 0 else ch_out,
                             ch_out,
                             block_num,
-                            activation_type=activation_type,
+                            activation_type=activation,
                             spp=(spp and i == 0),
                         ),
                     ),
@@ -116,7 +118,7 @@ class CustomCSPPAN(nn.Module):
                         kernel_size=1,
                         stride=1,
                         padding=0,
-                        activation_type=activation_type,
+                        activation_type=activation,
                     )
                 )
 
@@ -135,7 +137,7 @@ class CustomCSPPAN(nn.Module):
                     kernel_size=3,
                     stride=2,
                     padding=1,
-                    activation_type=activation_type,
+                    activation_type=activation,
                 )
             )
 
@@ -150,7 +152,7 @@ class CustomCSPPAN(nn.Module):
                             ch_in if j == 0 else ch_out,
                             ch_out,
                             block_num,
-                            activation_type=activation_type,
+                            activation_type=activation,
                             spp=False,
                         ),
                     ),

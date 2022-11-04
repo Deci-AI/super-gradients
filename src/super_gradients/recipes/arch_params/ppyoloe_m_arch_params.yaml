@@ -2,5 +2,5 @@ defaults:
   - ppyoloe_arch_params
   - _self_
 
-depth_mult: 0.33
-width_mult: 0.50
+depth_mult: 0.67
+width_mult: 0.75

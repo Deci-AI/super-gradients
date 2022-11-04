@@ -1,8 +1,9 @@
-import dataclasses
 from typing import Tuple, Type
 
 import numpy as np
 import torch
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories import ActivationsTypeFactory
 from torch import nn, Tensor
 
 from super_gradients.modules import ConvBNAct
@@ -78,32 +79,43 @@ class ESEAttn(nn.Module):
         return self.conv(feat * weight)
 
 
-@dataclasses.dataclass
-class PPYOLOEOutput:
-    cls_score_list: Tensor
-    reg_dist_list: Tensor
-    anchor_points: Tensor
-    stride_tensor: Tensor
-
-
 class PPYOLOEHead(nn.Module):
+    @resolve_param("activation", ActivationsTypeFactory())
     def __init__(
         self,
         num_classes: int,
         nms: MultiClassNMS,
         in_channels: Tuple[int, int, int],
-        activation_type: Type[nn.Module] = nn.SiLU,
+        activation: Type[nn.Module] = nn.SiLU,
         fpn_strides: Tuple[int, int, int] = (32, 16, 8),
         grid_cell_scale=5.0,
         grid_cell_offset=0.5,
         reg_max=16,
-        eval_size=None,
+        eval_size: Tuple[int, int] = None,
         exclude_nms=False,
         exclude_post_process=False,
+        width_mult: float = 1.0,
     ):
+        """
+
+        :param num_classes:
+        :param nms:
+        :param in_channels: Number of channels for each feature map (See width_mult)
+        :param activation: Type of the activation used in module
+        :param fpn_strides: Output strides of the feature maps from the neck
+        :param grid_cell_scale:
+        :param grid_cell_offset:
+        :param reg_max:
+        :param eval_size: (rows, cols) Size of the image for evaluation. Setting this value can be beneficial for inference speed,
+               since anchors will not be regenerated for each forward call.
+        :param exclude_nms:
+        :param exclude_post_process:
+        :param width_mult: A scaling factor applied to in_channels in order.
+        """
         super(PPYOLOEHead, self).__init__()
-        assert len(in_channels) > 0, "len(in_channels) should > 0"
-        self.in_channels = in_channels
+        in_channels = [max(round(c * width_mult), 1) for c in in_channels]
+
+        self.in_channels = tuple(in_channels)
         self.num_classes = num_classes
         self.fpn_strides = fpn_strides
         self.grid_cell_scale = grid_cell_scale
@@ -120,8 +132,8 @@ class PPYOLOEHead(nn.Module):
         self.stem_reg = nn.ModuleList()
 
         for in_c in self.in_channels:
-            self.stem_cls.append(ESEAttn(in_c, activation_type=activation_type))
-            self.stem_reg.append(ESEAttn(in_c, activation_type=activation_type))
+            self.stem_cls.append(ESEAttn(in_c, activation_type=activation))
+            self.stem_reg.append(ESEAttn(in_c, activation_type=activation))
         # pred head
         self.pred_cls = nn.ModuleList()
         self.pred_reg = nn.ModuleList()
@@ -216,9 +228,7 @@ class PPYOLOEHead(nn.Module):
         stride_tensor = torch.concat(stride_tensor)
         return anchor_points, stride_tensor
 
-    def forward(self, feats):
-        assert len(feats) == len(self.fpn_strides), "The size of feats is not equal to size of fpn_strides"
-
+    def forward(self, feats: Tuple[Tensor]):
         if self.training:
             return self.forward_train(feats)
         else:

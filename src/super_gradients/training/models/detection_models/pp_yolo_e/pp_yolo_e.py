@@ -1,28 +1,22 @@
 from typing import Mapping, Any, Union
 
-from super_gradients.training.models.detection_models.csp_resnet import CSPResNet, RepVggBlock
+from super_gradients.modules import RepVGGBlock
+from super_gradients.training.models.detection_models.csp_resnet import CSPResNet
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
-from torch import nn
+from torch import nn, Tensor
 
 
-class PPYolo(nn.Module):
-    def __init__(self, depth_mult, width_mult):
+class PPYoloE(nn.Module):
+    def __init__(self, **arch_params):
         super().__init__()
-        self.backbone = CSPResNet(
-            self,
-            use_large_stem=True,
-            depth_mult=depth_mult,
-            width_mult=width_mult,
-        )
-        self.neck = CustomCSPPAN(
-            in_channels=self.backbone._out_channels,
-        )
-        self.head = PPYOLOEHead(in_channels=self.neck.out_channels)
+        self.backbone = CSPResNet(**arch_params["backbone"])
+        self.neck = CustomCSPPAN(**arch_params["neck"])
+        self.head = PPYOLOEHead(**arch_params["head"])
 
-    def forward(self, x):
+    def forward(self, x: Tensor):
         features = self.backbone(x)
-        features = self.neck(x)
+        features = self.neck(features)
         return self.head(features)
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
@@ -33,7 +27,7 @@ class PPYolo(nn.Module):
         :param input_size: [H,W]
         """
         for module in self.modules():
-            if isinstance(module, RepVggBlock):
+            if isinstance(module, RepVGGBlock):
                 module.prep_model_for_conversion(input_size)
 
     @classmethod
