@@ -23,7 +23,10 @@ class CSPResNetBasicBlock(nn.Module):
         """
         super().__init__()
         if use_residual_connection and in_channels != out_channels:
-            raise RuntimeError("Number of input channels must be equal to the number of output channels when shortcut=True")
+            raise RuntimeError(
+                f"Number of input channels (got {in_channels}) must be equal to the "
+                f"number of output channels (got {out_channels}) when use_residual_connection=True"
+            )
         self.conv1 = ConvBNAct(in_channels, out_channels, kernel_size=3, stride=1, padding=1, activation_type=activation_type, bias=False)
         self.conv2 = RepVGGBlock(
             out_channels, out_channels, activation_type=activation_type, se_type=nn.Identity, use_residual_connection=False, use_alpha=use_alpha
