@@ -27,4 +27,3 @@ protobuf~=3.19.0
 treelib==1.6.1
 termcolor==1.1.0
 packaging>=20.4
-wheel>=0.38.0

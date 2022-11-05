@@ -22,8 +22,7 @@ Recipes support out of the box every model, metric or loss that is implemented i
 2. Import the associated register decorator:
    * metric: `from super_gradients.training.utils.registry import register_metric`
    * model: `from super_gradients.training.utils.registry import register_model`
-   * loss: `from super_gradients.training.utils.registry import register_loss`
-   * dataloader: `from super_gradients.training.utils.registry import register_dataloader`
+   * loss: coming soon
 3. Apply it on your object.
    * The decorator takes an optional `name: str` argument. If not specified, the decorated class name will be registered.
 
@@ -180,4 +179,3 @@ loss: custom_rsquared_loss
 ```bash
 python main.py --config-name=my_recipe.yaml
 ```
-

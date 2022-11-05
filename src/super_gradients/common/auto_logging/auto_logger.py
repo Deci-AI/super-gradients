@@ -1,108 +1,115 @@
-import json
-import os
 import logging
-import pkg_resources
+import os
+import sys
+from typing import Union
 
 
 class AutoLoggerConfig:
     """
-    A Class for the Automated Logging Config that is created from the JSON config file (auto_logging_conf)
+    A Class for the Automated Logging Config
     """
 
-    @staticmethod
-    def generate_config_for_module_name(
-        module_name,
-        training_log_path=None,
-        log_level=logging.INFO,
-        max_bytes=10485760,
-        logs_dir_path=None,
-        handlers_list=None,
-    ) -> dict:
+    FILE_LOGGING_LEVEL = os.environ.get("LOG_LEVEL", "DEBUG").upper()
+    CONSOLE_LOGGING_LEVEL = os.environ.get("CONSOLE_LOG_LEVEL", "INFO").upper()
+
+    filename: Union[str, None]
+    console_sink: Union[str, None]
+
+    def __init__(self):
+        self.filename = None
+        self.console_sink = None
+
+    def _setup_default_logging(self, log_level: str = None) -> None:
         """
-        generate_config_for_module_name - Returns a Config Dict For Logging
-            :param module_name:     The Python Module name to create auto_logging for
-            :param log_level:       Minimal log level to set for the new auto_logging
-            :param max_bytes:       Max size for the log file before rotation starts
-            :param handlers_list:    A list specifying the handlers (Console, etc..) - Better Leave Empty or None
-            :param training_log_path: Path to training log file which all modules of super_gradients will write to. Ignored
-             when set to None.
-            :param logs_dir_path: Path to sg_logs directory (default=None), where module logs will be saved. When set
-                to None- module logs will be saved in ~/sg_logs (created if path does not exist). Main use case is for
-                testing.
-
-
-            :return: python dict() with the new auto_logging for the module
+        Setup default logging configuration. Usually happens when app starts, and we don't have
+        experiment dir yet.
+        The default log directory will be `~/sg_logs`
+        :param log_level: The default log level to use. If None, uses LOG_LEVEL and CONSOLE_LOG_LEVEL environment vars.
+        :return: None
         """
-
-        # LOADING THE ORIGINAL ROOT CONFIG FILE
-        conf_file_name = "auto_logging_conf.json"
-        conf_file_path = os.path.join(
-            pkg_resources.resource_filename("super_gradients", "/common/auto_logging/"), conf_file_name
+        self._setup_logging(
+            filename=os.path.expanduser(f"~/sg_logs/last_{os.getppid()}.log"),
+            copy_already_logged_messages=False,
+            filemode="w",
+            log_level=log_level,
         )
 
-        with open(conf_file_path, "r") as logging_configuration_file:
-            config_dict = json.load(logging_configuration_file)
+    def _setup_logging(self, filename: str, copy_already_logged_messages: bool, filemode: str = "a", log_level: str = None) -> None:
+        """
+        Sets the logging configuration to store messages to specific file
+        :param filename: Output log file
+        :param filemode: Open mode for file
+        :param copy_already_logged_messages: Controls whether messages from previous log configuration should be copied
+               to new place. This is helpful to transfer diagnostic messages (from the app start) to experiment dir.
+        :param log_level: The default log level to use. If None, uses LOG_LEVEL and CONSOLE_LOG_LEVEL environment vars.
+        :return:
+        """
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-        # CREATING THE PATH TO THE "HOME" FOLDER WITH THE LOG FILE NAME
-        if not logs_dir_path:
-            log_file_name = module_name + ".log"
-            user_dir = os.path.expanduser(r"~")
-            logs_dir_path = os.path.join(user_dir, "sg_logs")
+        if copy_already_logged_messages and self.filename is not None and os.path.exists(self.filename):
+            with open(self.filename, "r", encoding="utf-8") as src:
+                with open(filename, "w") as dst:
+                    dst.write(src.read())
 
-        if not os.path.exists(logs_dir_path):
-            try:
-                os.mkdir(logs_dir_path)
-            except Exception as ex:
-                print(
-                    "[WARNING] - sg_logs folder was not found and couldn't be created from the code - "
-                    "All of the Log output will be sent to Console!" + str(ex)
-                )
+        file_logging_level = log_level or self.FILE_LOGGING_LEVEL
+        console_logging_level = log_level or self.CONSOLE_LOGGING_LEVEL
 
-            # HANDLERS LIST IS EMPTY AS CONSOLE IS ONLY ROOT HANDLER BECAUSE MODULE LOGGERS PROPAGATE THEIR LOGS UP.
-            handlers_list = []
-            logger = {"level": log_level, "handlers": handlers_list, "propagate": True}
-            config_dict["loggers"][module_name] = logger
+        cur_version = sys.version_info
+        python_38 = (3, 8)
+        python_39 = (3, 9)
+        manager = logging.getLogger("").manager
 
-            return config_dict
+        extra_kwargs = {}
+        if cur_version >= python_38:
+            extra_kwargs = dict(
+                force=True,
+            )
+        else:
+            # If the logging does not support force=True, we should manually delete handlers
+            del manager.root.handlers[:]
 
-        log_file_path = os.path.join(logs_dir_path, log_file_name)
+        if cur_version >= python_39:
+            extra_kwargs["encoding"] = "utf-8"
 
-        # THE ENTRIES TO ADD TO THE ORIGINAL CONFIGURATION
-        handler_name = module_name + "_file_handler"
-        file_handler = {
-            "class": "logging.handlers.RotatingFileHandler",
-            "level": log_level,
-            "formatter": "fileFormatter",
-            "filename": log_file_path,
-            "maxBytes": max_bytes,
-            "backupCount": 20,
-            "encoding": "utf8",
-        }
+        logging.basicConfig(
+            filename=filename,
+            filemode=filemode,
+            format="%(asctime)s %(levelname)s - %(name)s - %(message)s",
+            datefmt="[%Y-%m-%d %H:%M:%S]",
+            level=file_logging_level,
+            **extra_kwargs,
+        )
 
-        # CREATING ONLY A FILE HANDLER, CONSOLE IS ONLY ROOT HANDLER AS MODULE LOGGERS PROPAGATE THEIR LOGS UP.
-        if handlers_list is None or handlers_list.empty():
-            handlers_list = [handler_name]
+        # Add console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(console_logging_level)
+        console_handler.setFormatter(logging.Formatter("%(module)s - %(levelname)s - %(message)s"))
+        manager.root.handlers.append(console_handler)
 
-        logger = {"level": log_level, "handlers": handlers_list, "propagate": True}
+        self.filename = filename
 
-        # ADDING THE NEW LOGGER ENTRIES TO THE CONFIG DICT
-        config_dict["handlers"][handler_name] = file_handler
-        config_dict["loggers"][module_name] = logger
-        config_dict["root"]["handlers"].append(handler_name)
+    @classmethod
+    def getInstance(cls):
+        global _sg_logger
+        if _sg_logger is None:
+            _sg_logger = cls()
+            _sg_logger._setup_default_logging()
 
-        if training_log_path:
-            training_file_handler = {
-                "class": "logging.handlers.RotatingFileHandler",
-                "level": log_level,
-                "formatter": "fileFormatter",
-                "filename": training_log_path,
-                "maxBytes": max_bytes,
-                "backupCount": 20,
-                "encoding": "utf8",
-            }
+        return _sg_logger
 
-            # ALL OF DECI_TRAINER MODULES LOGGERS PROPAGATE UP TO THE ROOT SO THE ADD TRAIN FILE HANDLER FOR THE ROOT.
-            config_dict["handlers"]["training"] = training_file_handler
-            config_dict["root"]["handlers"].append("training")
+    @classmethod
+    def get_log_file_path(cls) -> str:
+        """
+        Return the current log file used to store log messages
+        :return: Full path to log file
+        """
+        self = cls.getInstance()
+        return self.filename
 
-        return config_dict
+    @classmethod
+    def setup_logging(cls, filename: str, copy_already_logged_messages: bool, filemode: str = "a", log_level: str = None) -> None:
+        self = cls.getInstance()
+        self._setup_logging(filename, copy_already_logged_messages, filemode, log_level)
+
+
+_sg_logger = None
