@@ -103,7 +103,7 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def _init_log_file(self):
-        time_string = time.strftime("%m_%d_%H_%M_%S", time.localtime())
+        time_string = time.strftime("%b%d_%H_%M_%S", time.localtime())
         # There are two log files, since the regular log_file_path used for `manual` logging of configs/other info
         self.log_file_path = f"{self._local_dir}/log_{time_string}.txt"
         self.log_full_file_path = f"{self._local_dir}/sg_logs_{time_string}.txt"
