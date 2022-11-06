@@ -47,6 +47,7 @@ save_tensorboard_to_s3: False # whether to save tb to s3
 
 precise_bn: False # Whether to use precise_bn calculation during the training.
 precise_bn_batch_size: # the effective batch size we want to calculate the batchnorm on.
+sync_bn: False # Whether to convert bn layers to synched bn (for accurate stats in DDP).
 
 
 silent_mode: False  # Silents the Print outs

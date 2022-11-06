@@ -1,7 +1,20 @@
-from super_gradients.training.object_names import Callbacks, LRSchedulers, LRWarmups
-from super_gradients.training.utils.callbacks.callbacks import DeciLabUploadCallback, LRCallbackBase, LRSchedulerCallback, MetricsUpdateCallback, \
-    ModelConversionCheckCallback, YoloXTrainingStageSwitchCallback, StepLRCallback, PolyLRCallback,\
-    CosineLRCallback, ExponentialLRCallback, FunctionLRCallback, WarmupLRCallback, BinarySegmentationVisualizationCallback, DetectionVisualizationCallback
+from super_gradients.common.object_names import Callbacks, LRSchedulers, LRWarmups
+from super_gradients.training.utils.callbacks.callbacks import (
+    DeciLabUploadCallback,
+    LRCallbackBase,
+    LRSchedulerCallback,
+    MetricsUpdateCallback,
+    ModelConversionCheckCallback,
+    YoloXTrainingStageSwitchCallback,
+    StepLRCallback,
+    PolyLRCallback,
+    CosineLRCallback,
+    ExponentialLRCallback,
+    FunctionLRCallback,
+    WarmupLRCallback,
+    BinarySegmentationVisualizationCallback,
+    DetectionVisualizationCallback,
+)
 
 from super_gradients.training.utils.early_stopping import EarlyStop
 from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
@@ -17,7 +30,7 @@ CALLBACKS = {
     Callbacks.DETECTION_MULTISCALE_PREPREDICTION: DetectionMultiscalePrePredictionCallback,
     Callbacks.YOLOX_TRAINING_STAGE_SWITCH: YoloXTrainingStageSwitchCallback,
     Callbacks.DETECTION_VISUALIZATION: DetectionVisualizationCallback,
-    Callbacks.BINARY_SEGMENTATION_VISUALIZATION: BinarySegmentationVisualizationCallback
+    Callbacks.BINARY_SEGMENTATION_VISUALIZATION: BinarySegmentationVisualizationCallback,
 }
 
 

@@ -177,6 +177,8 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = No
     :param gpu_mode:    DDP, DP or Off
     :param num_gpus:    Number of GPU's to use.
     """
+    if gpu_mode == MultiGPUMode.AUTO and torch.cuda.device_count() > 1:
+        gpu_mode = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
     if require_gpu_setup(gpu_mode):
         num_gpus = num_gpus or torch.cuda.device_count()
         if num_gpus > torch.cuda.device_count():
@@ -205,7 +207,7 @@ def restart_script_with_ddp(num_gpus: int = None):
     logger.info("Launching DDP with:\n"
                 f"   - ddp_port = {ddp_port}\n"
                 f"   - num_gpus = {num_gpus}/{torch.cuda.device_count()} available\n"
-                "-------------------------------------")
+                "-------------------------------------\n")
 
     config = LaunchConfig(
         nproc_per_node=num_gpus,

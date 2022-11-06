@@ -1,6 +1,5 @@
 from pathlib import Path
-from typing import Optional, Tuple
-from typing import Type
+from typing import Tuple, Type, Optional
 
 import hydra
 import torch
@@ -54,12 +53,12 @@ def get_architecture(model_name: str, arch_params: HpmStruct, pretrained_weights
         if _arch_params is None:
             raise ValueError("Unsupported model name " + str(model_name) + ", see docs or all_architectures.py for supported nets.")
         _arch_params = hydra.utils.instantiate(_arch_params)
+        pretrained_weights = deci_client.get_model_weights(model_name)
         model_name = _arch_params['model_name']
         del _arch_params['model_name']
         _arch_params = HpmStruct(**_arch_params)
         _arch_params.override(**arch_params.to_dict())
         arch_params, is_remote = _arch_params, True
-        pretrained_weights = deci_client.get_model_weights(model_name)
     return ARCHITECTURES[model_name], arch_params, pretrained_weights, is_remote
 
 
@@ -99,7 +98,7 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int,
         if pretrained_weights is None and num_classes is None:
             raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")
 
-        if pretrained_weights:
+        if pretrained_weights and not is_remote:
             num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
             arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
 
@@ -114,9 +113,9 @@ def instantiate_model(model_name: str, arch_params: dict, num_classes: int,
                 load_pretrained_weights_local(net, model_name, pretrained_weights)
             else:
                 load_pretrained_weights(net, model_name, pretrained_weights)
-            if num_classes_new_head != arch_params.num_classes:
-                net.replace_head(new_num_classes=num_classes_new_head)
-                arch_params.num_classes = num_classes_new_head
+                if num_classes_new_head != arch_params.num_classes:
+                    net.replace_head(new_num_classes=num_classes_new_head)
+                    arch_params.num_classes = num_classes_new_head
     return net
 
 

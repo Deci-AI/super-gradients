@@ -18,6 +18,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBatchItemsFormat
+from super_gradients.common.data_types.enum import MultiGPUMode
 
 
 # TODO: These utils should move to sg_trainer package as internal (private) helper functions
@@ -236,7 +237,7 @@ def init_summary_writer(tb_dir, checkpoint_loaded, user_prompt=False):
         for filename in os.listdir(tb_dir):
             if 'events' in filename:
                 if not user_prompt:
-                    print('"{}" will not be deleted'.format(filename))
+                    logger.debug('"{}" will not be deleted'.format(filename))
                     continue
 
                 while True:
@@ -358,3 +359,18 @@ def get_callable_param_names(obj: callable) -> Tuple[str]:
     :return: Param names of that object
     """
     return tuple(inspect.signature(obj).parameters)
+
+
+def log_main_training_params(gpu_mode: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, len_train_set: int):
+    """Log training parameters"""
+    msg = "TRAINING PARAMETERS:\n" \
+          f"    - Mode:                         {gpu_mode.name if gpu_mode else 'Single GPU'}\n"\
+          f"    - Number of GPUs:               {num_gpus:<10} ({torch.cuda.device_count()} available on the machine)\n" \
+          f"    - Dataset size:                 {len_train_set:<10} (len(train_set))\n" \
+          f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n" \
+          f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n" \
+          f"    - Total batch size:             {num_gpus * batch_size:<10} (num_gpus * batch_size)\n" \
+          f"    - Effective Batch size:         {num_gpus * batch_size * batch_accumulate:<10} (num_gpus * batch_size * batch_accumulate)\n" \
+          f"    - Iterations per epoch:         {int(len_train_set / (num_gpus * batch_size)):<10} (len(train_set) / total_batch_size)\n" \
+          f"    - Gradient updates per epoch:   {int(len_train_set / (num_gpus * batch_size * batch_accumulate)):<10} (len(train_set) / effective_batch_size)\n"
+    logger.info(msg)
