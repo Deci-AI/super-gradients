@@ -78,9 +78,6 @@ def setup_pro_user_monitoring():
         logger.info("You disabled the upload of your logs to deci platform." "You can reactivate it by setting the env variable UPLOAD_LOGS=TRUE")
 
 
-if os.getenv("DECI_PLATFORM_TOKEN"):
-    setup_pro_user_monitoring()
-
-print("new line")
-print("anot" "errrr")
-raise ValueError("THis is an error")
+def setup_user_env():
+    if os.getenv("DECI_PLATFORM_TOKEN"):
+        setup_pro_user_monitoring()

@@ -1712,7 +1712,7 @@ class Trainer:
             sg_logger=self.sg_logger,
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
-
+        raise ValueError("STOP THE RUN")
         if not silent_mode:
             # PRINT TITLES
             pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
