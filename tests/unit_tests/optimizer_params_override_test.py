@@ -28,8 +28,6 @@ class TrainOptimizerParamsOverride(unittest.TestCase):
             "valid_metrics_list": [Accuracy(), Top5()],
             "metric_to_watch": "Accuracy",
             "greater_metric_to_watch_is_better": True,
-            "precise_bn": True,
-            "precise_bn_batch_size": 100,
         }
         trainer.train(
             model=net,
@@ -58,8 +56,6 @@ class TrainOptimizerParamsOverride(unittest.TestCase):
             "valid_metrics_list": [Accuracy(), Top5()],
             "metric_to_watch": "Accuracy",
             "greater_metric_to_watch_is_better": True,
-            "precise_bn": True,
-            "precise_bn_batch_size": 100,
         }
         trainer.train(
             model=net,
