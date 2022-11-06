@@ -587,7 +587,7 @@ class Trainer:
             self.arch_params.override(**arch_params.to_dict())
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, model: nn.Module = None, training_params: dict = None, train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
+    def train(self, model: nn.Module, training_params: dict = None, train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
         """
 
         train - Trains the Model
@@ -596,8 +596,7 @@ class Trainer:
           the data loaders, as dictionary. The phase context will hold the additional items, under an attribute with
           the same name as the key in this dictionary. Then such items can be accessed through phase callbacks.
 
-            :param model: torch.nn.Module, model to train. When none is given will attempt to use self.net
-             (SEE BUILD_MODEL DEPRECATION) (default=None).
+            :param model: torch.nn.Module, model to train.
 
             :param train_loader: Dataloader for train set.
             :param valid_loader: Dataloader for validation.
@@ -935,9 +934,8 @@ class Trainer:
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
-        if self.net is None:
-            self.net = model
-            self._prep_net_for_train()
+        self.net = model
+        self._prep_net_for_train()
 
         # SET RANDOM SEED
         random_seed(is_ddp=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=self.device, seed=self.training_params.seed)
