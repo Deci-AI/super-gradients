@@ -36,7 +36,10 @@ Recipes support out of the box every model, metric or loss that is implemented i
 SuperGradients works with torchmetrics.Metric .
 To write your own metric you need to implement update() and compute() methods.
 
-In order to work on DDP you also need to define states, which are basically attributes that you want to share between your nodes, using add_state(). An example of state would be the number of correct predictions. You can see an example below. 
+In order to work on DDP you also need to define states using add_state().
+States are attributes to be reduced, and broadcasted among the different ranks in compute() when training in distributed setting.
+An example of state would be the number of correct predictions, which will be summed across the different processes, broadcasted to all of
+them before computing the metric value. You can see an example below. 
 
 *Feel free to check [torchmetrics documentation](https://torchmetrics.readthedocs.io/en/stable/references/metric.html) for more information on how to implement your own metric.* 
 
@@ -203,4 +206,3 @@ loss: custom_rsquared_loss
 ```bash
 python main.py --config-name=my_recipe.yaml
 ```
-
