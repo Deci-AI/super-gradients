@@ -20,10 +20,24 @@ except (ModuleNotFoundError, ImportError, NameError):
 
 
 class ClearMLSGLogger(BaseSGLogger):
-
-    def __init__(self, project_name: str, experiment_name: str, storage_location: str, resumed: bool, training_params: dict, checkpoints_dir_path: str,
-                 tb_files_user_prompt: bool = False, launch_tensorboard: bool = False, tensorboard_port: int = None, save_checkpoints_remote: bool = True,
-                 save_tensorboard_remote: bool = True, save_logs_remote: bool = True, entity: Optional[str] = None, api_server: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        project_name: str,
+        experiment_name: str,
+        storage_location: str,
+        resumed: bool,
+        training_params: dict,
+        checkpoints_dir_path: str,
+        tb_files_user_prompt: bool = False,
+        launch_tensorboard: bool = False,
+        tensorboard_port: int = None,
+        save_checkpoints_remote: bool = True,
+        save_tensorboard_remote: bool = True,
+        save_logs_remote: bool = True,
+        entity: Optional[str] = None,
+        api_server: Optional[str] = None,
+        **kwargs,
+    ):
         """
 
         :param experiment_name:         Used for logging and loading purposes
@@ -37,17 +51,23 @@ class ClearMLSGLogger(BaseSGLogger):
         :param save_tensorboard_remote: Saves tensorboard in s3.
         :param save_logs_remote:        Saves log files in s3.
         """
-        self.s3_location_available = storage_location.startswith('s3')
-        super().__init__(project_name, experiment_name, storage_location, resumed, training_params,
-                         checkpoints_dir_path, tb_files_user_prompt, launch_tensorboard, tensorboard_port,
-                         self.s3_location_available, self.s3_location_available, self.s3_location_available)
+        self.s3_location_available = storage_location.startswith("s3")
+        super().__init__(
+            project_name,
+            experiment_name,
+            storage_location,
+            resumed,
+            training_params,
+            checkpoints_dir_path,
+            tb_files_user_prompt,
+            launch_tensorboard,
+            tensorboard_port,
+            self.s3_location_available,
+            self.s3_location_available,
+            self.s3_location_available,
+        )
         self.setup(project_name, experiment_name)
 
-        # TODO: Check if something similar
-        # if api_server is not None:
-        #     if api_server != os.getenv('WANDB_BASE_URL'):
-        #         logger.warning(f'WANDB_BASE_URL environment parameter not set to {api_server}. Setting the parameter')
-        #         os.putenv('WANDB_BASE_URL', api_server)
         self.save_checkpoints = save_checkpoints_remote
         self.save_tensorboard = save_tensorboard_remote
         self.save_logs = save_logs_remote
@@ -60,9 +80,9 @@ class ClearMLSGLogger(BaseSGLogger):
         # Issue opened here: https://github.com/allegroai/clearml/issues/790
         default_fork, default_run = os.fork, BaseProcess.run
         self.task = Task.init(
-            project_name=project_name,      # project name of at least 3 characters
-            task_name=experiment_name,      # task name of at least 3 characters
-            continue_last_task=0,           # This prevents clear_ml to add an offset to the epoch
+            project_name=project_name,  # project name of at least 3 characters
+            task_name=experiment_name,  # task name of at least 3 characters
+            continue_last_task=0,  # This prevents clear_ml to add an offset to the epoch
             auto_connect_arg_parser=False,
             auto_connect_frameworks=False,
             auto_resource_monitoring=False,
@@ -74,7 +94,7 @@ class ClearMLSGLogger(BaseSGLogger):
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
         super(ClearMLSGLogger, self).add_config(tag=tag, config=config)
-        self.task.connect(config)  # TODO: Check if we run this when resuming
+        self.task.connect(config)
 
     def __add_scalar(self, tag: str, scalar_value: float, global_step: int):
         self.clearml_logger.report_scalar(title=tag, series=tag, value=scalar_value, iteration=global_step)
@@ -90,20 +110,43 @@ class ClearMLSGLogger(BaseSGLogger):
         for tag, scalar_value in tag_scalar_dict.items():
             self.__add_scalar(tag=tag, scalar_value=scalar_value, global_step=global_step)
 
-    def __add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], global_step: int):
+    def __add_image(
+        self,
+        tag: str,
+        image: Union[torch.Tensor, np.array, Image.Image],
+        global_step: int,
+    ):
         if isinstance(image, torch.Tensor):
             image = image.cpu().detach().numpy()
         if image.shape[0] < 5:
             image = image.transpose([1, 2, 0])
-        self.clearml_logger.report_image(title=tag, series=tag, image=image, iteration=global_step, max_image_history=-1)
+        self.clearml_logger.report_image(
+            title=tag,
+            series=tag,
+            image=image,
+            iteration=global_step,
+            max_image_history=-1,
+        )
 
     @multi_process_safe
-    def add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], data_format='CHW', global_step: int = 0):
+    def add_image(
+        self,
+        tag: str,
+        image: Union[torch.Tensor, np.array, Image.Image],
+        data_format="CHW",
+        global_step: int = 0,
+    ):
         super(ClearMLSGLogger, self).add_image(tag=tag, image=image, data_format=data_format, global_step=global_step)
         self.__add_image(tag, image, global_step)
 
     @multi_process_safe
-    def add_images(self, tag: str, images: Union[torch.Tensor, np.array], data_format='NCHW', global_step: int = 0):
+    def add_images(
+        self,
+        tag: str,
+        images: Union[torch.Tensor, np.array],
+        data_format="NCHW",
+        global_step: int = 0,
+    ):
         super(ClearMLSGLogger, self).add_images(tag=tag, images=images, data_format=data_format, global_step=global_step)
         for image in images:
             self.__add_image(tag, image, global_step)
@@ -114,7 +157,13 @@ class ClearMLSGLogger(BaseSGLogger):
         logger.warning("ClearMLSGLogger does not support uploading video to clearML from a tensor/array.")
 
     @multi_process_safe
-    def add_histogram(self, tag: str, values: Union[torch.Tensor, np.array], bins: str, global_step: int = 0):
+    def add_histogram(
+        self,
+        tag: str,
+        values: Union[torch.Tensor, np.array],
+        bins: str,
+        global_step: int = 0,
+    ):
         super().add_histogram(tag, values, bins, global_step)
         self.clearml_logger.report_histogram(title=tag, series=tag, iteration=global_step, values=values)
 
@@ -126,8 +175,10 @@ class ClearMLSGLogger(BaseSGLogger):
     @multi_process_safe
     def add_figure(self, tag: str, figure: plt.figure, global_step: int = 0):
         super().add_figure(tag, figure, global_step)
-        logger.warning("ClearMLSGLogger does not support uploading any type of figure to clearML."
-                       "Only histograms are supported, in which case please use add_histogram instead of add_figure.")
+        logger.warning(
+            "ClearMLSGLogger does not support uploading any type of figure to clearML."
+            "Only histograms are supported, in which case please use add_histogram instead of add_figure."
+        )
 
     @multi_process_safe
     def close(self):
@@ -144,18 +195,18 @@ class ClearMLSGLogger(BaseSGLogger):
         super().upload()
 
         if self.save_tensorboard:
-            name = self._get_tensorboard_file_name().split('/')[-1]
+            name = self._get_tensorboard_file_name().split("/")[-1]
             self.task.upload_artifact(name=name, artifact_object=self._get_tensorboard_file_name())
 
         if self.save_logs:
-            name = self.log_file_path.split('/')[-1]
+            name = self.log_file_path.split("/")[-1]
             self.task.upload_artifact(name=name, artifact_object=self.log_file_path)
 
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = 0):
-        name = f'ckpt_{global_step}.pth' if tag is None else tag
-        if not name.endswith('.pth'):
-            name += '.pth'
+        name = f"ckpt_{global_step}.pth" if tag is None else tag
+        if not name.endswith(".pth"):
+            name += ".pth"
 
         path = os.path.join(self._local_dir, name)
         torch.save(state_dict, path)
@@ -169,7 +220,7 @@ class ClearMLSGLogger(BaseSGLogger):
         try:
             tb_file_path = self.tensorboard_writer.file_writer.event_writer._file_name
         except RuntimeError:
-            logger.warning('tensorboard file could not be located for ')
+            logger.warning("tensorboard file could not be located for ")
             return None
 
         return tb_file_path
