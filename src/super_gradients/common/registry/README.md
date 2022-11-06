@@ -22,7 +22,8 @@ Recipes support out of the box every model, metric or loss that is implemented i
 2. Import the associated register decorator:
    * metric: `from super_gradients.training.utils.registry import register_metric`
    * model: `from super_gradients.training.utils.registry import register_model`
-   * loss: coming soon
+   * loss: `from super_gradients.training.utils.registry import register_loss`
+   * dataloader: `from super_gradients.training.utils.registry import register_dataloader`
 3. Apply it on your object.
    * The decorator takes an optional `name: str` argument. If not specified, the decorated class name will be registered.
 
