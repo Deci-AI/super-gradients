@@ -12,8 +12,6 @@ from super_gradients.training.utils.callbacks.callbacks import (
     ExponentialLRCallback,
     FunctionLRCallback,
     WarmupLRCallback,
-    BinarySegmentationVisualizationCallback,
-    DetectionVisualizationCallback,
 )
 
 from super_gradients.training.utils.early_stopping import EarlyStop
@@ -29,8 +27,6 @@ CALLBACKS = {
     Callbacks.EARLY_STOP: EarlyStop,
     Callbacks.DETECTION_MULTISCALE_PREPREDICTION: DetectionMultiscalePrePredictionCallback,
     Callbacks.YOLOX_TRAINING_STAGE_SWITCH: YoloXTrainingStageSwitchCallback,
-    Callbacks.DETECTION_VISUALIZATION: DetectionVisualizationCallback,
-    Callbacks.BINARY_SEGMENTATION_VISUALIZATION: BinarySegmentationVisualizationCallback,
 }
 
 
