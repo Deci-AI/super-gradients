@@ -937,11 +937,15 @@ class Trainer:
             # Note: the dataloader uses sampler of the batch_sampler when it is not None.
             train_sampler = self.train_loader.batch_sampler.sampler if self.train_loader.batch_sampler is not None else self.train_loader.sampler
             if isinstance(train_sampler, SequentialSampler):
-                raise ValueError("You are using a SequentialSampler on you training dataloader, while working on DDP. "
-                                 "This cancels the DDP benefits since it makes each process iterate through the entire dataset")
+                raise ValueError(
+                    "You are using a SequentialSampler on you training dataloader, while working on DDP. "
+                    "This cancels the DDP benefits since it makes each process iterate through the entire dataset"
+                )
             if not isinstance(train_sampler, (DistributedSampler, InfiniteSampler, RepeatAugSampler)):
-                logger.warning("The training sampler you are using might not support DDP. "
-                               "If it doesnt, please use one of the following sampler: DistributedSampler, InfiniteSampler, RepeatAugSampler")
+                logger.warning(
+                    "The training sampler you are using might not support DDP. "
+                    "If it doesnt, please use one of the following sampler: DistributedSampler, InfiniteSampler, RepeatAugSampler"
+                )
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
