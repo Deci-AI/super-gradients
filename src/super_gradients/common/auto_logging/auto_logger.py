@@ -26,9 +26,13 @@ class AutoLoggerConfig:
         :param log_level: The default log level to use. If None, uses LOG_LEVEL and CONSOLE_LOG_LEVEL environment vars.
         :return: None
         """
+
+        # There is no _easy_ way to log all events to a single file, when using DDP or DataLoader with num_workers > 1
+        # on Windows platform. In both these cases a multiple processes will be spawned and multiple logs may be created.
+        # Therefore the log file will have the parent PID to being able to discriminate the logs corresponding to a single run.
         timestamp = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
         self._setup_logging(
-            filename=os.path.expanduser(f"~/sg_logs/{timestamp}.log"),
+            filename=os.path.expanduser(f"~/sg_logs/sg_logs_{os.getppid()}_{timestamp}.log"),
             copy_already_logged_messages=False,
             filemode="w",
             log_level=log_level,
