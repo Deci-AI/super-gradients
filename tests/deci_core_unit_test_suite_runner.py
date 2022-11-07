@@ -15,6 +15,7 @@ from tests.unit_tests import (
     FactoriesTest,
     InitializeWithDataloadersTest,
     TrainingParamsTest,
+    TrainOptimizerParamsOverride,
     CallTrainTwiceTest,
 )
 from tests.end_to_end_tests import TestTrainer
@@ -89,6 +90,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MultiScaleTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainingParamsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(CallTrainTwiceTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainOptimizerParamsOverride))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """

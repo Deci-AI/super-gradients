@@ -55,6 +55,7 @@ training_hyperparams:
 multi_gpu: DDP
 num_gpus: 8
 
+ckpt_root_dir:
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
 hydra:
