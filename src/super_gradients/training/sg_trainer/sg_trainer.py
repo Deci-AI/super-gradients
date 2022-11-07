@@ -9,11 +9,14 @@ import torch
 import hydra
 from omegaconf import DictConfig
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, SequentialSampler
 from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
+
+from torch.utils.data.distributed import DistributedSampler
+from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
@@ -76,7 +79,6 @@ from super_gradients.training.utils.callbacks import (
 )
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
-from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 
 logger = get_logger(__name__)
@@ -934,11 +936,23 @@ class Trainer:
         global logger
         if training_params is None:
             training_params = dict()
-
         self.train_loader = train_loader or self.train_loader
         self.valid_loader = valid_loader or self.valid_loader
         self._set_dataset_params()
 
+        if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+            # Note: the dataloader uses sampler of the batch_sampler when it is not None.
+            train_sampler = self.train_loader.batch_sampler.sampler if self.train_loader.batch_sampler is not None else self.train_loader.sampler
+            if isinstance(train_sampler, SequentialSampler):
+                raise ValueError(
+                    "You are using a SequentialSampler on you training dataloader, while working on DDP. "
+                    "This cancels the DDP benefits since it makes each process iterate through the entire dataset"
+                )
+            if not isinstance(train_sampler, (DistributedSampler, InfiniteSampler, RepeatAugSampler)):
+                logger.warning(
+                    "The training sampler you are using might not support DDP. "
+                    "If it doesnt, please use one of the following sampler: DistributedSampler, InfiniteSampler, RepeatAugSampler"
+                )
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
