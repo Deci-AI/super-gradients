@@ -96,10 +96,9 @@ converted_sample = targets.convert(output_format=ConcatenatedTensorPredictionsFo
 class ImageDetectionSample:
     image: np.ndarray
     targets: DetectionTargets
-    crowd_targets: DetectionTargets
 
     def as_tuple(self):
-        return astuple(self)
+        return self.image, self.targets.data
 
 
 class DummyDataset:
