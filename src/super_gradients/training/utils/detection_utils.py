@@ -102,17 +102,26 @@ class ImageDetectionSample:
         return astuple(self)
 
 
-sample = ImageDetectionSample(
-    image=np.array([[1, 2, 3], [1, 1, 1]]),
-    targets=DetectionTargets(data=np.array([[0, 0, 10, 15, 2]]), format=ConcatenatedTensorPredictionsFormat(layout=(...))),
-)
+class DummyDataset:
+    def __getitem__(self, index: int) -> Tuple:
+        """Get the sample post transforms at a specific index of the dataset.
+        The output of this function will be collated to form batches."""
+        sample: ImageDetectionSample = self.get_sample(index)
+        sample: ImageDetectionSample = self.apply_transforms(sample)
+        return sample.as_tuple()
 
 
-img = sample.image
-targets = sample.targets
-cls = sample.targets.cls
-bbox = sample.targets.bbox
-converted_sample = sample.targets.convert(output_format=ConcatenatedTensorPredictionsFormat(layout=(...)))
+# sample = ImageDetectionSample(
+#     image=np.array([[1, 2, 3], [1, 1, 1]]),
+#     targets=DetectionTargets(data=np.array([[0, 0, 10, 15, 2]]), format=ConcatenatedTensorPredictionsFormat(layout=(...))),
+# )
+
+#
+# img = sample.image
+# targets = sample.targets
+# cls = sample.targets.cls
+# bbox = sample.targets.bbox
+# converted_sample = sample.targets.convert(output_format=ConcatenatedTensorPredictionsFormat(layout=(...)))
 
 
 class DetectionTargetsFormat(Enum):
