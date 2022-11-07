@@ -36,7 +36,6 @@ DEFAULT_TRAINING_PARAMS = {
     "lr_mode": None,
     "phase_callbacks": None,
     "log_installed_packages": True,
-    "save_full_train_log": False,
     "sg_logger": "base_sg_logger",
     "sg_logger_params": {
         "tb_files_user_prompt": False,  # Asks User for Tensorboard Deletion Prompt
