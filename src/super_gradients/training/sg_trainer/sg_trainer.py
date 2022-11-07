@@ -864,11 +864,6 @@ class Trainer:
                     will be added to the tensorboard along with some sample images from the dataset. Currently only
                     detection datasets are supported for analysis.
 
-                -  `save_full_train_log` : bool (default=False)
-
-                    When set, a full log (of all super_gradients modules, including uncaught exceptions from any other
-                     module) of the training will be saved in the checkpoint directory under full_train_log.log
-
                 -  `sg_logger` : Union[AbstractSGLogger, str] (defauls=base_sg_logger)
 
                     Define the SGLogger object for this training process. The SGLogger handles all disk writes, logs, TensorBoard, remote logging
@@ -1061,9 +1056,8 @@ class Trainer:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
                 dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes, title="Train-set", anchors=self.net.module.arch_params.anchors)
                 dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes, title="val-set")
-        if self.training_params.save_full_train_log and not self.ddp_silent_mode:
-            logger = get_logger(__name__, training_log_path=self.sg_logger.log_file_path.replace(".txt", "full_train_log.log"))
-            sg_trainer_utils.log_uncaught_exceptions(logger)
+
+        sg_trainer_utils.log_uncaught_exceptions(logger)
 
         if not self.load_checkpoint or self.load_weights_only:
             # WHEN STARTING TRAINING FROM SCRATCH, DO NOT LOAD OPTIMIZER PARAMS (EVEN IF LOADING BACKBONE)
