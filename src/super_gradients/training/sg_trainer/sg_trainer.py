@@ -435,9 +435,10 @@ class Trainer:
             loss_logging_items = loss.unsqueeze(0).detach()
 
         # ON FIRST BACKWARD, DERRIVE THE LOGGING TITLES.
-        if self.loss_logging_items_names is None:
+        if self.loss_logging_items_names is None or self._first_backward:
             self._init_loss_logging_names(loss_logging_items)
             self._init_monitored_items()
+            self._first_backward = False
 
         if len(loss_logging_items) != len(self.loss_logging_items_names):
             raise ValueError(
@@ -1080,6 +1081,9 @@ class Trainer:
         )
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
+
+        # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
+        self._first_backward = True
 
         context = PhaseContext(
             optimizer=self.optimizer,

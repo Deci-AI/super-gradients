@@ -2,9 +2,21 @@ import sys
 import unittest
 
 from tests.integration_tests.ema_train_integration_test import EMAIntegrationTest
-from tests.unit_tests import ZeroWdForBnBiasTest, SaveCkptListUnitTest, TestAverageMeter, \
-    TestRepVgg, TestWithoutTrainTest, OhemLossTest, EarlyStopTest, SegmentationTransformsTest, \
-    TestConvBnRelu, FactoriesTest, InitializeWithDataloadersTest, TrainingParamsTest
+from tests.unit_tests import (
+    ZeroWdForBnBiasTest,
+    SaveCkptListUnitTest,
+    TestAverageMeter,
+    TestRepVgg,
+    TestWithoutTrainTest,
+    OhemLossTest,
+    EarlyStopTest,
+    SegmentationTransformsTest,
+    TestConvBnRelu,
+    FactoriesTest,
+    InitializeWithDataloadersTest,
+    TrainingParamsTest,
+    CallTrainTwiceTest,
+)
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.phase_delegates_test import ContextMethodsTest
 from tests.unit_tests.random_erase_test import RandomEraseTest
@@ -30,7 +42,6 @@ from tests.unit_tests.multi_scaling_test import MultiScaleTest
 
 
 class CoreUnitTestSuiteRunner:
-
     def __init__(self):
         self.test_loader = unittest.TestLoader()
         self.unit_tests_suite = unittest.TestSuite()
@@ -77,6 +88,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionDatasetCaching))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(MultiScaleTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainingParamsTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(CallTrainTwiceTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
@@ -87,5 +99,5 @@ class CoreUnitTestSuiteRunner:
         self.end_to_end_tests_suite.addTest(self.test_loader.loadTestsFromModule(EMAIntegrationTest))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
