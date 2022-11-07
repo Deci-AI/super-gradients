@@ -81,7 +81,12 @@ class AutoLoggerConfig:
         # Add console handler
         console_handler = logging.StreamHandler()
         console_handler.setLevel(console_logging_level)
-        console_handler.setFormatter(logging.Formatter("%(module)s - %(levelname)s - %(message)s"))
+        console_handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s  %(levelname)s - %(filename)s - %(message)s",
+                datefmt="[%Y-%m-%d %H:%M:%S]",
+            )
+        )
         manager.root.handlers.append(console_handler)
 
         self.filename = filename
