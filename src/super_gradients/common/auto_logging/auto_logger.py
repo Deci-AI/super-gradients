@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import time
 from typing import Union
 
 
@@ -25,8 +26,9 @@ class AutoLoggerConfig:
         :param log_level: The default log level to use. If None, uses LOG_LEVEL and CONSOLE_LOG_LEVEL environment vars.
         :return: None
         """
+        timestamp = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
         self._setup_logging(
-            filename=os.path.expanduser(f"~/sg_logs/last_{os.getppid()}.log"),
+            filename=os.path.expanduser(f"~/sg_logs/{timestamp}.log"),
             copy_already_logged_messages=False,
             filemode="w",
             log_level=log_level,
