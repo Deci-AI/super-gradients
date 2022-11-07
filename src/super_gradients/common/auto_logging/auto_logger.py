@@ -87,13 +87,13 @@ class AutoLoggerConfig:
         self.filename = filename
 
     @classmethod
-    def getInstance(cls):
-        global _sg_logger
-        if _sg_logger is None:
-            _sg_logger = cls()
-            _sg_logger._setup_default_logging()
+    def get_instance(cls):
+        global _super_gradients_logger_config
+        if _super_gradients_logger_config is None:
+            _super_gradients_logger_config = cls()
+            _super_gradients_logger_config._setup_default_logging()
 
-        return _sg_logger
+        return _super_gradients_logger_config
 
     @classmethod
     def get_log_file_path(cls) -> str:
@@ -101,13 +101,13 @@ class AutoLoggerConfig:
         Return the current log file used to store log messages
         :return: Full path to log file
         """
-        self = cls.getInstance()
+        self = cls.get_instance()
         return self.filename
 
     @classmethod
     def setup_logging(cls, filename: str, copy_already_logged_messages: bool, filemode: str = "a", log_level: str = None) -> None:
-        self = cls.getInstance()
+        self = cls.get_instance()
         self._setup_logging(filename, copy_already_logged_messages, filemode, log_level)
 
 
-_sg_logger = None
+_super_gradients_logger_config = None

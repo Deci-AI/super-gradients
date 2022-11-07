@@ -7,7 +7,7 @@ from super_gradients.common.auto_logging import AutoLoggerConfig
 
 
 def get_logger(logger_name: str, log_level: Union[str, None] = None) -> logging.Logger:
-    AutoLoggerConfig.getInstance()
+    AutoLoggerConfig.get_instance()
     logger: logging.Logger = logging.getLogger(logger_name)
     if log_level is not None:
         logger.setLevel(log_level)
