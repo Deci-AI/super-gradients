@@ -1,6 +1,6 @@
 import os
 
-from typing import Union, Optional, Any
+from typing import Union, Any
 
 import numpy as np
 from PIL import Image
@@ -34,9 +34,6 @@ class ClearMLSGLogger(BaseSGLogger):
         save_checkpoints_remote: bool = True,
         save_tensorboard_remote: bool = True,
         save_logs_remote: bool = True,
-        entity: Optional[str] = None,
-        api_server: Optional[str] = None,
-        **kwargs,
     ):
         """
 
