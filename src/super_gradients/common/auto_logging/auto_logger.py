@@ -89,7 +89,7 @@ class AutoLoggerConfig:
         console_handler.setLevel(console_logging_level)
         console_handler.setFormatter(
             logging.Formatter(
-                "%(asctime)s  %(levelname)s - %(filename)s - %(message)s",
+                "%(asctime)s %(levelname)s - %(filename)s - %(message)s",
                 datefmt="[%Y-%m-%d %H:%M:%S]",
             )
         )
