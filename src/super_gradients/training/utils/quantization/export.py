@@ -27,10 +27,14 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
     model.eval()
     if hasattr(model, "prep_model_for_conversion"):
         model.prep_model_for_conversion()
+
+    use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
     quant_nn.TensorQuantizer.use_fb_fake_quant = True
+
     # Export ONNX for multiple batch sizes
     logger.info("Creating ONNX file: " + onnx_filename)
     dummy_input = torch.randn(input_shape, device=next(model.parameters()).device)
     torch.onnx.export(model, dummy_input, onnx_filename, verbose=False, opset_version=13, enable_onnx_checker=False, do_constant_folding=True)
+
     # Restore functions of quant_nn back as expected
-    quant_nn.TensorQuantizer.use_fb_fake_quant = False
+    quant_nn.TensorQuantizer.use_fb_fake_quant = use_fb_fake_quant_state
