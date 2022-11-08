@@ -61,21 +61,22 @@ class DetectionDataset(Dataset):
                                 > But only 100 will be indexed so index will be between 0 and 99
                                 > Therefore, we also have len(self) = 100
     """
+
     @resolve_param("transforms", ListFactory(TransformsFactory()))
     def __init__(
-            self,
-            data_dir: str,
-            input_dim: tuple,
-            original_target_format: DetectionTargetsFormat,
-            max_num_samples: int = None,
-            cache: bool = False,
-            cache_dir: str = None,
-            transforms: List[DetectionTransform] = [],
-            all_classes_list: Optional[List[str]] = None,
-            class_inclusion_list: Optional[List[str]] = None,
-            ignore_empty_annotations: bool = True,
-            target_fields: List[str] = None,
-            output_fields: List[str] = None,
+        self,
+        data_dir: str,
+        input_dim: tuple,
+        original_target_format: DetectionTargetsFormat,
+        max_num_samples: int = None,
+        cache: bool = False,
+        cache_dir: str = None,
+        transforms: List[DetectionTransform] = [],
+        all_classes_list: Optional[List[str]] = None,
+        class_inclusion_list: Optional[List[str]] = None,
+        ignore_empty_annotations: bool = True,
+        target_fields: List[str] = None,
+        output_fields: List[str] = None,
     ):
         """Detection dataset.
 
@@ -164,8 +165,9 @@ class DetectionDataset(Dataset):
 
             img_annotation = self._load_annotation(img_id)
             if not self._required_annotation_fields.issubset(set(img_annotation.keys())):
-                raise KeyError(f'_load_annotation is expected to return at least the fields {self._required_annotation_fields} '
-                               f'but got {set(img_annotation.keys())}')
+                raise KeyError(
+                    f"_load_annotation is expected to return at least the fields {self._required_annotation_fields} " f"but got {set(img_annotation.keys())}"
+                )
 
             if self.class_inclusion_list is not None:
                 img_annotation = self._sub_class_annotation(img_annotation)
@@ -176,8 +178,9 @@ class DetectionDataset(Dataset):
             annotations.append(img_annotation)
 
         if len(annotations) == 0:
-            raise EmptyDatasetException(f"Out of {self.n_available_samples} images, not a single one was found with"
-                                        f"any of these classes: {self.class_inclusion_list}")
+            raise EmptyDatasetException(
+                f"Out of {self.n_available_samples} images, not a single one was found with" f"any of these classes: {self.class_inclusion_list}"
+            )
         return annotations
 
     def _sub_class_annotation(self, annotation: dict) -> Union[dict, None]:
@@ -216,14 +219,15 @@ class DetectionDataset(Dataset):
         """
         cache_dir = Path(self.cache_dir)
         if cache_dir is None:
-            raise ValueError("You must specify a cache_dir if you want to cache your images."
-                             "If you did not mean to use cache, please set cache=False ")
+            raise ValueError("You must specify a cache_dir if you want to cache your images." "If you did not mean to use cache, please set cache=False ")
         cache_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.warning("\n********************************************************************************\n"
-                       "You are using cached images in RAM to accelerate training.\n"
-                       "This requires large system RAM.\n"
-                       "********************************************************************************")
+        logger.warning(
+            "\n********************************************************************************\n"
+            "You are using cached images in RAM to accelerate training.\n"
+            "This requires large system RAM.\n"
+            "********************************************************************************"
+        )
 
         max_h, max_w = self.input_dim[0], self.input_dim[1]
 
@@ -232,7 +236,7 @@ class DetectionDataset(Dataset):
         for annotation in self.annotations:
             values_to_hash = [annotation["resized_img_shape"][0], annotation["resized_img_shape"][1], Path(annotation["img_path"]).name]
             for value in values_to_hash:
-                hash.update(str(value).encode('utf-8'))
+                hash.update(str(value).encode("utf-8"))
         cache_hash = hash.hexdigest()
 
         img_resized_cache_path = cache_dir / f"img_resized_cache_{cache_hash}.array"
@@ -243,8 +247,7 @@ class DetectionDataset(Dataset):
             loaded_images = ThreadPool(NUM_THREADs).imap(func=lambda x: self._load_resized_img(x), iterable=range(len(self)))
 
             # Initialize placeholder for images
-            cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
-                                    dtype=np.uint8, mode="w+")
+            cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="w+")
 
             # Store images in the placeholder
             loaded_images_pbar = tqdm(enumerate(loaded_images), total=len(self))
@@ -256,8 +259,7 @@ class DetectionDataset(Dataset):
             logger.warning("You are using cached imgs!")
 
         logger.info("Loading cached imgs...")
-        cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3),
-                                dtype=np.uint8, mode="r+")
+        cached_imgs = np.memmap(str(img_resized_cache_path), shape=(len(self), max_h, max_w, 3), dtype=np.uint8, mode="r+")
         return cached_imgs
 
     def _load_resized_img(self, index: int) -> np.ndarray:
@@ -284,8 +286,7 @@ class DetectionDataset(Dataset):
         img = cv2.imread(img_file)
 
         if img is None:
-            raise FileNotFoundError(f"{img_file} was no found. Please make sure that the dataset was"
-                                    f"downloaded and that the path is correct")
+            raise FileNotFoundError(f"{img_file} was no found. Please make sure that the dataset was" f"downloaded and that the path is correct")
         return img
 
     def __del__(self):
@@ -303,8 +304,7 @@ class DetectionDataset(Dataset):
         sample = self.apply_transforms(self.get_sample(index))
         for field in self.output_fields:
             if field not in sample.keys():
-                raise KeyError(f'The field {field} must be present in the sample but was not found.'
-                               'Please check the output fields of your transforms.')
+                raise KeyError(f"The field {field} must be present in the sample but was not found." "Please check the output fields of your transforms.")
         return tuple(sample[field] for field in self.output_fields)
 
     def get_random_item(self):
@@ -351,17 +351,14 @@ class DetectionDataset(Dataset):
             sample.pop("additional_samples")  # additional_samples is not useful after the transform
         return sample
 
-    def _add_additional_inputs_for_transform(self, sample: Dict[str, Union[np.ndarray, Any]],
-                                             transform: DetectionTransform):
+    def _add_additional_inputs_for_transform(self, sample: Dict[str, Union[np.ndarray, Any]], transform: DetectionTransform):
         """Add additional inputs required by a transform to the sample"""
-        additional_samples_count = transform.additional_samples_count if hasattr(transform,
-                                                                                 "additional_samples_count") else 0
+        additional_samples_count = transform.additional_samples_count if hasattr(transform, "additional_samples_count") else 0
         non_empty_annotations = transform.non_empty_annotations if hasattr(transform, "non_empty_annotations") else False
         additional_samples = self.get_random_samples(additional_samples_count, non_empty_annotations)
         sample["additional_samples"] = additional_samples
 
-    def get_random_samples(self, count: int,
-                           non_empty_annotations_only: bool = False) -> List[Dict[str, Union[np.ndarray, Any]]]:
+    def get_random_samples(self, count: int, non_empty_annotations_only: bool = False) -> List[Dict[str, Union[np.ndarray, Any]]]:
         """Load random samples.
 
         :param count: The number of samples wanted
@@ -400,20 +397,19 @@ class DetectionDataset(Dataset):
     def plot(self, max_samples_per_plot: int = 16, n_plots: int = 1, plot_transformed_data: bool = True):
         """Combine samples of images with bbox into plots and display the result.
 
-            :param max_samples_per_plot:    Maximum number of images to be displayed per plot
-            :param n_plots:                 Number of plots to display (each plot being a combination of img with bbox)
-            :param plot_transformed_data:   If True, the plot will be over samples after applying transforms (i.e. on __getitem__).
-                                            If False, the plot will be over the raw samples (i.e. on get_sample)
-            :return:
+        :param max_samples_per_plot:    Maximum number of images to be displayed per plot
+        :param n_plots:                 Number of plots to display (each plot being a combination of img with bbox)
+        :param plot_transformed_data:   If True, the plot will be over samples after applying transforms (i.e. on __getitem__).
+                                        If False, the plot will be over the raw samples (i.e. on get_sample)
+        :return:
         """
         plot_counter = 0
         input_format = self.output_target_format if plot_transformed_data else self.original_target_format
-        target_format_transform = DetectionTargetsFormatTransform(input_format=input_format,
-                                                                  output_format=DetectionTargetsFormat.XYXY_LABEL)
+        target_format_transform = DetectionTargetsFormatTransform(input_format=input_format, output_format=DetectionTargetsFormat.XYXY_LABEL)
 
         for plot_i in range(n_plots):
             fig = plt.figure(figsize=(10, 10))
-            n_subplot = int(np.ceil(max_samples_per_plot ** 0.5))
+            n_subplot = int(np.ceil(max_samples_per_plot**0.5))
             for img_i in range(max_samples_per_plot):
                 index = img_i + plot_i * 16
 
@@ -432,8 +428,8 @@ class DetectionDataset(Dataset):
                 # shape = [n_box x 4] (We remove padded boxes, which corresponds to boxes with only 0)
                 boxes = boxes[(boxes != 0).any(axis=1)]
                 plt.subplot(n_subplot, n_subplot, img_i + 1).imshow(image[:, :, ::-1])
-                plt.plot(boxes[:, [0, 2, 2, 0, 0]].T, boxes[:, [1, 1, 3, 3, 1]].T, '.-')
-                plt.axis('off')
+                plt.plot(boxes[:, [0, 2, 2, 0, 0]].T, boxes[:, [1, 1, 3, 3, 1]].T, ".-")
+                plt.axis("off")
             fig.tight_layout()
             plt.show()
             plt.close()
