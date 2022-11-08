@@ -50,7 +50,7 @@ train_dataloader_params:
   sampler:
     InfiniteSampler:
       seed: 0
-  drop_last: False
+  drop_last: True
   pin_memory: True
   worker_init_fn:
     _target_: super_gradients.training.utils.utils.load_func
