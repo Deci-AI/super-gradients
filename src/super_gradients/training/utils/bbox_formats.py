@@ -3,44 +3,102 @@ from typing import Tuple
 
 import torch
 from torch import Tensor
-from .detection_utils import xyxy2xywh, xyxy2cxcywh, xyxy2normalizedxywh, xyxy2normalizedxyxy, normalizedxyxy2xyxy, cxcywh2xyxy
 
 __all__ = [
     "XYXYCoordinateFormat",
-    "YXYXCoordinateFormat",
     "XYWHCoordinateFormat",
+    "YXYXCoordinateFormat",
     "CXCYWHCoordinateFormat",
     "NormalizedXYWHCoordinateFormat",
     "NormalizedXYXYCoordinateFormat",
+    "NormalizedCXCYWHCoordinateFormat",
+    "cxcywh2xyxy",
+    "normalizedxyxy2xyxy",
+    "xywh2xyxy",
+    "xyxy2cxcywh",
+    "xyxy2normalizedxywh",
+    "xyxy2normalizedxyxy",
+    "xyxy2xywh",
+    "convert_bboxes",
 ]
 
 
 def normalizedxyxy2xyxy(bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
-    scale = torch.tensor([[image_shape[1], image_shape[0], image_shape[1], image_shape[0]]], dtype=bboxes.dtype, device=bboxes.device)
+    """
+    Transform unit bboxes [0..1] to absolute (pixel) units.
+    :param bboxes: array, shaped (..., 4)
+    :param image_shape: Image shape (rows,cols)
+    :return: Bboxes of same shape (..., 4)
+    """
+    rows, cols = image_shape
+    scale = torch.tensor([cols, rows, cols, rows], dtype=bboxes.dtype, device=bboxes.device)
+    scale = scale.reshape([1] * (len(bboxes.size()) - 1) + [4])
     return bboxes * scale
-
-
-def xyxy2xywh(bboxes: Tensor):
-    """
-    Transforms bboxes inplace from xyxy format to xywh format
-    :param bboxes: array, shaped (nboxes, 4)
-    :return: modified bboxes
-    """
-    bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 0]
-    bboxes[:, 3] = bboxes[:, 3] - bboxes[:, 1]
-    return bboxes
 
 
 def xyxy2normalizedxyxy(bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
     """
-    Transforms bboxes inplace from xyxy format to unit-normalized xyxy format
-    :param bboxes: array, shaped (nboxes, 4)
+    Transforms bboxes from xyxy format to unit-normalized xyxy format
+    :param bboxes: array, shaped (..., 4)
     :param image_shape: Image shape (rows,cols)
     :return: modified bboxes
     """
+    rows, cols = image_shape
+    scale = torch.tensor([cols, rows, cols, rows], dtype=bboxes.dtype, device=bboxes.device)
+    scale = scale.reshape([1] * (len(bboxes.size()) - 1) + [4])
+    return bboxes / scale
 
-    scale = torch.reciprocal(torch.tensor([[image_shape[1], image_shape[0], image_shape[1], image_shape[0]]], dtype=bboxes.dtype, device=bboxes.device))
-    return bboxes * scale
+
+def xyxy2xywh(bboxes: Tensor) -> Tensor:
+    """
+    Transforms bboxes inplace from xyxy format to xywh format
+    :param bboxes: array, shaped (..., 4)
+    :return: modified bboxes
+    """
+    x1, y1, x2, y2 = torch.split(bboxes, split_size_or_sections=1, dim=-1)
+    w = x2 - x1
+    h = y2 - y1
+    return torch.cat([x1, y1, w, h], dim=-1)
+
+
+def xyxy2cxcywh(bboxes: Tensor):
+    """
+    Transforms bboxes from xyxy format to CX-CY-W-H format
+    :param bboxes: array, shaped (..., 4)
+    :return: modified bboxes
+    """
+    x1, y1, x2, y2 = torch.split(bboxes, split_size_or_sections=1, dim=-1)
+    w = x2 - x1
+    h = y2 - y1
+    cx = x1 + 0.5 * w
+    cy = y1 + 0.5 * h
+    return torch.cat([cx, cy, w, h], dim=-1)
+
+
+def cxcywh2xyxy(bboxes: Tensor) -> Tensor:
+    """
+    Transforms bboxes from CX-CY-W-H format to XYXY format
+    :param bboxes: array, shaped (..., 4)
+    :return: BBoxes of shape (..., 4) in XYXY format
+    """
+    cx, cy, w, h = torch.split(bboxes, split_size_or_sections=1, dim=-1)
+    x1 = cx - 0.5 * w
+    y1 = cy - 0.5 * h
+    x2 = x1 + w
+    y2 = y1 + h
+    return torch.cat([x1, y1, x2, y2], dim=-1)
+
+
+def xywh2xyxy(bboxes: Tensor):
+    """
+    Transforms bboxes from XYWH format to XYXY format
+    :param bboxes: array, shaped (..., 4)
+    :return: modified bboxes
+    """
+    x1, y1, w, h = torch.split(bboxes, split_size_or_sections=1, dim=-1)
+    x2 = x1 + w
+    y2 = y1 + h
+    return torch.cat([x1, y1, x2, y2], dim=-1)
 
 
 def xyxy2normalizedxywh(bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
@@ -51,16 +109,6 @@ def xyxy2normalizedxywh(bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
     """
     bboxes = xyxy2normalizedxyxy(bboxes, image_shape)
     return xyxy2xywh(bboxes)
-
-
-def xyxy2normalizedcxcywh(bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
-    """
-    Transforms bboxes inplace from centerized xy wh format to xyxy format
-    :param bboxes: array, shaped (nboxes, 4)
-    :return: modified bboxes
-    """
-    bboxes = xyxy2normalizedxyxy(bboxes, image_shape)
-    return xyxy2cxcywh(bboxes)
 
 
 class BoundingBoxFormat:
@@ -178,3 +226,27 @@ class NormalizedXYXYCoordinateFormat(BoundingBoxFormat):
 
     def from_xyxy(self, bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
         return xyxy2normalizedxyxy(bboxes, image_shape)
+
+
+class NormalizedCXCYWHCoordinateFormat(BoundingBoxFormat):
+    def __init__(self):
+        self.format = "cxcywh"
+        self.normalized = True
+
+    def to_xyxy(self, bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
+        return normalizedxyxy2xyxy(cxcywh2xyxy(bboxes), image_shape)
+
+    def from_xyxy(self, bboxes: Tensor, image_shape: Tuple[int, int]) -> Tensor:
+        return xyxy2cxcywh(xyxy2normalizedxyxy(bboxes, image_shape))
+
+
+def convert_bboxes(bboxes: Tensor, image_shape: Tuple[int, int], source_format: BoundingBoxFormat, target_format: BoundingBoxFormat):
+    """
+    Convert bboxes from source to target format
+    :param bboxes: Tensor of shape (..., 4) with input bounding boxes
+    :param image_shape: Tuple of (rows, cols) corresponding to image shape
+    :param source_format: Format of the source bounding boxes
+    :param target_format: Format of the output bounding boxes
+    :return: Tensor of shape (..., 4) with resulting bounding boxes
+    """
+    return target_format.from_xyxy(source_format.to_xyxy(bboxes, image_shape), image_shape)
