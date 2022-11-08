@@ -15,8 +15,19 @@ from super_gradients.training.datasets.segmentation_datasets.supervisely_persons
 cv2.setNumThreads(0)
 
 
-__all__ = ['DataAugmentation', 'ListDataset', 'DirectoryDataSet', 'SegmentationDataSet',
-           'PascalVOC2012SegmentationDataSet',
-           'PascalAUG2012SegmentationDataSet', 'CoCoSegmentationDataSet',
-           'DetectionDataset', 'COCODetectionDataset', 'PascalVOCDetectionDataset', 'ImageNetDataset',
-           'Cifar10', 'Cifar100', 'SuperviselyPersonsDataset']
+__all__ = [
+    "DataAugmentation",
+    "ListDataset",
+    "DirectoryDataSet",
+    "SegmentationDataSet",
+    "PascalVOC2012SegmentationDataSet",
+    "PascalAUG2012SegmentationDataSet",
+    "CoCoSegmentationDataSet",
+    "DetectionDataset",
+    "COCODetectionDataset",
+    "PascalVOCDetectionDataset",
+    "ImageNetDataset",
+    "Cifar10",
+    "Cifar100",
+    "SuperviselyPersonsDataset",
+]

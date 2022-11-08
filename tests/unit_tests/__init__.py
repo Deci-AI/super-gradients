@@ -1,4 +1,5 @@
 # PACKAGE IMPORTS FOR EXTERNAL USAGE
+from tests.unit_tests.double_training_test import CallTrainTwiceTest
 from tests.unit_tests.factories_test import FactoriesTest
 from tests.unit_tests.optimizer_params_override_test import TrainOptimizerParamsOverride
 from tests.unit_tests.strictload_enum_test import StrictLoadEnumTest
@@ -37,4 +38,5 @@ __all__ = [
     "InitializeWithDataloadersTest",
     "TrainingParamsTest",
     "TrainOptimizerParamsOverride",
+    "CallTrainTwiceTest",
 ]
