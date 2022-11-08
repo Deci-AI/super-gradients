@@ -1,15 +1,18 @@
-from typing import Mapping, Any, Union
+from typing import Union
 
 from super_gradients.modules import RepVGGBlock
+from super_gradients.training.models import SgModule
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNet
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
-from torch import nn, Tensor
+from torch import Tensor
 
 
-class PPYoloE(nn.Module):
-    def __init__(self, **arch_params):
+class PPYoloE(SgModule):
+    def __init__(self, arch_params):
         super().__init__()
+        arch_params = arch_params.to_dict()
+
         self.backbone = CSPResNet(**arch_params["backbone"])
         self.neck = CustomCSPPAN(**arch_params["neck"])
         self.head = PPYOLOEHead(**arch_params["head"])
@@ -29,17 +32,3 @@ class PPYoloE(nn.Module):
         for module in self.modules():
             if isinstance(module, RepVGGBlock):
                 module.prep_model_for_conversion(input_size)
-
-    @classmethod
-    def from_config(cls, config: Mapping[str, Any]):
-        return cls(
-            depth_mult=config.depth_mult,
-            width_mult=config.width_mult,
-        )
-
-    @classmethod
-    def from_pretrained(cls, variant: str):
-
-        variants = {"ppyolo_s": {}}
-
-        return cls.from_config(variants[variant])

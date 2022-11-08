@@ -165,7 +165,7 @@ def topk_(input, k, axis=1, largest=True):
     return topk_data_sort, topk_index_sort
 
 
-def compute_max_iou_anchor(ious):
+def compute_max_iou_anchor(ious: Tensor) -> Tensor:
     r"""
     For each anchor, find the GT with the largest IOU.
     Args:
@@ -174,9 +174,9 @@ def compute_max_iou_anchor(ious):
         is_max_iou (Tensor, float32): shape[B, n, L], value=1. means selected
     """
     num_max_boxes = ious.shape[-2]
-    max_iou_index = ious.argmax(axis=-2)
-    is_max_iou = torch.nn.functional.one_hot(max_iou_index, num_max_boxes).transpose([0, 2, 1])
-    return is_max_iou.astype(ious.dtype)
+    max_iou_index = ious.argmax(dim=-2)
+    is_max_iou: Tensor = torch.nn.functional.one_hot(max_iou_index, num_max_boxes).permute([0, 2, 1])
+    return is_max_iou.type_as(ious)
 
 
 def check_points_inside_bboxes(points: Tensor, bboxes, center_radius_tensor=None, eps=1e-9):
@@ -765,14 +765,14 @@ class PPYoloELoss(nn.Module):
             loss += self.loss_weight["l1"] * loss_l1
 
         out_dict = {
-            "loss": loss,
+            # "loss": loss,
             "loss_cls": loss_cls,
             "loss_iou": loss_iou,
             "loss_dfl": loss_dfl,
-            "loss_l1": loss_l1,
+            "loss_l1": loss_l1 if self.use_l1_loss else 0,
         }
 
-        return out_dict
+        return loss, out_dict
 
     def _df_loss(self, pred_dist: Tensor, target: Tensor) -> Tensor:
         target_left = target.long()

@@ -56,7 +56,7 @@ train_dataloader_params:
     _target_: super_gradients.training.utils.utils.load_func
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
   collate_fn: # collate function for trainset
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+    _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
 
 val_dataset_params:
   data_dir: /data/coco # root path to coco data
@@ -84,7 +84,7 @@ val_dataloader_params:
   drop_last: False
   pin_memory: True
   collate_fn: # collate function for trainset
-    _target_: super_gradients.training.utils.detection_utils.DetectionCollateFN
+    _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
 
 
 _convert_: all
