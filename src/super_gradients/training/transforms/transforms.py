@@ -8,8 +8,7 @@ from torchvision import transforms as transforms
 import numpy as np
 import cv2
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, \
-    adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
 
 image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
@@ -22,7 +21,7 @@ class SegmentationTransform:
         raise NotImplementedError
 
     def __repr__(self):
-        return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')
+        return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
 
 class SegResize(SegmentationTransform):
@@ -44,7 +43,7 @@ class SegRandomFlip(SegmentationTransform):
     """
 
     def __init__(self, prob: float = 0.5):
-        assert 0. <= prob <= 1., f"Probability value must be between 0 and 1, found {prob}"
+        assert 0.0 <= prob <= 1.0, f"Probability value must be between 0 and 1, found {prob}"
         self.prob = prob
 
     def __call__(self, sample: dict):
@@ -73,10 +72,7 @@ class SegRescale(SegmentationTransform):
         long_size: rescaling is done by determining the scale factor by the ratio long_size / max(h, w).
     """
 
-    def __init__(self,
-                 scale_factor: Optional[float] = None,
-                 short_size: Optional[int] = None,
-                 long_size: Optional[int] = None):
+    def __init__(self, scale_factor: Optional[float] = None, short_size: Optional[int] = None, long_size: Optional[int] = None):
         self.scale_factor = scale_factor
         self.short_size = short_size
         self.long_size = long_size
@@ -170,8 +166,7 @@ class SegRandomRotate(SegmentationTransform):
     Randomly rotates image and mask (synchronously) between 'min_deg' and 'max_deg'.
     """
 
-    def __init__(self, min_deg: float = -10, max_deg: float = 10, fill_mask: int = 0,
-                 fill_image: Union[int, Tuple, List] = 0):
+    def __init__(self, min_deg: float = -10, max_deg: float = 10, fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
         self.min_deg = min_deg
         self.max_deg = max_deg
         self.fill_mask = fill_mask
@@ -227,8 +222,8 @@ class SegCropImageAndMask(SegmentationTransform):
             x1 = random.randint(0, w - self.crop_size[0])
             y1 = random.randint(0, h - self.crop_size[1])
         else:
-            x1 = int(round((w - self.crop_size[0]) / 2.))
-            y1 = int(round((h - self.crop_size[1]) / 2.))
+            x1 = int(round((w - self.crop_size[0]) / 2.0))
+            y1 = int(round((h - self.crop_size[1]) / 2.0))
 
         image = image.crop((x1, y1, x1 + self.crop_size[0], y1 + self.crop_size[1]))
         mask = mask.crop((x1, y1, x1 + self.crop_size[0], y1 + self.crop_size[1]))
@@ -254,7 +249,7 @@ class SegRandomGaussianBlur(SegmentationTransform):
     """
 
     def __init__(self, prob: float = 0.5):
-        assert 0. <= prob <= 1., "Probability value must be between 0 and 1"
+        assert 0.0 <= prob <= 1.0, "Probability value must be between 0 and 1"
         self.prob = prob
 
     def __call__(self, sample: dict):
@@ -262,8 +257,7 @@ class SegRandomGaussianBlur(SegmentationTransform):
         mask = sample["mask"]
 
         if random.random() < self.prob:
-            image = image.filter(ImageFilter.GaussianBlur(
-                radius=random.random()))
+            image = image.filter(ImageFilter.GaussianBlur(radius=random.random()))
 
         sample["image"] = image
         sample["mask"] = mask
@@ -277,8 +271,7 @@ class SegPadShortToCropSize(SegmentationTransform):
     Should be called only after "SegRescale" or "SegRandomRescale" in augmentations pipeline.
     """
 
-    def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0,
-                 fill_image: Union[int, Tuple, List] = 0):
+    def __init__(self, crop_size: Union[float, Tuple, List], fill_mask: int = 0, fill_image: Union[int, Tuple, List] = 0):
         """
         :param crop_size: tuple of (width, height) for the final crop size, if is scalar size is a
             square (crop_size, crop_size)
@@ -335,12 +328,10 @@ def _validate_fill_values_arguments(fill_mask: int, fill_image: Union[int, Tuple
         raise ValueError(f"fill_image must be an RGB tuple of size equal to 3, found: {fill_image}")
     # assert values are integers
     if not isinstance(fill_mask, int) or not all(isinstance(x, int) for x in fill_image):
-        raise ValueError(f"Fill value must be integers,"
-                         f" found: fill_image = {fill_image}, fill_mask = {fill_mask}")
+        raise ValueError(f"Fill value must be integers," f" found: fill_image = {fill_image}, fill_mask = {fill_mask}")
     # assert values in range 0-255
     if min(fill_image) < 0 or max(fill_image) > 255 or fill_mask < 0 or fill_mask > 255:
-        raise ValueError(f"Fill value must be a value from 0 to 255,"
-                         f" found: fill_image = {fill_image}, fill_mask = {fill_mask}")
+        raise ValueError(f"Fill value must be a value from 0 to 255," f" found: fill_image = {fill_image}, fill_mask = {fill_mask}")
     return fill_mask, fill_image
 
 
@@ -372,7 +363,7 @@ class DetectionTransform:
         raise NotImplementedError
 
     def __repr__(self):
-        return self.__class__.__name__ + str(self.__dict__).replace('{', '(').replace('}', ')')
+        return self.__class__.__name__ + str(self.__dict__).replace("{", "(").replace("}", ")")
 
 
 class DetectionMosaic(DetectionTransform):
@@ -386,7 +377,7 @@ class DetectionMosaic(DetectionTransform):
 
     """
 
-    def __init__(self, input_dim: tuple, prob: float = 1., enable_mosaic: bool = True):
+    def __init__(self, input_dim: tuple, prob: float = 1.0, enable_mosaic: bool = True):
         super(DetectionMosaic, self).__init__(additional_samples_count=3)
         self.prob = prob
         self.input_dim = input_dim
@@ -414,18 +405,15 @@ class DetectionMosaic(DetectionTransform):
                 _labels_seg = mosaic_sample.get("target_seg")
 
                 h0, w0 = img.shape[:2]  # orig hw
-                scale = min(1. * input_h / h0, 1. * input_w / w0)
-                img = cv2.resize(
-                    img, (int(w0 * scale), int(h0 * scale)), interpolation=cv2.INTER_LINEAR
-                )
+                scale = min(1.0 * input_h / h0, 1.0 * input_w / w0)
+                img = cv2.resize(img, (int(w0 * scale), int(h0 * scale)), interpolation=cv2.INTER_LINEAR)
                 # generate output mosaic image
                 (h, w, c) = img.shape[:3]
                 if i_mosaic == 0:
                     mosaic_img = np.full((input_h * 2, input_w * 2, c), 114, dtype=np.uint8)
 
                 # suffix l means large image, while s means small image in mosaic aug.
-                (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(i_mosaic, xc, yc, w, h,
-                                                                                           input_h, input_w)
+                (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(i_mosaic, xc, yc, w, h, input_h, input_w)
 
                 mosaic_img[l_y1:l_y2, l_x1:l_x2] = img[s_y1:s_y2, s_x1:s_x2]
                 padw, padh = l_x1 - s_x1, l_y1 - s_y1
@@ -502,8 +490,9 @@ class DetectionRandomAffine(DetectionTransform):
 
     """
 
-    def __init__(self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640),
-                 filter_box_candidates: bool = False, wh_thr=2, ar_thr=20, area_thr=0.1):
+    def __init__(
+        self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640), filter_box_candidates: bool = False, wh_thr=2, ar_thr=20, area_thr=0.1
+    ):
         super(DetectionRandomAffine, self).__init__()
         self.degrees = degrees
         self.translate = translate
@@ -533,7 +522,7 @@ class DetectionRandomAffine(DetectionTransform):
                 filter_box_candidates=self.filter_box_candidates,
                 wh_thr=self.wh_thr,
                 area_thr=self.area_thr,
-                ar_thr=self.ar_thr
+                ar_thr=self.ar_thr,
             )
             sample["image"] = img
             sample["target"] = target
@@ -552,7 +541,7 @@ class DetectionMixup(DetectionTransform):
         flip_prob: (float) prbability to apply horizontal flip to the additional sample.
     """
 
-    def __init__(self, input_dim, mixup_scale, prob=1., enable_mixup=True, flip_prob=0.5):
+    def __init__(self, input_dim, mixup_scale, prob=1.0, enable_mixup=True, flip_prob=0.5):
         super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
         self.input_dim = input_dim
         self.mixup_scale = mixup_scale
@@ -599,9 +588,7 @@ class DetectionMixup(DetectionTransform):
 
             origin_h, origin_w = cp_img.shape[:2]
             target_h, target_w = origin_img.shape[:2]
-            padded_img = np.zeros(
-                (max(origin_h, target_h), max(origin_w, target_w), 3), dtype=np.uint8
-            )
+            padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w), 3), dtype=np.uint8)
             padded_img[:origin_h, :origin_w] = cp_img
 
             x_offset, y_offset = 0, 0
@@ -609,18 +596,12 @@ class DetectionMixup(DetectionTransform):
                 y_offset = random.randint(0, padded_img.shape[0] - target_h - 1)
             if padded_img.shape[1] > target_w:
                 x_offset = random.randint(0, padded_img.shape[1] - target_w - 1)
-            padded_cropped_img = padded_img[y_offset: y_offset + target_h, x_offset: x_offset + target_w]
+            padded_cropped_img = padded_img[y_offset : y_offset + target_h, x_offset : x_offset + target_w]
 
-            cp_bboxes_origin_np = adjust_box_anns(
-                cp_labels[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h
-            )
+            cp_bboxes_origin_np = adjust_box_anns(cp_labels[:, :4].copy(), cp_scale_ratio, 0, 0, origin_w, origin_h)
             cp_bboxes_transformed_np = cp_bboxes_origin_np.copy()
-            cp_bboxes_transformed_np[:, 0::2] = np.clip(
-                cp_bboxes_transformed_np[:, 0::2] - x_offset, 0, target_w
-            )
-            cp_bboxes_transformed_np[:, 1::2] = np.clip(
-                cp_bboxes_transformed_np[:, 1::2] - y_offset, 0, target_h
-            )
+            cp_bboxes_transformed_np[:, 0::2] = np.clip(cp_bboxes_transformed_np[:, 0::2] - x_offset, 0, target_w)
+            cp_bboxes_transformed_np[:, 1::2] = np.clip(cp_bboxes_transformed_np[:, 1::2] - y_offset, 0, target_h)
 
             cls_labels = cp_labels[:, 4:5].copy()
             box_labels = cp_bboxes_transformed_np
@@ -737,9 +718,13 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         max_targets: int: max objects in single image, padding target to this size.
     """
 
-    def __init__(self, input_format: DetectionTargetsFormat = DetectionTargetsFormat.XYXY_LABEL,
-                 output_format: DetectionTargetsFormat = DetectionTargetsFormat.LABEL_CXCYWH,
-                 min_bbox_edge_size: float = 1, max_targets: int = 120):
+    def __init__(
+        self,
+        input_format: DetectionTargetsFormat = DetectionTargetsFormat.XYXY_LABEL,
+        output_format: DetectionTargetsFormat = DetectionTargetsFormat.LABEL_CXCYWH,
+        min_bbox_edge_size: float = 1,
+        max_targets: int = 120,
+    ):
         super(DetectionTargetsFormatTransform, self).__init__()
         self.input_format = input_format
         self.output_format = output_format
@@ -832,11 +817,11 @@ def get_aug_params(value: Union[tuple, float], center: float = 0):
 
 
 def get_affine_matrix(
-        target_size,
-        degrees=10,
-        translate=0.1,
-        scales=0.1,
-        shear=10,
+    target_size,
+    degrees=10,
+    translate=0.1,
+    scales=0.1,
+    shear=10,
 ):
     """
     Returns a random affine transform matrix.
@@ -906,10 +891,7 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
         # create new boxes
         corner_xs = corner_points[:, 0::2]
         corner_ys = corner_points[:, 1::2]
-        new_bboxes = (np.concatenate(
-            (np.min(corner_xs, 1), np.min(corner_ys, 1),
-             np.max(corner_xs, 1), np.max(corner_ys, 1))
-        ).reshape(4, -1).T)
+        new_bboxes = np.concatenate((np.min(corner_xs, 1), np.min(corner_ys, 1), np.max(corner_xs, 1), np.max(corner_ys, 1))).reshape(4, -1).T
     else:
         new_bboxes = np.ones((0, 4), dtype=np.float)
 
@@ -924,10 +906,11 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
         # create new boxes
         seg_points_xs = corner_points_seg[:, 0::2]
         seg_points_ys = corner_points_seg[:, 1::2]
-        new_tight_bboxes = (np.concatenate(
-            (np.nanmin(seg_points_xs, 1), np.nanmin(seg_points_ys, 1),
-             np.nanmax(seg_points_xs, 1), np.nanmax(seg_points_ys, 1))
-        ).reshape(4, -1).T)
+        new_tight_bboxes = (
+            np.concatenate((np.nanmin(seg_points_xs, 1), np.nanmin(seg_points_ys, 1), np.nanmax(seg_points_xs, 1), np.nanmax(seg_points_ys, 1)))
+            .reshape(4, -1)
+            .T
+        )
     else:
         new_tight_bboxes = np.ones((0, 4), dtype=np.float)
 
@@ -942,19 +925,18 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
 
 
 def random_affine(
-        img: np.ndarray,
-        targets: np.ndarray = (),
-        targets_seg: np.ndarray = None,
-        target_size: tuple = (640, 640),
-        degrees: Union[float, tuple] = 10,
-        translate: Union[float, tuple] = 0.1,
-        scales: Union[float, tuple] = 0.1,
-        shear: Union[float, tuple] = 10,
-        filter_box_candidates: bool = False,
-        wh_thr=2,
-        ar_thr=20,
-        area_thr=0.1
-
+    img: np.ndarray,
+    targets: np.ndarray = (),
+    targets_seg: np.ndarray = None,
+    target_size: tuple = (640, 640),
+    degrees: Union[float, tuple] = 10,
+    translate: Union[float, tuple] = 0.1,
+    scales: Union[float, tuple] = 0.1,
+    shear: Union[float, tuple] = 10,
+    filter_box_candidates: bool = False,
+    wh_thr=2,
+    ar_thr=20,
+    area_thr=0.1,
 ):
     """
     Performs random affine transform to img, targets
@@ -993,12 +975,7 @@ def random_affine(
         targets_orig = targets.copy()
         targets = apply_affine_to_bboxes(targets, targets_seg, target_size, M)
         if filter_box_candidates:
-            box_candidates_ids = _filter_box_candidates(targets_orig[:, :4],
-                                                        targets[:, :4],
-                                                        wh_thr=wh_thr,
-                                                        ar_thr=ar_thr,
-                                                        area_thr=area_thr
-                                                        )
+            box_candidates_ids = _filter_box_candidates(targets_orig[:, :4], targets[:, :4], wh_thr=wh_thr, ar_thr=ar_thr, area_thr=area_thr)
             targets = targets[box_candidates_ids]
     return img, targets
 
