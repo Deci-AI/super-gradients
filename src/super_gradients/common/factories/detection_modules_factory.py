@@ -1,38 +1,29 @@
-from typing import Any, Dict, List, Union
+from typing import Union, Any
 
 from omegaconf import DictConfig
 
-from super_gradients.training.utils.utils import HpmStruct
+from super_gradients.training.utils import HpmStruct
+from super_gradients.common.factories.base_factory import BaseFactory
+from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
 
 
-class DetectionModulesFactory:
-    """
-    The factory for creating a sub-module of a detection model according to the following scheme:
-    a module excepts arch_params and in_channels,
-    where in_channels defines channels of tensor(s) that will be accepted by a module in forward
-    """
+class DetectionModulesFactory(BaseFactory):
 
-    def __init__(self, type_dict: Dict[str, type]):
+    def __init__(self):
+        super().__init__(ALL_DETECTION_MODULES)
+
+    @staticmethod
+    def insert_module_param(conf: Union[str, dict, HpmStruct, DictConfig], name: str, value: Any):
         """
-        :param type_dict: a dictionary mapping a type name to an actual type
+        Asign a new parameter for the module
+        :param conf:    a module config, either {type_name(str): {parameters...}} or just type_name(str)
+        :param name:    parameter name
+        :param value:   parameter value
+        :return:        an update config {type_name(str): {name: value, parameters...}}
         """
-        self.type_dict = type_dict
+        if isinstance(conf, str):
+            return {conf: {name: value}}
 
-    def get(self, arch_params: Union[DictConfig, HpmStruct, Dict[str, Any]], in_channels: Union[int, List[int]]):
-        """
-        Get an instantiated module
-        :param arch_params: a configuration {type: 'type_name', other_arch_params... }},
-                            where type is a string type name or the actual type
-        :param in_channels: will be passed into the module during construction
-        """
-        arch_params['factory'] = self
-
-        module_type = arch_params['type']
-        if isinstance(module_type, type):
-            return module_type(arch_params, in_channels)
-
-        if module_type not in self.type_dict:
-            raise RuntimeError(f'Unknown object type: {module_type} in configuration. '
-                               f'Valid types are: {self.type_dict.keys()}')
-
-        return self.type_dict[module_type](arch_params, in_channels)
+        cls_type = list(conf.keys())[0]
+        conf[cls_type][name] = value
+        return conf
