@@ -1,11 +1,9 @@
 """
 A base for a detection network built according to the following scheme:
  * constructed from nested arch_params;
- * inside arch_params each nested level (module) has an explicit type parameter and other parameters it requires
- * each module accepts arch_params and in_channels
- * each module defines out_channels attribute on construction
- * in_channels defines channels of tensor(s) that will be accepted by a module in forward
- * out_channels defines channels of tensor(s) that will be returned by a module  in forward
+ * inside arch_params each nested level (module) has an explicit type and its required parameters
+ * each module accepts in_channels and other parameters
+ * each module defines out_channels property on construction
 """
 
 
@@ -31,6 +29,9 @@ class NStageBackbone(BaseDetectionModule):
     def __init__(self, in_channels: int, out_layers: List[str],
                  stem: Union[str, HpmStruct, DictConfig], stages: Union[str, HpmStruct, DictConfig],
                  context_module: Union[str, HpmStruct, DictConfig]):
+        """
+        :param out_layers: names of layers to output from the following options: 'stem', 'stageN', 'context_module'
+        """
         super().__init__(in_channels)
         factory = DetectionModulesFactory()
 
@@ -152,8 +153,8 @@ class NHeads(BaseDetectionModule):
 class CustomizableDetector(SgModule):
     """
     A customizable detector with backbone -> neck -> heads
-
     Each submodule with its parameters must be defined explicitly.
+    Modules should follow the interface of BaseDetectionModule
     """
 
     def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):

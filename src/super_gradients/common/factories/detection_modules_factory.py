@@ -15,7 +15,7 @@ class DetectionModulesFactory(BaseFactory):
     @staticmethod
     def insert_module_param(conf: Union[str, dict, HpmStruct, DictConfig], name: str, value: Any):
         """
-        Asign a new parameter for the module
+        Assign a new parameter for the module
         :param conf:    a module config, either {type_name(str): {parameters...}} or just type_name(str)
         :param name:    parameter name
         :param value:   parameter value
