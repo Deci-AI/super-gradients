@@ -764,15 +764,21 @@ class PPYoloELoss(nn.Module):
         if self.use_l1_loss:
             loss += self.loss_weight["l1"] * loss_l1
 
-        out_dict = {
-            # "loss": loss,
-            "loss_cls": loss_cls,
-            "loss_iou": loss_iou,
-            "loss_dfl": loss_dfl,
-            "loss_l1": loss_l1 if self.use_l1_loss else 0,
-        }
+        # out_dict = {
+        #
+        #     "loss_cls": loss_cls.detach(),
+        #     "loss_iou": loss_iou.detach(),
+        #     "loss_dfl": loss_dfl.detach(),
+        #     "loss_l1": loss_l1.detach() if self.use_l1_loss else 0,
+        # }
+        #
+        log_losses = torch.stack([loss_cls.detach(), loss_iou.detach(), loss_dfl.detach(), loss_l1.detach(), loss.detach()])
 
-        return loss, out_dict
+        return loss, log_losses
+
+    @property
+    def component_names(self):
+        return ["loss_cls", "loss_iou", "loss_dfl", "loss_l1", "loss"]
 
     def _df_loss(self, pred_dist: Tensor, target: Tensor) -> Tensor:
         target_left = target.long()
