@@ -28,3 +28,5 @@ treelib==1.6.1
 termcolor==1.1.0
 packaging>=20.4
 wheel>=0.38.0
+-i https://pypi.ngc.nvidia.com
+pytorch-quantization==2.1.2
