@@ -9,7 +9,7 @@ A base for a detection network built according to the following scheme:
 """
 
 
-from typing import Union, List, Dict, Type
+from typing import Union, List
 
 import torch
 from torch import nn
@@ -18,33 +18,43 @@ from omegaconf import DictConfig
 from super_gradients.training.utils.utils import HpmStruct, get_param
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.common.factories import DetectionModulesFactory
+from super_gradients.modules.detection_modules import BaseDetectionModule
+from super_gradients.common.registry import register_detection_module
 
 
-class NStageBackbone(nn.Module):
+@register_detection_module('NStageBackbone')
+class NStageBackbone(BaseDetectionModule):
     """
     A backbone with a stem -> N stages -> context module
-    Returns outputs of the layers listed in arch_params.out_layers
+    Returns outputs of the layers listed in out_layers
     """
-    def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int):
-        super().__init__()
-        factory = arch_params.factory
+    def __init__(self, in_channels: int, out_layers: List[str],
+                 stem: Union[str, HpmStruct, DictConfig], stages: Union[str, HpmStruct, DictConfig],
+                 context_module: Union[str, HpmStruct, DictConfig]):
+        super().__init__(in_channels)
+        factory = DetectionModulesFactory()
 
-        self.num_stages = max([int(k.replace('stage', '')) for k in arch_params.keys() if k.startswith('stage')])
-        self.stem = factory.get(arch_params.stem, in_channels)
+        self.num_stages = len(stages)
+        self.stem = factory.get(factory.insert_module_param(stem, 'in_channels', in_channels))
         prev_channels = self.stem.out_channels
-        for i in range(1, self.num_stages + 1):
-            setattr(self, f'stage{i}', factory.get(arch_params[f'stage{i}'], prev_channels))
-            prev_channels = getattr(self, f'stage{i}').out_channels
-        self.context_module = factory.get(arch_params.context_module, prev_channels)
+        for i in range(self.num_stages):
+            new_stage = factory.get(factory.insert_module_param(stages[i], 'in_channels', prev_channels))
+            setattr(self, f'stage{i + 1}', new_stage)
+            prev_channels = new_stage.out_channels
+        self.context_module = factory.get(factory.get(factory.insert_module_param(context_module, 'in_channels', prev_channels)))
 
-        self.out_layers = arch_params.out_layers
-        self.out_channels = self._get_out_channels()
+        self.out_layers = out_layers
+        self._out_channels = self._define_out_channels()
 
-    def _get_out_channels(self):
+    def _define_out_channels(self):
         out_channels = []
         for layer in self.out_layers:
             out_channels.append(getattr(self, layer).out_channels)
         return out_channels
+
+    @property
+    def out_channels(self):
+        return self._out_channels
 
     def forward(self, x):
 
@@ -58,26 +68,33 @@ class NStageBackbone(nn.Module):
         return outputs
 
 
-class PANNeck(nn.Module):
+@register_detection_module('PANNeck')
+class PANNeck(BaseDetectionModule):
     """
     A PAN (path aggregation network) neck with 4 stages (2 up-sampling and 2 down-sampling stages)
     Returns outputs of neck stage 2, stage 3, stage 4
     """
-    def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: List[int]):
-        super().__init__()
+    def __init__(self, in_channels: List[int],
+                 neck1: Union[str, HpmStruct, DictConfig], neck2: Union[str, HpmStruct, DictConfig],
+                 neck3: Union[str, HpmStruct, DictConfig], neck4: Union[str, HpmStruct, DictConfig]):
+        super().__init__(in_channels)
         c3_out_channels, c4_out_channels, c5_out_channels = in_channels
 
-        factory = arch_params.factory
-        self.neck1 = factory.get(arch_params.neck1, [c5_out_channels, c4_out_channels])
-        self.neck2 = factory.get(arch_params.neck2, [self.neck1.out_channels[1], c3_out_channels])
-        self.neck3 = factory.get(arch_params.neck3, [self.neck2.out_channels[1], self.neck2.out_channels[0]])
-        self.neck4 = factory.get(arch_params.neck4, [self.neck3.out_channels, self.neck1.out_channels[0]])
+        factory = DetectionModulesFactory()
+        self.neck1 = factory.get(factory.insert_module_param(neck1, 'in_channels', [c5_out_channels, c4_out_channels]))
+        self.neck2 = factory.get(factory.insert_module_param(neck2, 'in_channels', [self.neck1.out_channels[1], c3_out_channels]))
+        self.neck3 = factory.get(factory.insert_module_param(neck3, 'in_channels', [self.neck2.out_channels[1], self.neck2.out_channels[0]]))
+        self.neck4 = factory.get(factory.insert_module_param(neck4, 'in_channels', [self.neck3.out_channels, self.neck1.out_channels[0]]))
 
-        self.out_channels = [
+        self._out_channels = [
             self.neck2.out_channels[1],
             self.neck3.out_channels,
             self.neck4.out_channels,
         ]
+
+    @property
+    def out_channels(self):
+        return self._out_channels
 
     def forward(self, inputs):
         c3, c4, c5 = inputs
@@ -90,24 +107,30 @@ class PANNeck(nn.Module):
         return p3, p4, p5
 
 
-class NHeads(nn.Module):
+@register_detection_module('NHeads')
+class NHeads(BaseDetectionModule):
     """
     Apply N heads in parallel and combine predictions into the shape expected by SG detection losses
     """
-    def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: List[int]):
-        super().__init__()
-        arch_params = self._pass_num_classes(arch_params)
-        factory = arch_params.factory
+    def __init__(self, in_channels: List[int], num_classes: int, heads_list: Union[str, HpmStruct, DictConfig]):
+        super().__init__(in_channels)
+        factory = DetectionModulesFactory()
+        heads_list = self._pass_num_classes(heads_list, factory, num_classes)
 
-        self.num_heads = max([int(k.replace('head', '')) for k in arch_params.keys() if k.startswith('head')])
+        self.num_heads = len(heads_list)
         for i in range(self.num_heads):
-            setattr(self, f'head{i + 1}', factory.get(arch_params[f'head{i + 1}'], in_channels[i]))
+            new_head = factory.get(factory.insert_module_param(heads_list[i], 'in_channels', in_channels[i]))
+            setattr(self, f'head{i + 1}', new_head)
 
     @staticmethod
-    def _pass_num_classes(arch_params: HpmStruct):
-        for i in range(3):
-            arch_params[f'head{i + 1}'].num_classes = arch_params.num_classes
-        return arch_params
+    def _pass_num_classes(heads_list, factory, num_classes):
+        for i in range(len(heads_list)):
+            heads_list[i] = factory.insert_module_param(heads_list[i], 'num_classes', num_classes)
+        return heads_list
+
+    @property
+    def out_channels(self):
+        return None
 
     def forward(self, inputs):
         outputs = []
@@ -130,29 +153,25 @@ class CustomizableDetector(SgModule):
     """
     A customizable detector with backbone -> neck -> heads
 
-    A type of each submodule must be defined explicitly. The defaults are:
-      * backbone - FourStageBackbone
-      * neck - PANNeck
-      * heads - ThreeHeads
-
-    By default, initializes BatchNorm eps to 1e-3, momentum to 0.03 and sets all activations to be inplace
+    Each submodule with its parameters must be defined explicitly.
     """
 
-    def __init__(self, arch_params: Union[HpmStruct, DictConfig], type_mapping: Dict[str, Type], in_channels: int = 3):
+    def __init__(self, arch_params: Union[HpmStruct, DictConfig], in_channels: int = 3):
         """
         :param type_mapping: can be passed to resolve string type names in arch_params to actual types
         """
         super().__init__()
 
+        factory = DetectionModulesFactory()
+
         # move num_classes into heads params
         if get_param(arch_params, 'num_classes'):
-            arch_params.heads.num_classes = arch_params.num_classes
+            arch_params.heads = factory.insert_module_param(arch_params.heads, 'num_classes', arch_params.num_classes)
 
-        self.factory = DetectionModulesFactory(type_mapping)
         self.arch_params = arch_params
-        self.backbone = self.factory.get(arch_params.backbone, in_channels)
-        self.neck = self.factory.get(arch_params.neck, self.backbone.out_channels)
-        self.heads = self.factory.get(arch_params.heads, self.neck.out_channels)
+        self.backbone = factory.get(factory.insert_module_param(arch_params.backbone, 'in_channels', in_channels))
+        self.neck = factory.get(factory.insert_module_param(arch_params.neck, 'in_channels', self.backbone.out_channels))
+        self.heads = factory.get(factory.insert_module_param(arch_params.heads, 'in_channels', self.neck.out_channels))
 
         self._initialize_weights(arch_params)
 
