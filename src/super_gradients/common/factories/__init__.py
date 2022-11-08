@@ -22,4 +22,5 @@ __all__ = [
     "ActivationsTypeFactory",
     "TypeFactory",
     "BaseFactory",
+    "DetectionModulesFactory",
 ]
