@@ -68,11 +68,11 @@ In this section we present the modifications needed in order to launch your trai
 
 #### Integrating Your Training Code: Main components:
 
-<span style="text-decoration:underline;">SgModel </span>- the main class in charge of training, testing, logging and basically everything that has to do with the execution of training code.
+<span style="text-decoration:underline;">Trainer </span>- the main class in charge of training, testing, logging and basically everything that has to do with the execution of training code.
 
-<span style="text-decoration:underline;">DatasetInterface</span> - which is passed as an argument to the SgModel and wraps the training set, validation set and optionally a test set for the SgModel instance to work with accordingly.
+<span style="text-decoration:underline;">DatasetInterface</span> - which is passed as an argument to the Trainer and wraps the training set, validation set and optionally a test set for the Trainer instance to work with accordingly.
 
-<span style="text-decoration:underline;">SgModel.net</span> -The network to be used for training/testing (of torch.nn.Module type).
+<span style="text-decoration:underline;">Trainer.net</span> -The network to be used for training/testing (of torch.nn.Module type).
 
 
 #### Integrating Your Training Code - Complete Walkthrough: Dataset
@@ -241,13 +241,13 @@ class Top5(torchmetrics.Accuracy):
 
 #### Integrating Your Training Code- Complete Walkthrough: Training script
 
-We instantiate an SgModel and a UserDatasetInterface, then call connect_dataset_interface which will initialize the dataloaders and pass additional dataset parameters to the SgModel instance.
+We instantiate an Trainer and a UserDatasetInterface, then call connect_dataset_interface which will initialize the dataloaders and pass additional dataset parameters to the Trainer instance.
 
 
 ```
-from super_gradients.training import SgModel
+from super_gradients.training import Trainer
 
-sg_model = SgModel(experiment_name='LeNet_cifar10_example')
+sg_model = Trainer(experiment_name='LeNet_cifar10_example')
 dataset_params = {"batch_size": 256}
 dataset = UserDataset(dataset_params)
 sg_model.connect_dataset_interface(dataset)
@@ -255,7 +255,7 @@ sg_model.connect_dataset_interface(dataset)
 ```
 
 
-**Now, we pass a LeNet instance we defined above to the SgModel:**
+**Now, we pass a LeNet instance we defined above to the Trainer:**
 
 
 ```
@@ -293,7 +293,7 @@ train_params = {"max_epochs": 250,
                "launch_tensorboard": False,
                "train_metrics_list": train_metrics_list,
                "valid_metrics_list": valid_metrics_list,
-
+               
                "metric_to_watch": "Accuracy",
                "greater_metric_to_watch_is_better": True}
 
@@ -589,11 +589,11 @@ You can also connect your training logs into Weights and Biases (WandB) assuming
     **2nd option:**
 
 
-        Set the “launch_tensorboard_process” flag in your training_params passed to SgModel.train(...), and follow instructions displayed in the shell.
+        Set the “launch_tensorboard_process” flag in your training_params passed to Trainer.train(...), and follow instructions displayed in the shell.
 
 
 * **To resume training –**
-When building the network- call SgModel.build_model(...arch_params={'load_checkpoint'True...}). Doing so, will load the network’s weights, as well as any relevant information for resuming training (monitored metric values, optimizer states, etc) with the latest checkpoint. For more advanced usage see SgModel.build_model docs in code.
+When building the network- call Trainer.build_model(...arch_params={'load_checkpoint'True...}). Doing so, will load the network’s weights, as well as any relevant information for resuming training (monitored metric values, optimizer states, etc) with the latest checkpoint. For more advanced usage see Trainer.build_model docs in code.
 
 
 
@@ -613,7 +613,7 @@ When building the network- call SgModel.build_model(...arch_params={'load_checkp
 
 ## Dataset Parameters
 
-dataset_params argument passed to SgModel.build_model().
+dataset_params argument passed to Trainer.build_model().
 
 `batch_size`: int (default=64)
 
@@ -637,13 +637,13 @@ The remote s3 link from which to download the data (optional).
 
 ## Network Architectures
 
-The following architectures are implemented in SuperGradients’ code, and can be initialized by passing their name (i.e string) to SgModel.build_model easily.
+The following architectures are implemented in SuperGradients’ code, and can be initialized by passing their name (i.e string) to Trainer.build_model easily.
 
 For example:
 
 
 ```
-sg_model = SgModel("resnet50_experiment")
+sg_model = Trainer("resnet50_experiment")
 sg_model.build_model(architecture="resnet50")
 ```
 
@@ -894,7 +894,7 @@ Example- how to load a pretrained model:
 
 
 ```
-sg_model = SgModel("resnet50_experiment")
+sg_model = Trainer("resnet50_experiment")
 
 sg_model.build_model(architecture="resnet50",
                       arch_params={"pretrained_weights": "imagenet", "num_classes": 1000}
