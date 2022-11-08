@@ -6,7 +6,7 @@ lr_mode: cosine
 cosine_final_lr_ratio: 0.05
 lr_warmup_epochs: 5
 lr_cooldown_epochs: 15
-initial_lr:  0.02
+initial_lr:  0.0002
 zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
 
@@ -17,12 +17,17 @@ loss:
     num_classes: ${arch_params.num_classes}
     reg_max: ${arch_params.head.reg_max}
 
-
-optimizer: SGD
+optimizer: AdamW
 optimizer_params:
-  momentum: 0.9
   weight_decay: 0.0005
-  nesterov: True
+
+#optimizer: SGD
+#optimizer_params:
+#  momentum: 0.9
+#  weight_decay: 0.0005
+#  nesterov: True
+
+compute_losses_on_valid: False
 
 ema: True
 mixed_precision: True

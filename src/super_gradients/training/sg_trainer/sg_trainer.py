@@ -1745,9 +1745,11 @@ class Trainer:
 
                 output = self.net(inputs)
 
-                if self.criterion is not None:
+                if self.criterion is not None and self.training_params.compute_losses_on_valid:
                     # STORE THE loss_items ONLY, THE 1ST RETURNED VALUE IS THE loss FOR BACKPROP DURING TRAINING
                     loss_tuple = self._get_losses(output, targets)[1].cpu()
+                else:
+                    loss_tuple = None
 
                 context.update_context(batch_idx=batch_idx, inputs=inputs, preds=output, target=targets, loss_log_items=loss_tuple, **additional_batch_items)
 
