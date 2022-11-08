@@ -125,6 +125,7 @@ class NHeads(BaseDetectionModule):
     """
     Apply N heads in parallel and combine predictions into the shape expected by SG detection losses
     """
+
     def __init__(self, in_channels: List[int], num_classes: int, heads_list: Union[str, HpmStruct, DictConfig]):
         super().__init__(in_channels)
         factory = DetectionModulesFactory()
