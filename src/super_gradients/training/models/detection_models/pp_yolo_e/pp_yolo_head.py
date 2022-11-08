@@ -227,6 +227,9 @@ class PPYOLOEHead(nn.Module):
             stride_tensor.append(torch.full([h * w, 1], stride, dtype=dtype))
         anchor_points = torch.concat(anchor_points)
         stride_tensor = torch.concat(stride_tensor)
+        if feats is not None:
+            anchor_points = anchor_points.to(feats[0].device)
+            stride_tensor = stride_tensor.to(feats[0].device)
         return anchor_points, stride_tensor
 
     def forward(self, feats: Tuple[Tensor]):
