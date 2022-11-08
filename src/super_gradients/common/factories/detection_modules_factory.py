@@ -8,7 +8,6 @@ from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
 
 
 class DetectionModulesFactory(BaseFactory):
-
     def __init__(self):
         super().__init__(ALL_DETECTION_MODULES)
 
