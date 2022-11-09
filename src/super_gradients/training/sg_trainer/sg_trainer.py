@@ -193,7 +193,7 @@ class Trainer:
         kwargs = parse_args(cfg, cls.__init__)
 
         trainer = Trainer(**kwargs)
-
+        raise ValueError("STOPPP")
         # INSTANTIATE DATA LOADERS
         train_dataloader = dataloaders.get(
             name=cfg.train_dataloader, dataset_params=cfg.dataset_params.train_dataset_params, dataloader_params=cfg.dataset_params.train_dataloader_params
