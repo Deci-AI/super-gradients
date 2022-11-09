@@ -8,7 +8,6 @@ from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from torch import nn, Tensor
 
 from super_gradients.modules import ConvBNAct
-from super_gradients.training.models.detection_models.pp_yolo_e.nms import MultiClassNMS
 
 
 def bias_init_with_prob(prior_prob=0.01):
@@ -82,7 +81,6 @@ class PPYOLOEHead(nn.Module):
     def __init__(
         self,
         num_classes: int,
-        nms: MultiClassNMS,
         in_channels: Tuple[int, int, int],
         activation: Type[nn.Module] = nn.SiLU,
         fpn_strides: Tuple[int, int, int] = (32, 16, 8),
@@ -120,8 +118,6 @@ class PPYOLOEHead(nn.Module):
         self.grid_cell_offset = grid_cell_offset
         self.reg_max = reg_max
         self.eval_size = eval_size
-
-        self.nms = nms
 
         self.exclude_nms = exclude_nms
         self.exclude_post_process = exclude_post_process

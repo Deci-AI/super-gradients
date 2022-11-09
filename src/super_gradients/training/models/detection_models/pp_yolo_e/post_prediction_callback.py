@@ -3,7 +3,6 @@ from typing import List
 import torch
 import torchvision
 
-from super_gradients.training.models.detection_models.pp_yolo_e.nms import MultiClassNMS
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 
 
@@ -23,7 +22,6 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         self.conf = conf
         self.iou = iou
         self.classes = classes
-        self.nms = MultiClassNMS()
         self.max_pred = max_predictions
         self.with_confidence = with_confidence
 
@@ -37,7 +35,7 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         nms_result = []
         for pred_bboxes, pred_scores in zip(*predictions):
             # TODO: Verify shape
-            # pred_bboxes [C, Anchors],
+            # pred_bboxes [Anchors, C],
             # pred_scores [Anchors, 4]
             pred_cls_conf, pred_cls_label = torch.max(pred_scores, dim=1)
             conf_mask = pred_cls_conf >= self.conf

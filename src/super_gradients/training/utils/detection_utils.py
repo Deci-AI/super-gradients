@@ -685,15 +685,21 @@ class DetectionCollateFN:
 
 class PPYoloECollateFN:
     """
-    Collate function for Yolox training
+    Collate function for PPYoloE training
     """
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         batch = default_collate(data)
         ims, targets = batch
-        return ims, self._format_targets(targets)
+        targets = self._format_targets(targets)
+        return ims, targets
 
     def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
+        """
+
+        :param targets:
+        :return: Tensor of shape [B, N, 6], where 6 elements are (image index in batch, x, y, x, y, label)
+        """
         # Same collate as in YoloX. We convert to PPYoloTargets in the loss
         nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
         targets_merged = []
@@ -701,6 +707,7 @@ class PPYoloECollateFN:
             targets_im = targets[i, : nlabel[i]]
             batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
             targets_merged.append(torch.cat((batch_column, targets_im), 1))
+
         return torch.cat(targets_merged, 0)
 
 

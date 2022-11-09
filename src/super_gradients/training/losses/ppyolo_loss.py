@@ -9,6 +9,7 @@ from super_gradients.training.utils.distributed_training_utils import (
     get_world_size,
 )
 from torch import nn, Tensor
+import torch.nn.functional as F
 
 
 def batch_iou_similarity(box1, box2, eps=1e-9):
@@ -679,22 +680,56 @@ class PPYoloELoss(nn.Module):
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
 
-    def _format_targets(self, targets: torch.Tensor) -> Mapping[str, torch.Tensor]:
+    @torch.no_grad()
+    def _format_targets(self, targets: torch.Tensor, batch_size: int) -> Mapping[str, torch.Tensor]:
         """
         Convert targets from YoloX format to PPYolo since its the easiest (not the cleanest) way to
         have PP Yolo training & metrics computed
 
-        :param targets: (B, N, 6) (index, x,y,w,h, c)
+        :param targets: (N, 6) (index, x1, y1, x2, y2, c)
         :return: (Dictionary [str,Tensor]) with keys:
          - gt_class: (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
          - gt_bbox: (Tensor, float32): Ground truth bboxes, shape(B, n, 4) in x1y1x2y2 format
          - pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
         """
-        gt_bbox = targets[:, :, 1:5]
-        gt_class = targets[:, :, 5:6].long()
-        pad_gt_mask = gt_bbox.sum(dim=2, keepdims=True) > 0
+        image_index = targets[:, 0]
+        gt_bbox = targets[:, 1:5]
+        gt_class = targets[:, 5:6].long()
 
-        return {"gt_class": gt_class, "gt_bbox": gt_bbox, "pad_gt_mask": pad_gt_mask}
+        per_image_class = []
+        per_image_bbox = []
+        per_image_pad_mask = []
+
+        max_boxes = 0
+        for i in range(batch_size):
+            mask = image_index == i
+
+            image_labels = gt_class[mask]
+            image_bboxes = gt_bbox[mask, :]
+            valid_bboxes = image_bboxes.sum(dim=1, keepdims=True) > 0
+
+            per_image_class.append(image_labels)
+            per_image_bbox.append(image_bboxes)
+            per_image_pad_mask.append(valid_bboxes)
+
+            max_boxes = max(max_boxes, mask.sum().item())
+
+        for i in range(batch_size):
+            elements_to_pad = max_boxes - len(per_image_class[i])
+            padding_left = 0
+            padding_right = 0
+            padding_top = 0
+            padding_bottom = elements_to_pad
+            pad = padding_left, padding_right, padding_top, padding_bottom
+            per_image_class[i] = F.pad(per_image_class[i], pad, mode="constant", value=0)
+            per_image_bbox[i] = F.pad(per_image_bbox[i], pad, mode="constant", value=0)
+            per_image_pad_mask[i] = F.pad(per_image_pad_mask[i], pad, mode="constant", value=0)
+
+        return {
+            "gt_class": torch.stack(per_image_class, dim=0),
+            "gt_bbox": torch.stack(per_image_bbox, dim=0),
+            "pad_gt_mask": torch.stack(per_image_pad_mask, dim=0),
+        }
 
     def forward(
         self,
@@ -718,7 +753,7 @@ class PPYoloELoss(nn.Module):
             stride_tensor,
         ) = outputs
 
-        targets = self._format_targets(targets)  # yolox -> ppyolo
+        targets = self._format_targets(targets, batch_size=pred_scores.size(0))  # yolox -> ppyolo
 
         anchor_points_s = anchor_points / stride_tensor
         pred_bboxes = self._bbox_decode(anchor_points_s, pred_distri)
