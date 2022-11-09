@@ -11,7 +11,7 @@ from super_gradients.training.models.detection_models.csp_resnet import CSPResNe
 from super_gradients.training.utils.hydra_utils import normalize_path
 
 
-class TestPPYOLOE(unittest.TestCase):
+class PPYoloETests(unittest.TestCase):
     def get_model_arch_params(self, config_name):
         GlobalHydra.instance().clear()
         sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
