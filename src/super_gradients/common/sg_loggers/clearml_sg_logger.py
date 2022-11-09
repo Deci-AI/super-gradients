@@ -15,8 +15,11 @@ logger = get_logger(__name__)
 
 try:
     from clearml import Task
-except (ModuleNotFoundError, ImportError, NameError):
-    pass  # no action or logging - this is normal in most cases
+
+    _imported_deci_lab_failure = None
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    logger.warn("Failed to import deci_lab_client")
+    _imported_clear_ml_failure = import_err
 
 
 class ClearMLSGLogger(BaseSGLogger):
@@ -63,6 +66,10 @@ class ClearMLSGLogger(BaseSGLogger):
             self.s3_location_available,
             self.s3_location_available,
         )
+
+        if _imported_clear_ml_failure is not None:
+            raise _imported_clear_ml_failure
+
         self.setup(project_name, experiment_name)
 
         self.save_checkpoints = save_checkpoints_remote
