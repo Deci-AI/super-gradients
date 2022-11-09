@@ -52,10 +52,12 @@ class StderrTee(object):
 
 
 def copy_file(src_filename: str, dest_filename: str, copy_mode: str = "w"):
+    """Copy a file from source to destination. Also works when the destination folder does not exist."""
     os.makedirs(os.path.dirname(dest_filename), exist_ok=True)
-    with open(src_filename, "r", encoding="utf-8") as src:
-        with open(dest_filename, copy_mode) as dst:
-            dst.write(src.read())
+    if os.path.exists(src_filename):
+        with open(src_filename, "r", encoding="utf-8") as src:
+            with open(dest_filename, copy_mode) as dst:
+                dst.write(src.read())
 
 
 class ConsoleSink:
