@@ -180,7 +180,7 @@ class DetectionPostPredictionCallback(ABC, nn.Module):
         super().__init__()
 
     @abstractmethod
-    def forward(self, x, device: str):
+    def forward(self, x, device: str, image_shape: Tuple[int, int]):
         """
 
         :param x:       the output of your model

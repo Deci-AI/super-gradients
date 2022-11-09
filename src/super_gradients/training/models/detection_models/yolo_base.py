@@ -5,46 +5,43 @@ import torch
 import torch.nn as nn
 
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
-from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, \
-    CSPDarknet53, get_yolo_type_params, SPP
+from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
 from super_gradients.training.models.sg_module import SgModule
-from super_gradients.training.utils.detection_utils import non_max_suppression, \
-    matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
+from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 
-COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors([[10, 13, 16, 30, 33, 23],
-                                                  [30, 61, 62, 45, 59, 119],
-                                                  [116, 90, 156, 198, 373, 326]],
-                                                 strides=[8, 16, 32])  # output strides of all yolo outputs
+COCO_DETECTION_80_CLASSES_BBOX_ANCHORS = Anchors(
+    [[10, 13, 16, 30, 33, 23], [30, 61, 62, 45, 59, 119], [116, 90, 156, 198, 373, 326]], strides=[8, 16, 32]
+)  # output strides of all yolo outputs
 
 ANCHORSLESS_DUMMY_ANCHORS = Anchors([[0, 0], [0, 0], [0, 0]], strides=[8, 16, 32])
 
 
 DEFAULT_YOLO_ARCH_PARAMS = {
-    'num_classes': 80,  # Number of classes to predict
-    'depth_mult_factor': 1.0,  # depth multiplier for the entire model
-    'width_mult_factor': 1.0,  # width multiplier for the entire model
-    'channels_in': 3,  # Number of channels in the input image
-    'skip_connections_list': [(12, [6]), (16, [4]), (19, [14]), (22, [10]), (24, [17, 20])],
+    "num_classes": 80,  # Number of classes to predict
+    "depth_mult_factor": 1.0,  # depth multiplier for the entire model
+    "width_mult_factor": 1.0,  # width multiplier for the entire model
+    "channels_in": 3,  # Number of channels in the input image
+    "skip_connections_list": [(12, [6]), (16, [4]), (19, [14]), (22, [10]), (24, [17, 20])],
     # A list defining skip connections. format is '[target: [source1, source2, ...]]'. Each item defines a skip
     # connection from all sources to the target according to the layer's index (count starts from the backbone)
-    'backbone_connection_channels': [1024, 512, 256],  # width of backbone channels that are concatenated with the head
+    "backbone_connection_channels": [1024, 512, 256],  # width of backbone channels that are concatenated with the head
     # True if width_mult_factor is applied to the backbone (is the case with the default backbones)
     # which means that backbone_connection_channels should be used with a width_mult_factor
     # False if backbone_connection_channels should be used as is
-    'scaled_backbone_width': True,
-    'fuse_conv_and_bn': False,  # Fuse sequential Conv + B.N layers into a single one
-    'add_nms': False,  # Add the NMS module to the computational graph
-    'nms_conf': 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
-    'nms_iou': 0.45,  # When add_nms is True IoU threshold for NMS algorithm
+    "scaled_backbone_width": True,
+    "fuse_conv_and_bn": False,  # Fuse sequential Conv + B.N layers into a single one
+    "add_nms": False,  # Add the NMS module to the computational graph
+    "nms_conf": 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
+    "nms_iou": 0.45,  # When add_nms is True IoU threshold for NMS algorithm
     # (with smaller value more boxed will be considered "the same" and removed)
-    'yolo_type': 'yoloX',  # Type of yolo to build: 'yoloX' is only supported currently
-    'stem_type': None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
-    'depthwise': False,  # use depthwise separable convolutions all over the model
-    'xhead_inter_channels': None,  # (has an impact only if yolo_type is yoloX)
+    "yolo_type": "yoloX",  # Type of yolo to build: 'yoloX' is only supported currently
+    "stem_type": None,  # 'focus' and '6x6' are supported, by default is defined by yolo_type and yolo_version
+    "depthwise": False,  # use depthwise separable convolutions all over the model
+    "xhead_inter_channels": None,  # (has an impact only if yolo_type is yoloX)
     # Channels in classification and regression branches of the detecting blocks;
     # if is None the first of input channels will be used by default
-    'xhead_groups': None,  # (has an impact only if yolo_type is yoloX)
+    "xhead_groups": None,  # (has an impact only if yolo_type is yoloX)
     # Num groups in convs in classification and regression branches of the detecting blocks;
     # if None default groups will be used according to conv type
     # (1 for Conv and depthwise for GroupedConvBlock)
@@ -54,9 +51,15 @@ DEFAULT_YOLO_ARCH_PARAMS = {
 class YoloPostPredictionCallback(DetectionPostPredictionCallback):
     """Non-Maximum Suppression (NMS) module"""
 
-    def __init__(self, conf: float = 0.001, iou: float = 0.6, classes: List[int] = None,
-                 nms_type: NMS_Type = NMS_Type.ITERATIVE, max_predictions: int = 300,
-                 with_confidence: bool = True):
+    def __init__(
+        self,
+        conf: float = 0.001,
+        iou: float = 0.6,
+        classes: List[int] = None,
+        nms_type: NMS_Type = NMS_Type.ITERATIVE,
+        max_predictions: int = 300,
+        with_confidence: bool = True,
+    ):
         """
         :param conf: confidence threshold
         :param iou: IoU threshold                                       (used in NMS_Type.ITERATIVE)
@@ -74,25 +77,23 @@ class YoloPostPredictionCallback(DetectionPostPredictionCallback):
         self.max_pred = max_predictions
         self.with_confidence = with_confidence
 
-    def forward(self, x, device: str = None):
+    def forward(self, x, device: str, image_shape: Tuple[int, int]):
 
         if self.nms_type == NMS_Type.ITERATIVE:
-            nms_result = non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou,
-                                             with_confidence=self.with_confidence)
+            nms_result = non_max_suppression(x[0], conf_thres=self.conf, iou_thres=self.iou, with_confidence=self.with_confidence)
         else:
-            nms_result = matrix_non_max_suppression(x[0], conf_thres=self.conf,
-                                                    max_num_of_detections=self.max_pred)
+            nms_result = matrix_non_max_suppression(x[0], conf_thres=self.conf, max_num_of_detections=self.max_pred)
 
         return self._filter_max_predictions(nms_result)
 
     def _filter_max_predictions(self, res: List) -> List:
-        res[:] = [im[:self.max_pred] if (im is not None and im.shape[0] > self.max_pred) else im for im in res]
+        res[:] = [im[: self.max_pred] if (im is not None and im.shape[0] > self.max_pred) else im for im in res]
 
         return res
 
 
 class Concat(nn.Module):
-    """ CONCATENATE A LIST OF TENSORS ALONG DIMENSION"""
+    """CONCATENATE A LIST OF TENSORS ALONG DIMENSION"""
 
     def __init__(self, dimension=1):
         super().__init__()
@@ -103,9 +104,16 @@ class Concat(nn.Module):
 
 
 class DetectX(nn.Module):
-
-    def __init__(self, num_classes: int, stride: torch.Tensor, activation_func_type: type, channels: list,
-                 depthwise=False, groups: int = None, inter_channels: Union[int, List] = None):
+    def __init__(
+        self,
+        num_classes: int,
+        stride: torch.Tensor,
+        activation_func_type: type,
+        channels: list,
+        depthwise=False,
+        groups: int = None,
+        inter_channels: Union[int, List] = None,
+    ):
         """
         :param stride:          strides of each predicting level
         :param channels:        input channels into all detecting layers
@@ -125,7 +133,7 @@ class DetectX(nn.Module):
         self.n_anchors = 1
         self.grid = [torch.zeros(1)] * self.detection_layers_num  # init grid
 
-        self.register_buffer('stride', stride)
+        self.register_buffer("stride", stride)
 
         self.cls_convs = nn.ModuleList()
         self.reg_convs = nn.ModuleList()
@@ -136,21 +144,26 @@ class DetectX(nn.Module):
         ConvBlock = GroupedConvBlock if depthwise else Conv
 
         inter_channels = inter_channels or channels[0]
-        inter_channels = inter_channels if isinstance(inter_channels, list) \
-            else [inter_channels] * self.detection_layers_num
+        inter_channels = inter_channels if isinstance(inter_channels, list) else [inter_channels] * self.detection_layers_num
         for i in range(self.detection_layers_num):
             self.stems.append(Conv(channels[i], inter_channels[i], 1, 1, activation_func_type))
 
             self.cls_convs.append(
-                nn.Sequential(*[ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
-                                          groups=groups),
-                                ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
-                                          groups=groups)]))
+                nn.Sequential(
+                    *[
+                        ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type, groups=groups),
+                        ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type, groups=groups),
+                    ]
+                )
+            )
             self.reg_convs.append(
-                nn.Sequential(*[ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
-                                          groups=groups),
-                                ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type,
-                                          groups=groups)]))
+                nn.Sequential(
+                    *[
+                        ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type, groups=groups),
+                        ConvBlock(inter_channels[i], inter_channels[i], 3, 1, activation_func_type, groups=groups),
+                    ]
+                )
+            )
 
             self.cls_preds.append(nn.Conv2d(inter_channels[i], self.n_anchors * self.num_classes, 1, 1, 0))
             self.reg_preds.append(nn.Conv2d(inter_channels[i], 4, 1, 1, 0))
@@ -206,8 +219,7 @@ class AbstractYoloBackbone:
             # PREDICT THE NEXT LAYER'S OUTPUT
             x = layer_module(x)
             # IF INDICATED APPEND THE OUTPUT TO extracted_intermediate_layers O.W. APPEND None
-            extracted_intermediate_layers.append(x) if layer_idx in self._layer_idx_to_extract \
-                else extracted_intermediate_layers.append(None)
+            extracted_intermediate_layers.append(x) if layer_idx in self._layer_idx_to_extract else extracted_intermediate_layers.append(None)
 
         return extracted_intermediate_layers
 
@@ -228,14 +240,14 @@ class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
     """Implements the Regnet module and inherits the forward pass to extract layers indicated in arch_params"""
 
     def __init__(self, arch_params):
-        backbone_params = {**arch_params.backbone_params, 'backbone_mode': True, 'num_classes': None}
-        backbone_params.pop('spp_kernels', None)
+        backbone_params = {**arch_params.backbone_params, "backbone_mode": True, "num_classes": None}
+        backbone_params.pop("spp_kernels", None)
         AnyNetX.__init__(self, **backbone_params)
 
         # LAST ANYNETX STAGE -> STAGE + SPP IF SPP_KERNELS IS GIVEN
-        spp_kernels = get_param(arch_params.backbone_params, 'spp_kernels', None)
+        spp_kernels = get_param(arch_params.backbone_params, "spp_kernels", None)
         if spp_kernels:
-            activation_type = nn.SiLU if arch_params.yolo_type == 'yoloX' else nn.Hardswish
+            activation_type = nn.SiLU if arch_params.yolo_type == "yoloX" else nn.Hardswish
             self.net.stage_3 = self.add_spp_to_stage(self.net.stage_3, spp_kernels, activation_type=activation_type)
             self.initialize_weight()
 
@@ -247,7 +259,7 @@ class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
         AbstractYoloBackbone.__init__(self, arch_params)
 
         # WE KEEP A LIST OF THE OUTPUTS WIDTHS (NUM FEATURES) TO BE CONNECTED TO THE HEAD
-        self.backbone_connection_channels = arch_params.backbone_params['ls_block_width'][1:][::-1]
+        self.backbone_connection_channels = arch_params.backbone_params["ls_block_width"][1:][::-1]
 
     @staticmethod
     def add_spp_to_stage(anynetx_stage: Stage, spp_kernels: Tuple[int], activation_type):
@@ -277,45 +289,46 @@ class YoloHead(nn.Module):
         # FLATTEN THE SOURCE LIST INTO A LIST OF INDICES
         self._layer_idx_to_extract = [idx for sub_l in self._skip_connections_dict.values() for idx in sub_l]
 
-        _, block, activation_type, width_mult, depth_mult = get_yolo_type_params(arch_params.yolo_type,
-                                                                                 arch_params.width_mult_factor,
-                                                                                 arch_params.depth_mult_factor)
+        _, block, activation_type, width_mult, depth_mult = get_yolo_type_params(
+            arch_params.yolo_type, arch_params.width_mult_factor, arch_params.depth_mult_factor
+        )
 
-        backbone_connector = [width_mult(c) if arch_params.scaled_backbone_width else c
-                              for c in arch_params.backbone_connection_channels]
+        backbone_connector = [width_mult(c) if arch_params.scaled_backbone_width else c for c in arch_params.backbone_connection_channels]
 
         DownConv = GroupedConvBlock if depthwise else Conv
 
         self._modules_list = nn.ModuleList()
         self._modules_list.append(Conv(backbone_connector[0], width_mult(512), 1, 1, activation_type))  # 10
-        self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 11
+        self._modules_list.append(nn.Upsample(None, 2, "nearest"))  # 11
         self._modules_list.append(Concat(1))  # 12
-        self._modules_list.append(
-            block(backbone_connector[1] + width_mult(512), width_mult(512), depth_mult(3), activation_type, False,
-                  depthwise))  # 13
+        self._modules_list.append(block(backbone_connector[1] + width_mult(512), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 13
 
         self._modules_list.append(Conv(width_mult(512), width_mult(256), 1, 1, activation_type))  # 14
-        self._modules_list.append(nn.Upsample(None, 2, 'nearest'))  # 15
+        self._modules_list.append(nn.Upsample(None, 2, "nearest"))  # 15
         self._modules_list.append(Concat(1))  # 16
-        self._modules_list.append(
-            block(backbone_connector[2] + width_mult(256), width_mult(256), depth_mult(3), activation_type, False,
-                  depthwise))  # 17
+        self._modules_list.append(block(backbone_connector[2] + width_mult(256), width_mult(256), depth_mult(3), activation_type, False, depthwise))  # 17
 
         self._modules_list.append(DownConv(width_mult(256), width_mult(256), 3, 2, activation_type))  # 18
         self._modules_list.append(Concat(1))  # 19
-        self._modules_list.append(
-            block(2 * width_mult(256), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 20
+        self._modules_list.append(block(2 * width_mult(256), width_mult(512), depth_mult(3), activation_type, False, depthwise))  # 20
 
         self._modules_list.append(DownConv(width_mult(512), width_mult(512), 3, 2, activation_type))  # 21
         self._modules_list.append(Concat(1))  # 22
-        self._modules_list.append(
-            block(2 * width_mult(512), width_mult(1024), depth_mult(3), activation_type, False, depthwise))  # 23
+        self._modules_list.append(block(2 * width_mult(512), width_mult(1024), depth_mult(3), activation_type, False, depthwise))  # 23
 
         detect_input_channels = [width_mult(v) for v in (256, 512, 1024)]
         strides = anchors.stride
         self._modules_list.append(
-            DetectX(num_classes, strides, activation_type, channels=detect_input_channels, depthwise=depthwise,
-                    groups=xhead_groups, inter_channels=xhead_inter_channels))  # 24
+            DetectX(
+                num_classes,
+                strides,
+                activation_type,
+                channels=detect_input_channels,
+                depthwise=depthwise,
+                groups=xhead_groups,
+                inter_channels=xhead_inter_channels,
+            )
+        )  # 24
 
         self.anchors = anchors
         self.width_mult = width_mult
@@ -332,18 +345,20 @@ class YoloHead(nn.Module):
         # RUN OVER THE MODULE LIST WITHOUT THE FINAL LAYER & START COUNTER FROM THE END OF THE BACKBONE
         for layer_idx, layer_module in enumerate(self._modules_list[:-1], start=num_layers_in_backbone):
             # IF THE LAYER APPEARS IN THE KEYS IT INSERT THE PRECIOUS OUTPUT AND THE INDICATED SKIP CONNECTIONS
-            out = layer_module([out, intermediate_output[self._skip_connections_dict[layer_idx][0]]]) \
-                if layer_idx in self._skip_connections_dict.keys() else layer_module(out)
+            out = (
+                layer_module([out, intermediate_output[self._skip_connections_dict[layer_idx][0]]])
+                if layer_idx in self._skip_connections_dict.keys()
+                else layer_module(out)
+            )
 
             # IF INDICATED APPEND THE OUTPUT TO inter_layer_idx_to_extract O.W. APPEND None
-            intermediate_output.append(out) if layer_idx in self._layer_idx_to_extract \
-                else intermediate_output.append(None)
+            intermediate_output.append(out) if layer_idx in self._layer_idx_to_extract else intermediate_output.append(None)
 
         # INSERT THE REMAINING LAYERS INTO THE Detect LAYER
         last_idx = len(self._modules_list) + num_layers_in_backbone - 1
-        return self._modules_list[-1]([intermediate_output[self._skip_connections_dict[last_idx][0]],
-                                       intermediate_output[self._skip_connections_dict[last_idx][1]],
-                                       out])
+        return self._modules_list[-1](
+            [intermediate_output[self._skip_connections_dict[last_idx][0]], intermediate_output[self._skip_connections_dict[last_idx][1]], out]
+        )
 
 
 class YoloBase(SgModule):
@@ -359,7 +374,7 @@ class YoloBase(SgModule):
         self.num_classes = self.arch_params.num_classes
         # THE MODEL'S MODULES
         self._backbone = backbone(arch_params=self.arch_params)
-        if hasattr(self._backbone, 'backbone_connection_channels'):
+        if hasattr(self._backbone, "backbone_connection_channels"):
             self.arch_params.scaled_backbone_width = False
             self.arch_params.backbone_connection_channels = self._backbone.backbone_connection_channels
 
@@ -383,8 +398,10 @@ class YoloBase(SgModule):
         try:
             super().load_state_dict(state_dict, strict)
         except RuntimeError as e:
-            raise RuntimeError(f"Got exception {e}, if a mismatch between expected and given state_dict keys exist, "
-                               f"checkpoint may have been saved after fusing conv and bn. use fuse_conv_bn before loading.")
+            raise RuntimeError(
+                f"Got exception {e}, if a mismatch between expected and given state_dict keys exist, "
+                f"checkpoint may have been saved after fusing conv and bn. use fuse_conv_bn before loading."
+            )
 
     def _initialize_module(self):
         self._check_strides()
@@ -404,9 +421,9 @@ class YoloBase(SgModule):
         stride = torch.tensor([s / x.shape[-2] for x in self.forward(dummy_input)])
         stride = stride.to(m.stride.device)
         if not torch.equal(m.stride, stride):
-            raise RuntimeError('Provided anchor strides do not match the model strides')
+            raise RuntimeError("Provided anchor strides do not match the model strides")
 
-        self.register_buffer('stride', m.stride)  # USED ONLY FOR CONVERSION
+        self.register_buffer("stride", m.stride)  # USED ONLY FOR CONVERSION
 
     def _initialize_biases(self):
         """initialize biases into DetectX()"""
@@ -436,7 +453,7 @@ class YoloBase(SgModule):
         :param input_size: expected input size
         :return:
         """
-        assert not self.training, 'model has to be in eval mode to be converted'
+        assert not self.training, "model has to be in eval mode to be converted"
 
         # Verify dummy_input from converter is of multiple of the grid size
         max_stride = int(max(self.stride))
@@ -446,9 +463,11 @@ class YoloBase(SgModule):
         for dim in image_dims:
             res_flag, suggestion = check_img_size_divisibility(dim, max_stride)
             if not res_flag:
-                raise ValueError(f'Invalid input size: {input_size}. The input size must be multiple of max stride: '
-                                 f'{max_stride}. The closest suggestions are: {suggestion[0]}x{suggestion[0]} or '
-                                 f'{suggestion[1]}x{suggestion[1]}')
+                raise ValueError(
+                    f"Invalid input size: {input_size}. The input size must be multiple of max stride: "
+                    f"{max_stride}. The closest suggestions are: {suggestion[0]}x{suggestion[0]} or "
+                    f"{suggestion[1]}x{suggestion[1]}"
+                )
 
     def get_include_attributes(self) -> list:
         return ["grid", "anchors", "anchors_grid"]
@@ -462,17 +481,19 @@ class YoloBase(SgModule):
             self.arch_params.num_classes = new_num_classes
             self.num_classes = new_num_classes
             old_detectx = self._head._modules_list[-1]
-            _, block, activation_type, width_mult, depth_mult = get_yolo_type_params(self.arch_params.yolo_type,
-                                                                                     self.arch_params.width_mult_factor,
-                                                                                     self.arch_params.depth_mult_factor)
+            _, block, activation_type, width_mult, depth_mult = get_yolo_type_params(
+                self.arch_params.yolo_type, self.arch_params.width_mult_factor, self.arch_params.depth_mult_factor
+            )
 
-            new_last_layer = DetectX(num_classes=new_num_classes,
-                                     stride=self._head.anchors.stride,
-                                     activation_func_type=activation_type,
-                                     channels=[width_mult(v) for v in (256, 512, 1024)],
-                                     depthwise=isinstance(old_detectx.cls_convs[0][0], GroupedConvBlock),
-                                     groups=self.arch_params.xhead_groups,
-                                     inter_channels=self.arch_params.xhead_inter_channels)
+            new_last_layer = DetectX(
+                num_classes=new_num_classes,
+                stride=self._head.anchors.stride,
+                activation_func_type=activation_type,
+                channels=[width_mult(v) for v in (256, 512, 1024)],
+                depthwise=isinstance(old_detectx.cls_convs[0][0], GroupedConvBlock),
+                groups=self.arch_params.xhead_groups,
+                inter_channels=self.arch_params.xhead_inter_channels,
+            )
             new_last_layer = new_last_layer.to(next(self.parameters()).device)
             self._head._modules_list[-1] = new_last_layer
             self._check_strides()

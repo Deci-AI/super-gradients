@@ -25,7 +25,6 @@ neck:
 
 head:
   num_classes: ${arch_params.num_classes}
-  nms:
   in_channels: [1024, 512, 256]
   width_mult: ${arch_params.width_mult} # scaling factor applied to in_channels
   activation: ${arch_params.activation}

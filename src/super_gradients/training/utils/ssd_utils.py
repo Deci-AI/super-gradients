@@ -1,12 +1,11 @@
 import itertools
 from math import sqrt
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import torch
 
-from super_gradients.training.utils.detection_utils import non_max_suppression, NMS_Type, \
-    matrix_non_max_suppression, DetectionPostPredictionCallback
+from super_gradients.training.utils.detection_utils import non_max_suppression, NMS_Type, matrix_non_max_suppression, DetectionPostPredictionCallback
 
 
 class DefaultBoxes(object):
@@ -14,8 +13,7 @@ class DefaultBoxes(object):
     Default Boxes, (aka: anchor boxes or priors boxes) used by SSD model
     """
 
-    def __init__(self, fig_size: int, feat_size: List[int], scales: List[int], aspect_ratios: List[List[int]],
-                 scale_xy=0.1, scale_wh=0.2):
+    def __init__(self, fig_size: int, feat_size: List[int], scales: List[int], aspect_ratios: List[List[int]], scale_xy=0.1, scale_wh=0.2):
         """
         For each feature map i (each predicting level, grids) the anchors (a.k.a. default boxes) will be:
         [
@@ -106,10 +104,15 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
     used by all other detection models
     """
 
-    def __init__(self, conf: float = 0.001, iou: float = 0.6, classes: list = None,
-                 max_predictions: int = 300,
-                 nms_type: NMS_Type = NMS_Type.ITERATIVE,
-                 multi_label_per_box=True):
+    def __init__(
+        self,
+        conf: float = 0.001,
+        iou: float = 0.6,
+        classes: list = None,
+        max_predictions: int = 300,
+        nms_type: NMS_Type = NMS_Type.ITERATIVE,
+        multi_label_per_box=True,
+    ):
         """
         Predictions of SSD contain unnormalized probabilities for a background class,
         together with confidences for all the dataset classes. Background will be utilized and discarded,
@@ -131,17 +134,17 @@ class SSDPostPredictCallback(DetectionPostPredictionCallback):
 
         self.multi_label_per_box = multi_label_per_box
 
-    def forward(self, predictions, device=None):
+    def forward(self, predictions, device: str, image_shape: Tuple[int, int]):
         nms_input = predictions[0]
         if self.nms_type == NMS_Type.ITERATIVE:
-            nms_res = non_max_suppression(nms_input, conf_thres=self.conf, iou_thres=self.iou,
-                                          multi_label_per_box=self.multi_label_per_box, with_confidence=True)
+            nms_res = non_max_suppression(
+                nms_input, conf_thres=self.conf, iou_thres=self.iou, multi_label_per_box=self.multi_label_per_box, with_confidence=True
+            )
         else:
-            nms_res = matrix_non_max_suppression(nms_input, conf_thres=self.conf,
-                                                 max_num_of_detections=self.max_predictions)
+            nms_res = matrix_non_max_suppression(nms_input, conf_thres=self.conf, max_num_of_detections=self.max_predictions)
 
         return self._filter_max_predictions(nms_res)
 
     def _filter_max_predictions(self, res: List) -> List:
-        res[:] = [im[:self.max_predictions] if (im is not None and im.shape[0] > self.max_predictions) else im for im in res]
+        res[:] = [im[: self.max_predictions] if (im is not None and im.shape[0] > self.max_predictions) else im for im in res]
         return res

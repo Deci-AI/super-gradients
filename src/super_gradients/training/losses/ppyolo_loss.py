@@ -1,15 +1,16 @@
 from typing import Mapping, Tuple
 
 import numpy as np
-import super_gradients
 import torch
+import torch.nn.functional as F
+from torch import nn, Tensor
+
+import super_gradients
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.training.utils.callbacks import TrainingStageSwitchCallbackBase, PhaseContext
 from super_gradients.training.utils.distributed_training_utils import (
     get_world_size,
 )
-from torch import nn, Tensor
-import torch.nn.functional as F
 
 
 def batch_iou_similarity(box1, box2, eps=1e-9):
@@ -680,20 +681,31 @@ class PPYoloELoss(nn.Module):
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
 
+    def xywh2xyxy(self, bboxes: Tensor) -> Tensor:
+        """
+        Transforms bboxes from XYWH format to XYXY format
+        :param bboxes: BBoxes of shape (..., 4) in XYWH format
+        :return: BBoxes of shape (..., 4) in XYXY format
+        """
+        x1, y1, w, h = bboxes[..., 0], bboxes[..., 1], bboxes[..., 2], bboxes[..., 3]
+        x2 = x1 + w
+        y2 = y1 + h
+        return torch.stack([x1, y1, x2, y2], dim=-1)
+
     @torch.no_grad()
     def _format_targets(self, targets: torch.Tensor, batch_size: int) -> Mapping[str, torch.Tensor]:
         """
         Convert targets from YoloX format to PPYolo since its the easiest (not the cleanest) way to
         have PP Yolo training & metrics computed
 
-        :param targets: (N, 6) (index, x1, y1, x2, y2, c)
+        :param targets: (N, 6) (index, x1, y1, w, h, c)
         :return: (Dictionary [str,Tensor]) with keys:
          - gt_class: (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
          - gt_bbox: (Tensor, float32): Ground truth bboxes, shape(B, n, 4) in x1y1x2y2 format
          - pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
         """
         image_index = targets[:, 0]
-        gt_bbox = targets[:, 1:5]
+        gt_bbox = self.xywh2xyxy(targets[:, 1:5])
         gt_class = targets[:, 5:6].long()
 
         per_image_class = []
