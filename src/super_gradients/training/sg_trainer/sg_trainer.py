@@ -437,9 +437,10 @@ class Trainer:
             loss_logging_items = loss.unsqueeze(0).detach()
 
         # ON FIRST BACKWARD, DERRIVE THE LOGGING TITLES.
-        if self.loss_logging_items_names is None:
+        if self.loss_logging_items_names is None or self._first_backward:
             self._init_loss_logging_names(loss_logging_items)
             self._init_monitored_items()
+            self._first_backward = False
 
         if len(loss_logging_items) != len(self.loss_logging_items_names):
             raise ValueError(
@@ -589,7 +590,7 @@ class Trainer:
             self.arch_params.override(**arch_params.to_dict())
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, model: nn.Module = None, training_params: dict = None, train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
+    def train(self, model: nn.Module, training_params: dict = None, train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
         """
 
         train - Trains the Model
@@ -598,8 +599,7 @@ class Trainer:
           the data loaders, as dictionary. The phase context will hold the additional items, under an attribute with
           the same name as the key in this dictionary. Then such items can be accessed through phase callbacks.
 
-            :param model: torch.nn.Module, model to train. When none is given will attempt to use self.net
-             (SEE BUILD_MODEL DEPRECATION) (default=None).
+            :param model: torch.nn.Module, model to train.
 
             :param train_loader: Dataloader for train set.
             :param valid_loader: Dataloader for validation.
@@ -864,11 +864,6 @@ class Trainer:
                     will be added to the tensorboard along with some sample images from the dataset. Currently only
                     detection datasets are supported for analysis.
 
-                -  `save_full_train_log` : bool (default=False)
-
-                    When set, a full log (of all super_gradients modules, including uncaught exceptions from any other
-                     module) of the training will be saved in the checkpoint directory under full_train_log.log
-
                 -  `sg_logger` : Union[AbstractSGLogger, str] (defauls=base_sg_logger)
 
                     Define the SGLogger object for this training process. The SGLogger handles all disk writes, logs, TensorBoard, remote logging
@@ -949,9 +944,8 @@ class Trainer:
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
-        if self.net is None:
-            self.net = model
-            self._prep_net_for_train()
+        self.net = model
+        self._prep_net_for_train()
 
         # SET RANDOM SEED
         random_seed(is_ddp=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=self.device, seed=self.training_params.seed)
@@ -1061,9 +1055,8 @@ class Trainer:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
                 dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes, title="Train-set", anchors=self.net.module.arch_params.anchors)
                 dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes, title="val-set")
-        if self.training_params.save_full_train_log and not self.ddp_silent_mode:
-            logger = get_logger(__name__, training_log_path=self.sg_logger.log_file_path.replace(".txt", "full_train_log.log"))
-            sg_trainer_utils.log_uncaught_exceptions(logger)
+
+        sg_trainer_utils.log_uncaught_exceptions(logger)
 
         if not self.load_checkpoint or self.load_weights_only:
             # WHEN STARTING TRAINING FROM SCRATCH, DO NOT LOAD OPTIMIZER PARAMS (EVEN IF LOADING BACKBONE)
@@ -1096,6 +1089,9 @@ class Trainer:
         )
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
+
+        # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
+        self._first_backward = True
 
         context = PhaseContext(
             optimizer=self.optimizer,
