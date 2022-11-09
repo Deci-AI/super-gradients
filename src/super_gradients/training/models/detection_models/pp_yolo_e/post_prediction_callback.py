@@ -1,5 +1,8 @@
 from typing import List
 
+import torch
+import torchvision
+
 from super_gradients.training.models.detection_models.pp_yolo_e.nms import MultiClassNMS
 from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 
@@ -14,8 +17,7 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         :param classes: (optional list) filter by class                 (used in NMS_Type.ITERATIVE)
         :param nms_type: the type of nms to use (iterative or matrix)
         :param max_predictions: maximum number of boxes to output       (used in NMS_Type.MATRIX)
-        :param with_confidence: in NMS, whether to multiply objectness  (used in NMS_Type.ITERATIVE)
-                                score with class score
+
         """
         super(PPYoloEPostPredictionCallback, self).__init__()
         self.conf = conf
@@ -25,15 +27,34 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         self.max_pred = max_predictions
         self.with_confidence = with_confidence
 
-    def forward(self, x, device: str = None):
+    def forward(self, predictions, device: str = None):
         """
 
         :param x: Tuple of (bboxes, scores) of shape [B, Anchors, 4], [B, Anchors, C]
         :param device:
         :return:
         """
-        pred_bboxes, pred_scores = x  # [B, C, Anchors], [B, Anchors, 4]
-        nms_result = self.nms(x)
+        nms_result = []
+        for pred_bboxes, pred_scores in zip(*predictions):
+            # TODO: Verify shape
+            # pred_bboxes [C, Anchors],
+            # pred_scores [Anchors, 4]
+            pred_cls_conf, pred_cls_label = torch.max(pred_scores, dim=1)
+            conf_mask = pred_cls_conf >= self.conf
+
+            pred_cls_conf = pred_cls_conf[conf_mask]
+            pred_cls_label = pred_cls_label[conf_mask]
+            pred_bboxes = pred_bboxes[conf_mask, :]
+
+            idx_to_keep = torchvision.ops.boxes.batched_nms(pred_bboxes, pred_cls_conf, pred_cls_label, self.iou)
+
+            pred_cls_conf = pred_cls_conf[idx_to_keep]
+            pred_cls_label = pred_cls_label[idx_to_keep]
+            pred_bboxes = pred_bboxes[idx_to_keep]
+
+            final_boxes = torch.cat([pred_bboxes, pred_cls_label, pred_cls_conf], dim=1)  # [N,6]
+            nms_result.append(final_boxes)
+
         return self._filter_max_predictions(nms_result)
 
     def _filter_max_predictions(self, res: List) -> List:
