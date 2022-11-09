@@ -210,22 +210,24 @@ class ConsoleSink:
         filename.parent.mkdir(exist_ok=True)
         self.filename = str(filename)
 
+        self.stdout = StdoutTee(filename=self.filename, buffer_size=FILE_BUFFER_SIZE)
+        self.stderr = StderrTee(filename=self.filename, buffer_size=FILE_BUFFER_SIZE)
+
         # We don't want to rewrite this for subprocesses when using DDP.
         if not is_distributed():
             # By default overwrite existing log. If is_distributed() (i.e. DDP - node 0), append.
-            with open(self.filename, mode="w" if not is_distributed() else "a") as f:
+            with open(self.filename, mode="w") as f:
                 f.write("============================================================\n")
                 f.write(f'New run started at {datetime.now().strftime("%Y-%m-%d.%H:%M:%S.%f")}\n')
                 f.write(f'sys.argv: "{" ".join(sys.argv)}"\n')
                 f.write("============================================================\n")
-
-        self.stdout = StdoutTee(filename=self.filename, buffer_size=FILE_BUFFER_SIZE)
-        self.stderr = StderrTee(filename=self.filename, buffer_size=FILE_BUFFER_SIZE)
         self.stdout.write(f"The console stream is logged into {self.filename}\n")
 
     @multi_process_safe
     def _set_location(self, filename: str):
         """Copy and redirect the sink file into another location."""
+        self.stdout.flush(force=True)
+        self.stderr.flush(force=True)
 
         prev_filename = self.filename
         copy_file(src_filename=prev_filename, dest_filename=filename, copy_mode="a")
@@ -246,3 +248,14 @@ class ConsoleSink:
 
 
 _console_sink = ConsoleSink()
+
+print("".join([str(x) for x in range(10000)]))
+# time.sleep(5)
+print(_console_sink.stdout.buffer.getvalue())
+print(_console_sink.stdout.buffer.getvalue())
+print(_console_sink.stdout.buffer.getvalue())
+print(_console_sink.stdout.buffer.getvalue())
+print(_console_sink.stdout.buffer.getvalue())
+print(_console_sink.stdout.buffer.getvalue())
+print(_console_sink.stdout.buffer.getvalue())
+x = 1
