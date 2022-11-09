@@ -1,6 +1,8 @@
+import os
 from pathlib import Path
 from typing import List
 
+import hydra
 from hydra import initialize_config_dir, compose
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import OmegaConf, open_dict, DictConfig
@@ -32,9 +34,7 @@ def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> Dict
 
     resume_dir = Path(checkpoints_dir_path) / ".hydra"
     if not resume_dir.exists():
-        raise FileNotFoundError(
-            f"The checkpoint directory {checkpoints_dir_path} does not include .hydra artifacts to resume the experiment."
-        )
+        raise FileNotFoundError(f"The checkpoint directory {checkpoints_dir_path} does not include .hydra artifacts to resume the experiment.")
 
     # Load overrides that were used in previous run
     overrides_cfg = list(OmegaConf.load(resume_dir / "overrides.yaml"))
@@ -64,3 +64,16 @@ def normalize_path(path: str) -> str:
     :return: Output path string with all \\ symbols replaces with /.
     """
     return path.replace("\\", "/")
+
+
+def load_arch_params(yaml_folder: str, yaml_name: str) -> DictConfig:
+    """
+    :param yaml_folder: path of a folder with the yaml inside of recipes
+    :param yaml_name:   name of a yaml with parameters
+    :return:
+    """
+    hydra.initialize(os.path.join("../../recipes", yaml_folder), job_name="test_app", version_base="1.2")
+    cfg = hydra.compose(config_name=yaml_name)
+    cfg = hydra.utils.instantiate(cfg)
+    hydra.core.global_hydra.GlobalHydra.instance().clear()
+    return cfg
