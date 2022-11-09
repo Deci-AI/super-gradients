@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 try:
     from clearml import Task
 
-    _imported_deci_lab_failure = None
+    _imported_clear_ml_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
     logger.warn("Failed to import deci_lab_client")
     _imported_clear_ml_failure = import_err
@@ -179,10 +179,11 @@ class ClearMLSGLogger(BaseSGLogger):
     @multi_process_safe
     def add_figure(self, tag: str, figure: plt.figure, global_step: int = 0):
         super().add_figure(tag, figure, global_step)
-        logger.warning(
-            "ClearMLSGLogger does not support uploading any type of figure to clearML."
-            "Only histograms are supported, in which case please use add_histogram instead of add_figure."
-        )
+        name = f"tmp_{tag}.png"
+        path = os.path.join(self._local_dir, name)
+        figure.savefig(path)
+        self.task.upload_artifact(name=name, artifact_object=path)
+        os.remove(path)
 
     @multi_process_safe
     def close(self):
@@ -192,7 +193,7 @@ class ClearMLSGLogger(BaseSGLogger):
     @multi_process_safe
     def add_file(self, file_name: str = None):
         super().add_file(file_name)
-        self.task.upload_artifact(name=file_name, artifact_object=self._local_dir)
+        self.task.upload_artifact(name=file_name, artifact_object=os.path.join(self._local_dir, file_name))
 
     @multi_process_safe
     def upload(self):
