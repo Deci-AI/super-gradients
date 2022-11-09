@@ -193,7 +193,7 @@ class Trainer:
         kwargs = parse_args(cfg, cls.__init__)
 
         trainer = Trainer(**kwargs)
-        raise ValueError("STOPPP")
+
         # INSTANTIATE DATA LOADERS
         train_dataloader = dataloaders.get(
             name=cfg.train_dataloader, dataset_params=cfg.dataset_params.train_dataset_params, dataloader_params=cfg.dataset_params.train_dataloader_params
@@ -1730,7 +1730,7 @@ class Trainer:
             sg_logger=self.sg_logger,
             context_methods=self._get_context_methods(Phase.VALIDATION_BATCH_END),
         )
-        raise ValueError("STOP THE RUN")
+
         if not silent_mode:
             # PRINT TITLES
             pbar_start_msg = f"Validation epoch {epoch}" if evaluation_type == EvaluationType.VALIDATION else "Test"
