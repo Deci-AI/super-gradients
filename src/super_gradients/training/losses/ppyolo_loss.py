@@ -680,10 +680,27 @@ class PPYoloELoss(nn.Module):
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
 
+    def _format_targets(self, targets: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        Convert targets from YoloX format to PPYolo since its the easiest (not the cleanest) way to
+        have PP Yolo training & metrics computed
+
+        :param targets: (B, N, 6) (index, x,y,w,h, c)
+        :return: (Dictionary [str,Tensor]) with keys:
+         - gt_class: (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
+         - gt_bbox: (Tensor, float32): Ground truth bboxes, shape(B, n, 4) in x1y1x2y2 format
+         - pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
+        """
+        gt_bbox = targets[:, :, 1:5]
+        gt_class = targets[:, :, 5:6].long()
+        pad_gt_mask = gt_bbox.sum(dim=2, keepdims=True) > 0
+
+        return {"gt_class": gt_class, "gt_bbox": gt_bbox, "pad_gt_mask": pad_gt_mask}
+
     def forward(
         self,
         outputs: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
-        targets: Mapping[str, Tensor],
+        targets: Tensor,
     ) -> Mapping[str, Tensor]:
         """
         :param outputs: Tuple of pred_scores, pred_distri, anchors, anchor_points, num_anchors_list, stride_tensor
@@ -701,6 +718,8 @@ class PPYoloELoss(nn.Module):
             num_anchors_list,
             stride_tensor,
         ) = outputs
+
+        targets = self._format_targets(targets)  # yolox -> ppyolo
 
         anchor_points_s = anchor_points / stride_tensor
         pred_bboxes = self._bbox_decode(anchor_points_s, pred_distri)

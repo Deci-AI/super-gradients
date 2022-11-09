@@ -693,20 +693,15 @@ class PPYoloECollateFN:
         ims, targets = batch
         return ims, self._format_targets(targets)
 
-    def _format_targets(self, targets: torch.Tensor) -> Dict[str, torch.Tensor]:
-        """
-
-        :param targets: (B, N, 5)
-        :return: (Dictionary [str,Tensor]) with keys:
-         - gt_class: (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
-         - gt_bbox: (Tensor, float32): Ground truth bboxes, shape(B, n, 4) in x1y1x2y2 format
-         - pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
-        """
-        gt_class = targets[:, :, 4:5].long()
-        gt_bbox = targets[:, :, 0:4]
-        pad_gt_mask = gt_bbox.sum(dim=2, keepdims=True) > 0
-
-        return {"gt_class": gt_class, "gt_bbox": gt_bbox, "pad_gt_mask": pad_gt_mask}
+    def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
+        # Same collate as in YoloX. We convert to PPYoloTargets in the loss
+        nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
+        targets_merged = []
+        for i in range(targets.shape[0]):
+            targets_im = targets[i, : nlabel[i]]
+            batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
+            targets_merged.append(torch.cat((batch_column, targets_im), 1))
+        return torch.cat(targets_merged, 0)
 
 
 class CrowdDetectionCollateFN(DetectionCollateFN):
