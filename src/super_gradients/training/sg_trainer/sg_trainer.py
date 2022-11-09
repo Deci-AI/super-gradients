@@ -9,11 +9,14 @@ import torch
 import hydra
 from omegaconf import DictConfig
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, SequentialSampler
 from torch.cuda.amp import GradScaler, autocast
 from torchmetrics import MetricCollection
 from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
+
+from torch.utils.data.distributed import DistributedSampler
+from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
@@ -77,7 +80,6 @@ from super_gradients.training.utils.callbacks import (
 )
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
-from super_gradients.training.datasets.samplers.infinite_sampler import InfiniteSampler
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 
 logger = get_logger(__name__)
@@ -435,9 +437,10 @@ class Trainer:
             loss_logging_items = loss.unsqueeze(0).detach()
 
         # ON FIRST BACKWARD, DERRIVE THE LOGGING TITLES.
-        if self.loss_logging_items_names is None:
+        if self.loss_logging_items_names is None or self._first_backward:
             self._init_loss_logging_names(loss_logging_items)
             self._init_monitored_items()
+            self._first_backward = False
 
         if len(loss_logging_items) != len(self.loss_logging_items_names):
             raise ValueError(
@@ -587,7 +590,7 @@ class Trainer:
             self.arch_params.override(**arch_params.to_dict())
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, model: nn.Module = None, training_params: dict = None, train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
+    def train(self, model: nn.Module, training_params: dict = None, train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
         """
 
         train - Trains the Model
@@ -596,8 +599,7 @@ class Trainer:
           the data loaders, as dictionary. The phase context will hold the additional items, under an attribute with
           the same name as the key in this dictionary. Then such items can be accessed through phase callbacks.
 
-            :param model: torch.nn.Module, model to train. When none is given will attempt to use self.net
-             (SEE BUILD_MODEL DEPRECATION) (default=None).
+            :param model: torch.nn.Module, model to train.
 
             :param train_loader: Dataloader for train set.
             :param valid_loader: Dataloader for validation.
@@ -862,11 +864,6 @@ class Trainer:
                     will be added to the tensorboard along with some sample images from the dataset. Currently only
                     detection datasets are supported for analysis.
 
-                -  `save_full_train_log` : bool (default=False)
-
-                    When set, a full log (of all super_gradients modules, including uncaught exceptions from any other
-                     module) of the training will be saved in the checkpoint directory under full_train_log.log
-
                 -  `sg_logger` : Union[AbstractSGLogger, str] (defauls=base_sg_logger)
 
                     Define the SGLogger object for this training process. The SGLogger handles all disk writes, logs, TensorBoard, remote logging
@@ -927,17 +924,28 @@ class Trainer:
         global logger
         if training_params is None:
             training_params = dict()
-
         self.train_loader = train_loader or self.train_loader
         self.valid_loader = valid_loader or self.valid_loader
         self._set_dataset_params()
 
+        if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+            # Note: the dataloader uses sampler of the batch_sampler when it is not None.
+            train_sampler = self.train_loader.batch_sampler.sampler if self.train_loader.batch_sampler is not None else self.train_loader.sampler
+            if isinstance(train_sampler, SequentialSampler):
+                raise ValueError(
+                    "You are using a SequentialSampler on you training dataloader, while working on DDP. "
+                    "This cancels the DDP benefits since it makes each process iterate through the entire dataset"
+                )
+            if not isinstance(train_sampler, (DistributedSampler, InfiniteSampler, RepeatAugSampler)):
+                logger.warning(
+                    "The training sampler you are using might not support DDP. "
+                    "If it doesnt, please use one of the following sampler: DistributedSampler, InfiniteSampler, RepeatAugSampler"
+                )
         self.training_params = TrainingParams()
         self.training_params.override(**training_params)
 
-        if self.net is None:
-            self.net = model
-            self._prep_net_for_train()
+        self.net = model
+        self._prep_net_for_train()
 
         # SET RANDOM SEED
         random_seed(is_ddp=self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, device=self.device, seed=self.training_params.seed)
@@ -1047,9 +1055,8 @@ class Trainer:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
                 dataset_statistics_logger.analyze(self.train_loader, all_classes=self.classes, title="Train-set", anchors=self.net.module.arch_params.anchors)
                 dataset_statistics_logger.analyze(self.valid_loader, all_classes=self.classes, title="val-set")
-        if self.training_params.save_full_train_log and not self.ddp_silent_mode:
-            logger = get_logger(__name__, training_log_path=self.sg_logger.log_file_path.replace(".txt", "full_train_log.log"))
-            sg_trainer_utils.log_uncaught_exceptions(logger)
+
+        sg_trainer_utils.log_uncaught_exceptions(logger)
 
         if not self.load_checkpoint or self.load_weights_only:
             # WHEN STARTING TRAINING FROM SCRATCH, DO NOT LOAD OPTIMIZER PARAMS (EVEN IF LOADING BACKBONE)
@@ -1082,6 +1089,9 @@ class Trainer:
         )
 
         self.ckpt_best_name = self.training_params.ckpt_best_name
+
+        # STATE ATTRIBUTE SET HERE FOR SUBSEQUENT TRAIN() CALLS
+        self._first_backward = True
 
         context = PhaseContext(
             optimizer=self.optimizer,
