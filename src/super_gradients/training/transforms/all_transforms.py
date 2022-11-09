@@ -1,15 +1,62 @@
 from super_gradients.common.object_names import Transforms
 from super_gradients.training.datasets.data_augmentation import Lighting, RandomErase
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, rand_augment_transform
-from super_gradients.training.transforms.transforms import SegRandomFlip, SegRescale, SegRandomRescale, SegRandomRotate, \
-    SegCropImageAndMask, SegRandomGaussianBlur, SegPadShortToCropSize, SegResize, SegColorJitter, DetectionMosaic, DetectionRandomAffine, \
-    DetectionMixup, DetectionHSV, \
-    DetectionHorizontalFlip, DetectionTargetsFormat, DetectionPaddedRescale, \
-    DetectionTargetsFormatTransform
-from torchvision.transforms import Compose, ToTensor, PILToTensor, ConvertImageDtype, ToPILImage, Normalize, Resize, CenterCrop, Pad, Lambda, RandomApply,\
-    RandomChoice, RandomOrder, RandomCrop, RandomHorizontalFlip, RandomVerticalFlip, RandomResizedCrop, FiveCrop, TenCrop, LinearTransformation, ColorJitter,\
-    RandomRotation, RandomAffine, Grayscale, RandomGrayscale, RandomPerspective, RandomErasing, GaussianBlur, InterpolationMode, RandomInvert, RandomPosterize,\
-    RandomSolarize, RandomAdjustSharpness, RandomAutocontrast, RandomEqualize
+from super_gradients.training.transforms.transforms import (
+    SegRandomFlip,
+    SegRescale,
+    SegRandomRescale,
+    SegRandomRotate,
+    SegCropImageAndMask,
+    SegRandomGaussianBlur,
+    SegPadShortToCropSize,
+    SegResize,
+    SegColorJitter,
+    DetectionMosaic,
+    DetectionRandomAffine,
+    DetectionMixup,
+    DetectionHSV,
+    DetectionHorizontalFlip,
+    DetectionTargetsFormat,
+    DetectionPaddedRescale,
+    DetectionTargetsFormatTransform,
+)
+from torchvision.transforms import (
+    Compose,
+    ToTensor,
+    PILToTensor,
+    ConvertImageDtype,
+    ToPILImage,
+    Normalize,
+    Resize,
+    CenterCrop,
+    Pad,
+    Lambda,
+    RandomApply,
+    RandomChoice,
+    RandomOrder,
+    RandomCrop,
+    RandomHorizontalFlip,
+    RandomVerticalFlip,
+    RandomResizedCrop,
+    FiveCrop,
+    TenCrop,
+    LinearTransformation,
+    ColorJitter,
+    RandomRotation,
+    RandomAffine,
+    Grayscale,
+    RandomGrayscale,
+    RandomPerspective,
+    RandomErasing,
+    GaussianBlur,
+    InterpolationMode,
+    RandomInvert,
+    RandomPosterize,
+    RandomSolarize,
+    RandomAdjustSharpness,
+    RandomAutocontrast,
+    RandomEqualize,
+)
 
 
 TRANSFORMS = {
@@ -34,7 +81,6 @@ TRANSFORMS = {
     Transforms.RandAugmentTransform: rand_augment_transform,
     Transforms.Lighting: Lighting,
     Transforms.RandomErase: RandomErase,
-
     # From torch
     Transforms.Compose: Compose,
     Transforms.ToTensor: ToTensor,
