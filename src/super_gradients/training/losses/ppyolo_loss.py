@@ -1,5 +1,4 @@
-from typing import Mapping
-from typing import Tuple
+from typing import Mapping, Tuple
 
 import numpy as np
 import super_gradients
@@ -680,7 +679,7 @@ class PPYoloELoss(nn.Module):
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
 
-    def _format_targets(self, targets: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def _format_targets(self, targets: torch.Tensor) -> Mapping[str, torch.Tensor]:
         """
         Convert targets from YoloX format to PPYolo since its the easiest (not the cleanest) way to
         have PP Yolo training & metrics computed
