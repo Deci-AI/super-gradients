@@ -39,7 +39,7 @@ valid_metrics_list:
         _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
         iou: 0.65
         conf: 0.01
-      num_cls: 80
+      num_cls: ${arch_params.num_classes}
 
 pre_prediction_callback:
 
