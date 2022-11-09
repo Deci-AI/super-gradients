@@ -2,7 +2,7 @@ import json
 import os
 import signal
 import time
-from typing import Union, Any, Optional
+from typing import Union, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +11,7 @@ import torch
 from PIL import Image
 from super_gradients.common import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.auto_logging import AutoLoggerConfig, ConsoleSink
+from super_gradients.common.auto_logging import AutoLoggerConfig
 from super_gradients.common.environment.env_helpers import multi_process_safe
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.params import TrainingParams
@@ -88,8 +88,6 @@ class BaseSGLogger(AbstractSGLogger):
         if launch_tensorboard:
             self._launch_tensorboard(port=tensorboard_port)
 
-        self._sg_logger = self
-
     @multi_process_safe
     def _launch_tensorboard(self, port):
         self.tensor_board_process, _ = sg_trainer_utils.launch_tensorboard_process(self._local_dir, port=port)
@@ -105,13 +103,11 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def _init_log_file(self):
-        time_string = time.strftime("%m_%d_%H_%M_%S", time.localtime())
+        time_string = time.strftime("%b%d_%H_%M_%S", time.localtime())
         # There are two log files, since the regular log_file_path used for `manual` logging of configs/other info
         self.log_file_path = f"{self._local_dir}/log_{time_string}.txt"
         self.log_full_file_path = f"{self._local_dir}/sg_logs_{time_string}.txt"
-        self.console_sink_path = f"{self._local_dir}/console.{time_string}.txt"
         AutoLoggerConfig.setup_logging(filename=self.log_full_file_path, copy_already_logged_messages=True)
-        ConsoleSink.set_location(filename=self.console_sink_path)
 
     @multi_process_safe
     def _write_to_log_file(self, lines: list):
@@ -267,12 +263,3 @@ class BaseSGLogger(AbstractSGLogger):
 
     def local_dir(self) -> str:
         return self._local_dir
-
-    @staticmethod
-    def get_experiment_name() -> str:
-        if _sg_logger is None:
-            return None
-        return _sg_logger.experiment_name
-
-
-_sg_logger: Optional[Union[None, BaseSGLogger]] = None

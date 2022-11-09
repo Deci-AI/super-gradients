@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import time
 from typing import Union
 
 
@@ -13,11 +14,9 @@ class AutoLoggerConfig:
     CONSOLE_LOGGING_LEVEL = os.environ.get("CONSOLE_LOG_LEVEL", "INFO").upper()
 
     filename: Union[str, None]
-    console_sink: Union[str, None]
 
     def __init__(self):
         self.filename = None
-        self.console_sink = None
 
     def _setup_default_logging(self, log_level: str = None) -> None:
         """
@@ -27,8 +26,13 @@ class AutoLoggerConfig:
         :param log_level: The default log level to use. If None, uses LOG_LEVEL and CONSOLE_LOG_LEVEL environment vars.
         :return: None
         """
+
+        # There is no _easy_ way to log all events to a single file, when using DDP or DataLoader with num_workers > 1
+        # on Windows platform. In both these cases a multiple processes will be spawned and multiple logs may be created.
+        # Therefore the log file will have the parent PID to being able to discriminate the logs corresponding to a single run.
+        timestamp = time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())
         self._setup_logging(
-            filename=os.path.expanduser(f"~/sg_logs/last_{os.getppid()}.log"),
+            filename=os.path.expanduser(f"~/sg_logs/sg_logs_{os.getppid()}_{timestamp}.log"),
             copy_already_logged_messages=False,
             filemode="w",
             log_level=log_level,
@@ -83,19 +87,24 @@ class AutoLoggerConfig:
         # Add console handler
         console_handler = logging.StreamHandler()
         console_handler.setLevel(console_logging_level)
-        console_handler.setFormatter(logging.Formatter("%(module)s - %(levelname)s - %(message)s"))
+        console_handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s %(levelname)s - %(filename)s - %(message)s",
+                datefmt="[%Y-%m-%d %H:%M:%S]",
+            )
+        )
         manager.root.handlers.append(console_handler)
 
         self.filename = filename
 
     @classmethod
-    def getInstance(cls):
-        global _sg_logger
-        if _sg_logger is None:
-            _sg_logger = cls()
-            _sg_logger._setup_default_logging()
+    def get_instance(cls):
+        global _super_gradients_logger_config
+        if _super_gradients_logger_config is None:
+            _super_gradients_logger_config = cls()
+            _super_gradients_logger_config._setup_default_logging()
 
-        return _sg_logger
+        return _super_gradients_logger_config
 
     @classmethod
     def get_log_file_path(cls) -> str:
@@ -103,13 +112,13 @@ class AutoLoggerConfig:
         Return the current log file used to store log messages
         :return: Full path to log file
         """
-        self = cls.getInstance()
+        self = cls.get_instance()
         return self.filename
 
     @classmethod
     def setup_logging(cls, filename: str, copy_already_logged_messages: bool, filemode: str = "a", log_level: str = None) -> None:
-        self = cls.getInstance()
+        self = cls.get_instance()
         self._setup_logging(filename, copy_already_logged_messages, filemode, log_level)
 
 
-_sg_logger = None
+_super_gradients_logger_config = None

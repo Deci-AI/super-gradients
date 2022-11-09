@@ -33,6 +33,15 @@ Recipes support out of the box every model, metric or loss that is implemented i
 
 ## 3. Examples
 ### A. Metric
+SuperGradients works with torchmetrics.Metric .
+To write your own metric you need to implement update() and compute() methods.
+
+In order to work on DDP you also need to define states using add_state().
+States are attributes to be reduced, and broadcasted among the different ranks in compute() when training in distributed setting.
+An example of state would be the number of correct predictions, which will be summed across the different processes, broadcasted to all of
+them before computing the metric value. You can see an example below. 
+
+*Feel free to check [torchmetrics documentation](https://torchmetrics.readthedocs.io/en/stable/references/metric.html) for more information on how to implement your own metric.* 
 
 *main.py*
 
@@ -47,12 +56,30 @@ from super_gradients import Trainer, init_trainer
 from super_gradients.common.registry.registry import register_metric
 
 
-@register_metric('custom_accuracy')  # Will be registered as "custom_accuracy"
-class CustomAccuracy(torchmetrics.Accuracy):
-   def update(self, preds: torch.Tensor, target: torch.Tensor):
-      if target.shape == preds.shape:
-         target = target.argmax(1)  # Supports smooth labels
-         super().update(preds=preds.argmax(1), target=target)
+@register_metric()  # Will be registered as "CustomTop5"
+class CustomTop5(torchmetrics.Metric):
+    def __init__(self, dist_sync_on_step=False):
+        super().__init__(dist_sync_on_step=dist_sync_on_step)
+
+        self.add_state("correct", default=torch.tensor(0.), dist_reduce_fx="sum")
+        self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        batch_size = target.size(0)
+
+        # Get the top k predictions
+        _, pred = preds.topk(5, 1, True, True)
+        pred = pred.t()
+
+        # Count the number of correct predictions only for the highest 5
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+        correct5 = correct[:5].reshape(-1).float().sum(0)
+
+        self.correct += correct5
+        self.total += batch_size
+
+    def compute(self):
+        return self.correct.float() / self.total
 
 
 @hydra.main(config_path="recipes")
@@ -69,10 +96,10 @@ main()
 ... # Other training hyperparams
 
 train_metrics_list:
-  - custom_accuracy
+  - CustomTop5
 
 valid_metrics_list:
-  - custom_accuracy
+  - CustomTop5
 ```
 
 *Launch the script*

@@ -7,6 +7,7 @@ DEFAULT_TRAINING_PARAMS = {
     "warmup_initial_lr": None,
     "cosine_final_lr_ratio": 0.01,
     "optimizer": "SGD",
+    "optimizer_params": {},
     "criterion_params": {},
     "ema": False,
     "batch_accumulate": 1,  # number of batches to accumulate before every backward pass
