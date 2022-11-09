@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Callable
 
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
+from super_gradients.common.environment.env_helpers import multi_process_safe
 from super_gradients.common.sg_loggers import BaseSGLogger
 
 
@@ -40,16 +41,19 @@ def register_exceptions(excepthook: Callable):
     return excepthook_with_register
 
 
+@multi_process_safe
 def exception_upload_handler(platform_client):
     """Upload the log file to the deci platform if an error was raised"""
     if ExceptionInfo.is_exception_raised():
+
         if platform_client.experiment is None:
             exp_name = BaseSGLogger.get_experiment_name()
             exp_name = exp_name if exp_name is not None else f"experiment_{datetime.today().isoformat()}"
             platform_client.register_experiment(name=exp_name)
 
-        logger.info(f"Uploading exception ({ConsoleSink.get_filename()}) to deci platform ...")
+        logger.info(f"Uploading log ({ConsoleSink.get_filename()}) to deci platform ...")
         platform_client.save_experiment_file(file_path=ConsoleSink.get_filename())
+        platform_client.send_support_logs(log="error raised", tag="SuperGradient", level=logging.ERROR)
         time.sleep(10)  # TODO: Wait for platform client to return the thread, and then just replace with thread.join()
         logger.info("Exception was uploaded to deci platform!")
 
@@ -71,6 +75,9 @@ def setup_pro_user_monitoring():
 
         platform_client = DeciPlatformClient(api_host="api.development.deci.ai")  # TODO: remove api_host="api.development.deci.ai"
         platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+        # platform_client.register_experiment(name="TEST")
+
+        # platform_client.send_support_logs(log="error raised", tag="SuperGradient", level=logging.ERROR)
 
         sys.excepthook = register_exceptions(sys.excepthook)
         atexit.register(exception_upload_handler, platform_client)

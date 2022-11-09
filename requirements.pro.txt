@@ -1,2 +1,2 @@
-deci-lab-client==2.60.0
+deci-lab-client==3.0.0
 deci-common==3.5.0

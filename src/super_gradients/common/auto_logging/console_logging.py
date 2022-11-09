@@ -84,6 +84,8 @@ class ConsoleSink:
             self.file.write(f'sys.argv: "{" ".join(sys.argv)}"\n')
             self.stdout.write(f"The console stream is logged into {default_path}\n")  # Print this only
             self.file.write("============================================================\n")
+        print(self.file.name)
+        print("===============")
 
     @multi_process_safe
     def _set_location(self, filename: str):
