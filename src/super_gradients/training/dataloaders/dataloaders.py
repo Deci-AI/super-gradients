@@ -115,7 +115,11 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     if get_param(dataloader_params, "batch_sampler"):
         sampler = dataloader_params.pop("sampler")
         batch_size = dataloader_params.pop("batch_size")
-        dataloader_params["batch_sampler"] = BatchSampler(sampler=sampler, batch_size=batch_size, drop_last=False)
+        if "drop_last" in dataloader_params:
+            drop_last = dataloader_params.pop("drop_last")
+        else:
+            drop_last = default_dataloader_params["drop_last"]
+        dataloader_params["batch_sampler"] = BatchSampler(sampler=sampler, batch_size=batch_size, drop_last=drop_last)
     return dataloader_params
 
 
