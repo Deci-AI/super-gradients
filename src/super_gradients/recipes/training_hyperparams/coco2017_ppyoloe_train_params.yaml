@@ -47,6 +47,16 @@ phase_callbacks:
   - PPYoloETrainingStageSwitchCallback:
       static_assigner_end_epoch: 30
 
+#  - DetectionVisualizationCallback:
+#      phase: VALIDATION_BATCH_END
+#      freq: 0
+#      classes:
+#      post_prediction_callback:
+#        _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
+#        iou: 0.65
+#        conf: 0.01
+
+
 metric_to_watch: 'mAP@0.50:0.95'
 greater_metric_to_watch_is_better: True
 

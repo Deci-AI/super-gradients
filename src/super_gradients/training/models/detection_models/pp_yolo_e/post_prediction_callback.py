@@ -48,7 +48,6 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
             pred_cls_conf = pred_cls_conf[idx_to_keep].unsqueeze(-1)
             pred_cls_label = pred_cls_label[idx_to_keep].unsqueeze(-1)
             pred_bboxes = xyxy2cxcywh(pred_bboxes[idx_to_keep].clone())
-            # TODO: Normalize bboxes wrt image shape
 
             #  nx6 (x1, y1, x2, y2, confidence, class) where x and y are in range [0,1]
             final_boxes = torch.cat([pred_bboxes, pred_cls_conf, pred_cls_label], dim=1)  # [N,6]
