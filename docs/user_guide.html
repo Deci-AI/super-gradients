@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>What is SuperGradients? &mdash; SuperGradients 1.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -15,11 +15,13 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Training package" href="super_gradients.training.html" /> 
+    <link rel="prev" title="Version 3 is out! Notebooks have been updated!" href="welcome.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -37,17 +39,26 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
-<li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Version 3 is out! Notebooks have been updated!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#build-with-supergradients">Build with SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#quick-installation">Quick Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#what-s-new">What’s New</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#coming-soon">Coming soon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#table-of-content">Table of Content</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#getting-started">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#advanced-features">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#installation-methods">Installation Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#implemented-model-architectures">Implemented Model Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#citation">Citation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#community">Community</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#deci-platform">Deci Platform</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Technical Documentation</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="super_gradients.common.html">Common package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="super_gradients.training.html">Training package</a></li>
-</ul>
-<p class="caption"><span class="caption-text">User Guide</span></p>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">What is SuperGradients?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
@@ -131,22 +142,22 @@ Community Slack - <a class="reference external" href="https://join.slack.com/t/s
    </td>
   </tr>
 </table>
-<section id="what-is-supergradients">
-<h1>What is SuperGradients?<a class="headerlink" href="#what-is-supergradients" title="Permalink to this headline"></a></h1>
+<div class="section" id="what-is-supergradients">
+<h1>What is SuperGradients?<a class="headerlink" href="#what-is-supergradients" title="Permalink to this heading"></a></h1>
 <p>The SuperGradients PyTorch-based training library provides a quick, simple and free open-source platform in which you can train your models using state of the art techniques.</p>
 <p>Who can use SuperGradients:</p>
 <ul class="simple">
 <li><p><strong>Open Source Users</strong> – <strong>The SuperGradients can be used to easily train your models regardless of whether you ever have or ever will use the <span style="text-decoration:underline;">Deci platform</span></strong>.</p></li>
 <li><p><strong>Deci Customers</strong> – <strong>The SuperGradients library can reproduce the training procedure performed by Deci for their optimized models</strong>.</p></li>
 </ul>
-</section>
-<section id="introducing-the-supergradients-library">
-<h1>Introducing the SuperGradients library<a class="headerlink" href="#introducing-the-supergradients-library" title="Permalink to this headline"></a></h1>
+</div>
+<div class="section" id="introducing-the-supergradients-library">
+<h1>Introducing the SuperGradients library<a class="headerlink" href="#introducing-the-supergradients-library" title="Permalink to this heading"></a></h1>
 <p>The <strong>SuperGradients</strong> training library provides all of the scripts, example code and configurations required to demonstrate how to train your model on a dataset and to enable you to do it by yourself.</p>
 <p>SuperGradients comes as an easily installed Python package (pip install) that you can integrate into your code base in order to train your models.</p>
-</section>
-<section id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h1>
+</div>
+<div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h1>
 <p><strong>To install the SuperGradients library –</strong></p>
 <ol class="arabic">
 <li><p>Run the following command on your machine’s terminal –</p>
@@ -155,19 +166,19 @@ Community Slack - <a class="reference external" href="https://join.slack.com/t/s
 </div>
 </li>
 </ol>
-</section>
-<section id="integrating-your-training-code-complete-walkthrough">
-<h1>Integrating Your Training Code - Complete Walkthrough<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough" title="Permalink to this headline"></a></h1>
+</div>
+<div class="section" id="integrating-your-training-code-complete-walkthrough">
+<h1>Integrating Your Training Code - Complete Walkthrough<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough" title="Permalink to this heading"></a></h1>
 <p>Whether you are a Deci customer, or an open source SuperGradients user- it is likely that you already have your own training script, model, loss function implementation etc.</p>
 <p>In this section we present the modifications needed in order to launch your training using SuperGradients.</p>
-<section id="integrating-your-training-code-main-components">
-<h2>Integrating Your Training Code: Main components:<a class="headerlink" href="#integrating-your-training-code-main-components" title="Permalink to this headline"></a></h2>
-<p><span style="text-decoration:underline;">SgModel </span>- the main class in charge of training, testing, logging and basically everything that has to do with the execution of training code.</p>
-<p><span style="text-decoration:underline;">DatasetInterface</span> - which is passed as an argument to the SgModel and wraps the training set, validation set and optionally a test set for the SgModel instance to work with accordingly.</p>
-<p><span style="text-decoration:underline;">SgModel.net</span> -The network to be used for training/testing (of torch.nn.Module type).</p>
-</section>
-<section id="integrating-your-training-code-complete-walkthrough-dataset">
-<h2>Integrating Your Training Code - Complete Walkthrough: Dataset<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-dataset" title="Permalink to this headline"></a></h2>
+<div class="section" id="integrating-your-training-code-main-components">
+<h2>Integrating Your Training Code: Main components:<a class="headerlink" href="#integrating-your-training-code-main-components" title="Permalink to this heading"></a></h2>
+<p><span style="text-decoration:underline;">Trainer </span>- the main class in charge of training, testing, logging and basically everything that has to do with the execution of training code.</p>
+<p><span style="text-decoration:underline;">DatasetInterface</span> - which is passed as an argument to the Trainer and wraps the training set, validation set and optionally a test set for the Trainer instance to work with accordingly.</p>
+<p><span style="text-decoration:underline;">Trainer.net</span> -The network to be used for training/testing (of torch.nn.Module type).</p>
+</div>
+<div class="section" id="integrating-your-training-code-complete-walkthrough-dataset">
+<h2>Integrating Your Training Code - Complete Walkthrough: Dataset<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-dataset" title="Permalink to this heading"></a></h2>
 <p>The specified dataset interface class must inherit from <strong>super_gradients.training.datasets.dataset_interfaces.dataset_interface</strong>, which is where data augmentation and data loader configurations are defined.</p>
 <p>For instance, a dataset interface for Cifar10:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>
@@ -207,9 +218,9 @@ Community Slack - <a class="reference external" href="https://join.slack.com/t/s
 </pre></div>
 </div>
 <p>Required parameters can be passed using the <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">dataset_params</span></code> argument. When implementing a dataset interface, the<code class="docutils literal notranslate"><span class="pre">trainset</span></code> and <code class="docutils literal notranslate"><span class="pre">valset</span></code> attributes are required and must be initiated with a <em>torch.utils.data.Dataset</em> type. These fields will cause the <em>SgModule</em> instance to use them accordingly, such as during training, testing, and so on.</p>
-</section>
-<section id="integrating-your-training-code-complete-walkthrough-model">
-<h2>Integrating Your Training Code - Complete Walkthrough: Model<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-model" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="integrating-your-training-code-complete-walkthrough-model">
+<h2>Integrating Your Training Code - Complete Walkthrough: Model<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-model" title="Permalink to this heading"></a></h2>
 <p>This is rather straightforward- the only requirement is that the model must be of torch.nn.Module type. In our case, a simple LeNet implementation (taken from https://github.com/icpm/pytorch-cifar10/blob/master/models/LeNet.py).</p>
 <table>
   <tr>
@@ -241,9 +252,9 @@ Community Slack - <a class="reference external" href="https://join.slack.com/t/s
 
 </pre></div>
 </div>
-</section>
-<section id="integrating-your-training-code-complete-walkthrough-loss-function">
-<h2>Integrating Your Training Code - Complete Walkthrough: Loss Function<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-loss-function" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="integrating-your-training-code-complete-walkthrough-loss-function">
+<h2>Integrating Your Training Code - Complete Walkthrough: Loss Function<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-loss-function" title="Permalink to this heading"></a></h2>
 <p>The loss function class must be of _torch.nn.module.<em>LOSS</em> type. For example, our _LabelSmoothingCrossEntropyLoss _implementation.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.losses.label_smoothing_cross_entropy_loss</span> <span class="kn">import</span> <span class="n">cross_entropy</span>
@@ -274,9 +285,9 @@ Community Slack - <a class="reference external" href="https://join.slack.com/t/s
 <p>For example, the loss itself should always be logged. Another example is a scenario where the computed loss is the sum of a few components. These entries should be logged in loss_items.</p>
 <p>During training, set the <em><span style="text-decoration:underline;">loss_logging_items_names</span></em> parameter in _<span style="text-decoration:underline;">training_params</span> _to be a list of strings of length <em>n_items</em>, whose ith element is the name of the ith entry in loss_items. In this way, each item will be logged, rendered and monitored in TensorBoard, thus saving model checkpoints accordingly.</p>
 <p>Because running logs save the loss_items in some internal state. It is therefore recommended that loss_items be detached from their computational graph for memory efficiency.</p>
-</section>
-<section id="integrating-your-training-code-complete-walkthrough-metrics">
-<h2>Integrating Your Training Code - Complete Walkthrough: Metrics<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-metrics" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="integrating-your-training-code-complete-walkthrough-metrics">
+<h2>Integrating Your Training Code - Complete Walkthrough: Metrics<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-metrics" title="Permalink to this heading"></a></h2>
 <p>The metrics objects to be logged during training must be of torchmetrics.Metric type. For more information on how to use torchmetric.Metric objects and implement your own metrics. see https://torchmetrics.readthedocs.io/en/latest/pages/overview.html.</p>
 <p>During training, the metric’s update is called with the model’s raw outputs and raw targets. Therefore, any processing of the two must be taken into account and applied in the <em>update</em>.</p>
 <p>Training works out of the box with any of the module torchmetrics (full list in <a class="reference external" href="https://torchmetrics.readthedocs.io/en/latest/references/modules.html">https://torchmetrics.readthedocs.io/en/latest/references/modules.html</a>). Additional metrics implementations such as mean average precision for object detection can be found at <em>super_gradients.training.metrics</em>)</p>
@@ -300,20 +311,20 @@ Community Slack - <a class="reference external" href="https://join.slack.com/t/s
        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">preds</span><span class="o">=</span><span class="n">preds</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
 </pre></div>
 </div>
-</section>
-<section id="integrating-your-training-code-complete-walkthrough-training-script">
-<h2>Integrating Your Training Code- Complete Walkthrough: Training script<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-training-script" title="Permalink to this headline"></a></h2>
-<p>We instantiate an SgModel and a UserDatasetInterface, then call connect_dataset_interface which will initialize the dataloaders and pass additional dataset parameters to the SgModel instance.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">super_gradients.training</span> <span class="kn">import</span> <span class="n">SgModel</span>
+</div>
+<div class="section" id="integrating-your-training-code-complete-walkthrough-training-script">
+<h2>Integrating Your Training Code- Complete Walkthrough: Training script<a class="headerlink" href="#integrating-your-training-code-complete-walkthrough-training-script" title="Permalink to this heading"></a></h2>
+<p>We instantiate an Trainer and a UserDatasetInterface, then call connect_dataset_interface which will initialize the dataloaders and pass additional dataset parameters to the Trainer instance.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">super_gradients.training</span> <span class="kn">import</span> <span class="n">Trainer</span>
 
-<span class="n">sg_model</span> <span class="o">=</span> <span class="n">SgModel</span><span class="p">(</span><span class="n">experiment_name</span><span class="o">=</span><span class="s1">&#39;LeNet_cifar10_example&#39;</span><span class="p">)</span>
+<span class="n">sg_model</span> <span class="o">=</span> <span class="n">Trainer</span><span class="p">(</span><span class="n">experiment_name</span><span class="o">=</span><span class="s1">&#39;LeNet_cifar10_example&#39;</span><span class="p">)</span>
 <span class="n">dataset_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="mi">256</span><span class="p">}</span>
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">UserDataset</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">)</span>
 <span class="n">sg_model</span><span class="o">.</span><span class="n">connect_dataset_interface</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
 
 </pre></div>
 </div>
-<p><strong>Now, we pass a LeNet instance we defined above to the SgModel:</strong></p>
+<p><strong>Now, we pass a LeNet instance we defined above to the Trainer:</strong></p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">network</span> <span class="o">=</span> <span class="n">LeNet</span><span class="p">()</span>
 <span class="n">sg_model</span><span class="o">.</span><span class="n">build_model</span><span class="p">(</span><span class="n">network</span><span class="p">)</span>
 </pre></div>
@@ -340,7 +351,7 @@ Community Slack - <a class="reference external" href="https://join.slack.com/t/s
                <span class="s2">&quot;launch_tensorboard&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
                <span class="s2">&quot;train_metrics_list&quot;</span><span class="p">:</span> <span class="n">train_metrics_list</span><span class="p">,</span>
                <span class="s2">&quot;valid_metrics_list&quot;</span><span class="p">:</span> <span class="n">valid_metrics_list</span><span class="p">,</span>
-               <span class="s2">&quot;loss_logging_items_names&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Loss&quot;</span><span class="p">],</span>
+               
                <span class="s2">&quot;metric_to_watch&quot;</span><span class="p">:</span> <span class="s2">&quot;Accuracy&quot;</span><span class="p">,</span>
                <span class="s2">&quot;greater_metric_to_watch_is_better&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
 
@@ -348,8 +359,8 @@ Community Slack - <a class="reference external" href="https://join.slack.com/t/s
 
 </pre></div>
 </div>
-<section id="training-parameter-notes">
-<h3>Training Parameter Notes:<a class="headerlink" href="#training-parameter-notes" title="Permalink to this headline"></a></h3>
+<div class="section" id="training-parameter-notes">
+<h3>Training Parameter Notes:<a class="headerlink" href="#training-parameter-notes" title="Permalink to this heading"></a></h3>
 <ul class="simple">
 <li><p>_<span style="text-decoration:underline;">loss_logging_items_names</span> _parameter – Refers to the single item returned in <em>loss_items</em> in our loss function described above.</p></li>
 <li><p><em><span style="text-decoration:underline;">metric_to_watch</span></em> – Is the model’s metric that determines the checkpoint to be saved. In our example, this parameter is set to <em>Accuracy</em>, and can be set to any of the following:</p></li>
@@ -358,11 +369,11 @@ Community Slack - <a class="reference external" href="https://join.slack.com/t/s
 <li><p>One of the <em>loss_logging_items_names</em>, such as one that corresponds to an item returned during the loss function’s forward pass as discussed earlier.</p></li>
 <li><p><em><span style="text-decoration:underline;">greater_metric_to_watch_is_better flag </span></em>– Determines when to save a model’s checkpoint according to the value of the <code class="docutils literal notranslate"><span class="pre">metric_to_watch</span></code>.</p></li>
 </ul>
-</section>
-</section>
-</section>
-<section id="training-parameters">
-<h1>Training Parameters<a class="headerlink" href="#training-parameters" title="Permalink to this headline"></a></h1>
+</div>
+</div>
+</div>
+<div class="section" id="training-parameters">
+<h1>Training Parameters<a class="headerlink" href="#training-parameters" title="Permalink to this heading"></a></h1>
 <p>The following is a description of all the parameters passed in _training_params _when _<span style="text-decoration:underline;">train() </span>_is called.</p>
 <p><code class="docutils literal notranslate"><span class="pre">max_epochs</span></code>: int</p>
 <p>Number of epochs to run during training.</p>
@@ -557,9 +568,9 @@ One of super_gradients&#39;s built in options:
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>When set, a full log (of all super_gradients modules, including uncaught exceptions from any other module) of the training will be saved in the checkpoint directory under full_train_log.log
 </pre></div>
 </div>
-</section>
-<section id="logs-and-checkpoints">
-<h1>Logs and Checkpoints<a class="headerlink" href="#logs-and-checkpoints" title="Permalink to this headline"></a></h1>
+</div>
+<div class="section" id="logs-and-checkpoints">
+<h1>Logs and Checkpoints<a class="headerlink" href="#logs-and-checkpoints" title="Permalink to this heading"></a></h1>
 <p>The model’s weights, logs and tensorboards are saved in _”YOUR_PYTHONPATH”/ checkpoints/”YOUR_EXPERIMENT_NAME” _. (In our  walkthrough example, _”YOUR_EXPERIMENT_NAME” _ is <em>user_model_training)</em>.
 You can also connect your training logs into Weights and Biases (WandB) assuming you have an WandB account (go to connection to <span class="xref myst">professional tools</span>)
 <strong>To watch training progress –</strong></p>
@@ -575,14 +586,14 @@ You can also connect your training logs into Weights and Biases (WandB) assuming
 </li>
 <li><p>Follow the link in this message to see the progress of the training.</p>
 <p><strong>2nd option:</strong></p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span> Set the “launch_tensorboard_process” flag in your training_params passed to SgModel.train(...), and follow instructions displayed in the shell.
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span> Set the “launch_tensorboard_process” flag in your training_params passed to Trainer.train(...), and follow instructions displayed in the shell.
 </pre></div>
 </div>
 </li>
 </ol>
 <ul class="simple">
 <li><p><strong>To resume training –</strong>
-When building the network- call SgModel.build_model(…arch_params={‘load_checkpoint’True…}). Doing so, will load the network’s weights, as well as any relevant information for resuming training (monitored metric values, optimizer states, etc) with the latest checkpoint. For more advanced usage see SgModel.build_model docs in code.</p></li>
+When building the network- call Trainer.build_model(…arch_params={‘load_checkpoint’True…}). Doing so, will load the network’s weights, as well as any relevant information for resuming training (monitored metric values, optimizer states, etc) with the latest checkpoint. For more advanced usage see Trainer.build_model docs in code.</p></li>
 <li><p><strong>Checkpoint structure – state_dict (see <a class="reference external" href="https://pytorch.org/tutorials/beginner/saving_loading_models.html">https://pytorch.org/tutorials/beginner/saving_loading_models.html</a> for more information regarding state_dicts) with the following keys:</strong>
 <strong>-”net”-  The network’s state_dict.</strong></p></li>
 </ul>
@@ -591,10 +602,10 @@ When building the network- call SgModel.build_model(…arch_params={‘load_chec
 <p><strong>-”ema_net” [Optionall, exists  if training was performed with EMA] -</strong> <strong>The state dict of the EMA net.</strong></p>
 <p><strong>-”optimizer_state_dict”- Optimizer’s state dict from training.</strong></p>
 <p><strong>-”scaler_state_dict”- Gradient scalar state_dict from training.</strong></p>
-</section>
-<section id="dataset-parameters">
-<h1>Dataset Parameters<a class="headerlink" href="#dataset-parameters" title="Permalink to this headline"></a></h1>
-<p>dataset_params argument passed to SgModel.build_model().</p>
+</div>
+<div class="section" id="dataset-parameters">
+<h1>Dataset Parameters<a class="headerlink" href="#dataset-parameters" title="Permalink to this heading"></a></h1>
+<p>dataset_params argument passed to Trainer.build_model().</p>
 <p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code>: int (default=64)</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Number of examples per batch for training. Large batch sizes are recommended.
 </pre></div>
@@ -609,12 +620,12 @@ When building the network- call SgModel.build_model(…arch_params={‘load_chec
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">s3_link</span></code>: str (default=None)</p>
 <p>The remote s3 link from which to download the data (optional).</p>
-</section>
-<section id="network-architectures">
-<h1>Network Architectures<a class="headerlink" href="#network-architectures" title="Permalink to this headline"></a></h1>
-<p>The following architectures are implemented in SuperGradients’ code, and can be initialized by passing their name (i.e string) to SgModel.build_model easily.</p>
+</div>
+<div class="section" id="network-architectures">
+<h1>Network Architectures<a class="headerlink" href="#network-architectures" title="Permalink to this heading"></a></h1>
+<p>The following architectures are implemented in SuperGradients’ code, and can be initialized by passing their name (i.e string) to Trainer.build_model easily.</p>
 <p>For example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sg_model</span> <span class="o">=</span> <span class="n">SgModel</span><span class="p">(</span><span class="s2">&quot;resnet50_experiment&quot;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sg_model</span> <span class="o">=</span> <span class="n">Trainer</span><span class="p">(</span><span class="s2">&quot;resnet50_experiment&quot;</span><span class="p">)</span>
 <span class="n">sg_model</span><span class="o">.</span><span class="n">build_model</span><span class="p">(</span><span class="n">architecture</span><span class="o">=</span><span class="s2">&quot;resnet50&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -706,9 +717,9 @@ When building the network- call SgModel.build_model(…arch_params={‘load_chec
 <p><strong>‘custom_stdc’,</strong></p>
 <p><strong>‘stdc_1’,</strong></p>
 <p><strong>‘stdc_2’</strong></p>
-</section>
-<section id="pretrained-models">
-<h1>Pretrained Models<a class="headerlink" href="#pretrained-models" title="Permalink to this headline"></a></h1>
+</div>
+<div class="section" id="pretrained-models">
+<h1>Pretrained Models<a class="headerlink" href="#pretrained-models" title="Permalink to this heading"></a></h1>
 <p>Classification models</p>
 <table class="colwidths-auto docutils align-default">
 <thead>
@@ -1016,16 +1027,16 @@ When building the network- call SgModel.build_model(…arch_params={‘load_chec
 </div></blockquote>
 <p><br></br>
 Example- how to load a pretrained model:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sg_model</span> <span class="o">=</span> <span class="n">SgModel</span><span class="p">(</span><span class="s2">&quot;resnet50_experiment&quot;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sg_model</span> <span class="o">=</span> <span class="n">Trainer</span><span class="p">(</span><span class="s2">&quot;resnet50_experiment&quot;</span><span class="p">)</span>
 
 <span class="n">sg_model</span><span class="o">.</span><span class="n">build_model</span><span class="p">(</span><span class="n">architecture</span><span class="o">=</span><span class="s2">&quot;resnet50&quot;</span><span class="p">,</span>
                       <span class="n">arch_params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;pretrained_weights&quot;</span><span class="p">:</span> <span class="s2">&quot;imagenet&quot;</span><span class="p">,</span> <span class="s2">&quot;num_classes&quot;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">}</span>
                       <span class="p">)</span>
 </pre></div>
 </div>
-</section>
-<section id="how-to-reproduce-our-training-recipes">
-<h1>How To Reproduce Our Training Recipes<a class="headerlink" href="#how-to-reproduce-our-training-recipes" title="Permalink to this headline"></a></h1>
+</div>
+<div class="section" id="how-to-reproduce-our-training-recipes">
+<h1>How To Reproduce Our Training Recipes<a class="headerlink" href="#how-to-reproduce-our-training-recipes" title="Permalink to this heading"></a></h1>
 <p>The training recipes for the pretrained models are completely visible for the SuperGradients’ users and can be found under “<em>YOUR_LOCAL_PATH_TO_SUPER_GRADIENTS_PACKAGE”/ examples/{DATASET_NAME}</em>{ARCHITECTURE_NAME}_example. _</p>
 <p>_The corresponding YAML configuration files can be found under _“<em>YOUR_LOCAL_PATH_TO_SUPER_GRADIENTS_PACKAGE”/conf/{DATASET_NAME}</em>{ARCHITECTURE_NAME}_conf _</p>
 <p>The configuration files include the specific instructions on how to run the training recipes for reproducibility, as well as links to our tensorboards and logs from their training. Additional information regarding training time, metric scores on different configurations can be found in the configuration files as comments as well.</p>
@@ -1034,14 +1045,14 @@ Example- how to load a pretrained model:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">super_gradients</span><span class="o">.</span><span class="n">train_from_recipe</span> <span class="o">--</span><span class="n">config</span><span class="o">-</span><span class="n">name</span><span class="o">=</span><span class="n">imagenet_regnetY</span> <span class="n">architecture</span><span class="o">=</span><span class="n">regnetY800</span> <span class="n">dataset_interface</span><span class="o">.</span><span class="n">data_dir</span><span class="o">=&lt;</span><span class="n">YOUR_Imagenet_LOCAL_PATH</span><span class="o">&gt;</span> <span class="n">ckpt_root_dir</span><span class="o">=&lt;</span><span class="n">CHEKPOINT_DIRECTORY</span><span class="o">&gt;</span>
 </pre></div>
 </div>
-</section>
-<section id="professional-tools-integration">
-<h1>Professional Tools Integration<a class="headerlink" href="#professional-tools-integration" title="Permalink to this headline"></a></h1>
-<section id="weights-and-biases">
-<h2>Weights and Biases<a class="headerlink" href="#weights-and-biases" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="professional-tools-integration">
+<h1>Professional Tools Integration<a class="headerlink" href="#professional-tools-integration" title="Permalink to this heading"></a></h1>
+<div class="section" id="weights-and-biases">
+<h2>Weights and Biases<a class="headerlink" href="#weights-and-biases" title="Permalink to this heading"></a></h2>
 <p>WandB can be though of an “extended” TensorBoard, where you can manage experiments, create reports, upload files, etc.</p>
-<section id="setting-up-the-environment">
-<h3>Setting-up the environment<a class="headerlink" href="#setting-up-the-environment" title="Permalink to this headline"></a></h3>
+<div class="section" id="setting-up-the-environment">
+<h3>Setting-up the environment<a class="headerlink" href="#setting-up-the-environment" title="Permalink to this heading"></a></h3>
 <ol class="arabic">
 <li><p>Go to your WandB settings, and create an API Key</p></li>
 <li><p>In the machine, run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">wandb</span></code></p></li>
@@ -1073,26 +1084,26 @@ Example- how to load a pretrained model:</p>
 <blockquote>
 <div><p><strong>NOTE:</strong> Additional Weights and Biases resources - <a class="reference external" href="https://www.ravirajag.dev/blog/mlops-wandb-integration">MLOps blog</a>;</p>
 </div></blockquote>
-</section>
-</section>
-</section>
-<section id="supergradients-faq">
-<h1>SuperGradients FAQ<a class="headerlink" href="#supergradients-faq" title="Permalink to this headline"></a></h1>
-<section id="what-type-of-tasks-does-the-supergradients-support">
-<h2>What Type of Tasks Does the SuperGradients Support?<a class="headerlink" href="#what-type-of-tasks-does-the-supergradients-support" title="Permalink to this headline"></a></h2>
+</div>
+</div>
+</div>
+<div class="section" id="supergradients-faq">
+<h1>SuperGradients FAQ<a class="headerlink" href="#supergradients-faq" title="Permalink to this heading"></a></h1>
+<div class="section" id="what-type-of-tasks-does-the-supergradients-support">
+<h2>What Type of Tasks Does the SuperGradients Support?<a class="headerlink" href="#what-type-of-tasks-does-the-supergradients-support" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p>Image Classification</p></li>
 <li><p>Object Detection</p></li>
 <li><p>Semantic Segmentation</p></li>
 </ul>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="super_gradients.training.html" class="btn btn-neutral float-left" title="Training package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="welcome.html" class="btn btn-neutral float-left" title="Version 3 is out! Notebooks have been updated!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
