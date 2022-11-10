@@ -26,7 +26,7 @@ class BufferWriter:
     def flush(self, force: bool = False):
         """Flush if the buffer is big enough, or if flush is forced"""
         if force or len(self.buffer.getvalue()) > self.buffer_size:
-            with open(self.filename, "a") as f:
+            with open(self.filename, "a", encoding="utf-8") as f:
                 f.write(self.buffer.getvalue())
                 self.buffer = StringIO()
 
@@ -74,7 +74,7 @@ def copy_file(src_filename: str, dest_filename: str, copy_mode: str = "w"):
     os.makedirs(os.path.dirname(dest_filename), exist_ok=True)
     if os.path.exists(src_filename):
         with open(src_filename, "r", encoding="utf-8") as src:
-            with open(dest_filename, copy_mode) as dst:
+            with open(dest_filename, copy_mode, encoding="utf-8") as dst:
                 dst.write(src.read())
 
 
