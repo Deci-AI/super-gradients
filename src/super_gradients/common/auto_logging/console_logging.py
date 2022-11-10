@@ -83,7 +83,7 @@ class ConsoleSink:
 
     def __init__(self):
         self._setup()
-        atexit.register(self.flush)
+        atexit.register(self._flush)  # Flush at the end of the process
 
     @multi_process_safe
     def _setup(self):
@@ -108,7 +108,7 @@ class ConsoleSink:
     @multi_process_safe
     def _set_location(self, filename: str):
         """Copy and redirect the sink file into another location."""
-        self.flush()
+        self._flush()
 
         prev_filename = self.filename
         copy_file(src_filename=prev_filename, dest_filename=filename, copy_mode="a")
@@ -123,14 +123,21 @@ class ConsoleSink:
         """Copy and redirect the sink file into another location."""
         _console_sink._set_location(filename)
 
-    @staticmethod
-    def get_filename():
-        return _console_sink.filename
+    @multi_process_safe
+    def _flush(self):
+        """Force the flush on stdout and stderr."""
+        self.stdout.flush(force=True)
+        self.stderr.flush(force=True)
 
     @staticmethod
     def flush():
-        _console_sink.stdout.flush(force=True)
-        _console_sink.stderr.flush(force=True)
+        """Force the flush on stdout and stderr."""
+        _console_sink._flush()
+
+    @staticmethod
+    def get_filename():
+        """Get the filename of the sink."""
+        return _console_sink.filename
 
 
 _console_sink = ConsoleSink()
