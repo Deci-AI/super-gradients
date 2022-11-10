@@ -46,6 +46,7 @@ class QuantizationCalibrator:
 
         :param model:               torch.nn.Module, model to perfrom the calibration on.
         :param calib_data_loader:   torch.utils.data.DataLoader, data loader of the calibration dataset.
+                                    Assumes that the first element of the tuple is the input image.
         :param method:              str, One of [percentile, mse, entropy, max].
                                     Statistics method for amax computation of the quantized modules
                                     (Default=percentile).
@@ -72,19 +73,21 @@ class QuantizationCalibrator:
         local_rank = get_local_rank()
         world_size = get_world_size()
 
+        device = next(model.parameters()).device
+
         # Enable calibrators
         self._enable_calibrators(model)
 
         # Feed data to the network for collecting stats
-        for i, (image, _) in tqdm(enumerate(data_loader), total=num_batches, disable=local_rank > 0):
+        for i, (image, *_) in tqdm(enumerate(data_loader), total=num_batches, disable=local_rank > 0):
             if world_size > 1:
-                all_batches = [torch.zeros_like(image, device="cuda") for _ in range(world_size)]
-                all_gather(all_batches, image.cuda())
+                all_batches = [torch.zeros_like(image, device=device) for _ in range(world_size)]
+                all_gather(all_batches, image.to(device=device))
             else:
                 all_batches = [image]
 
             for local_image in all_batches:
-                model(local_image.cuda())
+                model(local_image.to(device=device))
             if i >= num_batches:
                 break
 
@@ -119,4 +122,3 @@ class QuantizationCalibrator:
                         module.load_calib_amax(**kwargs)
                 if self.verbose:
                     print(f"{name:40}: {module}")
-        model.cuda()
