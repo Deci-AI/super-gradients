@@ -44,6 +44,9 @@ def register_exceptions(excepthook: Callable):
 @multi_process_safe
 def exception_upload_handler(platform_client):
     """Upload the log file to the deci platform if an error was raised"""
+    # Make sure that the sink is flushed
+    ConsoleSink.flush()
+
     if ExceptionInfo.is_exception_raised():
 
         if platform_client.experiment is None:
@@ -53,8 +56,8 @@ def exception_upload_handler(platform_client):
 
         logger.info(f"Uploading log ({ConsoleSink.get_filename()}) to deci platform ...")
         platform_client.save_experiment_file(file_path=ConsoleSink.get_filename())
-        platform_client.send_support_logs(log="error raised", tag="SuperGradient", level=logging.ERROR)
-        time.sleep(10)  # TODO: Wait for platform client to return the thread, and then just replace with thread.join()
+        platform_client.send_support_logs(log="An error was raised", tag="SuperGradient", level="error")
+        time.sleep(10)
         logger.info("Exception was uploaded to deci platform!")
 
 
