@@ -51,9 +51,11 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
     @return:
     """
     source_ckpt_folder_name = source_ckpt_folder_name or experiment_name
-    ckpt_local_path = external_checkpoint_path or pkg_resources.resource_filename("checkpoints", source_ckpt_folder_name + os.path.sep + ckpt_name)
-
-    return ckpt_local_path
+    if external_checkpoint_path:
+        return external_checkpoint_path
+    else:
+        return os.path.join(get_checkpoints_dir_path(source_ckpt_folder_name), ckpt_name)
+    # ckpt_local_path = external_checkpoint_path or pkg_resources.resource_filename('checkpoints', source_ckpt_folder_name + os.path.sep + ckpt_name)
 
 
 def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str):
