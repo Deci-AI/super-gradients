@@ -1,4 +1,3 @@
-
 import sys
 import itertools
 from contextlib import contextmanager
@@ -40,13 +39,12 @@ def reduce_results_tuple_for_ddp(validation_results_tuple, device):
             validation_result = validation_result.clone().detach()
         else:
             validation_result = torch.tensor(validation_result)
-        validation_results_list[i] = distributed_all_reduce_tensor_average(tensor=validation_result.to(device),
-                                                                           n=torch.distributed.get_world_size())
+        validation_results_list[i] = distributed_all_reduce_tensor_average(tensor=validation_result.to(device), n=torch.distributed.get_world_size())
     validation_results_tuple = tuple(validation_results_list)
     return validation_results_tuple
 
 
-class MultiGPUModeAutocastWrapper():
+class MultiGPUModeAutocastWrapper:
     def __init__(self, func):
         self.func = func
 
@@ -87,7 +85,7 @@ def scaled_all_reduce(tensors: torch.Tensor, num_gpus: int):
 
 @torch.no_grad()
 def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoader, precise_bn_batch_size: int, num_gpus: int):
-    '''
+    """
     :param model:                   The model being trained (ie: Trainer.net)
     :param loader:                  Training dataloader (ie: Trainer.train_loader)
     :param precise_bn_batch_size:   The effective batch size we want to calculate the batchnorm on. For example, if we are training a model
@@ -96,7 +94,7 @@ def compute_precise_bn_stats(model: nn.Module, loader: torch.utils.data.DataLoad
                                     If precise_bn_batch_size is not provided in the training_params, the latter heuristic
                                     will be taken.
     param num_gpus:                 The number of gpus we are training on
-    '''
+    """
 
     # Compute the number of minibatches to use
     num_iter = int(precise_bn_batch_size / (loader.batch_size * num_gpus)) if precise_bn_batch_size else num_gpus
@@ -204,28 +202,31 @@ def restart_script_with_ddp(num_gpus: int = None):
     if num_gpus > torch.cuda.device_count():
         raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
 
-    logger.info("Launching DDP with:\n"
-                f"   - ddp_port = {ddp_port}\n"
-                f"   - num_gpus = {num_gpus}/{torch.cuda.device_count()} available\n"
-                "-------------------------------------\n")
+    logger.info(
+        "Launching DDP with:\n"
+        f"   - ddp_port = {ddp_port}\n"
+        f"   - num_gpus = {num_gpus}/{torch.cuda.device_count()} available\n"
+        "-------------------------------------\n"
+    )
 
     config = LaunchConfig(
         nproc_per_node=num_gpus,
         min_nodes=1,
         max_nodes=1,
-        run_id='none',
-        role='default',
-        rdzv_endpoint=f'127.0.0.1:{ddp_port}',
-        rdzv_backend='static',
-        rdzv_configs={'rank': 0, 'timeout': 900},
+        run_id="none",
+        role="default",
+        rdzv_endpoint=f"127.0.0.1:{ddp_port}",
+        rdzv_backend="static",
+        rdzv_configs={"rank": 0, "timeout": 900},
         rdzv_timeout=-1,
         max_restarts=0,
         monitor_interval=5,
-        start_method='spawn',
+        start_method="spawn",
         log_dir=None,
         redirects=Std.NONE,
         tee=Std.NONE,
-        metrics_cfg={})
+        metrics_cfg={},
+    )
 
     elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv)
 
@@ -237,7 +238,7 @@ def get_gpu_mem_utilization():
     """GPU memory managed by the caching allocator in bytes for a given device."""
 
     # Workaround to work on any torch version
-    if hasattr(torch.cuda, 'memory_reserved'):
+    if hasattr(torch.cuda, "memory_reserved"):
         return torch.cuda.memory_reserved()
     else:
         return torch.cuda.memory_cached()
