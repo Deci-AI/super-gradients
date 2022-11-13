@@ -26,7 +26,8 @@ class BufferWriter:
     def flush(self, force: bool = False):
         """Flush if the buffer is big enough, or if flush is forced"""
         if force or len(self.buffer.getvalue()) > self.buffer_size:
-            with open(self.filename, "a") as f:
+            os.makedirs(os.path.dirname(self.filename), exist_ok=True)
+            with open(self.filename, "a", encoding="utf-8") as f:
                 f.write(self.buffer.getvalue())
                 self.buffer = StringIO()
 
@@ -74,7 +75,7 @@ def copy_file(src_filename: str, dest_filename: str, copy_mode: str = "w"):
     os.makedirs(os.path.dirname(dest_filename), exist_ok=True)
     if os.path.exists(src_filename):
         with open(src_filename, "r", encoding="utf-8") as src:
-            with open(dest_filename, copy_mode) as dst:
+            with open(dest_filename, copy_mode, encoding="utf-8") as dst:
                 dst.write(src.read())
 
 
@@ -91,6 +92,7 @@ class ConsoleSink:
         filename = Path.home() / "sg_logs" / "console.log"
         filename.parent.mkdir(exist_ok=True)
         self.filename = str(filename)
+        os.makedirs(os.path.dirname(self.filename), exist_ok=True)
 
         self.stdout = StdoutTee(filename=self.filename, buffer_size=FILE_BUFFER_SIZE)
         self.stderr = StderrTee(filename=self.filename, buffer_size=FILE_BUFFER_SIZE)
@@ -98,7 +100,7 @@ class ConsoleSink:
         # We don't want to rewrite this for subprocesses when using DDP.
         if not is_distributed():
             # By default overwrite existing log. If is_distributed() (i.e. DDP - node 0), append.
-            with open(self.filename, mode="w") as f:
+            with open(self.filename, mode="w", encoding="utf-8") as f:
                 f.write("============================================================\n")
                 f.write(f'New run started at {datetime.now().strftime("%Y-%m-%d.%H:%M:%S.%f")}\n')
                 f.write(f'sys.argv: "{" ".join(sys.argv)}"\n')
