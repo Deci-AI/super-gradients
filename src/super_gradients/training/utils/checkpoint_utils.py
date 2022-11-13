@@ -50,10 +50,12 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
     @param external_checkpoint_path: full path to checkpoint file (that might be located outside of super_gradients/checkpoints directory)
     @return:
     """
-    source_ckpt_folder_name = source_ckpt_folder_name or experiment_name
-    ckpt_local_path = external_checkpoint_path or pkg_resources.resource_filename("checkpoints", source_ckpt_folder_name + os.path.sep + ckpt_name)
-
-    return ckpt_local_path
+    if external_checkpoint_path:
+        return external_checkpoint_path
+    else:
+        checkpoints_folder_name = source_ckpt_folder_name or experiment_name
+        checkpoints_dir_path = get_checkpoints_dir_path(checkpoints_folder_name)
+        return os.path.join(checkpoints_dir_path, ckpt_name)
 
 
 def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str):
