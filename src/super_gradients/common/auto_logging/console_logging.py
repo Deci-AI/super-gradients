@@ -91,6 +91,7 @@ class ConsoleSink:
         filename = Path.home() / "sg_logs" / "console.log"
         filename.parent.mkdir(exist_ok=True)
         self.filename = str(filename)
+        os.makedirs(os.path.dirname(self.filename), exist_ok=True)
 
         self.stdout = StdoutTee(filename=self.filename, buffer_size=FILE_BUFFER_SIZE)
         self.stderr = StderrTee(filename=self.filename, buffer_size=FILE_BUFFER_SIZE)
