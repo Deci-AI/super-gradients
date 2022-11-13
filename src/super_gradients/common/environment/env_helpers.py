@@ -112,6 +112,7 @@ def pop_arg(arg_name: str, default_value: Any = None) -> Any:
 
     # Remove the ddp args to not have a conflict with the use of hydra
     for val in filter(lambda x: x.startswith(f"--{arg_name}"), sys.argv):
+        environment_config.EXTRA_ARGS.append(val)
         sys.argv.remove(val)
     return vars(args)[arg_name]
 
