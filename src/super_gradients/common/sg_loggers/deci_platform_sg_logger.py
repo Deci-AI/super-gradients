@@ -27,10 +27,12 @@ class DeciPlatformSGLogger(BaseSGLogger):
             raise _imported_deci_lab_failure
 
         auth_token = os.getenv("DECI_PLATFORM_TOKEN")
-        # if auth_token is None:
-        #     raise ValueError('The environment variable "DECI_PLATFORM_TOKEN" is required in order to use '
-        #                      'DeciPlatformSGLogger. Please set it with your own credentials '
-        #                      '(available in https://console.deci.ai/settings)')
+        if auth_token is None:
+            raise ValueError(
+                'The environment variable "DECI_PLATFORM_TOKEN" is required in order to use '
+                "DeciPlatformSGLogger. Please set it with your own credentials "
+                "(available in https://console.deci.ai/settings)"
+            )
 
         super().__init__(**kwargs)
         self.platform_client = DeciPlatformClient()
