@@ -23,7 +23,7 @@ def get(config_name, overriding_params: Dict = None) -> Dict:
         overriding_params = dict()
     GlobalHydra.instance().clear()
     sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
-    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir)):
+    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir), version_base="1.2"):
         cfg = compose(config_name=normalize_path(config_name))
         cfg = hydra.utils.instantiate(cfg)
         training_params = cfg.training_hyperparams

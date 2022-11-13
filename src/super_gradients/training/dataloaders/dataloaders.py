@@ -65,7 +65,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
     GlobalHydra.instance().clear()
     sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
     dataset_config = os.path.join("dataset_params", config_name)
-    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir)):
+    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir), version_base="1.2"):
         # config is relative to a module
         cfg = compose(config_name=normalize_path(dataset_config))
 
