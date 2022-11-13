@@ -100,7 +100,7 @@ class ConsoleSink:
         # We don't want to rewrite this for subprocesses when using DDP.
         if not is_distributed():
             # By default overwrite existing log. If is_distributed() (i.e. DDP - node 0), append.
-            with open(self.filename, mode="w") as f:
+            with open(self.filename, mode="w", encoding="utf-8") as f:
                 f.write("============================================================\n")
                 f.write(f'New run started at {datetime.now().strftime("%Y-%m-%d.%H:%M:%S.%f")}\n')
                 f.write(f'sys.argv: "{" ".join(sys.argv)}"\n')
