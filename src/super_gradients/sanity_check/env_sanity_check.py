@@ -7,7 +7,7 @@ from pathlib import Path
 from packaging.version import Version
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.distributed_training_utils import is_distributed
+from super_gradients.common.environment.env_helpers import is_distributed, is_torch_distributed_launch_rank0
 
 LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
@@ -165,10 +165,6 @@ def env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
     if not is_distributed() or is_torch_distributed_launch_rank0():
         run_env_sanity_check()
-
-
-def is_torch_distributed_launch_rank0():
-    return os.getenv("WORLD_SIZE") is not None and os.getenv("LOCAL_RANK") == "0"
 
 
 if __name__ == "__main__":

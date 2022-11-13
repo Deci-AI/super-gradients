@@ -121,6 +121,11 @@ def is_distributed() -> bool:
     return environment_config.DDP_LOCAL_RANK >= 0
 
 
+def is_torch_distributed_launch_rank0() -> bool:
+    """Check if the node was launched with torch.distributed.launch and if the node is of rank 0"""
+    return environment_config.IS_TORCH_DISTRIBUTED_LAUNCH and os.getenv("LOCAL_RANK") == "0"
+
+
 def multi_process_safe(func):
     """
     A decorator for making sure a function runs only in main process.

@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pkg_resources
 
@@ -11,5 +12,8 @@ except Exception:
 
 DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=-1))
 EXTRA_ARGS = []
+
+# This needs to be run at the beginning because later on we drop --local_rank
+IS_TORCH_DISTRIBUTED_LAUNCH = any("--local_rank" in arg for arg in sys.argv)
 
 INIT_TRAINER = False
