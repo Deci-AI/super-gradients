@@ -372,9 +372,9 @@ train_params = { ... # training parameters
                 "sg_logger_params": # paramenters that will be passes to __init__ of the logger 
                   {
                     "project_name": "project_name", # ClearML project name
-                    "save_checkpoints_remote": True
-                    "save_tensorboard_remote": True
-                    "save_logs_remote": True
+                    "save_checkpoints_remote": True,
+                    "save_tensorboard_remote": True,
+                    "save_logs_remote": True,
                   } 
                }
 ```
