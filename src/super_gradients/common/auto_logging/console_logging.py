@@ -20,22 +20,13 @@ class BufferWriter:
         self.buffer_size = buffer_size
         self.open = open
 
-    @property
-    def filename(self):
-        return self._filename
-
-    @filename.setter
-    def filename(self, value):
-        """Force"""
-        self._filename = value
-        os.makedirs(os.path.dirname(self._filename), exist_ok=True)
-
     def write(self, data: str):
         self.buffer.write(data)
 
     def flush(self, force: bool = False):
         """Flush if the buffer is big enough, or if flush is forced"""
         if force or len(self.buffer.getvalue()) > self.buffer_size:
+            os.makedirs(os.path.dirname(self.filename), exist_ok=True)
             with open(self.filename, "a", encoding="utf-8") as f:
                 f.write(self.buffer.getvalue())
                 self.buffer = StringIO()
