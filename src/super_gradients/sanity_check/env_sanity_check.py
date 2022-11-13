@@ -110,11 +110,6 @@ def verify_os() -> List[str]:
     return []
 
 
-def env_sanity_check():
-    if not is_distributed():
-        run_env_sanity_check()
-
-
 def run_env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
 
@@ -164,6 +159,12 @@ def run_env_sanity_check():
             "** A sanity check is done when importing super_gradients for the first time. **\n"
             "-> You can see the details by setting the env variable DISPLAY_SANITY_CHECK=True prior to import."
         )
+
+
+def env_sanity_check():
+    """Run the sanity check tests and log everything that does not meet requirements"""
+    if not is_distributed():
+        run_env_sanity_check()
 
 
 if __name__ == "__main__":
