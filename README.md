@@ -48,6 +48,7 @@ ________________________________________________________________________________
 # Load model with pretrained weights
 model = models.get("yolox_s", pretrained_weights="coco")
 ```
+#### All Computer Vision Models - Pretrained Checkpoints can be found [here](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
 
 #### Classification
 <div align="center">
@@ -63,10 +64,6 @@ model = models.get("yolox_s", pretrained_weights="coco")
 <div align="center">
 <img src="./docs/assets/SG_img/Object Detection@2xDark.png" width="800px">
 </div>
-
-
-
-All Computer Vision Models - Pretrained Checkpoints can be found [here](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
 
 
 ### Easy to train SOTA Models
