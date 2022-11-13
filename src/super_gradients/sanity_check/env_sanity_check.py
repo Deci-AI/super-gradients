@@ -163,8 +163,12 @@ def run_env_sanity_check():
 
 def env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
-    if not is_distributed():
+    if not is_distributed() or is_torch_distributed_launch_rank0():
         run_env_sanity_check()
+
+
+def is_torch_distributed_launch_rank0():
+    return os.getenv("WORLD_SIZE") is not None and os.getenv("LOCAL_RANK") == "0"
 
 
 if __name__ == "__main__":
