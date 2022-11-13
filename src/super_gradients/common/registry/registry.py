@@ -5,6 +5,7 @@ from super_gradients.training.dataloaders.dataloaders import ALL_DATALOADERS
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.training.metrics.all_metrics import METRICS
 from super_gradients.training.losses.all_losses import LOSSES
+from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
 
 
 def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
@@ -14,6 +15,7 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
     :param registry: The registry (maps name to object that you register)
     :return:         Register function
     """
+
     def register(name: Optional[str] = None) -> Callable:
         """
         Set up a register decorator.
@@ -21,6 +23,7 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
         :param name: If specified, the decorated object will be registered with this name.
         :return:     Decorator that registers the callable.
         """
+
         def decorator(cls: Callable) -> Callable:
             """Register the decorated callable"""
             cls_name = name if name is not None else cls.__name__
@@ -31,11 +34,14 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
 
             registry[cls_name] = cls
             return cls
+
         return decorator
+
     return register
 
 
 register_model = create_register_decorator(registry=ARCHITECTURES)
+register_detection_module = create_register_decorator(registry=ALL_DETECTION_MODULES)
 register_metric = create_register_decorator(registry=METRICS)
 register_loss = create_register_decorator(registry=LOSSES)
 register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)
