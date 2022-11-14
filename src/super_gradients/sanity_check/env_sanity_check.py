@@ -168,7 +168,7 @@ def env_sanity_check():
         run_env_sanity_check()
 
 
-def _require_sanity_check():
+def _require_sanity_check() -> bool:
     """Check if current process should run a sanity check"""
     if not is_distributed():  # If no DDP, or DDP launching process
         return True
