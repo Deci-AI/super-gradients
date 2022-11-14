@@ -84,8 +84,8 @@ class DetectionMetrics(Metric):
 
         :param preds :        Raw output of the model, the format might change from one model to another, but has to fit
                                 the input format of the post_prediction_callback (cx,cy,wh)
-        :param target:        Targets for all images of shape (total_num_targets, 6)
-                                format:  (index, cx, cy, w, h, label) where x,y,w,h are in range [0,1]
+        :param target:        Targets for all images of shape (total_num_targets, 6) LABEL_CXCYWH
+                                format:  (index, label, cx, cy, w, h)
                                 (NOTE: In fact for YoloX these are not normalized, and in CXCYWH format)
         :param device:        Device to run on
         :param inputs:        Input image tensor of shape (batch_size, n_img, height, width)

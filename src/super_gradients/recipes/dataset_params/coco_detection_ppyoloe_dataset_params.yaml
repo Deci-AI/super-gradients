@@ -37,7 +37,7 @@ train_dataset_params:
     - DetectionTargetsFormatTransform:
         output_format:
           _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
-          value: XYXY_LABEL
+          value: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:
@@ -72,7 +72,7 @@ val_dataset_params:
       max_targets: 50
       output_format:
         _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
-        value: XYXY_LABEL
+        value: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
   max_num_samples:

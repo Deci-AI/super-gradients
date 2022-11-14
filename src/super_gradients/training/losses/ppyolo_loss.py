@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 
 import super_gradients
+from super_gradients.training.utils.bbox_formats.cxcywh import cxcywh2xyxy
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.training.utils.callbacks import TrainingStageSwitchCallbackBase, PhaseContext
 from super_gradients.training.utils.distributed_training_utils import (
@@ -698,15 +699,15 @@ class PPYoloELoss(nn.Module):
         Convert targets from YoloX format to PPYolo since its the easiest (not the cleanest) way to
         have PP Yolo training & metrics computed
 
-        :param targets: (N, 6) (index, x1, y1, w, h, c)
+        :param targets: (N, 6) format of bboxes is meant to be LABEL_CXCYWH (index, c, cx, cy, w, h)
         :return: (Dictionary [str,Tensor]) with keys:
          - gt_class: (Tensor, int64|int32): Label of gt_bboxes, shape(B, n, 1)
          - gt_bbox: (Tensor, float32): Ground truth bboxes, shape(B, n, 4) in x1y1x2y2 format
          - pad_gt_mask (Tensor, float32): 1 means bbox, 0 means no bbox, shape(B, n, 1)
         """
         image_index = targets[:, 0]
-        gt_bbox = self.xywh2xyxy(targets[:, 1:5])
-        gt_class = targets[:, 5:6].long()
+        gt_class = targets[:, 1:2].long()
+        gt_bbox = cxcywh2xyxy(targets[:, 2:6])
 
         per_image_class = []
         per_image_bbox = []

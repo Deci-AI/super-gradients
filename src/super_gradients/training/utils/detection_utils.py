@@ -810,7 +810,7 @@ def compute_img_detection_matching(
     :param preds:           Tensor of shape (num_img_predictions, 6)
                             format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
     :param targets:         targets for this image of shape (num_img_targets, 6)
-                            format:     (index, cx, cy, w, h, label) where cx,cy,w,h
+                            format:     (label, cx, cy, w, h, label) where cx,cy,w,h
     :param height:          dimensions of the image
     :param width:           dimensions of the image
     :param iou_thresholds:  Threshold to compute the mAP
@@ -861,9 +861,8 @@ def compute_img_detection_matching(
         # CHANGE bboxes TO FIT THE IMAGE SIZE
         change_bbox_bounds_for_image_size(preds, (height, width))
 
-        # if target_format == "xywh":
-        targets_box = convert_xywh_bbox_to_xyxy(targets_box)  # cxcywh2xyxy
-        crowd_target_box = convert_xywh_bbox_to_xyxy(crowd_target_box)  # convert_xywh_bbox_to_xyxy
+        targets_box = cxcywh2xyxy(targets_box)
+        crowd_target_box = cxcywh2xyxy(crowd_target_box)
 
         if denormalize_targets:
             targets_box[:, [0, 2]] *= width
