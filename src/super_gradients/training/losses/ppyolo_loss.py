@@ -787,7 +787,7 @@ class PPYoloELoss(nn.Module):
             alpha_l = 0.25
         else:
             assigned_labels, assigned_bboxes, assigned_scores = self.assigner(
-                pred_scores.detach(),
+                pred_scores.detach().sigmoid(),
                 pred_bboxes.detach() * stride_tensor,
                 anchor_points,
                 num_anchors_list,
@@ -910,8 +910,9 @@ class PPYoloELoss(nn.Module):
         return torch.cat([lt, rb], dim=-1).clip(0, self.reg_max - 0.01)
 
     @staticmethod
-    def _focal_loss(score: Tensor, label: Tensor, alpha=0.25, gamma=2.0) -> Tensor:
-        weight = (score - label).pow(gamma)
+    def _focal_loss(pred_logits: Tensor, label: Tensor, alpha=0.25, gamma=2.0) -> Tensor:
+        pred_score = pred_logits.sigmoid()
+        weight = (pred_score - label).pow(gamma)
         if alpha > 0:
             alpha_t = alpha * label + (1 - alpha) * (1 - label)
             weight *= alpha_t
@@ -919,16 +920,17 @@ class PPYoloELoss(nn.Module):
         # The function 'binary_cross_entropy' is not differentiable with respect to argument 'weight'.
         # loss = torch.nn.functional.binary_cross_entropy(pred_score, gt_score, weight=weight, reduction="sum")
         # TODO: Can improve loss by using logsigmoid with has better numerical stability
-        loss = -weight * (label * score.log() + (1 - label) * (1 - score).log())
+        loss = -weight * (label * torch.nn.functional.logsigmoid(pred_logits) + (1 - label) * torch.nn.functional.logsigmoid(-pred_logits))
         return loss.sum()
 
     @staticmethod
-    def _varifocal_loss(pred_score: Tensor, gt_score: Tensor, label: Tensor, alpha=0.75, gamma=2.0) -> Tensor:
+    def _varifocal_loss(pred_logits: Tensor, gt_score: Tensor, label: Tensor, alpha=0.75, gamma=2.0) -> Tensor:
+        pred_score = pred_logits.sigmoid()
         weight = alpha * pred_score.pow(gamma) * (1 - label) + gt_score * label
         # The function 'binary_cross_entropy' is not differentiable with respect to argument 'weight'.
         # loss = torch.nn.functional.binary_cross_entropy(pred_score, gt_score, weight=weight, reduction="sum")
         # TODO: Can improve loss by using logsigmoid with has better numerical stability
-        loss = -weight * (gt_score * pred_score.log() + (1 - gt_score) * (1 - pred_score).log())
+        loss = -weight * (gt_score * torch.nn.functional.logsigmoid(pred_logits) + (1 - gt_score) * torch.nn.functional.logsigmoid(-pred_logits))
         return loss.sum()
 
 

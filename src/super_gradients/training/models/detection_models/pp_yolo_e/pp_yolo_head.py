@@ -174,8 +174,8 @@ class PPYOLOEHead(nn.Module):
             # cls and reg
             # TODO: Can improve numberical stability here by not applying sigmoid
             # TODO: and calling log_sigmoid in loss computation (This may give some free boost to mAP score)
-            cls_score = torch.sigmoid(cls_logit)
-            cls_score_list.append(torch.permute(cls_score.flatten(2), [0, 2, 1]))
+            # cls_score = torch.sigmoid(cls_logit)
+            cls_score_list.append(torch.permute(cls_logit.flatten(2), [0, 2, 1]))
             reg_distri_list.append(torch.permute(reg_distri.flatten(2), [0, 2, 1]))
         cls_score_list = torch.cat(cls_score_list, dim=1)
         reg_distri_list = torch.cat(reg_distri_list, dim=1)
