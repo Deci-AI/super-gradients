@@ -632,8 +632,9 @@ class DetectionVisualizationCallback(PhaseCallback):
             # TODO: on it's own what additional data it needs.
             image_shape = context.inputs.shape[2:]
             # SOME CALCULATIONS ARE IN-PLACE IN NMS, SO CLONE THE PREDICTIONS
-            preds = (context.preds[0].clone(), None)
-            preds = self.post_prediction_callback(preds, device=context.inputs.device, image_shape=image_shape)
+            # List of array [N,6] (x1, y1, x2, y2, confidence, class)
+            preds = self.post_prediction_callback(context.preds, device=context.inputs.device, image_shape=image_shape)
+
             batch_imgs = DetectionVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx, self.classes)
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)

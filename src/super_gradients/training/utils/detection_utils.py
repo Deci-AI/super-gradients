@@ -426,7 +426,7 @@ class DetectionVisualization:
         target_boxes_image = np.zeros_like(image_np, np.uint8)
         for box in target_boxes:
             target_boxes_image = DetectionVisualization._draw_box_title(
-                color_mapping, class_names, box_thickness, target_boxes_image, *box[2:], class_id=box[1], is_target=True
+                color_mapping, class_names, box_thickness, target_boxes_image, *box[1:5].astype(int), class_id=int(box[5]), is_target=True
             )
 
         # Transparent overlay of ground truth boxes
@@ -438,31 +438,6 @@ class DetectionVisualization:
         else:
             pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
             cv2.imwrite(os.path.join(checkpoint_dir, str(image_name) + ".jpg"), image_np)
-
-    @staticmethod
-    def _scaled_ccwh_to_xyxy(target_boxes: np.ndarray, h: int, w: int, image_scale: float) -> np.ndarray:
-        """
-        Modifies target_boxes inplace
-        :param target_boxes:    (c1, c2, w, h) boxes in [0, 1] range
-        :param h:               image height
-        :param w:               image width
-        :param image_scale:     desired scale for the boxes w.r.t. w and h
-        :return:                targets in (x1, y1, x2, y2) format
-                                in range [0, w * self.image_scale] [0, h * self.image_scale]
-        """
-        # unscale
-        target_boxes[:, 2:] *= np.array([[w, h, w, h]])
-
-        # x1 = c1 - w // 2; y1 = c2 - h // 2
-        target_boxes[:, 2] -= target_boxes[:, 4] // 2
-        target_boxes[:, 3] -= target_boxes[:, 5] // 2
-        # x2 = w + x1; y2 = h + y1
-        target_boxes[:, 4] += target_boxes[:, 2]
-        target_boxes[:, 5] += target_boxes[:, 3]
-
-        target_boxes[:, 2:] *= image_scale
-        target_boxes = target_boxes.astype(int)
-        return target_boxes
 
     @staticmethod
     def visualize_batch(
@@ -490,8 +465,7 @@ class DetectionVisualization:
         :param image_tensor:            rgb images, (B, H, W, 3)
         :param pred_boxes:              boxes after NMS for each image in a batch, each (Num_boxes, 6),
                                         values on dim 1 are: x1, y1, x2, y2, confidence, class
-        :param target_boxes:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, x y w h
-                                        (coordinates scaled to [0, 1])
+        :param target_boxes:            (Num_targets, 6), values on dim 1 are: image id in a batch, cx cy w h, class
         :param batch_name:              id of the current batch to use for image naming
 
         :param class_names:             names of all classes, each on its own index
@@ -506,7 +480,7 @@ class DetectionVisualization:
                                         0 for invisible, 1 for fully opaque
         """
         image_np = undo_preprocessing_func(image_tensor.detach())
-        targets = DetectionVisualization._scaled_ccwh_to_xyxy(target_boxes.detach().cpu().numpy(), *image_np.shape[1:3], image_scale)
+        targets = cxcywh2xyxy(target_boxes.detach().cpu().numpy())
 
         out_images = []
         for i in range(image_np.shape[0]):
