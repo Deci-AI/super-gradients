@@ -119,6 +119,7 @@ class Callbacks:
     DETECTION_MULTISCALE_PREPREDICTION = "DetectionMultiscalePrePredictionCallback"
     YOLOX_TRAINING_STAGE_SWITCH = "YoloXTrainingStageSwitchCallback"
     PPYOLOE_TRAINING_STAGE_SWITCH = "PPYoloETrainingStageSwitchCallback"
+    DETECTION_VISUALIZATION_CALLBACK = "DetectionVisualizationCallback"
 
 
 class LRSchedulers:
