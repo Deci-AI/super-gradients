@@ -8,6 +8,7 @@ from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from torch import nn, Tensor
 
 from super_gradients.modules import ConvBNAct
+from super_gradients.training.utils.version_utils import torch_version_is_greater_or_equal
 
 
 def bias_init_with_prob(prior_prob=0.01):
@@ -42,7 +43,13 @@ def generate_anchors_for_grid_cell(feats: Tuple[Tensor, ...], fpn_strides: Tuple
         cell_half_size = grid_cell_size * stride * 0.5
         shift_x = (torch.arange(end=w) + grid_cell_offset) * stride
         shift_y = (torch.arange(end=h) + grid_cell_offset) * stride
-        shift_y, shift_x = torch.meshgrid(shift_y, shift_x, indexing="ij")
+
+        if torch_version_is_greater_or_equal(1, 10):
+            # https://github.com/pytorch/pytorch/issues/50276
+            shift_y, shift_x = torch.meshgrid(shift_y, shift_x, indexing="ij")
+        else:
+            shift_y, shift_x = torch.meshgrid(shift_y, shift_x)
+
         anchor = torch.stack(
             [shift_x - cell_half_size, shift_y - cell_half_size, shift_x + cell_half_size, shift_y + cell_half_size],
             dim=-1,
@@ -217,7 +224,11 @@ class PPYOLOEHead(nn.Module):
                 w = int(self.eval_size[1] / stride)
             shift_x = torch.arange(end=w) + self.grid_cell_offset
             shift_y = torch.arange(end=h) + self.grid_cell_offset
-            shift_y, shift_x = torch.meshgrid(shift_y, shift_x, indexing="ij")
+            if torch_version_is_greater_or_equal(1, 10):
+                shift_y, shift_x = torch.meshgrid(shift_y, shift_x, indexing="ij")
+            else:
+                shift_y, shift_x = torch.meshgrid(shift_y, shift_x)
+
             anchor_point = torch.stack([shift_x, shift_y], dim=-1).to(dtype=dtype)
             anchor_points.append(anchor_point.reshape([-1, 2]))
             stride_tensor.append(torch.full([h * w, 1], stride, dtype=dtype))
