@@ -27,6 +27,9 @@ class ILogger:
 
 
 def mute_current_process():
+    # TODO: Remove me when finished debugging
+    return
+
     """Mute prints, warnings and all logs except ERRORS. This is meant when running multiple processes."""
     # Ignore warnings
     import warnings
