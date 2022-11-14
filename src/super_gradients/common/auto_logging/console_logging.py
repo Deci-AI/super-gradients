@@ -6,7 +6,7 @@ from io import StringIO
 import atexit
 from threading import Lock
 
-from super_gradients.common.environment.env_helpers import multi_process_safe, is_distributed
+from super_gradients.common.environment.env_helpers import multi_process_safe, is_main_process
 
 
 class BufferWriter:
@@ -107,8 +107,7 @@ class ConsoleSink:
         self.stderr = StderrTee(filename=self.filename, buffer_size=BufferWriter.FILE_BUFFER_SIZE)
 
         # We don't want to rewrite this for subprocesses when using DDP.
-        if not is_distributed():
-            # By default overwrite existing log. If is_distributed() (i.e. DDP - node 0), append.
+        if is_main_process():
             with open(self.filename, mode="w", encoding="utf-8") as f:
                 f.write("============================================================\n")
                 f.write(f'New run started at {datetime.now().strftime("%Y-%m-%d.%H:%M:%S.%f")}\n')
