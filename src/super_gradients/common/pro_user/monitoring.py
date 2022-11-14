@@ -2,16 +2,14 @@ import os
 import sys
 import logging
 import atexit
-import time
-from datetime import datetime
 from typing import Callable
 
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
 from super_gradients.common.environment.env_helpers import multi_process_safe
-from super_gradients.common.sg_loggers import BaseSGLogger
 
 try:
     from deci_lab_client.client import DeciPlatformClient
+    from deci_lab_client.types import S3SignedUrl
 
     _imported_deci_lab_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as _import_err:
@@ -53,18 +51,25 @@ def exception_upload_handler(platform_client):
     """Upload the log file to the deci platform if an error was raised"""
     # Make sure that the sink is flushed
     ConsoleSink.flush()
-    if ExceptionInfo.is_exception_raised():
+    # if ExceptionInfo.is_exception_raised():
 
-        if platform_client.experiment is None:
-            exp_name = BaseSGLogger.get_experiment_name()
-            exp_name = exp_name if exp_name is not None else f"experiment_{datetime.today().isoformat()}"
-            platform_client.register_experiment(name=exp_name)
+    # if platform_client.experiment is None:
+    #     exp_name = BaseSGLogger.get_experiment_name()
+    #     exp_name = exp_name if exp_name is not None else f"experiment_{datetime.today().isoformat()}"
+    #     platform_client.register_experiment(name=exp_name)
 
-        logger.info(f"Uploading log ({ConsoleSink.get_filename()}) to deci platform ...")
-        platform_client.save_experiment_file(file_path=ConsoleSink.get_filename())
-        platform_client.send_support_logs(log="An error was raised", tag="SuperGradient", level="error")
-        time.sleep(10)
-        logger.info("Exception was uploaded to deci platform!")
+    logger.info(f"Uploading log ({ConsoleSink.get_filename()}) to deci platform ...")
+    # platform_client.save_experiment_file(file_path=ConsoleSink.get_filename())
+
+    log_level = "error" if ExceptionInfo.is_exception_raised() else "info"
+    data = platform_client.upload_log_url(tag="SuperGradients", level=log_level)
+    signed_url = S3SignedUrl(**data.data)
+    platform_client.upload_file_to_s3(from_path=ConsoleSink.get_filename(), s3_signed_url=signed_url)
+
+    # TODO: multiprocess safe
+    # platform_client.send_support_logs(log="An error was raised", tag="SuperGradient", level="error")
+    # time.sleep(10)
+    logger.info(f"Exception was uploaded to deci platform with level {log_level}!")
 
 
 def setup_pro_user_monitoring():
@@ -80,7 +85,7 @@ def setup_pro_user_monitoring():
         # (which leads sys.excepthook to never be called)
         os.environ["HYDRA_FULL_ERROR"] = "1"
 
-        platform_client = DeciPlatformClient(api_host="api.development.deci.ai")  # TODO: remove api_host="api.development.deci.ai"
+        platform_client = DeciPlatformClient()  # TODO: remove api_host="api.development.deci.ai"
         platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
 
         sys.excepthook = register_exceptions(sys.excepthook)
