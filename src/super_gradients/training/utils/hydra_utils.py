@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import List
+import pkg_resources
 
 import hydra
 from hydra import initialize_config_dir, compose
@@ -66,14 +67,13 @@ def normalize_path(path: str) -> str:
     return path.replace("\\", "/")
 
 
-def load_arch_params(yaml_folder: str, yaml_name: str) -> DictConfig:
+def load_arch_params(config_name: str) -> DictConfig:
     """
-    :param yaml_folder: path of a folder with the yaml inside of recipes
-    :param yaml_name:   name of a yaml with parameters
-    :return:
+    :param config_name: name of a yaml with arch parameters
     """
-    hydra.initialize(os.path.join("../../recipes", yaml_folder), job_name="test_app", version_base="1.2")
-    cfg = hydra.compose(config_name=yaml_name)
-    cfg = hydra.utils.instantiate(cfg)
-    hydra.core.global_hydra.GlobalHydra.instance().clear()
-    return cfg
+    GlobalHydra.instance().clear()
+    sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
+    dataset_config = os.path.join("arch_params", config_name)
+    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir)):
+        # config is relative to a module
+        return hydra.utils.instantiate(compose(config_name=normalize_path(dataset_config)).arch_params)
