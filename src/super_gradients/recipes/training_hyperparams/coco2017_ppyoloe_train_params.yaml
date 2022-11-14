@@ -17,7 +17,7 @@ loss:
     num_classes: ${arch_params.num_classes}
     reg_max: ${arch_params.head.reg_max}
 
-optimizer: RAdam
+optimizer: AdamW #RAdam
 optimizer_params:
   weight_decay: 0.0005
 
