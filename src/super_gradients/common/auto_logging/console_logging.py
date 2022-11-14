@@ -14,11 +14,17 @@ class BufferWriter:
 
     FILE_BUFFER_SIZE = 10_000  # Number of chars to be buffered before writing the buffer on disk.
 
-    def __init__(self, filename: str, buffer_size: int):
-        self.buffer = StringIO()
+    def __init__(self, filename: str, buffer: StringIO, buffer_size: int, lock: Lock):
+        """
+        :param filename:         Name of the file where to write the bugger
+        :param buffer:           Buffer object
+        :param buffer_size:      Number of chars to be buffered before writing the buffer on disk.
+        :param lock:             Thread lock to prevent multiple threads to write at the same time
+        """
+        self.buffer = buffer
         self.filename = filename
         self.buffer_size = buffer_size
-        self.lock = Lock()
+        self.lock = lock
 
     def write(self, data: str):
         """Write to buffer (not on disk)."""
@@ -34,7 +40,8 @@ class BufferWriter:
                 os.makedirs(os.path.dirname(self.filename), exist_ok=True)
                 with open(self.filename, "a", encoding="utf-8") as f:
                     f.write(self.buffer.getvalue())
-                    self.buffer = StringIO()
+                    self.buffer.truncate(0)
+                    self.buffer.seek(0)
 
     def _require_flush(self) -> bool:
         """Indicate if a buffer is needed (i.e. if buffer size above threshold)"""
@@ -44,8 +51,14 @@ class BufferWriter:
 class StderrTee(BufferWriter):
     """Duplicate the stderr stream to save it into a given file."""
 
-    def __init__(self, filename: str, buffer_size: int):
-        super().__init__(filename, buffer_size)
+    def __init__(self, filename: str, buffer: StringIO, buffer_size: int, lock: Lock):
+        """
+        :param filename:         Name of the file where to write the bugger
+        :param buffer:           Buffer object
+        :param buffer_size:      Number of chars to be buffered before writing the buffer on disk.
+        :param lock:             Thread lock to prevent multiple threads to write at the same time
+        """
+        super().__init__(filename, buffer, buffer_size, lock)
         self.stderr = sys.stderr
         sys.stderr = self
 
@@ -63,8 +76,14 @@ class StderrTee(BufferWriter):
 class StdoutTee(BufferWriter):
     """Duplicate the stdout stream to save it into a given file."""
 
-    def __init__(self, filename: str, buffer_size: int):
-        super().__init__(filename, buffer_size)
+    def __init__(self, filename: str, buffer, buffer_size: int, lock: Lock):
+        """
+        :param filename:         Name of the file where to write the bugger
+        :param buffer:           Buffer object
+        :param buffer_size:      Number of chars to be buffered before writing the buffer on disk.
+        :param lock:             Thread lock to prevent multiple threads to write at the same time
+        """
+        super().__init__(filename, buffer, buffer_size, lock)
         self.stdout = sys.stdout
         sys.stdout = self
 
@@ -103,8 +122,10 @@ class ConsoleSink:
         self.filename = str(filename)
         os.makedirs(os.path.dirname(self.filename), exist_ok=True)
 
-        self.stdout = StdoutTee(filename=self.filename, buffer_size=BufferWriter.FILE_BUFFER_SIZE)
-        self.stderr = StderrTee(filename=self.filename, buffer_size=BufferWriter.FILE_BUFFER_SIZE)
+        buffer = StringIO()
+        lock = Lock()
+        self.stdout = StdoutTee(filename=self.filename, buffer=buffer, buffer_size=BufferWriter.FILE_BUFFER_SIZE, lock=lock)
+        self.stderr = StderrTee(filename=self.filename, buffer=buffer, buffer_size=BufferWriter.FILE_BUFFER_SIZE, lock=lock)
 
         # We don't want to rewrite this for subprocesses when using DDP.
         if is_main_process():
