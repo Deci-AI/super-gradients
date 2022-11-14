@@ -33,7 +33,7 @@ class SPP(nn.Module):
         outs = [x]
         for pool in self.pool:
             outs.append(pool(x))
-        y = torch.concat(outs, dim=1)
+        y = torch.cat(outs, dim=1)
         y = self.conv(y)
         return y
 
@@ -60,7 +60,7 @@ class CSPStage(nn.Module):
         y1 = self.conv1(x)
         y2 = self.conv2(x)
         y2 = self.convs(y2)
-        y = torch.concat([y1, y2], dim=1)
+        y = torch.cat([y1, y2], dim=1)
         y = self.conv3(y)
         return y
 
@@ -169,7 +169,7 @@ class CustomCSPPAN(nn.Module):
         route = None
         for i, block in enumerate(blocks):
             if i > 0:
-                block = torch.concat([route, block], dim=1)
+                block = torch.cat([route, block], dim=1)
             route = self.fpn_stages[i](block)
             fpn_feats.append(route)
 
@@ -184,7 +184,7 @@ class CustomCSPPAN(nn.Module):
         for i in reversed(range(self.num_blocks - 1)):
             block = fpn_feats[i]
             route = self.pan_routes[i](route)
-            block = torch.concat([route, block], dim=1)
+            block = torch.cat([route, block], dim=1)
             route = self.pan_stages[i](block)
             pan_feats.append(route)
 

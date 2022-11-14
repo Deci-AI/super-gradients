@@ -54,9 +54,9 @@ def generate_anchors_for_grid_cell(feats: Tuple[Tensor, ...], fpn_strides: Tuple
         num_anchors_list.append(len(anchors[-1]))
         stride_tensor.append(torch.full([num_anchors_list[-1], 1], stride, dtype=dtype))
 
-    anchors = torch.concat(anchors).to(device)
-    anchor_points = torch.concat(anchor_points).to(device)
-    stride_tensor = torch.concat(stride_tensor).to(device)
+    anchors = torch.cat(anchors).to(device)
+    anchor_points = torch.cat(anchor_points).to(device)
+    stride_tensor = torch.cat(stride_tensor).to(device)
     return anchors, anchor_points, num_anchors_list, stride_tensor
 
 
@@ -170,8 +170,8 @@ class PPYOLOEHead(nn.Module):
             cls_score = torch.sigmoid(cls_logit)
             cls_score_list.append(torch.permute(cls_score.flatten(2), [0, 2, 1]))
             reg_distri_list.append(torch.permute(reg_distri.flatten(2), [0, 2, 1]))
-        cls_score_list = torch.concat(cls_score_list, dim=1)
-        reg_distri_list = torch.concat(reg_distri_list, dim=1)
+        cls_score_list = torch.cat(cls_score_list, dim=1)
+        reg_distri_list = torch.cat(reg_distri_list, dim=1)
 
         return cls_score_list, reg_distri_list, anchors, anchor_points, num_anchors_list, stride_tensor
 
@@ -197,8 +197,8 @@ class PPYOLOEHead(nn.Module):
             cls_score_list.append(cls_score.reshape([b, self.num_classes, height_mul_width]))
             reg_dist_list.append(reg_dist)
 
-        cls_score_list = torch.concat(cls_score_list, dim=-1)  # [B, C, Anchors]
-        reg_dist_list = torch.concat(reg_dist_list, dim=1)  # [B, Anchors, 4]
+        cls_score_list = torch.cat(cls_score_list, dim=-1)  # [B, C, Anchors]
+        reg_dist_list = torch.cat(reg_dist_list, dim=1)  # [B, Anchors, 4]
 
         # Decode bboxes
         pred_scores = torch.permute(cls_score_list, [0, 2, 1])  # # [B, Anchors, C]
@@ -221,8 +221,8 @@ class PPYOLOEHead(nn.Module):
             anchor_point = torch.stack([shift_x, shift_y], dim=-1).to(dtype=dtype)
             anchor_points.append(anchor_point.reshape([-1, 2]))
             stride_tensor.append(torch.full([h * w, 1], stride, dtype=dtype))
-        anchor_points = torch.concat(anchor_points)
-        stride_tensor = torch.concat(stride_tensor)
+        anchor_points = torch.cat(anchor_points)
+        stride_tensor = torch.cat(stride_tensor)
         if feats is not None:
             anchor_points = anchor_points.to(feats[0].device)
             stride_tensor = stride_tensor.to(feats[0].device)

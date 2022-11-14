@@ -19,7 +19,7 @@ def batch_distance2bbox(points: Tensor, distance: Tensor, max_shapes: Optional[T
     # while tensor add parameters, parameters should be better placed on the second place
     x1y1 = -lt + points
     x2y2 = rb + points
-    out_bbox = torch.concat([x1y1, x2y2], dim=-1)
+    out_bbox = torch.cat([x1y1, x2y2], dim=-1)
     if max_shapes is not None:
         max_shapes = max_shapes.flip(-1).tile([1, 2])
         delta_dim = out_bbox.ndim - max_shapes.ndim

@@ -98,7 +98,7 @@ class CSPResStage(nn.Module):
             x = self.conv_down(x)
         y1 = self.conv1(x)
         y2 = self.blocks(self.conv2(x))
-        y = torch.concat([y1, y2], dim=1)
+        y = torch.cat([y1, y2], dim=1)
         y = self.attn(y)
         y = self.conv3(y)
         return y

@@ -191,14 +191,14 @@ def check_points_inside_bboxes(points: Tensor, bboxes, center_radius_tensor=None
         is_in_bboxes (Tensor, float32): shape[B, n, L], value=1. means selected
     """
     points = points.unsqueeze(0).unsqueeze(0)
-    x, y = points.chunk(2, axis=-1)
-    xmin, ymin, xmax, ymax = bboxes.unsqueeze(2).chunk(4, axis=-1)
+    x, y = points.chunk(2, dim=-1)
+    xmin, ymin, xmax, ymax = bboxes.unsqueeze(2).chunk(4, dim=-1)
     # check whether `points` is in `bboxes`
     left = x - xmin
     top = y - ymin
     right = xmax - x
     bottom = ymax - y
-    delta_ltrb = torch.concat([left, top, right, bottom], dim=-1)
+    delta_ltrb = torch.cat([left, top, right, bottom], dim=-1)
     is_in_bboxes = delta_ltrb.min(dim=-1).values > eps
     if center_radius_tensor is not None:
         # check whether `points` is in `center_radius`
@@ -209,7 +209,7 @@ def check_points_inside_bboxes(points: Tensor, bboxes, center_radius_tensor=None
         top = y - (cy - center_radius_tensor)
         right = (cx + center_radius_tensor) - x
         bottom = (cy + center_radius_tensor) - y
-        delta_ltrb_c = torch.concat([left, top, right, bottom], dim=-1)
+        delta_ltrb_c = torch.cat([left, top, right, bottom], dim=-1)
         is_in_center = delta_ltrb_c.min(dim=-1) > eps
         return (torch.logical_and(is_in_bboxes, is_in_center), torch.logical_or(is_in_bboxes, is_in_center))
 
@@ -233,7 +233,7 @@ def gather_topk_anchors(metrics, topk, largest=True, topk_mask=None, eps=1e-9):
     num_anchors = metrics.shape[-1]
     topk_metrics, topk_idxs = torch.topk(metrics, topk, dim=-1, largest=largest)
     if topk_mask is None:
-        topk_mask = (topk_metrics.max(axis=-1, keepdim=True) > eps).type_as(metrics)
+        topk_mask = (topk_metrics.max(dim=-1, keepdim=True).values > eps).type_as(metrics)
     is_in_topk = torch.nn.functional.one_hot(topk_idxs, num_anchors).sum(dim=-2).type_as(metrics)
     return is_in_topk * topk_mask
 
@@ -259,7 +259,7 @@ def compute_max_iou_gt(ious):
         is_max_iou (Tensor, float32): shape[B, n, L], value=1. means selected
     """
     num_anchors = ious.shape[-1]
-    max_iou_index = ious.argmax(axis=-1)
+    max_iou_index = ious.argmax(dim=-1)
     is_max_iou = torch.nn.functional.one_hot(max_iou_index, num_anchors)
     return is_max_iou.astype(ious.dtype)
 
@@ -292,8 +292,8 @@ class ATSSAssigner(nn.Module):
             topk_idxs_list.append(topk_idxs + anchors_index)
             is_in_topk = torch.nn.functional.one_hot(topk_idxs, num_anchors).sum(dim=-2).type_as(gt2anchor_distances)
             is_in_topk_list.append(is_in_topk * pad_gt_mask)
-        is_in_topk_list = torch.concat(is_in_topk_list, dim=-1)
-        topk_idxs_list = torch.concat(topk_idxs_list, dim=-1)
+        is_in_topk_list = torch.cat(is_in_topk_list, dim=-1)
+        topk_idxs_list = torch.cat(topk_idxs_list, dim=-1)
         return is_in_topk_list, topk_idxs_list
 
     @torch.no_grad()
@@ -387,7 +387,7 @@ class ATSSAssigner(nn.Module):
 
         # 7. if an anchor box is assigned to multiple gts,
         # the one with the highest iou will be selected.
-        mask_positive_sum = mask_positive.sum(axis=-2)
+        mask_positive_sum = mask_positive.sum(dim=-2)
         if mask_positive_sum.max() > 1:
             mask_multiple_gts = (mask_positive_sum.unsqueeze(1) > 1).tile([1, num_max_boxes, 1])
             is_max_iou = compute_max_iou_anchor(ious)
@@ -538,7 +538,7 @@ class TaskAlignedAssigner(nn.Module):
 
         # if an anchor box is assigned to multiple gts,
         # the one with the highest iou will be selected, [B, n, L]
-        mask_positive_sum = mask_positive.sum(axis=-2)
+        mask_positive_sum = mask_positive.sum(dim=-2)
         if mask_positive_sum.max() > 1:
             mask_multiple_gts = (mask_positive_sum.unsqueeze(1) > 1).tile([1, num_max_boxes, 1])
             is_max_iou = compute_max_iou_anchor(ious)
@@ -564,7 +564,7 @@ class TaskAlignedAssigner(nn.Module):
         max_metrics_per_instance = alignment_metrics.max(dim=-1, keepdim=True).values
         max_ious_per_instance = (ious * mask_positive).max(dim=-1, keepdim=True).values
         alignment_metrics = alignment_metrics / (max_metrics_per_instance + self.eps) * max_ious_per_instance
-        alignment_metrics = alignment_metrics.max(-2).values.unsqueeze(-1)
+        alignment_metrics = alignment_metrics.max(dim=-2).values.unsqueeze(-1)
         assigned_scores = assigned_scores * alignment_metrics
 
         return assigned_labels, assigned_bboxes, assigned_scores
@@ -907,7 +907,7 @@ class PPYoloELoss(nn.Module):
         x1y1, x2y2 = torch.split(bbox, 2, -1)
         lt = points - x1y1
         rb = x2y2 - points
-        return torch.concat([lt, rb], dim=-1).clip(0, self.reg_max - 0.01)
+        return torch.cat([lt, rb], dim=-1).clip(0, self.reg_max - 0.01)
 
     @staticmethod
     def _focal_loss(score: Tensor, label: Tensor, alpha=0.25, gamma=2.0) -> Tensor:
