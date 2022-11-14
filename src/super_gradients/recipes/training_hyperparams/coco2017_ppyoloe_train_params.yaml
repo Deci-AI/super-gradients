@@ -17,7 +17,7 @@ loss:
     num_classes: ${arch_params.num_classes}
     reg_max: ${arch_params.head.reg_max}
 
-optimizer: AdamW
+optimizer: RAdam
 optimizer_params:
   weight_decay: 0.0005
 
@@ -29,7 +29,7 @@ optimizer_params:
 
 compute_losses_on_valid: False
 
-ema: True
+ema: False
 mixed_precision: True
 
 valid_metrics_list:

@@ -105,6 +105,7 @@ class Optimizers:
     RMS_PROP = "RMSprop"
     RMS_PROP_TF = "RMSpropTF"
     LAMB = "Lamb"
+    RADAM = "RAdam"
 
 
 class Callbacks:
