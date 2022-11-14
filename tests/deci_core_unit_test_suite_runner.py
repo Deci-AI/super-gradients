@@ -42,6 +42,7 @@ from tests.unit_tests.detection_sub_classing_test import TestDetectionDatasetSub
 from tests.unit_tests.detection_caching import TestDetectionDatasetCaching
 from tests.unit_tests.multi_scaling_test import MultiScaleTest
 from tests.unit_tests.ppyoloe_unit_test import PPYoloETests
+from tests.unit_tests.bbox_formats_test import BBoxFormatsTest
 
 
 class CoreUnitTestSuiteRunner:
@@ -94,6 +95,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(CallTrainTwiceTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TrainOptimizerParamsOverride))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(PPYoloETests))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(BBoxFormatsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ResumeTrainingTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
