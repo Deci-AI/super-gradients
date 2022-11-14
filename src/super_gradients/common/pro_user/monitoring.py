@@ -6,6 +6,7 @@ from typing import Callable
 
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
 from super_gradients.common.environment.env_helpers import multi_process_safe
+from super_gradients.common import is_distributed
 
 try:
     from deci_lab_client.client import DeciPlatformClient
@@ -51,25 +52,17 @@ def exception_upload_handler(platform_client):
     """Upload the log file to the deci platform if an error was raised"""
     # Make sure that the sink is flushed
     ConsoleSink.flush()
-    # if ExceptionInfo.is_exception_raised():
+    if not is_distributed() and ExceptionInfo.is_exception_raised():
 
-    # if platform_client.experiment is None:
-    #     exp_name = BaseSGLogger.get_experiment_name()
-    #     exp_name = exp_name if exp_name is not None else f"experiment_{datetime.today().isoformat()}"
-    #     platform_client.register_experiment(name=exp_name)
+        logger.info("Uploading console log to deci platform ...")
 
-    logger.info(f"Uploading log ({ConsoleSink.get_filename()}) to deci platform ...")
-    # platform_client.save_experiment_file(file_path=ConsoleSink.get_filename())
+        data = platform_client.upload_log_url(tag="SuperGradients", level="error")
+        signed_url = S3SignedUrl(**data.data)
+        platform_client.upload_file_to_s3(from_path=ConsoleSink.get_filename(), s3_signed_url=signed_url)
 
-    log_level = "error" if ExceptionInfo.is_exception_raised() else "info"
-    data = platform_client.upload_log_url(tag="SuperGradients", level=log_level)
-    signed_url = S3SignedUrl(**data.data)
-    platform_client.upload_file_to_s3(from_path=ConsoleSink.get_filename(), s3_signed_url=signed_url)
-
-    # TODO: multiprocess safe
-    # platform_client.send_support_logs(log="An error was raised", tag="SuperGradient", level="error")
-    # time.sleep(10)
-    logger.info(f"Exception was uploaded to deci platform with level {log_level}!")
+        # TODO: multiprocess safe
+        # time.sleep(10)
+        logger.info("Exception was uploaded to deci platform!")
 
 
 def setup_pro_user_monitoring():
