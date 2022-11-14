@@ -24,8 +24,6 @@ def main(architecture_name: str):
     # Empty on purpose so that it can be fit to the trainer use case
     checkpoint_dir = ""
 
-    auth_token = "YOUR_API_TOKEN_HERE"
-
     trainer = Trainer(
         f"lab_optimization_{architecture_name}_example",
         model_checkpoints_location="local",
@@ -64,7 +62,6 @@ def main(architecture_name: str):
     phase_callbacks = [
         ModelConversionCheckCallback(model_meta_data=model_meta_data, opset_version=11),
         DeciLabUploadCallback(
-            auth_token=auth_token,
             model_meta_data=model_meta_data,
             optimization_request_form=optimization_request_form,
             opset_version=11,
@@ -84,7 +81,6 @@ def main(architecture_name: str):
         "criterion_params": {},
         "train_metrics_list": [Accuracy(), Top5()],
         "valid_metrics_list": [Accuracy(), Top5()],
-
         "metric_to_watch": "Accuracy",
         "greater_metric_to_watch_is_better": True,
         "phase_callbacks": phase_callbacks,
@@ -92,8 +88,7 @@ def main(architecture_name: str):
 
     # RUN TRAINING. ONCE ALL EPOCHS ARE DONE THE OPTIMIZED MODEL FILE WILL BE LOCATED IN THE EXPERIMENT'S
     # CHECKPOINT DIRECTORY
-    trainer.train(model=model, training_params=train_params, train_loader=classification_test_dataloader(),
-                  valid_loader=classification_test_dataloader())
+    trainer.train(model=model, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
 
 
 if __name__ == "__main__":
