@@ -835,7 +835,7 @@ def compute_img_detection_matching(
     :param preds:           Tensor of shape (num_img_predictions, 6)
                             format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
     :param targets:         targets for this image of shape (num_img_targets, 6)
-                            format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
+                            format:     (index, cx, cy, w, h, label) where cx,cy,w,h
     :param height:          dimensions of the image
     :param width:           dimensions of the image
     :param iou_thresholds:  Threshold to compute the mAP
