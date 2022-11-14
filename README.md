@@ -276,7 +276,10 @@ Learn more about SuperGradients knowledge distillation training with our pre-tra
 
 ### Recipes
 To train a model, it is necessary to configure 4 main components. These components are aggregated into a single "main" recipe `.yaml` file that inherits the aforementioned dataset, architecture, raining and checkpoint params. It is also possible (and recomended for flexibility) to override default settings with custom ones.
-All recipes can be found [here](src/super_gradients/recipes/Training_Recipes.md)
+All recipes can be found [here](src/super_gradients/recipes/Training_Recipes.md). 
+</br>
+Recipes support out of the box every model, metric or loss that is implemented in SuperGradients, but you can easily extend this to any custom object that you need by "registering it". Check out [this](src/super_gradients/common/registry) tutorial for more information.
+
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">   
    <a target="_blank" href="https://bit.ly/3UiY5ab"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Use Recipes</a>
@@ -285,6 +288,8 @@ All recipes can be found [here](src/super_gradients/recipes/Training_Recipes.md)
 <a target="_blank" href="https://bit.ly/3QSrHbm"><img src="./docs/assets/SG_img/GitHub_logo.png" /> GitHub source</a>
  </td>
 </table>
+
+
  </br></br>
 
 
@@ -309,13 +314,13 @@ setup_gpu_mode(gpu_mode=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
 from super_gradients.training import models
 
 # instantiate default pretrained resnet18
-default_resnet18 = models.get(name="resnet18", num_classes=100, pretrained_weights="imagenet")
+default_resnet18 = models.get(model_name="resnet18", num_classes=100, pretrained_weights="imagenet")
 
 # instantiate pretrained resnet18, turning DropPath on with probability 0.5
-droppath_resnet18 = models.get(name="resnet18", arch_params={"droppath_prob": 0.5}, num_classes=100, pretrained_weights="imagenet")
+droppath_resnet18 = models.get(model_name="resnet18", arch_params={"droppath_prob": 0.5}, num_classes=100, pretrained_weights="imagenet")
 
 # instantiate pretrained resnet18, without classifier head. Output will be from the last stage before global pooling
-backbone_resnet18 = models.get(name="resnet18", arch_params={"backbone_mode": True}, pretrained_weights="imagenet")
+backbone_resnet18 = models.get(model_name="resnet18", arch_params={"backbone_mode": True}, pretrained_weights="imagenet")
 ```
 
 ### Using phase callbacks
