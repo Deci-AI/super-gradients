@@ -2,7 +2,7 @@ backbone:
   MobileNetV2Backbone:
     width_mult: 1.
     structure:
-    grouped_conv_size: 1.
+    grouped_conv_size: 1
     out_layers: [['features', 14, 'conv', 2], ['features', 18]]
 
 neck:

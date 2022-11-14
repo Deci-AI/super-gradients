@@ -30,7 +30,7 @@ class BaseDetectionModule(nn.Module, ABC):
 class MobileNetV1Backbone(BaseDetectionModule):
     """MobileNetV1 backbone with an option to return output of any layer"""
 
-    def __init__(self, in_channels: int, out_layers):
+    def __init__(self, in_channels: int, out_layers: List):
         super().__init__(in_channels)
         backbone = MobileNet(backbone_mode=True, num_classes=None, in_channels=in_channels)
         self.multi_output_backbone = MultiOutputModule(backbone, out_layers)
@@ -45,9 +45,9 @@ class MobileNetV1Backbone(BaseDetectionModule):
 
 
 class MobileNetV2Backbone(BaseDetectionModule):
-    """MobileNetV1 backbone with an option to return output of any layer"""
+    """MobileNetV2 backbone with an option to return output of any layer"""
 
-    def __init__(self, in_channels: int, width_mult, structure, grouped_conv_size, out_layers):
+    def __init__(self, in_channels: int, out_layers: List, width_mult: float = 1.0, structure: List[List] = None, grouped_conv_size: int = 1):
         super().__init__(in_channels)
         backbone = MobileNetV2(
             backbone_mode=True,
@@ -77,7 +77,7 @@ class SSDNeck(BaseDetectionModule, ABC):
     Has no skips to the backbone
     """
 
-    def __init__(self, in_channels: Union[int, List[int]], blocks_out_channels, **kwargs):
+    def __init__(self, in_channels: Union[int, List[int]], blocks_out_channels: List[int], **kwargs):
         in_channels = in_channels if isinstance(in_channels, (list, ListConfig)) else [in_channels]
         super().__init__(in_channels)
         self.neck_blocks = nn.ModuleList(self.create_blocks(in_channels[-1], blocks_out_channels, **kwargs))
@@ -107,7 +107,7 @@ class SSDInvertedResidualNeck(SSDNeck):
     Consecutive InvertedResidual blocks each starting with stride 2
     """
 
-    def create_blocks(self, prev_channels, blocks_out_channels, expand_ratios, grouped_conv_size):
+    def create_blocks(self, prev_channels: int, blocks_out_channels: List[int], expand_ratios: List[float], grouped_conv_size: int):
         neck_blocks = []
         for i in range(len(blocks_out_channels)):
             out_channels = blocks_out_channels[i]
@@ -121,7 +121,7 @@ class SSDBottleneckNeck(SSDNeck):
     Consecutive bottleneck blocks
     """
 
-    def create_blocks(self, prev_channels, blocks_out_channels, bottleneck_channels, kernel_sizes, strides):
+    def create_blocks(self, prev_channels: int, blocks_out_channels: List[int], bottleneck_channels: List[int], kernel_sizes: List[int], strides: List[int]):
         neck_blocks = []
         for i in range(len(blocks_out_channels)):
             mid_channels = bottleneck_channels[i]
@@ -143,8 +143,8 @@ class SSDBottleneckNeck(SSDNeck):
         return neck_blocks
 
 
-def SeperableConv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=True):
-    """Replace Conv2d with a depthwise Conv2d and Pointwise Conv2d."""
+def SeperableConv2d(in_channels: int, out_channels: int, kernel_size: int = 1, stride: int = 1, padding: int = 0, bias: bool = True):
+    """Depthwise Conv2d and Pointwise Conv2d."""
     return nn.Sequential(
         nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, groups=in_channels, stride=stride, padding=padding, bias=bias),
         nn.BatchNorm2d(in_channels),
@@ -154,6 +154,11 @@ def SeperableConv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=
 
 
 class SSDHead(BaseDetectionModule):
+    """
+    A one-layer conv head attached to each input feature map.
+    A conv is implemented as two branches: localization and classification
+    """
+
     def __init__(self, in_channels: Union[int, List[int]], num_classes, anchors, lite):
         in_channels = in_channels if isinstance(in_channels, (list, ListConfig)) else [in_channels]
         super().__init__(in_channels)
