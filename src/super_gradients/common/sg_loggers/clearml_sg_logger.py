@@ -39,17 +39,20 @@ class ClearMLSGLogger(BaseSGLogger):
         save_logs_remote: bool = True,
     ):
         """
-
-        :param experiment_name:         Used for logging and loading purposes
-        :param s3_path:                 If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
-        :param checkpoint_loaded:       If true, then old tensorboard files will *not* be deleted when tb_files_user_prompt=True
-        :param max_epochs:              Number of epochs planned for this training
-        :param tb_files_user_prompt:    Asks user for Tensorboard deletion prompt.
-        :param launch_tensorboard:      Whether to launch a TensorBoard process.
-        :param tensorboard_port:        Specific port number for the tensorboard to use when launched (when set to None, some free port number will be used)
-        :param save_checkpoints_remote: Saves checkpoints in s3.
-        :param save_tensorboard_remote: Saves tensorboard in s3.
-        :param save_logs_remote:        Saves log files in s3.
+        :param project_name: ClearML project name that can include many experiments
+        :param experiment_name: Used for logging and loading purposes
+        :param storage_location: If set to 's3' (i.e. s3://my-bucket) saves the Checkpoints in AWS S3 otherwise saves the Checkpoints Locally
+        :param resumed: if true, then old tensorboard files will *not* be deleted when tb_files_user_prompt=True
+        :param training_params: training_params for the experiment.
+        :param checkpoints_dir_path: Local root directory path where all experiment logging directories will
+                                                 reside.
+        :param tb_files_user_prompt: Asks user for Tensorboard deletion prompt.
+        :param launch_tensorboard: Whether to launch a TensorBoard process.
+        :param tensorboard_port: Specific port number for the tensorboard to use when launched (when set to None, some free port
+                    number will be used
+        :param save_checkpoints_remote: Saves checkpoints in ClearML server.
+        :param save_tensorboard_remote: Saves tensorboard in ClearML server.
+        :param save_logs_remote: Saves log files in ClearML server.
         """
         self.s3_location_available = storage_location.startswith("s3")
         super().__init__(
