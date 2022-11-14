@@ -360,6 +360,25 @@ train_params = { ... # training parameters
                }
 ```
 
+### Integration to ClearML
+```python
+from super_gradients import Trainer
+
+# create a trainer object, look the declaration for more parameters
+trainer = Trainer("experiment_name")
+
+train_params = { ... # training parameters
+                "sg_logger": "clearml_sg_logger", # Weights&Biases Logger, see class WandBSGLogger for details
+                "sg_logger_params": # paramenters that will be passes to __init__ of the logger 
+                  {
+                    "project_name": "project_name", # ClearML project name
+                    "save_checkpoints_remote": True,
+                    "save_tensorboard_remote": True,
+                    "save_logs_remote": True,
+                  } 
+               }
+```
+
 
 ## Installation Methods
 __________________________________________________________________________________________________________
@@ -519,5 +538,3 @@ Features:
 ֿ
 
 Request free trial [here](https://bit.ly/3qO3icq) 
-
-
