@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from io import StringIO
 import atexit
+from threading import Lock
 
 from super_gradients.common.environment.env_helpers import multi_process_safe, is_distributed
 
@@ -17,21 +18,23 @@ class BufferWriter:
         self.buffer = StringIO()
         self.filename = filename
         self.buffer_size = buffer_size
-        self.open = open
+        self.lock = Lock()
 
     def write(self, data: str):
         """Write to buffer (not on disk)."""
-        self.buffer.write(data)
+        with self.lock:
+            self.buffer.write(data)
         if self._require_flush():
             self.flush()
 
     def flush(self, force: bool = False):
         """Write the buffer on disk if relevant."""
         if force or self._require_flush():
-            os.makedirs(os.path.dirname(self.filename), exist_ok=True)
-            with open(self.filename, "a", encoding="utf-8") as f:
-                f.write(self.buffer.getvalue())
-                self.buffer = StringIO()
+            with self.lock:
+                os.makedirs(os.path.dirname(self.filename), exist_ok=True)
+                with open(self.filename, "a", encoding="utf-8") as f:
+                    f.write(self.buffer.getvalue())
+                    self.buffer = StringIO()
 
     def _require_flush(self) -> bool:
         """Indicate if a buffer is needed (i.e. if buffer size above threshold)"""
