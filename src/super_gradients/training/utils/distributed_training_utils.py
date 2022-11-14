@@ -1,3 +1,4 @@
+import os
 import sys
 import itertools
 from contextlib import contextmanager
@@ -13,6 +14,7 @@ from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment.env_helpers import find_free_port, is_distributed
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.environment import environment_config
 
 logger = get_logger(__name__)
 
@@ -213,7 +215,7 @@ def restart_script_with_ddp(num_gpus: int = None):
         nproc_per_node=num_gpus,
         min_nodes=1,
         max_nodes=1,
-        run_id="none",
+        run_id="sg_initiated",
         role="default",
         rdzv_endpoint=f"127.0.0.1:{ddp_port}",
         rdzv_backend="static",
@@ -228,10 +230,15 @@ def restart_script_with_ddp(num_gpus: int = None):
         metrics_cfg={},
     )
 
-    elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv)
+    elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv, *environment_config.EXTRA_ARGS)
 
     # The code below should actually never be reached as the process will be in a loop inside elastic_launch until any subprocess crashes.
     sys.exit("Main process finished")
+
+
+def is_launched_using_sg():
+    """Check if the current process is a subprocess launched using SG restart_script_with_ddp"""
+    return os.environ.get("TORCHELASTIC_RUN_ID") == "sg_initiated"
 
 
 def get_gpu_mem_utilization():

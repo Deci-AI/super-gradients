@@ -28,7 +28,7 @@ try:
 
     _imported_pytorch_quantization_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warning("Failed to import pytorch_quantization")
+    logger.debug("Failed to import pytorch_quantization")
     _imported_pytorch_quantization_failure = import_err
 
 

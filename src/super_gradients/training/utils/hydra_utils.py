@@ -41,7 +41,7 @@ def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> Dict
     overrides_cfg = list(OmegaConf.load(resume_dir / "overrides.yaml"))
 
     GlobalHydra.instance().clear()
-    with initialize_config_dir(config_dir=normalize_path(str(resume_dir))):
+    with initialize_config_dir(config_dir=normalize_path(str(resume_dir)), version_base="1.2"):
         cfg = compose(config_name="config.yaml", overrides=overrides_cfg)
     return cfg
 

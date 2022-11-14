@@ -112,12 +112,18 @@ def pop_arg(arg_name: str, default_value: Any = None) -> Any:
 
     # Remove the ddp args to not have a conflict with the use of hydra
     for val in filter(lambda x: x.startswith(f"--{arg_name}"), sys.argv):
+        environment_config.EXTRA_ARGS.append(val)
         sys.argv.remove(val)
     return vars(args)[arg_name]
 
 
 def is_distributed() -> bool:
     return environment_config.DDP_LOCAL_RANK >= 0
+
+
+def is_rank_0() -> bool:
+    """Check if the node was launched with torch.distributed.launch and if the node is of rank 0"""
+    return os.getenv("LOCAL_RANK") == "0"
 
 
 def multi_process_safe(func):
