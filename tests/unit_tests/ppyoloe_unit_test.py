@@ -16,7 +16,7 @@ class TestPPYOLOE(unittest.TestCase):
     def get_model_arch_params(self, config_name):
         GlobalHydra.instance().clear()
         sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
-        with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir)):
+        with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir), version_base="1.2"):
             cfg = compose(config_name=normalize_path(config_name))
             cfg = hydra.utils.instantiate(cfg)
             arch_params = cfg.arch_params
