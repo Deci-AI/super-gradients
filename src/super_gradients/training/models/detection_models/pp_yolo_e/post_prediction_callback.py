@@ -3,7 +3,7 @@ from typing import List, Tuple
 import torch
 import torchvision
 
-from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback, xyxy2cxcywh
+from super_gradients.training.utils.detection_utils import DetectionPostPredictionCallback
 
 
 class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
@@ -47,9 +47,9 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
 
             pred_cls_conf = pred_cls_conf[idx_to_keep].unsqueeze(-1)
             pred_cls_label = pred_cls_label[idx_to_keep].unsqueeze(-1)
-            pred_bboxes = xyxy2cxcywh(pred_bboxes[idx_to_keep].clone())
+            pred_bboxes = pred_bboxes[idx_to_keep]
 
-            #  nx6 (x1, y1, x2, y2, confidence, class) where x and y are in range [0,1]
+            #  nx6 (x1, y1, x2, y2, confidence, class) in pixel units
             final_boxes = torch.cat([pred_bboxes, pred_cls_conf, pred_cls_label], dim=1)  # [N,6]
 
             nms_result.append(final_boxes)
