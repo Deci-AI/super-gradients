@@ -1,5 +1,5 @@
 class Losses:
-    """Static class holding all the supported loss names""" ""
+    """Static class holding all the supported loss names"""
 
     CROSS_ENTROPY = "cross_entropy"
     MSE = "mse"
@@ -16,7 +16,7 @@ class Losses:
 
 
 class Metrics:
-    """Static class holding all the supported metric names""" ""
+    """Static class holding all the supported metric names"""
 
     ACCURACY = "Accuracy"
     TOP5 = "Top5"
@@ -32,7 +32,7 @@ class Metrics:
 
 
 class Transforms:
-    """Static class holding all the supported transform names""" ""
+    """Static class holding all the supported transform names"""
 
     # From SG
     SegRandomFlip = "SegRandomFlip"
@@ -96,7 +96,7 @@ class Transforms:
 
 
 class Optimizers:
-    """Static class holding all the supported optimizer names""" ""
+    """Static class holding all the supported optimizer names"""
 
     SGD = "SGD"
     ADAM = "Adam"
@@ -106,7 +106,7 @@ class Optimizers:
 
 
 class Callbacks:
-    """Static class holding all the supported callback names""" ""
+    """Static class holding all the supported callback names"""
 
     DECI_LAB_UPLOAD = "DeciLabUploadCallback"
     LR_CALLBACK_BASE = "LRCallbackBase"
@@ -119,7 +119,7 @@ class Callbacks:
 
 
 class LRSchedulers:
-    """Static class to hold all the supported LR Scheduler names""" ""
+    """Static class to hold all the supported LR Scheduler names"""
 
     STEP = "step"
     POLY = "poly"
@@ -129,13 +129,13 @@ class LRSchedulers:
 
 
 class LRWarmups:
-    """Static class to hold all the supported LR Warmup names""" ""
+    """Static class to hold all the supported LR Warmup names"""
 
     LINEAR_STEP = "linear_step"
 
 
 class Samplers:
-    """Static class to hold all the supported Samplers names""" ""
+    """Static class to hold all the supported Samplers names"""
 
     INFINITE = "InfiniteSampler"
     REPEAT_AUG = "RepeatAugSampler"
@@ -143,14 +143,14 @@ class Samplers:
 
 
 class ContextModules:
-    """Static class to hold all the segmentation context module names""" ""
+    """Static class to hold all the segmentation context module names"""
 
     ASPP = "ASPP"
     SPPM = "SPPM"
 
 
 class Models:
-    """Static class to hold all the available model names""" ""
+    """Static class to hold all the available model names"""
 
     RESNET18 = "resnet18"
     RESNET34 = "resnet34"
