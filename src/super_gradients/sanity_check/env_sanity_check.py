@@ -170,11 +170,11 @@ def env_sanity_check():
 
 def _require_sanity_check():
     """Check if current process should run a sanity check"""
-    if not is_distributed():  # If process is main process
+    if not is_distributed():  # If no DDP, or DDP launching process
         return True
-    elif is_rank_0() and not is_launched_using_sg():  # If current process is subprocess of RANK 0 and DDP launched using torch.distributed.launch or torchrun
+    elif is_rank_0() and not is_launched_using_sg():  # If DDP launched using torch.distributed.launch or torchrun, we need to run the check on rank 0
         return True
-    else:
+    else:  # We don't want to run the sanity check on other subprocesses because it is redundant and pollutes the logs
         return False
 
 
