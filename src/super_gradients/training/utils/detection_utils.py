@@ -351,9 +351,8 @@ def undo_image_preprocessing(im_tensor: torch.Tensor) -> np.ndarray:
     :param im_tensor: images in a batch after preprocessing for inference, RGB, (B, C, H, W)
     :return:          images in a batch in cv2 format, BGR, (B, H, W, C)
     """
-    im_np = im_tensor.cpu().numpy()
-    im_np = im_np[:, ::-1, :, :].transpose(0, 2, 3, 1)
-    im_np *= 255.0
+    im_np = im_tensor.detach().cpu().numpy()
+    im_np = im_np.transpose(0, 2, 3, 1)
     return np.ascontiguousarray(im_np, dtype=np.uint8)
 
 
