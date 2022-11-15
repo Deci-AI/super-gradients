@@ -73,6 +73,7 @@ class CustomizableDetector(SgModule):
         if new_head is not None:
             self.heads = new_head
         else:
-            self.arch_params.heads.num_classes = new_num_classes
-            self.heads = self.factory.get(self.arch_params.heads, self.neck.out_channels)
+            factory = det_factory.DetectionModulesFactory()
+            self.arch_params.heads = factory.insert_module_param(self.arch_params.heads, "num_classes", new_num_classes)
+            self.heads = factory.get(factory.insert_module_param(self.arch_params.heads, "in_channels", self.neck.out_channels))
             self._initialize_weights(self.arch_params)
