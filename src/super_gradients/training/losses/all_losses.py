@@ -23,11 +23,11 @@ LOSSES = {
     Losses.SHELFNET_OHEM_LOSS: ShelfNetOHEMLoss,
     Losses.SHELFNET_SE_LOSS: ShelfNetSemanticEncodingLoss,
     Losses.YOLOX_LOSS: YoloXDetectionLoss,
-    Losses.PPYOLOE_LOSS: PPYoloELoss,
     Losses.YOLOX_FAST_LOSS: YoloXFastDetectionLoss,
     Losses.SSD_LOSS: SSDLoss,
     Losses.STDC_LOSS: STDCLoss,
     Losses.BCE_DICE_LOSS: BCEDiceLoss,
     Losses.KD_LOSS: KDLogitsLoss,
     Losses.DICE_CE_EDGE_LOSS: DiceCEEdgeLoss,
+    Losses.PPYOLOE_LOSS: PPYoloELoss,
 }

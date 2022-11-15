@@ -148,7 +148,7 @@ class Samplers:
 
 
 class ContextModules:
-    """Static class to hold all the segmentation context module names""" ""
+    """Static class to hold all the segmentation context module names"""
 
     ASPP = "ASPP"
     SPPM = "SPPM"
