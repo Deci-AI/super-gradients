@@ -8,7 +8,6 @@ from torch import nn, Tensor
 import super_gradients
 from super_gradients.training.utils.bbox_formats.cxcywh import cxcywh2xyxy
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
-from super_gradients.training.utils.callbacks import TrainingStageSwitchCallbackBase, PhaseContext
 from super_gradients.training.utils.distributed_training_utils import (
     get_world_size,
 )
@@ -926,26 +925,3 @@ class PPYoloELoss(nn.Module):
         weight = alpha * pred_score.pow(gamma) * (1 - label) + gt_score * label
         loss = -weight * (gt_score * torch.nn.functional.logsigmoid(pred_logits) + (1 - gt_score) * torch.nn.functional.logsigmoid(-pred_logits))
         return loss.sum()
-
-
-class PPYoloETrainingStageSwitchCallback(TrainingStageSwitchCallbackBase):
-    """
-    PPYoloETrainingStageSwitchCallback
-
-    Training stage switch for PPYolo training.
-    It changes static bbox assigner to a task aligned assigned after certain number of epochs passed
-
-    """
-
-    def __init__(
-        self,
-        static_assigner_end_epoch: int = 30,
-    ):
-        super().__init__(next_stage_start_epoch=static_assigner_end_epoch)
-
-    def apply_stage_change(self, context: PhaseContext):
-        if not isinstance(context.criterion, PPYoloELoss):
-            raise RuntimeError(
-                f"A criterion must be an instance of PPYoloELoss when using PPYoloETrainingStageSwitchCallback. " f"Got criterion {repr(context.criterion)}"
-            )
-        context.criterion.use_static_assigner = False

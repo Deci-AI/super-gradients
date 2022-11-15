@@ -1,5 +1,4 @@
 from super_gradients.common.object_names import Callbacks, LRSchedulers, LRWarmups
-from super_gradients.training.losses.ppyolo_loss import PPYoloETrainingStageSwitchCallback
 from super_gradients.training.utils.callbacks.callbacks import (
     DeciLabUploadCallback,
     LRCallbackBase,
@@ -15,6 +14,7 @@ from super_gradients.training.utils.callbacks.callbacks import (
     WarmupLRCallback,
     DetectionVisualizationCallback,
 )
+from super_gradients.training.utils.callbacks.ppyoloe_switch_callback import PPYoloETrainingStageSwitchCallback
 
 from super_gradients.training.utils.early_stopping import EarlyStop
 from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
