@@ -174,6 +174,3 @@ def get(
             load_ema_as_net=load_ema_as_net,
         )
     return net
-
-
-get("bla")
