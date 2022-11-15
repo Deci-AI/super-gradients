@@ -173,12 +173,13 @@ class NHeads(BaseDetectionModule):
         return outputs if self.training else (torch.cat(outputs, 1), outputs_logits)
 
 
-class MobileNetV1Backbone(BaseDetectionModule):
-    """MobileNetV1 backbone with an option to return output of any layer"""
+class MultiOutputBackbone(BaseDetectionModule):
+    """
+    Defines a backbone using MultiOutputModule with the interface of BaseDetectionModule
+    """
 
-    def __init__(self, in_channels: int, out_layers: List):
+    def __init__(self, in_channels: int, backbone: nn.Module, out_layers: List):
         super().__init__(in_channels)
-        backbone = MobileNet(backbone_mode=True, num_classes=None, in_channels=in_channels)
         self.multi_output_backbone = MultiOutputModule(backbone, out_layers)
         self._out_channels = [x.shape[1] for x in self.forward(torch.empty((1, in_channels, 64, 64)))]
 
@@ -190,11 +191,18 @@ class MobileNetV1Backbone(BaseDetectionModule):
         return self.multi_output_backbone(x)
 
 
-class MobileNetV2Backbone(BaseDetectionModule):
+class MobileNetV1Backbone(MultiOutputBackbone):
+    """MobileNetV1 backbone with an option to return output of any layer"""
+
+    def __init__(self, in_channels: int, out_layers: List):
+        backbone = MobileNet(backbone_mode=True, num_classes=None, in_channels=in_channels)
+        super().__init__(in_channels, backbone, out_layers)
+
+
+class MobileNetV2Backbone(MultiOutputBackbone):
     """MobileNetV2 backbone with an option to return output of any layer"""
 
     def __init__(self, in_channels: int, out_layers: List, width_mult: float = 1.0, structure: List[List] = None, grouped_conv_size: int = 1):
-        super().__init__(in_channels)
         backbone = MobileNetV2(
             backbone_mode=True,
             num_classes=None,
@@ -204,15 +212,7 @@ class MobileNetV2Backbone(BaseDetectionModule):
             grouped_conv_size=grouped_conv_size,
             in_channels=in_channels,
         )
-        self.multi_output_backbone = MultiOutputModule(backbone, out_layers)
-        self._out_channels = [x.shape[1] for x in self.forward(torch.empty((1, in_channels, 64, 64)))]
-
-    @property
-    def out_channels(self) -> Union[List[int], int]:
-        return self._out_channels
-
-    def forward(self, x):
-        return self.multi_output_backbone(x)
+        super().__init__(in_channels, backbone, out_layers)
 
 
 class SSDNeck(BaseDetectionModule, ABC):
