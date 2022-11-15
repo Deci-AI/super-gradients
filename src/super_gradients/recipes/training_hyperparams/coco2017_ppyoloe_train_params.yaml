@@ -6,7 +6,7 @@ lr_mode: cosine
 cosine_final_lr_ratio: 0.05
 lr_warmup_epochs: 5
 lr_cooldown_epochs: 15
-initial_lr:  0.0002
+initial_lr:  0.0016
 zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
 
@@ -44,8 +44,8 @@ valid_metrics_list:
 pre_prediction_callback:
 
 phase_callbacks:
-  - PPYoloETrainingStageSwitchCallback:
-      static_assigner_end_epoch: 30
+#  - PPYoloETrainingStageSwitchCallback:
+#      static_assigner_end_epoch: 30
 
 #  - DetectionVisualizationCallback:
 #      phase:
