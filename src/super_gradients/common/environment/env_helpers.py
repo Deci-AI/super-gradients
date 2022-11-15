@@ -112,12 +112,40 @@ def pop_arg(arg_name: str, default_value: Any = None) -> Any:
 
     # Remove the ddp args to not have a conflict with the use of hydra
     for val in filter(lambda x: x.startswith(f"--{arg_name}"), sys.argv):
+        environment_config.EXTRA_ARGS.append(val)
         sys.argv.remove(val)
     return vars(args)[arg_name]
 
 
 def is_distributed() -> bool:
     return environment_config.DDP_LOCAL_RANK >= 0
+
+
+def is_rank_0() -> bool:
+    """Check if the node was launched with torch.distributed.launch and if the node is of rank 0"""
+    return os.getenv("LOCAL_RANK") == "0"
+
+
+def is_launched_using_sg():
+    """Check if the current process is a subprocess launched using SG restart_script_with_ddp"""
+    return os.environ.get("TORCHELASTIC_RUN_ID") == "sg_initiated"
+
+
+def is_main_process():
+    """Check if current process is considered as the main process (i.e. is responsible for sanity check, atexit upload, ...).
+    The definition ensures that 1 and only 1 process follows this condition, regardless of how the run was started.
+
+    The rule is as follow:
+        - If not DDP: main process is current process
+        - If DDP launched using SuperGradients: main process is the launching process (rank=-1)
+        - If DDP launched with torch: main process is rank 0
+    """
+    if not is_distributed():  # If no DDP, or DDP launching process
+        return True
+    elif is_rank_0() and not is_launched_using_sg():  # If DDP launched using torch.distributed.launch or torchrun, we need to run the check on rank 0
+        return True
+    else:
+        return False
 
 
 def multi_process_safe(func):
