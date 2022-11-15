@@ -27,6 +27,9 @@ class BaseDetectionModule(nn.Module, ABC):
     @property
     @abstractmethod
     def out_channels(self) -> Union[List[int], int]:
+        """
+        :return: channels of tensor(s) that will be returned by a module  in forward
+        """
         raise NotImplementedError()
 
 
