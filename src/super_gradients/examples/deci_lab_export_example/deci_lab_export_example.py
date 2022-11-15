@@ -4,6 +4,7 @@ Deci-lab model export example.
 The main purpose of this code is to demonstrate how to upload the model to the platform, optimize and download it
  after training is complete, using DeciPlatformCallback.
 """
+import os
 from super_gradients.training import models
 
 from super_gradients import Trainer
@@ -24,6 +25,7 @@ def main(architecture_name: str):
     # Empty on purpose so that it can be fit to the trainer use case
     checkpoint_dir = ""
 
+    os.environ["DECI_PLATFORM_TOKEN"] = "YOUR_API_TOKEN_HERE"  # You can also set your token as environment variable using the commandline or your IDE.
     trainer = Trainer(
         f"lab_optimization_{architecture_name}_example",
         model_checkpoints_location="local",
