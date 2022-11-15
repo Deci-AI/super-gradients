@@ -917,10 +917,6 @@ class PPYoloELoss(nn.Module):
         if alpha > 0:
             alpha_t = alpha * label + (1 - alpha) * (1 - label)
             weight *= alpha_t
-        # loss = torch.nn.functional.binary_cross_entropy(score, label, weight=weight, reduction="sum")
-        # The function 'binary_cross_entropy' is not differentiable with respect to argument 'weight'.
-        # loss = torch.nn.functional.binary_cross_entropy(pred_score, gt_score, weight=weight, reduction="sum")
-        # TODO: Can improve loss by using logsigmoid with has better numerical stability
         loss = -weight * (label * torch.nn.functional.logsigmoid(pred_logits) + (1 - label) * torch.nn.functional.logsigmoid(-pred_logits))
         return loss.sum()
 
@@ -928,9 +924,6 @@ class PPYoloELoss(nn.Module):
     def _varifocal_loss(pred_logits: Tensor, gt_score: Tensor, label: Tensor, alpha=0.75, gamma=2.0) -> Tensor:
         pred_score = pred_logits.sigmoid()
         weight = alpha * pred_score.pow(gamma) * (1 - label) + gt_score * label
-        # The function 'binary_cross_entropy' is not differentiable with respect to argument 'weight'.
-        # loss = torch.nn.functional.binary_cross_entropy(pred_score, gt_score, weight=weight, reduction="sum")
-        # TODO: Can improve loss by using logsigmoid with has better numerical stability
         loss = -weight * (gt_score * torch.nn.functional.logsigmoid(pred_logits) + (1 - gt_score) * torch.nn.functional.logsigmoid(-pred_logits))
         return loss.sum()
 

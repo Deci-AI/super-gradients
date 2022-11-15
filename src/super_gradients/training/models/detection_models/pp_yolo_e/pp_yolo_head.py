@@ -172,9 +172,7 @@ class PPYOLOEHead(nn.Module):
             cls_logit = self.pred_cls[i](self.stem_cls[i](feat, avg_feat) + feat)
             reg_distri = self.pred_reg[i](self.stem_reg[i](feat, avg_feat))
             # cls and reg
-            # TODO: Can improve numberical stability here by not applying sigmoid
-            # TODO: and calling log_sigmoid in loss computation (This may give some free boost to mAP score)
-            # cls_score = torch.sigmoid(cls_logit)
+            # Note we don't apply sigmoid on class predictions to ensure good numerical stability at loss computation
             cls_score_list.append(torch.permute(cls_logit.flatten(2), [0, 2, 1]))
             reg_distri_list.append(torch.permute(reg_distri.flatten(2), [0, 2, 1]))
         cls_score_list = torch.cat(cls_score_list, dim=1)
