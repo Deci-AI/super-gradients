@@ -113,7 +113,7 @@ class PretrainedModelsTest(unittest.TestCase):
 
         self.transfer_detection_dataset = detection_test_dataloader()
 
-        ssd_dboxes = DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS["anchors"]
+        ssd_dboxes = DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS["heads"]["SSDHead"]["anchors"]
         self.transfer_detection_train_params_ssd = {
             "max_epochs": 3,
             "lr_mode": "cosine",
