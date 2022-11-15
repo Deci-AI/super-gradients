@@ -11,9 +11,9 @@ from super_gradients.training.losses import (
     YoloXFastDetectionLoss,
     KDLogitsLoss,
     DiceCEEdgeLoss,
-    PPYoloELoss,
 )
 from super_gradients.training.losses.stdc_loss import STDCLoss
+from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
 
 
 LOSSES = {
