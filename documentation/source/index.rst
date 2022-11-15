@@ -20,10 +20,10 @@ Welcome to SuperGradients's documentation!
    super_gradients.training
 
 .. toctree::
-   :maxdepth: 4
-   :caption: User Guide
+.. :maxdepth: 4
+.. :caption: User Guide
 
-   user_guide
+.. user_guide
 
 Indices and tables
 ==================
