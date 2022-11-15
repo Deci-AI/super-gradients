@@ -245,20 +245,12 @@ class DeciLabUploadCallback(PhaseCallback):
         if _imported_deci_lab_failure is not None:
             raise _imported_deci_lab_failure
 
-        auth_token = os.getenv("DECI_PLATFORM_TOKEN")
-        if auth_token is None:
-            raise ValueError(
-                'The environment variable "DECI_PLATFORM_TOKEN" is required in order to use '
-                "DeciPlatformSGLogger. Please set it with your own credentials "
-                "(available in https://console.deci.ai/settings)"
-            )
-
         self.model_meta_data = model_meta_data
         self.optimization_request_form = optimization_request_form
         self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
         self.platform_client = DeciPlatformClient("api.deci.ai", 443, https=True)
-        self.platform_client.login(token=auth_token)
+        self.platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
 
     @staticmethod
     def log_optimization_failed():
