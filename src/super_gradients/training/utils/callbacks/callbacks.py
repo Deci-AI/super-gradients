@@ -23,7 +23,7 @@ try:
 
     _imported_deci_lab_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warn("Failed to import deci_lab_client")
+    logger.debug("Failed to import deci_lab_client")
     _imported_deci_lab_failure = import_err
 
 
