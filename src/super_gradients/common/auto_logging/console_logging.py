@@ -6,7 +6,7 @@ from io import StringIO
 import atexit
 from threading import Lock
 
-from super_gradients.common.environment.env_helpers import multi_process_safe, is_main_process
+from super_gradients.common.environment.env_helpers import multi_process_safe, is_main_process, dataloader_worker_safe
 
 
 class BufferWriter:
@@ -114,6 +114,7 @@ class ConsoleSink:
         self._setup()
         atexit.register(self._flush)  # Flush at the end of the process
 
+    @dataloader_worker_safe
     @multi_process_safe
     def _setup(self):
         """On instantiation, setup the default sink file."""
@@ -136,6 +137,7 @@ class ConsoleSink:
                 f.write("============================================================\n")
         self.stdout.write(f"The console stream is logged into {self.filename}\n")
 
+    @dataloader_worker_safe
     @multi_process_safe
     def _set_location(self, filename: str):
         """Copy and redirect the sink file into another location."""
@@ -154,6 +156,7 @@ class ConsoleSink:
         """Copy and redirect the sink file into another location."""
         _console_sink._set_location(filename)
 
+    @dataloader_worker_safe
     @multi_process_safe
     def _flush(self):
         """Force the flush on stdout and stderr."""

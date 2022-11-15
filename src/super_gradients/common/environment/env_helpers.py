@@ -7,6 +7,7 @@ from functools import wraps
 from typing import Any
 
 from omegaconf import OmegaConf
+import torch
 
 from super_gradients.common.environment import environment_config
 
@@ -146,6 +147,28 @@ def is_main_process():
         return True
     else:
         return False
+
+
+def dataloader_worker_safe(func):
+    """
+    A decorator for making sure a function does not run on dataloder workers.
+    This is needed to protect functions called when importing super_gradients on windows, because it seems that
+        dataloader workers on windows re-import all the packages (see https://pytorch.org/docs/stable/data.html#multi-process-data-loading)
+    This works only for functions with no return value
+    """
+
+    def do_nothing(*args, **kwargs):
+        pass
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        is_not_dataloader_worker = torch.utils.data.get_worker_info() is None
+        if is_not_dataloader_worker:
+            return func(*args, **kwargs)
+        else:
+            return do_nothing(*args, **kwargs)
+
+    return wrapper
 
 
 def multi_process_safe(func):
