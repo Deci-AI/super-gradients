@@ -448,7 +448,13 @@ class Trainer:
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
             self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
-        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch, greater_is_better=True)
+
+        for metric_name in get_metrics_titles(self.train_metrics):
+            self.train_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=True)
+
+        for metric_name in get_metrics_titles(self.valid_metrics):
+            self.valid_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=True)
+
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
         ]
