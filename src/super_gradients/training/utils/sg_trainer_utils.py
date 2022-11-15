@@ -32,13 +32,16 @@ class IncreaseType(Enum):
         For accuracy from 1 to 0.5, the value is smaller, but this time the result decreased, because greater is better.
     """
 
+    NONE = "none"
     IS_GREATER = "greater"
     IS_SMALLER = "smaller"
     IS_EQUAL = "equal"
 
     def to_symbol(self) -> str:
         """Get the symbol representing the current increase type"""
-        if self == IncreaseType.IS_GREATER:
+        if self == IncreaseType.NONE:
+            return ""
+        elif self == IncreaseType.IS_GREATER:
             return "↗"
         elif self == IncreaseType.IS_SMALLER:
             return "↘"
@@ -54,18 +57,21 @@ class ImprovementType(Enum):
         For accuracy from 1 to 0.5, the value is smaller, but this time the result decreased, because greater is better.
     """
 
+    NONE = "none"
     IS_BETTER = "better"
     IS_WORSE = "worse"
     IS_SAME = "same"
 
     def to_color(self) -> str:
         """Get the color representing the current improvement type"""
-        if self == ImprovementType.IS_BETTER:
+        if self == ImprovementType.NONE:
+            return "white"
+        elif self == ImprovementType.IS_BETTER:
             return "green"
         elif self == ImprovementType.IS_WORSE:
             return "red"
         else:
-            return "white"
+            return "yellow"
 
 
 logger = get_logger(__name__)
@@ -78,9 +84,10 @@ class MonitoredValue:
     The value can be a metric/loss, and the iteration can be epochs/batch.
 
     :param name:                    Name of the metric
-    :param greater_is_better:       If True, a greater value is considered better.
+    :param greater_is_better:       True, a greater value is considered better.
                                       ex: (greater_is_better=True) For Accuracy 1 is greater and therefore better than 0.4
                                       ex: (greater_is_better=False) For Loss 1 is greater and therefore worse than 0.4
+                                    None when unknown
     :param current:                 Current value of the metric
     :param previous:                Value of the metric in previous iteration
     :param best:                    Value of the metric in best iteration (best according to greater_is_better)
@@ -89,7 +96,7 @@ class MonitoredValue:
     """
 
     name: str
-    greater_is_better: bool
+    greater_is_better: bool = None
     current: float = None
     previous: float = None
     best: float = None
@@ -97,29 +104,29 @@ class MonitoredValue:
     change_from_best: float = None
 
     @property
-    def increase_from_previous(self) -> Union[None, IncreaseType]:
+    def increase_from_previous(self) -> IncreaseType:
         """Type of increase compared to previous value, i.e. if the value is greater, smaller or the same."""
         return self._get_increase_type(self.change_from_previous)
 
     @property
-    def improvement_from_previous(self) -> Union[None, ImprovementType]:
+    def improvement_from_previous(self) -> ImprovementType:
         """Type of improvement compared to previous value, i.e. if the value is better, worse or the same."""
         return self._get_improvement_type(delta=self.change_from_previous)
 
     @property
-    def increase_from_best(self) -> Union[None, IncreaseType]:
+    def increase_from_best(self) -> IncreaseType:
         """Type of increase compared to best value, i.e. if the value is greater, smaller or the same."""
         return self._get_increase_type(self.change_from_best)
 
     @property
-    def improvement_from_best(self) -> Union[None, ImprovementType]:
+    def improvement_from_best(self) -> ImprovementType:
         """Type of improvement compared to best value, i.e. if the value is better, worse or the same."""
         return self._get_improvement_type(delta=self.change_from_best)
 
-    def _get_increase_type(self, delta: float) -> Union[None, IncreaseType]:
+    def _get_increase_type(self, delta: float) -> IncreaseType:
         """Type of increase, i.e. if the value is greater, smaller or the same."""
-        if self.greater_is_better is None or self.change_from_best is None:
-            return None
+        if self.change_from_best is None:
+            return IncreaseType.NONE
         if delta > 0:
             return IncreaseType.IS_GREATER
         elif delta < 0:
@@ -127,10 +134,10 @@ class MonitoredValue:
         else:
             return IncreaseType.IS_EQUAL
 
-    def _get_improvement_type(self, delta: float) -> Union[None, ImprovementType]:
+    def _get_improvement_type(self, delta: float) -> ImprovementType:
         """Type of improvement, i.e. if value is better, worse or the same."""
         if self.greater_is_better is None or self.change_from_best is None:
-            return None
+            return ImprovementType.NONE
         has_increased, has_decreased = delta > 0, delta < 0
         if has_increased and self.greater_is_better or has_decreased and not self.greater_is_better:
             return ImprovementType.IS_BETTER
