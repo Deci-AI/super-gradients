@@ -1,7 +1,7 @@
 from typing import Union
 from types import TracebackType
 
-from super_gradients.common.crash_handler.crash_tips import get_relevant_crash_tip
+from super_gradients.common.crash_handler.crash_tips import get_relevant_crash_tip_message
 
 
 class ExceptionInfo:
@@ -27,6 +27,4 @@ class ExceptionInfo:
 
     @staticmethod
     def get_crash_tip_message() -> Union[None, str]:
-        crash_tip = get_relevant_crash_tip(ExceptionInfo.exc_type, ExceptionInfo.exc_value, ExceptionInfo.exc_traceback)
-        if crash_tip:
-            return crash_tip.get_message(ExceptionInfo.exc_type, ExceptionInfo.exc_value, ExceptionInfo.exc_traceback)
+        return get_relevant_crash_tip_message(ExceptionInfo.exc_type, ExceptionInfo.exc_value, ExceptionInfo.exc_traceback)

@@ -1,5 +1,5 @@
 import re
-from typing import Union, Tuple
+from typing import Union, Tuple, List, Type
 from types import TracebackType
 
 from super_gradients.common.crash_handler.utils import indent_string, fmt_txt, json_str_to_dict
@@ -110,7 +110,7 @@ class CrashTip:
             return None
 
 
-class TorchCudaMissing(CrashTip):
+class TorchCudaMissingTip(CrashTip):
     @classmethod
     def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> bool:
         pattern = "symbol cublasLtHSHMatmulAlgoInit version"
@@ -130,7 +130,7 @@ class TorchCudaMissing(CrashTip):
         return msg
 
 
-class RecipeFactoryFormat(CrashTip):
+class RecipeFactoryFormatTip(CrashTip):
     @classmethod
     def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> bool:
         pattern = "Malformed object definition in configuration. Expecting either a string of object type or a single entry dictionary"
@@ -138,14 +138,14 @@ class RecipeFactoryFormat(CrashTip):
 
     @classmethod
     def _get_explanation(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-        factory_name, _ = RecipeFactoryFormat._get_factory_with_params(exc_value)
+        factory_name, _ = RecipeFactoryFormatTip._get_factory_with_params(exc_value)
         factory_name = fmt_txt(factory_name, bold=True, color="green")
         msg = f"There is an indentation error in the recipe, while creating {factory_name}."
         return msg
 
     @classmethod
     def _get_solution(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-        factory_name, params_dict = RecipeFactoryFormat._get_factory_with_params(exc_value)
+        factory_name, params_dict = RecipeFactoryFormatTip._get_factory_with_params(exc_value)
 
         params_in_yaml = "\n".join(f"  {k}: {v}" for k, v in params_dict.items())
         user_yaml = f"- {factory_name}:\n" + params_in_yaml
@@ -171,7 +171,7 @@ class RecipeFactoryFormat(CrashTip):
         return factory_name, params_dict
 
 
-class DDPNotInitialized(CrashTip):
+class DDPNotInitializedTip(CrashTip):
     """Note: I think that this should be caught within the code instead"""
 
     @classmethod
@@ -196,12 +196,12 @@ class DDPNotInitialized(CrashTip):
 
 
 # /!\ Only the CrashTips classes listed below will be used !! /!\
-ALL_CRASH_TIPS = [TorchCudaMissing, RecipeFactoryFormat, DDPNotInitialized]
+ALL_CRASH_TIPS: List[Type[CrashTip]] = [TorchCudaMissingTip, RecipeFactoryFormatTip, DDPNotInitializedTip]
 
 
-def get_relevant_crash_tip(exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Union[None, object]:
+def get_relevant_crash_tip_message(exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Union[None, str]:
     """Get a CrashTip class if relevant for input exception"""
     for crash_tip in ALL_CRASH_TIPS:
         if crash_tip.is_relevant(exc_type, exc_value, exc_traceback):
-            return crash_tip
+            return crash_tip.get_message(exc_type, exc_value, exc_traceback)
     return None
