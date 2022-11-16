@@ -11,6 +11,7 @@ import signal
 from typing import List
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.environment.env_helpers import multi_process_safe
 from super_gradients.training.utils.detection_utils import DetectionVisualization, DetectionPostPredictionCallback
 from super_gradients.training.utils.segmentation_utils import BinarySegmentationVisualization
 import cv2
@@ -626,6 +627,7 @@ class DetectionVisualizationCallback(PhaseCallback):
         self.classes = classes
         self.last_img_idx_in_batch = last_img_idx_in_batch
 
+    @multi_process_safe
     def __call__(self, context: PhaseContext):
         if context.epoch % self.freq == 0 and context.batch_idx == self.batch_idx:
             # TODO: Maybe post_prediction_callback should also receive whole context instead to decide

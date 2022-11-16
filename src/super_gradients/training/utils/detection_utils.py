@@ -425,7 +425,7 @@ class DetectionVisualization:
         target_boxes_image = np.zeros_like(image_np, np.uint8)
         for box in target_boxes:
             target_boxes_image = DetectionVisualization._draw_box_title(
-                color_mapping, class_names, box_thickness, target_boxes_image, *box[1:5].astype(int), class_id=int(box[5]), is_target=True
+                color_mapping, class_names, box_thickness, target_boxes_image, *box[1:5].astype(int), class_id=int(box[1]), is_target=True
             )
 
         # Transparent overlay of ground truth boxes
@@ -464,7 +464,7 @@ class DetectionVisualization:
         :param image_tensor:            rgb images, (B, H, W, 3)
         :param pred_boxes:              boxes after NMS for each image in a batch, each (Num_boxes, 6),
                                         values on dim 1 are: x1, y1, x2, y2, confidence, class
-        :param target_boxes:            (Num_targets, 6), values on dim 1 are: image id in a batch, cx cy w h, class
+        :param target_boxes:            (Num_targets, 6), values on dim 1 are: image id in a batch, class, cx cy w h
         :param batch_name:              id of the current batch to use for image naming
 
         :param class_names:             names of all classes, each on its own index

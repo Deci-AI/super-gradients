@@ -28,6 +28,7 @@ defaults:
   - dataset_params: coco_detection_ppyoloe_dataset_params
   - arch_params: ppyoloe_s_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 train_dataloader: coco2017_train
 val_dataloader: coco2017_val

@@ -9,20 +9,19 @@ from super_gradients.training.utils.detection_utils import DetectionPostPredicti
 class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
     """Non-Maximum Suppression (NMS) module"""
 
-    def __init__(self, conf: float = 0.001, iou: float = 0.6, classes: List[int] = None, max_predictions: int = 300, with_confidence: bool = True):
+    def __init__(self, score_threshold: float, nms_threshold: float, nms_top_k: int, max_predictions: int, with_confidence: bool = True):
         """
-        :param conf: confidence threshold
-        :param iou: IoU threshold                                       (used in NMS_Type.ITERATIVE)
-        :param classes: (optional list) filter by class                 (used in NMS_Type.ITERATIVE)
-        :param nms_type: the type of nms to use (iterative or matrix)
-        :param max_predictions: maximum number of boxes to output       (used in NMS_Type.MATRIX)
+        :param score_threshold: Predictions confidence threshold. Predictions with score lower than score_threshold will not participate in Top-K & NMS
+        :param iou: IoU threshold for NMS step.
+        :param nms_top_k: Number of predictions participating in NMS step
+        :param max_predictions: maximum number of boxes to return after NMS step
 
         """
         super(PPYoloEPostPredictionCallback, self).__init__()
-        self.conf = conf
-        self.iou = iou
-        self.classes = classes
-        self.max_pred = max_predictions
+        self.score_threshold = score_threshold
+        self.nms_threshold = nms_threshold
+        self.nms_top_k = nms_top_k
+        self.max_predictions = max_predictions
         self.with_confidence = with_confidence
 
     def forward(self, predictions, device: str, image_shape: Tuple[int, int]):
@@ -37,13 +36,21 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
             # pred_bboxes [Anchors, C],
             # pred_scores [Anchors, 4]
             pred_cls_conf, pred_cls_label = torch.max(pred_scores, dim=1)
-            conf_mask = pred_cls_conf >= self.conf
+            conf_mask = pred_cls_conf >= self.score_threshold
 
+            # Filter all predictions by self.score_threshold
             pred_cls_conf = pred_cls_conf[conf_mask]
             pred_cls_label = pred_cls_label[conf_mask]
             pred_bboxes = pred_bboxes[conf_mask, :]
 
-            idx_to_keep = torchvision.ops.boxes.batched_nms(pred_bboxes, pred_cls_conf, pred_cls_label, self.iou)
+            # Filter all predictions by self.nms_top_k
+            topk_candidates = torch.topk(pred_cls_conf, k=self.nms_top_k, largest=True)
+            pred_cls_conf = pred_cls_conf[topk_candidates.indices]
+            pred_cls_label = pred_cls_label[topk_candidates.indices]
+            pred_bboxes = pred_bboxes[topk_candidates.indices, :]
+
+            # NMS
+            idx_to_keep = torchvision.ops.boxes.batched_nms(boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=self.nms_threshold)
 
             pred_cls_conf = pred_cls_conf[idx_to_keep].unsqueeze(-1)
             pred_cls_label = pred_cls_label[idx_to_keep].unsqueeze(-1)
@@ -57,6 +64,6 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
         return self._filter_max_predictions(nms_result)
 
     def _filter_max_predictions(self, res: List) -> List:
-        res[:] = [im[: self.max_pred] if (im is not None and im.shape[0] > self.max_pred) else im for im in res]
+        res[:] = [im[: self.max_predictions] if (im is not None and im.shape[0] > self.max_predictions) else im for im in res]
 
         return res

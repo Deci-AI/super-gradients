@@ -14,7 +14,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 
 
 def batch_iou_similarity(box1, box2, eps=1e-9):
-    """Calculate iou of box1 and box2 in batch
+    """Calculate iou of box1 and box2 in batch. Bboxes are expected to be in x1y1x2y2 format.
 
     Args:
         box1 (Tensor): box with the shape [N, M1, 4]
@@ -37,7 +37,8 @@ def batch_iou_similarity(box1, box2, eps=1e-9):
 
 
 def iou_similarity(box1, box2, eps=1e-10):
-    """Calculate iou of box1 and box2
+    """
+    Calculate iou of box1 and box2. Bboxes are expected to be in x1y1x2y2 format.
 
     Args:
         box1 (Tensor): box with the shape [M1, 4]
@@ -46,17 +47,7 @@ def iou_similarity(box1, box2, eps=1e-10):
     Return:
         iou (Tensor): iou between box1 and box2 with the shape [M1, M2]
     """
-    box1 = box1.unsqueeze(1)  # [M1, 4] -> [M1, 1, 4]
-    box2 = box2.unsqueeze(0)  # [M2, 4] -> [1, M2, 4]
-    px1y1, px2y2 = box1[:, :, 0:2], box1[:, :, 2:4]
-    gx1y1, gx2y2 = box2[:, :, 0:2], box2[:, :, 2:4]
-    x1y1 = torch.maximum(px1y1, gx1y1)
-    x2y2 = torch.minimum(px2y2, gx2y2)
-    overlap = (x2y2 - x1y1).clip(0).prod(-1)
-    area1 = (px2y2 - px1y1).clip(0).prod(-1)
-    area2 = (gx2y2 - gx1y1).clip(0).prod(-1)
-    union = area1 + area2 - overlap + eps
-    return overlap / union
+    return batch_iou_similarity(box1.unsqueeze(0), box2.unsqueeze(0), eps).squeeze(0)
 
 
 def bbox_overlaps(bboxes1, bboxes2, mode="iou", is_aligned=False, eps=1e-6):
@@ -430,6 +421,30 @@ class ATSSAssigner(nn.Module):
         return assigned_labels, assigned_bboxes, assigned_scores
 
 
+def torch_gather_nd(params, indices, batch_dim=1):
+    batch_dims = params.size()[:batch_dim]  # [b1, ..., bn]
+    batch_size = np.cumprod(list(batch_dims))[-1]  # b1 * ... * bn
+    c_dim = params.size()[-1]  # c
+    grid_dims = params.size()[batch_dim:-1]  # [g1, ..., gm]
+    n_indices = indices.size(-2)  # x
+    n_pos = indices.size(-1)  # m
+
+    # reshape leadning batch dims to a single batch dim
+    params = params.reshape(batch_size, *grid_dims, c_dim)
+    indices = indices.reshape(batch_size, n_indices, n_pos)
+
+    # build gather indices
+    # gather for each of the data point in this "batch"
+    batch_enumeration = torch.arange(batch_size).unsqueeze(1)
+    gather_dims = [indices[:, :, i] for i in range(len(grid_dims))]
+    gather_dims.insert(0, batch_enumeration)
+    gathered = params[gather_dims]
+
+    # reshape back to the shape with leading batch dims
+    gathered = gathered.reshape(*batch_dims, n_indices, c_dim)
+    return gathered
+
+
 class TaskAlignedAssigner(nn.Module):
     """TOOD: Task-aligned One-stage Object Detection"""
 
@@ -497,32 +512,7 @@ class TaskAlignedAssigner(nn.Module):
         pred_scores = torch.permute(pred_scores, [0, 2, 1])
         batch_ind = torch.arange(end=batch_size, dtype=gt_labels.dtype, device=gt_labels.device).unsqueeze(-1)
         gt_labels_ind = torch.stack([batch_ind.tile([1, num_max_boxes]), gt_labels.squeeze(-1)], dim=-1)
-
-        def torch_gather_nd(params, indices, batch_dim=1):
-            batch_dims = params.size()[:batch_dim]  # [b1, ..., bn]
-            batch_size = np.cumprod(list(batch_dims))[-1]  # b1 * ... * bn
-            c_dim = params.size()[-1]  # c
-            grid_dims = params.size()[batch_dim:-1]  # [g1, ..., gm]
-            n_indices = indices.size(-2)  # x
-            n_pos = indices.size(-1)  # m
-
-            # reshape leadning batch dims to a single batch dim
-            params = params.reshape(batch_size, *grid_dims, c_dim)
-            indices = indices.reshape(batch_size, n_indices, n_pos)
-
-            # build gather indices
-            # gather for each of the data point in this "batch"
-            batch_enumeration = torch.arange(batch_size).unsqueeze(1)
-            gather_dims = [indices[:, :, i] for i in range(len(grid_dims))]
-            gather_dims.insert(0, batch_enumeration)
-            gathered = params[gather_dims]
-
-            # reshape back to the shape with leading batch dims
-            gathered = gathered.reshape(*batch_dims, n_indices, c_dim)
-            return gathered
-
         bbox_cls_scores = torch_gather_nd(pred_scores, gt_labels_ind)
-        # bbox_cls_scores = torch.gather(pred_scores, index=gt_labels_ind, dim=0)
         # compute alignment metrics, [B, n, L]
         alignment_metrics = bbox_cls_scores.pow(self.alpha) * ious.pow(self.beta)
 
@@ -670,7 +660,7 @@ class PPYoloELoss(nn.Module):
         self.use_varifocal_loss = use_varifocal_loss
         self.loss_weight = loss_weight
         self.iou_loss = GIoULoss()
-        self.static_assigner = ATSSAssigner(topk=9)
+        self.static_assigner = ATSSAssigner(topk=9, num_classes=num_classes)
         self.assigner = TaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0)
         self.use_static_assigner = use_static_assigner
         self.use_l1_loss = use_l1_loss
@@ -681,19 +671,8 @@ class PPYoloELoss(nn.Module):
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
         self.register_buffer("proj_conv", proj)
 
-    def xywh2xyxy(self, bboxes: Tensor) -> Tensor:
-        """
-        Transforms bboxes from XYWH format to XYXY format
-        :param bboxes: BBoxes of shape (..., 4) in XYWH format
-        :return: BBoxes of shape (..., 4) in XYXY format
-        """
-        x1, y1, w, h = bboxes[..., 0], bboxes[..., 1], bboxes[..., 2], bboxes[..., 3]
-        x2 = x1 + w
-        y2 = y1 + h
-        return torch.stack([x1, y1, x2, y2], dim=-1)
-
     @torch.no_grad()
-    def _format_targets(self, targets: torch.Tensor, batch_size: int) -> Mapping[str, torch.Tensor]:
+    def _yolox_targets_to_ppyolo(self, targets: torch.Tensor, batch_size: int) -> Mapping[str, torch.Tensor]:
         """
         Convert targets from YoloX format to PPYolo since its the easiest (not the cleanest) way to
         have PP Yolo training & metrics computed
@@ -765,7 +744,7 @@ class PPYoloELoss(nn.Module):
             stride_tensor,
         ) = outputs
 
-        targets = self._format_targets(targets, batch_size=pred_scores.size(0))  # yolox -> ppyolo
+        targets = self._yolox_targets_to_ppyolo(targets, batch_size=pred_scores.size(0))  # yolox -> ppyolo
 
         anchor_points_s = anchor_points / stride_tensor
         pred_bboxes = self._bbox_decode(anchor_points_s, pred_distri)
@@ -776,8 +755,8 @@ class PPYoloELoss(nn.Module):
         # label assignment
         if self.use_static_assigner:
             assigned_labels, assigned_bboxes, assigned_scores = self.static_assigner(
-                anchors,
-                num_anchors_list,
+                anchor_bboxes=anchors,
+                num_anchors_list=num_anchors_list,
                 gt_labels=gt_labels,
                 gt_bboxes=gt_bboxes,
                 pad_gt_mask=pad_gt_mask,
@@ -787,13 +766,13 @@ class PPYoloELoss(nn.Module):
             alpha_l = 0.25
         else:
             assigned_labels, assigned_bboxes, assigned_scores = self.assigner(
-                pred_scores.detach().sigmoid(),
-                pred_bboxes.detach() * stride_tensor,
-                anchor_points,
-                num_anchors_list,
-                gt_labels,
-                gt_bboxes,
-                pad_gt_mask,
+                pred_scores=pred_scores.detach().sigmoid(),  # Pred scores are logits on training for numerical stability
+                pred_bboxes=pred_bboxes.detach() * stride_tensor,
+                anchor_points=anchor_points,
+                num_anchors_list=num_anchors_list,
+                gt_labels=gt_labels,
+                gt_bboxes=gt_bboxes,
+                pad_gt_mask=pad_gt_mask,
                 bg_index=self.num_classes,
             )
             alpha_l = -1
