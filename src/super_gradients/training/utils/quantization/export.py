@@ -13,7 +13,7 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     _imported_pytorch_quantization_failure = import_err
 
 
-def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple):
+def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple, **kwargs):
     """
     Method for exporting onnx after QAT.
 
@@ -26,7 +26,7 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
 
     model.eval()
     if hasattr(model, "prep_model_for_conversion"):
-        model.prep_model_for_conversion()
+        model.prep_model_for_conversion(**kwargs)
 
     use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
     quant_nn.TensorQuantizer.use_fb_fake_quant = True
