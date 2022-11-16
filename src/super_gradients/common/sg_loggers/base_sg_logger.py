@@ -274,9 +274,3 @@ class BaseSGLogger(AbstractSGLogger):
 
     def local_dir(self) -> str:
         return self._local_dir
-
-    @staticmethod
-    def get_experiment_name() -> Union[str, None]:
-        if BaseSGLogger._instance is None:
-            return None
-        return BaseSGLogger._instance.experiment_name
