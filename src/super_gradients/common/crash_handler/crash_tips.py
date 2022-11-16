@@ -168,7 +168,28 @@ class RecipeFactoryFormat(CrashTip):
         return factory_name, params_dict
 
 
-ALL_CRASH_TIPS = [TorchCudaMissing, RecipeFactoryFormat]
+class DDPNotInitialized(CrashTip):
+    @classmethod
+    def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType):
+        expected_str = "Default process group has not been initialized, please make sure to call init_process_group"
+        return isinstance(exc_value, RuntimeError) and expected_str in str(exc_value)
+
+    @classmethod
+    def _get_explanation(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
+        msg = "Your environment was not setup correctly for DDP."
+        return msg
+
+    @classmethod
+    def _get_solution(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
+        msg = (
+            "Please run at the beginning of your script:\n"
+            ">>> from super_gradients.common.environment.env_helpers import init_trainer\n"
+            ">>> setup_gpu_mode(gpu_mode=..., num_gpus=...)"
+        )
+        return msg
+
+
+ALL_CRASH_TIPS = [TorchCudaMissing, RecipeFactoryFormat, DDPNotInitialized]
 
 
 def get_relevant_crash_tip(exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Union[None, object]:

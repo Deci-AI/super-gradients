@@ -29,6 +29,7 @@ def crash_tip_handler():
 
 def setup_crash_handler():
     """Setup the environment to handle crashes, with crash tips and more."""
+    pass
     if os.getenv("CRASH_HANDLER", "TRUE") != "False":
         logger.info("Crash tips is enabled. " "You can set your environment variable to CRASH_HANDLER=FALSE to disable it")
         sys.excepthook = register_exceptions(sys.excepthook)

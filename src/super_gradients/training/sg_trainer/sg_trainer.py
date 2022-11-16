@@ -193,7 +193,7 @@ class Trainer:
         cfg = hydra.utils.instantiate(cfg)
 
         kwargs = parse_args(cfg, cls.__init__)
-
+        kwargs.pop("multi_gpu")
         trainer = Trainer(**kwargs)
 
         # INSTANTIATE DATA LOADERS
