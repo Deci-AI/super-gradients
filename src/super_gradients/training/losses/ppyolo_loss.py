@@ -47,7 +47,17 @@ def iou_similarity(box1, box2, eps=1e-10):
     Return:
         iou (Tensor): iou between box1 and box2 with the shape [M1, M2]
     """
-    return batch_iou_similarity(box1.unsqueeze(0), box2.unsqueeze(0), eps).squeeze(0)
+    box1 = box1.unsqueeze(1)  # [M1, 4] -> [M1, 1, 4]
+    box2 = box2.unsqueeze(0)  # [M2, 4] -> [1, M2, 4]
+    px1y1, px2y2 = box1[:, :, 0:2], box1[:, :, 2:4]
+    gx1y1, gx2y2 = box2[:, :, 0:2], box2[:, :, 2:4]
+    x1y1 = torch.maximum(px1y1, gx1y1)
+    x2y2 = torch.minimum(px2y2, gx2y2)
+    overlap = (x2y2 - x1y1).clip(0).prod(-1)
+    area1 = (px2y2 - px1y1).clip(0).prod(-1)
+    area2 = (gx2y2 - gx1y1).clip(0).prod(-1)
+    union = area1 + area2 - overlap + eps
+    return overlap / union
 
 
 def bbox_overlaps(bboxes1, bboxes2, mode="iou", is_aligned=False, eps=1e-6):
