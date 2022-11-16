@@ -8,13 +8,14 @@ logger = get_logger(__name__)
 
 try:
     from deci_lab_client.client import DeciPlatformClient
+
     _imported_deci_lab_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warn("Failed to import deci_lab_client")
+    logger.debug("Failed to import deci_lab_client")
     _imported_deci_lab_failure = import_err
 
-TENSORBOARD_EVENTS_PREFIX = 'events.out.tfevents'
-LOGS_PREFIX = 'log_'
+TENSORBOARD_EVENTS_PREFIX = "events.out.tfevents"
+LOGS_PREFIX = "log_"
 
 
 class DeciPlatformSGLogger(BaseSGLogger):
@@ -27,9 +28,11 @@ class DeciPlatformSGLogger(BaseSGLogger):
 
         auth_token = os.getenv("DECI_PLATFORM_TOKEN")
         if auth_token is None:
-            raise ValueError('The environment variable "DECI_PLATFORM_TOKEN" is required in order to use '
-                             'DeciPlatformSGLogger. Please set it with your own credentials '
-                             '(available in https://console.deci.ai/settings)')
+            raise ValueError(
+                'The environment variable "DECI_PLATFORM_TOKEN" is required in order to use '
+                "DeciPlatformSGLogger. Please set it with your own credentials "
+                "(available in https://console.deci.ai/settings)"
+            )
 
         super().__init__(**kwargs)
         self.platform_client = DeciPlatformClient()
@@ -47,7 +50,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
 
         # Upload to Deci platform
         if not os.path.isdir(self.checkpoints_dir_path):
-            raise ValueError('Provided directory does not exist')
+            raise ValueError("Provided directory does not exist")
 
         self._upload_latest_file_starting_with(start_with=TENSORBOARD_EVENTS_PREFIX)
         self._upload_latest_file_starting_with(start_with=LOGS_PREFIX)
@@ -61,9 +64,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         """
 
         files_path = [
-            os.path.join(self.checkpoints_dir_path, file_name)
-            for file_name in os.listdir(self.checkpoints_dir_path)
-            if file_name.startswith(start_with)
+            os.path.join(self.checkpoints_dir_path, file_name) for file_name in os.listdir(self.checkpoints_dir_path) if file_name.startswith(start_with)
         ]
 
         most_recent_file_path = max(files_path, key=os.path.getctime)

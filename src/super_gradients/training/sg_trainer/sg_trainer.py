@@ -146,12 +146,14 @@ class Trainer:
         self.enable_qat = False
         self.qat_params = {}
         self._infinite_train_loader = False
+        self._first_backward = True
 
         # METRICS
         self.loss_logging_items_names = None
         self.train_metrics = None
         self.valid_metrics = None
         self.greater_metric_to_watch_is_better = None
+        self.metric_to_watch = None
 
         # SETTING THE PROPERTIES FROM THE CONSTRUCTOR
         self.experiment_name = experiment_name
@@ -242,6 +244,8 @@ class Trainer:
         :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         """
 
+        setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
@@ -307,21 +311,6 @@ class Trainer:
             "valid_dataloader_params": self.valid_loader.dataloader_params if hasattr(self.valid_loader, "dataloader_params") else None,
         }
         self.dataset_params = HpmStruct(**self.dataset_params)
-
-    def _set_ckpt_loading_attributes(self):
-        """
-        Sets checkpoint loading related attributes according to self.checkpoint_params
-        """
-        self.checkpoint = {}
-        self.strict_load = core_utils.get_param(self.checkpoint_params, "strict_load", default_val=StrictLoad.ON)
-        self.load_ema_as_net = core_utils.get_param(self.checkpoint_params, "load_ema_as_net", default_val=False)
-        self.source_ckpt_folder_name = core_utils.get_param(self.checkpoint_params, "source_ckpt_folder_name")
-        self.load_checkpoint = core_utils.get_param(self.checkpoint_params, "load_checkpoint", default_val=False)
-        self.load_backbone = core_utils.get_param(self.checkpoint_params, "load_backbone", default_val=False)
-        self.external_checkpoint_path = core_utils.get_param(self.checkpoint_params, "external_checkpoint_path")
-        if self.load_checkpoint or self.external_checkpoint_path:
-            self.load_weights_only = core_utils.get_param(self.checkpoint_params, "load_weights_only", default_val=False)
-        self.ckpt_name = core_utils.get_param(self.checkpoint_params, "ckpt_name", default_val=self.ckpt_name)
 
     def _net_to_device(self):
         """
@@ -439,7 +428,8 @@ class Trainer:
         # ON FIRST BACKWARD, DERRIVE THE LOGGING TITLES.
         if self.loss_logging_items_names is None or self._first_backward:
             self._init_loss_logging_names(loss_logging_items)
-            self._init_monitored_items()
+            if self.metric_to_watch:
+                self._init_monitored_items()
             self._first_backward = False
 
         if len(loss_logging_items) != len(self.loss_logging_items_names):
@@ -579,6 +569,7 @@ class Trainer:
         self.load_ema_as_net = False
         self.load_checkpoint = core_utils.get_param(self.training_params, "resume", False)
         self.external_checkpoint_path = core_utils.get_param(self.training_params, "resume_path")
+        self.load_checkpoint = self.load_checkpoint or self.external_checkpoint_path is not None
         self.ckpt_name = core_utils.get_param(self.training_params, "ckpt_name", "ckpt_latest.pth")
         self._load_checkpoint_to_model()
 
@@ -1417,7 +1408,8 @@ class Trainer:
 
         logger.info("Distributed training starting...")
         if not torch.distributed.is_initialized():
-            torch.distributed.init_process_group(backend="nccl", init_method="env://")
+            backend = "gloo" if os.name == "nt" else "nccl"
+            torch.distributed.init_process_group(backend=backend, init_method="env://")
 
         torch.cuda.set_device(local_rank)
         self.device = "cuda:%d" % local_rank
@@ -1445,8 +1437,6 @@ class Trainer:
         NOTE: 'acc', 'epoch', 'optimizer_state_dict' and the logs are NOT loaded if self.zeroize_prev_train_params
          is True
         """
-
-        self._set_ckpt_loading_attributes()
 
         if self.load_checkpoint or self.external_checkpoint_path:
             # GET LOCAL PATH TO THE CHECKPOINT FILE FIRST
@@ -1667,6 +1657,8 @@ class Trainer:
         # SWITCH BACK BETWEEN NETS SO AN ADDITIONAL TRAINING CAN BE DONE AFTER TEST
         if use_ema_net and self.ema_model is not None:
             self.net = keep_model
+
+        self._first_backward = True
 
         return test_results
 

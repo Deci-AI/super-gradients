@@ -65,7 +65,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
     GlobalHydra.instance().clear()
     sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
     dataset_config = os.path.join("dataset_params", config_name)
-    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir)):
+    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir), version_base="1.2"):
         # config is relative to a module
         cfg = compose(config_name=normalize_path(dataset_config))
 
@@ -115,7 +115,11 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     if get_param(dataloader_params, "batch_sampler"):
         sampler = dataloader_params.pop("sampler")
         batch_size = dataloader_params.pop("batch_size")
-        dataloader_params["batch_sampler"] = BatchSampler(sampler=sampler, batch_size=batch_size, drop_last=False)
+        if "drop_last" in dataloader_params:
+            drop_last = dataloader_params.pop("drop_last")
+        else:
+            drop_last = default_dataloader_params["drop_last"]
+        dataloader_params["batch_sampler"] = BatchSampler(sampler=sampler, batch_size=batch_size, drop_last=drop_last)
     return dataloader_params
 
 
