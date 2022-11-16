@@ -1,5 +1,7 @@
-import sys
+from typing import Union
 from types import TracebackType
+
+from super_gradients.common.crash_handler.crash_tips import get_relevant_crash_tip
 
 
 class ExceptionInfo:
@@ -24,18 +26,7 @@ class ExceptionInfo:
         return ExceptionInfo._is_exception_raised
 
     @staticmethod
-    def get_exception():
-        return ExceptionInfo.exc_type, ExceptionInfo.exc_value, ExceptionInfo.exc_traceback
-
-
-def register_exceptions(excepthook):
-    """Wrap excepthook with a step the saves the exception info to be available in the exit hooks."""
-
-    def excepthook_with_register(exc_type, exc_value, exc_traceback):
-        ExceptionInfo.register_exception(exc_type, exc_value, exc_traceback)
-        return excepthook(exc_type, exc_value, exc_traceback)
-
-    return excepthook_with_register
-
-
-sys.excepthook = register_exceptions(sys.excepthook)
+    def get_crash_tip_message() -> Union[None, str]:
+        crash_tip = get_relevant_crash_tip(ExceptionInfo.exc_type, ExceptionInfo.exc_value, ExceptionInfo.exc_traceback)
+        if crash_tip:
+            return crash_tip.get_message(ExceptionInfo.exc_type, ExceptionInfo.exc_value, ExceptionInfo.exc_traceback)
