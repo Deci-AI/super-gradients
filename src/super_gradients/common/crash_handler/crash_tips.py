@@ -1,5 +1,5 @@
 import re
-from typing import Union
+from typing import Union, Tuple
 from types import TracebackType
 
 from super_gradients.common.crash_handler.utils import indent_string, fmt_txt, json_str_to_dict
@@ -112,7 +112,7 @@ class CrashTip:
 
 class TorchCudaMissing(CrashTip):
     @classmethod
-    def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType):
+    def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> bool:
         pattern = "symbol cublasLtHSHMatmulAlgoInit version"
         return isinstance(exc_value, OSError) and pattern in str(exc_value)
 
@@ -132,7 +132,7 @@ class TorchCudaMissing(CrashTip):
 
 class RecipeFactoryFormat(CrashTip):
     @classmethod
-    def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType):
+    def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> bool:
         pattern = "Malformed object definition in configuration. Expecting either a string of object type or a single entry dictionary"
         return isinstance(exc_value, RuntimeError) and pattern in str(exc_value)
 
@@ -158,8 +158,11 @@ class RecipeFactoryFormat(CrashTip):
         return msg
 
     @staticmethod
-    def _get_factory_with_params(exc_value):
-        "received: {'RandomCrop': None, 'size': 32, 'padding': 4}"
+    def _get_factory_with_params(exc_value: Exception) -> Tuple[str, dict]:
+        """Utility function to extract useful features from the exception.
+        :return: Name of the factory that (we assume) was not correctly defined
+        :return: Parameters that are passed to that factory
+        """
         description = str(exc_value)
         params_dict = re.search(r"received: (.*?)$", description).group(1)
         params_dict = json_str_to_dict(params_dict)
@@ -169,9 +172,11 @@ class RecipeFactoryFormat(CrashTip):
 
 
 class DDPNotInitialized(CrashTip):
+    """Note: I think that this should be caught within the code instead"""
+
     @classmethod
     def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType):
-        expected_str = "Default process group has not been initialized, please make sure to call init_process_group"
+        expected_str = "Default process group has not been initialized, please make sure to call init_process_group."
         return isinstance(exc_value, RuntimeError) and expected_str in str(exc_value)
 
     @classmethod
@@ -183,16 +188,19 @@ class DDPNotInitialized(CrashTip):
     def _get_solution(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
         msg = (
             "Please run at the beginning of your script:\n"
-            ">>> from super_gradients.common.environment.env_helpers import init_trainer\n"
-            ">>> setup_gpu_mode(gpu_mode=..., num_gpus=...)"
+            f">>> {fmt_txt('from super_gradients.training.utils.distributed_training_utils import setup_gpu_mode', color='green')}\n"
+            f">>> {fmt_txt('from super_gradients.common.data_types.enum import MultiGPUMode', color='green')}\n"
+            f">>> {fmt_txt('setup_gpu_mode(gpu_mode=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=...)', color='green')}"
         )
         return msg
 
 
+# /!\ Only the CrashTips classes listed below will be used !! /!\
 ALL_CRASH_TIPS = [TorchCudaMissing, RecipeFactoryFormat, DDPNotInitialized]
 
 
 def get_relevant_crash_tip(exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Union[None, object]:
+    """Get a CrashTip class if relevant for input exception"""
     for crash_tip in ALL_CRASH_TIPS:
         if crash_tip.is_relevant(exc_type, exc_value, exc_traceback):
             return crash_tip
