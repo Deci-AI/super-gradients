@@ -28,6 +28,7 @@ optimizer_params:
 #  nesterov: True
 
 compute_losses_on_valid: False
+static_assigner_end_epoch: 100
 
 ema: False
 mixed_precision: True
@@ -48,7 +49,7 @@ pre_prediction_callback:
 
 phase_callbacks:
   - PPYoloETrainingStageSwitchCallback:
-      static_assigner_end_epoch: 100
+      static_assigner_end_epoch: ${training_hyperparams.static_assigner_end_epoch}
 
   - DetectionVisualizationCallback:
       phase:
