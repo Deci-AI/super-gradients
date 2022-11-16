@@ -3,7 +3,6 @@ import os
 import signal
 import time
 from typing import Union, Any
-import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,9 +21,6 @@ logger = get_logger(__name__)
 
 
 class BaseSGLogger(AbstractSGLogger):
-
-    _instance = None
-
     def __init__(
         self,
         project_name: str,
@@ -91,11 +87,6 @@ class BaseSGLogger(AbstractSGLogger):
 
         if launch_tensorboard:
             self._launch_tensorboard(port=tensorboard_port)
-
-        if BaseSGLogger._instance is None:
-            BaseSGLogger._instance = self
-        else:
-            warnings.warn("BaseSGLogger was already instantiated")
 
     @multi_process_safe
     def _launch_tensorboard(self, port):
