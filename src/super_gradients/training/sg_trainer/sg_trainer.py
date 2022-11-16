@@ -146,12 +146,14 @@ class Trainer:
         self.enable_qat = False
         self.qat_params = {}
         self._infinite_train_loader = False
+        self._first_backward = True
 
         # METRICS
         self.loss_logging_items_names = None
         self.train_metrics = None
         self.valid_metrics = None
         self.greater_metric_to_watch_is_better = None
+        self.metric_to_watch = None
 
         # SETTING THE PROPERTIES FROM THE CONSTRUCTOR
         self.experiment_name = experiment_name
@@ -425,7 +427,8 @@ class Trainer:
         # ON FIRST BACKWARD, DERRIVE THE LOGGING TITLES.
         if self.loss_logging_items_names is None or self._first_backward:
             self._init_loss_logging_names(loss_logging_items)
-            self._init_monitored_items()
+            if self.metric_to_watch:
+                self._init_monitored_items()
             self._first_backward = False
 
         if len(loss_logging_items) != len(self.loss_logging_items_names):
@@ -1652,6 +1655,8 @@ class Trainer:
         # SWITCH BACK BETWEEN NETS SO AN ADDITIONAL TRAINING CAN BE DONE AFTER TEST
         if use_ema_net and self.ema_model is not None:
             self.net = keep_model
+
+        self._first_backward = True
 
         return test_results
 

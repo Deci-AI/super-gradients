@@ -1,6 +1,9 @@
+import os
 from pathlib import Path
 from typing import List
+import pkg_resources
 
+import hydra
 from hydra import initialize_config_dir, compose
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import OmegaConf, open_dict, DictConfig
@@ -62,3 +65,15 @@ def normalize_path(path: str) -> str:
     :return: Output path string with all \\ symbols replaces with /.
     """
     return path.replace("\\", "/")
+
+
+def load_arch_params(config_name: str) -> DictConfig:
+    """
+    :param config_name: name of a yaml with arch parameters
+    """
+    GlobalHydra.instance().clear()
+    sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
+    dataset_config = os.path.join("arch_params", config_name)
+    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir)):
+        # config is relative to a module
+        return hydra.utils.instantiate(compose(config_name=normalize_path(dataset_config)).arch_params)
