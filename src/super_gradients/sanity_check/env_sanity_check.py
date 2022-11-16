@@ -7,7 +7,7 @@ from pathlib import Path
 from packaging.version import Version
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.environment.env_helpers import is_main_process
+from super_gradients.common.environment.env_helpers import is_main_process, dataloader_worker_safe
 
 LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
@@ -110,6 +110,7 @@ def verify_os() -> List[str]:
     return []
 
 
+@dataloader_worker_safe
 def run_env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
 
