@@ -55,7 +55,7 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
 
             pred_cls_conf = pred_cls_conf[idx_to_keep].unsqueeze(-1)
             pred_cls_label = pred_cls_label[idx_to_keep].unsqueeze(-1)
-            pred_bboxes = pred_bboxes[idx_to_keep]
+            pred_bboxes = pred_bboxes[idx_to_keep, :]
 
             #  nx6 (x1, y1, x2, y2, confidence, class) in pixel units
             final_boxes = torch.cat([pred_bboxes, pred_cls_conf, pred_cls_label], dim=1)  # [N,6]
