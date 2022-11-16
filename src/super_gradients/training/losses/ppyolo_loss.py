@@ -881,8 +881,8 @@ class PPYoloELoss(nn.Module):
             loss_dfl = self._df_loss(pred_dist_pos, assigned_ltrb_pos) * bbox_weight
             loss_dfl = loss_dfl.sum() / assigned_scores_sum
         else:
-            loss_l1 = torch.zeros([1], device=pred_bboxes.device)
-            loss_iou = torch.zeros([1], device=pred_bboxes.device)
+            loss_l1 = torch.zeros([], device=pred_bboxes.device)
+            loss_iou = torch.zeros([], device=pred_bboxes.device)
             loss_dfl = pred_dist.sum() * 0.0
         return loss_l1, loss_iou, loss_dfl
 
