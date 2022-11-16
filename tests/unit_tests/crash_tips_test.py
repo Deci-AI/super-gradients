@@ -7,7 +7,7 @@ from super_gradients.common.crash_handler.crash_tips import CrashTip, TorchCudaM
 
 
 @dataclasses.dataclass
-class EncounteredException:
+class DocumentedException:
     exc_value: Exception
     expected_crash_tip: Type[CrashTip]
     # author/person who faced this exception?
@@ -15,26 +15,28 @@ class EncounteredException:
 
 class CrashTipTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.encountered_exceptions = [
-            EncounteredException(
+
+        # Add any exception that we want to support here to make sure that it will be handled by our crash tip handler
+        self.documented_exceptions = [
+            DocumentedException(
                 exc_value=OSError(
                     "/home/tomer.keren/.conda/envs/tomer-dev-sg3/lib/python3.10/site-packages/torch/lib/../../nvidia/cublas/lib/libcublas.so.11: symbol "
                     "cublasLtHSHMatmulAlgoInit version libcublasLt.so.11 not defined in file libcublasLt.so.11 with link time reference"
                 ),
                 expected_crash_tip=TorchCudaMissingTip,
             ),
-            EncounteredException(
+            DocumentedException(
                 exc_value=RuntimeError(
                     "Malformed object definition in configuration. Expecting either a string of object type or a single entry dictionary{type_name(str): "
                     "{parameters...}}.received: {'my_callback': None, 'lr_step': 2.4}"
                 ),
                 expected_crash_tip=RecipeFactoryFormatTip,
             ),
-            EncounteredException(
+            DocumentedException(
                 exc_value=RuntimeError("Default process group has not been initialized, please make sure to call init_process_group."),
                 expected_crash_tip=DDPNotInitializedTip,
             ),
-            EncounteredException(
+            DocumentedException(
                 exc_value=RuntimeError("New exceptions."),
                 expected_crash_tip=DDPNotInitializedTip,
             ),
@@ -42,8 +44,8 @@ class CrashTipTest(unittest.TestCase):
 
     def test_found_exceptions(self):
         """Test all the exceptions that were documented, and make sure that they have an associated tip."""
-        for encountered_exception in self.encountered_exceptions:
-            exc_value, expected_crash_tip = encountered_exception.exc_value, encountered_exception.expected_crash_tip
+        for documented_exception in self.documented_exceptions:
+            exc_value, expected_crash_tip = documented_exception.exc_value, documented_exception.expected_crash_tip
             try:
                 raise exc_value
             except type(exc_value):
