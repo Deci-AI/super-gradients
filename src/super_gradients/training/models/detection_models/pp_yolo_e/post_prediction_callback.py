@@ -44,10 +44,11 @@ class PPYoloEPostPredictionCallback(DetectionPostPredictionCallback):
             pred_bboxes = pred_bboxes[conf_mask, :]
 
             # Filter all predictions by self.nms_top_k
-            topk_candidates = torch.topk(pred_cls_conf, k=self.nms_top_k, largest=True)
-            pred_cls_conf = pred_cls_conf[topk_candidates.indices]
-            pred_cls_label = pred_cls_label[topk_candidates.indices]
-            pred_bboxes = pred_bboxes[topk_candidates.indices, :]
+            if pred_cls_conf.size(0) > self.nms_top_k:
+                topk_candidates = torch.topk(pred_cls_conf, k=self.nms_top_k, largest=True)
+                pred_cls_conf = pred_cls_conf[topk_candidates.indices]
+                pred_cls_label = pred_cls_label[topk_candidates.indices]
+                pred_bboxes = pred_bboxes[topk_candidates.indices, :]
 
             # NMS
             idx_to_keep = torchvision.ops.boxes.batched_nms(boxes=pred_bboxes, scores=pred_cls_conf, idxs=pred_cls_label, iou_threshold=self.nms_threshold)
