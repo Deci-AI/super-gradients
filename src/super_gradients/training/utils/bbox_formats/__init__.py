@@ -1,5 +1,5 @@
 from .bbox_format import BoundingBoxFormat, convert_bboxes
-from .cxcywh import CXCYWHCoordinateFormat, NormalizedCXCYWHCoordinateFormat
+from .cxcywh import CXCYWHCoordinateFormat, NormalizedCXCYWHCoordinateFormat, cxcywh2xyxy, xyxy2cxcywh
 from .xywh import XYWHCoordinateFormat, NormalizedXYWHCoordinateFormat
 from .xyxy import XYXYCoordinateFormat, NormalizedXYXYCoordinateFormat
 from .yxyx import YXYXCoordinateFormat
@@ -26,4 +26,6 @@ __all__ = [
     "XYXYCoordinateFormat",
     "YXYXCoordinateFormat",
     "convert_bboxes",
+    "cxcywh2xyxy",
+    "xyxy2cxcywh",
 ]
