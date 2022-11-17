@@ -1408,7 +1408,8 @@ class Trainer:
 
         logger.info("Distributed training starting...")
         if not torch.distributed.is_initialized():
-            torch.distributed.init_process_group(backend="nccl", init_method="env://")
+            backend = "gloo" if os.name == "nt" else "nccl"
+            torch.distributed.init_process_group(backend=backend, init_method="env://")
 
         torch.cuda.set_device(local_rank)
         self.device = "cuda:%d" % local_rank

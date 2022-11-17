@@ -10,6 +10,8 @@ from super_gradients.common.factories.transforms_factory import TransformsFactor
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.common.factories.bbox_format_factory import BBoxFormatFactory
 
+
+# "DetectionModulesFactory" from super_gradients.common.factories.detection_modules_factory is omitted due to circular import issue
 __all__ = [
     "CallbacksFactory",
     "ListFactory",

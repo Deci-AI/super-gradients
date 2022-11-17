@@ -140,6 +140,7 @@ class MobileNetV2(MobileNetBase):
 
         if self.backbone_mode:
             self.classifier = nn.Identity()
+            # TODO: remove during migration of YOLOs to the new base
             self.backbone_connection_channels = self._extract_connection_layers_input_channel_size()
         else:
             # building classifier
