@@ -403,7 +403,7 @@ class DetectionVisualization:
     def _visualize_image(
         image_np: np.ndarray,
         pred_boxes: np.ndarray,
-        predictions: np.ndarray,
+        targets: np.ndarray,
         class_names: List[str],
         box_thickness: int,
         gt_alpha: float,
@@ -423,7 +423,7 @@ class DetectionVisualization:
 
         # Draw ground truths
         target_boxes_image = np.zeros_like(image_np, np.uint8)
-        for box in predictions:
+        for box in targets:
             target_boxes_image = DetectionVisualization._draw_box_title(
                 color_mapping, class_names, box_thickness, target_boxes_image, *box[2:6].astype(int), class_id=int(box[1]), is_target=True
             )
