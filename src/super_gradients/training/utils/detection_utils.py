@@ -481,7 +481,7 @@ class DetectionVisualization:
         image_np = undo_preprocessing_func(image_tensor.detach())
         targets = target_boxes.detach().cpu().numpy()
 
-        targets[1:5] = cxcywh2xyxy(targets[2:6])
+        targets[2:6] = cxcywh2xyxy(targets[2:6])
 
         out_images = []
         for i in range(image_np.shape[0]):
