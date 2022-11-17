@@ -77,7 +77,7 @@ class CrashTip:
             f"{explanation}\n"
             "- How to solve it:\n"
             f"{solution}\n"
-            f"- If the proposed solution did not help, feel free to contact us or to open a ticket: "
+            f"- If the proposed solution did not help, feel free to contact the SuperGradient team or to open a ticket: "
             f"https://github.com/Deci-AI/super-gradients/issues/new/choose"
         )
         return msg
@@ -106,7 +106,9 @@ class CrashTip:
                 "******************************************************************************************************************************\n"
             )
             return "\n" + message
-        except Exception:  # It is important that the crash tip does not crash itself!
+        except Exception:
+            # It is important that the crash tip does not crash itself, because it is called atexit!
+            # Otherwise, the user would get a crash on top of another crash and this would be extremly confusing
             return None
 
 

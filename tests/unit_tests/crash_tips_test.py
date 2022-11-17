@@ -36,10 +36,6 @@ class CrashTipTest(unittest.TestCase):
                 exc_value=RuntimeError("Default process group has not been initialized, please make sure to call init_process_group."),
                 expected_crash_tip=DDPNotInitializedTip,
             ),
-            DocumentedException(
-                exc_value=RuntimeError("New exceptions."),
-                expected_crash_tip=DDPNotInitializedTip,
-            ),
         ]
 
     def test_found_exceptions(self):
