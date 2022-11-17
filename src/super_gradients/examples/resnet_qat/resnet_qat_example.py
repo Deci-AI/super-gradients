@@ -1,60 +1,104 @@
-"""
-QAT example for Resnet18
+import argparse
 
-The purpose of this example is to demonstrate the usage of QAT in super_gradients.
-
-Behind the scenes, when passing enable_qat=True, a callback for QAT will be added.
-
-Once triggered, the following will happen:
-- The model will be rebuilt with quantized nn.modules.
-- The pretrained imagenet weights will be loaded to it.
-- We perform calibration with 2 batches from our training set (1024 samples = 8 gpus X 128 samples_per_batch).
-- We evaluate the calibrated model (accuracy is logged under calibrated_model_accuracy).
-- The calibrated checkpoint prior to QAT is saved under ckpt_calibrated_{calibration_method}.pth.
-- We fine tune the calibrated model for 1 epoch.
-
-Finally, once training is over- we trigger a pos-training callback that will export the ONNX files.
-
-"""
-from super_gradients.training import Trainer, MultiGPUMode, models, dataloaders
-from super_gradients.training.metrics.classification_metrics import Accuracy
+from torch import nn
 
 import super_gradients
-from super_gradients.training.utils.quantization_callbacks import PostQATConversionCallback
+from super_gradients import Trainer
+from super_gradients.training import MultiGPUMode
+from super_gradients.training import models as sg_models
+from super_gradients.training.dataloaders import imagenet_train, imagenet_val
+from super_gradients.training.metrics import Accuracy, Top5
+from super_gradients.training.metrics.metric_utils import get_metrics_dict
+from super_gradients.training.models.classification_models.resnet import Bottleneck as sg_Bottleneck
+from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
+from super_gradients.training.utils.quantization.core import QuantizedMetadata
+from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
+from super_gradients.training.utils.quantization.quantized_modules.resnet_bottleneck import QuantBottleneck as sg_QuantizedBottleneck
+from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 
-super_gradients.init_trainer()
 
-trainer = Trainer("resnet18_qat_example", multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL)
+def naive_quantize(model: nn.Module):
+    q_util = SelectiveQuantizer(default_quant_modules_calib_method="max", default_per_channel_quant_modules=True)
+    q_util.quantize_module(model)
 
-train_loader = dataloaders.imagenet_train()
-valid_loader = dataloaders.imagenet_val()
+    return model
 
-model = models.get("resnet18", pretrained_weights="imagenet")
 
-train_params = {
-    "max_epochs": 1,
-    "lr_mode": "step",
-    "optimizer": "SGD",
-    "lr_updates": [],
-    "lr_decay_factor": 0.1,
-    "initial_lr": 0.001,
-    "loss": "cross_entropy",
-    "train_metrics_list": [Accuracy()],
-    "valid_metrics_list": [Accuracy()],
-    "metric_to_watch": "Accuracy",
-    "greater_metric_to_watch_is_better": True,
-    "average_best_models": False,
-    "enable_qat": True,
-    "qat_params": {
-        "quantization_mappings": {},
-        "start_epoch": 0,  # first epoch for quantization aware training.
-        "quant_modules_calib_method": "percentile",
-        # statistics method for amax computation (one of [percentile, mse, entropy, max]).
-        "calibrate": True,  # whether to perform calibration.
-        "num_calib_batches": 2,  # number of batches to collect the statistics from.
-        "percentile": 99.99,  # percentile value to use when Trainer,
-    },
-    "phase_callbacks": [PostQATConversionCallback(dummy_input_size=(1, 3, 224, 224))],
+def selective_quantize(model: nn.Module):
+    mappings = {
+        sg_Bottleneck: QuantizedMetadata(
+            float_source=sg_Bottleneck,
+            quantized_target_class=sg_QuantizedBottleneck,
+            action=QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE,
+        ),
+    }
+
+    sq_util = SelectiveQuantizer(custom_mappings=mappings, default_quant_modules_calib_method="max", default_per_channel_quant_modules=True)
+    sq_util.quantize_module(model)
+
+    return model
+
+
+def sg_vanilla_resnet50():
+    return sg_models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)
+
+
+def sg_naive_qdq_resnet50():
+    return naive_quantize(sg_vanilla_resnet50())
+
+
+def sg_selective_qdq_resnet50():
+    return selective_quantize(sg_vanilla_resnet50())
+
+
+models = {
+    "sg_vanilla_resnet50": sg_vanilla_resnet50,
+    "sg_naive_qdq_resnet50": sg_naive_qdq_resnet50,
+    "sg_selective_qdq_resnet50": sg_selective_qdq_resnet50,
 }
 
-trainer.train(model=model, training_params=train_params, train_loader=train_loader, valid_loader=valid_loader)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    super_gradients.init_trainer()
+
+    parser.add_argument("--max_epochs", type=int, default=10)
+    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--batch", type=int, default=128)
+    parser.add_argument("--model_name", type=str)
+    parser.add_argument("--calibrate", action="store_true")
+
+    args, _ = parser.parse_known_args()
+
+    train_params = {
+        "max_epochs": args.max_epochs,
+        "initial_lr": args.lr,
+        "optimizer": "SGD",
+        "optimizer_params": {"weight_decay": 0.0001, "momentum": 0.9, "nesterov": True},
+        "loss": "cross_entropy",
+        "train_metrics_list": [Accuracy(), Top5()],
+        "valid_metrics_list": [Accuracy(), Top5()],
+        "test_metrics_list": [Accuracy(), Top5()],
+        "loss_logging_items_names": ["Loss"],
+        "metric_to_watch": "Accuracy",
+        "greater_metric_to_watch_is_better": True,
+    }
+
+    trainer = Trainer(experiment_name=args.model_name, multi_gpu=MultiGPUMode.OFF, device="cuda")
+
+    train_dataloader = imagenet_train(dataloader_params={"batch_size": args.batch, "shuffle": True})
+    val_dataloader = imagenet_val(dataloader_params={"batch_size": args.batch, "shuffle": True, "drop_last": True})
+
+    model = models[args.model_name]().cuda()
+
+    if args.calibrate:
+        calibrator = QuantizationCalibrator(verbose=False)
+        calibrator.calibrate_model(model, method="max", calib_data_loader=train_dataloader, num_calib_batches=1024 // args.batch or 1)
+
+    trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=val_dataloader)
+
+    val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)
+    valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
+
+    export_quantized_module_to_onnx(model=model, onnx_filename=f"{args.model_name}.onnx", input_shape=(args.batch, 3, 224, 224))
+
+    print(f"FINAL ACCURACY: {valid_metrics_dict['Accuracy'].cpu().item()}")
