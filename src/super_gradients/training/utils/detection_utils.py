@@ -14,6 +14,7 @@ import torchvision
 from torch import nn
 from torch.utils.data._utils.collate import default_collate
 from omegaconf import ListConfig
+from super_gradients.training.utils import bbox_formats
 
 
 class DetectionTargetsFormat(Enum):
@@ -402,8 +403,11 @@ class DetectionVisualization:
     @staticmethod
     def _visualize_image(
         image_np: np.ndarray,
-        pred_boxes: np.ndarray,
-        targets: np.ndarray,
+        pred_bboxes: np.ndarray,
+        pred_labels: np.ndarray,
+        pred_scores: np.ndarray,
+        true_bboxes: np.ndarray,
+        true_labels: np.ndarray,
         class_names: List[str],
         box_thickness: int,
         gt_alpha: float,
@@ -411,21 +415,38 @@ class DetectionVisualization:
         checkpoint_dir: str,
         image_name: str,
     ):
+        """
+
+        :param image_np:
+        :param pred_bboxes: [N,4] in XYXY format
+        :param pred_labels: [N]
+        :param pred_scores: [N]
+        :param true_bboxes: [K, 4] in XYXY format
+        :param true_labels: [K]
+        :param class_names:
+        :param box_thickness:
+        :param gt_alpha:
+        :param image_scale:
+        :param checkpoint_dir:
+        :param image_name:
+        :return:
+        """
         image_np = cv2.resize(image_np, (0, 0), fx=image_scale, fy=image_scale, interpolation=cv2.INTER_NEAREST)
         color_mapping = DetectionVisualization._generate_color_mapping(len(class_names))
 
+        pred_bboxes = (pred_bboxes * image_scale).astype(int)
         # Draw predictions
-        pred_boxes[:, :4] *= image_scale
-        for box in pred_boxes:
+        for pred_xyxy, pred_class, pred_score in zip(pred_bboxes, pred_labels, pred_scores):
             image_np = DetectionVisualization._draw_box_title(
-                color_mapping, class_names, box_thickness, image_np, *box[:4].astype(int), class_id=int(box[5]), pred_conf=box[4]
+                color_mapping, class_names, box_thickness, image_np, *pred_xyxy, class_id=int(pred_class), pred_conf=pred_score
             )
 
         # Draw ground truths
+        true_bboxes = true_bboxes.astype(int)
         target_boxes_image = np.zeros_like(image_np, np.uint8)
-        for box in targets:
+        for true_xyxy, true_class in zip(true_bboxes, true_labels):
             target_boxes_image = DetectionVisualization._draw_box_title(
-                color_mapping, class_names, box_thickness, target_boxes_image, *box[2:6].astype(int), class_id=int(box[1]), is_target=True
+                color_mapping, class_names, box_thickness, target_boxes_image, *true_xyxy, class_id=int(true_class), is_target=True
             )
 
         # Transparent overlay of ground truth boxes
@@ -481,16 +502,32 @@ class DetectionVisualization:
         image_np = undo_preprocessing_func(image_tensor.detach())
         targets = target_boxes.detach().cpu().numpy()
 
-        targets[2:6] = cxcywh2xyxy(targets[2:6])
-
         out_images = []
         for i in range(image_np.shape[0]):
             preds = pred_boxes[i].detach().cpu().numpy() if pred_boxes[i] is not None else np.empty((0, 6))
             targets_cur = targets[targets[:, 0] == i]
 
+            pred_bboxes = preds[:, 0:4]
+            pred_scores = preds[:, 4]
+            pred_labels = preds[:, 5]
+
+            true_labels = targets_cur[:, 1]
+            true_bboxes = bbox_formats.cxcywh2xyxy(targets_cur[:, 2:6])
+
             image_name = "_".join([str(batch_name), str(i)])
             res_image = DetectionVisualization._visualize_image(
-                image_np[i], preds, targets_cur, class_names, box_thickness, gt_alpha, image_scale, checkpoint_dir, image_name
+                image_np[i],
+                pred_bboxes=pred_bboxes,
+                pred_scores=pred_scores,
+                pred_labels=pred_labels,
+                true_bboxes=true_bboxes,
+                true_labels=true_labels,
+                class_names=class_names,
+                box_thickness=box_thickness,
+                gt_alpha=gt_alpha,
+                image_scale=image_scale,
+                checkpoint_dir=checkpoint_dir,
+                image_name=image_name,
             )
             if res_image is not None:
                 out_images.append(res_image)
