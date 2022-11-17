@@ -425,7 +425,7 @@ class DetectionVisualization:
         target_boxes_image = np.zeros_like(image_np, np.uint8)
         for box in predictions:
             target_boxes_image = DetectionVisualization._draw_box_title(
-                color_mapping, class_names, box_thickness, target_boxes_image, *box[1:5].astype(int), class_id=int(box[1]), is_target=True
+                color_mapping, class_names, box_thickness, target_boxes_image, *box[2:6].astype(int), class_id=int(box[1]), is_target=True
             )
 
         # Transparent overlay of ground truth boxes
