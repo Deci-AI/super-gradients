@@ -77,7 +77,7 @@ class CrashTip:
             f"{explanation}\n"
             "- How to solve it:\n"
             f"{solution}\n"
-            f"- If the proposed solution did not help, feel free to contact the SuperGradient team or to open a ticket: "
+            f"- If the proposed solution did not help, feel free to contact the SuperGradient team or to open a ticket on "
             f"https://github.com/Deci-AI/super-gradients/issues/new/choose"
         )
         return msg
@@ -98,12 +98,12 @@ class CrashTip:
         try:
             tip = indent_string(cls._get_tip(exc_type, exc_value, exc_traceback), indent_size=4)
             message = (
-                "******************************************************************************************************************************\n"
+                "――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――\n"
                 "Something went wrong!\n"
                 "Here is our guess:\n"
                 f"{tip}\n"
                 "see the trace above...\n"
-                "******************************************************************************************************************************\n"
+                "――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――\n"
             )
             return "\n" + message
         except Exception:
@@ -155,7 +155,10 @@ class RecipeFactoryFormatTip(CrashTip):
 
         correct_yaml = f"- {factory_name}:\n" + indent_string(params_in_yaml, indent_size=2)
         correct_yaml = fmt_txt(correct_yaml, indent=4, color="green")
-        msg = "If your yaml looks like this:\n" f"{user_yaml}\n" f"Then you change your recipe to this:\n" f"{correct_yaml}"
+        msg = "If your wrote this in your recipe:\n"
+        msg += f"{user_yaml}\n"
+        msg += "Please change it to:\n"
+        msg += f"{correct_yaml}"
 
         return msg
 
