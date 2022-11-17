@@ -48,6 +48,7 @@ ________________________________________________________________________________
 # Load model with pretrained weights
 model = models.get("yolox_s", pretrained_weights="coco")
 ```
+#### All Computer Vision Models - Pretrained Checkpoints can be found [here](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
 
 #### Classification
 <div align="center">
@@ -63,10 +64,6 @@ model = models.get("yolox_s", pretrained_weights="coco")
 <div align="center">
 <img src="./docs/assets/SG_img/Object Detection@2xDark.png" width="800px">
 </div>
-
-
-
-All Computer Vision Models - Pretrained Checkpoints can be found [here](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
 
 
 ### Easy to train SOTA Models
@@ -363,6 +360,25 @@ train_params = { ... # training parameters
                }
 ```
 
+### Integration to ClearML
+```python
+from super_gradients import Trainer
+
+# create a trainer object, look the declaration for more parameters
+trainer = Trainer("experiment_name")
+
+train_params = { ... # training parameters
+                "sg_logger": "clearml_sg_logger", # Weights&Biases Logger, see class WandBSGLogger for details
+                "sg_logger_params": # paramenters that will be passes to __init__ of the logger 
+                  {
+                    "project_name": "project_name", # ClearML project name
+                    "save_checkpoints_remote": True,
+                    "save_tensorboard_remote": True,
+                    "save_logs_remote": True,
+                  } 
+               }
+```
+
 
 ## Installation Methods
 __________________________________________________________________________________________________________
@@ -522,5 +538,3 @@ Features:
 ֿ
 
 Request free trial [here](https://bit.ly/3qO3icq) 
-
-

@@ -3,4 +3,4 @@ from super_gradients.training.datasets.detection_datasets.pascal_voc_detection i
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 
 
-__all__ = ['COCODetectionDataset', 'DetectionDataset', 'PascalVOCDetectionDataset']
+__all__ = ["COCODetectionDataset", "DetectionDataset", "PascalVOCDetectionDataset"]

@@ -16,12 +16,13 @@ class COCODetectionDataset(DetectionDataset):
     """Dataset for COCO object detection."""
 
     def __init__(
-            self,
-            json_file: str = "instances_train2017.json",
-            subdir: str = "images/train2017",
-            tight_box_rotation: bool = False,
-            with_crowd: bool = True,
-            *args, **kwargs
+        self,
+        json_file: str = "instances_train2017.json",
+        subdir: str = "images/train2017",
+        tight_box_rotation: bool = False,
+        with_crowd: bool = True,
+        *args,
+        **kwargs,
     ):
         """
         :param json_file:           Name of the coco json file, that resides in data_dir/annotations/json_file.
@@ -29,6 +30,9 @@ class COCODetectionDataset(DetectionDataset):
         :param tight_box_rotation:  bool, whether to use of segmentation maps convex hull as target_seg
                                     (check get_sample docs).
         :param with_crowd: Add the crowd groundtruths to __getitem__
+
+        kwargs:
+            all_classes_list: all classes list, default is COCO_DETECTION_CLASSES_LIST.
         """
         self.subdir = subdir
         self.json_file = json_file
@@ -36,10 +40,10 @@ class COCODetectionDataset(DetectionDataset):
         self.with_crowd = with_crowd
 
         target_fields = ["target", "crowd_target"] if self.with_crowd else ["target"]
-        kwargs['target_fields'] = target_fields
-        kwargs['output_fields'] = ["image", *target_fields]
-        kwargs['original_target_format'] = DetectionTargetsFormat.XYXY_LABEL
-        kwargs['all_classes_list'] = COCO_DETECTION_CLASSES_LIST
+        kwargs["target_fields"] = target_fields
+        kwargs["output_fields"] = ["image", *target_fields]
+        kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
+        kwargs["all_classes_list"] = kwargs.get("all_classes_list") or COCO_DETECTION_CLASSES_LIST
         super().__init__(*args, **kwargs)
 
     def _setup_data_source(self) -> int:
@@ -111,7 +115,7 @@ class COCODetectionDataset(DetectionDataset):
                     seg_points_convex = cv2.convexHull(seg_points_c).ravel()
                 else:
                     seg_points_convex = []
-                target_segmentation[ix, :len(seg_points_convex)] = seg_points_convex
+                target_segmentation[ix, : len(seg_points_convex)] = seg_points_convex
 
         crowd_annotations = [annotation for annotation in cleaned_annotations if annotation["iscrowd"] == 1]
 
@@ -129,18 +133,19 @@ class COCODetectionDataset(DetectionDataset):
         initial_img_shape = (height, width)
         resized_img_shape = (int(height * r), int(width * r))
 
-        file_name = (
-            img_metadata["file_name"]
-            if "file_name" in img_metadata
-            else "{:012}".format(img_id) + ".jpg"
-        )
+        file_name = img_metadata["file_name"] if "file_name" in img_metadata else "{:012}".format(img_id) + ".jpg"
         img_path = os.path.join(self.data_dir, self.subdir, file_name)
         img_id = self.sample_id_to_coco_id[sample_id]
 
         annotation = {
-            "target": target, "crowd_target": crowd_target, "target_segmentation": target_segmentation,
-            "initial_img_shape": initial_img_shape, "resized_img_shape": resized_img_shape,
-            "img_path": img_path, "id": np.array([img_id])}
+            "target": target,
+            "crowd_target": crowd_target,
+            "target_segmentation": target_segmentation,
+            "initial_img_shape": initial_img_shape,
+            "resized_img_shape": resized_img_shape,
+            "img_path": img_path,
+            "id": np.array([img_id]),
+        }
         return annotation
 
 
