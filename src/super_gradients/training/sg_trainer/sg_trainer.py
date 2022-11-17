@@ -154,6 +154,8 @@ class Trainer:
         self.valid_metrics = None
         self.greater_metric_to_watch_is_better = None
         self.metric_to_watch = None
+        self.greater_train_metrics_is_better = {}
+        self.greater_valid_metrics_is_better = {}
 
         # SETTING THE PROPERTIES FROM THE CONSTRUCTOR
         self.experiment_name = experiment_name
@@ -448,7 +450,13 @@ class Trainer:
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
             self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
-
+        #
+        # for metric in self.train_metrics:
+        #     greater_is_better = None
+        #     if hasattr(metric, "greater_component_is_better"):
+        #         pass
+        #     elif hasattr(metric, "greater_is_better"):
+        #         greater_is_better = metric.greater_is_better
         for metric_name in get_metrics_titles(self.train_metrics):
             self.train_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=True)
 
@@ -1912,3 +1920,17 @@ class Trainer:
                 self.metric_to_watch = criterion_name + "/" + self.metric_to_watch
         else:
             self.loss_logging_items_names = [criterion_name]
+
+        for metric in self.train_metrics:
+            if hasattr(metric, "greater_component_is_better"):
+                self.greater_train_metrics_is_better.update(metric.greater_component_is_better)
+            elif hasattr(metric, "greater_is_better"):
+                self.greater_train_metrics_is_better[metric.__name__] = metric.greater_is_better
+
+        for metric in self.valid_metrics:
+            if hasattr(metric, "greater_component_is_better"):
+                self.greater_valid_metrics_is_better.update(metric.greater_component_is_better)
+            elif hasattr(metric, "greater_is_better"):
+                self.greater_valid_metrics_is_better[metric.__name__] = metric.greater_is_better
+            else:
+                self.greater_valid_metrics_is_better[metric] = None
