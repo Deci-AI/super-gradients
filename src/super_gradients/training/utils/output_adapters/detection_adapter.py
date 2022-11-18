@@ -90,12 +90,13 @@ class DetectionOutputAdapter(nn.Module):
         self.output_format = output_format
         self.image_shape = image_shape
 
-    def forward(self, predictions: Tensor, image_shape: Tuple[int, int] = None) -> Tensor:
+    def forward(self, predictions: Tensor, image_shape: Union[Tuple[int, int], None] = None) -> Tensor:
         """
         Convert output detections to the user-specified format
         :param predictions:
         :return:
         """
-        image_shape = image_shape or self.image_shape
+        if image_shape is None:
+            image_shape = self.image_shape
         predictions = self.input_format.to_dict(predictions, image_shape=image_shape)
         return self.output_format.from_dict(predictions, image_shape=image_shape)
