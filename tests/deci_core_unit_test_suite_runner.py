@@ -40,6 +40,7 @@ from tests.unit_tests.forward_pass_prep_fn_test import ForwardpassPrepFNTest
 from tests.unit_tests.mask_loss_test import MaskAttentionLossTest
 from tests.unit_tests.detection_sub_sampling_test import TestDetectionDatasetSubsampling
 from tests.unit_tests.detection_sub_classing_test import TestDetectionDatasetSubclassing
+from tests.unit_tests.detection_output_adapter_test import TestDetectionOutputAdapter
 from tests.unit_tests.detection_caching import TestDetectionDatasetCaching
 from tests.unit_tests.multi_scaling_test import MultiScaleTest
 from tests.unit_tests.ppyoloe_unit_test import PPYoloETests
@@ -99,6 +100,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(BBoxFormatsTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ResumeTrainingTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(CallTrainAfterTestTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionOutputAdapter))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
