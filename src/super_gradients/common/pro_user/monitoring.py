@@ -69,17 +69,17 @@ def setup_pro_user_monitoring():
     """Setup the pro user environment for error logging and monitoring"""
     upload_console_logs = os.getenv("UPLOAD_LOGS", "TRUE") == "TRUE"
     if upload_console_logs:
-        logger.info(
-            "As a pro user, your logs will be uploaded to the deci platform. "
-            "If you want to block this behavior, please set the env variable UPLOAD_LOGS=FALSE"
-        )
+        logger.info("You installed pro user libraries, so we assume that you have a pro user account.")
+        logger.info("If you are not a pro user, or if you don't want to connect to the deci platform, set the env variable UPLOAD_LOGS=FALSE")
 
         # This prevents hydra.main to catch errors that happen in the decorated function
         # (which leads sys.excepthook to never be called)
         os.environ["HYDRA_FULL_ERROR"] = "1"
 
-        platform_client = DeciPlatformClient()  # TODO: remove api_host="api.development.deci.ai"
+        logger.info("Connecting to the deci platform ...")
+        platform_client = DeciPlatformClient()
         platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+        logger.info("Connection to the deci platform successful!")
 
         sys.excepthook = register_exceptions(sys.excepthook)
         atexit.register(exception_upload_handler, platform_client)
