@@ -92,9 +92,12 @@ class TorchCudaMissingTip(CrashTip):
     @classmethod
     def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
         tip = (
-            "The torch version installed is not compatible with your CUDA version.\n"
-            "a. Make sure to uninstall torch, torchvision and torchaudio\n"
-            "b. Install the torch version that respects your os & compute platform following the instruction from https://pytorch.org/"
+            f"This error may indicate {fmt_txt('CUDA libraries version conflict', color='red')} (When Torchvision & Torch are installed for different "
+            f"CUDA versions) or the {fmt_txt('absence of CUDA support in PyTorch', color='red')}.\n"
+            "To fix this you can:\n"
+            f"   a. Make sure to {fmt_txt('uninstall torch, torchvision', color='green')}\n"
+            f"   b. {fmt_txt('Install the torch version', color='green')} that respects your os & compute platform "
+            f"{fmt_txt('following the instruction from https://pytorch.org/', color='green')}"
         )
         return [tip]
 
