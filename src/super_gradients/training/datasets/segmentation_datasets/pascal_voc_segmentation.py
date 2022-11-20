@@ -16,6 +16,8 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
     """
     PascalVOC2012SegmentationDataSet - Segmentation Data Set Class for Pascal VOC 2012 Data Set
     """
+    IGNORE_LABEL = 21
+    _ORIGINAL_IGNORE_LABEL = 255
 
     def __init__(self, sample_suffix=None, target_suffix=None, *args, **kwargs):
         self.sample_suffix = '.jpg' if sample_suffix is None else sample_suffix
@@ -23,6 +25,22 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
         super().__init__(*args, **kwargs)
 
         self.classes = PASCAL_VOC_2012_CLASSES
+
+    @staticmethod
+    def target_transform(target):
+        """
+        target_transform - Transforms the label mask
+        This function overrides the original function from SegmentationDataSet and changes target pixels with value
+        255 to value = IGNORE_LABEL. This was done since current IoU metric from torchmetrics does not
+        support such a high ignore label value (crashed on OOM)
+
+            :param target: The target mask to transform
+            :return:       The transformed target mask
+        """
+        out = SegmentationDataSet.target_transform(target)
+        out[out == PascalVOC2012SegmentationDataSet._ORIGINAL_IGNORE_LABEL] = \
+            PascalVOC2012SegmentationDataSet.IGNORE_LABEL
+        return out
 
     def decode_segmentation_mask(self, label_mask: np.ndarray):
         """
