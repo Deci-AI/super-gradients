@@ -1355,6 +1355,10 @@ class Trainer:
         if isinstance(requested_multi_gpu, str):
             requested_multi_gpu = MultiGPUMode(requested_multi_gpu)
 
+        # TODO: REMOVE ONCE THE ENUM VALUE FOR SINGLE GPU IS RENAMED.
+        elif isinstance(requested_multi_gpu, bool) and not requested_multi_gpu:
+            requested_multi_gpu = MultiGPUMode.OFF
+
         # SELECT CUDA DEVICE
         if requested_device == "cuda":
             if torch.cuda.is_available():
