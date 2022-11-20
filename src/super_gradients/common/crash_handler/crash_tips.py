@@ -26,36 +26,6 @@ class CrashTip:
         """
         raise NotImplementedError
 
-    # @classmethod
-    # def _get_explanation(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-    #     """
-    #     Propose an explanation on what caused the exception to be raised.
-    #
-    #     Beside the class, the input params are as returned by sys.exc_info():
-    #         :param cls:             Class inheriting from CrashTip
-    #         :param exc_type:        Type of exception
-    #         :param exc_value:       Exception
-    #         :param exc_traceback:   Traceback
-    #
-    #         :return:                Explanation
-    #     """
-    #     raise NotImplementedError
-
-    # @classmethod
-    # def _get_solution(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-    #     """
-    #     Propose a solution (or more) to avoid the exception
-    #
-    #     Beside the class, the input params are as returned by sys.exc_info():
-    #         :param cls:             Class inheriting from CrashTip
-    #         :param exc_type:        Type of exception
-    #         :param exc_value:       Exception
-    #         :param exc_traceback:   Traceback
-    #
-    #         :return:                Solution
-    #     """
-    #     raise NotImplementedError
-
     @classmethod
     def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
         """
@@ -99,9 +69,9 @@ class CrashTip:
                 "═══════════════════════════════════════════╦═════════════════════════╦════════════════════════════════════════════════════════════\n"
                 "                                           ║ SuperGradient Crash tip ║ \n"
                 "                                           ╚═════════════════════════╝ \n"
-                f"{fmt_txt('Something went wrong!', color='red', bold=True)}\n\n"
+                f"{fmt_txt('Something went wrong!', color='red', bold=True)} You can find below potential solution(s) to this error: \n\n"
                 f"{formatted_tips}\n"
-                f"{len(tips)+1} If the proposed solution did not help, feel free to contact the SuperGradient team or to open a ticket on "
+                f"{len(tips)+1}. If the proposed solution(s) did not help, feel free to contact the SuperGradient team or to open a ticket on "
                 f"https://github.com/Deci-AI/super-gradients/issues/new/choose\n\n"
                 "see the trace above...\n"
                 "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════\n"
@@ -122,7 +92,7 @@ class TorchCudaMissingTip(CrashTip):
     @classmethod
     def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
         tip = (
-            "The torch version installed is not compatible with your CUDA version. "
+            "The torch version installed is not compatible with your CUDA version.\n"
             "a. Make sure to uninstall torch, torchvision and torchaudio\n"
             "b. Install the torch version that respects your os & compute platform following the instruction from https://pytorch.org/"
         )
