@@ -11,7 +11,7 @@ try:
 
     _imported_deci_lab_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warn("Failed to import deci_lab_client")
+    logger.debug("Failed to import deci_lab_client")
     _imported_deci_lab_failure = import_err
 
 TENSORBOARD_EVENTS_PREFIX = "events.out.tfevents"
@@ -26,17 +26,9 @@ class DeciPlatformSGLogger(BaseSGLogger):
         if _imported_deci_lab_failure is not None:
             raise _imported_deci_lab_failure
 
-        auth_token = os.getenv("DECI_PLATFORM_TOKEN")
-        if auth_token is None:
-            raise ValueError(
-                'The environment variable "DECI_PLATFORM_TOKEN" is required in order to use '
-                "DeciPlatformSGLogger. Please set it with your own credentials "
-                "(available in https://console.deci.ai/settings)"
-            )
-
         super().__init__(**kwargs)
         self.platform_client = DeciPlatformClient()
-        self.platform_client.login(token=auth_token)
+        self.platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
         self.platform_client.register_experiment(name=kwargs["experiment_name"])
         self.checkpoints_dir_path = kwargs["checkpoints_dir_path"]
 

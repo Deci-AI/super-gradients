@@ -126,6 +126,28 @@ def is_rank_0() -> bool:
     return os.getenv("LOCAL_RANK") == "0"
 
 
+def is_launched_using_sg():
+    """Check if the current process is a subprocess launched using SG restart_script_with_ddp"""
+    return os.environ.get("TORCHELASTIC_RUN_ID") == "sg_initiated"
+
+
+def is_main_process():
+    """Check if current process is considered as the main process (i.e. is responsible for sanity check, atexit upload, ...).
+    The definition ensures that 1 and only 1 process follows this condition, regardless of how the run was started.
+
+    The rule is as follow:
+        - If not DDP: main process is current process
+        - If DDP launched using SuperGradients: main process is the launching process (rank=-1)
+        - If DDP launched with torch: main process is rank 0
+    """
+    if not is_distributed():  # If no DDP, or DDP launching process
+        return True
+    elif is_rank_0() and not is_launched_using_sg():  # If DDP launched using torch.distributed.launch or torchrun, we need to run the check on rank 0
+        return True
+    else:
+        return False
+
+
 def multi_process_safe(func):
     """
     A decorator for making sure a function runs only in main process.

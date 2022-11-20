@@ -1,0 +1,25 @@
+backbone:
+  MobileNetV2Backbone:
+    width_mult: 1.
+    structure:
+    grouped_conv_size: 1
+    out_layers: [['features', 14, 'conv', 2], ['features', 18]]
+
+neck:
+  SSDInvertedResidualNeck:
+    blocks_out_channels: [512, 256, 256, 64]
+    expand_ratios: [0.2, 0.25, 0.5, 0.25]
+    grouped_conv_size: 1
+
+heads:
+  SSDHead:
+    num_classes: 80
+    lite: True
+    anchors:
+      _target_: super_gradients.training.utils.ssd_utils.DefaultBoxes
+      fig_size: 320
+      feat_size: [20, 10, 5, 3, 2, 1]
+      scales: [32, 82, 133, 184, 235, 285, 336]
+      aspect_ratios: [[2, 3], [2, 3], [2, 3], [2, 3], [2, 3], [2, 3]]
+      scale_xy: 0.1
+      scale_wh: 0.2
