@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
 # Copy relevant files from root to documentation
-cp ./CONTRIBUTING.md documentation/source
-cp ./LICENSE.md documentation/source
-cp ./README.md documentation/source/welcome.md
+cp ../CONTRIBUTING.md ../documentation/source/CONTRIBUTING.md
+cp ../LICENSE.md ../documentation/source/LICENSE.md
+cp ../README.md ../documentation/source/welcome.md
 
 # Editing the links to contain assets/ instead of docs/assets in the urls
-sed -i 's/docs\/assets/assets/g' documentation/source/welcome.md
+sed -i 's/docs\/assets/assets/g' ../documentation/source/welcome.md
 
 # Copying the assets to the documentation
-cd documentation && echo "Copying assets..."
+#cd ../documentation && echo "Copying assets..."
 
 # Compiling
 # Copying to documentation/ to docs/ for github pages
