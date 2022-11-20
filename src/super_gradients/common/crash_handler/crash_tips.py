@@ -26,38 +26,38 @@ class CrashTip:
         """
         raise NotImplementedError
 
+    # @classmethod
+    # def _get_explanation(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
+    #     """
+    #     Propose an explanation on what caused the exception to be raised.
+    #
+    #     Beside the class, the input params are as returned by sys.exc_info():
+    #         :param cls:             Class inheriting from CrashTip
+    #         :param exc_type:        Type of exception
+    #         :param exc_value:       Exception
+    #         :param exc_traceback:   Traceback
+    #
+    #         :return:                Explanation
+    #     """
+    #     raise NotImplementedError
+
+    # @classmethod
+    # def _get_solution(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
+    #     """
+    #     Propose a solution (or more) to avoid the exception
+    #
+    #     Beside the class, the input params are as returned by sys.exc_info():
+    #         :param cls:             Class inheriting from CrashTip
+    #         :param exc_type:        Type of exception
+    #         :param exc_value:       Exception
+    #         :param exc_traceback:   Traceback
+    #
+    #         :return:                Solution
+    #     """
+    #     raise NotImplementedError
+
     @classmethod
-    def _get_explanation(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-        """
-        Propose an explanation on what caused the exception to be raised.
-
-        Beside the class, the input params are as returned by sys.exc_info():
-            :param cls:             Class inheriting from CrashTip
-            :param exc_type:        Type of exception
-            :param exc_value:       Exception
-            :param exc_traceback:   Traceback
-
-            :return:                Explanation
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def _get_solution(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-        """
-        Propose a solution (or more) to avoid the exception
-
-        Beside the class, the input params are as returned by sys.exc_info():
-            :param cls:             Class inheriting from CrashTip
-            :param exc_type:        Type of exception
-            :param exc_value:       Exception
-            :param exc_traceback:   Traceback
-
-            :return:                Solution
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def _get_tip(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
+    def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
         """
         Provide a customized tip for the exception, combining explanation and solution.
 
@@ -69,18 +69,7 @@ class CrashTip:
 
             :return:                Tip
         """
-        explanation = indent_string(cls._get_explanation(exc_type, exc_value, exc_traceback), indent_size=4)
-        solution = indent_string(cls._get_solution(exc_type, exc_value, exc_traceback), indent_size=4)
-
-        msg = (
-            "- What went wrong:\n"
-            f"{explanation}\n"
-            "- How to solve it:\n"
-            f"{solution}\n"
-            f"- If the proposed solution did not help, feel free to contact the SuperGradient team or to open a ticket on "
-            f"https://github.com/Deci-AI/super-gradients/issues/new/choose"
-        )
-        return msg
+        raise NotImplementedError
 
     @classmethod
     def get_message(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Union[None, str]:
@@ -96,14 +85,26 @@ class CrashTip:
             :return:                Tip
         """
         try:
-            tip = indent_string(cls._get_tip(exc_type, exc_value, exc_traceback), indent_size=4)
+
+            def format_tip(tip_index: int, tip: str):
+                first_sentence, *following_sentences = tip.split("\n")
+                first_sentence = f"{tip_index+1}. {first_sentence}"
+                following_sentences = [f"   {sentence}" for sentence in following_sentences]
+                return "\n".join([first_sentence] + following_sentences)
+
+            tips: List[str] = cls._get_tips(exc_type, exc_value, exc_traceback)
+            formatted_tips: str = "\n".join([format_tip(i, tip) for i, tip in enumerate(tips)])
+
             message = (
-                "――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――\n"
-                "Something went wrong!\n"
-                "Here is our guess:\n"
-                f"{tip}\n"
+                "═══════════════════════════════════════════╦═════════════════════════╦════════════════════════════════════════════════════════════\n"
+                "                                           ║ SuperGradient Crash tip ║ \n"
+                "                                           ╚═════════════════════════╝ \n"
+                f"{fmt_txt('Something went wrong!', color='red', bold=True)}\n\n"
+                f"{formatted_tips}\n"
+                f"{len(tips)+1} If the proposed solution did not help, feel free to contact the SuperGradient team or to open a ticket on "
+                f"https://github.com/Deci-AI/super-gradients/issues/new/choose\n\n"
                 "see the trace above...\n"
-                "――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――\n"
+                "══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════\n"
             )
             return "\n" + message
         except Exception:
@@ -119,17 +120,13 @@ class TorchCudaMissingTip(CrashTip):
         return isinstance(exc_value, OSError) and pattern in str(exc_value)
 
     @classmethod
-    def _get_explanation(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-        msg = "The torch version installed is not compatible with your CUDA version. "
-        return msg
-
-    @classmethod
-    def _get_solution(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-        msg = (
-            "1. Make sure to uninstall torch, torchvision and torchaudio\n"
-            "2. Install the torch version that respects your os & compute platform following the instruction from https://pytorch.org/"
+    def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
+        tip = (
+            "The torch version installed is not compatible with your CUDA version. "
+            "a. Make sure to uninstall torch, torchvision and torchaudio\n"
+            "b. Install the torch version that respects your os & compute platform following the instruction from https://pytorch.org/"
         )
-        return msg
+        return [tip]
 
 
 class RecipeFactoryFormatTip(CrashTip):
@@ -139,28 +136,25 @@ class RecipeFactoryFormatTip(CrashTip):
         return isinstance(exc_value, RuntimeError) and pattern in str(exc_value)
 
     @classmethod
-    def _get_explanation(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-        factory_name, _ = RecipeFactoryFormatTip._get_factory_with_params(exc_value)
-        factory_name = fmt_txt(factory_name, bold=True, color="green")
-        msg = f"There is an indentation error in the recipe, while creating {factory_name}."
-        return msg
-
-    @classmethod
-    def _get_solution(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
+    def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
         factory_name, params_dict = RecipeFactoryFormatTip._get_factory_with_params(exc_value)
+
+        formatted_factory_name = fmt_txt(factory_name, bold=True, color="green")
 
         params_in_yaml = "\n".join(f"  {k}: {v}" for k, v in params_dict.items())
         user_yaml = f"- {factory_name}:\n" + params_in_yaml
-        user_yaml = fmt_txt(user_yaml, indent=4, color="red")
+        formatted_user_yaml = fmt_txt(user_yaml, indent=4, color="red")
 
         correct_yaml = f"- {factory_name}:\n" + indent_string(params_in_yaml, indent_size=2)
-        correct_yaml = fmt_txt(correct_yaml, indent=4, color="green")
-        msg = "If your wrote this in your recipe:\n"
-        msg += f"{user_yaml}\n"
-        msg += "Please change it to:\n"
-        msg += f"{correct_yaml}"
+        formatted_correct_yaml = fmt_txt(correct_yaml, indent=4, color="green")
 
-        return msg
+        tip = f"There is an indentation error in the recipe, while creating {formatted_factory_name}.\n"
+        tip += "If your wrote this in your recipe:\n"
+        tip += f"{formatted_user_yaml}\n"
+        tip += "Please change it to:\n"
+        tip += f"{formatted_correct_yaml}"
+        tips = [tip]
+        return tips
 
     @staticmethod
     def _get_factory_with_params(exc_value: Exception) -> Tuple[str, dict]:
@@ -185,19 +179,15 @@ class DDPNotInitializedTip(CrashTip):
         return isinstance(exc_value, RuntimeError) and expected_str in str(exc_value)
 
     @classmethod
-    def _get_explanation(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-        msg = "Your environment was not setup correctly for DDP."
-        return msg
-
-    @classmethod
-    def _get_solution(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> str:
-        msg = (
+    def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
+        tip = (
+            "Your environment was not setup correctly for DDP.\n"
             "Please run at the beginning of your script:\n"
             f">>> {fmt_txt('from super_gradients.training.utils.distributed_training_utils import setup_gpu_mode', color='green')}\n"
             f">>> {fmt_txt('from super_gradients.common.data_types.enum import MultiGPUMode', color='green')}\n"
             f">>> {fmt_txt('setup_gpu_mode(gpu_mode=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=...)', color='green')}"
         )
-        return msg
+        return [tip]
 
 
 # /!\ Only the CrashTips classes listed below will be used !! /!\
