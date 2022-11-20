@@ -6,7 +6,7 @@ lr_mode: cosine
 cosine_final_lr_ratio: 0.05
 lr_warmup_epochs: 5
 lr_cooldown_epochs: 15
-initial_lr:  0.05
+initial_lr:  0.001
 zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
 
