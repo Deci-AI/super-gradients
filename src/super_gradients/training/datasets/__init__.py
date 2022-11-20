@@ -6,8 +6,11 @@ from super_gradients.training.datasets.sg_dataset import ListDataset, DirectoryD
 from super_gradients.training.datasets.classification_datasets import ImageNetDataset, Cifar10, Cifar100
 from super_gradients.training.datasets.detection_datasets import DetectionDataset, COCODetectionDataset, PascalVOCDetectionDataset
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
-from super_gradients.training.datasets.segmentation_datasets.pascal_voc_segmentation import PascalVOC2012SegmentationDataSet,\
-    PascalAUG2012SegmentationDataSet, PascalVOCAndAUGUnifiedDataset
+from super_gradients.training.datasets.segmentation_datasets.pascal_voc_segmentation import (
+    PascalVOC2012SegmentationDataSet,
+    PascalAUG2012SegmentationDataSet,
+    PascalVOCAndAUGUnifiedDataset,
+)
 from super_gradients.training.datasets.segmentation_datasets.coco_segmentation import CoCoSegmentationDataSet
 from super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation import SuperviselyPersonsDataset
 
