@@ -29,3 +29,4 @@ class MultiGPUMode(str, Enum):
             out_dict[stringcase.camelcase(mode.name)] = mode
             out_dict[stringcase.lowercase(mode.name)] = mode
         out_dict[False] = MultiGPUMode.OFF
+        return out_dict
