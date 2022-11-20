@@ -22,3 +22,5 @@ ENV PATH /SG/venv/bin:$PATH
 
 
 WORKDIR /SG
+
+CMD bash
