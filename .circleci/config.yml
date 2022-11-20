@@ -82,6 +82,7 @@ jobs:
           name: setup custom environment variables
           command: |
             echo 'export PYTHONPATH=/home/circleci/super_gradients' >> $BASH_ENV
+            echo 'export UPLOAD_LOGS=FALSE' >> $BASH_ENV
       - run:
           name: install package
           no_output_timeout: 30m
