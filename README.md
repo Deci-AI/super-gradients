@@ -277,6 +277,9 @@ Learn more about SuperGradients knowledge distillation training with our pre-tra
 ### Recipes
 To train a model, it is necessary to configure 4 main components. These components are aggregated into a single "main" recipe `.yaml` file that inherits the aforementioned dataset, architecture, raining and checkpoint params. It is also possible (and recomended for flexibility) to override default settings with custom ones.
 All recipes can be found [here](http://bit.ly/3gfLw07)
+</br>
+Recipes support out of the box every model, metric or loss that is implemented in SuperGradients, but you can easily extend this to any custom object that you need by "registering it". Check out [this](http://bit.ly/3TQ4iZB) tutorial for more information.
+
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">   
    <a target="_blank" href="https://bit.ly/3UiY5ab"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Use Recipes</a>
