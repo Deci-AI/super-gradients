@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.7.1-devel-ubuntu20.04 AS venv
+FROM nvidia/cuda:11.8.0-devel-ubuntu20.04 AS venv
 
 LABEL maintainer "DECI.AI <services@deci.ai>"
 
@@ -11,9 +11,9 @@ RUN python -m venv --copies /SG/venv
 RUN . /SG/venv/bin/activate && pip install git+https://github.com/Deci-AI/super-gradients.git@stable --no-cache-dir
 
 
-FROM nvidia/cuda:11.7.1-runtime-ubuntu20.04 AS prod
+FROM nvidia/cuda:11.8.0-runtime-ubuntu20.04 AS prod
 
-RUN apt-get update && apt-get install -y python3-minimal python-is-python3 \
+RUN apt-get update && apt-get install -y python-is-python3 \
     && rm -rf /var/lib/apt/lists/*
 
 #copying the venv and making it available as default
