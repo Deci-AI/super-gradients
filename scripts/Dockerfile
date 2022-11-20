@@ -13,7 +13,7 @@ RUN . /SG/venv/bin/activate && pip install git+https://github.com/Deci-AI/super-
 
 FROM nvidia/cuda:11.8.0-runtime-ubuntu20.04 AS prod
 
-RUN apt-get update && apt-get install -y libgl1 libglib2.0-0 python-is-python3 \
+RUN apt-get update && apt-get install -y libgl1 libglib2.0-0 python-is-python3 python3-distutils python3-typing-extensions \
     && rm -rf /var/lib/apt/lists/*
 
 #copying the venv and making it available as default
