@@ -14,14 +14,6 @@ from super_gradients import Trainer, init_trainer
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
 def main(cfg: DictConfig) -> None:
-    # raise RuntimeError(
-    #     "Malformed object definition in configuration. Expecting either a string of object type or a single entry dictionary{type_name(str): "
-    #     "{parameters...}}.received: {'my_callback': None, 'lr_step': 2.4}"
-    # )
-    # raise OSError(
-    #     "/home/tomer.keren/.conda/envs/tomer-dev-sg3/lib/python3.10/site-packages/torch/lib/../../nvidia/cublas/lib/libcublas.so.11: symbol "
-    #     "cublasLtHSHMatmulAlgoInit version libcublasLt.so.11 not defined in file libcublasLt.so.11 with link time reference"
-    # )
     Trainer.train_from_config(cfg)
 
 
