@@ -8,7 +8,7 @@ PASCAL_VOC_2012_CLASSES = [
     'background', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
     'bus', 'car', 'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse',
     'motorbike', 'person', 'potted-plant', 'sheep', 'sofa', 'train',
-    'tv/monitor', 'ambigious'
+    'tv/monitor'
 ]
 
 
@@ -22,7 +22,6 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
         self.target_suffix = '.png' if target_suffix is None else target_suffix
         super().__init__(*args, **kwargs)
 
-        # THERE ARE 21 CLASSES, AND BACKGROUND
         self.classes = PASCAL_VOC_2012_CLASSES
 
     def decode_segmentation_mask(self, label_mask: np.ndarray):
@@ -37,8 +36,7 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
         g = label_mask.copy()
         b = label_mask.copy()
 
-        # REMOVING THE BACKGROUND CLASS FROM THE PLOTS
-        num_classes_to_plot = len(self.classes) - 1
+        num_classes_to_plot = len(self.classes)
         for ll in range(0, num_classes_to_plot):
             r[label_mask == ll] = label_colours[ll, 0]
             g[label_mask == ll] = label_colours[ll, 1]
