@@ -16,6 +16,8 @@ from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
 from torch.utils.data.distributed import DistributedSampler
+
+from super_gradients.common.factories import BaseFactory
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
@@ -1345,6 +1347,7 @@ class Trainer:
     def set_module(self, module):
         self.net = module
 
+    @resolve_param("requested_multi_gpu", BaseFactory(MultiGPUMode.dict()))
     def _initialize_device(self, requested_device: str, requested_multi_gpu: Union[MultiGPUMode, str]):
         """
         _initialize_device - Initializes the device for the model - Default is CUDA
@@ -1354,10 +1357,6 @@ class Trainer:
 
         if isinstance(requested_multi_gpu, str):
             requested_multi_gpu = MultiGPUMode(requested_multi_gpu)
-
-        # TODO: REMOVE ONCE THE ENUM VALUE FOR SINGLE GPU IS RENAMED.
-        elif isinstance(requested_multi_gpu, bool) and not requested_multi_gpu:
-            requested_multi_gpu = MultiGPUMode.OFF
 
         # SELECT CUDA DEVICE
         if requested_device == "cuda":
