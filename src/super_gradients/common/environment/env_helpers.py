@@ -15,15 +15,16 @@ class TerminalColours:
     """
     Usage: https://stackoverflow.com/questions/287871/how-to-print-colored-text-in-python?page=1&tab=votes#tab-top
     """
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 
 class ColouredTextFormatter:
@@ -32,7 +33,7 @@ class ColouredTextFormatter:
         """
         Prints a text with colour ascii characters.
         """
-        return print(''.join([colour, text, TerminalColours.ENDC]))
+        return print("".join([colour, text, TerminalColours.ENDC]))
 
 
 def get_cls(cls_path):
@@ -41,8 +42,8 @@ def get_cls(cls_path):
     usage:
     class_of_optimizer: ${class:torch.optim.Adam}
     """
-    module = '.'.join(cls_path.split('.')[:-1])
-    name = cls_path.split('.')[-1]
+    module = ".".join(cls_path.split(".")[:-1])
+    name = cls_path.split(".")[-1]
     importlib.import_module(module)
     return getattr(sys.modules[module], name)
 
@@ -60,13 +61,14 @@ def get_environ_as_type(environment_variable_name: str, default=None, cast_to_ty
         except Exception as e:
             print(e)
             raise ValueError(
-                f'Failed to cast environment variable {environment_variable_name} to type {cast_to_type}: the value {value} is not a valid {cast_to_type}')
+                f"Failed to cast environment variable {environment_variable_name} to type {cast_to_type}: the value {value} is not a valid {cast_to_type}"
+            )
     return
 
 
 def hydra_output_dir_resolver(ckpt_root_dir, experiment_name):
     if ckpt_root_dir is None:
-        output_dir_path = (environment_config.PKG_CHECKPOINTS_DIR + os.path.sep + experiment_name)
+        output_dir_path = environment_config.PKG_CHECKPOINTS_DIR + os.path.sep + experiment_name
     else:
         output_dir_path = ckpt_root_dir + os.path.sep + experiment_name
     return output_dir_path
@@ -96,9 +98,9 @@ def register_hydra_resolvers():
     OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
     OmegaConf.register_new_resolver("add", lambda *args: sum(args), replace=True)
     OmegaConf.register_new_resolver("cond", lambda boolean, x, y: x if boolean else y, replace=True)
-    OmegaConf.register_new_resolver("getitem", lambda container, key: container[key], replace=True)     # get item from a container (list, dict...)
-    OmegaConf.register_new_resolver("first", lambda lst: lst[0], replace=True)                          # get the first item from a list
-    OmegaConf.register_new_resolver("last", lambda lst: lst[-1], replace=True)                          # get the last item from a list
+    OmegaConf.register_new_resolver("getitem", lambda container, key: container[key], replace=True)  # get item from a container (list, dict...)
+    OmegaConf.register_new_resolver("first", lambda lst: lst[0], replace=True)  # get the first item from a list
+    OmegaConf.register_new_resolver("last", lambda lst: lst[-1], replace=True)  # get the last item from a list
 
 
 def pop_arg(arg_name: str, default_value: Any = None) -> Any:
@@ -110,12 +112,40 @@ def pop_arg(arg_name: str, default_value: Any = None) -> Any:
 
     # Remove the ddp args to not have a conflict with the use of hydra
     for val in filter(lambda x: x.startswith(f"--{arg_name}"), sys.argv):
+        environment_config.EXTRA_ARGS.append(val)
         sys.argv.remove(val)
     return vars(args)[arg_name]
 
 
 def is_distributed() -> bool:
     return environment_config.DDP_LOCAL_RANK >= 0
+
+
+def is_rank_0() -> bool:
+    """Check if the node was launched with torch.distributed.launch and if the node is of rank 0"""
+    return os.getenv("LOCAL_RANK") == "0"
+
+
+def is_launched_using_sg():
+    """Check if the current process is a subprocess launched using SG restart_script_with_ddp"""
+    return os.environ.get("TORCHELASTIC_RUN_ID") == "sg_initiated"
+
+
+def is_main_process():
+    """Check if current process is considered as the main process (i.e. is responsible for sanity check, atexit upload, ...).
+    The definition ensures that 1 and only 1 process follows this condition, regardless of how the run was started.
+
+    The rule is as follow:
+        - If not DDP: main process is current process
+        - If DDP launched using SuperGradients: main process is the launching process (rank=-1)
+        - If DDP launched with torch: main process is rank 0
+    """
+    if not is_distributed():  # If no DDP, or DDP launching process
+        return True
+    elif is_rank_0() and not is_launched_using_sg():  # If DDP launched using torch.distributed.launch or torchrun, we need to run the check on rank 0
+        return True
+    else:
+        return False
 
 
 def multi_process_safe(func):
