@@ -31,3 +31,5 @@ packaging>=20.4
 wheel>=0.38.0
 # not directly required, pinned by Snyk to avoid a vulnerability
 pygments>=2.7.4 
+--extra-index-url https://pypi.ngc.nvidia.com
+pytorch-quantization==2.1.2
