@@ -24,6 +24,7 @@ class MultiGPUMode(str, Enum):
         """
         out_dict = dict()
         for mode in MultiGPUMode:
+            out_dict[mode.value] = mode
             out_dict[mode.name] = mode
             out_dict[stringcase.capitalcase(mode.name)] = mode
             out_dict[stringcase.camelcase(mode.name)] = mode
