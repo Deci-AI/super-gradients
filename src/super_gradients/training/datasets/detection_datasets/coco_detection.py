@@ -30,6 +30,9 @@ class COCODetectionDataset(DetectionDataset):
         :param tight_box_rotation:  bool, whether to use of segmentation maps convex hull as target_seg
                                     (check get_sample docs).
         :param with_crowd: Add the crowd groundtruths to __getitem__
+
+        kwargs:
+            all_classes_list: all classes list, default is COCO_DETECTION_CLASSES_LIST.
         """
         self.subdir = subdir
         self.json_file = json_file
@@ -40,7 +43,7 @@ class COCODetectionDataset(DetectionDataset):
         kwargs["target_fields"] = target_fields
         kwargs["output_fields"] = ["image", *target_fields]
         kwargs["original_target_format"] = DetectionTargetsFormat.XYXY_LABEL
-        kwargs["all_classes_list"] = COCO_DETECTION_CLASSES_LIST
+        kwargs["all_classes_list"] = kwargs.get("all_classes_list") or COCO_DETECTION_CLASSES_LIST
         super().__init__(*args, **kwargs)
 
     def _setup_data_source(self) -> int:
