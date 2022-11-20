@@ -54,6 +54,8 @@ from super_gradients.training.utils.distributed_training_utils import (
     require_gpu_setup,
     get_gpu_mem_utilization,
     get_world_size,
+    get_local_rank,
+    wait_for_the_master,
 )
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
@@ -1260,7 +1262,11 @@ class Trainer:
         keep_state_dict = deepcopy(self.net.state_dict())
         # SETTING STATE DICT TO THE AVERAGE MODEL FOR EVALUATION
         average_model_ckpt_path = os.path.join(self.checkpoints_dir_path, self.average_model_checkpoint_filename)
-        average_model_sd = read_ckpt_state_dict(average_model_ckpt_path)["net"]
+        local_rank = get_local_rank()
+
+        # WAIT FOR MASTER RANK TO SAVE THE CKPT BEFORE WE TRY TO READ IT.
+        with wait_for_the_master(local_rank):
+            average_model_sd = read_ckpt_state_dict(average_model_ckpt_path)["net"]
 
         self.net.load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
