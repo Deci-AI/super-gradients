@@ -1,7 +1,3 @@
-img_size: 512
-crop_size: 512
-pascal_ignore_label: 21
-
 train_dataset_params:
   root: /data/pascal_voc_2012
   list_file: VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt
@@ -12,7 +8,7 @@ train_dataset_params:
   transforms:
     # for more options see common.factories.transforms_factory.py
     - SegRescale:
-        long_size: ${img_size}
+        long_size: 512
 
     - SegRandomFlip:
         prob: 0.5
@@ -26,11 +22,11 @@ train_dataset_params:
         scales: [ 0.5, 2.0 ]
 
     - SegPadShortToCropSize:
-        crop_size: ${crop_size}
-        fill_mask: ${pascal_ignore_label}
+        crop_size: 512
+        fill_mask: 21
 
     - SegCropImageAndMask:
-        crop_size: ${crop_size}
+        crop_size: 512
         mode: random
 
 val_dataset_params:
@@ -42,25 +38,25 @@ val_dataset_params:
   cache_images: False
   transforms:
     - SegRescale:
-        long_size: ${img_size}
+        long_size: 512
 
     - SegPadShortToCropSize:
-        crop_size: ${crop_size}
-        fill_mask: ${pascal_ignore_label}
+        crop_size: 512
+        fill_mask: 21
 
     - SegCropImageAndMask:
-        crop_size: ${crop_size}
+        crop_size: 512
         mode: center
 
 
 train_dataloader_params:
-  batch_size: 64
+  batch_size: 16
   num_workers: 8
-  drop_last: False
+  drop_last: True
   pin_memory: True
 
 val_dataloader_params:
-  batch_size: 200
+  batch_size: 16
   num_workers: 8
   drop_last: False
   pin_memory: True

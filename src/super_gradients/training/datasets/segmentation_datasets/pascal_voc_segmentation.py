@@ -1,8 +1,14 @@
 import os
 
 import numpy as np
+import scipy.io
+from PIL import Image
+from torch.utils.data import ConcatDataset
 
 from super_gradients.training.datasets.segmentation_datasets.segmentation_dataset import SegmentationDataSet
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
+logger = get_logger(__name__)
 
 PASCAL_VOC_2012_CLASSES = [
     'background', 'aeroplane', 'bicycle', 'bird', 'boat', 'bottle',
@@ -112,3 +118,49 @@ class PascalVOC2012SegmentationDataSet(SegmentationDataSet):
                 [0, 64, 128],
             ]
         )
+
+
+class PascalAUG2012SegmentationDataSet(PascalVOC2012SegmentationDataSet):
+    """
+    PascalAUG2012SegmentationDataSet - Segmentation Data Set Class for Pascal AUG 2012 Data Set
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.sample_suffix = '.jpg'
+        self.target_suffix = '.mat'
+        super().__init__(sample_suffix=self.sample_suffix, target_suffix=self.target_suffix, *args, **kwargs)
+
+    @staticmethod
+    def target_loader(target_path: str) -> Image:
+        """
+        target_loader
+            :param target_path: The path to the target data
+            :return:            The loaded target
+        """
+        mat = scipy.io.loadmat(target_path, mat_dtype=True, squeeze_me=True,
+                               struct_as_record=False)
+        mask = mat['GTcls'].Segmentation
+        return Image.fromarray(mask)
+
+
+class PascalVOCAndAUGUnifiedDataset(ConcatDataset):
+    """
+    Pascal VOC + AUG train dataset, aka `SBD` dataset contributed in "Semantic contours from inverse detectors".
+    This is class implement the common usage of the SBD and PascalVOC datasets as a unified augmented trainset.
+    The unified dataset includes a total of 10,582 samples and don't contains duplicate samples from the PascalVOC
+    validation set.
+    """
+    def __init__(self, **kwargs):
+        print(kwargs)
+        if any([kwargs.pop("list_file"), kwargs.pop("samples_sub_directory"), kwargs.pop("targets_sub_directory")]):
+            logger.warning("[list_file, samples_sub_directory, targets_sub_directory] arguments passed will not be used"
+                           " when passed to `PascalVOCAndAUGUnifiedDataset`. Those values are predefined for initiating"
+                           " the Pascal VOC + AUG training set.")
+        super().__init__(datasets=[
+            PascalVOC2012SegmentationDataSet(list_file="VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt",
+                                             samples_sub_directory="VOCdevkit/VOC2012/JPEGImages",
+                                             targets_sub_directory="VOCdevkit/VOC2012/SegmentationClass", **kwargs),
+            PascalAUG2012SegmentationDataSet(list_file="VOCaug/dataset/aug.txt",
+                                             samples_sub_directory="VOCaug/dataset/img",
+                                             targets_sub_directory="VOCaug/dataset/cls", **kwargs),
+        ])
