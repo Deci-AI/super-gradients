@@ -29,7 +29,7 @@ def selective_quantize(model: nn.Module):
         sg_Bottleneck: QuantizedMetadata(
             float_source=sg_Bottleneck,
             quantized_target_class=sg_QuantizedBottleneck,
-            action=QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE,
+            action=QuantizedMetadata.ReplacementAction.RECURE_AND_REPLACE,
         ),
     }
 

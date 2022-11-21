@@ -35,5 +35,5 @@ class QuantBottleneck(SGQuantMixin):
             float_source=float_source,
             quantized_target_class=QuantBottleneck,
             input_quant_descriptor=QuantDescriptor(calib_method="histogram"),
-            action=QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE,
+            action=QuantizedMetadata.ReplacementAction.RECURE_AND_REPLACE,
         )

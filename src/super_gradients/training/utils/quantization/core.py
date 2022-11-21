@@ -107,20 +107,20 @@ class QuantizedMetadata:
                                     - SKIP: skip it,
                                     - UNWRAP: unwrap the instance and work with the wrapped one
                                       (i.e., we wrap with a mapper),
-                                    - REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES: replace source with an instance of the
+                                    - REPLACE: replace source with an instance of the
                                       quantized type
-                                    - REPLACE_THEN_QUANTIZE_CHILD_MODULES: replace source with an instance of the
+                                    - REPLACE_AND_RECURE: replace source with an instance of the
                                       quantized type, then try to recursively quantize the child modules of that type
-                                    - QUANTIZE_CHILD_MODULES_THEN_REPLACE: recursively quantize the child modules, then
+                                    - RECURE_AND_REPLACE: recursively quantize the child modules, then
                                       replace source with an instance of the quantized type
         input_quant_descriptor:     quantization descriptor for inputs (None will take the default one)
         weights_quant_descriptor:   quantization descriptor for weights (None will take the default one)
     """
 
     class ReplacementAction(Enum):
-        REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES = "replace"
-        REPLACE_THEN_QUANTIZE_CHILD_MODULES = "replace_then_quantize_children"
-        QUANTIZE_CHILD_MODULES_THEN_REPLACE = "quantize_children_then_replace"
+        REPLACE = "replace"
+        REPLACE_AND_RECURE = "replace_and_recure"
+        RECURE_AND_REPLACE = "recure_and_replace"
         UNWRAP = "unwrap"
         SKIP = "skip"
 
@@ -132,9 +132,9 @@ class QuantizedMetadata:
 
     def __post_init__(self):
         if self.action in (
-            QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
-            QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILD_MODULES,
-            QuantizedMetadata.ReplacementAction.QUANTIZE_CHILD_MODULES_THEN_REPLACE,
+            QuantizedMetadata.ReplacementAction.REPLACE,
+            QuantizedMetadata.ReplacementAction.REPLACE_AND_RECURE,
+            QuantizedMetadata.ReplacementAction.RECURE_AND_REPLACE,
         ):
             assert issubclass(self.quantized_target_class, (SGQuantMixin, QuantMixin, QuantInputMixin))
 
@@ -153,7 +153,7 @@ class QuantizedMapping(nn.Module):
         *,
         float_module: nn.Module,
         quantized_target_class: Union[Type[QuantMixin], Type[QuantInputMixin], Type[SGQuantMixin]],
-        action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+        action=QuantizedMetadata.ReplacementAction.REPLACE,
         input_quant_descriptor: QuantDescriptor = None,
         weights_quant_descriptor: QuantDescriptor = None,
     ) -> None:
