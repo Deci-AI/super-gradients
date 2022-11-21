@@ -57,21 +57,21 @@ class ImprovementType(Enum):
         For accuracy from 1 to 0.5, the value is smaller, but this time the result decreased, because greater is better.
     """
 
-    NONE = "none"
     IS_BETTER = "better"
     IS_WORSE = "worse"
     IS_SAME = "same"
+    NONE = "none"
 
     def to_color(self) -> str:
         """Get the color representing the current improvement type"""
-        if self == ImprovementType.NONE:
+        if self == ImprovementType.IS_SAME:
             return "white"
         elif self == ImprovementType.IS_BETTER:
             return "green"
         elif self == ImprovementType.IS_WORSE:
             return "red"
         else:
-            return "yellow"
+            return ""
 
 
 logger = get_logger(__name__)
@@ -104,22 +104,22 @@ class MonitoredValue:
     change_from_best: float = None
 
     @property
-    def increase_from_previous(self) -> IncreaseType:
+    def has_increased_from_previous(self) -> IncreaseType:
         """Type of increase compared to previous value, i.e. if the value is greater, smaller or the same."""
         return self._get_increase_type(self.change_from_previous)
 
     @property
-    def improvement_from_previous(self) -> ImprovementType:
+    def has_improved_from_previous(self) -> ImprovementType:
         """Type of improvement compared to previous value, i.e. if the value is better, worse or the same."""
         return self._get_improvement_type(delta=self.change_from_previous)
 
     @property
-    def increase_from_best(self) -> IncreaseType:
+    def has_increased_from_best(self) -> IncreaseType:
         """Type of increase compared to best value, i.e. if the value is greater, smaller or the same."""
         return self._get_increase_type(self.change_from_best)
 
     @property
-    def improvement_from_best(self) -> ImprovementType:
+    def has_improved_from_best(self) -> ImprovementType:
         """Type of improvement compared to best value, i.e. if the value is better, worse or the same."""
         return self._get_improvement_type(delta=self.change_from_best)
 
@@ -228,11 +228,11 @@ def display_epoch_summary(
             change_from_best = _format_to_str(monitored_value.change_from_best)
 
             diff_with_prev_colored = colored(
-                text=f"{monitored_value.increase_from_previous.to_symbol()} {change_from_previous}",
-                color=monitored_value.improvement_from_previous.to_color(),
+                text=f"{monitored_value.has_increased_from_previous.to_symbol()} {change_from_previous}",
+                color=monitored_value.has_improved_from_previous.to_color(),
             )
             diff_with_best_colored = colored(
-                text=f"{monitored_value.increase_from_best.to_symbol()} {change_from_best}", color=monitored_value.improvement_from_best.to_color()
+                text=f"{monitored_value.has_increased_from_best.to_symbol()} {change_from_best}", color=monitored_value.has_improved_from_best.to_color()
             )
 
             tree.create_node(tag=f"Epoch N-1      = {previous:6} ({diff_with_prev_colored:8})", identifier=f"0_previous_{root_id}", parent=root_id)
