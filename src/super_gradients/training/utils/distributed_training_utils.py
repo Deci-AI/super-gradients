@@ -11,7 +11,7 @@ from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
 from super_gradients.common.data_types.enum import MultiGPUMode
-from super_gradients.common.environment.env_helpers import find_free_port, is_distributed, init_trainer
+from super_gradients.common.environment.env_helpers import find_free_port, is_distributed
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common.environment import environment_config
 
@@ -176,7 +176,6 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = No
     :param gpu_mode:    DDP, DP or Off
     :param num_gpus:    Number of GPU's to use.
     """
-    init_trainer()  # Ensure that init_trainer is called. If called previously, this will not have any effect.
     if gpu_mode == MultiGPUMode.AUTO and torch.cuda.device_count() > 1:
         gpu_mode = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
     if require_gpu_setup(gpu_mode):
