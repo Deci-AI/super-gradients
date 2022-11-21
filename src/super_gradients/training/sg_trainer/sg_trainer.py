@@ -16,6 +16,8 @@ from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
 from torch.utils.data.distributed import DistributedSampler
+
+from super_gradients.common.factories import TypeFactory
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
@@ -53,6 +55,8 @@ from super_gradients.training.utils.distributed_training_utils import (
     require_gpu_setup,
     get_gpu_mem_utilization,
     get_world_size,
+    get_local_rank,
+    wait_for_the_master,
 )
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
@@ -1258,7 +1262,11 @@ class Trainer:
         keep_state_dict = deepcopy(self.net.state_dict())
         # SETTING STATE DICT TO THE AVERAGE MODEL FOR EVALUATION
         average_model_ckpt_path = os.path.join(self.checkpoints_dir_path, self.average_model_checkpoint_filename)
-        average_model_sd = read_ckpt_state_dict(average_model_ckpt_path)["net"]
+        local_rank = get_local_rank()
+
+        # WAIT FOR MASTER RANK TO SAVE THE CKPT BEFORE WE TRY TO READ IT.
+        with wait_for_the_master(local_rank):
+            average_model_sd = read_ckpt_state_dict(average_model_ckpt_path)["net"]
 
         self.net.load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
@@ -1332,15 +1340,13 @@ class Trainer:
     def set_module(self, module):
         self.net = module
 
+    @resolve_param("requested_multi_gpu", TypeFactory(MultiGPUMode.dict()))
     def _initialize_device(self, requested_device: str, requested_multi_gpu: Union[MultiGPUMode, str]):
         """
         _initialize_device - Initializes the device for the model - Default is CUDA
             :param requested_device:        Device to initialize ('cuda' / 'cpu')
             :param requested_multi_gpu:     Get Multiple GPU
         """
-
-        if isinstance(requested_multi_gpu, str):
-            requested_multi_gpu = MultiGPUMode(requested_multi_gpu)
 
         # SELECT CUDA DEVICE
         if requested_device == "cuda":
