@@ -1,13 +1,13 @@
 defaults:
   - default_train_params
 
-max_epochs: 1000
+max_epochs: 1500
 lr_mode: cosine
 cosine_final_lr_ratio: 0.05
 lr_warmup_epochs: 10
 lr_cooldown_epochs: 15
 warmup_initial_lr: 0.0001
-initial_lr:  0.02
+initial_lr:  0.01
 zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
 
