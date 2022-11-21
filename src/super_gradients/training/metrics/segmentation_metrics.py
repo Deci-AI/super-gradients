@@ -252,7 +252,12 @@ class BinaryIOU(IoU):
             threshold=threshold,
             metrics_args_prep_fn=metrics_args_prep_fn,
         )
-        self.component_names = ["target_IOU", "background_IOU", "mean_IOU"]  # TODO
+        self.greater_component_is_better = {
+            "target_IOU": True,
+            "background_IOU": True,
+            "mean_IOU": True,
+        }
+        self.component_names = list(self.greater_component_is_better.keys())
 
     def compute(self):
         ious = super(BinaryIOU, self).compute()
@@ -276,7 +281,12 @@ class BinaryDice(Dice):
             threshold=threshold,
             metrics_args_prep_fn=metrics_args_prep_fn,
         )
-        self.component_names = ["target_Dice", "background_Dice", "mean_Dice"]
+        self.greater_component_is_better = {
+            "target_Dice": True,
+            "background_Dice": True,
+            "mean_Dice": True,
+        }
+        self.component_names = list(self.greater_component_is_better.keys())
 
     def compute(self):
         dices = super().compute()
