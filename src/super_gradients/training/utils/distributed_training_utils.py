@@ -176,7 +176,7 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = No
     :param gpu_mode:    DDP, DP or Off
     :param num_gpus:    Number of GPU's to use.
     """
-    init_trainer()
+    init_trainer()  # Ensure that init_trainer is called. If called previously, this will not have any effect.
     if gpu_mode == MultiGPUMode.AUTO and torch.cuda.device_count() > 1:
         gpu_mode = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
     if require_gpu_setup(gpu_mode):
