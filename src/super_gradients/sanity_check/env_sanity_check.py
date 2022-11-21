@@ -7,8 +7,7 @@ from pathlib import Path
 from packaging.version import Version
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.environment.env_helpers import is_distributed, is_rank_0
-from super_gradients.training.utils.distributed_training_utils import is_launched_using_sg
+from super_gradients.common.environment.env_helpers import is_main_process
 
 LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
@@ -164,18 +163,8 @@ def run_env_sanity_check():
 
 def env_sanity_check():
     """Run the sanity check tests and log everything that does not meet requirements"""
-    if _require_sanity_check():
+    if is_main_process():
         run_env_sanity_check()
-
-
-def _require_sanity_check() -> bool:
-    """Check if current process should run a sanity check"""
-    if not is_distributed():  # If no DDP, or DDP launching process
-        return True
-    elif is_rank_0() and not is_launched_using_sg():  # If DDP launched using torch.distributed.launch or torchrun, we need to run the check on rank 0
-        return True
-    else:  # We don't want to run the sanity check on other subprocesses because it is redundant and pollutes the logs
-        return False
 
 
 if __name__ == "__main__":

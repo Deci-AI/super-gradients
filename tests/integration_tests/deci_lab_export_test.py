@@ -36,9 +36,7 @@ class DeciLabUploadTest(unittest.TestCase):
         )
 
         model_conversion_callback = ModelConversionCheckCallback(model_meta_data=model_meta_data)
-        deci_lab_callback = DeciLabUploadCallback(
-            email="trainer-tester@testcase.ai", model_meta_data=model_meta_data, optimization_request_form=optimization_request_form
-        )
+        deci_lab_callback = DeciLabUploadCallback(model_meta_data=model_meta_data, optimization_request_form=optimization_request_form)
 
         net = ResNet18(num_classes=5, arch_params={})
         train_params = {

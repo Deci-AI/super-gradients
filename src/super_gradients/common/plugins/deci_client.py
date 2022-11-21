@@ -34,8 +34,10 @@ class DeciClient:
 
     def __init__(self):
         if not client_enabled:
-            logger.error('deci-lab-client or deci-common are not installed. Model cannot be loaded from deci lab.'
-                         'Please install deci-lab-client>=2.55.0 and deci-common>=3.4.1')
+            logger.error(
+                "deci-lab-client or deci-common are not installed. Model cannot be loaded from deci lab."
+                "Please install deci-lab-client>=2.55.0 and deci-common>=3.4.1"
+            )
             return
 
         self.lab_client = DeciPlatformClient()
@@ -54,12 +56,13 @@ class DeciClient:
             download_link = response.data
         except ApiException as e:
             if e.status == 401:
-                logger.error("Unauthorized. wrong token or token was not defined. please login to deci-lab-client "
-                             "by calling DeciPlatformClient().login(<token>)")
+                logger.error(
+                    "Unauthorized. wrong token or token was not defined. please login to deci-lab-client " "by calling DeciPlatformClient().login(<token>)"
+                )
             elif e.status == 400 and e.body is not None and "message" in e.body:
                 logger.error(f"Deci client: {json.loads(e.body)['message']}")
             else:
-                logger.error(e.body)
+                logger.debug(e.body)
 
             return None
         return FilesDataInterface.download_temporary_file(file_url=download_link)
@@ -107,8 +110,8 @@ class DeciClient:
                 zipfile.extractall(package_path)
 
             # add an init file that imports all code files
-            with open(os.path.join(package_path, '__init__.py'), 'w') as init_file:
-                all_str = '\n\n__all__ = ['
+            with open(os.path.join(package_path, "__init__.py"), "w") as init_file:
+                all_str = "\n\n__all__ = ["
                 for code_file in os.listdir(path=package_path):
                     if code_file.endswith(".py") and not code_file.startswith("__init__"):
                         init_file.write(f'import {code_file.replace(".py", "")}\n')
@@ -121,6 +124,8 @@ class DeciClient:
             sys.path.insert(1, package_path)
             importlib.import_module(package_name)
 
-            logger.info(f'*** IMPORTANT ***: files required for the model {model_name} were downloaded and added to your code in:\n{package_path}\n'
-                        f'These files will be downloaded to the same location each time the model is fetched from the deci-client.\n'
-                        f'you can override this by passing models.get(... download_required_code=False) and importing the files yourself')
+            logger.info(
+                f"*** IMPORTANT ***: files required for the model {model_name} were downloaded and added to your code in:\n{package_path}\n"
+                f"These files will be downloaded to the same location each time the model is fetched from the deci-client.\n"
+                f"you can override this by passing models.get(... download_required_code=False) and importing the files yourself"
+            )
