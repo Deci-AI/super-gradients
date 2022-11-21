@@ -22,8 +22,8 @@ def main(config_path: Optional[str] = None, config_name: Optional[str] = None) -
 
     Note that:
         >>> @super_gradients.recipe_main(config_path=...)
-        >>> def main(cfg: DictConfig) -> None:
-        >>>     task_function(cfg)
+        >>> def task_function(cfg: DictConfig) -> None:
+        >>>     # Do something
 
     Is equivalent to: (deprecated)
         >>> init_trainer()
