@@ -3,10 +3,8 @@ import torch
 import torchvision
 from torch import nn
 
-from super_gradients.training import utils
-from super_gradients.training.models import Bottleneck
-
 try:
+    import super_gradients
     from pytorch_quantization import nn as quant_nn
     from pytorch_quantization import quant_modules
     from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer, RegisterQuantizedModule
@@ -14,8 +12,6 @@ try:
     from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, QuantizedMetadata
     from pytorch_quantization.nn import QuantConv2d
     from pytorch_quantization.tensor_quant import QuantDescriptor
-    import super_gradients.training.utils.quantization.quantized_modules.pytorch_quantization_resnet
-    from super_gradients.training.utils.quantization.quantized_modules.resnet_bottleneck import QuantBottleneck
 
     _imported_pytorch_quantization_failure = False
 
@@ -803,68 +799,6 @@ class QuantizationUtilityTest(unittest.TestCase):
             torch.testing.assert_allclose(p1, p2)
 
         x = torch.rand(1, 3, 128, 128)
-        with torch.no_grad():
-            y_pyquant = resnet_pyquant(x)
-            y_sg = resnet_sg(x)
-            torch.testing.assert_close(y_sg, y_pyquant)
-
-    def test_sg_resnet_sg_custom_quantization_matches_pytorch_quantization(self):
-        # SG SELECTIVE QUANTIZATION
-        sq = SelectiveQuantizer(
-            custom_mappings={
-                Bottleneck: QuantBottleneck.get_quantized_metadata_for_source(Bottleneck),
-                torch.nn.Conv2d: QuantizedMetadata(
-                    torch.nn.Conv2d,
-                    quant_nn.QuantConv2d,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
-                    input_quant_descriptor=QuantDescriptor(calib_method="histogram"),
-                    weights_quant_descriptor=QuantDescriptor(calib_method="max", axis=0),
-                ),
-                torch.nn.Linear: QuantizedMetadata(
-                    torch.nn.Linear,
-                    quant_nn.QuantLinear,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
-                    input_quant_descriptor=QuantDescriptor(calib_method="histogram"),
-                    weights_quant_descriptor=QuantDescriptor(calib_method="max", axis=0),
-                ),
-                torch.nn.AdaptiveAvgPool2d: QuantizedMetadata(
-                    torch.nn.AdaptiveAvgPool2d,
-                    quant_nn.QuantAdaptiveAvgPool2d,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
-                    input_quant_descriptor=QuantDescriptor(calib_method="max"),
-                ),
-            },
-            default_per_channel_quant_modules=True,
-        )
-
-        resnet_sg: nn.Module = super_gradients.training.models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)
-
-        sq.quantize_module(resnet_sg, preserve_state_dict=True)
-
-        # PYTORCH-QUANTIZATION
-        quant_desc_input = QuantDescriptor(calib_method="histogram")
-        quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
-        quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
-
-        quant_modules.initialize()
-        # QUANT RESNET
-        resnet_pyquant = utils.quantization.quantized_modules.pytorch_quantization_resnet.ResNet(
-            utils.quantization.quantized_modules.pytorch_quantization_resnet.Bottleneck, [3, 4, 6, 3], quantize=True
-        )
-
-        new_ckpt_dict = {}
-        for (ckpt_key, ckpt_val), (model_key, model_val) in zip(resnet_sg.state_dict().items(), resnet_pyquant.state_dict().items()):
-            if ckpt_val.shape != model_val.shape:
-                raise ValueError(f"ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}" f" with shape {model_val.shape} in the model")
-            new_ckpt_dict[model_key] = ckpt_val
-        resnet_pyquant.load_state_dict(new_ckpt_dict)
-        quant_modules.deactivate()
-        resnet_pyquant = resnet_pyquant.to(next(resnet_sg.parameters()).device)
-
-        for (n1, p1), (n2, p2) in zip(resnet_sg.named_parameters(), resnet_pyquant.named_parameters()):
-            torch.testing.assert_allclose(p1, p2)
-
-        x = torch.rand(1, 3, 128, 128, device=next(resnet_sg.parameters()).device)
         with torch.no_grad():
             y_pyquant = resnet_pyquant(x)
             y_sg = resnet_sg(x)
