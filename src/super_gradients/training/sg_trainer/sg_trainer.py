@@ -1,7 +1,7 @@
 import inspect
 import os
 from copy import deepcopy
-from typing import Union, Tuple, Mapping
+from typing import Union, Tuple, Mapping, Dict
 from pathlib import Path
 
 import numpy as np
@@ -158,8 +158,8 @@ class Trainer:
         self.valid_metrics = None
         self.greater_metric_to_watch_is_better = None
         self.metric_to_watch = None
-        self.greater_train_metrics_is_better = {}
-        self.greater_valid_metrics_is_better = {}
+        self.greater_train_metrics_is_better: Dict[str, bool] = {}  # For each metric, indicates if greater is better
+        self.greater_valid_metrics_is_better: Dict[str, bool] = {}
 
         # SETTING THE PROPERTIES FROM THE CONSTRUCTOR
         self.experiment_name = experiment_name
