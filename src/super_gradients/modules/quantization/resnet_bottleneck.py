@@ -1,10 +1,17 @@
 from typing import Union, Type
 
-from pytorch_quantization.tensor_quant import QuantDescriptor
-
 from super_gradients.training.models import Bottleneck
-from super_gradients.training.utils.quantization.core import SGQuantMixin, QuantizedMetadata
-from pytorch_quantization import nn as quant_nn
+
+try:
+    from pytorch_quantization import nn as quant_nn
+    from pytorch_quantization.tensor_quant import QuantDescriptor
+
+    from super_gradients.training.utils.quantization.core import SGQuantMixin, QuantizedMetadata
+
+    _imported_pytorch_quantization_failure = False
+
+except (ImportError, NameError, ModuleNotFoundError):
+    _imported_pytorch_quantization_failure = True
 
 
 class QuantBottleneck(SGQuantMixin):
@@ -13,6 +20,9 @@ class QuantBottleneck(SGQuantMixin):
     NOTE: we must quantize the float instance, so the mode should be
           QuantizedMetadata.ReplacementAction.QUANTIZE_CHILDREN_THEN_REPLACE
     """
+
+    if _imported_pytorch_quantization_failure is not None:
+        raise _imported_pytorch_quantization_failure
 
     @classmethod
     def from_float(cls, float_instance: Bottleneck, **kwargs):
