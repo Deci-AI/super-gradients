@@ -265,7 +265,7 @@ class Trainer:
         )
 
         checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-        ckpt_name = core_utils.get_param(cfg, "ckpt_name", "ckpt_latest.pth")
+        ckpt_name = core_utils.get_param(cfg, "ckpt_name", "ckpt_best.pth")
         checkpoint_path = str(checkpoints_dir / ckpt_name)
 
         # BUILD NETWORK
