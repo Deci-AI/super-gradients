@@ -55,14 +55,13 @@ def exception_upload_handler(platform_client):
     if not is_distributed() and ExceptionInfo.is_exception_raised():
 
         logger.info("Uploading console log to deci platform ...")
-
-        data = platform_client.upload_log_url(tag="SuperGradients", level="error")
-        signed_url = S3SignedUrl(**data.data)
-        platform_client.upload_file_to_s3(from_path=ConsoleSink.get_filename(), s3_signed_url=signed_url)
-
-        # TODO: multiprocess safe
-        # time.sleep(10)
-        logger.info("Exception was uploaded to deci platform!")
+        try:
+            data = platform_client.upload_log_url(tag="SuperGradients", level="error")
+            signed_url = S3SignedUrl(**data.data)
+            platform_client.upload_file_to_s3(from_path=ConsoleSink.get_filename(), s3_signed_url=signed_url)
+            logger.info("Exception was uploaded to deci platform!")
+        except Exception as e:  # We don't want the code to break at exit because of the client (whatever the reason might be)
+            logger.warning(f"Exception could not be uploaded to platform with exception: {e}")
 
 
 def setup_pro_user_monitoring():
