@@ -58,6 +58,7 @@ class SelectiveQuantizer:
 
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
+
     mapping_instructions: Dict[Union[str, Type], QuantizedMetadata] = {
         **{
             float_type: QuantizedMetadata(
@@ -242,7 +243,12 @@ class SelectiveQuantizer:
                     setattr(module, child_name, q_instance)
 
                 def recurse_quantize():
-                    self.quantize_module(getattr(module, child_name), nesting=nesting + (child_name,), preserve_state_dict=preserve_state_dict)
+                    self._quantize_module_aux(
+                        module=getattr(module, child_name),
+                        mapping_instructions=mapping_instructions,
+                        nesting=nesting + (child_name,),
+                        preserve_state_dict=preserve_state_dict,
+                    )
 
                 if metadata.action == QuantizedMetadata.ReplacementAction.REPLACE:
                     replace()

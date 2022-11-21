@@ -677,7 +677,7 @@ class QuantizationUtilityTest(unittest.TestCase):
                 self.my_block = QuantizedMapping(
                     float_module=MyBlock(4 * (res**2), n_classes),
                     quantized_target_class=MyQuantizedBlock,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE_THEN_QUANTIZE_CHILD_MODULES,
+                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_RECURE,
                 )
 
             def forward(self, x):
@@ -712,21 +712,21 @@ class QuantizationUtilityTest(unittest.TestCase):
                 torch.nn.Conv2d: QuantizedMetadata(
                     torch.nn.Conv2d,
                     quant_nn.QuantConv2d,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+                    action=QuantizedMetadata.ReplacementAction.REPLACE,
                     input_quant_descriptor=QuantDescriptor(calib_method="histogram"),
                     weights_quant_descriptor=QuantDescriptor(calib_method="max", axis=0),
                 ),
                 torch.nn.Linear: QuantizedMetadata(
                     torch.nn.Linear,
                     quant_nn.QuantLinear,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+                    action=QuantizedMetadata.ReplacementAction.REPLACE,
                     input_quant_descriptor=QuantDescriptor(calib_method="histogram"),
                     weights_quant_descriptor=QuantDescriptor(calib_method="max", axis=0),
                 ),
                 torch.nn.AdaptiveAvgPool2d: QuantizedMetadata(
                     torch.nn.AdaptiveAvgPool2d,
                     quant_nn.QuantAdaptiveAvgPool2d,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+                    action=QuantizedMetadata.ReplacementAction.REPLACE,
                     input_quant_descriptor=QuantDescriptor(calib_method="max"),
                 ),
             },
@@ -761,21 +761,21 @@ class QuantizationUtilityTest(unittest.TestCase):
                 torch.nn.Conv2d: QuantizedMetadata(
                     torch.nn.Conv2d,
                     quant_nn.QuantConv2d,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+                    action=QuantizedMetadata.ReplacementAction.REPLACE,
                     input_quant_descriptor=QuantDescriptor(calib_method="histogram"),
                     weights_quant_descriptor=QuantDescriptor(calib_method="max", axis=0),
                 ),
                 torch.nn.Linear: QuantizedMetadata(
                     torch.nn.Linear,
                     quant_nn.QuantLinear,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+                    action=QuantizedMetadata.ReplacementAction.REPLACE,
                     input_quant_descriptor=QuantDescriptor(calib_method="histogram"),
                     weights_quant_descriptor=QuantDescriptor(calib_method="max", axis=0),
                 ),
                 torch.nn.AdaptiveAvgPool2d: QuantizedMetadata(
                     torch.nn.AdaptiveAvgPool2d,
                     quant_nn.QuantAdaptiveAvgPool2d,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE_AND_DONT_QUANTIZE_CHILD_MODULES,
+                    action=QuantizedMetadata.ReplacementAction.REPLACE,
                     input_quant_descriptor=QuantDescriptor(calib_method="max"),
                 ),
             },

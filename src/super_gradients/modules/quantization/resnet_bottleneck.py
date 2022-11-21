@@ -14,7 +14,7 @@ class QuantBottleneck(SGQuantMixin):
     """
     we just insert quantized tensor to the shortcut (=residual) layer, so that it would be quantized
     NOTE: we must quantize the float instance, so the mode should be
-          QuantizedMetadata.ReplacementAction.QUANTIZE_CHILDREN_THEN_REPLACE
+          QuantizedMetadata.ReplacementAction.RECURE_AND_REPLACE
     """
 
     if _imported_pytorch_quantization_failure is not None:
