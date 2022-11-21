@@ -4,7 +4,7 @@ from omegaconf import ListConfig
 
 from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.common.factories.list_factory import ListFactory
-from super_gradients.training.transforms import TRANSFORMS, ALBUMENTATIONS_TRANSFORMS, ALBUMENTATIONS_COMP_TRANSFORMS
+from super_gradients.training.transforms import TRANSFORMS, ALBUMENTATIONS_TRANSFORMS, ALBUMENTATIONS_COMP_TRANSFORMS, imported_albumentations_failure
 from super_gradients.training.transforms.pipeline_adaptors import AlbumentationsAdaptor
 
 
@@ -27,6 +27,8 @@ class TransformsFactory(BaseFactory):
 
 class AlbumentationsTransformsFactory(BaseFactory):
     def __init__(self):
+        if imported_albumentations_failure:
+            raise imported_albumentations_failure
         super().__init__(ALBUMENTATIONS_TRANSFORMS)
 
     def get(self, conf: Union[str, dict]):

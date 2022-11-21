@@ -7,7 +7,13 @@ from super_gradients.training.transforms.transforms import (
     DetectionPaddedRescale,
     DetectionTargetsFormatTransform,
 )
-from super_gradients.training.transforms.all_transforms import TRANSFORMS, ALBUMENTATIONS_TRANSFORMS, Transforms, ALBUMENTATIONS_COMP_TRANSFORMS
+from super_gradients.training.transforms.all_transforms import (
+    TRANSFORMS,
+    ALBUMENTATIONS_TRANSFORMS,
+    Transforms,
+    ALBUMENTATIONS_COMP_TRANSFORMS,
+    imported_albumentations_failure,
+)
 
 __all__ = [
     "TRANSFORMS",
@@ -19,6 +25,7 @@ __all__ = [
     "DetectionHSV",
     "DetectionPaddedRescale",
     "DetectionTargetsFormatTransform",
+    "imported_albumentations_failure",
 ]
 
 cv2.setNumThreads(0)

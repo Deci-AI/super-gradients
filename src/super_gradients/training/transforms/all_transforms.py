@@ -3,7 +3,9 @@ from super_gradients.training.datasets.data_augmentation import Lighting, Random
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, rand_augment_transform
 import importlib
 import inspect
-from albumentations import BasicTransform
+
+from super_gradients.common.abstractions.abstract_logger import get_logger
+
 
 from super_gradients.training.transforms.transforms import (
     SegRandomFlip,
@@ -122,12 +124,25 @@ TRANSFORMS = {
     Transforms.RandomAutocontrast: RandomAutocontrast,
     Transforms.RandomEqualize: RandomEqualize,
 }
+logger = get_logger(__name__)
 
-ALBUMENTATIONS_TRANSFORMS = {
-    name: cls for name, cls in inspect.getmembers(importlib.import_module("albumentations"), inspect.isclass) if issubclass(cls, BasicTransform)
-}
-ALBUMENTATIONS_COMP_TRANSFORMS = {
-    name: cls
-    for name, cls in inspect.getmembers(importlib.import_module("albumentations.core.composition"), inspect.isclass)
-    if issubclass(cls, BasicTransform)
-}
+try:
+    from albumentations import BasicTransform
+
+    imported_albumentations_failure = None
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    logger.debug("Failed to import pytorch_quantization")
+    imported_albumentations_failure = import_err
+
+if imported_albumentations_failure is None:
+    ALBUMENTATIONS_TRANSFORMS = {
+        name: cls for name, cls in inspect.getmembers(importlib.import_module("albumentations"), inspect.isclass) if issubclass(cls, BasicTransform)
+    }
+    ALBUMENTATIONS_COMP_TRANSFORMS = {
+        name: cls
+        for name, cls in inspect.getmembers(importlib.import_module("albumentations.core.composition"), inspect.isclass)
+        if issubclass(cls, BasicTransform)
+    }
+else:
+    ALBUMENTATIONS_TRANSFORMS = None
+    ALBUMENTATIONS_COMP_TRANSFORMS = None
