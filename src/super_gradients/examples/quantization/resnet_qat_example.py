@@ -13,7 +13,7 @@ from super_gradients.training.models.classification_models.resnet import Bottlen
 from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
 from super_gradients.training.utils.quantization.core import QuantizedMetadata
 from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
-from super_gradients.training.utils.quantization.quantized_modules.resnet_bottleneck import QuantBottleneck as sg_QuantizedBottleneck
+from super_gradients.modules.quantization.resnet_bottleneck import QuantBottleneck as sg_QuantizedBottleneck
 from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 
 
