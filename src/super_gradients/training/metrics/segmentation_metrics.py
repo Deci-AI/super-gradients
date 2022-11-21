@@ -18,8 +18,7 @@ def batch_pix_accuracy(predict, target):
     target = target.cpu().numpy() + 1
     pixel_labeled = np.sum(target > 0)
     pixel_correct = np.sum((predict == target) * (target > 0))
-    assert pixel_correct <= pixel_labeled, \
-        "Correct area should be smaller than Labeled"
+    assert pixel_correct <= pixel_labeled, "Correct area should be smaller than Labeled"
     return pixel_correct, pixel_labeled
 
 
@@ -44,8 +43,7 @@ def batch_intersection_union(predict, target, nclass):
     area_pred, _ = np.histogram(predict, bins=nbins, range=(mini, maxi))
     area_lab, _ = np.histogram(target, bins=nbins, range=(mini, maxi))
     area_union = area_pred + area_lab - area_inter
-    assert (area_inter <= area_union).all(), \
-        "Intersection area should be smaller than Union area"
+    assert (area_inter <= area_union).all(), "Intersection area should be smaller than Union area"
     return area_inter, area_union
 
 
@@ -100,7 +98,7 @@ def _dice_from_confmat(
         scores = torch.cat(
             [
                 scores[:ignore_index],
-                scores[ignore_index + 1:],
+                scores[ignore_index + 1 :],
             ]
         )
 
@@ -114,13 +112,10 @@ def intersection_and_union(im_pred, im_lab, num_class):
     im_pred = im_pred * (im_lab > 0)
     # Compute area intersection:
     intersection = im_pred * (im_pred == im_lab)
-    area_inter, _ = np.histogram(intersection, bins=num_class - 1,
-                                 range=(1, num_class - 1))
+    area_inter, _ = np.histogram(intersection, bins=num_class - 1, range=(1, num_class - 1))
     # Compute area union:
-    area_pred, _ = np.histogram(im_pred, bins=num_class - 1,
-                                range=(1, num_class - 1))
-    area_lab, _ = np.histogram(im_lab, bins=num_class - 1,
-                               range=(1, num_class - 1))
+    area_pred, _ = np.histogram(im_pred, bins=num_class - 1, range=(1, num_class - 1))
+    area_lab, _ = np.histogram(im_lab, bins=num_class - 1, range=(1, num_class - 1))
     area_union = area_pred + area_lab - area_inter
     return area_inter, area_union
 
@@ -129,6 +124,7 @@ class AbstractMetricsArgsPrepFn(ABC):
     """
     Abstract preprocess metrics arguments class.
     """
+
     @abstractmethod
     def __call__(self, preds, target: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -142,9 +138,8 @@ class PreprocessSegmentationMetricsArgs(AbstractMetricsArgsPrepFn):
     Default segmentation inputs preprocess function before updating segmentation metrics, handles multiple inputs and
     apply normalizations.
     """
-    def __init__(self,
-                 apply_arg_max: bool = False,
-                 apply_sigmoid: bool = False):
+
+    def __init__(self, apply_arg_max: bool = False, apply_sigmoid: bool = False):
         """
         :param apply_arg_max: Whether to apply argmax on predictions tensor.
         :param apply_sigmoid:  Whether to apply sigmoid on predictions tensor.
@@ -166,14 +161,12 @@ class PreprocessSegmentationMetricsArgs(AbstractMetricsArgsPrepFn):
 
 
 class PixelAccuracy(Metric):
-    def __init__(self,
-                 ignore_label=-100,
-                 dist_sync_on_step=False,
-                 metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
+    def __init__(self, ignore_label=-100, dist_sync_on_step=False, metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.ignore_label = ignore_label
-        self.add_state("total_correct", default=torch.tensor(0.), dist_reduce_fx="sum")
-        self.add_state("total_label", default=torch.tensor(0.), dist_reduce_fx="sum")
+        self.greater_is_better = True
+        self.add_state("total_correct", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("total_label", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
@@ -186,27 +179,29 @@ class PixelAccuracy(Metric):
         self.total_label += pixel_labeled
 
     def compute(self):
-        _total_correct = self.total_correct.cpu().detach().numpy().astype('int64')
-        _total_label = self.total_label.cpu().detach().numpy().astype('int64')
+        _total_correct = self.total_correct.cpu().detach().numpy().astype("int64")
+        _total_label = self.total_label.cpu().detach().numpy().astype("int64")
         pix_acc = np.float64(1.0) * _total_correct / (np.spacing(1, dtype=np.float64) + _total_label)
         return pix_acc
 
 
 class IoU(torchmetrics.JaccardIndex):
-    def __init__(self,
-                 num_classes: int,
-                 dist_sync_on_step: bool = False,
-                 ignore_index: Optional[int] = None,
-                 reduction: str = "elementwise_mean",
-                 threshold: float = 0.5,
-                 metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
+    def __init__(
+        self,
+        num_classes: int,
+        dist_sync_on_step: bool = False,
+        ignore_index: Optional[int] = None,
+        reduction: str = "elementwise_mean",
+        threshold: float = 0.5,
+        metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None,
+    ):
 
         if num_classes <= 1:
             raise ValueError(f"IoU class only for multi-class usage! For binary usage, please call {BinaryIOU.__name__}")
 
-        super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
-                         reduction=reduction, threshold=threshold)
+        super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction=reduction, threshold=threshold)
         self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
+        self.greater_is_better = True
 
     def update(self, preds, target: torch.Tensor):
         preds, target = self.metrics_args_prep_fn(preds, target)
@@ -214,20 +209,22 @@ class IoU(torchmetrics.JaccardIndex):
 
 
 class Dice(torchmetrics.JaccardIndex):
-    def __init__(self,
-                 num_classes: int,
-                 dist_sync_on_step: bool = False,
-                 ignore_index: Optional[int] = None,
-                 reduction: str = "elementwise_mean",
-                 threshold: float = 0.5,
-                 metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
+    def __init__(
+        self,
+        num_classes: int,
+        dist_sync_on_step: bool = False,
+        ignore_index: Optional[int] = None,
+        reduction: str = "elementwise_mean",
+        threshold: float = 0.5,
+        metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None,
+    ):
 
         if num_classes <= 1:
             raise ValueError(f"Dice class only for multi-class usage! For binary usage, please call {BinaryDice.__name__}")
 
-        super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
-                         reduction=reduction, threshold=threshold)
+        super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction=reduction, threshold=threshold)
         self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
+        self.greater_is_better = True
 
     def update(self, preds, target: torch.Tensor):
         preds, target = self.metrics_args_prep_fn(preds, target)
@@ -235,21 +232,27 @@ class Dice(torchmetrics.JaccardIndex):
 
     def compute(self) -> torch.Tensor:
         """Computes Dice coefficient"""
-        return _dice_from_confmat(
-            self.confmat, self.num_classes, self.ignore_index, self.absent_score, self.reduction
-        )
+        return _dice_from_confmat(self.confmat, self.num_classes, self.ignore_index, self.absent_score, self.reduction)
 
 
 class BinaryIOU(IoU):
-    def __init__(self,
-                 dist_sync_on_step=True,
-                 ignore_index: Optional[int] = None,
-                 threshold: float = 0.5,
-                 metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
+    def __init__(
+        self,
+        dist_sync_on_step=True,
+        ignore_index: Optional[int] = None,
+        threshold: float = 0.5,
+        metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None,
+    ):
         metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_sigmoid=True)
-        super().__init__(num_classes=2, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
-                         reduction="none", threshold=threshold, metrics_args_prep_fn=metrics_args_prep_fn)
-        self.component_names = ["target_IOU", "background_IOU", "mean_IOU"]
+        super().__init__(
+            num_classes=2,
+            dist_sync_on_step=dist_sync_on_step,
+            ignore_index=ignore_index,
+            reduction="none",
+            threshold=threshold,
+            metrics_args_prep_fn=metrics_args_prep_fn,
+        )
+        self.component_names = ["target_IOU", "background_IOU", "mean_IOU"]  # TODO
 
     def compute(self):
         ious = super(BinaryIOU, self).compute()
@@ -257,14 +260,22 @@ class BinaryIOU(IoU):
 
 
 class BinaryDice(Dice):
-    def __init__(self,
-                 dist_sync_on_step=True,
-                 ignore_index: Optional[int] = None,
-                 threshold: float = 0.5,
-                 metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
+    def __init__(
+        self,
+        dist_sync_on_step=True,
+        ignore_index: Optional[int] = None,
+        threshold: float = 0.5,
+        metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None,
+    ):
         metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_sigmoid=True)
-        super().__init__(num_classes=2, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index,
-                         reduction="none", threshold=threshold, metrics_args_prep_fn=metrics_args_prep_fn)
+        super().__init__(
+            num_classes=2,
+            dist_sync_on_step=dist_sync_on_step,
+            ignore_index=ignore_index,
+            reduction="none",
+            threshold=threshold,
+            metrics_args_prep_fn=metrics_args_prep_fn,
+        )
         self.component_names = ["target_Dice", "background_Dice", "mean_Dice"]
 
     def compute(self):

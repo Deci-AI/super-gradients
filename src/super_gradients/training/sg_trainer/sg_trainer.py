@@ -454,18 +454,12 @@ class Trainer:
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
             self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
-        #
-        # for metric in self.train_metrics:
-        #     greater_is_better = None
-        #     if hasattr(metric, "greater_component_is_better"):
-        #         pass
-        #     elif hasattr(metric, "greater_is_better"):
-        #         greater_is_better = metric.greater_is_better
+
         for metric_name in get_metrics_titles(self.train_metrics):
-            self.train_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=True)
+            self.train_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_train_metrics_is_better.get(metric_name))
 
         for metric_name in get_metrics_titles(self.valid_metrics):
-            self.valid_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=True)
+            self.valid_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name))
 
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
@@ -1237,9 +1231,25 @@ class Trainer:
     def _set_train_metrics(self, train_metrics_list):
         self.train_metrics = MetricCollection(train_metrics_list)
 
+        for metric_name, metric in self.train_metrics.items():
+            if hasattr(metric, "greater_component_is_better"):
+                self.greater_train_metrics_is_better.update(metric.greater_component_is_better)
+            elif hasattr(metric, "greater_is_better"):
+                self.greater_train_metrics_is_better[metric_name] = metric.greater_is_better
+            else:
+                self.greater_train_metrics_is_better[metric_name] = None
+
     @resolve_param("valid_metrics_list", ListFactory(MetricsFactory()))
     def _set_valid_metrics(self, valid_metrics_list):
         self.valid_metrics = MetricCollection(valid_metrics_list)
+
+        for metric_name, metric in self.valid_metrics.items():
+            if hasattr(metric, "greater_component_is_better"):
+                self.greater_valid_metrics_is_better.update(metric.greater_component_is_better)
+            elif hasattr(metric, "greater_is_better"):
+                self.greater_valid_metrics_is_better[metric_name] = metric.greater_is_better
+            else:
+                self.greater_valid_metrics_is_better[metric_name] = None
 
     @resolve_param("test_metrics_list", ListFactory(MetricsFactory()))
     def _set_test_metrics(self, test_metrics_list):
@@ -1927,17 +1937,3 @@ class Trainer:
                 self.metric_to_watch = criterion_name + "/" + self.metric_to_watch
         else:
             self.loss_logging_items_names = [criterion_name]
-
-        for metric in self.train_metrics:
-            if hasattr(metric, "greater_component_is_better"):
-                self.greater_train_metrics_is_better.update(metric.greater_component_is_better)
-            elif hasattr(metric, "greater_is_better"):
-                self.greater_train_metrics_is_better[metric.__name__] = metric.greater_is_better
-
-        for metric in self.valid_metrics:
-            if hasattr(metric, "greater_component_is_better"):
-                self.greater_valid_metrics_is_better.update(metric.greater_component_is_better)
-            elif hasattr(metric, "greater_is_better"):
-                self.greater_valid_metrics_is_better[metric.__name__] = metric.greater_is_better
-            else:
-                self.greater_valid_metrics_is_better[metric] = None
