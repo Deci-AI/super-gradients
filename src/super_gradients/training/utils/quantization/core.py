@@ -138,16 +138,6 @@ class QuantizedMetadata:
         ):
             assert issubclass(self.quantized_target_class, (SGQuantMixin, QuantMixin, QuantInputMixin))
 
-    @staticmethod
-    def from_dict(d: dict):
-        return QuantizedMetadata(
-            float_source=d["float_source"],
-            quantized_target_class=d["quantized_target_class"],
-            action=QuantizedMetadata.ReplacementAction(d["action"]),
-            input_quant_descriptor=d.get("input_quant_descriptor"),  # these have defaults
-            weights_quant_descriptor=d.get("weights_quant_descriptor"),  # these have defaults
-        )
-
 
 class QuantizedMapping(nn.Module):
     """
