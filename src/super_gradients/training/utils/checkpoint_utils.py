@@ -227,6 +227,10 @@ def load_checkpoint_to_model(
     else:
         adaptive_load_state_dict(net, checkpoint, strict)
 
+    message_suffix = " checkpoint." if not load_ema_as_net else " EMA checkpoint."
+    message_model = "model" if not load_backbone else "model's backbone"
+    logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
+
     if load_weights_only or load_backbone:
         # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS
         [checkpoint.pop(key) for key in list(checkpoint.keys()) if key != "net"]
