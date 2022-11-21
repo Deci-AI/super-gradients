@@ -37,6 +37,7 @@ def accuracy(output, target, topk=(1,)):
 class Accuracy(torchmetrics.Accuracy):
     def __init__(self, dist_sync_on_step=False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
+        self.greater_is_better = True
 
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         if target.shape == preds.shape:
@@ -47,6 +48,7 @@ class Accuracy(torchmetrics.Accuracy):
 class Top5(Metric):
     def __init__(self, dist_sync_on_step=False):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
+        self.greater_is_better = True
 
         self.add_state("correct", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
