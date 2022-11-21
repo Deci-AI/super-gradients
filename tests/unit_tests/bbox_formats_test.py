@@ -1,3 +1,4 @@
+import itertools
 import unittest
 
 import numpy as np
@@ -16,6 +17,7 @@ from super_gradients.training.utils.bbox_formats import (
     BBOX_FORMATS,
     BoundingBoxFormat,
 )
+from super_gradients.training.utils.output_adapters.detection_adapter import ConvertBoundingBoxes
 
 
 class BBoxFormatsTest(unittest.TestCase):
@@ -171,7 +173,7 @@ class BBoxFormatsTest(unittest.TestCase):
             for dst_fmt in self.formats:
                 intermediate_format = convert_bboxes(input_bboxes, image_shape, src_fmt, dst_fmt, inplace=False)
                 actual_bboxes = dst_fmt.to_xyxy(intermediate_format, image_shape, inplace=False)
-                np.testing.assert_allclose(actual_bboxes, gt_bboxes, rtol=1e-4, atol=1e-4)
+                np.testing.assert_allclose(actual_bboxes, gt_bboxes, rtol=1e-4, atol=1e-4, err_msg=f"Conversion from {src_fmt} to {dst_fmt} failed")
 
     def test_bbox_formats_factory_test(self):
         factory = BBoxFormatFactory()
@@ -179,6 +181,29 @@ class BBoxFormatsTest(unittest.TestCase):
         for format_key in BBOX_FORMATS.keys():
             format: BoundingBoxFormat = factory.get(format_key)
             self.assertEqual(format_key, format.format)
+
+    def test_bbox_formats_converter_can_be_exported(self):
+        factory = BBoxFormatFactory()
+
+        src_format: BoundingBoxFormat = factory.get("xyxy")
+
+        gt_bboxes = torch.randint(low=0, high=512, size=(8192, 4)).float()
+
+        for format_key in BBOX_FORMATS.keys():
+            dst_format: BoundingBoxFormat = factory.get(format_key)
+
+            # Try all combinations of implace flags to ensure all functions are tested for exportability
+            for inp1, inp2 in itertools.product([True, False], [True, False]):
+                module = ConvertBoundingBoxes(
+                    location=(0, 4),
+                    to_xyxy=src_format.get_from_xyxy(inplace=inp1),
+                    from_xyxy=dst_format.get_to_xyxy(inplace=inp2),
+                    image_shape=self.image_shape,
+                )
+
+                torch.jit.script(module, example_inputs=[gt_bboxes.clone()])
+                torch.jit.trace(module, example_inputs=(gt_bboxes.clone(),))
+                torch.onnx.export(module, gt_bboxes.clone(), "adapter.onnx")
 
 
 if __name__ == "__main__":

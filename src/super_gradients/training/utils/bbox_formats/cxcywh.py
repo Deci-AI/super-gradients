@@ -1,19 +1,16 @@
+from typing import Tuple
+
+import numpy as np
 import torch
 
 from super_gradients.training.utils.bbox_formats.bbox_format import (
     BoundingBoxFormat,
-    normalizedxyxy2xyxy,
-    xyxy2normalizedxyxy,
-    normalizedxyxy2xyxy_inplace,
-    xyxy2normalizedxyxy_inplace,
 )
-from typing import Union, Tuple
 
-import numpy as np
-from torch import Tensor
+__all__ = ["xyxy_to_cxcywh", "xyxy_to_cxcywh_inplace", "cxcywh_to_xyxy_inplace", "cxcywh_to_xyxy", "CXCYWHCoordinateFormat"]
 
 
-def xyxy2cxcywh(bboxes: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
+def xyxy_to_cxcywh(bboxes, image_shape: Tuple[int, int]):
     """
     Transforms bboxes from xyxy format to CX-CY-W-H format
     :param bboxes: BBoxes of shape (..., 4) in XYXY format
@@ -24,15 +21,18 @@ def xyxy2cxcywh(bboxes: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
     h = y2 - y1
     cx = x1 + 0.5 * w
     cy = y1 + 0.5 * h
-    if torch.is_tensor(bboxes):
+    if torch.jit.is_scripting():
         return torch.stack([cx, cy, w, h], dim=-1)
-    elif isinstance(bboxes, np.ndarray):
-        return np.stack([cx, cy, w, h], axis=-1)
     else:
-        raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
+        if torch.is_tensor(bboxes):
+            return torch.stack([cx, cy, w, h], dim=-1)
+        elif isinstance(bboxes, np.ndarray):
+            return np.stack([cx, cy, w, h], axis=-1)
+        else:
+            raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
 
 
-def cxcywh2xyxy(bboxes: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
+def cxcywh_to_xyxy(bboxes, image_shape: Tuple[int, int]):
     """
     Transforms bboxes from CX-CY-W-H format to XYXY format
     :param bboxes: BBoxes of shape (..., 4) in CX-CY-W-H format
@@ -43,32 +43,36 @@ def cxcywh2xyxy(bboxes: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
     y1 = cy - 0.5 * h
     x2 = x1 + w
     y2 = y1 + h
-    if torch.is_tensor(bboxes):
+
+    if torch.jit.is_scripting():
         return torch.stack([x1, y1, x2, y2], dim=-1)
-    elif isinstance(bboxes, np.ndarray):
-        return np.stack([x1, y1, x2, y2], axis=-1)
     else:
-        raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
+        if torch.is_tensor(bboxes):
+            return torch.stack([x1, y1, x2, y2], dim=-1)
+        if isinstance(bboxes, np.ndarray):
+            return np.stack([x1, y1, x2, y2], axis=-1)
+        else:
+            raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
 
 
-def cxcywh2xyxy_inplace(bboxes: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
+def cxcywh_to_xyxy_inplace(bboxes, image_shape: Tuple[int, int]):
     """
     Transforms bboxes from CX-CY-W-H format to XYXY format
     :param bboxes: BBoxes of shape (..., 4) in CX-CY-W-H format
     :return: BBoxes of shape (..., 4) in XYXY format
     """
-    bboxes[..., 0:1] -= bboxes[..., 2:3] * 0.5  # xywh
-    bboxes[..., 2:3] = bboxes[..., 2:3] + bboxes[..., 0:1]  # xyxy
+    bboxes[..., 0:1] -= bboxes[..., 2:3] * 0.5  # cxcy -> x1y1
+    bboxes[..., 2:3] += bboxes[..., 0:1]  # x1y1 + wh -> x2y2
     return bboxes
 
 
-def xyxy2cxcywh_inplace(bboxes: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
+def xyxy_to_cxcywh_inplace(bboxes, image_shape: Tuple[int, int]):
     """
     Transforms bboxes from xyxy format to CX-CY-W-H format. This function operates in-place.
     :param bboxes: BBoxes of shape (..., 4) in XYXY format
     :return: BBoxes of shape (..., 4) in CX-CY-W-H format
     """
-    bboxes[..., 2:3] = bboxes[..., 2:3] - bboxes[..., 0:1]  # xywh
+    bboxes[..., 2:3] -= bboxes[..., 0:1]  # x2y2 - x1y2 -> wh
     bboxes[..., 0:1] += bboxes[..., 2:3] * 0.5  # cxcywh
     return bboxes
 
@@ -78,32 +82,14 @@ class CXCYWHCoordinateFormat(BoundingBoxFormat):
         self.format = "cxcywh"
         self.normalized = False
 
-    def to_xyxy(self, bboxes: Union[Tensor, np.ndarray], image_shape: Tuple[int, int], inplace: bool) -> Union[Tensor, np.ndarray]:
+    def get_to_xyxy(self, inplace: bool):
         if inplace:
-            return cxcywh2xyxy_inplace(bboxes)
+            return cxcywh_to_xyxy_inplace
         else:
-            return cxcywh2xyxy(bboxes)
+            return cxcywh_to_xyxy
 
-    def from_xyxy(self, bboxes: Union[Tensor, np.ndarray], image_shape: Tuple[int, int], inplace: bool) -> Union[Tensor, np.ndarray]:
+    def get_from_xyxy(self, inplace: bool):
         if inplace:
-            return xyxy2cxcywh_inplace(bboxes)
+            return xyxy_to_cxcywh_inplace
         else:
-            return xyxy2cxcywh(bboxes)
-
-
-class NormalizedCXCYWHCoordinateFormat(BoundingBoxFormat):
-    def __init__(self):
-        self.format = "normalized_cxcywh"
-        self.normalized = True
-
-    def to_xyxy(self, bboxes: Union[Tensor, np.ndarray], image_shape: Tuple[int, int], inplace: bool) -> Union[Tensor, np.ndarray]:
-        if inplace:
-            return normalizedxyxy2xyxy_inplace(cxcywh2xyxy_inplace(bboxes), image_shape)
-        else:
-            return normalizedxyxy2xyxy(cxcywh2xyxy(bboxes), image_shape)
-
-    def from_xyxy(self, bboxes: Union[Tensor, np.ndarray], image_shape: Tuple[int, int], inplace: bool) -> Union[Tensor, np.ndarray]:
-        if inplace:
-            return xyxy2cxcywh_inplace(xyxy2normalizedxyxy_inplace(bboxes, image_shape))
-        else:
-            return xyxy2cxcywh(xyxy2normalizedxyxy(bboxes, image_shape))
+            return xyxy_to_cxcywh

@@ -1,49 +1,40 @@
 import collections
-from abc import abstractmethod
-from typing import Dict, Tuple, Union, Any
+from typing import Tuple, Union, List
 
-import torch
+from torch import Tensor
+
 from super_gradients.training.utils.bbox_formats import BoundingBoxFormat, convert_bboxes
-from torch import Tensor, nn
 
 
 class DetectionOutputFormat:
-    @abstractmethod
-    def to_dict(self, inputs) -> Dict[str, Any]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def from_dict(self, values: Dict[str, Any]) -> Any:
-        raise NotImplementedError()
+    pass
 
 
 class TensorSliceItem:
     location: slice
     name: str
-    transform: Union[nn.Module, None]
 
-    def __init__(self, name: str, location: slice, transorm: Union[nn.Module, None] = None):
+    def __init__(self, name: str, location: slice):
         self.name = name
         self.location = location
-        self.transform = transorm or nn.Identity()
 
-    def get_input(self, input: Tensor, **kwargs):
-        return input[..., self.location]
-
-    def get_output(self, values: Tensor, output_format: "TensorSliceItem", **kwargs):
-        return self.transform(values)
+    def __repr__(self):
+        return f"name={self.name} location={self.location}"
 
 
 class BoundingBoxesTensorSliceItem(TensorSliceItem):
     format: BoundingBoxFormat
 
-    def __init__(self, name: str, location: slice, format: BoundingBoxFormat, transorm: Union[nn.Module, None] = None):
-        super().__init__(name, location, transorm)
+    def __init__(self, name: str, location: slice, format: BoundingBoxFormat):
+        super().__init__(name, location)
         self.format = format
 
     def get_output(self, values: Tensor, output_format: "BoundingBoxesTensorSliceItem", **kwargs):
         image_shape = kwargs.get("image_shape", None)
         return convert_bboxes(values, image_shape=image_shape, source_format=output_format.format, target_format=self.format, inplace=False)
+
+    def __repr__(self):
+        return f"name={self.name} location={self.location} format={self.format}"
 
 
 class ConcatenatedTensorFormat(DetectionOutputFormat):
@@ -57,22 +48,14 @@ class ConcatenatedTensorFormat(DetectionOutputFormat):
 
     layout: collections.OrderedDict[str, TensorSliceItem]
 
-    def __init__(self, layout: Tuple[TensorSliceItem, ...]):
+    @property
+    def bboxes_format(self) -> BoundingBoxesTensorSliceItem:
+        bbox_items = [x for x in self.layout.values() if isinstance(x, BoundingBoxesTensorSliceItem)]
+        return bbox_items[0]
+
+    def __init__(self, layout: Union[List[TensorSliceItem], Tuple[TensorSliceItem, ...]]):
+        bbox_items = [x for x in layout if isinstance(x, BoundingBoxesTensorSliceItem)]
+        if len(bbox_items) != 1:
+            raise RuntimeError("Number of bounding box items must be strictly equal to 1")
+
         self.layout = collections.OrderedDict([(item.name, item) for item in layout])
-
-    def to_dict(self, inputs: Tensor, **kwargs) -> Dict[str, Tensor]:
-        if not torch.is_tensor(inputs):
-            raise RuntimeError(f"Input argument must be a tensor. Got input of type {type(inputs)}")
-
-        named_inputs: Dict[str, Tensor] = {}
-        for name, element in self.layout.items():
-            named_inputs[name] = element.get_input(inputs, **kwargs)
-
-        return named_inputs
-
-    def from_dict(self, values: Dict[str, Tensor], **kwargs) -> Tensor:
-        components = []
-        for name, output_element in self.layout.items():
-            value = values[output_element.name]
-            components.append(output_element.get_output(value, **kwargs))
-        return torch.cat(components, dim=-1)
