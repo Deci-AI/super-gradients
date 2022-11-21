@@ -13,3 +13,4 @@ DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=-1))
 EXTRA_ARGS = []
 
 INIT_TRAINER = False
+INIT_GPU_MODE = False
