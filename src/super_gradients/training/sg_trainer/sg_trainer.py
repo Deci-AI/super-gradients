@@ -16,6 +16,8 @@ from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
 from torch.utils.data.distributed import DistributedSampler
+
+from super_gradients.common.factories import TypeFactory
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
@@ -1340,15 +1342,13 @@ class Trainer:
     def set_module(self, module):
         self.net = module
 
+    @resolve_param("requested_multi_gpu", TypeFactory(MultiGPUMode.dict()))
     def _initialize_device(self, requested_device: str, requested_multi_gpu: Union[MultiGPUMode, str]):
         """
         _initialize_device - Initializes the device for the model - Default is CUDA
             :param requested_device:        Device to initialize ('cuda' / 'cpu')
             :param requested_multi_gpu:     Get Multiple GPU
         """
-
-        if isinstance(requested_multi_gpu, str):
-            requested_multi_gpu = MultiGPUMode(requested_multi_gpu)
 
         # SELECT CUDA DEVICE
         if requested_device == "cuda":
