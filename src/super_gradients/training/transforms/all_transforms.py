@@ -3,6 +3,8 @@ from super_gradients.training.datasets.data_augmentation import Lighting, Random
 from super_gradients.training.datasets.datasets_utils import RandomResizedCropAndInterpolation, rand_augment_transform
 import importlib
 import inspect
+from albumentations import BasicTransform
+
 from super_gradients.training.transforms.transforms import (
     SegRandomFlip,
     SegRescale,
@@ -121,5 +123,11 @@ TRANSFORMS = {
     Transforms.RandomEqualize: RandomEqualize,
 }
 
-ALBUMENTATIONS_TRANSFORMS = {name: cls for name, cls in inspect.getmembers(importlib.import_module("albumentations"), inspect.isclass)}
-ALBUMENTATIONS_COMP_TRANSFORMS = {name: cls for name, cls in inspect.getmembers(importlib.import_module("albumentations.core.composition"), inspect.isclass)}
+ALBUMENTATIONS_TRANSFORMS = {
+    name: cls for name, cls in inspect.getmembers(importlib.import_module("albumentations"), inspect.isclass) if issubclass(cls, BasicTransform)
+}
+ALBUMENTATIONS_COMP_TRANSFORMS = {
+    name: cls
+    for name, cls in inspect.getmembers(importlib.import_module("albumentations.core.composition"), inspect.isclass)
+    if issubclass(cls, BasicTransform)
+}
