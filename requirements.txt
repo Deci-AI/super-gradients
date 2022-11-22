@@ -1,4 +1,3 @@
---extra-index-url https://pypi.ngc.nvidia.com
 torch>=1.9.0
 tqdm>=4.57.0
 boto3>=1.17.15
@@ -32,4 +31,5 @@ packaging>=20.4
 wheel>=0.38.0
 # not directly required, pinned by Snyk to avoid a vulnerability
 pygments>=2.7.4
+--extra-index-url https://pypi.ngc.nvidia.com
 pytorch-quantization==2.1.2
