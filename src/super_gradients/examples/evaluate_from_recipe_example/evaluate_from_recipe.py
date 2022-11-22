@@ -16,7 +16,11 @@ Note:
     either from one of your checkpoint or from a pretrained model.
 
 General use: python evaluate_from_recipe.py --config-name="DESIRED_RECIPE".
--> Evaluate a model according to parameters set in "DESIRED_RECIPE"
+-> Evaluate the best checkpoint according to parameters set in "DESIRED_RECIPE"
+
+You can specify which checkpoint you want to evaluate by overriding training_hyperparams.ckpt_name as in the following example:
+python evaluate_from_recipe.py --config-name="DESIRED_RECIPE" training_hyperparams.ckpt_name=average_model.pth
+-> Evaluate the checkpoint 'average_model.pth' according to parameters set in "DESIRED_RECIPE"
 
 For recipe's specific instructions and details refer to the recipe's configuration file in the recipes directory.
 """

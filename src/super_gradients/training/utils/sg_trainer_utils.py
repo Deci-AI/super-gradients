@@ -62,7 +62,7 @@ class ImprovementType(Enum):
     IS_SAME = "same"
     NONE = "none"
 
-    def to_color(self) -> str:
+    def to_color(self) -> Union[str, None]:
         """Get the color representing the current improvement type"""
         if self == ImprovementType.IS_SAME:
             return "white"
@@ -71,7 +71,7 @@ class ImprovementType(Enum):
         elif self == ImprovementType.IS_WORSE:
             return "red"
         else:
-            return ""
+            return None
 
 
 logger = get_logger(__name__)
