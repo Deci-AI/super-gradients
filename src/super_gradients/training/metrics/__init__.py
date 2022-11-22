@@ -6,5 +6,21 @@ from super_gradients.training.metrics.segmentation_metrics import PreprocessSegm
 from super_gradients.training.metrics.all_metrics import METRICS, Metrics
 
 
-__all__ = ['METRICS', 'Metrics', 'accuracy', 'Accuracy', 'Top5', 'ToyTestClassificationMetric', 'DetectionMetrics', 'PreprocessSegmentationMetricsArgs',
-           'PixelAccuracy', 'IoU', 'Dice', 'BinaryIOU', 'BinaryDice', 'DetectionMetrics_050', 'DetectionMetrics_075', 'DetectionMetrics_050_095']
+__all__ = [
+    "METRICS",
+    "Metrics",
+    "accuracy",
+    "Accuracy",
+    "Top5",
+    "ToyTestClassificationMetric",
+    "DetectionMetrics",
+    "PreprocessSegmentationMetricsArgs",
+    "PixelAccuracy",
+    "IoU",
+    "Dice",
+    "BinaryIOU",
+    "BinaryDice",
+    "DetectionMetrics_050",
+    "DetectionMetrics_075",
+    "DetectionMetrics_050_095",
+]
