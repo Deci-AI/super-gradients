@@ -154,7 +154,7 @@ class DetectionOutputAdapter(nn.Module):
         if predictions.size(-1) != self.input_length:
             raise RuntimeError(
                 f"Number of channels in last dimension of input tensor ({predictions.size(-1)}) must be "
-                f"equal to {self.input_length} as defined by input format {self.input_format}"
+                f"equal to {self.input_length} as defined by input format."
             )
 
         predictions = self.rearrange_outputs(predictions)
