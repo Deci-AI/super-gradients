@@ -90,7 +90,7 @@ class DetectionOutputAdapter(nn.Module):
     >>>        return ConcatenatedTensorFormat(
     >>>            layout=(
     >>>                BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
-    >>>                TensorSliceItem(name="scores", length=self.num_classes),
+    >>>                TensorSliceItem(name="label", length=1),
     >>>                TensorSliceItem(name="distance", length=1),
     >>>                TensorSliceItem(name="attributes", length=4),
     >>>            )
@@ -101,17 +101,15 @@ class DetectionOutputAdapter(nn.Module):
     >>> # Suppose we want to return predictions in another format.
     >>> # Let it be:
     >>> # - Bounding boxes in normalized XYWH [4]
-    >>> # - Predicted class label of most confident class [1]
-    >>> # - Predicted probablity of the most confident class label [1]
-    >>> # - Predicted attributes [K] with Sigmoid activation applied
-    >>> # - Predicted distance [1] with ReLU applied to ensure non-negative output
+    >>> # - Predicted attributes [4]
+    >>> # - Predicted label [1]
     >>> output_format = ConcatenatedTensorFormat(
     >>>     layout=(
     >>>         # Note: For output format it is not required to specify location attribute as it will be
     >>>         # computed with respect to size of "source name" and order of items in layout describe their order in the output tensor
     >>>         BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedXYWHCoordinateFormat()),
     >>>         TensorSliceItem(name="attributes", length=4),
-    >>>         TensorSliceItem(name="distance", length=1),
+    >>>         TensorSliceItem(name="label", length=1),
     >>>     )
     >>> )
     >>>
