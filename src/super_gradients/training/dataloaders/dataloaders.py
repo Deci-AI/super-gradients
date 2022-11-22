@@ -27,8 +27,8 @@ from super_gradients.training.datasets.classification_datasets.cifar import (
 from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     CoCoSegmentationDataSet,
-    PascalAUG2012SegmentationDataSet,
     PascalVOC2012SegmentationDataSet,
+    PascalVOCAndAUGUnifiedDataset,
     SuperviselyPersonsDataset,
 )
 from super_gradients.common.factories.samplers_factory import SamplersFactory
@@ -517,7 +517,7 @@ def coco_segmentation_val(dataset_params: Dict = None, dataloader_params: Dict =
 def pascal_aug_segmentation_train(dataset_params: Dict = None, dataloader_params: Dict = None):
     return get_data_loader(
         config_name="pascal_aug_segmentation_dataset_params",
-        dataset_cls=PascalAUG2012SegmentationDataSet,
+        dataset_cls=PascalVOCAndAUGUnifiedDataset,
         train=True,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
@@ -525,13 +525,7 @@ def pascal_aug_segmentation_train(dataset_params: Dict = None, dataloader_params
 
 
 def pascal_aug_segmentation_val(dataset_params: Dict = None, dataloader_params: Dict = None):
-    return get_data_loader(
-        config_name="pascal_aug_segmentation_dataset_params",
-        dataset_cls=PascalAUG2012SegmentationDataSet,
-        train=False,
-        dataset_params=dataset_params,
-        dataloader_params=dataloader_params,
-    )
+    return pascal_voc_segmentation_val(dataset_params=dataset_params, dataloader_params=dataloader_params)
 
 
 def pascal_voc_segmentation_train(dataset_params: Dict = None, dataloader_params: Dict = None):
