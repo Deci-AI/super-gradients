@@ -164,6 +164,7 @@ class PixelAccuracy(Metric):
     def __init__(self, ignore_label=-100, dist_sync_on_step=False, metrics_args_prep_fn: Optional[AbstractMetricsArgsPrepFn] = None):
         super().__init__(dist_sync_on_step=dist_sync_on_step)
         self.ignore_label = ignore_label
+        self.greater_is_better = True
         self.add_state("total_correct", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.add_state("total_label", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
@@ -200,6 +201,7 @@ class IoU(torchmetrics.JaccardIndex):
 
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction=reduction, threshold=threshold)
         self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
+        self.greater_is_better = True
 
     def update(self, preds, target: torch.Tensor):
         preds, target = self.metrics_args_prep_fn(preds, target)
@@ -222,6 +224,7 @@ class Dice(torchmetrics.JaccardIndex):
 
         super().__init__(num_classes=num_classes, dist_sync_on_step=dist_sync_on_step, ignore_index=ignore_index, reduction=reduction, threshold=threshold)
         self.metrics_args_prep_fn = metrics_args_prep_fn or PreprocessSegmentationMetricsArgs(apply_arg_max=True)
+        self.greater_is_better = True
 
     def update(self, preds, target: torch.Tensor):
         preds, target = self.metrics_args_prep_fn(preds, target)
@@ -249,7 +252,12 @@ class BinaryIOU(IoU):
             threshold=threshold,
             metrics_args_prep_fn=metrics_args_prep_fn,
         )
-        self.component_names = ["target_IOU", "background_IOU", "mean_IOU"]
+        self.greater_component_is_better = {
+            "target_IOU": True,
+            "background_IOU": True,
+            "mean_IOU": True,
+        }
+        self.component_names = list(self.greater_component_is_better.keys())
 
     def compute(self):
         ious = super(BinaryIOU, self).compute()
@@ -273,7 +281,12 @@ class BinaryDice(Dice):
             threshold=threshold,
             metrics_args_prep_fn=metrics_args_prep_fn,
         )
-        self.component_names = ["target_Dice", "background_Dice", "mean_Dice"]
+        self.greater_component_is_better = {
+            "target_Dice": True,
+            "background_Dice": True,
+            "mean_Dice": True,
+        }
+        self.component_names = list(self.greater_component_is_better.keys())
 
     def compute(self):
         dices = super().compute()
