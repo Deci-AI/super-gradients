@@ -1,5 +1,5 @@
 import collections
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, Mapping
 
 from super_gradients.training.utils.bbox_formats import BoundingBoxFormat
 
@@ -40,9 +40,9 @@ class ConcatenatedTensorFormat(DetectionOutputFormat):
     - layout: (labels, bboxes) produce a Tensor from torch.cat([labels, bboxes], dim=1)
     """
 
-    layout: collections.OrderedDict[str, TensorSliceItem]
-    locations: collections.OrderedDict[str, Tuple[int, int]]
-    indexes: collections.OrderedDict[str, List[int]]
+    layout: Mapping[str, TensorSliceItem]
+    locations: Mapping[str, Tuple[int, int]]
+    indexes: Mapping[str, List[int]]
     num_channels: int
 
     @property
