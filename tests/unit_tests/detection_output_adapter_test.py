@@ -1,6 +1,10 @@
 import os.path
+import tempfile
 import unittest
 
+import numpy as np
+import onnx
+import onnxruntime as ort
 import torch.jit
 
 from super_gradients.training.utils.bbox_formats import NormalizedXYWHCoordinateFormat, CXCYWHCoordinateFormat, YXYXCoordinateFormat
@@ -41,13 +45,6 @@ ATTR_YXYX = ConcatenatedTensorFormat(
 
 
 class TestDetectionOutputAdapter(unittest.TestCase):
-    def setUp(self) -> None:
-        self.exported_onnx_file = os.path.join(os.path.dirname(__file__), "output_adapter.onnx")
-
-    def doCleanups(self) -> None:
-        if os.path.exists(self.exported_onnx_file):
-            os.unlink(self.exported_onnx_file)
-
     @torch.no_grad()
     def test_select_only_some_outputs(self):
         adapter = DetectionOutputAdapter(CXCYWH_LABELS_SCORES_DISTANCE_ATTR, ATTR_YXYX, image_shape=(640, 640)).eval()
@@ -118,7 +115,20 @@ class TestDetectionOutputAdapter(unittest.TestCase):
         )
 
         for inp in example_inputs:
-            torch.onnx.export(adapter, inp, self.exported_onnx_file)
+            expected_output = adapter(inp).numpy()
+
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                adapter_fname = os.path.join(tmpdirname, "adapter.onnx")
+                torch.onnx.export(adapter, inp, f=adapter_fname, input_names=["predictions"], output_names=["output_predictions"])
+
+                onnx_model = onnx.load(adapter_fname)
+                onnx.checker.check_model(onnx_model)
+
+                ort_sess = ort.InferenceSession(adapter_fname)
+
+                actual_output = ort_sess.run(None, {"predictions": inp.numpy()})[0]
+
+            np.testing.assert_allclose(actual_output, expected_output)
 
 
 if __name__ == "__main__":

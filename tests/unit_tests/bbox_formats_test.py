@@ -1,5 +1,6 @@
 import itertools
 import os
+import tempfile
 import unittest
 
 import numpy as np
@@ -37,7 +38,6 @@ from super_gradients.training.utils.output_adapters.detection_adapter import Con
 
 class BBoxFormatsTest(unittest.TestCase):
     def setUp(self):
-        self.exported_onnx_file = os.path.join(os.path.dirname(__file__), "output_adapter.onnx")
 
         # contains all formats
         self.formats = [
@@ -252,11 +252,10 @@ class BBoxFormatsTest(unittest.TestCase):
 
                 torch.jit.script(module, example_inputs=[gt_bboxes.clone()])
                 torch.jit.trace(module, example_inputs=(gt_bboxes.clone(),))
-                torch.onnx.export(module, gt_bboxes.clone(), self.exported_onnx_file)
-
-    def doCleanups(self) -> None:
-        if os.path.exists(self.exported_onnx_file):
-            os.unlink(self.exported_onnx_file)
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    adapter_fname = os.path.join(tmpdirname, "adapter.onnx")
+                    # Just test that export works, we test the correctness in the detection_output_adapter_test.py
+                    torch.onnx.export(module, gt_bboxes.clone(), adapter_fname)
 
 
 if __name__ == "__main__":
