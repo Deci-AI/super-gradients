@@ -1,4 +1,4 @@
-from typing import Tuple, Set, Type, Dict, Union
+from typing import Tuple, Set, Type, Dict, Union, Callable, Optional
 from torch import nn
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
@@ -17,35 +17,40 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     _imported_pytorch_quantization_failure = import_err
 
 
-class RegisterQuantizedModule(object):
+def register_quantized_module(
+    float_source: Union[str, Type[nn.Module]],
+    action: QuantizedMetadata.ReplacementAction = QuantizedMetadata.ReplacementAction.REPLACE,
+    input_quant_descriptor: Optional[QuantDescriptor] = None,
+    weights_quant_descriptor: Optional[QuantDescriptor] = None,
+) -> Callable:
     """
     Decorator used to register a Quantized module as a quantized version for Float module
-    :param float_module:                the float module type that is being registered
+    :param action:                      action to perform on the float_source
+    :param float_source:                the float module type that is being registered
     :param input_quant_descriptor:      the input quantization descriptor
     :param weights_quant_descriptor:    the weight quantization descriptor
     """
 
-    if _imported_pytorch_quantization_failure is not None:
-        raise _imported_pytorch_quantization_failure
+    def decorator(quant_module: Type[SGQuantMixin]) -> Type[SGQuantMixin]:
 
-    def __init__(self, *, float_module: Type[nn.Module], input_quant_descriptor=None, weights_quant_descriptor=None):
-        self.float_module = float_module
-        self.input_quant_descriptor = input_quant_descriptor
-        self.weights_quant_descriptor = weights_quant_descriptor
+        if float_source in SelectiveQuantizer.mapping_instructions:
+            metadata = SelectiveQuantizer.mapping_instructions[float_source]
+            raise ValueError(f"`{float_source}` is already registered with following metadata {metadata}")
 
-    def __call__(self, quant_module: Type[SGQuantMixin]):
         SelectiveQuantizer.mapping_instructions.update(
             {
-                self.float_module: QuantizedMetadata(
-                    float_source=self.float_module,
+                float_source: QuantizedMetadata(
+                    float_source=float_source,
                     quantized_target_class=quant_module,
-                    input_quant_descriptor=self.input_quant_descriptor,
-                    weights_quant_descriptor=self.weights_quant_descriptor,
-                    action=QuantizedMetadata.ReplacementAction.REPLACE,
+                    input_quant_descriptor=input_quant_descriptor,
+                    weights_quant_descriptor=weights_quant_descriptor,
+                    action=action,
                 )
             }
         )
         return quant_module  # this is required since the decorator assigns the result to the `quant_module`
+
+    return decorator
 
 
 class SelectiveQuantizer:

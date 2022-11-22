@@ -7,7 +7,7 @@ try:
     import super_gradients
     from pytorch_quantization import nn as quant_nn
     from pytorch_quantization import quant_modules
-    from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer, RegisterQuantizedModule
+    from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer, register_quantized_module
     from pytorch_quantization.calib import MaxCalibrator, HistogramCalibrator
     from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, QuantizedMetadata
     from pytorch_quantization.nn import QuantConv2d
@@ -310,7 +310,7 @@ class QuantizationUtilityTest(unittest.TestCase):
             def forward(self, x):
                 return self.linear(self.flatten(x))
 
-        @RegisterQuantizedModule(float_module=MyBlock)
+        @register_quantized_module(float_source=MyBlock)
         class MyQuantizedBlock(SGQuantMixin):
             def __init__(self, in_feats, out_feats) -> None:
                 super().__init__()

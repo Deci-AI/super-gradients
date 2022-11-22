@@ -3,7 +3,7 @@ from pytorch_quantization import nn as quant_nn
 from torch import nn
 
 from super_gradients.training.utils.quantization.core import SGQuantMixin
-from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer, RegisterQuantizedModule
+from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer, register_quantized_module
 
 
 def register_quantization_mapping_with_decorator_example():
@@ -19,7 +19,7 @@ def register_quantization_mapping_with_decorator_example():
         def forward(self, x):
             return self.linear(self.flatten(x))
 
-    @RegisterQuantizedModule(float_module=MyBlock)
+    @register_quantized_module(float_source=MyBlock)
     class MyQuantizedBlock(SGQuantMixin):
         def __init__(self, in_feats, out_feats) -> None:
             super().__init__()
