@@ -1,5 +1,3 @@
-__all__ = ["DetectionOutputAdapter"]
-
 import copy
 from typing import Tuple, Union, Callable
 
@@ -7,7 +5,9 @@ import torch
 from torch import nn, Tensor
 
 from super_gradients.training.utils.bbox_formats import BoundingBoxFormat
-from super_gradients.training.utils.output_adapters.formats import ConcatenatedTensorFormat, TensorSliceItem
+from super_gradients.training.utils.output_adapters.formats import ConcatenatedTensorFormat
+
+__all__ = ["DetectionOutputAdapter"]
 
 
 class RearrangeOutput(nn.Module):
@@ -69,10 +69,15 @@ class ConvertBoundingBoxes(nn.Module):
 
 class DetectionOutputAdapter(nn.Module):
     """
-    Adapter class for converting model's predictions for object detection to a desired format:
+    Adapter class for converting model's predictions for object detection to a desired format.
+    This adapter supports torch.jit tracing & scripting & onnx conversion.
 
-    >>> class DetectX(nn.Module):
-    >>>    ...
+    >>> from super_gradients.training.utils.output_adapters.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+    >>> from super_gradients.training.utils.bbox_formats import XYXYCoordinateFormat, NormalizedXYWHCoordinateFormat
+    >>>
+    >>> class CustomDetectionHead(nn.Module):
+    >>>    num_classes: int = 123
+    >>>
     >>>    @property
     >>>    def format(self):
     >>>        '''
@@ -82,21 +87,16 @@ class DetectionOutputAdapter(nn.Module):
     >>>         - A distance predictions [1]
     >>>         - K additional labels [K]
     >>>        '''
-    >>>        return ConcatenatedTensorPredictionsFormat(
+    >>>        return ConcatenatedTensorFormat(
     >>>            layout=(
-    >>>                BoundingBoxesTensorSliceItem(location=slice(0, 4), name="bboxes", format=XYXYCoordinateFormat()),
-    >>>                TensorSliceItem(location=slice(4, 4 + self.num_classes), name="scores"),
-    >>>                TensorSliceItem(location=slice(4 + self.num_classes, 4 + self.num_classes + 1), name="distance")
-    >>>                TensorSliceItem(location=slice(4 + self.num_classes + 1, 4 + self.num_classes + 1 + self.num_attributes), name="attributes")
+    >>>                BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
+    >>>                TensorSliceItem(name="scores", length=self.num_classes),
+    >>>                TensorSliceItem(name="distance", length=1),
+    >>>                TensorSliceItem(name="attributes", length=4),
     >>>            )
-    >>>            # Alternatively one may use fluent builder interface to reduce chance of making an error specifing slice ranges:
-    >>>            # layout=SlicedTensorBuilder.startsWith(BoundingBoxesTensorSliceItemFormat, 4, name="bboxes", format=XYXYCoordinateFormat()) \
-    >>>            #                          .then(TensorSliceItem, self.num_classes, name="scores") \
-    >>>            #                          .then(TensorSliceItem, 1, name="distance") \
-    >>>            #                          .endsWith(TensorSliceItem, self.num_attributes, name="attributes")
     >>>        )
     >>>
-    >>> yolox = MyCustomYolo(head=DetectX)
+    >>> yolox = YoloX(head=CustomDetectionHead)
     >>>
     >>> # Suppose we want to return predictions in another format.
     >>> # Let it be:
@@ -105,33 +105,25 @@ class DetectionOutputAdapter(nn.Module):
     >>> # - Predicted probablity of the most confident class label [1]
     >>> # - Predicted attributes [K] with Sigmoid activation applied
     >>> # - Predicted distance [1] with ReLU applied to ensure non-negative output
-    >>> output_format = ConcatenatedTensorPredictionsFormat(
+    >>> output_format = ConcatenatedTensorFormat(
     >>>     layout=(
     >>>         # Note: For output format it is not required to specify location attribute as it will be
     >>>         # computed with respect to size of "source name" and order of items in layout describe their order in the output tensor
-    >>>         BoundingBoxesTensorSliceItem(source="bboxes", format=NormalizedXYWHCoordinateFormat()),
-    >>>         TensorSliceItem(source="attributes"),
-    >>>         TensorSliceItem(source="distance")
+    >>>         BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedXYWHCoordinateFormat()),
+    >>>         TensorSliceItem(name="attributes", length=4),
+    >>>         TensorSliceItem(name="distance", length=1),
     >>>     )
     >>> )
     >>>
     >>> # Now we can construct output adapter and attach it to the model
     >>> output_adapter = DetectionOutputAdapter(yolox,
     >>>     input_format=yolox.head.format,
-    >>>     output_format=output_format
+    >>>     output_format=output_format,
+    >>>     image_shape=(640, 640)
     >>> )
     >>>
     >>> yolox = nn.Sequential(yolox, output_adapter)
     >>>
-    >>> # At some point we may return values as dictionary. What should happen then, is change of the format class to:
-    >>> output_format = DictonaryPredictionsFormat(
-    >>>     layout=(
-    >>>         # Note source name refers here to a name of the item from the model's output format as specified in head
-    >>>         BoundingBoxesTensorSliceItem(source="bboxes", format=NormalizedXYWHCoordinateFormat()),
-    >>>         TensorSliceItem(source="attributes"),
-    >>>         TensorSliceItem(source="distance")
-    >>>     )
-    >>> )
     """
 
     def __init__(self, input_format: ConcatenatedTensorFormat, output_format: ConcatenatedTensorFormat, image_shape: Union[Tuple[int, int], None]):
@@ -144,14 +136,16 @@ class DetectionOutputAdapter(nn.Module):
         """
         super().__init__()
         self.rearrange_outputs, rearranged_format = self.get_rearrange_outputs_module(input_format, output_format)
+
         self.format_conversion: nn.Module = self.get_format_conversion_module(
-            location=(rearranged_format.bboxes_format.location.start, rearranged_format.bboxes_format.location.stop),
+            location=rearranged_format.locations[rearranged_format.bboxes_format.name],
             input_bbox_format=rearranged_format.bboxes_format.format,
             output_bbox_format=output_format.bboxes_format.format,
             image_shape=image_shape,
         )
         self.input_format = input_format
         self.output_format = output_format
+        self.input_length = input_format.num_channels
 
     def forward(self, predictions: Tensor) -> Tensor:
         """
@@ -159,6 +153,12 @@ class DetectionOutputAdapter(nn.Module):
         :param predictions:
         :return:
         """
+        if predictions.size(-1) != self.input_length:
+            raise RuntimeError(
+                f"Number of channels in last dimension of input tensor ({predictions.size(-1)}) must be "
+                f"equal to {self.input_length} as defined by input format {self.input_format}"
+            )
+
         predictions = self.rearrange_outputs(predictions)
         predictions = self.format_conversion(predictions)
         return predictions
@@ -176,13 +176,18 @@ class DetectionOutputAdapter(nn.Module):
             if output_name not in input_format.layout:
                 raise KeyError(f"Requested item '{output_name}' was not found among input format spec. Present items are: {tuple(input_format.layout.keys())}")
 
-            input_element: TensorSliceItem = input_format.layout[output_name]
-            indexes = list(range(input_element.location.start, input_element.location.stop))
+            input_spec = input_format.layout[output_name]
+
+            if input_spec.length != output_spec.length:
+                raise RuntimeError(
+                    "Length of the output must match in input and output format. "
+                    "Input spec size is {input_spec.length} for key '{output_name}' and output spec size is {output_spec.length}."
+                )
+            indexes = input_format.indexes[output_name]
             output_indexes.extend(indexes)
             output_len = len(indexes)
 
             rearranged_item = copy.deepcopy(output_spec)
-            rearranged_item.location = slice(offset, offset + output_len)
             offset += output_len
 
             rearranged_layout.append(rearranged_item)

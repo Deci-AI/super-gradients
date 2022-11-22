@@ -8,7 +8,7 @@ from super_gradients.training.utils.bbox_formats.normalized_xyxy import (
     xyxy_to_normalized_xyxy_inplace,
     xyxy_to_normalized_xyxy,
 )
-from super_gradients.training.utils.bbox_formats.xywh import xywh_to_xyxy_inplace, xywh_to_xyxy, xyxy_to_xywh_inplace, xyxy_to_xywh
+from super_gradients.training.utils.bbox_formats.xywh import xywh_to_xyxy_inplace, xywh_to_xyxy, xyxy_to_xywh_inplace
 
 __all__ = [
     "xyxy_to_normalized_xywh",
@@ -31,7 +31,7 @@ def normalized_xywh_to_xyxy_inplace(bboxes, image_shape: Tuple[int, int]):
 
 def xyxy_to_normalized_xywh(bboxes, image_shape: Tuple[int, int]):
     normalized_xyxy = xyxy_to_normalized_xyxy(bboxes, image_shape)
-    return xyxy_to_xywh(normalized_xyxy, image_shape)  # Can be done inplace
+    return xyxy_to_xywh_inplace(normalized_xyxy, image_shape)  # Can be done inplace
 
 
 def xyxy_to_normalized_xywh_inplace(bboxes, image_shape: Tuple[int, int]):

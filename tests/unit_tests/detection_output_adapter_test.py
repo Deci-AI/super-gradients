@@ -1,55 +1,74 @@
+import os.path
 import unittest
 
 import torch.jit
 
 from super_gradients.training.utils.bbox_formats import NormalizedXYWHCoordinateFormat, CXCYWHCoordinateFormat, YXYXCoordinateFormat
-from super_gradients.training.utils.output_adapters.detection_adapter import DetectionOutputAdapter
-from super_gradients.training.utils.output_adapters.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from super_gradients.training.utils.output_adapters import DetectionOutputAdapter, ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+
+NORMALIZED_XYWH_SCORES_LABELS = ConcatenatedTensorFormat(
+    layout=(
+        BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedXYWHCoordinateFormat()),
+        TensorSliceItem(length=1, name="scores"),
+        TensorSliceItem(length=1, name="labels"),
+    )
+)
+
+CXCYWH_SCORES_LABELS = ConcatenatedTensorFormat(
+    layout=(
+        BoundingBoxesTensorSliceItem(name="bboxes", format=CXCYWHCoordinateFormat()),
+        TensorSliceItem(length=1, name="scores"),
+        TensorSliceItem(length=1, name="labels"),
+    )
+)
+
+CXCYWH_LABELS_SCORES_DISTANCE_ATTR = ConcatenatedTensorFormat(
+    layout=(
+        BoundingBoxesTensorSliceItem(name="bboxes", format=CXCYWHCoordinateFormat()),
+        TensorSliceItem(length=1, name="labels"),
+        TensorSliceItem(length=1, name="scores"),
+        TensorSliceItem(length=1, name="distance"),
+        TensorSliceItem(length=4, name="attributes"),
+    )
+)
+
+ATTR_YXYX = ConcatenatedTensorFormat(
+    layout=(
+        TensorSliceItem(length=4, name="attributes"),
+        BoundingBoxesTensorSliceItem(name="bboxes", format=YXYXCoordinateFormat()),
+    )
+)
 
 
 class TestDetectionOutputAdapter(unittest.TestCase):
-    NORMALIZED_XYWH_SCORES_LABELS = ConcatenatedTensorFormat(
-        layout=(
-            BoundingBoxesTensorSliceItem(location=slice(0, 4), name="bboxes", format=NormalizedXYWHCoordinateFormat()),
-            TensorSliceItem(location=slice(4, 5), name="scores"),
-            TensorSliceItem(location=slice(5, 6), name="labels"),
-        )
-    )
+    def setUp(self) -> None:
+        self.exported_onnx_file = os.path.join(os.path.dirname(__file__), "output_adapter.onnx")
 
-    CXCYWH_LABELS_SCORES = ConcatenatedTensorFormat(
-        layout=(
-            BoundingBoxesTensorSliceItem(location=slice(0, 4), name="bboxes", format=CXCYWHCoordinateFormat()),
-            TensorSliceItem(location=slice(4, 5), name="labels"),
-            TensorSliceItem(location=slice(6, 7), name="scores"),
-        )
-    )
+    def doCleanups(self) -> None:
+        if os.path.exists(self.exported_onnx_file):
+            os.unlink(self.exported_onnx_file)
 
-    CXCYWH_LABELS_SCORES_DISTANCE = ConcatenatedTensorFormat(
-        layout=(
-            BoundingBoxesTensorSliceItem(location=slice(0, 4), name="bboxes", format=CXCYWHCoordinateFormat()),
-            TensorSliceItem(location=slice(4, 5), name="labels"),
-            TensorSliceItem(location=slice(5, 6), name="scores"),
-            TensorSliceItem(location=slice(6, 7), name="distance"),
-        )
-    )
+    @torch.no_grad()
+    def test_select_only_some_outputs(self):
+        adapter = DetectionOutputAdapter(CXCYWH_LABELS_SCORES_DISTANCE_ATTR, ATTR_YXYX, image_shape=(640, 640)).eval()
 
-    LABELS_SCORES_DISTANCE_YXYX = ConcatenatedTensorFormat(
-        layout=(
-            TensorSliceItem(location=slice(0, 1), name="labels"),
-            TensorSliceItem(location=slice(1, 2), name="scores"),
-            TensorSliceItem(location=slice(2, 3), name="distance"),
-            BoundingBoxesTensorSliceItem(location=slice(3, 7), name="bboxes", format=YXYXCoordinateFormat()),
+        example_inputs = (
+            torch.randn((300, CXCYWH_LABELS_SCORES_DISTANCE_ATTR.num_channels)),
+            torch.randn((4, 300, CXCYWH_LABELS_SCORES_DISTANCE_ATTR.num_channels)),
         )
-    )
+
+        for expected_input in example_inputs:
+            intermediate = adapter(expected_input)
+            self.assertEqual(ATTR_YXYX.num_channels, intermediate.size(-1))
 
     @torch.no_grad()
     def test_output_adapter_convert_vice_versa(self):
-        adapter = DetectionOutputAdapter(self.CXCYWH_LABELS_SCORES_DISTANCE, self.LABELS_SCORES_DISTANCE_YXYX, image_shape=(640, 640)).eval()
-        adapter_back = DetectionOutputAdapter(self.LABELS_SCORES_DISTANCE_YXYX, self.CXCYWH_LABELS_SCORES_DISTANCE, image_shape=(640, 640)).eval()
+        adapter = DetectionOutputAdapter(NORMALIZED_XYWH_SCORES_LABELS, CXCYWH_SCORES_LABELS, image_shape=(640, 640)).eval()
+        adapter_back = DetectionOutputAdapter(CXCYWH_SCORES_LABELS, NORMALIZED_XYWH_SCORES_LABELS, image_shape=(640, 640)).eval()
 
         example_inputs = (
-            torch.randn((300, 7)),
-            torch.randn((4, 300, 7)),
+            torch.randn((300, NORMALIZED_XYWH_SCORES_LABELS.num_channels)),
+            torch.randn((4, 300, NORMALIZED_XYWH_SCORES_LABELS.num_channels)),
         )
 
         for expected_input in example_inputs:
@@ -60,11 +79,11 @@ class TestDetectionOutputAdapter(unittest.TestCase):
 
     @torch.no_grad()
     def test_output_adapter_can_be_traced(self):
-        adapter = DetectionOutputAdapter(self.NORMALIZED_XYWH_SCORES_LABELS, self.CXCYWH_LABELS_SCORES, image_shape=(640, 640)).eval()
+        adapter = DetectionOutputAdapter(NORMALIZED_XYWH_SCORES_LABELS, CXCYWH_SCORES_LABELS, image_shape=(640, 640)).eval()
 
         example_inputs = (
-            torch.randn((300, 6)),
-            torch.randn((4, 300, 6)),
+            torch.randn((300, NORMALIZED_XYWH_SCORES_LABELS.num_channels)),
+            torch.randn((4, 300, NORMALIZED_XYWH_SCORES_LABELS.num_channels)),
         )
 
         for inp in example_inputs:
@@ -76,11 +95,11 @@ class TestDetectionOutputAdapter(unittest.TestCase):
 
     @torch.no_grad()
     def test_output_adapter_can_be_scripted(self):
-        adapter = DetectionOutputAdapter(self.NORMALIZED_XYWH_SCORES_LABELS, self.CXCYWH_LABELS_SCORES, image_shape=(640, 640)).eval()
+        adapter = DetectionOutputAdapter(NORMALIZED_XYWH_SCORES_LABELS, CXCYWH_SCORES_LABELS, image_shape=(640, 640)).eval()
 
         example_inputs = (
-            torch.randn((300, 6)),
-            torch.randn((4, 300, 6)),
+            torch.randn((300, NORMALIZED_XYWH_SCORES_LABELS.num_channels)),
+            torch.randn((4, 300, NORMALIZED_XYWH_SCORES_LABELS.num_channels)),
         )
 
         for inp in example_inputs:
@@ -92,14 +111,14 @@ class TestDetectionOutputAdapter(unittest.TestCase):
 
     @torch.no_grad()
     def test_output_adapter_can_be_onnx_exported(self):
-        adapter = DetectionOutputAdapter(self.NORMALIZED_XYWH_SCORES_LABELS, self.CXCYWH_LABELS_SCORES, image_shape=(640, 640)).eval()
+        adapter = DetectionOutputAdapter(NORMALIZED_XYWH_SCORES_LABELS, CXCYWH_SCORES_LABELS, image_shape=(640, 640)).eval()
         example_inputs = (
-            torch.randn((300, 6)),
-            torch.randn((4, 300, 6)),
+            torch.randn((300, NORMALIZED_XYWH_SCORES_LABELS.num_channels)),
+            torch.randn((4, 300, NORMALIZED_XYWH_SCORES_LABELS.num_channels)),
         )
 
         for inp in example_inputs:
-            torch.onnx.export(adapter, inp, "adapter.onnx")
+            torch.onnx.export(adapter, inp, self.exported_onnx_file)
 
 
 if __name__ == "__main__":

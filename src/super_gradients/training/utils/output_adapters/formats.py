@@ -1,9 +1,7 @@
 import collections
 from typing import Tuple, Union, List
 
-from torch import Tensor
-
-from super_gradients.training.utils.bbox_formats import BoundingBoxFormat, convert_bboxes
+from super_gradients.training.utils.bbox_formats import BoundingBoxFormat
 
 
 class DetectionOutputFormat:
@@ -11,30 +9,26 @@ class DetectionOutputFormat:
 
 
 class TensorSliceItem:
-    location: slice
+    length: int
     name: str
 
-    def __init__(self, name: str, location: slice):
+    def __init__(self, name: str, length: int):
         self.name = name
-        self.location = location
+        self.length = length
 
     def __repr__(self):
-        return f"name={self.name} location={self.location}"
+        return f"name={self.name} length={self.length}"
 
 
 class BoundingBoxesTensorSliceItem(TensorSliceItem):
     format: BoundingBoxFormat
 
-    def __init__(self, name: str, location: slice, format: BoundingBoxFormat):
-        super().__init__(name, location)
+    def __init__(self, name: str, format: BoundingBoxFormat):
+        super().__init__(name, length=format.get_num_parameters())
         self.format = format
 
-    def get_output(self, values: Tensor, output_format: "BoundingBoxesTensorSliceItem", **kwargs):
-        image_shape = kwargs.get("image_shape", None)
-        return convert_bboxes(values, image_shape=image_shape, source_format=output_format.format, target_format=self.format, inplace=False)
-
     def __repr__(self):
-        return f"name={self.name} location={self.location} format={self.format}"
+        return f"name={self.name} length={self.length} format={self.format}"
 
 
 class ConcatenatedTensorFormat(DetectionOutputFormat):
@@ -47,6 +41,9 @@ class ConcatenatedTensorFormat(DetectionOutputFormat):
     """
 
     layout: collections.OrderedDict[str, TensorSliceItem]
+    locations: collections.OrderedDict[str, Tuple[int, int]]
+    indexes: collections.OrderedDict[str, List[int]]
+    num_channels: int
 
     @property
     def bboxes_format(self) -> BoundingBoxesTensorSliceItem:
@@ -58,4 +55,24 @@ class ConcatenatedTensorFormat(DetectionOutputFormat):
         if len(bbox_items) != 1:
             raise RuntimeError("Number of bounding box items must be strictly equal to 1")
 
-        self.layout = collections.OrderedDict([(item.name, item) for item in layout])
+        _layout = []
+        _locations = []
+        _indexes = []
+
+        offset = 0
+        for item in layout:
+            location_indexes = list(range(offset, offset + item.length))
+            location_slice = offset, offset + item.length
+
+            _layout.append((item.name, item))
+            _locations.append((item.name, location_slice))
+            _indexes.append((item.name, location_indexes))
+            offset += item.length
+
+        self.layout = collections.OrderedDict(_layout)
+        self.locations = collections.OrderedDict(_locations)
+        self.indexes = collections.OrderedDict(_indexes)
+        self.num_channels = offset
+
+    def __repr__(self):
+        return str(self.layout)

@@ -42,6 +42,9 @@ class BoundingBoxFormat:
     def get_from_xyxy(self, inplace: bool) -> Callable[[Tensor, Tuple[int, int]], Tensor]:
         raise NotImplementedError()
 
+    def get_num_parameters(self) -> int:
+        return 4
+
 
 def convert_bboxes(bboxes, image_shape: Tuple[int, int], source_format: BoundingBoxFormat, target_format: BoundingBoxFormat, inplace: bool):
     """
