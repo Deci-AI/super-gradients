@@ -72,7 +72,7 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             python3 -m pip install pip==22.0.4
-            cat requirements.txt | cut -f1 -d"#" | cut -f1 -d"-" | xargs -n 1 -L 1 pip install --progress-bar off --extra-index-url https://pypi.ngc.nvidia.com
+            cat requirements.txt | cut -f1 -d"#" | grep "^[^--;]" | xargs -n 1 -L 1 pip install --progress-bar off --extra-index-url https://pypi.ngc.nvidia.com
       - run:
           name: edit package version
           command: |
