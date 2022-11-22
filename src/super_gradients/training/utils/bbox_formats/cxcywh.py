@@ -1,3 +1,4 @@
+import warnings
 from typing import Tuple
 
 import numpy as np
@@ -57,23 +58,49 @@ def cxcywh_to_xyxy(bboxes, image_shape: Tuple[int, int]):
 
 def cxcywh_to_xyxy_inplace(bboxes, image_shape: Tuple[int, int]):
     """
-    Transforms bboxes from CX-CY-W-H format to XYXY format
+    Not that bboxes dtype is preserved, and it may lead to unwanted rounding errors when computing a center of bbox.
+
     :param bboxes: BBoxes of shape (..., 4) in CX-CY-W-H format
     :return: BBoxes of shape (..., 4) in XYXY format
     """
-    bboxes[..., 0:1] -= bboxes[..., 2:3] * 0.5  # cxcy -> x1y1
-    bboxes[..., 2:3] += bboxes[..., 0:1]  # x1y1 + wh -> x2y2
+    if not torch.jit.is_scripting():
+        if torch.is_tensor(bboxes) and not torch.is_floating_point(bboxes):
+            warnings.warn(
+                f"Detected non floating-point ({bboxes.dtype}) input to cxcywh_to_xyxy_inplace function. "
+                f"This may cause rounding errors and lose of precision. You may want to convert your array to floating-point precision first."
+            )
+        if isinstance(bboxes, np.ndarray) and not np.issubdtype(bboxes.dtype, np.floating):
+            warnings.warn(
+                f"Detected non floating-point input ({bboxes.dtype}) to cxcywh_to_xyxy_inplace function. "
+                f"This may cause rounding errors and lose of precision. You may want to convert your array to floating-point precision first."
+            )
+
+    bboxes[..., 0:2] -= bboxes[..., 2:4] * 0.5  # cxcy -> x1y1
+    bboxes[..., 2:4] += bboxes[..., 0:2]  # x1y1 + wh -> x2y2
     return bboxes
 
 
 def xyxy_to_cxcywh_inplace(bboxes, image_shape: Tuple[int, int]):
     """
     Transforms bboxes from xyxy format to CX-CY-W-H format. This function operates in-place.
+    Not that bboxes dtype is preserved, and it may lead to unwanted rounding errors when computing a center of bbox.
+
     :param bboxes: BBoxes of shape (..., 4) in XYXY format
     :return: BBoxes of shape (..., 4) in CX-CY-W-H format
     """
-    bboxes[..., 2:3] -= bboxes[..., 0:1]  # x2y2 - x1y2 -> wh
-    bboxes[..., 0:1] += bboxes[..., 2:3] * 0.5  # cxcywh
+    if not torch.jit.is_scripting():
+        if torch.is_tensor(bboxes) and not torch.is_floating_point(bboxes):
+            warnings.warn(
+                f"Detected non floating-point ({bboxes.dtype}) input to xyxy_to_cxcywh_inplace function. This may cause rounding errors and lose of precision. "
+                "You may want to convert your array to floating-point precision first."
+            )
+        if isinstance(bboxes, np.ndarray) and not isinstance(bboxes.dtype, np.floating):
+            warnings.warn(
+                f"Detected non floating-point input ({bboxes.dtype}) to xyxy_to_cxcywh_inplace function. This may cause rounding errors and lose of precision. "
+                "You may want to convert your array to floating-point precision first."
+            )
+    bboxes[..., 2:4] -= bboxes[..., 0:2]  # x2y2 - x1y2 -> wh
+    bboxes[..., 0:2] += bboxes[..., 2:4] * 0.5  # cxcywh
     return bboxes
 
 

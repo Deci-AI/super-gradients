@@ -58,7 +58,7 @@ def xyxy_to_xywh_inplace(bboxes, image_shape: Tuple[int, int]):
     :param bboxes: BBoxes of shape (..., 4) in XYXY format
     :return: BBoxes of shape (..., 4) in XYWH format
     """
-    bboxes[..., 2:3] -= bboxes[..., 0:1]
+    bboxes[..., 2:4] -= bboxes[..., 0:2]
     return bboxes
 
 
@@ -68,7 +68,7 @@ def xywh_to_xyxy_inplace(bboxes, image_shape: Tuple[int, int]):
     :param bboxes: BBoxes of shape (..., 4) in XYWH format
     :return: BBoxes of shape (..., 4) in XYXY format
     """
-    bboxes[..., 2:3] += bboxes[..., 0:1]
+    bboxes[..., 2:4] += bboxes[..., 0:2]
     return bboxes
 
 

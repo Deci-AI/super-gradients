@@ -1,3 +1,4 @@
+import warnings
 from typing import Tuple
 
 import numpy as np
@@ -83,6 +84,19 @@ def xyxy_to_normalized_xyxy_inplace(bboxes, image_shape: Tuple[int, int]):
     :param image_shape: Image shape (rows,cols)
     :return: BBoxes of shape (..., 4) in XYXY (unit-normalized) format
     """
+
+    if not torch.jit.is_scripting():
+        if torch.is_tensor(bboxes) and not torch.is_floating_point(bboxes):
+            warnings.warn(
+                f"Detected non floating-point ({bboxes.dtype}) input to xyxy_to_normalized_xyxy_inplace function. "
+                f"This may cause rounding errors and lose of precision. You may want to convert your array to floating-point precision first."
+            )
+        if isinstance(bboxes, np.ndarray) and not np.issubdtype(bboxes.dtype, np.floating):
+            warnings.warn(
+                f"Detected non floating-point input ({bboxes.dtype}) to xyxy_to_normalized_xyxy_inplace function. "
+                f"This may cause rounding errors and lose of precision. You may want to convert your array to floating-point precision first."
+            )
+
     rows, cols = image_shape
     bboxes[..., 0:3:2] /= cols
     bboxes[..., 1:4:2] /= rows
