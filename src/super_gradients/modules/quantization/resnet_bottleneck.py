@@ -2,14 +2,15 @@ from super_gradients.training.models import Bottleneck
 
 try:
     from pytorch_quantization import nn as quant_nn
-    from super_gradients.training.utils.quantization.core import SGQuantMixin
+    from super_gradients.training.utils.quantization.core import SGQuantMixin, QuantizedMetadata
+    from super_gradients.training.utils.quantization.selective_quantization_utils import register_quantized_module
 
-    _imported_pytorch_quantization_failure = False
+    _imported_pytorch_quantization_failure = None
+except (ImportError, NameError, ModuleNotFoundError) as import_err:
+    _imported_pytorch_quantization_failure = import_err
 
-except (ImportError, NameError, ModuleNotFoundError):
-    _imported_pytorch_quantization_failure = True
 
-
+@register_quantized_module(float_source=Bottleneck, action=QuantizedMetadata.ReplacementAction.RECURE_AND_REPLACE)
 class QuantBottleneck(SGQuantMixin):
     """
     we just insert quantized tensor to the shortcut (=residual) layer, so that it would be quantized
