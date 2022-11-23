@@ -18,7 +18,7 @@ class Scalars:
 
 
 @dataclasses.dataclass
-class Metric:
+class StatAggregator:
     name: str
     sampling_fn: Callable
     aggregate_fn: Callable
@@ -37,33 +37,30 @@ class Metric:
 
 
 @dataclasses.dataclass
-class GPUMetricIterator:
+class GPUStatAggregator:
     name: str
     device_sampling_fn: Callable
     device_aggregate_fn: Callable
-    _per_device_metric: List[Metric] = dataclasses.field(init=False)
+    _per_device_stat: List[StatAggregator] = dataclasses.field(init=False)
 
     def __post_init__(self):
         pynvml.nvmlInit()
-        # self._per_device_metric = [
-        #     Metric(name=f"{self.name}/device_{i}", sampling_fn=partial(self.device_sampling_fn, i), aggregate_fn=self.device_aggregate_fn)
-        #     for i in range(count_gpus())
-        # ]
-        self._per_device_metric = [
-            Metric(name=self.name, sampling_fn=partial(self.device_sampling_fn, i), aggregate_fn=self.device_aggregate_fn) for i in range(count_gpus())
+        self._per_device_stat = [
+            StatAggregator(name=f"{self.name}/device_{i}", sampling_fn=partial(self.device_sampling_fn, i), aggregate_fn=self.device_aggregate_fn)
+            for i in range(count_gpus())
         ]
 
-    def __iter__(self) -> Iterator[Metric]:
-        return iter(self._per_device_metric)
+    def __iter__(self) -> Iterator[StatAggregator]:
+        return iter(self._per_device_stat)
 
     def sample(self):
-        for metric in self._per_device_metric:
-            metric.sample()
+        for stat in self._per_device_stat:
+            stat.sample()
 
     def aggregate(self) -> Dict[str, float]:
-        return {f"device_{i}": metric.aggregate() for i, metric in enumerate(self._per_device_metric)}
+        return {f"device_{i}": stat.aggregate() for i, stat in enumerate(self._per_device_stat)}
 
     def aggregate_to_scalar(self) -> Scalars:
         return Scalars(name=self.name, values=self.aggregate())
-        # return [{"name": f"device_{device_i}", "scalar": metric.aggregate()} for device_i, metric in enumerate(self._per_device_metric)]
-        # return [{"name": f"device_{device_i}", "scalar": metric.aggregate()} for device_i, metric in enumerate(self._per_device_metric)]
+        # return [{"name": f"device_{device_i}", "scalar": stat.aggregate()} for device_i, stat in enumerate(self._per_device_stat)]
+        # return [{"name": f"device_{device_i}", "scalar": stat.aggregate()} for device_i, stat in enumerate(self._per_device_stat)]
