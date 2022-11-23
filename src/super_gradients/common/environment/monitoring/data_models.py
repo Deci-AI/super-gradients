@@ -41,26 +41,24 @@ class GPUStatAggregator:
     name: str
     device_sampling_fn: Callable
     device_aggregate_fn: Callable
-    _per_device_stat: List[StatAggregator] = dataclasses.field(init=False)
+    _per_device_stat_aggregator: List[StatAggregator] = dataclasses.field(init=False)
 
     def __post_init__(self):
         pynvml.nvmlInit()
-        self._per_device_stat = [
+        self._per_device_stat_aggregator = [
             StatAggregator(name=f"{self.name}/device_{i}", sampling_fn=partial(self.device_sampling_fn, i), aggregate_fn=self.device_aggregate_fn)
             for i in range(count_gpus())
         ]
 
     def __iter__(self) -> Iterator[StatAggregator]:
-        return iter(self._per_device_stat)
+        return iter(self._per_device_stat_aggregator)
 
     def sample(self):
-        for stat in self._per_device_stat:
-            stat.sample()
+        for stat_aggregator in self._per_device_stat_aggregator:
+            stat_aggregator.sample()
 
     def aggregate(self) -> Dict[str, float]:
-        return {f"device_{i}": stat.aggregate() for i, stat in enumerate(self._per_device_stat)}
+        return {f"device_{i}": stat_aggregator.aggregate() for i, stat_aggregator in enumerate(self._per_device_stat_aggregator)}
 
     def aggregate_to_scalar(self) -> Scalars:
         return Scalars(name=self.name, values=self.aggregate())
-        # return [{"name": f"device_{device_i}", "scalar": stat.aggregate()} for device_i, stat in enumerate(self._per_device_stat)]
-        # return [{"name": f"device_{device_i}", "scalar": stat.aggregate()} for device_i, stat in enumerate(self._per_device_stat)]
