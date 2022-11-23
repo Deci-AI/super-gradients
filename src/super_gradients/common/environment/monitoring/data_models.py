@@ -2,7 +2,7 @@ import dataclasses
 from functools import partial
 from typing import Callable, List, Iterator, Dict
 
-from super_gradients.common.environment.monitoring.gpu import pynvml, count_gpus
+from super_gradients.common.environment.monitoring.gpu import init_nvidia_management_lib, count_gpus
 
 
 @dataclasses.dataclass
@@ -44,7 +44,7 @@ class GPUStatAggregator:
     _per_device_stat_aggregator: List[StatAggregator] = dataclasses.field(init=False)
 
     def __post_init__(self):
-        pynvml.nvmlInit()
+        init_nvidia_management_lib()
         self._per_device_stat_aggregator = [
             StatAggregator(name=f"{self.name}/device_{i}", sampling_fn=partial(self.device_sampling_fn, i), aggregate_fn=self.device_aggregate_fn)
             for i in range(count_gpus())

@@ -5,37 +5,8 @@ from typing import List, Union
 from super_gradients.common.sg_loggers import BaseSGLogger
 from super_gradients.common.environment.env_helpers import multi_process_safe
 from super_gradients.common.environment.monitoring.data_models import StatAggregator, GPUStatAggregator, Scalar, Scalars
-from super_gradients.common.environment.monitoring.cpu import get_disk_usage_percent, get_io_read_mbs, get_io_write_mbs
-from super_gradients.common.environment.monitoring.gpu import (
-    get_device_memory_utilization,
-    get_device_memory_allocated_percent,
-    get_device_utilization,
-    get_device_temperature,
-    get_device_power_usage,
-    get_device_power_usage_percent,
-)
 from super_gradients.common.environment.monitoring.utils import average
-
-import psutil
-
-
-def get_cpu_percent():
-    return psutil.cpu_percent(interval=None, percpu=False)
-
-
-initial_net_io_counters = psutil.net_io_counters()
-
-
-def get_network_sent():
-    return psutil.net_io_counters().bytes_sent - initial_net_io_counters.bytes_sent
-
-
-def get_network_recv():
-    return psutil.net_io_counters().bytes_recv - initial_net_io_counters.bytes_recv
-
-
-def virtual_memory_used_percent():
-    return psutil.virtual_memory().percent
+from super_gradients.common.environment.monitoring import disk, virtual_memory, network, cpu, gpu
 
 
 class SystemMonitor:
@@ -43,18 +14,21 @@ class SystemMonitor:
         self.sg_logger = sg_logger
 
         self.stats_aggregators: List[StatAggregator] = [
-            StatAggregator(name="System/disk.usage_percent", sampling_fn=get_disk_usage_percent, aggregate_fn=average),
-            StatAggregator(name="System/disk.io_read_mbs", sampling_fn=get_io_read_mbs, aggregate_fn=average),
-            StatAggregator(name="System/disk.io_write_mbs", sampling_fn=get_io_write_mbs, aggregate_fn=average),
-            StatAggregator(name="System/memory.usage_percent", sampling_fn=virtual_memory_used_percent, aggregate_fn=average),
-            StatAggregator(name="System/network.network_sent", sampling_fn=get_network_sent, aggregate_fn=average),
-            StatAggregator(name="System/network.network_recv", sampling_fn=get_network_recv, aggregate_fn=average),
-            *GPUStatAggregator(name="System/gpu.usage_percent", device_sampling_fn=get_device_memory_utilization, device_aggregate_fn=average),
-            *GPUStatAggregator(name="System/gpu.memory_allocated_percent", device_sampling_fn=get_device_memory_allocated_percent, device_aggregate_fn=average),
-            *GPUStatAggregator(name="System/gpu.utilization", device_sampling_fn=get_device_utilization, device_aggregate_fn=average),
-            *GPUStatAggregator(name="System/gpu.temperature", device_sampling_fn=get_device_temperature, device_aggregate_fn=average),
-            *GPUStatAggregator(name="System/gpu.power_usage", device_sampling_fn=get_device_power_usage, device_aggregate_fn=average),
-            *GPUStatAggregator(name="System/gpu.power_usage_percent", device_sampling_fn=get_device_power_usage_percent, device_aggregate_fn=average),
+            StatAggregator(name="System/disk.usage_percent", sampling_fn=disk.get_disk_usage_percent, aggregate_fn=average),
+            StatAggregator(name="System/disk.io_read_mbs", sampling_fn=disk.get_io_read_mbs, aggregate_fn=average),
+            StatAggregator(name="System/disk.io_write_mbs", sampling_fn=disk.get_io_write_mbs, aggregate_fn=average),
+            StatAggregator(name="System/memory.usage_percent", sampling_fn=virtual_memory.virtual_memory_used_percent, aggregate_fn=average),
+            StatAggregator(name="System/network.network_sent", sampling_fn=network.get_network_sent, aggregate_fn=average),
+            StatAggregator(name="System/network.network_recv", sampling_fn=network.get_network_recv, aggregate_fn=average),
+            StatAggregator(name="System/cpu.usage_percent", sampling_fn=cpu.get_cpu_percent, aggregate_fn=average),
+            *GPUStatAggregator(name="System/gpu.usage_percent", device_sampling_fn=gpu.get_device_memory_utilization, device_aggregate_fn=average),
+            *GPUStatAggregator(
+                name="System/gpu.memory_allocated_percent", device_sampling_fn=gpu.get_device_memory_allocated_percent, device_aggregate_fn=average
+            ),
+            *GPUStatAggregator(name="System/gpu.utilization", device_sampling_fn=gpu.get_device_utilization, device_aggregate_fn=average),
+            *GPUStatAggregator(name="System/gpu.temperature", device_sampling_fn=gpu.get_device_temperature, device_aggregate_fn=average),
+            *GPUStatAggregator(name="System/gpu.power_usage", device_sampling_fn=gpu.get_device_power_usage, device_aggregate_fn=average),
+            *GPUStatAggregator(name="System/gpu.power_usage_percent", device_sampling_fn=gpu.get_device_power_usage_percent, device_aggregate_fn=average),
         ]
 
         self.count = 0

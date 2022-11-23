@@ -1,6 +1,10 @@
 from super_gradients.common.environment.monitoring.gpu import pynvml
 
 
+def init_nvidia_management_lib():
+    pynvml.nvmlInit()
+
+
 def count_gpus() -> int:
     return pynvml.nvmlDeviceGetCount()
 
