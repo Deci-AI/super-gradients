@@ -1,7 +1,7 @@
 import inspect
 import os
 from copy import deepcopy
-from typing import Union, Tuple, Mapping
+from typing import Union, Tuple, Mapping, Dict
 from pathlib import Path
 
 import numpy as np
@@ -36,7 +36,6 @@ from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
-from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
@@ -158,6 +157,8 @@ class Trainer:
         self.valid_metrics = None
         self.greater_metric_to_watch_is_better = None
         self.metric_to_watch = None
+        self.greater_train_metrics_is_better: Dict[str, bool] = {}  # For each metric, indicates if greater is better
+        self.greater_valid_metrics_is_better: Dict[str, bool] = {}
 
         # SETTING THE PROPERTIES FROM THE CONSTRUCTOR
         self.experiment_name = experiment_name
@@ -242,6 +243,7 @@ class Trainer:
     def evaluate_from_recipe(cls, cfg: DictConfig) -> None:
         """
         Evaluate according to a cfg recipe configuration.
+        Default checkpoint (if training_hyperparams.ckpt_name = None) set to ckpt_best.pth
 
         Note:   This script does NOT run training, only validation.
                 Please make sure that the config refers to a PRETRAINED MODEL either from one of your checkpoint or from pretrained weights from model zoo.
@@ -263,7 +265,7 @@ class Trainer:
         )
 
         checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-        ckpt_name = core_utils.get_param(cfg, "ckpt_name", "ckpt_latest.pth")
+        ckpt_name = core_utils.get_param(cfg.training_hyperparams, "ckpt_name", "ckpt_best.pth")
         checkpoint_path = str(checkpoints_dir / ckpt_name)
 
         # BUILD NETWORK
@@ -452,7 +454,13 @@ class Trainer:
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
             self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
-        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch, greater_is_better=True)
+
+        for metric_name in get_metrics_titles(self.train_metrics):
+            self.train_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_train_metrics_is_better.get(metric_name))
+
+        for metric_name in get_metrics_titles(self.valid_metrics):
+            self.valid_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name))
+
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
         ]
@@ -1036,10 +1044,9 @@ class Trainer:
         # ADD CALLBACK FOR QAT
         self.enable_qat = core_utils.get_param(self.training_params, "enable_qat", False)
         if self.enable_qat:
-            self.qat_params = core_utils.get_param(self.training_params, "qat_params")
-            if self.qat_params is None:
-                raise ValueError("Must pass QAT params when enable_qat=True")
-            self.phase_callbacks.append(QATCallback(**self.qat_params))
+            raise NotImplementedError(
+                "QAT is not implemented as a plug-and-play feature yet. Please refer to examples/resnet_qat to learn how to do it manually."
+            )
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
@@ -1223,9 +1230,25 @@ class Trainer:
     def _set_train_metrics(self, train_metrics_list):
         self.train_metrics = MetricCollection(train_metrics_list)
 
+        for metric_name, metric in self.train_metrics.items():
+            if hasattr(metric, "greater_component_is_better"):
+                self.greater_train_metrics_is_better.update(metric.greater_component_is_better)
+            elif hasattr(metric, "greater_is_better"):
+                self.greater_train_metrics_is_better[metric_name] = metric.greater_is_better
+            else:
+                self.greater_train_metrics_is_better[metric_name] = None
+
     @resolve_param("valid_metrics_list", ListFactory(MetricsFactory()))
     def _set_valid_metrics(self, valid_metrics_list):
         self.valid_metrics = MetricCollection(valid_metrics_list)
+
+        for metric_name, metric in self.valid_metrics.items():
+            if hasattr(metric, "greater_component_is_better"):
+                self.greater_valid_metrics_is_better.update(metric.greater_component_is_better)
+            elif hasattr(metric, "greater_is_better"):
+                self.greater_valid_metrics_is_better[metric_name] = metric.greater_is_better
+            else:
+                self.greater_valid_metrics_is_better[metric_name] = None
 
     @resolve_param("test_metrics_list", ListFactory(MetricsFactory()))
     def _set_test_metrics(self, test_metrics_list):
