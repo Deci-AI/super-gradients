@@ -2,7 +2,7 @@ import json
 import os
 import signal
 import time
-from typing import Union, Any
+from typing import Union, Any, Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -129,6 +129,9 @@ class BaseSGLogger(AbstractSGLogger):
     @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: int = None):
         self.tensorboard_writer.add_scalar(tag=tag.lower().replace(" ", "_"), scalar_value=scalar_value, global_step=global_step)
+
+    def add_scalars_to_same_plot(self, tag: str, tag_scalar_dict: Dict[str, float], global_step: int = None):
+        self.tensorboard_writer.add_scalars(main_tag=tag, tag_scalar_dict=tag_scalar_dict, global_step=global_step)
 
     @multi_process_safe
     def add_scalars(self, tag_scalar_dict: dict, global_step: int = None):
