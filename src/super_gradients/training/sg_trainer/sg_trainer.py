@@ -36,7 +36,6 @@ from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
-from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
@@ -1045,10 +1044,9 @@ class Trainer:
         # ADD CALLBACK FOR QAT
         self.enable_qat = core_utils.get_param(self.training_params, "enable_qat", False)
         if self.enable_qat:
-            self.qat_params = core_utils.get_param(self.training_params, "qat_params")
-            if self.qat_params is None:
-                raise ValueError("Must pass QAT params when enable_qat=True")
-            self.phase_callbacks.append(QATCallback(**self.qat_params))
+            raise NotImplementedError(
+                "QAT is not implemented as a plug-and-play feature yet. Please refer to examples/resnet_qat to learn how to do it manually."
+            )
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
