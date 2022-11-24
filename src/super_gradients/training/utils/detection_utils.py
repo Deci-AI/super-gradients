@@ -7,14 +7,14 @@ from typing import Callable, List, Union, Tuple, Optional, Dict
 
 import cv2
 import matplotlib.pyplot as plt
-
 import numpy as np
 import torch
 import torchvision
+from omegaconf import ListConfig
 from torch import nn
 from torch.utils.data._utils.collate import default_collate
-from omegaconf import ListConfig
-from super_gradients.training.utils import bbox_formats
+
+from super_gradients.training.utils.bbox_formats.cxcywh import cxcywh_to_xyxy
 
 
 class DetectionTargetsFormat(Enum):
@@ -512,7 +512,7 @@ class DetectionVisualization:
             pred_labels = preds[:, 5]
 
             true_labels = targets_cur[:, 1]
-            true_bboxes = bbox_formats.cxcywh2xyxy(targets_cur[:, 2:6])
+            true_bboxes = cxcywh_to_xyxy(targets_cur[:, 2:6], image_shape=None)
 
             image_name = "_".join([str(batch_name), str(i)])
             res_image = DetectionVisualization._visualize_image(

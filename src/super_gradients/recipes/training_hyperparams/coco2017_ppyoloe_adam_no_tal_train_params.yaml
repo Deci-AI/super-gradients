@@ -1,12 +1,12 @@
 defaults:
   - default_train_params
 
-max_epochs: 300
+max_epochs: 500
 lr_mode: cosine
-cosine_final_lr_ratio: 0.25
+cosine_final_lr_ratio: 0.1
 lr_warmup_epochs: 5
 lr_cooldown_epochs: 15
-initial_lr:  0.002
+initial_lr:  0.005
 zero_weight_decay_on_bias_and_bn: True
 batch_accumulate: 1
 
@@ -28,7 +28,7 @@ optimizer_params:
 #  nesterov: True
 
 compute_losses_on_valid: False
-static_assigner_end_epoch: 100
+static_assigner_end_epoch: ${training_hyperparams.max_epochs}
 
 ema: False
 mixed_precision: True

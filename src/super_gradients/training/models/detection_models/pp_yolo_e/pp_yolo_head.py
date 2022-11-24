@@ -102,7 +102,6 @@ class PPYOLOEHead(nn.Module):
         """
 
         :param num_classes:
-        :param nms:
         :param in_channels: Number of channels for each feature map (See width_mult)
         :param activation: Type of the activation used in module
         :param fpn_strides: Output strides of the feature maps from the neck

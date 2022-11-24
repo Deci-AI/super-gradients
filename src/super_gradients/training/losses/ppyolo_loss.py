@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 
 import super_gradients
-from super_gradients.training.utils.bbox_formats.cxcywh import cxcywh2xyxy
+from super_gradients.training.utils.bbox_formats.cxcywh import cxcywh_to_xyxy
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from super_gradients.training.utils.distributed_training_utils import (
     get_world_size,
@@ -695,7 +695,7 @@ class PPYoloELoss(nn.Module):
         """
         image_index = targets[:, 0]
         gt_class = targets[:, 1:2].long()
-        gt_bbox = cxcywh2xyxy(targets[:, 2:6])
+        gt_bbox = cxcywh_to_xyxy(targets[:, 2:6])
 
         per_image_class = []
         per_image_bbox = []
