@@ -1,7 +1,26 @@
-from typing import Union
+from typing import Union, Callable
 from types import TracebackType
 
+from functools import lru_cache
+
 from super_gradients.common.crash_handler.crash_tips import get_relevant_crash_tip_message
+
+
+@lru_cache
+def register_exceptions(excepthook: Callable) -> Callable:
+    """Wrap excepthook with a step the saves the exception info to be available in the exit hooks.
+    :param exc_type:        Type of exception
+    :param exc_value:       Exception
+    :param exc_traceback:   Traceback
+
+    :return: wrapped exceptook, that register the exception before raising it
+    """
+
+    def excepthook_with_register(exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Callable:
+        ExceptionInfo.register_exception(exc_type, exc_value, exc_traceback)
+        return excepthook(exc_type, exc_value, exc_traceback)
+
+    return excepthook_with_register
 
 
 class ExceptionInfo:

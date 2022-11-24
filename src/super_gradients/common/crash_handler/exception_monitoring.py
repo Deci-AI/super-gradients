@@ -37,27 +37,26 @@ def exception_upload_handler(platform_client):
             logger.warning(f"Exception could not be uploaded to platform with exception: {e}")
 
 
-def setup_pro_user_monitoring():
+@multi_process_safe
+def setup_pro_user_monitoring() -> bool:
     """Setup the pro user environment for error logging and monitoring"""
-    upload_console_logs = os.getenv("UPLOAD_LOGS", "TRUE") == "TRUE"
-    if upload_console_logs:
-        logger.info("deci-lab-client package detected. activating automatic log uploading")
-        logger.info("If you do not have a deci-lab-client credentials or you wish to disable this feature, please set the env variable UPLOAD_LOGS=FALSE")
+    if _imported_deci_lab_failure is not None:
+        upload_console_logs = os.getenv("UPLOAD_LOGS", "TRUE") == "TRUE"
+        if upload_console_logs:
+            logger.info("deci-lab-client package detected. activating automatic log uploading")
+            logger.info("If you do not have a deci-lab-client credentials or you wish to disable this feature, please set the env variable UPLOAD_LOGS=FALSE")
 
-        # This prevents hydra.main to catch errors that happen in the decorated function
-        # (which leads sys.excepthook to never be called)
-        os.environ["HYDRA_FULL_ERROR"] = "1"
+            # This prevents hydra.main to catch errors that happen in the decorated function
+            # (which leads sys.excepthook to never be called)
+            os.environ["HYDRA_FULL_ERROR"] = "1"
 
-        logger.info("Connecting to the deci platform ...")
-        platform_client = DeciPlatformClient()
-        platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
-        logger.info("Connection to the deci platform successful!")
+            logger.info("Connecting to the deci platform ...")
+            platform_client = DeciPlatformClient()
+            platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+            logger.info("Connection to the deci platform successful!")
 
-        atexit.register(exception_upload_handler, platform_client)
-    else:
-        logger.info("Automatic log upload was disabled. To enable it please set the env variable UPLOAD_LOGS=TRUE")
-
-
-def setup_user_env():
-    if _imported_deci_lab_failure is None:
-        setup_pro_user_monitoring()
+            atexit.register(exception_upload_handler, platform_client)
+            return True
+        else:
+            logger.info("Automatic log upload was disabled. To enable it please set the env variable UPLOAD_LOGS=TRUE")
+    return False
