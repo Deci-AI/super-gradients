@@ -1,9 +1,11 @@
 from .bbox_format import BoundingBoxFormat, convert_bboxes
-from .cxcywh import CXCYWHCoordinateFormat, NormalizedCXCYWHCoordinateFormat
-from .xywh import XYWHCoordinateFormat, NormalizedXYWHCoordinateFormat
-from .xyxy import XYXYCoordinateFormat, NormalizedXYXYCoordinateFormat
+from .cxcywh import CXCYWHCoordinateFormat
+from .xywh import XYWHCoordinateFormat
+from .xyxy import XYXYCoordinateFormat
 from .yxyx import YXYXCoordinateFormat
-
+from .normalized_xyxy import NormalizedXYXYCoordinateFormat
+from .normalized_cxcywh import NormalizedCXCYWHCoordinateFormat
+from .normalized_xywh import NormalizedXYWHCoordinateFormat
 
 BBOX_FORMATS = {
     "xyxy": XYXYCoordinateFormat,
