@@ -3,6 +3,7 @@ import copy
 from typing import List, Union, Optional
 import torch
 from torch import nn
+from omegaconf.listconfig import ListConfig
 
 from super_gradients.common import UpsampleMode
 
@@ -62,11 +63,13 @@ class MultiOutputModule(nn.Module):
     def forward(self, x) -> list:
         self._outputs_lists[x.device] = []
         self._modules["0"](x)
-        return self._outputs_lists[x.device]
+        outputs = self._outputs_lists[x.device]
+        self._outputs_lists = {}
+        return outputs
 
     def _get_recursive(self, module: nn.Module, path) -> nn.Module:
         """recursively look for a module using a path"""
-        if not isinstance(path, list):
+        if not isinstance(path, (list, ListConfig)):
             return module._modules[str(path)]
         elif len(path) == 1:
             return module._modules[str(path[0])]
@@ -82,7 +85,7 @@ class MultiOutputModule(nn.Module):
 
         # look for the last key from all paths
         for path in output_paths:
-            key = path[0] if isinstance(path, list) else path
+            key = path[0] if isinstance(path, (list, ListConfig)) else path
             index = list(module._modules).index(str(key))
             if index > last_index:
                 last_index = index
@@ -92,7 +95,7 @@ class MultiOutputModule(nn.Module):
 
         next_level_paths = []
         for path in output_paths:
-            if isinstance(path, list) and path[0] == last_key and len(path) > 1:
+            if isinstance(path, (list, ListConfig)) and path[0] == last_key and len(path) > 1:
                 next_level_paths.append(path[1:])
 
         if len(next_level_paths) > 0:

@@ -74,7 +74,7 @@ For more information on how to do it go to [Getting Started](#getting-started)
 
 ### Plug and play recipes
 ```python
-python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+python -m super_gradients.examples.train_from_recipe_example.train_from_recipe architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 More example on how and why to use recipes can be found in [Recipes](#recipes)
 
@@ -150,7 +150,7 @@ ________________________________________________________________________________
 The most simple and straightforward way to start training SOTA performance models with SuperGradients reproducible recipes. Just define your dataset path and where you want your checkpoints to be saved and you are good to go from your terminal!
     
 ```bash
-python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+python -m super_gradients.examples.train_from_recipe_example.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
 Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
@@ -309,13 +309,13 @@ setup_gpu_mode(gpu_mode=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
 from super_gradients.training import models
 
 # instantiate default pretrained resnet18
-default_resnet18 = models.get(name="resnet18", num_classes=100, pretrained_weights="imagenet")
+default_resnet18 = models.get(model_name="resnet18", num_classes=100, pretrained_weights="imagenet")
 
 # instantiate pretrained resnet18, turning DropPath on with probability 0.5
-droppath_resnet18 = models.get(name="resnet18", arch_params={"droppath_prob": 0.5}, num_classes=100, pretrained_weights="imagenet")
+droppath_resnet18 = models.get(model_name="resnet18", arch_params={"droppath_prob": 0.5}, num_classes=100, pretrained_weights="imagenet")
 
 # instantiate pretrained resnet18, without classifier head. Output will be from the last stage before global pooling
-backbone_resnet18 = models.get(name="resnet18", arch_params={"backbone_mode": True}, pretrained_weights="imagenet")
+backbone_resnet18 = models.get(model_name="resnet18", arch_params={"backbone_mode": True}, pretrained_weights="imagenet")
 ```
 
 ### Using phase callbacks

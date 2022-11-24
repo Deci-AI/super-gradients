@@ -11,7 +11,7 @@ import torch
 from PIL import Image
 from super_gradients.common import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.auto_logging import AutoLoggerConfig
+from super_gradients.common.auto_logging import AutoLoggerConfig, ConsoleSink
 from super_gradients.common.environment.env_helpers import multi_process_safe
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.params import TrainingParams
@@ -107,7 +107,9 @@ class BaseSGLogger(AbstractSGLogger):
         # There are two log files, since the regular log_file_path used for `manual` logging of configs/other info
         self.log_file_path = f"{self._local_dir}/log_{time_string}.txt"
         self.log_full_file_path = f"{self._local_dir}/sg_logs_{time_string}.txt"
+        self.console_sink_path = f"{self._local_dir}/console_{time_string}.txt"
         AutoLoggerConfig.setup_logging(filename=self.log_full_file_path, copy_already_logged_messages=True)
+        ConsoleSink.set_location(filename=self.console_sink_path)
 
     @multi_process_safe
     def _write_to_log_file(self, lines: list):

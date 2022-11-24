@@ -24,7 +24,7 @@ try:
 
     _imported_deci_lab_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warn("Failed to import deci_lab_client")
+    logger.debug("Failed to import deci_lab_client")
     _imported_deci_lab_failure = import_err
 
 
@@ -229,10 +229,8 @@ class DeciLabUploadCallback(PhaseCallback):
 
     Attributes:
 
-        email: (str) username for Deci platform.
         model_meta_data: (ModelMetadata) model's meta-data object.
         optimization_request_form: (dict) optimization request form object.
-        password: (str) default=None, should only be used for testing.
         ckpt_name: (str) default="ckpt_best" refers to the filename of the checkpoint, inside the checkpoint directory.
 
         The following parameters may be passed as kwargs in order to control the conversion to onnx:
@@ -243,16 +241,17 @@ class DeciLabUploadCallback(PhaseCallback):
         :param output_names
     """
 
-    def __init__(self, model_meta_data, optimization_request_form, auth_token: str = None, ckpt_name="ckpt_best.pth", **kwargs):
+    def __init__(self, model_meta_data, optimization_request_form, ckpt_name="ckpt_best.pth", **kwargs):
         super().__init__(phase=Phase.POST_TRAINING)
         if _imported_deci_lab_failure is not None:
             raise _imported_deci_lab_failure
+
         self.model_meta_data = model_meta_data
         self.optimization_request_form = optimization_request_form
         self.conversion_kwargs = kwargs
         self.ckpt_name = ckpt_name
         self.platform_client = DeciPlatformClient("api.deci.ai", 443, https=True)
-        self.platform_client.login(token=auth_token)
+        self.platform_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
 
     @staticmethod
     def log_optimization_failed():

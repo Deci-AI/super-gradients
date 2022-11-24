@@ -21,10 +21,58 @@ from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBa
 from super_gradients.common.data_types.enum import MultiGPUMode
 
 
-# TODO: These utils should move to sg_trainer package as internal (private) helper functions
+from enum import Enum
 
-IS_BETTER_COLOR = {True: "green", False: "red"}
-IS_GREATER_SYMBOLS = {True: "↗", False: "↘"}
+
+class IncreaseType(Enum):
+    """Type of increase compared to previous value, i.e. if the value is greater, smaller or the same.
+
+    Difference with "improvement":
+        If a loss goes from 1 to 0.5, the value is smaller (decreased), but the result is better (improvement).
+        For accuracy from 1 to 0.5, the value is smaller, but this time the result decreased, because greater is better.
+    """
+
+    NONE = "none"
+    IS_GREATER = "greater"
+    IS_SMALLER = "smaller"
+    IS_EQUAL = "equal"
+
+    def to_symbol(self) -> str:
+        """Get the symbol representing the current increase type"""
+        if self == IncreaseType.NONE:
+            return ""
+        elif self == IncreaseType.IS_GREATER:
+            return "↗"
+        elif self == IncreaseType.IS_SMALLER:
+            return "↘"
+        else:
+            return "="
+
+
+class ImprovementType(Enum):
+    """Type of improvement compared to previous value, i.e. if the value is better, worse or the same.
+
+    Difference with "increase":
+        If a loss goes from 1 to 0.5, the value is smaller (decreased), but the result is better (improvement).
+        For accuracy from 1 to 0.5, the value is smaller, but this time the result decreased, because greater is better.
+    """
+
+    IS_BETTER = "better"
+    IS_WORSE = "worse"
+    IS_SAME = "same"
+    NONE = "none"
+
+    def to_color(self) -> Union[str, None]:
+        """Get the color representing the current improvement type"""
+        if self == ImprovementType.IS_SAME:
+            return "white"
+        elif self == ImprovementType.IS_BETTER:
+            return "green"
+        elif self == ImprovementType.IS_WORSE:
+            return "red"
+        else:
+            return None
+
 
 logger = get_logger(__name__)
 
@@ -34,9 +82,21 @@ class MonitoredValue:
     """Store a value and some indicators relative to its past iterations.
 
     The value can be a metric/loss, and the iteration can be epochs/batch.
+
+    :param name:                    Name of the metric
+    :param greater_is_better:       True, a greater value is considered better.
+                                      ex: (greater_is_better=True) For Accuracy 1 is greater and therefore better than 0.4
+                                      ex: (greater_is_better=False) For Loss 1 is greater and therefore worse than 0.4
+                                    None when unknown
+    :param current:                 Current value of the metric
+    :param previous:                Value of the metric in previous iteration
+    :param best:                    Value of the metric in best iteration (best according to greater_is_better)
+    :param change_from_previous:    Change compared to previous iteration value
+    :param change_from_best:        Change compared to best iteration value
     """
+
     name: str
-    greater_is_better: bool
+    greater_is_better: bool = None
     current: float = None
     previous: float = None
     best: float = None
@@ -44,22 +104,47 @@ class MonitoredValue:
     change_from_best: float = None
 
     @property
-    def is_better_than_previous(self):
-        if self.greater_is_better is None or self.change_from_best is None:
-            return None
-        elif self.greater_is_better:
-            return self.change_from_previous >= 0
-        else:
-            return self.change_from_previous < 0
+    def has_increased_from_previous(self) -> IncreaseType:
+        """Type of increase compared to previous value, i.e. if the value is greater, smaller or the same."""
+        return self._get_increase_type(self.change_from_previous)
 
     @property
-    def is_best_value(self):
-        if self.greater_is_better is None or self.change_from_best is None:
-            return None
-        elif self.greater_is_better:
-            return self.change_from_best >= 0
+    def has_improved_from_previous(self) -> ImprovementType:
+        """Type of improvement compared to previous value, i.e. if the value is better, worse or the same."""
+        return self._get_improvement_type(delta=self.change_from_previous)
+
+    @property
+    def has_increased_from_best(self) -> IncreaseType:
+        """Type of increase compared to best value, i.e. if the value is greater, smaller or the same."""
+        return self._get_increase_type(self.change_from_best)
+
+    @property
+    def has_improved_from_best(self) -> ImprovementType:
+        """Type of improvement compared to best value, i.e. if the value is better, worse or the same."""
+        return self._get_improvement_type(delta=self.change_from_best)
+
+    def _get_increase_type(self, delta: float) -> IncreaseType:
+        """Type of increase, i.e. if the value is greater, smaller or the same."""
+        if self.change_from_best is None:
+            return IncreaseType.NONE
+        if delta > 0:
+            return IncreaseType.IS_GREATER
+        elif delta < 0:
+            return IncreaseType.IS_SMALLER
         else:
-            return self.change_from_best < 0
+            return IncreaseType.IS_EQUAL
+
+    def _get_improvement_type(self, delta: float) -> ImprovementType:
+        """Type of improvement, i.e. if value is better, worse or the same."""
+        if self.greater_is_better is None or self.change_from_best is None:
+            return ImprovementType.NONE
+        has_increased, has_decreased = delta > 0, delta < 0
+        if has_increased and self.greater_is_better or has_decreased and not self.greater_is_better:
+            return ImprovementType.IS_BETTER
+        elif has_increased and not self.greater_is_better or has_decreased and self.greater_is_better:
+            return ImprovementType.IS_WORSE
+        else:
+            return ImprovementType.IS_SAME
 
 
 def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: float) -> MonitoredValue:
@@ -86,13 +171,18 @@ def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: 
         change_from_previous = new_value - previous_value
         change_from_best = new_value - previous_best_value
 
-    return MonitoredValue(name=name, current=new_value, previous=previous_value, best=previous_best_value,
-                          change_from_previous=change_from_previous, change_from_best=change_from_best,
-                          greater_is_better=greater_is_better)
+    return MonitoredValue(
+        name=name,
+        current=new_value,
+        previous=previous_value,
+        best=previous_best_value,
+        change_from_previous=change_from_previous,
+        change_from_best=change_from_best,
+        greater_is_better=greater_is_better,
+    )
 
 
-def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue],
-                                 new_values_dict: Dict[str, float]) -> Dict[str, MonitoredValue]:
+def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue], new_values_dict: Dict[str, float]) -> Dict[str, MonitoredValue]:
     """Update the given ValueToMonitor object (could be a loss or a metric) with the new value
 
     :param monitored_values_dict: Dict mapping value names to their stats throughout epochs.
@@ -107,16 +197,16 @@ def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue
     return monitored_values_dict
 
 
-def display_epoch_summary(epoch: int, n_digits: int,
-                          train_monitored_values: Dict[str, MonitoredValue],
-                          valid_monitored_values: Dict[str, MonitoredValue]) -> None:
+def display_epoch_summary(
+    epoch: int, n_digits: int, train_monitored_values: Dict[str, MonitoredValue], valid_monitored_values: Dict[str, MonitoredValue]
+) -> None:
     """Display a summary of loss/metric of interest, for a given epoch.
 
-        :param epoch: the number of epoch.
-        :param n_digits: number of digits to display on screen for float values
-        :param train_monitored_values: mapping of loss/metric with their stats that will be displayed
-        :param valid_monitored_values: mapping of loss/metric with their stats that will be displayed
-        :return:
+    :param epoch: the number of epoch.
+    :param n_digits: number of digits to display on screen for float values
+    :param train_monitored_values: mapping of loss/metric with their stats that will be displayed
+    :param valid_monitored_values: mapping of loss/metric with their stats that will be displayed
+    :return:
     """
 
     def _format_to_str(val: float) -> str:
@@ -138,35 +228,26 @@ def display_epoch_summary(epoch: int, n_digits: int,
             change_from_best = _format_to_str(monitored_value.change_from_best)
 
             diff_with_prev_colored = colored(
-                text=f"{IS_GREATER_SYMBOLS[monitored_value.change_from_previous > 0]} {change_from_previous}",
-                color=IS_BETTER_COLOR[monitored_value.is_better_than_previous]
+                text=f"{monitored_value.has_increased_from_previous.to_symbol()} {change_from_previous}",
+                color=monitored_value.has_improved_from_previous.to_color(),
             )
             diff_with_best_colored = colored(
-                text=f"{IS_GREATER_SYMBOLS[monitored_value.change_from_best > 0]} {change_from_best}",
-                color=IS_BETTER_COLOR[monitored_value.is_best_value]
+                text=f"{monitored_value.has_increased_from_best.to_symbol()} {change_from_best}", color=monitored_value.has_improved_from_best.to_color()
             )
 
-            tree.create_node(
-                tag=f"Epoch N-1      = {previous:6} ({diff_with_prev_colored:8})",
-                identifier=f"0_previous_{root_id}",
-                parent=root_id
-            )
-            tree.create_node(
-                tag=f"Best until now = {best:6} ({diff_with_best_colored:8})",
-                identifier=f"1_best_{root_id}",
-                parent=root_id
-            )
+            tree.create_node(tag=f"Epoch N-1      = {previous:6} ({diff_with_prev_colored:8})", identifier=f"0_previous_{root_id}", parent=root_id)
+            tree.create_node(tag=f"Best until now = {best:6} ({diff_with_best_colored:8})", identifier=f"1_best_{root_id}", parent=root_id)
         return tree
 
     train_tree = Tree()
     train_tree.create_node("Training", "Training")
     for name, value in train_monitored_values.items():
-        train_tree.paste('Training', new_tree=_generate_tree(name, monitored_value=value))
+        train_tree.paste("Training", new_tree=_generate_tree(name, monitored_value=value))
 
     valid_tree = Tree()
     valid_tree.create_node("Validation", "Validation")
     for name, value in valid_monitored_values.items():
-        valid_tree.paste('Validation', new_tree=_generate_tree(name, monitored_value=value))
+        valid_tree.paste("Validation", new_tree=_generate_tree(name, monitored_value=value))
 
     summary_tree = Tree()
     summary_tree.create_node(f"SUMMARY OF EPOCH {epoch}", "Summary")
@@ -188,7 +269,7 @@ def try_port(port):
         is_port_available = True
 
     except Exception as ex:
-        print('Port ' + str(port) + ' is in use' + str(ex))
+        print("Port " + str(port) + " is in use" + str(ex))
 
     sock.close()
     return is_port_available
@@ -204,7 +285,7 @@ def launch_tensorboard_process(checkpoints_dir_path: str, sleep_postpone: bool =
         :return: tuple of tb process, port
     """
     logdir_path = str(Path(checkpoints_dir_path).parent.absolute())
-    tb_cmd = 'tensorboard --logdir=' + logdir_path + ' --bind_all'
+    tb_cmd = "tensorboard --logdir=" + logdir_path + " --bind_all"
     if port is not None:
         tb_ports = [port]
     else:
@@ -214,8 +295,8 @@ def launch_tensorboard_process(checkpoints_dir_path: str, sleep_postpone: bool =
         if not try_port(tb_port):
             continue
         else:
-            print('Starting Tensor-Board process on port: ' + str(tb_port))
-            tensor_board_process = Process(target=os.system, args=([tb_cmd + ' --port=' + str(tb_port)]))
+            print("Starting Tensor-Board process on port: " + str(tb_port))
+            tensor_board_process = Process(target=os.system, args=([tb_cmd + " --port=" + str(tb_port)]))
             tensor_board_process.daemon = True
             tensor_board_process.start()
 
@@ -225,34 +306,36 @@ def launch_tensorboard_process(checkpoints_dir_path: str, sleep_postpone: bool =
             return tensor_board_process, tb_port
 
     # RETURNING IRRELEVANT VALUES
-    print('Failed to initialize Tensor-Board process on port: ' + ', '.join(map(str, tb_ports)))
+    print("Failed to initialize Tensor-Board process on port: " + ", ".join(map(str, tb_ports)))
     return None, -1
 
 
 def init_summary_writer(tb_dir, checkpoint_loaded, user_prompt=False):
     """Remove previous tensorboard files from directory and launch a tensor board process"""
     # If the training is from scratch, Walk through destination folder and delete existing tensorboard logs
-    user = ''
+    user = ""
     if not checkpoint_loaded:
         for filename in os.listdir(tb_dir):
-            if 'events' in filename:
+            if "events" in filename:
                 if not user_prompt:
                     logger.debug('"{}" will not be deleted'.format(filename))
                     continue
 
                 while True:
                     # Verify with user before deleting old tensorboard files
-                    user = input('\nOLDER TENSORBOARD FILES EXISTS IN EXPERIMENT FOLDER:\n"{}"\n'
-                                 'DO YOU WANT TO DELETE THEM? [y/n]'
-                                 .format(filename)) if (user != 'n' or user != 'y') else user
-                    if user == 'y':
-                        os.remove('{}/{}'.format(tb_dir, filename))
-                        print('DELETED: {}!'.format(filename))
+                    user = (
+                        input('\nOLDER TENSORBOARD FILES EXISTS IN EXPERIMENT FOLDER:\n"{}"\n' "DO YOU WANT TO DELETE THEM? [y/n]".format(filename))
+                        if (user != "n" or user != "y")
+                        else user
+                    )
+                    if user == "y":
+                        os.remove("{}/{}".format(tb_dir, filename))
+                        print("DELETED: {}!".format(filename))
                         break
-                    elif user == 'n':
+                    elif user == "n":
                         print('"{}" will not be deleted'.format(filename))
                         break
-                    print('Unknown answer...')
+                    print("Unknown answer...")
 
     # Launch a tensorboard process
     return SummaryWriter(tb_dir)
@@ -261,19 +344,19 @@ def init_summary_writer(tb_dir, checkpoint_loaded, user_prompt=False):
 def add_log_to_file(filename, results_titles_list, results_values_list, epoch, max_epochs):
     """Add a message to the log file"""
     # -Note: opening and closing the file every time is in-efficient. It is done for experimental purposes
-    with open(filename, 'a') as f:
-        f.write('\nEpoch (%d/%d)  - ' % (epoch, max_epochs))
+    with open(filename, "a") as f:
+        f.write("\nEpoch (%d/%d)  - " % (epoch, max_epochs))
         for result_title, result_value in zip(results_titles_list, results_values_list):
             if isinstance(result_value, torch.Tensor):
                 result_value = result_value.item()
-            f.write(result_title + ': ' + str(result_value) + '\t')
+            f.write(result_title + ": " + str(result_value) + "\t")
 
 
 def write_training_results(writer, results_titles_list, results_values_list, epoch):
     """Stores the training and validation loss and accuracy for current epoch in a tensorboard file"""
     for res_key, res_val in zip(results_titles_list, results_values_list):
         # USE ONLY LOWER-CASE LETTERS AND REPLACE SPACES WITH '_' TO AVOID MANY TITLES FOR THE SAME KEY
-        corrected_res_key = res_key.lower().replace(' ', '_')
+        corrected_res_key = res_key.lower().replace(" ", "_")
         writer.add_scalar(corrected_res_key, res_val, epoch)
     writer.flush()
 
@@ -283,9 +366,9 @@ def write_hpms(writer, hpmstructs=[], special_conf={}):
     hpm_string = ""
     for hpm in hpmstructs:
         for key, val in hpm.__dict__.items():
-            hpm_string += '{}: {}  \n  '.format(key, val)
+            hpm_string += "{}: {}  \n  ".format(key, val)
     for key, val in special_conf.items():
-        hpm_string += '{}: {}  \n  '.format(key, val)
+        hpm_string += "{}: {}  \n  ".format(key, val)
     writer.add_text("Hyper_parameters", hpm_string)
     writer.flush()
 
@@ -363,14 +446,16 @@ def get_callable_param_names(obj: callable) -> Tuple[str]:
 
 def log_main_training_params(gpu_mode: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, len_train_set: int):
     """Log training parameters"""
-    msg = "TRAINING PARAMETERS:\n" \
-          f"    - Mode:                         {gpu_mode.name if gpu_mode else 'Single GPU'}\n"\
-          f"    - Number of GPUs:               {num_gpus:<10} ({torch.cuda.device_count()} available on the machine)\n" \
-          f"    - Dataset size:                 {len_train_set:<10} (len(train_set))\n" \
-          f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n" \
-          f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n" \
-          f"    - Total batch size:             {num_gpus * batch_size:<10} (num_gpus * batch_size)\n" \
-          f"    - Effective Batch size:         {num_gpus * batch_size * batch_accumulate:<10} (num_gpus * batch_size * batch_accumulate)\n" \
-          f"    - Iterations per epoch:         {int(len_train_set / (num_gpus * batch_size)):<10} (len(train_set) / total_batch_size)\n" \
-          f"    - Gradient updates per epoch:   {int(len_train_set / (num_gpus * batch_size * batch_accumulate)):<10} (len(train_set) / effective_batch_size)\n"
+    msg = (
+        "TRAINING PARAMETERS:\n"
+        f"    - Mode:                         {gpu_mode.name if gpu_mode else 'Single GPU'}\n"
+        f"    - Number of GPUs:               {num_gpus:<10} ({torch.cuda.device_count()} available on the machine)\n"
+        f"    - Dataset size:                 {len_train_set:<10} (len(train_set))\n"
+        f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n"
+        f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n"
+        f"    - Total batch size:             {num_gpus * batch_size:<10} (num_gpus * batch_size)\n"
+        f"    - Effective Batch size:         {num_gpus * batch_size * batch_accumulate:<10} (num_gpus * batch_size * batch_accumulate)\n"
+        f"    - Iterations per epoch:         {int(len_train_set / (num_gpus * batch_size)):<10} (len(train_set) / total_batch_size)\n"
+        f"    - Gradient updates per epoch:   {int(len_train_set / (num_gpus * batch_size * batch_accumulate)):<10} (len(train_set) / effective_batch_size)\n"
+    )
     logger.info(msg)

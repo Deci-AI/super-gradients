@@ -1,7 +1,7 @@
 import inspect
 import os
 from copy import deepcopy
-from typing import Union, Tuple, Mapping
+from typing import Union, Tuple, Mapping, Dict
 from pathlib import Path
 
 import numpy as np
@@ -16,6 +16,8 @@ from tqdm import tqdm
 from piptools.scripts.sync import _get_installed_distributions
 
 from torch.utils.data.distributed import DistributedSampler
+
+from super_gradients.common.factories import TypeFactory
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
@@ -34,7 +36,6 @@ from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils
-from super_gradients.training.utils.quantization_utils import QATCallback
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
@@ -54,6 +55,8 @@ from super_gradients.training.utils.distributed_training_utils import (
     require_gpu_setup,
     get_gpu_mem_utilization,
     get_world_size,
+    get_local_rank,
+    wait_for_the_master,
 )
 from super_gradients.training.utils.ema import ModelEMA
 from super_gradients.training.utils.optimizer_utils import build_optimizer
@@ -154,6 +157,8 @@ class Trainer:
         self.valid_metrics = None
         self.greater_metric_to_watch_is_better = None
         self.metric_to_watch = None
+        self.greater_train_metrics_is_better: Dict[str, bool] = {}  # For each metric, indicates if greater is better
+        self.greater_valid_metrics_is_better: Dict[str, bool] = {}
 
         # SETTING THE PROPERTIES FROM THE CONSTRUCTOR
         self.experiment_name = experiment_name
@@ -238,6 +243,7 @@ class Trainer:
     def evaluate_from_recipe(cls, cfg: DictConfig) -> None:
         """
         Evaluate according to a cfg recipe configuration.
+        Default checkpoint (if training_hyperparams.ckpt_name = None) set to ckpt_best.pth
 
         Note:   This script does NOT run training, only validation.
                 Please make sure that the config refers to a PRETRAINED MODEL either from one of your checkpoint or from pretrained weights from model zoo.
@@ -259,7 +265,7 @@ class Trainer:
         )
 
         checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-        ckpt_name = core_utils.get_param(cfg, "ckpt_name", "ckpt_latest.pth")
+        ckpt_name = core_utils.get_param(cfg.training_hyperparams, "ckpt_name", "ckpt_best.pth")
         checkpoint_path = str(checkpoints_dir / ckpt_name)
 
         # BUILD NETWORK
@@ -448,7 +454,13 @@ class Trainer:
         for loss_name in self.loss_logging_items_names:
             self.train_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
             self.valid_monitored_values[loss_name] = MonitoredValue(name=loss_name, greater_is_better=False)
-        self.valid_monitored_values[self.metric_to_watch] = MonitoredValue(name=self.metric_to_watch, greater_is_better=True)
+
+        for metric_name in get_metrics_titles(self.train_metrics):
+            self.train_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_train_metrics_is_better.get(metric_name))
+
+        for metric_name in get_metrics_titles(self.valid_metrics):
+            self.valid_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name))
+
         self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
             "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
         ]
@@ -1032,10 +1044,9 @@ class Trainer:
         # ADD CALLBACK FOR QAT
         self.enable_qat = core_utils.get_param(self.training_params, "enable_qat", False)
         if self.enable_qat:
-            self.qat_params = core_utils.get_param(self.training_params, "qat_params")
-            if self.qat_params is None:
-                raise ValueError("Must pass QAT params when enable_qat=True")
-            self.phase_callbacks.append(QATCallback(**self.qat_params))
+            raise NotImplementedError(
+                "QAT is not implemented as a plug-and-play feature yet. Please refer to examples/resnet_qat to learn how to do it manually."
+            )
 
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
@@ -1219,9 +1230,25 @@ class Trainer:
     def _set_train_metrics(self, train_metrics_list):
         self.train_metrics = MetricCollection(train_metrics_list)
 
+        for metric_name, metric in self.train_metrics.items():
+            if hasattr(metric, "greater_component_is_better"):
+                self.greater_train_metrics_is_better.update(metric.greater_component_is_better)
+            elif hasattr(metric, "greater_is_better"):
+                self.greater_train_metrics_is_better[metric_name] = metric.greater_is_better
+            else:
+                self.greater_train_metrics_is_better[metric_name] = None
+
     @resolve_param("valid_metrics_list", ListFactory(MetricsFactory()))
     def _set_valid_metrics(self, valid_metrics_list):
         self.valid_metrics = MetricCollection(valid_metrics_list)
+
+        for metric_name, metric in self.valid_metrics.items():
+            if hasattr(metric, "greater_component_is_better"):
+                self.greater_valid_metrics_is_better.update(metric.greater_component_is_better)
+            elif hasattr(metric, "greater_is_better"):
+                self.greater_valid_metrics_is_better[metric_name] = metric.greater_is_better
+            else:
+                self.greater_valid_metrics_is_better[metric_name] = None
 
     @resolve_param("test_metrics_list", ListFactory(MetricsFactory()))
     def _set_test_metrics(self, test_metrics_list):
@@ -1260,7 +1287,11 @@ class Trainer:
         keep_state_dict = deepcopy(self.net.state_dict())
         # SETTING STATE DICT TO THE AVERAGE MODEL FOR EVALUATION
         average_model_ckpt_path = os.path.join(self.checkpoints_dir_path, self.average_model_checkpoint_filename)
-        average_model_sd = read_ckpt_state_dict(average_model_ckpt_path)["net"]
+        local_rank = get_local_rank()
+
+        # WAIT FOR MASTER RANK TO SAVE THE CKPT BEFORE WE TRY TO READ IT.
+        with wait_for_the_master(local_rank):
+            average_model_sd = read_ckpt_state_dict(average_model_ckpt_path)["net"]
 
         self.net.load_state_dict(average_model_sd)
         # testing the averaged model and save instead of best model if needed
@@ -1334,15 +1365,13 @@ class Trainer:
     def set_module(self, module):
         self.net = module
 
+    @resolve_param("requested_multi_gpu", TypeFactory(MultiGPUMode.dict()))
     def _initialize_device(self, requested_device: str, requested_multi_gpu: Union[MultiGPUMode, str]):
         """
         _initialize_device - Initializes the device for the model - Default is CUDA
             :param requested_device:        Device to initialize ('cuda' / 'cpu')
             :param requested_multi_gpu:     Get Multiple GPU
         """
-
-        if isinstance(requested_multi_gpu, str):
-            requested_multi_gpu = MultiGPUMode(requested_multi_gpu)
 
         # SELECT CUDA DEVICE
         if requested_device == "cuda":
@@ -1408,7 +1437,8 @@ class Trainer:
 
         logger.info("Distributed training starting...")
         if not torch.distributed.is_initialized():
-            torch.distributed.init_process_group(backend="nccl", init_method="env://")
+            backend = "gloo" if os.name == "nt" else "nccl"
+            torch.distributed.init_process_group(backend=backend, init_method="env://")
 
         torch.cuda.set_device(local_rank)
         self.device = "cuda:%d" % local_rank

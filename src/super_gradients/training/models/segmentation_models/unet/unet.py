@@ -1,6 +1,5 @@
 import torch.nn as nn
 from typing import Optional, Union, List
-import math
 
 from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training import models
@@ -85,8 +84,7 @@ class UNetBase(SegmentationModule):
         # Init Encoder
         self.encoder = Encoder(backbone, context_module)
         # Init Decoder
-        min_decoder_channels = math.ceil(self.num_classes / 8) * 8
-        self.decoder = Decoder(skip_channels_list=self.encoder.get_output_number_of_channels(), min_decoder_channels=min_decoder_channels, **decoder_params)
+        self.decoder = Decoder(skip_channels_list=self.encoder.get_output_number_of_channels(), **decoder_params)
         # Init Segmentation Head
         self.seg_head = nn.Sequential(
             SegmentationHead(
