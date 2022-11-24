@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union, Dict, Sequence
+from typing import Tuple, Union, Dict, Sequence, Callable
 import random
 
 import inspect
@@ -411,14 +411,18 @@ def log_uncaught_exceptions(logger):
     @return: None
     """
 
-    def handle_exception(exc_type, exc_value, exc_traceback):
-        if issubclass(exc_type, KeyboardInterrupt):
-            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+    def log_exceptook(excepthook: Callable) -> Callable:
+        """Wrapping function that logs exceptions that are not KeyboardInterrupt"""
+
+        def handle_exception(exc_type, exc_value, exc_traceback):
+            if not issubclass(exc_type, KeyboardInterrupt):
+                logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+            excepthook(exc_type, exc_value, exc_traceback)
             return
 
-        logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+        return handle_exception
 
-    sys.excepthook = handle_exception
+    sys.excepthook = log_exceptook(sys.excepthook)
 
 
 def parse_args(cfg, arg_names: Union[Sequence[str], callable]) -> dict:
