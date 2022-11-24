@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from multiprocessing import Process
 from pathlib import Path
-from typing import Tuple, Union, Dict, Sequence
+from typing import Tuple, Union, Dict, Sequence, Callable
 import random
 
 import inspect
@@ -21,10 +21,58 @@ from super_gradients.training.exceptions.dataset_exceptions import UnsupportedBa
 from super_gradients.common.data_types.enum import MultiGPUMode
 
 
-# TODO: These utils should move to sg_trainer package as internal (private) helper functions
+from enum import Enum
 
-IS_BETTER_COLOR = {True: "green", False: "red"}
-IS_GREATER_SYMBOLS = {True: "↗", False: "↘"}
+
+class IncreaseType(Enum):
+    """Type of increase compared to previous value, i.e. if the value is greater, smaller or the same.
+
+    Difference with "improvement":
+        If a loss goes from 1 to 0.5, the value is smaller (decreased), but the result is better (improvement).
+        For accuracy from 1 to 0.5, the value is smaller, but this time the result decreased, because greater is better.
+    """
+
+    NONE = "none"
+    IS_GREATER = "greater"
+    IS_SMALLER = "smaller"
+    IS_EQUAL = "equal"
+
+    def to_symbol(self) -> str:
+        """Get the symbol representing the current increase type"""
+        if self == IncreaseType.NONE:
+            return ""
+        elif self == IncreaseType.IS_GREATER:
+            return "↗"
+        elif self == IncreaseType.IS_SMALLER:
+            return "↘"
+        else:
+            return "="
+
+
+class ImprovementType(Enum):
+    """Type of improvement compared to previous value, i.e. if the value is better, worse or the same.
+
+    Difference with "increase":
+        If a loss goes from 1 to 0.5, the value is smaller (decreased), but the result is better (improvement).
+        For accuracy from 1 to 0.5, the value is smaller, but this time the result decreased, because greater is better.
+    """
+
+    IS_BETTER = "better"
+    IS_WORSE = "worse"
+    IS_SAME = "same"
+    NONE = "none"
+
+    def to_color(self) -> Union[str, None]:
+        """Get the color representing the current improvement type"""
+        if self == ImprovementType.IS_SAME:
+            return "white"
+        elif self == ImprovementType.IS_BETTER:
+            return "green"
+        elif self == ImprovementType.IS_WORSE:
+            return "red"
+        else:
+            return None
+
 
 logger = get_logger(__name__)
 
@@ -34,10 +82,21 @@ class MonitoredValue:
     """Store a value and some indicators relative to its past iterations.
 
     The value can be a metric/loss, and the iteration can be epochs/batch.
+
+    :param name:                    Name of the metric
+    :param greater_is_better:       True, a greater value is considered better.
+                                      ex: (greater_is_better=True) For Accuracy 1 is greater and therefore better than 0.4
+                                      ex: (greater_is_better=False) For Loss 1 is greater and therefore worse than 0.4
+                                    None when unknown
+    :param current:                 Current value of the metric
+    :param previous:                Value of the metric in previous iteration
+    :param best:                    Value of the metric in best iteration (best according to greater_is_better)
+    :param change_from_previous:    Change compared to previous iteration value
+    :param change_from_best:        Change compared to best iteration value
     """
 
     name: str
-    greater_is_better: bool
+    greater_is_better: bool = None
     current: float = None
     previous: float = None
     best: float = None
@@ -45,22 +104,47 @@ class MonitoredValue:
     change_from_best: float = None
 
     @property
-    def is_better_than_previous(self):
-        if self.greater_is_better is None or self.change_from_best is None:
-            return None
-        elif self.greater_is_better:
-            return self.change_from_previous >= 0
-        else:
-            return self.change_from_previous < 0
+    def has_increased_from_previous(self) -> IncreaseType:
+        """Type of increase compared to previous value, i.e. if the value is greater, smaller or the same."""
+        return self._get_increase_type(self.change_from_previous)
 
     @property
-    def is_best_value(self):
-        if self.greater_is_better is None or self.change_from_best is None:
-            return None
-        elif self.greater_is_better:
-            return self.change_from_best >= 0
+    def has_improved_from_previous(self) -> ImprovementType:
+        """Type of improvement compared to previous value, i.e. if the value is better, worse or the same."""
+        return self._get_improvement_type(delta=self.change_from_previous)
+
+    @property
+    def has_increased_from_best(self) -> IncreaseType:
+        """Type of increase compared to best value, i.e. if the value is greater, smaller or the same."""
+        return self._get_increase_type(self.change_from_best)
+
+    @property
+    def has_improved_from_best(self) -> ImprovementType:
+        """Type of improvement compared to best value, i.e. if the value is better, worse or the same."""
+        return self._get_improvement_type(delta=self.change_from_best)
+
+    def _get_increase_type(self, delta: float) -> IncreaseType:
+        """Type of increase, i.e. if the value is greater, smaller or the same."""
+        if self.change_from_best is None:
+            return IncreaseType.NONE
+        if delta > 0:
+            return IncreaseType.IS_GREATER
+        elif delta < 0:
+            return IncreaseType.IS_SMALLER
         else:
-            return self.change_from_best < 0
+            return IncreaseType.IS_EQUAL
+
+    def _get_improvement_type(self, delta: float) -> ImprovementType:
+        """Type of improvement, i.e. if value is better, worse or the same."""
+        if self.greater_is_better is None or self.change_from_best is None:
+            return ImprovementType.NONE
+        has_increased, has_decreased = delta > 0, delta < 0
+        if has_increased and self.greater_is_better or has_decreased and not self.greater_is_better:
+            return ImprovementType.IS_BETTER
+        elif has_increased and not self.greater_is_better or has_decreased and self.greater_is_better:
+            return ImprovementType.IS_WORSE
+        else:
+            return ImprovementType.IS_SAME
 
 
 def update_monitored_value(previous_monitored_value: MonitoredValue, new_value: float) -> MonitoredValue:
@@ -144,11 +228,11 @@ def display_epoch_summary(
             change_from_best = _format_to_str(monitored_value.change_from_best)
 
             diff_with_prev_colored = colored(
-                text=f"{IS_GREATER_SYMBOLS[monitored_value.change_from_previous > 0]} {change_from_previous}",
-                color=IS_BETTER_COLOR[monitored_value.is_better_than_previous],
+                text=f"{monitored_value.has_increased_from_previous.to_symbol()} {change_from_previous}",
+                color=monitored_value.has_improved_from_previous.to_color(),
             )
             diff_with_best_colored = colored(
-                text=f"{IS_GREATER_SYMBOLS[monitored_value.change_from_best > 0]} {change_from_best}", color=IS_BETTER_COLOR[monitored_value.is_best_value]
+                text=f"{monitored_value.has_increased_from_best.to_symbol()} {change_from_best}", color=monitored_value.has_improved_from_best.to_color()
             )
 
             tree.create_node(tag=f"Epoch N-1      = {previous:6} ({diff_with_prev_colored:8})", identifier=f"0_previous_{root_id}", parent=root_id)
@@ -327,14 +411,18 @@ def log_uncaught_exceptions(logger):
     @return: None
     """
 
-    def handle_exception(exc_type, exc_value, exc_traceback):
-        if issubclass(exc_type, KeyboardInterrupt):
-            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+    def log_exceptook(excepthook: Callable) -> Callable:
+        """Wrapping function that logs exceptions that are not KeyboardInterrupt"""
+
+        def handle_exception(exc_type, exc_value, exc_traceback):
+            if not issubclass(exc_type, KeyboardInterrupt):
+                logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+            excepthook(exc_type, exc_value, exc_traceback)
             return
 
-        logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+        return handle_exception
 
-    sys.excepthook = handle_exception
+    sys.excepthook = log_exceptook(sys.excepthook)
 
 
 def parse_args(cfg, arg_names: Union[Sequence[str], callable]) -> dict:
