@@ -15,6 +15,6 @@ def get_io_read_mb() -> float:
     return bytes_to_megabytes(psutil.disk_io_counters().read_bytes - initial_net_io_counters.read_bytes)
 
 
-def get_io_write_mbs() -> float:
+def get_io_write_mb() -> float:
     """Number of MegaBytes written since import"""
     return bytes_to_megabytes(psutil.disk_io_counters().write_bytes - initial_net_io_counters.write_bytes)

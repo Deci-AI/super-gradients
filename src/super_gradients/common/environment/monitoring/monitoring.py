@@ -9,6 +9,13 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 class SystemMonitor:
+    """Daemon that monitor the system statistics, such as CPU, GPU, Disk, ... usage
+
+    :param tensorboard_writer:  Tensorboard object that will be used to save the statistics
+    :param extra_gpu_stats:     Set to True to get extra gpu statistics, such as gpu temperature, power usage, ...
+                                Default set to False, because this reduces the tensorboard readability.
+    """
+
     def __init__(self, tensorboard_writer: SummaryWriter, extra_gpu_stats: bool = False):
         self.tensorboard_writer = tensorboard_writer
         self.write_count = 0
@@ -19,8 +26,8 @@ class SystemMonitor:
 
         self.stat_aggregators = [
             StatAggregator(name="System/disk.usage_percent", sampling_fn=disk.get_disk_usage_percent, aggregate_fn=average),
-            StatAggregator(name="System/disk.io_read_mbs", sampling_fn=disk.get_io_read_mbs, aggregate_fn=average),
-            StatAggregator(name="System/disk.io_write_mbs", sampling_fn=disk.get_io_write_mbs, aggregate_fn=average),
+            StatAggregator(name="System/disk.io_read_mb", sampling_fn=disk.get_io_read_mb, aggregate_fn=average),
+            StatAggregator(name="System/disk.io_write_mb", sampling_fn=disk.get_io_write_mb, aggregate_fn=average),
             StatAggregator(name="System/memory.usage_percent", sampling_fn=virtual_memory.virtual_memory_used_percent, aggregate_fn=average),
             StatAggregator(name="System/network.network_sent_mb", sampling_fn=network.get_network_sent_mb, aggregate_fn=average),
             StatAggregator(name="System/network.network_recv_mb", sampling_fn=network.get_network_recv_mb, aggregate_fn=average),
@@ -47,7 +54,7 @@ class SystemMonitor:
         thread.start()
 
     def _run(self):
-        """Run in the background"""
+        """Sample, aggregate and write the statistics regularly."""
         while True:
             for _ in range(self.n_samples_per_aggregate):
                 self._sample()
