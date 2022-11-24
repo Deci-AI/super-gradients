@@ -127,7 +127,7 @@ TRANSFORMS = {
 logger = get_logger(__name__)
 
 try:
-    from albumentations import BasicTransform
+    from albumentations import BasicTransform, BaseCompose
 
     imported_albumentations_failure = None
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
@@ -141,7 +141,7 @@ if imported_albumentations_failure is None:
     ALBUMENTATIONS_COMP_TRANSFORMS = {
         name: cls
         for name, cls in inspect.getmembers(importlib.import_module("albumentations.core.composition"), inspect.isclass)
-        if issubclass(cls, BasicTransform)
+        if issubclass(cls, BaseCompose)
     }
 else:
     ALBUMENTATIONS_TRANSFORMS = None
