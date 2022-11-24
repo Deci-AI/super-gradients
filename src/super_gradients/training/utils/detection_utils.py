@@ -512,7 +512,7 @@ class DetectionVisualization:
             pred_labels = preds[:, 5]
 
             true_labels = targets_cur[:, 1]
-            true_bboxes = cxcywh_to_xyxy(targets_cur[:, 2:6], image_shape=None)
+            true_bboxes = cxcywh_to_xyxy(targets_cur[:, 2:6])
 
             image_name = "_".join([str(batch_name), str(i)])
             res_image = DetectionVisualization._visualize_image(

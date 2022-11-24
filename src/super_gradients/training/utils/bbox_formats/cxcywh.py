@@ -1,5 +1,5 @@
 import warnings
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 import torch
@@ -33,7 +33,7 @@ def xyxy_to_cxcywh(bboxes, image_shape: Tuple[int, int]):
             raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
 
 
-def cxcywh_to_xyxy(bboxes, image_shape: Tuple[int, int]):
+def cxcywh_to_xyxy(bboxes, image_shape: Union[Tuple[int, int], None] = None):
     """
     Transforms bboxes from CX-CY-W-H format to XYXY format
     :param bboxes: BBoxes of shape (..., 4) in CX-CY-W-H format
