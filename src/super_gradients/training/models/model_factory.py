@@ -100,7 +100,7 @@ def instantiate_model(
             logger.warning(
                 "Passing num_classes through arch_params is deprecated and will be removed in the next version. " "Pass num_classes explicitly to models.get"
             )
-            num_classes = arch_params.num_classes
+            num_classes = num_classes or arch_params.num_classes
 
         if num_classes is not None:
             arch_params.override(num_classes=num_classes)
