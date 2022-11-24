@@ -129,3 +129,17 @@ class DeciClient:
                 f"These files will be downloaded to the same location each time the model is fetched from the deci-client.\n"
                 f"you can override this by passing models.get(... download_required_code=False) and importing the files yourself"
             )
+
+    def add_model(self, model, model_meta_data, optimization_request_form):
+        """
+        This function will upload the trained model to the Deci Lab
+
+        Args:
+            model: The resulting model from the training process
+        """
+        self.lab_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+        self.lab_client.add_model(
+            add_model_request=model_meta_data,
+            optimization_request=optimization_request_form,
+            local_loaded_model=model,
+        )
