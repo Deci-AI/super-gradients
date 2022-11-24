@@ -3,23 +3,14 @@ import unittest
 import numpy as np
 
 from super_gradients.training.datasets import Cifar10, Cifar100, ImageNetDataset
-
-try:
-    from albumentations import Compose, HorizontalFlip, InvertImg
-
-    _imported_albumentations_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    _imported_albumentations_failure = import_err
+from albumentations import Compose, HorizontalFlip, InvertImg
 
 
 class AlbumentationsIntegrationTest(unittest.TestCase):
     def _apply_aug(self, img_no_aug):
-        if _imported_albumentations_failure:
-            raise _imported_albumentations_failure
-        else:
-            pipe = Compose(transforms=[HorizontalFlip(p=1.0), InvertImg(p=1.0)])
-            img_no_aug_transformed = pipe(image=np.array(img_no_aug))["image"]
-            return img_no_aug_transformed
+        pipe = Compose(transforms=[HorizontalFlip(p=1.0), InvertImg(p=1.0)])
+        img_no_aug_transformed = pipe(image=np.array(img_no_aug))["image"]
+        return img_no_aug_transformed
 
     def test_cifar10_albumentations_integration(self):
         ds_no_aug = Cifar10(root="./data/cifar10", train=True, download=True)
