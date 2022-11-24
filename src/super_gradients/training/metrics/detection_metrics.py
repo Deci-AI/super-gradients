@@ -57,14 +57,15 @@ class DetectionMetrics(Metric):
             self.iou_thresholds = torch.tensor([iou_thres])
 
         self.map_str = "mAP" + self._get_range_str()
-        self.component_names = [
-            f"Precision{self._get_range_str()}",
-            f"Recall{self._get_range_str()}",
-            f"mAP{self._get_range_str()}",
-            f"F1{self._get_range_str()}",
-        ]
-
+        self.greater_component_is_better = {
+            f"Precision{self._get_range_str()}": True,
+            f"Recall{self._get_range_str()}": True,
+            f"mAP{self._get_range_str()}": True,
+            f"F1{self._get_range_str()}": True,
+        }
+        self.component_names = list(self.greater_component_is_better.keys())
         self.components = len(self.component_names)
+
         self.post_prediction_callback = post_prediction_callback
         self.is_distributed = super_gradients.is_distributed()
         self.denormalize_targets = not normalize_targets
