@@ -23,24 +23,22 @@ from super_gradients.training.utils.sg_trainer_utils import get_callable_param_n
 logger = get_logger(__name__)
 
 
-def get_architecture(
-    model_name: str, arch_params: HpmStruct, pretrained_weights: str, download_required_code: bool = True
-) -> Tuple[Type[torch.nn.Module], HpmStruct, str, bool]:
+def get_architecture(model_name: str, arch_params: HpmStruct, download_required_code: bool = True) -> Tuple[Type[torch.nn.Module], HpmStruct, str, bool]:
     """
     Get the corresponding architecture class.
 
     :param model_name:          Define the model's architecture from models/ALL_ARCHITECTURES
     :param arch_params:         Architecture hyper parameters. e.g.: block, num_blocks, etc.
-    :param pretrained_weights:  Describe the dataset of the pretrained weights (for example "imagenent")
     :param download_required_code: if model is not found in SG and is downloaded from a remote client, overriding this parameter with False
                                         will prevent additional code from being downloaded. This affects only models from remote client.
 
     :return:
         - architecture_cls:     Class of the model
         - arch_params:          Might be updated if loading from remote deci lab
-        - pretrained_weights:   Might be updated if loading from remote deci lab
+        - pretrained_weights_path:   path to the pretrained weights from deci lab (None for local models).
         - is_remote:            True if loading from remote deci lab
     """
+    pretrained_weights_path = None
     is_remote = False
     if not isinstance(model_name, str):
         raise ValueError("Parameter model_name is expected to be a string.")
@@ -58,7 +56,7 @@ def get_architecture(
                     f"all_architectures.py for supported model names."
                 )
             _arch_params = hydra.utils.instantiate(_arch_params)
-            pretrained_weights = deci_client.get_model_weights(model_name)
+            pretrained_weights_path = deci_client.get_model_weights(model_name)
             model_name = _arch_params["model_name"]
             del _arch_params["model_name"]
             _arch_params = HpmStruct(**_arch_params)
@@ -69,7 +67,7 @@ def get_architecture(
                 f'The required model, "{model_name}", was not found in SuperGradients. See docs or all_architectures.py for supported model names.'
             )
 
-    return ARCHITECTURES[model_name], arch_params, pretrained_weights, is_remote
+    return ARCHITECTURES[model_name], arch_params, pretrained_weights_path, is_remote
 
 
 def instantiate_model(
@@ -93,7 +91,7 @@ def instantiate_model(
         arch_params = {}
     arch_params = core_utils.HpmStruct(**arch_params)
 
-    architecture_cls, arch_params, pretrained_weights, is_remote = get_architecture(model_name, arch_params, pretrained_weights, download_required_code)
+    architecture_cls, arch_params, pretrained_weights_path, is_remote = get_architecture(model_name, arch_params, download_required_code)
 
     if not issubclass(architecture_cls, SgModule):
         net = architecture_cls(**arch_params.to_dict(include_schema=False))
@@ -102,7 +100,7 @@ def instantiate_model(
             logger.warning(
                 "Passing num_classes through arch_params is deprecated and will be removed in the next version. " "Pass num_classes explicitly to models.get"
             )
-            num_classes = arch_params.num_classes
+            num_classes = num_classes or arch_params.num_classes
 
         if num_classes is not None:
             arch_params.override(num_classes=num_classes)
@@ -110,7 +108,7 @@ def instantiate_model(
         if pretrained_weights is None and num_classes is None:
             raise ValueError("num_classes or pretrained_weights must be passed to determine net's structure.")
 
-        if pretrained_weights and not is_remote:
+        if pretrained_weights:
             num_classes_new_head = core_utils.get_param(arch_params, "num_classes", PRETRAINED_NUM_CLASSES[pretrained_weights])
             arch_params.num_classes = PRETRAINED_NUM_CLASSES[pretrained_weights]
 
@@ -122,12 +120,13 @@ def instantiate_model(
 
         if pretrained_weights:
             if is_remote:
-                load_pretrained_weights_local(net, model_name, pretrained_weights)
+                load_pretrained_weights_local(net, model_name, pretrained_weights_path)
             else:
                 load_pretrained_weights(net, model_name, pretrained_weights)
-                if num_classes_new_head != arch_params.num_classes:
-                    net.replace_head(new_num_classes=num_classes_new_head)
-                    arch_params.num_classes = num_classes_new_head
+
+            if num_classes_new_head != arch_params.num_classes:
+                net.replace_head(new_num_classes=num_classes_new_head)
+                arch_params.num_classes = num_classes_new_head
     return net
 
 

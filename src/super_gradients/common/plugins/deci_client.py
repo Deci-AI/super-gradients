@@ -46,7 +46,7 @@ class DeciClient:
         try:
             self.super_gradients_version = pkg_resources.get_distribution("super_gradients").version
         except pkg_resources.DistributionNotFound:
-            self.super_gradients_version = "3.0.0"
+            self.super_gradients_version = "3.0.2"
 
     def _get_file(self, model_name: str, file_name: str) -> str:
         try:
