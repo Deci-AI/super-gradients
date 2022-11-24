@@ -243,7 +243,6 @@ class Trainer:
     def evaluate_from_recipe(cls, cfg: DictConfig) -> None:
         """
         Evaluate according to a cfg recipe configuration.
-        Default checkpoint (if training_hyperparams.ckpt_name = None) set to ckpt_best.pth
 
         Note:   This script does NOT run training, only validation.
                 Please make sure that the config refers to a PRETRAINED MODEL either from one of your checkpoint or from pretrained weights from model zoo.
@@ -265,8 +264,8 @@ class Trainer:
         )
 
         checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-        ckpt_name = core_utils.get_param(cfg.training_hyperparams, "ckpt_name", "ckpt_best.pth")
-        checkpoint_path = str(checkpoints_dir / ckpt_name)
+        checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
+        logger.info(f"Evaluating checkpoint: {checkpoint_path}")
 
         # BUILD NETWORK
         model = models.get(
