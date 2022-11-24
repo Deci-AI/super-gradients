@@ -9,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 class SystemMonitor:
-    """Daemon that monitor the system statistics, such as CPU, GPU, Disk, ... usage
+    """Monitor and write to tensorboard the system statistics, such as CPU usage, GPU, ...
 
     :param tensorboard_writer:  Tensorboard object that will be used to save the statistics
     :param extra_gpu_stats:     Set to True to get extra gpu statistics, such as gpu temperature, power usage, ...
