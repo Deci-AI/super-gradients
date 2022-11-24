@@ -1052,9 +1052,6 @@ class Trainer:
 
         if not self.ddp_silent_mode:
             self._initialize_sg_logger_objects()
-            from super_gradients.common.environment.monitoring import MetricsHandler
-
-            _ = MetricsHandler(self.sg_logger)
 
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)

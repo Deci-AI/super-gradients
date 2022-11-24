@@ -1,19 +1,23 @@
 import time
 import threading
-from typing import List, Union
 
-from super_gradients.common.sg_loggers import BaseSGLogger
 from super_gradients.common.environment.env_helpers import multi_process_safe
-from super_gradients.common.environment.monitoring.data_models import StatAggregator, GPUStatAggregator, Scalar, Scalars
-from super_gradients.common.environment.monitoring.utils import average
 from super_gradients.common.environment.monitoring import disk, virtual_memory, network, cpu, gpu
+from super_gradients.common.environment.monitoring.utils import average
+from super_gradients.common.environment.monitoring.data_models import StatAggregator, GPUStatAggregator
+from torch.utils.tensorboard import SummaryWriter
 
 
 class SystemMonitor:
-    def __init__(self, sg_logger: BaseSGLogger):
-        self.sg_logger = sg_logger
+    def __init__(self, tensorboard_writer: SummaryWriter):
+        self.tensorboard_writer = tensorboard_writer
+        self.write_count = 0
 
-        self.stats_aggregators: List[StatAggregator] = [
+        self.aggregate_frequency = 10  # in sec
+        self.n_samples_per_aggregate = 100
+        self.sample_interval = self.aggregate_frequency / self.n_samples_per_aggregate
+
+        self.stats_aggregators = [
             StatAggregator(name="System/disk.usage_percent", sampling_fn=disk.get_disk_usage_percent, aggregate_fn=average),
             StatAggregator(name="System/disk.io_read_mbs", sampling_fn=disk.get_io_read_mbs, aggregate_fn=average),
             StatAggregator(name="System/disk.io_write_mbs", sampling_fn=disk.get_io_write_mbs, aggregate_fn=average),
@@ -31,12 +35,6 @@ class SystemMonitor:
             *GPUStatAggregator(name="System/gpu.power_usage_percent", device_sampling_fn=gpu.get_device_power_usage_percent, device_aggregate_fn=average),
         ]
 
-        self.count = 0
-
-        self.aggregate_frequency = 10  # in sec
-        self.n_samples_per_aggregate = 100
-        self.sample_interval = self.aggregate_frequency / self.n_samples_per_aggregate
-
         thread = threading.Thread(target=self._run, daemon=True, name="SystemMonitor")
         thread.start()
 
@@ -50,24 +48,18 @@ class SystemMonitor:
 
     def _sample(self):
         """Sample the stats_aggregators, i.e. get the current value of each of them."""
-        for stat in self.stats_aggregators:
-            stat.sample()
+        for stat_aggregator in self.stats_aggregators:
+            stat_aggregator.sample()
 
     def _aggregate_and_write(self):
         """Aggregate and write the results."""
-        self.count += 1
-        for stat in self.stats_aggregators:
-            self._write_scalar(scalar=stat.aggregate_to_scalar())
-
-    def _write_scalar(self, scalar: Union[Scalar, Scalars]):
-        """Write a scalar with sg_logger (can be written on Tensorboard, WandB, ...)"""
-        if isinstance(scalar, Scalar):
-            self.sg_logger.add_scalar(tag=scalar.name, scalar_value=scalar.value, global_step=self.count)
-        else:
-            self.sg_logger.add_scalars_to_same_plot(tag=scalar.name, tag_scalar_dict=scalar.values, global_step=self.count)
+        for stat_aggregator in self.stats_aggregators:
+            stat = stat_aggregator.aggregate()
+            self.tensorboard_writer.add_scalar(tag=stat.name, scalar_value=stat.value, global_step=self.write_count)
+        self.write_count += 1
 
     @classmethod
     @multi_process_safe
-    def start(cls, sg_logger: BaseSGLogger):
+    def start(cls, tensorboard_writer: SummaryWriter):
         """Instantiate a SystemMonitor in a multiprocess safe way."""
-        return cls.__init__(sg_logger=sg_logger)
+        return cls(tensorboard_writer=tensorboard_writer)
