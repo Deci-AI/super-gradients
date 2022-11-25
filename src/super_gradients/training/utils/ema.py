@@ -1,6 +1,7 @@
 import math
 import warnings
 from copy import deepcopy
+from functools import partial
 from typing import Union
 
 import torch
@@ -14,14 +15,28 @@ from super_gradients.training.models.kd_modules.kd_module import KDModule
 def copy_attr(a: nn.Module, b: nn.Module, include: Union[list, tuple] = (), exclude: Union[list, tuple] = ()):
     # Copy attributes from b to a, options to only include [...] and to exclude [...]
     for k, v in b.__dict__.items():
-        if (len(include) and k not in include) or k.startswith('_') or k in exclude:
+        if (len(include) and k not in include) or k.startswith("_") or k in exclude:
             continue
         else:
             setattr(a, k, v)
 
 
+def constant_decay(current_step, total_number_of_steps, decay):
+    return decay
+
+
+def exp_activated_decay(current_step, total_number_of_steps, decay, beta):
+    training_percent = current_step / float(total_number_of_steps)
+    return decay * (1 - math.exp(-training_percent * beta))
+
+
+def bias_corrected_decay(current_step: int, total_number_of_steps: int, decay: float, initial_step=0):
+    value = decay * (1 - decay ** (current_step + initial_step)) / (1 - decay ** (current_step + initial_step + 1))
+    return value
+
+
 class ModelEMA:
-    """ Model Exponential Moving Average from https://github.com/rwightman/pytorch-image-models
+    """Model Exponential Moving Average from https://github.com/rwightman/pytorch-image-models
     Keep a moving average of everything in the model state_dict (parameters and buffers).
     This is intended to allow functionality like
     https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage
@@ -30,7 +45,7 @@ class ModelEMA:
     GPU assignment and distributed training wrappers.
     """
 
-    def __init__(self, model, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True):
+    def __init__(self, model, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True, use_bias_corrected: bool = False):
         """
         Init the EMA
         :param model: Union[SgModule, nn.Module], the training model to construct the EMA model by
@@ -44,10 +59,15 @@ class ModelEMA:
         # Create EMA
         self.ema = deepcopy(model)
         self.ema.eval()
-        if exp_activation:
-            self.decay_function = lambda x: decay * (1 - math.exp(-x * beta))  # decay exponential ramp (to help early epochs)
+        if use_bias_corrected and exp_activation:
+            raise ValueError("Cannot use both exp-activation and bias-corrected decay at the same time")
+
+        if use_bias_corrected:
+            self.decay_function = partial(bias_corrected_decay, decay=decay)
+        elif exp_activation:
+            self.decay_function = partial(exp_activated_decay, decay=decay, beta=beta)  # decay exponential ramp (to help early epochs)
         else:
-            self.decay_function = lambda x: decay  # always return the same decay factor
+            self.decay_function = partial(constant_decay, decay=decay)  # always return the same decay factor
 
         """"
         we hold a list of model attributes (not wights and biases) which we would like to include in each
@@ -59,26 +79,24 @@ class ModelEMA:
             self.include_attributes = model.module.get_include_attributes()
             self.exclude_attributes = model.module.get_exclude_attributes()
         else:
-            warnings.warn("Warning: EMA should be used with SgModule instance. All attributes of the model will be "
-                          "included in EMA")
+            warnings.warn("Warning: EMA should be used with SgModule instance. All attributes of the model will be " "included in EMA")
             self.include_attributes = []
             self.exclude_attributes = []
         for p in self.ema.module.parameters():
             p.requires_grad_(False)
 
-    def update(self, model, training_percent: float):
+    def update(self, model, current_step: int, total_number_of_steps: int):
         """
         Update the state of the EMA model.
         :param model: current training model
-        :param training_percent: the percentage of the training process [0,1]. i.e 0.4 means 40% of the training have passed
         """
         # Update EMA parameters
         with torch.no_grad():
-            decay = self.decay_function(training_percent)
+            decay = self.decay_function(current_step, total_number_of_steps)
 
             for ema_v, model_v in zip(self.ema.module.state_dict().values(), model.state_dict().values()):
                 if ema_v.dtype.is_floating_point:
-                    ema_v.copy_(ema_v * decay + (1. - decay) * model_v.detach())
+                    ema_v.copy_(ema_v * decay + (1.0 - decay) * model_v.detach())
 
     def update_attr(self, model):
         """
@@ -93,7 +111,7 @@ class ModelEMA:
 
 
 class KDModelEMA(ModelEMA):
-    """ Model Exponential Moving Average from https://github.com/rwightman/pytorch-image-models
+    """Model Exponential Moving Average from https://github.com/rwightman/pytorch-image-models
     Keep a moving average of everything in the model state_dict (parameters and buffers).
     This is intended to allow functionality like
     https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage
@@ -114,14 +132,15 @@ class KDModelEMA(ModelEMA):
                      its final value. beta=15 is ~40% of the training process.
         """
         # Only work on the student (we don't want to update and to have a duplicate of the teacher)
-        super().__init__(model=core_utils.WrappedModel(kd_model.module.student),
-                         decay=decay,
-                         beta=beta,
-                         exp_activation=exp_activation)
+        super().__init__(model=core_utils.WrappedModel(kd_model.module.student), decay=decay, beta=beta, exp_activation=exp_activation)
 
         # Overwrite current ema attribute with combination of the student model EMA (current self.ema)
         # with already the instantiated teacher, to have the final KD EMA
-        self.ema = core_utils.WrappedModel(KDModule(arch_params=kd_model.module.arch_params,
-                                                    student=self.ema.module,
-                                                    teacher=kd_model.module.teacher,
-                                                    run_teacher_on_eval=kd_model.module.run_teacher_on_eval))
+        self.ema = core_utils.WrappedModel(
+            KDModule(
+                arch_params=kd_model.module.arch_params,
+                student=self.ema.module,
+                teacher=kd_model.module.teacher,
+                run_teacher_on_eval=kd_model.module.run_teacher_on_eval,
+            )
+        )
