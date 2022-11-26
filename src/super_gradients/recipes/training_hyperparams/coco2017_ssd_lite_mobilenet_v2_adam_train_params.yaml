@@ -1,0 +1,30 @@
+ema: True
+max_epochs: 400
+lr_mode: cosine
+cosine_final_lr_ratio: 0.05
+batch_accumulate: 1
+initial_lr: 0.001
+loss: ssd_loss
+
+criterion_params:
+  alpha: 1.0
+  dboxes: # OVERRIDEN IN MAIN RECIPE YAML FILE ONCE DBOXES ARE CHOSEN.
+
+optimizer: Adam
+optimizer_params:
+  weight_decay: 0.0005
+
+lr_warmup_epochs: 3
+warmup_initial_lr: 1e-06
+warmup_bias_lr: 0.1
+
+valid_metrics_list:
+  - DetectionMetrics:
+      post_prediction_callback:
+        _target_: super_gradients.training.utils.ssd_utils.SSDPostPredictCallback
+        conf: 0.001
+        iou: 0.6
+      num_cls: 80
+
+metric_to_watch: 'mAP@0.50:0.95'
+greater_metric_to_watch_is_better: True
