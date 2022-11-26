@@ -2,7 +2,7 @@ from super_gradients.training import ARCHITECTURES, losses, utils, datasets_util
 from super_gradients.common import init_trainer, is_distributed, object_names
 from super_gradients.examples.train_from_recipe_example import train_from_recipe
 from super_gradients.examples.train_from_kd_recipe_example import train_from_kd_recipe
-from super_gradients.common.crash_handler.exception_monitoring import setup_user_env
+from super_gradients.common.crash_handler import setup_crash_handler
 from super_gradients.sanity_check import env_sanity_check
 
 __all__ = [
@@ -21,5 +21,5 @@ __all__ = [
     "env_sanity_check",
 ]
 
-setup_user_env()
+setup_crash_handler()
 env_sanity_check()

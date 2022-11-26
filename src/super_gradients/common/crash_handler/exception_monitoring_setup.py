@@ -2,9 +2,8 @@ import os
 import logging
 import atexit
 
-from super_gradients.common import is_distributed
 from super_gradients.common.auto_logging.console_logging import ConsoleSink
-from super_gradients.common.environment.env_helpers import multi_process_safe
+from super_gradients.common.environment.env_helpers import multi_process_safe, is_distributed
 from super_gradients.common.crash_handler.exception import ExceptionInfo
 
 try:
@@ -40,7 +39,7 @@ def exception_upload_handler(platform_client):
 @multi_process_safe
 def setup_pro_user_monitoring() -> bool:
     """Setup the pro user environment for error logging and monitoring"""
-    if _imported_deci_lab_failure is not None:
+    if _imported_deci_lab_failure is None:
         upload_console_logs = os.getenv("UPLOAD_LOGS", "TRUE") == "TRUE"
         if upload_console_logs:
             logger.info("deci-lab-client package detected. activating automatic log uploading")
