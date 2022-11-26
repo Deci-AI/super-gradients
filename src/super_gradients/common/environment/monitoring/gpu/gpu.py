@@ -1,6 +1,15 @@
 from super_gradients.common.environment.monitoring.gpu import pynvml
 
 
+def safe_init_nvidia_management_lib() -> bool:
+    """Initialize nvml (NVDIA management library), which is required to use pynvml. Return True on success."""
+    try:
+        init_nvidia_management_lib()
+        return True
+    except pynvml.NVMLError:
+        return False
+
+
 def init_nvidia_management_lib():
     """Initialize nvml (NVDIA management library), which is required to use pynvml."""
     pynvml.nvmlInit()

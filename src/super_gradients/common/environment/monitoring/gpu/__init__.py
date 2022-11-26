@@ -1,4 +1,5 @@
 from super_gradients.common.environment.monitoring.gpu.gpu import (
+    safe_init_nvidia_management_lib,
     init_nvidia_management_lib,
     count_gpus,
     get_device_memory_usage_percent,
@@ -10,6 +11,7 @@ from super_gradients.common.environment.monitoring.gpu.gpu import (
 )
 
 __all__ = [
+    "safe_init_nvidia_management_lib",
     "init_nvidia_management_lib",
     "count_gpus",
     "get_device_memory_usage_percent",
