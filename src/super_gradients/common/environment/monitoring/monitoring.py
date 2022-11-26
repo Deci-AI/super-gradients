@@ -32,23 +32,28 @@ class SystemMonitor:
             StatAggregator(name="System/network.network_sent_mb", sampling_fn=network.get_network_sent_mb, aggregate_fn=average),
             StatAggregator(name="System/network.network_recv_mb", sampling_fn=network.get_network_recv_mb, aggregate_fn=average),
             StatAggregator(name="System/cpu.usage_percent", sampling_fn=cpu.get_cpu_percent, aggregate_fn=average),
-            *GPUStatAggregatorIterator(
-                name="System/gpu.memory_usage_percent", device_sampling_fn=gpu.get_device_memory_usage_percent, device_aggregate_fn=average
-            ),
-            *GPUStatAggregatorIterator(
-                name="System/gpu.memory_allocated_percent", device_sampling_fn=gpu.get_device_memory_allocated_percent, device_aggregate_fn=average
-            ),
-            *GPUStatAggregatorIterator(name="System/gpu.usage_percent", device_sampling_fn=gpu.get_device_usage_percent, device_aggregate_fn=average),
         ]
 
-        if extra_gpu_stats:
+        is_nvidia_lib_available = gpu.safe_init_nvidia_management_lib()
+        if is_nvidia_lib_available:
             self.stat_aggregators += [
-                *GPUStatAggregatorIterator(name="System/gpu.temperature_c", device_sampling_fn=gpu.get_device_temperature_c, device_aggregate_fn=average),
-                *GPUStatAggregatorIterator(name="System/gpu.power_usage_w", device_sampling_fn=gpu.get_device_power_usage_w, device_aggregate_fn=average),
                 *GPUStatAggregatorIterator(
-                    name="System/gpu.power_usage_percent", device_sampling_fn=gpu.get_device_power_usage_percent, device_aggregate_fn=average
+                    name="System/gpu.memory_usage_percent", device_sampling_fn=gpu.get_device_memory_usage_percent, device_aggregate_fn=average
                 ),
+                *GPUStatAggregatorIterator(
+                    name="System/gpu.memory_allocated_percent", device_sampling_fn=gpu.get_device_memory_allocated_percent, device_aggregate_fn=average
+                ),
+                *GPUStatAggregatorIterator(name="System/gpu.usage_percent", device_sampling_fn=gpu.get_device_usage_percent, device_aggregate_fn=average),
             ]
+
+            if extra_gpu_stats:
+                self.stat_aggregators += [
+                    *GPUStatAggregatorIterator(name="System/gpu.temperature_c", device_sampling_fn=gpu.get_device_temperature_c, device_aggregate_fn=average),
+                    *GPUStatAggregatorIterator(name="System/gpu.power_usage_w", device_sampling_fn=gpu.get_device_power_usage_w, device_aggregate_fn=average),
+                    *GPUStatAggregatorIterator(
+                        name="System/gpu.power_usage_percent", device_sampling_fn=gpu.get_device_power_usage_percent, device_aggregate_fn=average
+                    ),
+                ]
 
         thread = threading.Thread(target=self._run, daemon=True, name="SystemMonitor")
         thread.start()
