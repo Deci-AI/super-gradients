@@ -1,6 +1,6 @@
 import dataclasses
 from functools import partial
-from typing import Callable, List, Iterator
+from typing import Callable, List, Iterator, Union
 
 from super_gradients.common.environment.monitoring.gpu import init_nvidia_management_lib, count_gpus
 
@@ -20,12 +20,17 @@ class StatAggregator:
     _samples: List = dataclasses.field(default_factory=list)
 
     def sample(self):
-        self._samples.append(self.sampling_fn())
+        try:
+            self._samples.append(self.sampling_fn())
+        except Exception:
+            pass
 
-    def aggregate(self) -> float:
-        value = self.aggregate_fn(self._samples)
+    def aggregate(self) -> Union[float, None]:
+        if len(self._samples) > 0:
+            return self.aggregate_fn(self._samples)
+
+    def reset(self):
         self._samples = []
-        return value
 
 
 @dataclasses.dataclass

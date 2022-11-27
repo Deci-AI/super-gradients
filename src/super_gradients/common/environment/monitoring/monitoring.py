@@ -74,7 +74,10 @@ class SystemMonitor:
     def _aggregate_and_write(self):
         """Aggregate and write the results."""
         for stat_aggregator in self.stat_aggregators:
-            self.tensorboard_writer.add_scalar(tag=stat_aggregator.name, scalar_value=stat_aggregator.aggregate(), global_step=self.write_count)
+            scalar = stat_aggregator.aggregate()
+            if scalar is not None:
+                self.tensorboard_writer.add_scalar(tag=stat_aggregator.name, scalar_value=scalar, global_step=self.write_count)
+            stat_aggregator.reset()
         self.write_count += 1
 
     @classmethod
