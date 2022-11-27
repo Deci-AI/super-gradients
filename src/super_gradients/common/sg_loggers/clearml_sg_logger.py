@@ -68,6 +68,7 @@ class ClearMLSGLogger(BaseSGLogger):
             save_checkpoints_remote=self.s3_location_available,
             save_tensorboard_remote=self.s3_location_available,
             save_logs_remote=self.s3_location_available,
+            monitor_system=False,
         )
 
         if _imported_clear_ml_failure is not None:

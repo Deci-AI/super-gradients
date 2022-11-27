@@ -35,6 +35,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
         save_checkpoints_remote: bool = True,
         save_tensorboard_remote: bool = True,
         save_logs_remote: bool = True,
+        monitor_system: bool = True,
     ):
 
         if _imported_deci_lab_failure is not None:
@@ -53,6 +54,7 @@ class DeciPlatformSGLogger(BaseSGLogger):
             save_checkpoints_remote=save_checkpoints_remote,
             save_tensorboard_remote=save_tensorboard_remote,
             save_logs_remote=save_logs_remote,
+            monitor_system=monitor_system,
         )
 
         self.platform_client = DeciPlatformClient()
