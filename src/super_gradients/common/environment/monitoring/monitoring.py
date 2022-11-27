@@ -84,11 +84,8 @@ class SystemMonitor:
 
     def _sample(self):
         """Sample the stat_aggregators, i.e. get the current value of each of them."""
-
-        s = time.time()
         for stat_aggregator in self.stat_aggregators:
             stat_aggregator.sample()
-        print("time: ", (time.time() - s) * 1000)
 
     def _aggregate_and_write(self):
         """Aggregate and write the results."""
