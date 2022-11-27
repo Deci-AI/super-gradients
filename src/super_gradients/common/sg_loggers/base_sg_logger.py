@@ -91,7 +91,9 @@ class BaseSGLogger(AbstractSGLogger):
             self._launch_tensorboard(port=tensorboard_port)
 
         if monitor_system:
-            SystemMonitor.start(tensorboard_writer=self.tensorboard_writer)
+            self.system_monitor = SystemMonitor.start(tensorboard_writer=self.tensorboard_writer)
+        else:
+            self.system_monitor = None
 
     @multi_process_safe
     def _launch_tensorboard(self, port):
@@ -242,6 +244,9 @@ class BaseSGLogger(AbstractSGLogger):
     @multi_process_safe
     def close(self):
         self.tensorboard_writer.close()
+        if self.system_monitor is not None:
+            self.system_monitor.close()
+            logger.info("[CLEANUP] - Successfully stopped system monitoring process")
         if self.tensor_board_process is not None:
             try:
                 logger.info("[CLEANUP] - Stopping tensorboard process")

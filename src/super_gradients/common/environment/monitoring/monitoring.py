@@ -19,6 +19,7 @@ class SystemMonitor:
     def __init__(self, tensorboard_writer: SummaryWriter, extra_gpu_stats: bool = False):
         self.tensorboard_writer = tensorboard_writer
         self.write_count = 0
+        self.running = True
 
         self.aggregate_frequency = 10  # in sec
         self.n_samples_per_aggregate = 100
@@ -71,7 +72,7 @@ class SystemMonitor:
     def _run(self):
         """Sample, aggregate and write the statistics regularly."""
         self._init_stat_aggregators()
-        while True:
+        while self.running:
             for _ in range(self.n_samples_per_aggregate):
                 self._sample()
                 time.sleep(self.sample_interval)
@@ -99,4 +100,7 @@ class SystemMonitor:
     @multi_process_safe
     def start(cls, tensorboard_writer: SummaryWriter):
         """Instantiate a SystemMonitor in a multiprocess safe way."""
-        cls(tensorboard_writer=tensorboard_writer)
+        return cls(tensorboard_writer=tensorboard_writer)
+
+    def close(self):
+        self.running = False
