@@ -21,8 +21,8 @@ class SystemMonitor:
         self.write_count = 0
         self.running = True
 
-        self.aggregate_frequency = 10  # in sec
-        self.n_samples_per_aggregate = 20
+        self.aggregate_frequency = 30  # in sec
+        self.n_samples_per_aggregate = 60
         self.sample_interval = self.aggregate_frequency / self.n_samples_per_aggregate
 
         self.stat_aggregators = [
