@@ -15,7 +15,7 @@ def crash_tip_handler():
 
 
 def setup_crash_tips() -> bool:
-    if os.getenv("CRASH_HANDLER", "TRUE") != "False":
+    if os.getenv("CRASH_HANDLER", "TRUE") != "FALSE":
         logger.info("Crash tips is enabled. You can set your environment variable to CRASH_HANDLER=FALSE to disable it")
         atexit.register(crash_tip_handler)
         return True
