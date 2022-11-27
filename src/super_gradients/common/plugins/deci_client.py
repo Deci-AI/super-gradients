@@ -10,6 +10,7 @@ import os
 import pkg_resources
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig
+from torch import nn
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.hydra_utils import normalize_path
@@ -21,7 +22,7 @@ try:
     from deci_lab_client.client import DeciPlatformClient
     from deci_common.data_interfaces.files_data_interface import FilesDataInterface
     from deci_lab_client.models import AutoNACFileName
-    from deci_lab_client import ApiException
+    from deci_lab_client import ApiException, ModelMetadata, OptimizationRequestForm
 except (ImportError, NameError):
     client_enabled = False
 
@@ -129,3 +130,19 @@ class DeciClient:
                 f"These files will be downloaded to the same location each time the model is fetched from the deci-client.\n"
                 f"you can override this by passing models.get(... download_required_code=False) and importing the files yourself"
             )
+
+    def upload_model(self, model: nn.Module, model_meta_data: ModelMetadata, optimization_request_form: OptimizationRequestForm):
+        """
+        This function will upload the trained model to the Deci Lab
+
+        Args:
+            model: The resulting model from the training process
+            model_meta_data: metadata to accompany the model
+            optimization_request_form: the optimization parameters
+        """
+        self.lab_client.login(token=os.getenv("DECI_PLATFORM_TOKEN"))
+        self.lab_client.add_model(
+            add_model_request=model_meta_data,
+            optimization_request=optimization_request_form,
+            local_loaded_model=model,
+        )
