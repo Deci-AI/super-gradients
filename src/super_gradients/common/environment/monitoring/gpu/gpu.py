@@ -1,5 +1,3 @@
-import functools
-
 from super_gradients.common.environment.monitoring.gpu import pynvml
 
 
@@ -12,20 +10,18 @@ def safe_init_nvidia_management_lib() -> bool:
         return False
 
 
-@functools.lru_cache(maxsize=None)
 def init_nvidia_management_lib():
     """Initialize nvml (NVDIA management library), which is required to use pynvml."""
     pynvml.nvmlInit()
 
 
-@functools.lru_cache(maxsize=None)
 def count_gpus() -> int:
     """Count how many GPUS NVDIA detects."""
     return pynvml.nvmlDeviceGetCount()
 
 
-@functools.lru_cache(maxsize=None)
 def get_handle_by_index(gpu_index: int):
+    """Get the device handle of a given GPU."""
     return pynvml.nvmlDeviceGetHandleByIndex(gpu_index)
 
 
