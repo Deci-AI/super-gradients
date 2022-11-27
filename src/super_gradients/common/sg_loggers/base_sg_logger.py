@@ -87,13 +87,11 @@ class BaseSGLogger(AbstractSGLogger):
 
         self.model_checkpoints_data_interface = ADNNModelRepositoryDataInterfaces(data_connection_location=self.storage_location)
 
+        self.system_monitor = None
         if launch_tensorboard:
             self._launch_tensorboard(port=tensorboard_port)
-
-        if monitor_system:
-            self.system_monitor = SystemMonitor.start(tensorboard_writer=self.tensorboard_writer)
-        else:
-            self.system_monitor = None
+            if monitor_system:
+                self.system_monitor = SystemMonitor.start(tensorboard_writer=self.tensorboard_writer)
 
     @multi_process_safe
     def _launch_tensorboard(self, port):
