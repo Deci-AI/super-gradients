@@ -160,9 +160,9 @@ class DDPNotInitializedTip(CrashTip):
         tip = (
             "Your environment was not setup correctly for DDP.\n"
             "Please run at the beginning of your script:\n"
-            f">>> {fmt_txt('from super_gradients.training.utils.distributed_training_utils import setup_gpu_mode', color='green')}\n"
+            f">>> {fmt_txt('from super_gradients.training.utils.distributed_training_utils import setup_device', color='green')}\n"
             f">>> {fmt_txt('from super_gradients.common.data_types.enum import MultiGPUMode', color='green')}\n"
-            f">>> {fmt_txt('setup_gpu_mode(gpu_mode=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=...)', color='green')}"
+            f">>> {fmt_txt('setup_device(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=...)', color='green')}"
         )
         return [tip]
 
