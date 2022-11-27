@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 import torch
 
-from super_gradients.common.factories import BBoxFormatFactory
+from super_gradients.common.factories.bbox_format_factory import BBoxFormatFactory
 from super_gradients.training.utils.bbox_formats import (
     CXCYWHCoordinateFormat,
     NormalizedXYXYCoordinateFormat,
