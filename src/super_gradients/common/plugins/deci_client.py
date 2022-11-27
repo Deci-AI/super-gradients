@@ -130,7 +130,7 @@ class DeciClient:
                 f"you can override this by passing models.get(... download_required_code=False) and importing the files yourself"
             )
 
-    def add_model(self, model, model_meta_data, optimization_request_form):
+    def upload_model(self, model, model_meta_data, optimization_request_form):
         """
         This function will upload the trained model to the Deci Lab
 

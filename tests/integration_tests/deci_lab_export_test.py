@@ -96,7 +96,7 @@ class DeciLabUploadTest(unittest.TestCase):
 
         net = ResNet18(num_classes=5, arch_params={})
         client = DeciClient()
-        client.add_model(model=net, model_meta_data=model_meta_data, optimization_request_form=optimization_request_form)
+        client.upload_model(model=net, model_meta_data=model_meta_data, optimization_request_form=optimization_request_form)
 
 
 if __name__ == "__main__":
