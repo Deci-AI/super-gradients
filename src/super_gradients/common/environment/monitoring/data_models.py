@@ -1,6 +1,7 @@
 import dataclasses
+import time
 from functools import partial
-from typing import Callable, List, Iterator, Union
+from typing import Callable, List, Iterator, Union, Any, Optional
 
 from super_gradients.common.environment.monitoring.gpu import init_nvidia_management_lib, count_gpus
 
@@ -9,15 +10,18 @@ from super_gradients.common.environment.monitoring.gpu import init_nvidia_manage
 class StatAggregator:
     """Accumulate statistics samples and aggregates them.
 
-    :param name:            Name of the statistic
-    :param sampling_fn:     How the statistic is sampled
-    :param aggregate_fn:    How the statistic samples are aggregated
+    :param name:                Name of the statistic
+    :param sampling_fn:         How the statistic is sampled
+    :param aggregate_fn:        How the statistic samples are aggregated, has to take "samples: List[Any]" and "time: float" as parameters
+    :param reset_callback_fn:   Optional, can be used to reset any system metric
     """
 
     name: str
     sampling_fn: Callable
-    aggregate_fn: Callable
+    aggregate_fn: Callable[[List[Any], float], float]
+    reset_callback_fn: Optional[Callable] = None
     _samples: List = dataclasses.field(default_factory=list)
+    _reset_time: float = None
 
     def sample(self):
         try:
@@ -27,10 +31,14 @@ class StatAggregator:
 
     def aggregate(self) -> Union[float, None]:
         if len(self._samples) > 0:
-            return self.aggregate_fn(self._samples)
+            time_diff = time.time() - self._reset_time
+            return self.aggregate_fn(self._samples, time_diff)
 
     def reset(self):
         self._samples = []
+        self._reset_time = time.time()
+        if self.reset_callback_fn:
+            self.reset_callback_fn()
 
 
 @dataclasses.dataclass

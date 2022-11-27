@@ -3,7 +3,7 @@ import threading
 
 from super_gradients.common.environment.env_helpers import multi_process_safe
 from super_gradients.common.environment.monitoring import disk, virtual_memory, network, cpu, gpu
-from super_gradients.common.environment.monitoring.utils import average
+from super_gradients.common.environment.monitoring.utils import average, delta_per_s
 from super_gradients.common.environment.monitoring.data_models import StatAggregator, GPUStatAggregatorIterator
 from torch.utils.tensorboard import SummaryWriter
 
@@ -26,11 +26,21 @@ class SystemMonitor:
 
         self.stat_aggregators = [
             StatAggregator(name="System/disk.usage_percent", sampling_fn=disk.get_disk_usage_percent, aggregate_fn=average),
-            StatAggregator(name="System/disk.io_read_mb", sampling_fn=disk.get_io_read_mb, aggregate_fn=average),
-            StatAggregator(name="System/disk.io_write_mb", sampling_fn=disk.get_io_write_mb, aggregate_fn=average),
+            StatAggregator(name="System/disk.io_write_mbs", sampling_fn=disk.get_io_write_mb, aggregate_fn=delta_per_s, reset_callback_fn=disk.reset_io_write),
+            StatAggregator(name="System/disk.io_read_mbs", sampling_fn=disk.get_io_read_mb, aggregate_fn=delta_per_s, reset_callback_fn=disk.reset_io_read),
             StatAggregator(name="System/memory.usage_percent", sampling_fn=virtual_memory.virtual_memory_used_percent, aggregate_fn=average),
-            StatAggregator(name="System/network.network_sent_mb", sampling_fn=network.get_network_sent_mb, aggregate_fn=average),
-            StatAggregator(name="System/network.network_recv_mb", sampling_fn=network.get_network_recv_mb, aggregate_fn=average),
+            StatAggregator(
+                name="System/network.network_sent_mbs",
+                sampling_fn=network.get_network_sent_mb,
+                aggregate_fn=delta_per_s,
+                reset_callback_fn=network.reset_network_sent,
+            ),
+            StatAggregator(
+                name="System/network.network_recv_mbs",
+                sampling_fn=network.get_network_recv_mb,
+                aggregate_fn=delta_per_s,
+                reset_callback_fn=network.reset_network_recv,
+            ),
             StatAggregator(name="System/cpu.usage_percent", sampling_fn=cpu.get_cpu_percent, aggregate_fn=average),
         ]
 
@@ -60,11 +70,16 @@ class SystemMonitor:
 
     def _run(self):
         """Sample, aggregate and write the statistics regularly."""
+        self._init_stat_aggregators()
         while True:
             for _ in range(self.n_samples_per_aggregate):
                 self._sample()
                 time.sleep(self.sample_interval)
             self._aggregate_and_write()
+
+    def _init_stat_aggregators(self):
+        for stat_aggregator in self.stat_aggregators:
+            stat_aggregator.reset()
 
     def _sample(self):
         """Sample the stat_aggregators, i.e. get the current value of each of them."""
