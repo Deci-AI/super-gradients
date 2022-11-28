@@ -1,5 +1,6 @@
 import collections
-from typing import List, Type, Tuple
+import os.path
+from typing import List, Type, Tuple, Union, Optional
 
 import torch
 from super_gradients.common.decorators.factory_decorator import resolve_param
@@ -120,6 +121,7 @@ class CSPResNet(nn.Module):
         width_mult: float,
         depth_mult: float,
         use_alpha: bool,
+        pretrained_weights: Optional[str] = None,
     ):
         """
 
@@ -131,6 +133,7 @@ class CSPResNet(nn.Module):
         :param width_mult: Scaling factor for a number of channels
         :param depth_mult: Scaling factor for a number of blocks in each stage
         :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch in RepVGGBlock
+        :param pretrained_weights:
         """
         super().__init__()
         channels = [max(round(num_channels * width_mult), 1) for num_channels in channels]
@@ -198,6 +201,13 @@ class CSPResNet(nn.Module):
         self._out_strides = [4 * 2**i for i in range(n)]
         self.return_idx = return_idx
 
+        if pretrained_weights:
+            if os.path.exists(pretrained_weights):
+                state_dict = torch.load(pretrained_weights, map_location="cpu")
+            else:
+                state_dict = torch.hub.load_state_dict_from_url(pretrained_weights)
+            self.load_state_dict(state_dict)
+
     def forward(self, x: Tensor) -> List[Tensor]:
         x = self.stem(x)
         outs = []
@@ -207,3 +217,14 @@ class CSPResNet(nn.Module):
                 outs.append(x)
 
         return outs
+
+    def prep_model_for_conversion(self, input_size: Union[tuple, list] = None, **kwargs):
+        """
+        Prepare the model to be converted to ONNX or other frameworks.
+        Typically, this function will freeze the size of layers which is otherwise flexible, replace some modules
+        with convertible substitutes and remove all auxiliary or training related parts.
+        :param input_size: [H,W]
+        """
+        for module in self.modules():
+            if isinstance(module, RepVGGBlock):
+                module.fuse_block_residual_branches()

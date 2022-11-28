@@ -1,4 +1,5 @@
 import collections
+import os.path
 import unittest
 
 import numpy as np
@@ -11,7 +12,6 @@ from ppdet.modeling.heads import PPYOLOEHead as Paddle_PPYOLOEHead
 from pytorch_toolbelt.utils import count_parameters, describe_outputs
 from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNet
-from super_gradients.training.models.detection_models.pp_yolo_e.nms import MultiClassNMS
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
 from torch import nn
@@ -19,10 +19,29 @@ from torch import nn
 
 def convert_weights_from_padldle_to_torch(state_dict: collections.OrderedDict) -> collections.OrderedDict:
     torch_state_dict = []
+    import re
 
     for key, value in state_dict.items():
         torch_value = torch.from_numpy(value.numpy())
-        key = key.replace("bn._mean", "bn.running_mean").replace("bn._variance", "bn.running_var")
+        key = key.replace("bn._mean", "bn.running_mean").replace("bn._variance", "bn.running_var").replace("attn.fc", "attn.project")
+
+        key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv2.conv.weight", r"stages.\1.blocks.\2.conv2.branch_1x1.conv.weight", key)
+        key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv2.bn", r"stages.\1.blocks.\2.conv2.branch_1x1.bn", key)
+        key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv1.conv.weight", r"stages.\1.blocks.\2.conv2.branch_3x3.conv.weight", key)
+        key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv1.bn", r"stages.\1.blocks.\2.conv2.branch_3x3.bn", key)
+
+        key = key.replace("conv_down.bn", "conv_down.seq.bn")
+        key = key.replace("conv_down.conv", "conv_down.seq.conv")
+
+        key = key.replace("conv1.bn", "conv1.seq.bn")
+        key = key.replace("conv1.conv", "conv1.seq.conv")
+
+        key = key.replace("conv2.bn", "conv2.seq.bn")
+        key = key.replace("conv2.conv", "conv2.seq.conv")
+
+        key = key.replace("conv3.bn", "conv3.seq.bn")
+        key = key.replace("conv3.conv", "conv3.seq.conv")
+
         torch_state_dict.append((key, torch_value))
 
     return collections.OrderedDict(torch_state_dict)
@@ -32,22 +51,25 @@ class PPYoloTestCast(unittest.TestCase):
     def test_csp_resnet(self):
         input_np = np.random.standard_normal((4, 3, 640, 512)).astype(np.float32)
 
+        common_params = dict(
+            layers=(3, 6, 6, 3), channels=(64, 128, 256, 512, 1024), activation="silu", return_idx=(1, 2, 3), use_alpha=False, use_large_stem=True
+        )
         for config, pretrain in [
             (
-                dict(depth_mult=0.33, width_mult=0.50, use_large_stem=True),
-                "D:/Develop/GitHub/PaddlePaddle/PaddleDetection/ppdet/modeling/backbones/CSPResNetb_s_pretrained.pdparams",
+                dict(depth_mult=0.33, width_mult=0.50, **common_params),
+                "CSPResNetb_s_pretrained.pdparams",
             ),
             (
-                dict(depth_mult=0.67, width_mult=0.75, use_large_stem=True),
-                "D:/Develop/GitHub/PaddlePaddle/PaddleDetection/ppdet/modeling/backbones/CSPResNetb_m_pretrained.pdparams",
+                dict(depth_mult=0.67, width_mult=0.75, **common_params),
+                "CSPResNetb_m_pretrained.pdparams",
             ),
             (
-                dict(depth_mult=1, width_mult=1, use_large_stem=True),
-                "D:/Develop/GitHub/PaddlePaddle/PaddleDetection/ppdet/modeling/backbones/CSPResNetb_l_pretrained.pdparams",
+                dict(depth_mult=1, width_mult=1, **common_params),
+                "CSPResNetb_l_pretrained.pdparams",
             ),
             (
-                dict(depth_mult=1.33, width_mult=1.25, use_large_stem=True),
-                "D:/Develop/GitHub/PaddlePaddle/PaddleDetection/ppdet/modeling/backbones/CSPResNetb_x_pretrained.pdparams",
+                dict(depth_mult=1.33, width_mult=1.25, **common_params),
+                "CSPResNetb_x_pretrained.pdparams",
             ),
         ]:
             paddle_weights = paddle_load(pretrain)
@@ -61,17 +83,21 @@ class PPYoloTestCast(unittest.TestCase):
             print("Testing raw pytorch model")
             print("Out spec", pp_encoder.out_shape)
 
-            pt_encoder = CSPResNet(**config).cuda().eval()
-            pt_encoder.load_state_dict(convert_weights_from_padldle_to_torch(paddle_weights))
-            input_pt = torch.from_numpy(input_np).cuda()
+            torch_weights = convert_weights_from_padldle_to_torch(paddle_weights)
+            torch_path = os.path.splitext(pretrain)[0] + ".pth"
+            torch.save(torch_weights, torch_path)
+
+            pt_encoder = CSPResNet(**config, pretrained_weights=torch_path).eval()
+
+            input_pt = torch.from_numpy(input_np)
             pt_output = pt_encoder(input_pt)
 
             print(count_parameters(pt_encoder, human_friendly=True))
             print(describe_outputs(pt_output))
 
-            np.testing.assert_allclose(pt_output[0].detach().cpu().numpy(), pp_output[0].numpy(), atol=1e-4)
-            np.testing.assert_allclose(pt_output[1].detach().cpu().numpy(), pp_output[1].numpy(), atol=1e-4)
-            np.testing.assert_allclose(pt_output[2].detach().cpu().numpy(), pp_output[2].numpy(), atol=1e-4)
+            np.testing.assert_allclose(pt_output[0].detach().cpu().numpy(), pp_output[0].numpy(), atol=1e-4, rtol=1e-3)
+            np.testing.assert_allclose(pt_output[1].detach().cpu().numpy(), pp_output[1].numpy(), atol=1e-4, rtol=1e-3)
+            np.testing.assert_allclose(pt_output[2].detach().cpu().numpy(), pp_output[2].numpy(), atol=1e-4, rtol=1e-3)
 
             print("Testing prep_model_for_conversion")
             pt_encoder.prep_model_for_conversion(input_size=input_np.shape[2:])
@@ -79,9 +105,9 @@ class PPYoloTestCast(unittest.TestCase):
             print(count_parameters(pt_encoder, human_friendly=True))
             print(describe_outputs(pt_output))
 
-            np.testing.assert_allclose(pt_output[0].detach().cpu().numpy(), pp_output[0].numpy(), atol=1e-4)
-            np.testing.assert_allclose(pt_output[1].detach().cpu().numpy(), pp_output[1].numpy(), atol=1e-4)
-            np.testing.assert_allclose(pt_output[2].detach().cpu().numpy(), pp_output[2].numpy(), atol=1e-4)
+            np.testing.assert_allclose(pt_output[0].detach().cpu().numpy(), pp_output[0].numpy(), atol=1e-4, rtol=1e-3)
+            np.testing.assert_allclose(pt_output[1].detach().cpu().numpy(), pp_output[1].numpy(), atol=1e-4, rtol=1e-3)
+            np.testing.assert_allclose(pt_output[2].detach().cpu().numpy(), pp_output[2].numpy(), atol=1e-4, rtol=1e-3)
 
             print("Testing traced model")
             with torch.no_grad():
@@ -89,9 +115,9 @@ class PPYoloTestCast(unittest.TestCase):
             pt_output = pt_encoder_traced(input_pt)
             print(describe_outputs(pt_output))
 
-            np.testing.assert_allclose(pt_output[0].detach().cpu().numpy(), pp_output[0].numpy(), atol=1e-4)
-            np.testing.assert_allclose(pt_output[1].detach().cpu().numpy(), pp_output[1].numpy(), atol=1e-4)
-            np.testing.assert_allclose(pt_output[2].detach().cpu().numpy(), pp_output[2].numpy(), atol=1e-4)
+            np.testing.assert_allclose(pt_output[0].detach().cpu().numpy(), pp_output[0].numpy(), atol=1e-4, rtol=1e-3)
+            np.testing.assert_allclose(pt_output[1].detach().cpu().numpy(), pp_output[1].numpy(), atol=1e-4, rtol=1e-3)
+            np.testing.assert_allclose(pt_output[2].detach().cpu().numpy(), pp_output[2].numpy(), atol=1e-4, rtol=1e-3)
 
     def test_csp_neck(self):
         for config, pretrain in [
@@ -183,7 +209,7 @@ class PPYoloTestCast(unittest.TestCase):
             loss_weight={"class": 1.0, "iou": 2.5, "dfl": 0.5},
             static_assigner=ppdet.modeling.assigners.ATSSAssigner(topk=9),
             assigner=ppdet.modeling.assigners.TaskAlignedAssigner(topk=13, alpha=1.0, beta=6.0),
-            nms=ppdet.modeling.MultiClassNMS(nms_top_k=1000, keep_top_k=300, score_threshold=0.01, nms_threshold=0.7),
+            nms=None,
         )
 
         pt_head = PPYOLOEHead(
@@ -192,7 +218,6 @@ class PPYoloTestCast(unittest.TestCase):
             fpn_strides=(32, 16, 8),
             grid_cell_scale=5.0,
             grid_cell_offset=0.5,
-            nms=MultiClassNMS(nms_top_k=1000, keep_top_k=300, score_threshold=0.01, nms_threshold=0.7),
         )
         pt_head.train().cuda()
         pt_loss = PPYoloELoss(num_classes=pt_head.num_classes, use_static_assigner=True).cuda()
