@@ -88,7 +88,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             . venv/bin/activate
-            python3 -m pip install .[pro]
+            python3 -m pip install --extra-index-url https://pypi.ngc.nvidia.com .[pro]
       - run:
           name: run tests with coverage
           no_output_timeout: 30m
