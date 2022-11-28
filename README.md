@@ -291,22 +291,48 @@ Recipes support out of the box every model, metric or loss that is implemented i
  </br></br>
 
 
-### Using DDP
+### Using Distributed Data Parallel (DDP)
+#### Why use DDP ?
+
+Recent Deep Learning models are growing larger and larger to an extent that training on a single GPU can take weeks.
+In order to train models in a timely fashion, it is necessary to train them with multiple GPUs.
+Using 100s GPUs can reduce training time of a model from a week to less than an hour.
+
+#### How does it work ?
+Each GPU has its own process, which controls a copy of the model and which loads its own mini-batch from disk and sends
+it to its GPU during training. After the forward pass is completed on every GPU, the gradient is reduced across all
+GPUs, yielding to all the GPUs having the same gradient locally. This leads to the model weights to stay synchronized
+across all GPUs after the backward pass.
+
+#### How to use it ?
+You can use SuperGradients to train your model with DDP in just a few lines.
+
 ```python
-from super_gradients import init_trainer
+from super_gradients import init_trainer, Trainer
 from super_gradients.common import MultiGPUMode
 from super_gradients.training.utils.distributed_training_utils import setup_gpu_mode
 
 # Initialize the environment
 init_trainer()
 
-# Launch DDP on 1 device (node) of 4 GPU's
+# Launch DDP on 4 GPUs'
 setup_gpu_mode(gpu_mode=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
 
-# Define the objects
+# Call the trainer
+Trainer(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, expriment_name=...)
 
-# The trainer will run on DDP without anything else to change
+# Everything you do below will run on 4 gpus
+
+...
+
+Trainer.train(...)
+
+
 ```
+#### Good to know
+Your total batch size will be (number of gpus x batch size), so you might want to increase your learning rate.
+There is no clear rule, but a rule of thumb seems to be to [linearly increase the learning rate with the number of gpus](https://arxiv.org/pdf/1706.02677.pdf) 
+
 ### Easily change architectures parameters
 ```python
 from super_gradients.training import models
