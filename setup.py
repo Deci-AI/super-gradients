@@ -46,7 +46,6 @@ setup(
     install_requires=get_requirements(),
     packages=find_packages(where="./src"),
     package_dir={"": "src"},
-    dependency_links=["https://pypi.ngc.nvidia.com"],
     package_data={
         "super_gradients.recipes": ["*.yaml", "**/*.yaml"],
         "super_gradients.common": ["auto_logging/auto_logging_conf.json"],
