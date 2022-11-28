@@ -1,7 +1,6 @@
 import math
 import warnings
 from copy import deepcopy
-from functools import partial
 from typing import Union
 
 import torch
@@ -21,20 +20,6 @@ def copy_attr(a: nn.Module, b: nn.Module, include: Union[list, tuple] = (), excl
             setattr(a, k, v)
 
 
-def constant_decay(current_step, total_number_of_steps, decay):
-    return decay
-
-
-def exp_activated_decay(current_step, total_number_of_steps, decay, beta):
-    training_percent = current_step / float(total_number_of_steps)
-    return decay * (1 - math.exp(-training_percent * beta))
-
-
-def bias_corrected_decay(current_step: int, total_number_of_steps: int, decay: float, initial_step=0):
-    value = decay * (1 - decay ** (current_step + initial_step)) / (1 - decay ** (current_step + initial_step + 1))
-    return value
-
-
 class ModelEMA:
     """Model Exponential Moving Average from https://github.com/rwightman/pytorch-image-models
     Keep a moving average of everything in the model state_dict (parameters and buffers).
@@ -45,7 +30,7 @@ class ModelEMA:
     GPU assignment and distributed training wrappers.
     """
 
-    def __init__(self, model, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True, use_bias_corrected: bool = False):
+    def __init__(self, model, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True):
         """
         Init the EMA
         :param model: Union[SgModule, nn.Module], the training model to construct the EMA model by
@@ -59,15 +44,10 @@ class ModelEMA:
         # Create EMA
         self.ema = deepcopy(model)
         self.ema.eval()
-        if use_bias_corrected and exp_activation:
-            raise ValueError("Cannot use both exp-activation and bias-corrected decay at the same time")
-
-        if use_bias_corrected:
-            self.decay_function = partial(bias_corrected_decay, decay=decay)
-        elif exp_activation:
-            self.decay_function = partial(exp_activated_decay, decay=decay, beta=beta)  # decay exponential ramp (to help early epochs)
+        if exp_activation:
+            self.decay_function = lambda x: decay * (1 - math.exp(-x * beta))  # decay exponential ramp (to help early epochs)
         else:
-            self.decay_function = partial(constant_decay, decay=decay)  # always return the same decay factor
+            self.decay_function = lambda x: decay  # always return the same decay factor
 
         """"
         we hold a list of model attributes (not wights and biases) which we would like to include in each
@@ -85,14 +65,15 @@ class ModelEMA:
         for p in self.ema.module.parameters():
             p.requires_grad_(False)
 
-    def update(self, model, current_step: int, total_number_of_steps: int):
+    def update(self, model, training_percent: float):
         """
         Update the state of the EMA model.
         :param model: current training model
+        :param training_percent: the percentage of the training process [0,1]. i.e 0.4 means 40% of the training have passed
         """
         # Update EMA parameters
         with torch.no_grad():
-            decay = self.decay_function(current_step, total_number_of_steps)
+            decay = self.decay_function(training_percent)
 
             for ema_v, model_v in zip(self.ema.module.state_dict().values(), model.state_dict().values()):
                 if ema_v.dtype.is_floating_point:
