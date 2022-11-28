@@ -102,7 +102,7 @@ class PretrainedModelsTest(unittest.TestCase):
         }
 
         self.coco_pretrained_maps = {
-            "ssd_lite_mobilenet_v2": 0.2052,
+            "ssd_lite_mobilenet_v2": 0.2027,
             "coco_ssd_mobilenet_v1": 0.243,
             "yolox_s": 0.4047,
             "yolox_m": 0.4640,
