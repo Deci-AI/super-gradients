@@ -27,13 +27,13 @@ def width_multiplier(original, factor, divisor: int = None):
 
 
 def get_yolo_type_params(yolo_type: str, width_mult_factor: float, depth_mult_factor: float):
-    if yolo_type == 'yoloX':
+    if yolo_type == "yoloX":
         struct = (3, 9, 9, 3)
         block = CSPLayer
         activation_type = nn.SiLU
         width_mult = lambda channels: width_multiplier(channels, width_mult_factor)
     else:
-        raise NotImplementedError(f'Yolo yolo_type {yolo_type} is not supported')
+        raise NotImplementedError(f"Yolo yolo_type {yolo_type} is not supported")
 
     depth_mult = lambda blocks: max(round(blocks * depth_mult_factor), 1) if blocks > 1 else blocks
     return struct, block, activation_type, width_mult, depth_mult
@@ -45,12 +45,10 @@ class NumClassesMissingException(Exception):
 
 class Conv(nn.Module):
     # STANDARD CONVOLUTION
-    def __init__(self, input_channels, output_channels, kernel, stride, activation_type: Type[nn.Module],
-                 padding: int = None, groups: int = None):
+    def __init__(self, input_channels, output_channels, kernel, stride, activation_type: Type[nn.Module], padding: int = None, groups: int = None):
         super().__init__()
 
-        self.conv = nn.Conv2d(input_channels, output_channels, kernel, stride, autopad(kernel, padding),
-                              groups=groups or 1, bias=False)
+        self.conv = nn.Conv2d(input_channels, output_channels, kernel, stride, autopad(kernel, padding), groups=groups or 1, bias=False)
         self.bn = nn.BatchNorm2d(output_channels)
         self.act = activation_type()
 
@@ -66,16 +64,14 @@ class GroupedConvBlock(nn.Module):
     Grouped Conv KxK -> usual Conv 1x1
     """
 
-    def __init__(self, input_channels, output_channels, kernel, stride, activation_type: Type[nn.Module],
-                 padding: int = None, groups: int = None):
+    def __init__(self, input_channels, output_channels, kernel, stride, activation_type: Type[nn.Module], padding: int = None, groups: int = None):
         """
         :param groups:  num of groups in the first conv; if None depthwise separable conv will be used
                         (groups = input channels)
         """
         super().__init__()
 
-        self.dconv = Conv(input_channels, input_channels, kernel, stride, activation_type, padding,
-                          groups=groups or input_channels)
+        self.dconv = Conv(input_channels, input_channels, kernel, stride, activation_type, padding, groups=groups or input_channels)
         self.conv = Conv(input_channels, output_channels, 1, 1, activation_type)
 
     def forward(self, x):
@@ -84,8 +80,7 @@ class GroupedConvBlock(nn.Module):
 
 class Bottleneck(nn.Module):
     # STANDARD BOTTLENECK
-    def __init__(self, input_channels, output_channels, shortcut: bool, activation_type: Type[nn.Module],
-                 depthwise=False):
+    def __init__(self, input_channels, output_channels, shortcut: bool, activation_type: Type[nn.Module], depthwise=False):
         super().__init__()
 
         ConvBlock = GroupedConvBlock if depthwise else Conv
@@ -93,9 +88,10 @@ class Bottleneck(nn.Module):
         self.cv1 = Conv(input_channels, hidden_channels, 1, 1, activation_type)
         self.cv2 = ConvBlock(hidden_channels, output_channels, 3, 1, activation_type)
         self.add = shortcut and input_channels == output_channels
+        self.shortcut = nn.Identity() if self.add else None
 
     def forward(self, x):
-        return x + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
+        return self.shortcut(x) + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
 
 
 class CSPLayer(nn.Module):
@@ -113,27 +109,21 @@ class CSPLayer(nn.Module):
     """
 
     def __init__(
-            self,
-            in_channels: int,
-            out_channels: int,
-            num_bottlenecks: int,
-            act: Type[nn.Module],
-            shortcut: bool = True,
-            depthwise: bool = False,
-            expansion: float = 0.5,
-
+        self,
+        in_channels: int,
+        out_channels: int,
+        num_bottlenecks: int,
+        act: Type[nn.Module],
+        shortcut: bool = True,
+        depthwise: bool = False,
+        expansion: float = 0.5,
     ):
         super().__init__()
         hidden_channels = int(out_channels * expansion)
         self.conv1 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=act)
         self.conv2 = Conv(in_channels, hidden_channels, 1, stride=1, activation_type=act)
         self.conv3 = Conv(2 * hidden_channels, out_channels, 1, stride=1, activation_type=act)
-        module_list = [
-            Bottleneck(
-                hidden_channels, hidden_channels, shortcut, act, depthwise
-            )
-            for _ in range(num_bottlenecks)
-        ]
+        module_list = [Bottleneck(hidden_channels, hidden_channels, shortcut, act, depthwise) for _ in range(num_bottlenecks)]
         self.bottlenecks = nn.Sequential(*module_list)
 
     def forward(self, x):
@@ -146,8 +136,7 @@ class CSPLayer(nn.Module):
 
 class BottleneckCSP(nn.Module):
     # CSP Bottleneck https://github.com/WongKinYiu/CrossStagePartialNetworks
-    def __init__(self, input_channels, output_channels, bottleneck_blocks_num, activation_type: Type[nn.Module],
-                 shortcut=True, depthwise=False, expansion=0.5):
+    def __init__(self, input_channels, output_channels, bottleneck_blocks_num, activation_type: Type[nn.Module], shortcut=True, depthwise=False, expansion=0.5):
         super().__init__()
 
         hidden_channels = int(output_channels * expansion)
@@ -158,8 +147,7 @@ class BottleneckCSP(nn.Module):
         self.cv4 = Conv(2 * hidden_channels, output_channels, 1, 1, activation_type)
         self.bn = nn.BatchNorm2d(2 * hidden_channels)  # APPLIED TO CAT(CV2, CV3)
         self.act = nn.LeakyReLU(0.1, inplace=True)
-        self.m = nn.Sequential(*[Bottleneck(hidden_channels, hidden_channels, shortcut, activation_type, depthwise)
-                                 for _ in range(bottleneck_blocks_num)])
+        self.m = nn.Sequential(*[Bottleneck(hidden_channels, hidden_channels, shortcut, activation_type, depthwise) for _ in range(bottleneck_blocks_num)])
 
     def forward(self, x):
         y1 = self.cv3(self.m(self.cv1(x)))
@@ -199,40 +187,36 @@ class CSPDarknet53(SgModule):
     def __init__(self, arch_params: HpmStruct):
         super().__init__()
         self.num_classes = arch_params.num_classes
-        self.backbone_mode = get_param(arch_params, 'backbone_mode', False)
-        depth_mult_factor = get_param(arch_params, 'depth_mult_factor', 1.)
-        width_mult_factor = get_param(arch_params, 'width_mult_factor', 1.)
-        channels_in = get_param(arch_params, 'channels_in', 3)
-        yolo_type = get_param(arch_params, 'yolo_type', 'yoloX')
-        depthwise = get_param(arch_params, 'depthwise', False)
+        self.backbone_mode = get_param(arch_params, "backbone_mode", False)
+        depth_mult_factor = get_param(arch_params, "depth_mult_factor", 1.0)
+        width_mult_factor = get_param(arch_params, "width_mult_factor", 1.0)
+        channels_in = get_param(arch_params, "channels_in", 3)
+        yolo_type = get_param(arch_params, "yolo_type", "yoloX")
+        depthwise = get_param(arch_params, "depthwise", False)
 
-        struct, block, activation_type, width_mult, depth_mult = get_yolo_type_params(yolo_type,
-                                                                                      width_mult_factor,
-                                                                                      depth_mult_factor)
+        struct, block, activation_type, width_mult, depth_mult = get_yolo_type_params(yolo_type, width_mult_factor, depth_mult_factor)
         ConvBlock = Conv if not depthwise else GroupedConvBlock
 
         struct = [depth_mult(s) for s in struct]
         self._modules_list = nn.ModuleList()
 
-        if get_param(arch_params, 'stem_type') == '6x6' or yolo_type == 'yoloX':
+        if get_param(arch_params, "stem_type") == "6x6" or yolo_type == "yoloX":
             self._modules_list.append(Conv(channels_in, width_mult(64), 6, 2, activation_type, padding=2))  # 0
         else:
-            raise NotImplementedError(f'Yolo type: {yolo_type} is not supported')
+            raise NotImplementedError(f"Yolo type: {yolo_type} is not supported")
 
         for i, layer_in_ch in enumerate([64, 128, 256, 512]):
-            self._modules_list.append(
-                ConvBlock(width_mult(layer_in_ch), width_mult(layer_in_ch * 2), 3, 2, activation_type))  # 1,3,5,7
+            self._modules_list.append(ConvBlock(width_mult(layer_in_ch), width_mult(layer_in_ch * 2), 3, 2, activation_type))  # 1,3,5,7
             if i < 3:
                 self._modules_list.append(
-                    block(width_mult(layer_in_ch * 2), width_mult(layer_in_ch * 2), struct[i], activation_type,
-                          depthwise=depthwise))  # 2,4,6
+                    block(width_mult(layer_in_ch * 2), width_mult(layer_in_ch * 2), struct[i], activation_type, depthwise=depthwise)
+                )  # 2,4,6
 
-        if yolo_type == 'yoloX':
+        if yolo_type == "yoloX":
             self._modules_list.append(SPP(width_mult(1024), width_mult(1024), (5, 9, 13), activation_type))  # 8
-            self._modules_list.append(
-                block(width_mult(1024), width_mult(1024), struct[3], activation_type, False, depthwise=depthwise))  # 9
+            self._modules_list.append(block(width_mult(1024), width_mult(1024), struct[3], activation_type, False, depthwise=depthwise))  # 9
         else:
-            raise NotImplementedError(f'Yolo type: {yolo_type} is not supported')
+            raise NotImplementedError(f"Yolo type: {yolo_type} is not supported")
 
         if not self.backbone_mode:
             # IF NOT USED AS A BACKEND BUT AS A CLASSIFIER WE ADD THE CLASSIFICATION LAYERS
