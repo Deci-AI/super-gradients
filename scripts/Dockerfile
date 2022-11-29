@@ -7,7 +7,7 @@ RUN mkdir /SG
 
 RUN apt-get update && apt-get install -y python3-pip python-is-python3 pip libgl1 libglib2.0-0 git python3-distutils python3-typing-extensions \
     && rm -rf /var/lib/apt/lists/*
-RUN pip install stringcase git+https://github.com/Deci-AI/super-gradients.git@stable --no-cache-dir && pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113 --no-cache-dir 
+RUN pip install stringcase git+https://github.com/Deci-AI/super-gradients.git@stable --no-cache-dir && pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 --extra-index-url https://download.pytorch.org/whl/cu113 --no-cache-dir 
 
 WORKDIR /SG
 
