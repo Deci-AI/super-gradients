@@ -120,6 +120,7 @@ Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/rel
 ## Coming soon
 __________________________________________________________________________________________________________
 - [ ] PP-Yolo-E implementation
+- [ ] Quantization aware training (QAT)
 - [ ] Tools for faster training 
 - [ ] Integration with more professional tools.
 
