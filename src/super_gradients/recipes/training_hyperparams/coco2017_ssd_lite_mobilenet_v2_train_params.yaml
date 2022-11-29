@@ -3,7 +3,7 @@ max_epochs: 400
 lr_mode: cosine
 cosine_final_lr_ratio: 0.01
 batch_accumulate: 1
-initial_lr: 0.02
+initial_lr: 0.01
 loss: ssd_loss
 
 criterion_params:
