@@ -334,7 +334,7 @@ class YoloHead(nn.Module):
             )
         )  # 24
 
-        self._q_adapters = nn.ModuleList([nn.Identity() for _ in range(len(self._skip_connections_dict.keys()) - 1)])
+        self._shortcuts = nn.ModuleList([nn.Identity() for _ in range(len(self._skip_connections_dict.keys()) - 1)])
         self.anchors = anchors
         self.width_mult = width_mult
 
@@ -353,7 +353,7 @@ class YoloHead(nn.Module):
             # IF THE LAYER APPEARS IN THE KEYS IT INSERT THE PRECIOUS OUTPUT AND THE INDICATED SKIP CONNECTIONS
 
             if layer_idx in self._skip_connections_dict.keys():
-                out = layer_module([out, self._q_adapters[i](intermediate_output[self._skip_connections_dict[layer_idx][0]])])
+                out = layer_module([out, self._shortcuts[i](intermediate_output[self._skip_connections_dict[layer_idx][0]])])
                 i += 1
             else:
                 out = layer_module(out)
