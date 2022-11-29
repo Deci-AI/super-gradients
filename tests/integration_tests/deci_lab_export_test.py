@@ -1,5 +1,6 @@
 import unittest
 from super_gradients import Trainer
+from super_gradients.common.plugins.deci_client import DeciClient
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.models import ResNet18
@@ -69,6 +70,33 @@ class DeciLabUploadTest(unittest.TestCase):
 
         your_model_from_repo = deci_lab_callback.platform_client.get_model_by_name(name=new_model_from_repo_name).data
         deci_lab_callback.platform_client.delete_model(your_model_from_repo.model_id)
+
+    def test_upload_function(self):
+        model_meta_data = ModelMetadata(
+            name="model_for_deci_lab_upload_test",
+            primary_batch_size=1,
+            architecture="Resnet18",
+            framework="pytorch",
+            dl_task="classification",
+            input_dimensions=(3, 224, 224),
+            primary_hardware="K80",
+            dataset_name="ImageNet",
+            description="ResNet18 ONNX deci.ai Test",
+            tags=[""],
+        )
+
+        optimization_request_form = OptimizationRequestForm(
+            target_hardware="XEON",
+            target_batch_size=1,
+            target_metric=Metric.LATENCY,
+            optimize_model_size=True,
+            quantization_level=QuantizationLevel.FP16,
+            optimize_autonac=True,
+        )
+
+        net = ResNet18(num_classes=5, arch_params={})
+        client = DeciClient()
+        client.upload_model(model=net, model_meta_data=model_meta_data, optimization_request_form=optimization_request_form)
 
 
 if __name__ == "__main__":

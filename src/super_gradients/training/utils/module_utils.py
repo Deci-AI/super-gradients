@@ -63,7 +63,9 @@ class MultiOutputModule(nn.Module):
     def forward(self, x) -> list:
         self._outputs_lists[x.device] = []
         self._modules["0"](x)
-        return self._outputs_lists[x.device]
+        outputs = self._outputs_lists[x.device]
+        self._outputs_lists = {}
+        return outputs
 
     def _get_recursive(self, module: nn.Module, path) -> nn.Module:
         """recursively look for a module using a path"""

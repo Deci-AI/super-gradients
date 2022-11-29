@@ -56,18 +56,19 @@ class ClearMLSGLogger(BaseSGLogger):
         """
         self.s3_location_available = storage_location.startswith("s3")
         super().__init__(
-            project_name,
-            experiment_name,
-            storage_location,
-            resumed,
-            training_params,
-            checkpoints_dir_path,
-            tb_files_user_prompt,
-            launch_tensorboard,
-            tensorboard_port,
-            self.s3_location_available,
-            self.s3_location_available,
-            self.s3_location_available,
+            project_name=project_name,
+            experiment_name=experiment_name,
+            storage_location=storage_location,
+            resumed=resumed,
+            training_params=training_params,
+            checkpoints_dir_path=checkpoints_dir_path,
+            tb_files_user_prompt=tb_files_user_prompt,
+            launch_tensorboard=launch_tensorboard,
+            tensorboard_port=tensorboard_port,
+            save_checkpoints_remote=self.s3_location_available,
+            save_tensorboard_remote=self.s3_location_available,
+            save_logs_remote=self.s3_location_available,
+            monitor_system=False,
         )
 
         if _imported_clear_ml_failure is not None:
