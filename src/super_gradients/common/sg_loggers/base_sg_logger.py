@@ -243,10 +243,10 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def close(self):
-        self.tensorboard_writer.close()
         if self.system_monitor is not None:
             self.system_monitor.close()
             logger.info("[CLEANUP] - Successfully stopped system monitoring process")
+        self.tensorboard_writer.close()
         if self.tensor_board_process is not None:
             try:
                 logger.info("[CLEANUP] - Stopping tensorboard process")
