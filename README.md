@@ -289,6 +289,7 @@ Recipes support out of the box every model, metric or loss that is implemented i
 </table>
  </br></br>
 
+ </br>
 <details>
   <summary><h3>Using DDP </h3></summary>
 
