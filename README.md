@@ -307,6 +307,7 @@ across all GPUs after the backward pass.
 #### How to use it ?
 You can use SuperGradients to train your model with DDP in just a few lines.
 
+*main.py*
 ```python
 from super_gradients import init_trainer, Trainer
 from super_gradients.common import MultiGPUMode
@@ -327,8 +328,23 @@ Trainer(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, expriment_name=...)
 
 Trainer.train(...)
 
-
 ```
+
+Finally, you can launch your distributed training with a simple python call.
+```bash
+python main.py
+```
+
+
+Please note that if you work with `torch<1.9.0` (deprecated), you will have to launch your training with either 
+`torch.distributed.launch` or `torchrun`, in which case `nproc_per_node` will overwrite the value  set with `gpu_mode`:
+```bash
+python -m torch.distributed.launch --nproc_per_node=4 main.py
+```
+```bash
+torchrun --nproc_per_node=4 main.py
+```
+
 #### Good to know
 Your total batch size will be (number of gpus x batch size), so you might want to increase your learning rate.
 There is no clear rule, but a rule of thumb seems to be to [linearly increase the learning rate with the number of gpus](https://arxiv.org/pdf/1706.02677.pdf) 
