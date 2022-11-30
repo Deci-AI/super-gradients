@@ -8,6 +8,7 @@ from typing import Tuple, Type
 import torch
 import torch.nn as nn
 
+from super_gradients.modules import Residual
 from super_gradients.training.utils.utils import get_param, HpmStruct
 from super_gradients.training.models.sg_module import SgModule
 
@@ -88,7 +89,7 @@ class Bottleneck(nn.Module):
         self.cv1 = Conv(input_channels, hidden_channels, 1, 1, activation_type)
         self.cv2 = ConvBlock(hidden_channels, output_channels, 3, 1, activation_type)
         self.add = shortcut and input_channels == output_channels
-        self.shortcut = nn.Identity() if self.add else None
+        self.shortcut = Residual() if self.add else None
 
     def forward(self, x):
         return self.shortcut(x) + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))

@@ -7,6 +7,8 @@ Code taken from: https://github.com/signatrix/regnet - MIT Licence
 import numpy as np
 import torch.nn as nn
 from math import sqrt
+
+from super_gradients.modules import Residual
 from super_gradients.training.models.sg_module import SgModule
 from super_gradients.training.utils.regularization_utils import DropPath
 from super_gradients.training.utils.utils import get_param
@@ -69,10 +71,10 @@ class XBlock(nn.Module):  # From figure 4
         self.conv_block_3 = nn.Sequential(nn.Conv2d(inter_channels, out_channels, kernel_size=1, bias=False), nn.BatchNorm2d(out_channels))
         if stride != 1 or in_channels != out_channels:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False), nn.BatchNorm2d(out_channels), nn.Identity()
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False), nn.BatchNorm2d(out_channels), Residual()
             )
         else:
-            self.shortcut = nn.Identity()
+            self.shortcut = Residual()
         self.drop_path = DropPath(drop_prob=droppath_prob)
         self.rl = nn.ReLU()
 

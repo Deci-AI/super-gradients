@@ -4,6 +4,7 @@ from typing import Union, Type, List, Tuple
 import torch
 import torch.nn as nn
 
+from super_gradients.modules import CrossModelSkipConnection
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
 from super_gradients.training.models.sg_module import SgModule
@@ -334,7 +335,7 @@ class YoloHead(nn.Module):
             )
         )  # 24
 
-        self._shortcuts = nn.ModuleList([nn.Identity() for _ in range(len(self._skip_connections_dict.keys()) - 1)])
+        self._shortcuts = nn.ModuleList([CrossModelSkipConnection() for _ in range(len(self._skip_connections_dict.keys()) - 1)])
         self.anchors = anchors
         self.width_mult = width_mult
 
