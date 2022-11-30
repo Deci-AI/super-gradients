@@ -16,6 +16,7 @@ from super_gradients.common.environment.env_helpers import multi_process_safe
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils import sg_trainer_utils
+from super_gradients.common.environment.monitoring import SystemMonitor
 
 logger = get_logger(__name__)
 
@@ -35,6 +36,7 @@ class BaseSGLogger(AbstractSGLogger):
         save_checkpoints_remote: bool = True,
         save_tensorboard_remote: bool = True,
         save_logs_remote: bool = True,
+        monitor_system: bool = True,
     ):
         """
 
@@ -87,6 +89,11 @@ class BaseSGLogger(AbstractSGLogger):
 
         if launch_tensorboard:
             self._launch_tensorboard(port=tensorboard_port)
+
+        if monitor_system:
+            self.system_monitor = SystemMonitor.start(tensorboard_writer=self.tensorboard_writer)
+        else:
+            self.system_monitor = None
 
     @multi_process_safe
     def _launch_tensorboard(self, port):
@@ -236,6 +243,9 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def close(self):
+        if self.system_monitor is not None:
+            self.system_monitor.close()
+            logger.info("[CLEANUP] - Successfully stopped system monitoring process")
         self.tensorboard_writer.close()
         if self.tensor_board_process is not None:
             try:

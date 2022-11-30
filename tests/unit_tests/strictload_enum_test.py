@@ -37,14 +37,14 @@ class Net(nn.Module):
 class StrictLoadEnumTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.temp_working_file_dir = tempfile.TemporaryDirectory(prefix='strict_load_test').name
+        cls.temp_working_file_dir = tempfile.TemporaryDirectory(prefix="strict_load_test").name
         if not os.path.isdir(cls.temp_working_file_dir):
             os.mkdir(cls.temp_working_file_dir)
 
-        cls.experiment_name = 'load_checkpoint_test'
+        cls.experiment_name = "load_checkpoint_test"
 
-        cls.checkpoint_diff_keys_name = 'strict_load_test_diff_keys.pth'
-        cls.checkpoint_diff_keys_path = cls.temp_working_file_dir + '/' + cls.checkpoint_diff_keys_name
+        cls.checkpoint_diff_keys_name = "strict_load_test_diff_keys.pth"
+        cls.checkpoint_diff_keys_path = cls.temp_working_file_dir + "/" + cls.checkpoint_diff_keys_name
 
         # Setup the model
         cls.original_torch_model = Net()
@@ -56,9 +56,15 @@ class StrictLoadEnumTest(unittest.TestCase):
         cls.trainer = Trainer("load_checkpoint_test")  # Saves in /checkpoints
         cls.trainer.set_net(cls.original_torch_model)
         # FIXME: after uniting init and build_model we should remove this
-        cls.trainer.sg_logger = BaseSGLogger('project_name', 'load_checkpoint_test', 'local', resumed=False,
-                                             training_params=HpmStruct(max_epochs=10),
-                                             checkpoints_dir_path=cls.trainer.checkpoints_dir_path)
+        cls.trainer.sg_logger = BaseSGLogger(
+            "project_name",
+            "load_checkpoint_test",
+            "local",
+            resumed=False,
+            training_params=HpmStruct(max_epochs=10),
+            checkpoints_dir_path=cls.trainer.checkpoints_dir_path,
+            monitor_system=False,
+        )
         cls.trainer._save_checkpoint()
 
     @classmethod
@@ -74,15 +80,15 @@ class StrictLoadEnumTest(unittest.TestCase):
         return new_ckpt_dict
 
     def check_models_have_same_weights(self, model_1, model_2):
-        model_1, model_2 = model_1.to('cpu'), model_2.to('cpu')
+        model_1, model_2 = model_1.to("cpu"), model_2.to("cpu")
         models_differ = 0
         for key_item_1, key_item_2 in zip(model_1.state_dict().items(), model_2.state_dict().items()):
             if torch.equal(key_item_1[1], key_item_2[1]):
                 pass
             else:
                 models_differ += 1
-                if (key_item_1[0] == key_item_2[0]):
-                    print('Mismtach found at', key_item_1[0])
+                if key_item_1[0] == key_item_2[0]:
+                    print("Mismtach found at", key_item_1[0])
                 else:
                     raise Exception
         if models_differ == 0:
@@ -92,9 +98,8 @@ class StrictLoadEnumTest(unittest.TestCase):
 
     def test_strict_load_on(self):
         # Define Model
-        model = models.get('resnet18', arch_params={"num_classes": 1000})
-        pretrained_model = models.get('resnet18', arch_params={"num_classes": 1000},
-                                      pretrained_weights="imagenet")
+        model = models.get("resnet18", arch_params={"num_classes": 1000})
+        pretrained_model = models.get("resnet18", arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
 
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(model, pretrained_model)
@@ -102,17 +107,15 @@ class StrictLoadEnumTest(unittest.TestCase):
         pretrained_sd_path = os.path.join(self.temp_working_file_dir, "pretrained_net_strict_load_on.pth")
         torch.save(pretrained_model.state_dict(), pretrained_sd_path)
 
-        model = models.get('resnet18', arch_params={"num_classes": 1000},
-                           checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
+        model = models.get("resnet18", arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
 
         # Assert the weights were loaded correctly
         assert self.check_models_have_same_weights(model, pretrained_model)
 
     def test_strict_load_off(self):
         # Define Model
-        model = models.get('resnet18', arch_params={"num_classes": 1000})
-        pretrained_model = models.get('resnet18', arch_params={"num_classes": 1000},
-                                      pretrained_weights="imagenet")
+        model = models.get("resnet18", arch_params={"num_classes": 1000})
+        pretrained_model = models.get("resnet18", arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
 
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(model, pretrained_model)
@@ -122,20 +125,17 @@ class StrictLoadEnumTest(unittest.TestCase):
         torch.save(pretrained_model.state_dict(), pretrained_sd_path)
 
         with self.assertRaises(RuntimeError):
-            models.get('resnet18', arch_params={"num_classes": 1000},
-                       checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
+            models.get("resnet18", arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
 
-        model = models.get('resnet18', arch_params={"num_classes": 1000},
-                           checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.OFF)
+        model = models.get("resnet18", arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.OFF)
         del model.linear
         # Assert the weights were loaded correctly
         assert self.check_models_have_same_weights(model, pretrained_model)
 
     def test_strict_load_no_key_matching_sg_checkpoint(self):
         # Define Model
-        model = models.get('resnet18', arch_params={"num_classes": 1000})
-        pretrained_model = models.get('resnet18', arch_params={"num_classes": 1000},
-                                      pretrained_weights="imagenet")
+        model = models.get("resnet18", arch_params={"num_classes": 1000})
+        pretrained_model = models.get("resnet18", arch_params={"num_classes": 1000}, pretrained_weights="imagenet")
 
         # Make sure we initialized a model with different weights
         assert not self.check_models_have_same_weights(model, pretrained_model)
@@ -144,14 +144,12 @@ class StrictLoadEnumTest(unittest.TestCase):
         torch.save(self.change_state_dict_keys(pretrained_model.state_dict()), pretrained_sd_path)
 
         with self.assertRaises(RuntimeError):
-            models.get('resnet18', arch_params={"num_classes": 1000},
-                       checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
+            models.get("resnet18", arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.ON)
 
-        model = models.get('resnet18', arch_params={"num_classes": 1000},
-                           checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.NO_KEY_MATCHING)
+        model = models.get("resnet18", arch_params={"num_classes": 1000}, checkpoint_path=pretrained_sd_path, strict_load=StrictLoad.NO_KEY_MATCHING)
         # Assert the weights were loaded correctly
         assert self.check_models_have_same_weights(model, pretrained_model)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
