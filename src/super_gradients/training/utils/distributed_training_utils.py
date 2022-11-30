@@ -1,6 +1,7 @@
 import sys
 import itertools
 from contextlib import contextmanager
+from deprecate import deprecated
 
 import torch
 import torch.nn as nn
@@ -170,21 +171,13 @@ def wait_for_the_master(local_rank: int):
             dist.barrier()
 
 
-def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
-    """[DEPRECATED in favor of setup_device] If required, launch ddp subprocesses.
-    :param gpu_mode:    DDP, DP or Off
-    :param num_gpus:    Number of GPU's to use.
-    """
-    logger.warning("setup_gpu_mode is now deprecated in favor of setup_device")
-    setup_device(multi_gpu=gpu_mode, num_gpus=num_gpus)
-
-
-def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
+def setup_device(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     """
     If required, launch ddp subprocesses.
     :param multi_gpu:   DDP, DP or Off
     :param num_gpus:    Number of GPU's to use.
     """
+    multi_gpu = gpu_mode
     if multi_gpu == MultiGPUMode.AUTO and torch.cuda.device_count() > 1:
         multi_gpu = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
     if require_gpu_setup(multi_gpu):
@@ -192,6 +185,16 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = Non
         if num_gpus > torch.cuda.device_count():
             raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
         restart_script_with_ddp(num_gpus)
+
+
+@deprecated(target=setup_device, deprecated_in="2.1.0", remove_in="3.5.0")
+def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
+    """If required, launch ddp subprocesses.
+    :param gpu_mode:    DDP, DP or Off
+    :param num_gpus:    Number of GPU's to use.
+    """
+    logger.warning("setup_gpu_mode is now deprecated in favor of setup_device")
+    setup_device(gpu_mode=gpu_mode, num_gpus=num_gpus)
 
 
 def require_gpu_setup(multi_gpu: MultiGPUMode) -> bool:
