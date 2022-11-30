@@ -48,7 +48,7 @@ ________________________________________________________________________________
 # Load model with pretrained weights
 model = models.get("yolox_s", pretrained_weights="coco")
 ```
-#### All Computer Vision Models - Pretrained Checkpoints can be found [here](http://bit.ly/3EGfKD4)
+#### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
 
 #### Classification
 <div align="center">
@@ -72,7 +72,7 @@ Easily load and fine-tune production-ready, pre-trained SOTA models that incorpo
 For more information on how to do it go to [Getting Started](#getting-started)
     
 
-### Plug and play recipes
+#### Plug and play recipes
 ```python
 python -m super_gradients.examples.train_from_recipe_example.train_from_recipe architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
@@ -109,7 +109,6 @@ pip install super-gradients
 ## What's New
 __________________________________________________________________________________________________________
 * 【17/11/2022】 Integration with ClearML
-* 【06/9/2022】Supporting PyTorch Datasets and Dataloaders
 * 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
 * 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
 * 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
@@ -121,6 +120,7 @@ Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/rel
 ## Coming soon
 __________________________________________________________________________________________________________
 - [ ] PP-Yolo-E implementation
+- [ ] Quantization aware training (QAT)
 - [ ] Tools for faster training 
 - [ ] Integration with more professional tools.
 
@@ -290,8 +290,10 @@ Recipes support out of the box every model, metric or loss that is implemented i
 </table>
  </br></br>
 
+ </br>
+<details>
+  <summary><h3>Using Distributed Data Parallel (DDP) </h3></summary>
 
-### Using Distributed Data Parallel (DDP)
 #### Why use DDP ?
 
 Recent Deep Learning models are growing larger and larger to an extent that training on a single GPU can take weeks.
@@ -349,7 +351,11 @@ torchrun --nproc_per_node=4 main.py
 Your total batch size will be (number of gpus x batch size), so you might want to increase your learning rate.
 There is no clear rule, but a rule of thumb seems to be to [linearly increase the learning rate with the number of gpus](https://arxiv.org/pdf/1706.02677.pdf) 
 
-### Easily change architectures parameters
+</details>
+
+<details>
+<summary><h3> Easily change architectures parameters </h3></summary>
+
 ```python
 from super_gradients.training import models
 
@@ -363,7 +369,12 @@ droppath_resnet18 = models.get(model_name="resnet18", arch_params={"droppath_pro
 backbone_resnet18 = models.get(model_name="resnet18", arch_params={"backbone_mode": True}, pretrained_weights="imagenet")
 ```
 
-### Using phase callbacks
+</details>
+
+<details>
+
+<summary><h3> Using phase callbacks </h3></summary>  
+  
 ```python
 from super_gradients import Trainer
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -386,7 +397,14 @@ trainer = Trainer("experiment_name")
 # define phase_callbacks as part of the training parameters
 train_params = {"phase_callbacks": phase_callbacks}
 ```
-### Integration to Weights and Biases
+
+</details>
+
+<details>
+
+<summary><h3> Integration to Weights and Biases </h3></summary>    
+  
+
 ```python
 from super_gradients import Trainer
 
@@ -405,7 +423,12 @@ train_params = { ... # training parameters
                }
 ```
 
-### Integration to ClearML
+</details>
+
+<details>
+
+<summary><h3> Integration to ClearML </h3></summary>    
+    
 ```python
 from super_gradients import Trainer
 
@@ -423,6 +446,8 @@ train_params = { ... # training parameters
                   } 
                }
 ```
+
+  </details>
 
 
 ## Installation Methods
@@ -478,6 +503,8 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 
 ## Implemented Model Architectures 
 __________________________________________________________________________________________________________
+
+All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
 
 Detailed list can be found [here](http://bit.ly/3GnJwgZ) 
 

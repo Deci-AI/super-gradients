@@ -76,6 +76,8 @@ class SystemMonitor:
             for _ in range(self.n_samples_per_aggregate):
                 self._sample()
                 time.sleep(self.sample_interval)
+                if not self.running:
+                    break
             self._aggregate_and_write()
 
     def _init_stat_aggregators(self):

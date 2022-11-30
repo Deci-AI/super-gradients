@@ -1,10 +1,4 @@
 ## Super-Gradients configuration for black/mypy/isort etc tools.
-
-[[tool.poetry.source]]
-name = "nvidia-pyindex"
-url = 'https://pypi.ngc.nvidia.com'
-secondary = true
-
 [tool.isort]
 profile = "black"
 multi_line_output = 3
