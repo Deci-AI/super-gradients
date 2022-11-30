@@ -710,7 +710,7 @@ class PPYoloECollateFN:
         """
 
         :param targets:
-        :return: Tensor of shape [B, N, 6], where 6 elements are (image index in batch, x, y, x, y, label)
+        :return: Tensor of shape [B, N, 6], where 6 elements are (index, c, cx, cy, w, h)
         """
         # Same collate as in YoloX. We convert to PPYoloTargets in the loss
         nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image

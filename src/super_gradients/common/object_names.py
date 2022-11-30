@@ -121,6 +121,7 @@ class Callbacks:
     YOLOX_TRAINING_STAGE_SWITCH = "YoloXTrainingStageSwitchCallback"
     PPYOLOE_TRAINING_STAGE_SWITCH = "PPYoloETrainingStageSwitchCallback"
     DETECTION_VISUALIZATION_CALLBACK = "DetectionVisualizationCallback"
+    DETECTION_RANDOMRESIZE_PREPREDICTION = "DetectionRandomResizePrePredictionCallback"
 
 
 class LRSchedulers:

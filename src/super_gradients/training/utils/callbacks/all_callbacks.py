@@ -17,8 +17,7 @@ from super_gradients.training.utils.callbacks.callbacks import (
 from super_gradients.training.utils.callbacks.ppyoloe_switch_callback import PPYoloETrainingStageSwitchCallback
 
 from super_gradients.training.utils.early_stopping import EarlyStop
-from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback
-
+from super_gradients.training.datasets.datasets_utils import DetectionMultiscalePrePredictionCallback, DetectionRandomResizePrePredictionCallback
 
 CALLBACKS = {
     Callbacks.DECI_LAB_UPLOAD: DeciLabUploadCallback,
@@ -31,6 +30,7 @@ CALLBACKS = {
     Callbacks.YOLOX_TRAINING_STAGE_SWITCH: YoloXTrainingStageSwitchCallback,
     Callbacks.PPYOLOE_TRAINING_STAGE_SWITCH: PPYoloETrainingStageSwitchCallback,
     Callbacks.DETECTION_VISUALIZATION_CALLBACK: DetectionVisualizationCallback,
+    Callbacks.DETECTION_RANDOMRESIZE_PREPREDICTION: DetectionRandomResizePrePredictionCallback,
 }
 
 
