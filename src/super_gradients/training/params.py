@@ -50,7 +50,7 @@ DEFAULT_TRAINING_PARAMS = {
     "step_lr_update_freq": None,
     "lr_updates": [],
     "clip_grad_norm": None,
-    "pre_prediction_callback": None,
+    "pre_prediction_callback": {},
     "ckpt_best_name": "ckpt_best.pth",
     "enable_qat": False,
     "qat_params": {
