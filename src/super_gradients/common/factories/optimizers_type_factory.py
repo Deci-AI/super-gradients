@@ -1,4 +1,4 @@
-from super_gradients.common.factories import TypeFactory
+from super_gradients.common.factories.type_factory import TypeFactory
 from super_gradients.training.utils.optimizers import OPTIMIZERS
 
 

@@ -13,7 +13,8 @@ from super_gradients.training.models.segmentation_models.stdc import STDCBlock
 from super_gradients.training.models import SgModule, HpmStruct
 from super_gradients.modules import ConvBNReLU
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories import ListFactory, TypeFactory
+from super_gradients.common.factories.list_factory import ListFactory
+from super_gradients.common.factories.type_factory import TypeFactory
 
 
 class AntiAliasDownsample(nn.Module):
