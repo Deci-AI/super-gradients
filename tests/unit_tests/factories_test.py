@@ -4,7 +4,7 @@ import torch
 
 from super_gradients import Trainer
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories import ActivationsTypeFactory
+from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.training import models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
