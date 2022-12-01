@@ -130,7 +130,7 @@ class BaseSGLogger(AbstractSGLogger):
         log_lines.append(json.dumps(config, indent=4, default=str))
         log_lines.append("------- config parameters end --------")
 
-        self.tensorboard_writer.add_text("Hyper_parameters", json.dumps(config, indent=4, default=str).replace(" ", "&nbsp;").replace("\n", "  \n  "))
+        self.tensorboard_writer.add_text(tag, json.dumps(config, indent=4, default=str).replace(" ", "&nbsp;").replace("\n", "  \n  "))
         self._write_to_log_file(log_lines)
 
     @multi_process_safe
