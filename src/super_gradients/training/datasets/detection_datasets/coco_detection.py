@@ -1,15 +1,15 @@
 import copy
 import os
-import cv2
 
+import cv2
 import numpy as np
 from pycocotools.coco import COCO
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 from super_gradients.training.datasets.detection_datasets.detection_dataset import DetectionDataset
 from super_gradients.training.exceptions.dataset_exceptions import DatasetValidationException, ParameterMismatchException
 from super_gradients.training.utils.detection_utils import DetectionTargetsFormat
-from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASSES_LIST
 
 logger = get_logger(__name__)
 
