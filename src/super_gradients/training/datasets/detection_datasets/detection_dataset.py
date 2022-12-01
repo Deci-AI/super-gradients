@@ -17,7 +17,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.training.utils.detection_utils import get_cls_posx_in_target, DetectionTargetsFormat
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform
-from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
+from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 
@@ -117,17 +117,17 @@ class DetectionDataset(Dataset):
         self.max_num_samples = max_num_samples
 
         if len(all_classes_list) != len(set(all_classes_list)):
-            raise ValueError(f"all_classes_list contains duplicate class names: {collections.Counter(all_classes_list)}")
+            raise DatasetValidationException(f"all_classes_list contains duplicate class names: {collections.Counter(all_classes_list)}")
 
         if class_inclusion_list is not None and len(class_inclusion_list) != len(set(class_inclusion_list)):
-            raise ValueError(f"class_inclusion_list contains duplicate class names: {collections.Counter(class_inclusion_list)}")
+            raise DatasetValidationException(f"class_inclusion_list contains duplicate class names: {collections.Counter(class_inclusion_list)}")
 
         self.all_classes_list = all_classes_list
         self.class_inclusion_list = class_inclusion_list
         self.classes = self.class_inclusion_list or self.all_classes_list
         if len(set(self.classes) - set(all_classes_list)) > 0:
             wrong_classes = set(self.classes) - set(all_classes_list)
-            raise ValueError(f"class_inclusion_list includes classes that are not in all_classes_list: {wrong_classes}")
+            raise DatasetValidationException(f"class_inclusion_list includes classes that are not in all_classes_list: {wrong_classes}")
 
         self.ignore_empty_annotations = ignore_empty_annotations
         self.target_fields = target_fields or ["target"]
