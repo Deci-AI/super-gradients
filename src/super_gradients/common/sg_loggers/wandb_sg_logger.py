@@ -41,6 +41,7 @@ class WandBSGLogger(BaseSGLogger):
         entity: Optional[str] = None,
         api_server: Optional[str] = None,
         save_code: bool = False,
+        monitor_system: bool = True,
         **kwargs,
     ):
         """
@@ -71,7 +72,7 @@ class WandBSGLogger(BaseSGLogger):
             save_checkpoints_remote=self.s3_location_available,
             save_tensorboard_remote=self.s3_location_available,
             save_logs_remote=self.s3_location_available,
-            monitor_system=False,
+            monitor_system=monitor_system,
         )
 
         if api_server is not None:

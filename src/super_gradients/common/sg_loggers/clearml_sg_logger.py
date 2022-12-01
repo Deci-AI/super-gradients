@@ -37,7 +37,6 @@ class ClearMLSGLogger(BaseSGLogger):
         save_checkpoints_remote: bool = True,
         save_tensorboard_remote: bool = True,
         save_logs_remote: bool = True,
-        **kwargs,
     ):
         """
         :param project_name: ClearML project name that can include many experiments
