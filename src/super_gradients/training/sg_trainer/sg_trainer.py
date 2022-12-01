@@ -84,6 +84,7 @@ from super_gradients.training.utils.callbacks import (
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
+from omegaconf import OmegaConf
 
 logger = get_logger(__name__)
 
@@ -220,14 +221,14 @@ class Trainer:
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
         )
-
+        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
         res = trainer.train(
             model=model,
             train_loader=train_dataloader,
             valid_loader=val_dataloader,
             training_params=cfg.training_hyperparams,
-            additional_configs_to_log={"recipe_config": cfg},
+            additional_configs_to_log=recipe_logged_cfg,
         )
 
         return model, res
