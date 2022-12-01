@@ -701,26 +701,29 @@ class PPYoloECollateFN:
     Collate function for PPYoloE training
     """
 
-    def __init__(self, target_size: Union[List[int], int]):
+    def __init__(self, random_resize_sizes: Union[List[int], None] = None, random_resize_modes: Union[List[int], None] = None):
         """
 
         Args:
-            target_size: (rows, cols)
+            random_resize_sizes: (rows, cols)
         """
-        self.target_size = target_size
-        self.interpolation_method = ["nearest", "bilinear", "area"]
+        self.random_resize_sizes = random_resize_sizes
+        self.interpolation_method = random_resize_modes
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
-        if self.target_size is not None:
+        if self.random_resize_sizes is not None:
             data = self.random_resize(data)
 
         batch = default_collate(data)
         ims, targets = batch
         targets = self._format_targets(targets)
+        if ims.shape[3] == 3:
+            ims = torch.moveaxis(ims, -1, 1).float()
+
         return ims, targets
 
     def random_resize(self, batch):
-        target_size = random.choice(self.target_size)
+        target_size = random.choice(self.random_resize_sizes)
         interpolation = random.choice(self.interpolation_method)
         batch = [self.random_resize_sample(sample, target_size, interpolation) for sample in batch]
         return batch
@@ -731,8 +734,8 @@ class PPYoloECollateFN:
         if channels_first:
             image = np.moveaxis(image, 0, -1)
 
-        dsize = int(target_size[1]), int(targets[0])
-        scale_factors = target_size[0] / image.shape[0], target_size[1] / image.shape[1]
+        dsize = int(target_size), int(target_size)
+        scale_factors = target_size / image.shape[0], target_size / image.shape[1]
 
         image = cv2.resize(
             image,
@@ -741,10 +744,8 @@ class PPYoloECollateFN:
         )
 
         sy, sx = scale_factors
-        targets[:, 1:] *= np.array([[sx, sy, sx, sy]])
+        targets[:, 1:5] *= np.array([[sx, sy, sx, sy]], dtype=targets.dtype)
 
-        if channels_first:
-            image = np.moveaxis(image, 0, -1)
         return image, targets
 
     def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:

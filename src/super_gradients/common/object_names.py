@@ -50,6 +50,7 @@ class Transforms:
     DetectionMixup = "DetectionMixup"
     DetectionHSV = "DetectionHSV"
     DetectionHorizontalFlip = "DetectionHorizontalFlip"
+    DetectionRescale = "DetectionRescale"
     DetectionPaddedRescale = "DetectionPaddedRescale"
     DetectionTargetsFormat = "DetectionTargetsFormat"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"

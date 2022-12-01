@@ -9,7 +9,7 @@ train_dataset_params:
     - DetectionRandomAffine:
         degrees: 0                    # rotation degrees, randomly sampled from [-degrees, degrees]
         translate: 0.25               # image translation fraction
-        scales: [ 0.75, 1 / 0.75 ]    # random rescale range (keeps size by padding/cropping) after mosaic transform.
+        scales: [ 0.5, 1.5 ]          # random rescale range (keeps size by padding/cropping) after mosaic transform.
         shear: 0                      # shear degrees, randomly sampled from [-degrees, degrees]
         target_size: # None, do not resize dataset on load
         filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
@@ -39,10 +39,11 @@ train_dataloader_params:
   batch_size: 16
   num_workers: 8
   batch_sampler: True
-  sampler:
-    DistributedSampler:
-      shuffle: True
-      drop_last: True
+  sampler: null
+#  sampler:
+#    DistributedSampler:
+#      shuffle: True
+#      drop_last: True
   drop_last: True
   pin_memory: True
   worker_init_fn:
@@ -50,10 +51,17 @@ train_dataloader_params:
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
   collate_fn: # collate function for trainset
     _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
+    random_resize_sizes: [ 320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768 ]
+    random_resize_modes:
+      - 0 # cv::INTER_NEAREST
+      - 1 # cv::INTER_LINEAR
+      - 2 # cv::INTER_CUBIC
+      - 3 # cv::INTER_AREA
+      - 4 # cv::INTER_LANCZOS4
 
 val_dataset_params:
   data_dir: /data/coco # root path to coco data
-  subdir: images/val2017 # sub directory path of data_dir containing the train data.
+  subdir: images/val2017 # subdirectory path of data_dir containing the train data.
   json_file: instances_val2017.json # path to coco train json file, data_dir/annotations/train_json_file.
   input_dim: #[640, 640]
   cache_dir:
@@ -76,9 +84,11 @@ val_dataloader_params:
   num_workers: 8
   drop_last: False
   pin_memory: True
-  sampler:
-    DistributedSampler:
-      shuffle: False
+  sampler: null
+
+#  sampler:
+#    DistributedSampler:
+#      shuffle: False
   collate_fn: # collate function for trainset
     _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
 

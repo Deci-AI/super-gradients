@@ -3,7 +3,7 @@ from typing import Tuple, Type
 import numpy as np
 import torch
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories import ActivationsTypeFactory
+from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.training.utils.bbox_utils import batch_distance2bbox
 from torch import nn, Tensor
 

@@ -1,6 +1,7 @@
 import collections
 import math
 import random
+from numbers import Number
 from typing import Optional, Union, Tuple, List, Sequence, Dict
 
 from PIL import Image, ImageFilter, ImageOps
@@ -650,15 +651,16 @@ class DetectionRescale(DetectionTransform):
         return sample
 
     def _rescale_image(self, image):
-        scale_factors = self.input_dim[0] / image.shape[0], self.input_dim[1] / image.shape[1]
+        sy, sx = self.input_dim[0] / image.shape[0], self.input_dim[1] / image.shape[1]
         resized_img = cv2.resize(
             image,
             dsize=(int(self.input_dim[1]), int(self.input_dim[0])),
             interpolation=cv2.INTER_LINEAR,
         )
+        scale_factors = sy, sx
         return resized_img, scale_factors
 
-    def _rescale_target(self, targets: np.array, r: Tuple[float, float]) -> np.array:
+    def _rescale_target(self, targets: np.array, scale_factors: Tuple[float, float]) -> np.array:
         """SegRescale the target according to a coefficient used to rescale the image.
         This is done to have images and targets at the same scale.
 
@@ -667,8 +669,9 @@ class DetectionRescale(DetectionTransform):
 
         :return:         Rescaled targets, shape (num_boxes, 5)
         """
+        sy, sx = scale_factors
         targets = targets.copy() if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
-        targets[:, :4] *= np.array([[r[0], r[1], r[0], r[1]]])
+        targets[:, 0:4] *= np.array([[sx, sy, sx, sy]])
         return targets
 
 
@@ -861,8 +864,8 @@ def get_aug_params(value: Union[tuple, float], center: float = 0):
     :param center: float, defines center to subtract when value is float.
     :return: generated value
     """
-    if isinstance(value, float):
-        return random.uniform(center - value, center + value)
+    if isinstance(value, Number):
+        return random.uniform(center - float(value), center + float(value))
     elif len(value) == 2:
         return random.uniform(value[0], value[1])
     else:

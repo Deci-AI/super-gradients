@@ -24,8 +24,8 @@
 
 
 defaults:
-  - training_hyperparams: coco2017_ppyoloe_sgd_no_tal_train_params
-  - dataset_params: coco_detection_ppyoloe_no_mosaic_dataset_params
+  - training_hyperparams: coco2017_ppyoloe_paper_version
+  - dataset_params: coco_detection_ppyoloe_no_mosaic_no_mixup_dataset_params
   - arch_params: ppyoloe_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
@@ -58,20 +58,18 @@ dataset_params:
 training_hyperparams:
   resume: ${resume}
 
-  sg_logger: "wandb_sg_logger"
-  sg_logger_params:
-    project_name: coco2017_ppyoloe_s
-    entity: super-gradients
-    api_server: "https://wandb.research.deci.ai"
-    save_checkpoints_remote: True
-    save_tensorboard_remote: True
-    save_logs_remote: True
+#  sg_logger: "wandb_sg_logger"
+#  sg_logger_params:
+#    project_name: coco2017_ppyoloe_s
+#    entity: super-gradients
+#    api_server: "https://wandb.research.deci.ai"
+#    save_checkpoints_remote: True
+#    save_tensorboard_remote: True
+#    save_logs_remote: True
 
-  ema: True
-
-  pre_prediction_callback:
-    DetectionRandomResizePrePredictionCallback:
-      target_size: [320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768]
+#  pre_prediction_callback:
+#    DetectionRandomResizePrePredictionCallback:
+#      target_size: [320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768]
 
 architecture: ppyoloe
 
@@ -79,7 +77,7 @@ multi_gpu: DDP
 num_gpus: 8
 
 experiment_suffix: res${dataset_params.train_dataset_params.input_dim}
-experiment_name: coco2017_ppyoloe_s_ema_no_mosaic_no_tal_pretrained_backbone_imagenet_norm_random_resize_${experiment_suffix}
+experiment_name: coco2017_ppyoloe_s_as_in_paper_${experiment_suffix}
 
 ckpt_root_dir:
 

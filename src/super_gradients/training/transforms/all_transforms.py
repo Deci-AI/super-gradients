@@ -25,6 +25,7 @@ from super_gradients.training.transforms.transforms import (
     DetectionTargetsFormat,
     DetectionPaddedRescale,
     DetectionTargetsFormatTransform,
+    DetectionRescale,
 )
 from torchvision.transforms import (
     Compose,
@@ -80,6 +81,7 @@ TRANSFORMS = {
     Transforms.DetectionMixup: DetectionMixup,
     Transforms.DetectionHSV: DetectionHSV,
     Transforms.DetectionHorizontalFlip: DetectionHorizontalFlip,
+    Transforms.DetectionRescale: DetectionRescale,
     Transforms.DetectionPaddedRescale: DetectionPaddedRescale,
     Transforms.DetectionTargetsFormat: DetectionTargetsFormat,
     Transforms.DetectionTargetsFormatTransform: DetectionTargetsFormatTransform,

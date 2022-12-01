@@ -3,7 +3,7 @@ from typing import Type, Tuple, List
 
 import torch
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories import ActivationsTypeFactory
+from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from torch import nn, Tensor
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNetBasicBlock
 from super_gradients.modules import ConvBNAct
