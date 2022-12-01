@@ -642,7 +642,7 @@ class DetectionRescale(DetectionTransform):
     def __call__(self, sample: Dict[str, np.array]):
         img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
 
-        img_resized, scale_factors = rescale_and_pad_to_size(img, self.input_dim, self.swap)
+        img_resized, scale_factors = self._rescale_image(img)
 
         sample["image"] = img_resized.transpose(self.swap).astype(np.float32, copy=True)
         sample["target"] = self._rescale_target(targets, scale_factors)
