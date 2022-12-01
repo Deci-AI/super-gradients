@@ -13,6 +13,7 @@ from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import calculate_bbox_iou_matrix
 
 logger = get_logger(__name__)
@@ -41,10 +42,9 @@ class IOUloss(nn.Module):
         supported_losses = ["iou", "giou"]
         supported_reductions = ["mean", "sum", "none"]
         if loss_type not in supported_losses:
-            raise ValueError("Illegal loss_type value: " + loss_type + ', expected one of: ' + str(supported_losses))
+            raise ValueError("Illegal loss_type value: " + loss_type + ", expected one of: " + str(supported_losses))
         if reduction not in supported_reductions:
-            raise ValueError(
-                "Illegal reduction value: " + reduction + ', expected one of: ' + str(supported_reductions))
+            raise ValueError("Illegal reduction value: " + reduction + ", expected one of: " + str(supported_reductions))
 
     def forward(self, pred, target):
         assert pred.shape[0] == target.shape[0]
@@ -63,7 +63,7 @@ class IOUloss(nn.Module):
         iou = (area_i) / (area_u + 1e-16)
 
         if self.loss_type == "iou":
-            loss = 1 - iou ** 2
+            loss = 1 - iou**2
         elif self.loss_type == "giou":
             c_tl = torch.min((pred[:, :2] - pred[:, 2:] / 2), (target[:, :2] - target[:, 2:] / 2))
             c_br = torch.max((pred[:, :2] + pred[:, 2:] / 2), (target[:, :2] + target[:, 2:] / 2))
@@ -114,8 +114,7 @@ class YoloXDetectionLoss(_Loss):
 
     """
 
-    def __init__(self, strides: list, num_classes: int, use_l1: bool = False, center_sampling_radius: float = 2.5,
-                 iou_type='iou'):
+    def __init__(self, strides: list, num_classes: int, use_l1: bool = False, center_sampling_radius: float = 2.5, iou_type="iou"):
         super().__init__()
         self.grids = [torch.zeros(1)] * len(strides)
         self.strides = strides
@@ -164,11 +163,14 @@ class YoloXDetectionLoss(_Loss):
         :param ny: int: cells along the y axis (default=20)
         :return: torch.tensor of xy coordinates of size (1,1,nx,ny,2)
         """
-        yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
+        if torch_version_is_greater_or_equal(1, 10):
+            # https://github.com/pytorch/pytorch/issues/50276
+            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)], indexing="ij")
+        else:
+            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
-    def _compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
-            -> Tuple[torch.Tensor, torch.Tensor]:
+    def _compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         :param predictions:     output from all Yolo levels, each of shape
                                 [Batch x 1 x GridSizeY x GridSizeX x (4 + 1 + Num_classes)]
@@ -190,7 +192,7 @@ class YoloXDetectionLoss(_Loss):
         obj_targets = []
         fg_masks = []
 
-        num_fg, num_gts = 0., 0.
+        num_fg, num_gts = 0.0, 0.0
 
         for image_idx in range(transformed_outputs.shape[0]):
             labels_im = targets[targets[:, 0] == image_idx]
@@ -210,21 +212,42 @@ class YoloXDetectionLoss(_Loss):
 
                 try:
                     # assign cells to ground truths, at most one GT per cell
-                    gt_matched_classes, fg_mask, pred_ious_this_matching, matched_gt_inds, num_fg_img = \
-                        self.get_assignments(image_idx, num_gt, total_num_anchors, gt_bboxes_per_image,
-                                             gt_classes, bboxes_preds_per_image,
-                                             expanded_strides, x_shifts, y_shifts, cls_preds, obj_preds)
+                    gt_matched_classes, fg_mask, pred_ious_this_matching, matched_gt_inds, num_fg_img = self.get_assignments(
+                        image_idx,
+                        num_gt,
+                        total_num_anchors,
+                        gt_bboxes_per_image,
+                        gt_classes,
+                        bboxes_preds_per_image,
+                        expanded_strides,
+                        x_shifts,
+                        y_shifts,
+                        cls_preds,
+                        obj_preds,
+                    )
 
                 # TODO: CHECK IF ERROR IS CUDA OUT OF MEMORY
                 except RuntimeError:
-                    logging.error("OOM RuntimeError is raised due to the huge memory cost during label assignment. \
+                    logging.error(
+                        "OOM RuntimeError is raised due to the huge memory cost during label assignment. \
                                    CPU mode is applied in this batch. If you want to avoid this issue, \
-                                   try to reduce the batch size or image size.")
+                                   try to reduce the batch size or image size."
+                    )
                     torch.cuda.empty_cache()
-                    gt_matched_classes, fg_mask, pred_ious_this_matching, matched_gt_inds, num_fg_img = \
-                        self.get_assignments(image_idx, num_gt, total_num_anchors, gt_bboxes_per_image,
-                                             gt_classes, bboxes_preds_per_image,
-                                             expanded_strides, x_shifts, y_shifts, cls_preds, obj_preds, 'cpu')
+                    gt_matched_classes, fg_mask, pred_ious_this_matching, matched_gt_inds, num_fg_img = self.get_assignments(
+                        image_idx,
+                        num_gt,
+                        total_num_anchors,
+                        gt_bboxes_per_image,
+                        gt_classes,
+                        bboxes_preds_per_image,
+                        expanded_strides,
+                        x_shifts,
+                        y_shifts,
+                        cls_preds,
+                        obj_preds,
+                        "cpu",
+                    )
 
                 torch.cuda.empty_cache()
                 num_fg += num_fg_img
@@ -233,9 +256,13 @@ class YoloXDetectionLoss(_Loss):
                 obj_target = fg_mask.unsqueeze(-1)
                 reg_target = gt_bboxes_per_image[matched_gt_inds]
                 if self.use_l1:
-                    l1_target = self.get_l1_target(transformed_outputs.new_zeros((num_fg_img, 4)),
-                                                   gt_bboxes_per_image[matched_gt_inds], expanded_strides[0][fg_mask],
-                                                   x_shifts=x_shifts[0][fg_mask], y_shifts=y_shifts[0][fg_mask])
+                    l1_target = self.get_l1_target(
+                        transformed_outputs.new_zeros((num_fg_img, 4)),
+                        gt_bboxes_per_image[matched_gt_inds],
+                        expanded_strides[0][fg_mask],
+                        x_shifts=x_shifts[0][fg_mask],
+                        y_shifts=y_shifts[0][fg_mask],
+                    )
 
             # collect targets for all loss terms over the whole batch
             cls_targets.append(cls_target)
@@ -266,13 +293,21 @@ class YoloXDetectionLoss(_Loss):
         reg_weight = 5.0
         loss = reg_weight * loss_iou + loss_obj + loss_cls + loss_l1
 
-        return loss, torch.cat((loss_iou.unsqueeze(0), loss_obj.unsqueeze(0), loss_cls.unsqueeze(0),
-                                torch.tensor(loss_l1).unsqueeze(0).to(loss.device),
-                                torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).to(loss.device),
-                                loss.unsqueeze(0))).detach()
+        return (
+            loss,
+            torch.cat(
+                (
+                    loss_iou.unsqueeze(0),
+                    loss_obj.unsqueeze(0),
+                    loss_cls.unsqueeze(0),
+                    torch.tensor(loss_l1).unsqueeze(0).to(loss.device),
+                    torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).to(loss.device),
+                    loss.unsqueeze(0),
+                )
+            ).detach(),
+        )
 
-    def prepare_predictions(self, predictions: List[torch.Tensor]) -> \
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def prepare_predictions(self, predictions: List[torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Convert raw outputs of the network into a format that merges outputs from all levels
         :param predictions:     output from all Yolo levels, each of shape
@@ -351,9 +386,23 @@ class YoloXDetectionLoss(_Loss):
         return l1_target
 
     @torch.no_grad()
-    def get_assignments(self, image_idx, num_gt, total_num_anchors, gt_bboxes_per_image, gt_classes,
-                        bboxes_preds_per_image, expanded_strides, x_shifts, y_shifts, cls_preds,
-                        obj_preds, mode="gpu", ious_loss_cost_coeff=3.0, outside_boxes_and_center_cost_coeff=100000.0):
+    def get_assignments(
+        self,
+        image_idx,
+        num_gt,
+        total_num_anchors,
+        gt_bboxes_per_image,
+        gt_classes,
+        bboxes_preds_per_image,
+        expanded_strides,
+        x_shifts,
+        y_shifts,
+        cls_preds,
+        obj_preds,
+        mode="gpu",
+        ious_loss_cost_coeff=3.0,
+        outside_boxes_and_center_cost_coeff=100000.0,
+    ):
         """
         Match cells to ground truth:
             * at most 1 GT per cell
@@ -387,8 +436,7 @@ class YoloXDetectionLoss(_Loss):
             y_shifts = y_shifts.cpu()
 
         # create a mask for foreground cells
-        fg_mask, is_in_boxes_and_center = self.get_in_boxes_info(gt_bboxes_per_image, expanded_strides,
-                                                                 x_shifts, y_shifts, total_num_anchors, num_gt)
+        fg_mask, is_in_boxes_and_center = self.get_in_boxes_info(gt_bboxes_per_image, expanded_strides, x_shifts, y_shifts, total_num_anchors, num_gt)
 
         bboxes_preds_per_image = bboxes_preds_per_image[fg_mask]
         cls_preds_ = cls_preds[image_idx][fg_mask]
@@ -413,12 +461,10 @@ class YoloXDetectionLoss(_Loss):
             pair_wise_cls_loss = F.binary_cross_entropy(cls_preds_.sqrt_(), gt_cls_per_image, reduction="none").sum(-1)
         del cls_preds_
 
-        cost = pair_wise_cls_loss + ious_loss_cost_coeff * pair_wise_ious_loss + outside_boxes_and_center_cost_coeff * (
-            ~is_in_boxes_and_center)
+        cost = pair_wise_cls_loss + ious_loss_cost_coeff * pair_wise_ious_loss + outside_boxes_and_center_cost_coeff * (~is_in_boxes_and_center)
 
         # further filter foregrounds: create pairs between cells and ground truth, based on cost and IoUs
-        num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds = \
-            self.dynamic_k_matching(cost, pair_wise_ious, gt_classes, num_gt, fg_mask)
+        num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds = self.dynamic_k_matching(cost, pair_wise_ious, gt_classes, num_gt, fg_mask)
         # discard tensors related to cost
         del pair_wise_cls_loss, cost, pair_wise_ious, pair_wise_ious_loss
 
@@ -484,14 +530,18 @@ class YoloXDetectionLoss(_Loss):
         # FIND CELL CENTERS THAT ARE WITHIN +- self.center_sampling_radius CELLS FROM GROUND TRUTH BOXES CENTERS
 
         # define fake boxes: instead of ground truth boxes step +- self.center_sampling_radius from their centers
-        gt_bboxes_per_image_l = ((gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(1, total_num_anchors) -
-                                 self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0))
-        gt_bboxes_per_image_r = ((gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(1, total_num_anchors) +
-                                 self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0))
-        gt_bboxes_per_image_t = ((gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(1, total_num_anchors) -
-                                 self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0))
-        gt_bboxes_per_image_b = ((gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(1, total_num_anchors) +
-                                 self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0))
+        gt_bboxes_per_image_l = (gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(
+            1, total_num_anchors
+        ) - self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
+        gt_bboxes_per_image_r = (gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(
+            1, total_num_anchors
+        ) + self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
+        gt_bboxes_per_image_t = (gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(
+            1, total_num_anchors
+        ) - self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
+        gt_bboxes_per_image_b = (gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(
+            1, total_num_anchors
+        ) + self.center_sampling_radius * expanded_strides_per_image.unsqueeze(0)
 
         c_l = x_centers_per_image - gt_bboxes_per_image_l
         c_r = gt_bboxes_per_image_r - x_centers_per_image
@@ -505,7 +555,7 @@ class YoloXDetectionLoss(_Loss):
         is_in_boxes_anchor = is_in_boxes_all | is_in_centers_all
 
         # in boxes AND in centers, preserving a shape [num_GTs x num_FGs]
-        is_in_boxes_and_center = (is_in_boxes[:, is_in_boxes_anchor] & is_in_centers[:, is_in_boxes_anchor])
+        is_in_boxes_and_center = is_in_boxes[:, is_in_boxes_anchor] & is_in_centers[:, is_in_boxes_anchor]
         return is_in_boxes_anchor, is_in_boxes_and_center
 
     def dynamic_k_matching(self, cost, pair_wise_ious, gt_classes, num_gt, fg_mask):
@@ -584,17 +634,16 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
                             Can be used for objectness loss.
     """
 
-    def __init__(self, strides, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type='iou',
-                 dynamic_ks_bias=1.1, sync_num_fgs=False, obj_loss_fix=False):
-        super().__init__(strides=strides, num_classes=num_classes, use_l1=use_l1, center_sampling_radius=center_sampling_radius,
-                         iou_type=iou_type)
+    def __init__(
+        self, strides, num_classes, use_l1=False, center_sampling_radius=2.5, iou_type="iou", dynamic_ks_bias=1.1, sync_num_fgs=False, obj_loss_fix=False
+    ):
+        super().__init__(strides=strides, num_classes=num_classes, use_l1=use_l1, center_sampling_radius=center_sampling_radius, iou_type=iou_type)
 
         self.dynamic_ks_bias = dynamic_ks_bias
         self.sync_num_fgs = sync_num_fgs
         self.obj_loss_fix = obj_loss_fix
 
-    def _compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) \
-            -> Tuple[torch.Tensor, torch.Tensor]:
+    def _compute_loss(self, predictions: List[torch.Tensor], targets: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         L = L_objectness + L_iou + L_classification + 1[no_aug_epoch]*L_l1
         where:
@@ -627,11 +676,12 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
 
         bbox_preds = transformed_outputs[:, :, :4]  # [batch, n_anchors_all, 4]
         obj_preds = transformed_outputs[:, :, 4:5]  # [batch, n_anchors_all, 1]
-        cls_preds = transformed_outputs[:, :, 5:]   # [batch, n_anchors_all, n_cls]
+        cls_preds = transformed_outputs[:, :, 5:]  # [batch, n_anchors_all, n_cls]
 
         # assign cells to ground truths, at most one GT per cell
-        matched_fg_ids, matched_gt_classes, matched_gt_ids, matched_img_ids, matched_ious, flattened_gts = \
-            self._compute_matching(bbox_preds, cls_preds, obj_preds, expanded_strides, x_shifts, y_shifts, targets)
+        matched_fg_ids, matched_gt_classes, matched_gt_ids, matched_img_ids, matched_ious, flattened_gts = self._compute_matching(
+            bbox_preds, cls_preds, obj_preds, expanded_strides, x_shifts, y_shifts, targets
+        )
 
         num_gts = max(flattened_gts.shape[0], 1)
         num_fg = max(matched_gt_ids.shape[0], 1)
@@ -642,9 +692,13 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         obj_targets[matched_img_ids, matched_fg_ids] = 1
         reg_targets = flattened_gts[matched_gt_ids][:, 1:]
         if self.use_l1:
-            l1_targets = self.get_l1_target(transformed_outputs.new_zeros((num_fg, 4)),
-                                            flattened_gts[matched_gt_ids][:, 1:], expanded_strides.squeeze()[matched_fg_ids],
-                                            x_shifts=x_shifts.squeeze()[matched_fg_ids], y_shifts=y_shifts.squeeze()[matched_fg_ids])
+            l1_targets = self.get_l1_target(
+                transformed_outputs.new_zeros((num_fg, 4)),
+                flattened_gts[matched_gt_ids][:, 1:],
+                expanded_strides.squeeze()[matched_fg_ids],
+                x_shifts=x_shifts.squeeze()[matched_fg_ids],
+                y_shifts=y_shifts.squeeze()[matched_fg_ids],
+            )
         if self.sync_num_fgs and dist.group.WORLD is not None:
             num_fg = torch.scalar_tensor(num_fg).to(matched_gt_ids.device)
             dist.all_reduce(num_fg, op=torch._C._distributed_c10d.ReduceOp.AVG)
@@ -660,13 +714,23 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         reg_weight = 5.0
         loss = reg_weight * loss_iou + loss_obj + loss_cls + loss_l1
 
-        return loss, torch.cat((loss_iou.unsqueeze(0), loss_obj.unsqueeze(0), loss_cls.unsqueeze(0),
-                                torch.tensor(loss_l1).unsqueeze(0).to(transformed_outputs.device),
-                                torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).to(transformed_outputs.device),
-                                loss.unsqueeze(0))).detach()
+        return (
+            loss,
+            torch.cat(
+                (
+                    loss_iou.unsqueeze(0),
+                    loss_obj.unsqueeze(0),
+                    loss_cls.unsqueeze(0),
+                    torch.tensor(loss_l1).unsqueeze(0).to(transformed_outputs.device),
+                    torch.tensor(num_fg / max(num_gts, 1)).unsqueeze(0).to(transformed_outputs.device),
+                    loss.unsqueeze(0),
+                )
+            ).detach(),
+        )
 
-    def _get_initial_matching(self, gt_bboxes: torch.Tensor, expanded_strides: torch.Tensor,
-                              x_shifts: torch.Tensor, y_shifts: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def _get_initial_matching(
+        self, gt_bboxes: torch.Tensor, expanded_strides: torch.Tensor, x_shifts: torch.Tensor, y_shifts: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Get candidates using a mask for all cells.
         Mask in only foreground cells that have a center located:
@@ -690,17 +754,21 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         gt_bboxes_half_w = (0.5 * gt_bboxes[:, 2]).unsqueeze(1)
         gt_bboxes_half_h = (0.5 * gt_bboxes[:, 3]).unsqueeze(1)
 
-        is_in_boxes = (cell_x_centers > gt_bboxes_x_centers - gt_bboxes_half_w) & \
-                      (gt_bboxes_x_centers + gt_bboxes_half_w > cell_x_centers) & \
-                      (cell_y_centers > gt_bboxes_y_centers - gt_bboxes_half_h) & \
-                      (gt_bboxes_y_centers + gt_bboxes_half_h > cell_y_centers)
+        is_in_boxes = (
+            (cell_x_centers > gt_bboxes_x_centers - gt_bboxes_half_w)
+            & (gt_bboxes_x_centers + gt_bboxes_half_w > cell_x_centers)
+            & (cell_y_centers > gt_bboxes_y_centers - gt_bboxes_half_h)
+            & (gt_bboxes_y_centers + gt_bboxes_half_h > cell_y_centers)
+        )
 
-        radius_shifts = (2.5 * expanded_strides)
+        radius_shifts = 2.5 * expanded_strides
 
-        is_in_centers = (cell_x_centers + radius_shifts > gt_bboxes_x_centers) & \
-                        (gt_bboxes_x_centers > cell_x_centers - radius_shifts) & \
-                        (cell_y_centers + radius_shifts > gt_bboxes_y_centers) & \
-                        (gt_bboxes_y_centers > cell_y_centers - radius_shifts)
+        is_in_centers = (
+            (cell_x_centers + radius_shifts > gt_bboxes_x_centers)
+            & (gt_bboxes_x_centers > cell_x_centers - radius_shifts)
+            & (cell_y_centers + radius_shifts > gt_bboxes_y_centers)
+            & (gt_bboxes_y_centers > cell_y_centers - radius_shifts)
+        )
 
         initial_mask = is_in_boxes | is_in_centers
         initial_matching = initial_mask.nonzero()
@@ -709,10 +777,18 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         return initial_matching[:, 0], initial_matching[:, 1], strong_candidate_mask
 
     @torch.no_grad()
-    def _compute_matching(self, bbox_preds: torch.Tensor, cls_preds: torch.Tensor, obj_preds: torch.Tensor,
-                          expanded_strides: torch.Tensor, x_shifts: torch.Tensor, y_shifts: torch.Tensor,
-                          labels: torch.Tensor, ious_loss_cost_coeff: float = 3.0, outside_boxes_and_center_cost_coeff: float = 100000.0) \
-            -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def _compute_matching(
+        self,
+        bbox_preds: torch.Tensor,
+        cls_preds: torch.Tensor,
+        obj_preds: torch.Tensor,
+        expanded_strides: torch.Tensor,
+        x_shifts: torch.Tensor,
+        y_shifts: torch.Tensor,
+        labels: torch.Tensor,
+        ious_loss_cost_coeff: float = 3.0,
+        outside_boxes_and_center_cost_coeff: float = 100000.0,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Match cells to ground truth:
             * at most 1 GT per cell
@@ -736,8 +812,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         flattened_gts, gt_id_to_img_id = labels[:, 1:], labels[:, 0].type(torch.int64)
 
         # COMPUTE CANDIDATES
-        candidate_gt_ids, candidate_fg_ids, strong_candidate_mask = self._get_initial_matching(
-            flattened_gts[:, 1:], expanded_strides, x_shifts, y_shifts)
+        candidate_gt_ids, candidate_fg_ids, strong_candidate_mask = self._get_initial_matching(flattened_gts[:, 1:], expanded_strides, x_shifts, y_shifts)
         candidate_img_ids = gt_id_to_img_id[candidate_gt_ids]
         candidate_gts_bbox = flattened_gts[candidate_gt_ids, 1:]
         candidate_det_bbox = bbox_preds[candidate_img_ids, candidate_fg_ids]
@@ -749,9 +824,18 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
 
         # ORDER CANDIDATES BY COST
         candidate_gt_classes = flattened_gts[candidate_gt_ids, 0]
-        cost_order = self._compute_cost_order(self.num_classes, candidate_img_ids, candidate_gt_classes,
-                                              candidate_fg_ids, candidate_ious,
-                                              cls_preds, obj_preds, strong_candidate_mask, ious_loss_cost_coeff, outside_boxes_and_center_cost_coeff)
+        cost_order = self._compute_cost_order(
+            self.num_classes,
+            candidate_img_ids,
+            candidate_gt_classes,
+            candidate_fg_ids,
+            candidate_ious,
+            cls_preds,
+            obj_preds,
+            strong_candidate_mask,
+            ious_loss_cost_coeff,
+            outside_boxes_and_center_cost_coeff,
+        )
 
         candidate_gt_ids = candidate_gt_ids[cost_order]
         candidate_gt_classes = candidate_gt_classes[cost_order]
@@ -791,9 +875,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
              candidate_fg_ids = [0,0,0,1]
              result = [0,1,0,2]
         """
-        candidate_img_and_fg_ids_combined = torch.stack((
-            candidate_img_ids,
-            candidate_anchor_ids), dim=1).unique(dim=0, return_inverse=True)[1]
+        candidate_img_and_fg_ids_combined = torch.stack((candidate_img_ids, candidate_anchor_ids), dim=1).unique(dim=0, return_inverse=True)[1]
         return candidate_img_and_fg_ids_combined
 
     def _compute_dynamic_ks(self, ids: torch.Tensor, ious: torch.Tensor, dynamic_ks_bias) -> torch.Tensor:
@@ -817,8 +899,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         num_unique_ids = unique_ids.shape[0]
 
         if ids.shape[0] > 10:
-            is_in_top_10 = torch.cat(
-                (torch.ones((10,), dtype=torch.bool, device=ids.device), ids[10:] != ids[:-10]))
+            is_in_top_10 = torch.cat((torch.ones((10,), dtype=torch.bool, device=ids.device), ids[10:] != ids[:-10]))
         else:
             is_in_top_10 = torch.ones_like(ids, dtype=torch.bool)
 
@@ -830,20 +911,29 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
 
         all_argsort = ious_argsort[ids_argsort]
         inverse_all_argsort = torch.zeros_like(ious_argsort)
-        inverse_all_argsort[all_argsort] = torch.arange(all_argsort.shape[0],
-                                                        dtype=all_argsort.dtype, device=all_argsort.device)
+        inverse_all_argsort[all_argsort] = torch.arange(all_argsort.shape[0], dtype=all_argsort.dtype, device=all_argsort.device)
 
         return dynamic_ks, ids_index_to_unique_ids_index[inverse_all_argsort]
 
-    def _compute_cost_order(self, num_classes, candidate_gt_img_ids: torch.Tensor, candidate_gt_classes: torch.Tensor,
-                            candidate_anchor_ids: torch.Tensor, candidate_ious: torch.Tensor,
-                            cls_preds: torch.Tensor, obj_preds: torch.Tensor, strong_candidate_mask: torch.Tensor, ious_loss_cost_coeff: float,
-                            outside_boxes_and_center_cost_coeff: float) \
-            -> torch.Tensor:
+    def _compute_cost_order(
+        self,
+        num_classes,
+        candidate_gt_img_ids: torch.Tensor,
+        candidate_gt_classes: torch.Tensor,
+        candidate_anchor_ids: torch.Tensor,
+        candidate_ious: torch.Tensor,
+        cls_preds: torch.Tensor,
+        obj_preds: torch.Tensor,
+        strong_candidate_mask: torch.Tensor,
+        ious_loss_cost_coeff: float,
+        outside_boxes_and_center_cost_coeff: float,
+    ) -> torch.Tensor:
         gt_cls_per_image = F.one_hot(candidate_gt_classes.to(torch.int64), num_classes).float()
         with torch.cuda.amp.autocast(enabled=False):
-            cls_preds_ = cls_preds[candidate_gt_img_ids, candidate_anchor_ids].float().sigmoid_() \
+            cls_preds_ = (
+                cls_preds[candidate_gt_img_ids, candidate_anchor_ids].float().sigmoid_()
                 * obj_preds[candidate_gt_img_ids, candidate_anchor_ids].float().sigmoid_()
+            )
             pair_wise_cls_cost = F.binary_cross_entropy(cls_preds_.sqrt_(), gt_cls_per_image, reduction="none").sum(-1)
 
         ious_cost = -torch.log(candidate_ious + 1e-8)
@@ -879,8 +969,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         ids, ids_argsort = ids.sort(stable=True)
 
         if ids.shape[0] > 1:
-            is_not_first = torch.cat(
-                (torch.zeros((1,), dtype=torch.bool, device=ids.device), ids[1:] == ids[:-1]))
+            is_not_first = torch.cat((torch.zeros((1,), dtype=torch.bool, device=ids.device), ids[1:] == ids[:-1]))
         else:
             is_not_first = torch.zeros_like(ids, dtype=torch.bool)
 
@@ -890,8 +979,7 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         rank = torch.arange(ids.shape[0], dtype=ids_argsort.dtype, device=ids.device) - subtract
 
         inverse_argsort = torch.zeros_like(ids_argsort)
-        inverse_argsort[ids_argsort] = torch.arange(ids_argsort.shape[0],
-                                                    dtype=ids_argsort.dtype, device=ids_argsort.device)
+        inverse_argsort[ids_argsort] = torch.arange(ids_argsort.shape[0], dtype=ids_argsort.dtype, device=ids_argsort.device)
 
         return rank[inverse_argsort]
 
@@ -902,13 +990,11 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
         ids, ids_argsort = ids.sort(stable=True)
 
         if ids.shape[0] > 1:
-            is_first = torch.cat(
-                (torch.ones((1,), dtype=torch.bool, device=ids.device), ids[1:] != ids[:-1]))
+            is_first = torch.cat((torch.ones((1,), dtype=torch.bool, device=ids.device), ids[1:] != ids[:-1]))
         else:
             is_first = torch.ones_like(ids, dtype=torch.bool)
 
         inverse_argsort = torch.zeros_like(ids_argsort)
-        inverse_argsort[ids_argsort] = torch.arange(ids_argsort.shape[0],
-                                                    dtype=ids_argsort.dtype, device=ids_argsort.device)
+        inverse_argsort[ids_argsort] = torch.arange(ids_argsort.shape[0], dtype=ids_argsort.dtype, device=ids_argsort.device)
 
         return is_first[inverse_argsort]
