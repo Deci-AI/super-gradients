@@ -27,10 +27,20 @@ criterion_params: {} # when `loss` is one of SuperGradient's built in options, i
 
 
 ema: False # whether to use Model Exponential Moving Average
-ema_params: # parameters for the ema model.
-  decay: 0.9999
-  beta: 15
-  exp_activation: True
+ema_params:  # parameters for the ema model.
+# TODO: Find a better way to override ema params.
+# If a base config sets ema to
+#  decay_function:
+#    exp:
+#      beta: 15
+# And child config tried to override it to:
+#  decay_function:
+#    constant:
+# This would lead to merge of two configs:
+#  decay_function:
+#    exp:
+#      beta: 15
+#    constant:
 
 
 train_metrics_list: [] # Metrics to log during training. For more information on torchmetrics see https://torchmetrics.rtfd.io/en/latest/.

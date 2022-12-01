@@ -1,4 +1,3 @@
-import math
 import warnings
 from copy import deepcopy
 from typing import Union
@@ -9,6 +8,7 @@ from torch import nn
 from super_gradients.training import utils as core_utils
 from super_gradients.training.models import SgModule
 from super_gradients.training.models.kd_modules.kd_module import KDModule
+from super_gradients.training.utils.ema_decay_schedules import IDecayFunction
 
 
 def copy_attr(a: nn.Module, b: nn.Module, include: Union[list, tuple] = (), exclude: Union[list, tuple] = ()):
@@ -30,7 +30,7 @@ class ModelEMA:
     GPU assignment and distributed training wrappers.
     """
 
-    def __init__(self, model, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True):
+    def __init__(self, model, decay: float, decay_function: IDecayFunction):
         """
         Init the EMA
         :param model: Union[SgModule, nn.Module], the training model to construct the EMA model by
@@ -44,10 +44,8 @@ class ModelEMA:
         # Create EMA
         self.ema = deepcopy(model)
         self.ema.eval()
-        if exp_activation:
-            self.decay_function = lambda x: decay * (1 - math.exp(-x * beta))  # decay exponential ramp (to help early epochs)
-        else:
-            self.decay_function = lambda x: decay  # always return the same decay factor
+        self.decay = decay
+        self.decay_function = decay_function
 
         """"
         we hold a list of model attributes (not wights and biases) which we would like to include in each
@@ -65,7 +63,7 @@ class ModelEMA:
         for p in self.ema.module.parameters():
             p.requires_grad_(False)
 
-    def update(self, model, training_percent: float):
+    def update(self, model, step: int, total_steps: int):
         """
         Update the state of the EMA model.
         :param model: current training model
@@ -73,7 +71,7 @@ class ModelEMA:
         """
         # Update EMA parameters
         with torch.no_grad():
-            decay = self.decay_function(training_percent)
+            decay = self.decay_function(self.decay, step, total_steps)
 
             for ema_v, model_v in zip(self.ema.module.state_dict().values(), model.state_dict().values()):
                 if ema_v.dtype.is_floating_point:
@@ -101,7 +99,7 @@ class KDModelEMA(ModelEMA):
     GPU assignment and distributed training wrappers.
     """
 
-    def __init__(self, kd_model: KDModule, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True):
+    def __init__(self, kd_model: KDModule, decay: float, decay_function: IDecayFunction):
         """
         Init the EMA
         :param kd_model: KDModule, the training Knowledge distillation model to construct the EMA model by
@@ -113,7 +111,7 @@ class KDModelEMA(ModelEMA):
                      its final value. beta=15 is ~40% of the training process.
         """
         # Only work on the student (we don't want to update and to have a duplicate of the teacher)
-        super().__init__(model=core_utils.WrappedModel(kd_model.module.student), decay=decay, beta=beta, exp_activation=exp_activation)
+        super().__init__(model=core_utils.WrappedModel(kd_model.module.student), decay=decay, decay_function=decay_function)
 
         # Overwrite current ema attribute with combination of the student model EMA (current self.ema)
         # with already the instantiated teacher, to have the final KD EMA

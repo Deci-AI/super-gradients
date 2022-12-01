@@ -26,6 +26,8 @@ zero_weight_decay_on_bias_and_bn: True
 ema: True
 ema_params:
   decay: 0.9999
+  decay_function:
+    constant:
 
 mixed_precision: True
 

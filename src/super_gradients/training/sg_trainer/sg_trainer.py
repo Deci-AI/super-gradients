@@ -1,7 +1,7 @@
 import inspect
 import os
 from copy import deepcopy
-from typing import Union, Tuple, Mapping, Dict
+from typing import Union, Tuple, Mapping, Dict, Callable, Optional
 from pathlib import Path
 
 import numpy as np
@@ -17,6 +17,7 @@ from piptools.scripts.sync import _get_installed_distributions
 
 from torch.utils.data.distributed import DistributedSampler
 
+from super_gradients.common.factories.ema_decay_function_factory import EMADecayFunctionFactory
 from super_gradients.common.factories.type_factory import TypeFactory
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
@@ -121,8 +122,8 @@ class Trainer:
         # SET THE EMPTY PROPERTIES
         self.net, self.architecture, self.arch_params, self.dataset_interface = None, None, None, None
         self.device, self.multi_gpu = None, None
-        self.ema = None
-        self.ema_model = None
+        self.ema: bool = None
+        self.ema_model: Optional[ModelEMA] = None
         self.sg_logger = None
         self.update_param_groups = None
         self.criterion = None
@@ -487,7 +488,7 @@ class Trainer:
         :param loss: The value computed by the loss function
         :param optimizer: An object that can perform a gradient step and zeroize model gradient
         :param epoch: number of epoch the training is on
-        :param batch_idx: number of iteration inside the current epoch
+        :param batch_idx: Zero-based number of iteration inside the current epoch
         :param context: current phase context
         :return:
         """
@@ -498,17 +499,19 @@ class Trainer:
         if self.training_params.clip_grad_norm:
             torch.nn.utils.clip_grad_norm_(self.net.parameters(), self.training_params.clip_grad_norm)
 
-        # ACCUMULATE GRADIENT FOR X BATCHES BEFORE OPTIMIZING
-        integrated_batches_num = batch_idx + len(self.train_loader) * epoch + 1
+        local_step = batch_idx + 1
+        global_step = local_step + len(self.train_loader) * epoch
+        total_steps = len(self.train_loader) * self.max_epochs
 
-        if integrated_batches_num % self.batch_accumulate == 0:
+        # ACCUMULATE GRADIENT FOR X BATCHES BEFORE OPTIMIZING
+        if local_step % self.batch_accumulate == 0:
             # SCALER IS ENABLED ONLY IF self.training_params.mixed_precision=True
             self.scaler.step(self.optimizer)
             self.scaler.update()
 
             self.optimizer.zero_grad()
             if self.ema:
-                self.ema_model.update(self.net, integrated_batches_num / (len(self.train_loader) * self.max_epochs))
+                self.ema_model.update(self.net, step=global_step, total_steps=total_steps)
 
             # RUN PHASE CALLBACKS
             self.phase_callback_handler(Phase.TRAIN_BATCH_STEP, context)
@@ -1004,7 +1007,7 @@ class Trainer:
             ema_params = self.training_params.ema_params
             logger.info(f"Using EMA with params {ema_params}")
             self.ema_model = self._instantiate_ema_model(**ema_params)
-            self.ema_model.updates = self.start_epoch * num_batches // self.batch_accumulate
+            self.ema_model.updates = self.start_epoch * num_batches // self.batch_accumulate  # TODO: WHY & WHAT THIS IS DOING?
             if self.load_checkpoint:
                 if "ema_net" in self.checkpoint.keys():
                     self.ema_model.ema.load_state_dict(self.checkpoint["ema_net"])
@@ -1870,14 +1873,15 @@ class Trainer:
 
         return net
 
-    def _instantiate_ema_model(self, decay: float = 0.9999, beta: float = 15, exp_activation: bool = True) -> ModelEMA:
+    @resolve_param("decay_function", EMADecayFunctionFactory())
+    def _instantiate_ema_model(self, decay: float, decay_function: Callable) -> ModelEMA:
         """Instantiate ema model for standard SgModule.
         :param decay: the maximum decay value. as the training process advances, the decay will climb towards this value
                       until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)
         :param beta: the exponent coefficient. The higher the beta, the sooner in the training the decay will saturate to
                      its final value. beta=15 is ~40% of the training process.
         """
-        return ModelEMA(self.net, decay, beta, exp_activation)
+        return ModelEMA(self.net, decay, decay_function)
 
     @property
     def get_net(self):

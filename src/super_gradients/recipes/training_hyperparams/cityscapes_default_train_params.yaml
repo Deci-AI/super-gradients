@@ -15,8 +15,9 @@ optimizer_params:
 ema: True
 ema_params:
   decay: 0.9999
-  beta: 15
-  exp_activation: True
+  decay_function:
+    exp:
+      beta: 15
 
 train_metrics_list:
   - PixelAccuracy:
