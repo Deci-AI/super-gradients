@@ -21,6 +21,7 @@ from tests.unit_tests import (
     CallTrainAfterTestTest,
 )
 from tests.end_to_end_tests import TestTrainer
+from tests.unit_tests.detection_dataset_test import DetectionDatasetTest
 from tests.unit_tests.phase_delegates_test import ContextMethodsTest
 from tests.unit_tests.quantization_utility_tests import QuantizationUtilityTest
 from tests.unit_tests.random_erase_test import RandomEraseTest
@@ -103,6 +104,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ResumeTrainingTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(CallTrainAfterTestTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionOutputAdapter))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DetectionDatasetTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
