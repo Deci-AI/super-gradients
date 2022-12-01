@@ -670,8 +670,8 @@ class DetectionRescale(DetectionTransform):
         :return:         Rescaled targets, shape (num_boxes, 5)
         """
         sy, sx = scale_factors
-        targets = targets.copy() if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
-        targets[:, 0:4] *= np.array([[sx, sy, sx, sy]])
+        targets = targets.astype(np.float32, copy=True) if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
+        targets[:, 0:4] *= np.array([[sx, sy, sx, sy]], dtype=targets.dtype)
         return targets
 
 

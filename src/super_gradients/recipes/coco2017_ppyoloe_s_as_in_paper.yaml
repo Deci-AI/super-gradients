@@ -58,25 +58,23 @@ dataset_params:
 training_hyperparams:
   resume: ${resume}
 
-#  sg_logger: "wandb_sg_logger"
-#  sg_logger_params:
-#    project_name: coco2017_ppyoloe_s
-#    entity: super-gradients
-#    api_server: "https://wandb.research.deci.ai"
-#    save_checkpoints_remote: True
-#    save_tensorboard_remote: True
-#    save_logs_remote: True
+  initial_lr: 0.04 # Paper used 0.01 with BS of 8, we train with BS 32, so multiply by 4
 
-#  pre_prediction_callback:
-#    DetectionRandomResizePrePredictionCallback:
-#      target_size: [320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768]
+  sg_logger: "wandb_sg_logger"
+  sg_logger_params:
+    project_name: coco2017_ppyoloe_s
+    entity: super-gradients
+    api_server: "https://wandb.research.deci.ai"
+    save_checkpoints_remote: True
+    save_tensorboard_remote: True
+    save_logs_remote: True
 
 architecture: ppyoloe
 
 multi_gpu: DDP
 num_gpus: 8
 
-experiment_suffix: res${dataset_params.train_dataset_params.input_dim}
+experiment_suffix: res_640
 experiment_name: coco2017_ppyoloe_s_as_in_paper_${experiment_suffix}
 
 ckpt_root_dir:
