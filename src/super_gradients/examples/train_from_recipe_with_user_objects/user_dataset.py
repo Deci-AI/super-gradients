@@ -4,7 +4,8 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import Compose
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories import ListFactory, TransformsFactory
+from super_gradients.common.factories.list_factory import ListFactory
+from super_gradients.common.factories.transforms_factory import TransformsFactory
 from super_gradients.common.registry.registry import register_dataloader
 from super_gradients.training.dataloaders import get_data_loader
 
