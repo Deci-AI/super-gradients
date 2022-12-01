@@ -25,9 +25,6 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
 
-    if hasattr(model, "prep_model_for_conversion"):
-        model.prep_model_for_conversion(**kwargs)
-
     use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
     quant_nn.TensorQuantizer.use_fb_fake_quant = True
 
@@ -41,6 +38,8 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
     else:
         training_mode = TrainingMode.EVAL
         model.eval()
+        if hasattr(model, "prep_model_for_conversion"):
+            model.prep_model_for_conversion(**kwargs)
 
     torch.onnx.export(
         model, dummy_input, onnx_filename, verbose=False, opset_version=13, enable_onnx_checker=False, do_constant_folding=True, training=training_mode
