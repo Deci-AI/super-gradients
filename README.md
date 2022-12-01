@@ -395,7 +395,7 @@ from super_gradients import Trainer
 trainer = Trainer("experiment_name")
 
 train_params = { ... # training parameters
-                "sg_logger": "clearml_sg_logger", # Weights&Biases Logger, see class WandBSGLogger for details
+                "sg_logger": "clearml_sg_logger", # ClearML Logger, see class ClearMLSGLogger for details
                 "sg_logger_params": # paramenters that will be passes to __init__ of the logger 
                   {
                     "project_name": "project_name", # ClearML project name
