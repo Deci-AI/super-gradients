@@ -491,7 +491,16 @@ class DetectionRandomAffine(DetectionTransform):
     """
 
     def __init__(
-        self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640), filter_box_candidates: bool = False, wh_thr=2, ar_thr=20, area_thr=0.1
+        self,
+        degrees=10,
+        translate=0.1,
+        scales=0.1,
+        shear=10,
+        target_size: Optional[Tuple[int, int]] = (640, 640),
+        filter_box_candidates: bool = False,
+        wh_thr=2,
+        ar_thr=20,
+        area_thr=0.1,
     ):
         super(DetectionRandomAffine, self).__init__()
         self.degrees = degrees
@@ -514,7 +523,7 @@ class DetectionRandomAffine(DetectionTransform):
                 sample["image"],
                 sample["target"],
                 sample.get("target_seg"),
-                target_size=self.target_size,
+                target_size=self.target_size or tuple(reversed(sample["image"].shape[:2])),
                 degrees=self.degrees,
                 translate=self.translate,
                 scales=self.scale,
@@ -612,6 +621,55 @@ class DetectionMixup(DetectionTransform):
 
             sample["image"], sample["target"] = origin_img.astype(np.uint8), origin_labels
         return sample
+
+
+class DetectionRescale(DetectionTransform):
+    """
+    Resize image and bounding boxes to given image dimensions without preserving aspect ratio
+
+    Attributes:
+        input_dim: (tuple) (rows, cols)
+        swap: image axis's to be rearranged.
+
+    """
+
+    def __init__(self, input_dim: Tuple[int, int], swap=(2, 0, 1)):
+        super().__init__()
+        self.swap = swap
+        self.input_dim = input_dim
+
+    def __call__(self, sample: Dict[str, np.array]):
+        img, targets, crowd_targets = sample["image"], sample["target"], sample.get("crowd_target")
+
+        img_resized, scale_factors = rescale_and_pad_to_size(img, self.input_dim, self.swap)
+
+        sample["image"] = img_resized.transpose(self.swap).astype(np.float32, copy=True)
+        sample["target"] = self._rescale_target(targets, scale_factors)
+        if crowd_targets is not None:
+            sample["crowd_target"] = self._rescale_target(crowd_targets, scale_factors)
+        return sample
+
+    def _rescale_image(self, image):
+        scale_factors = self.input_dim[0] / image.shape[0], self.input_dim[1] / image.shape[1]
+        resized_img = cv2.resize(
+            image,
+            dsize=(int(self.input_dim[1]), int(self.input_dim[0])),
+            interpolation=cv2.INTER_LINEAR,
+        )
+        return resized_img, scale_factors
+
+    def _rescale_target(self, targets: np.array, r: Tuple[float, float]) -> np.array:
+        """SegRescale the target according to a coefficient used to rescale the image.
+        This is done to have images and targets at the same scale.
+
+        :param targets:  Target XYXY bboxes to rescale, shape (num_boxes, 5)
+        :param r:        SegRescale coefficient that was applied to the image
+
+        :return:         Rescaled targets, shape (num_boxes, 5)
+        """
+        targets = targets.copy() if len(targets) > 0 else np.zeros((0, 5), dtype=np.float32)
+        targets[:, :4] *= np.array([[r[0], r[1], r[0], r[1]]])
+        return targets
 
 
 class DetectionPaddedRescale(DetectionTransform):

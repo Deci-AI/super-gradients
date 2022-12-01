@@ -1,6 +1,7 @@
 import math
 import os
 import pathlib
+import random
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, List, Union, Tuple, Optional, Dict
@@ -700,11 +701,51 @@ class PPYoloECollateFN:
     Collate function for PPYoloE training
     """
 
+    def __init__(self, target_size: Union[List[int], int]):
+        """
+
+        Args:
+            target_size: (rows, cols)
+        """
+        self.target_size = target_size
+        self.interpolation_method = ["nearest", "bilinear", "area"]
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
+        if self.target_size is not None:
+            data = self.random_resize(data)
+
         batch = default_collate(data)
         ims, targets = batch
         targets = self._format_targets(targets)
         return ims, targets
+
+    def random_resize(self, batch):
+        target_size = random.choice(self.target_size)
+        interpolation = random.choice(self.interpolation_method)
+        batch = [self.random_resize_sample(sample, target_size, interpolation) for sample in batch]
+        return batch
+
+    def random_resize_sample(self, sample, target_size, interpolation):
+        image, targets = sample  # TARGETS ARE IN LABEL_CXCYWH
+        channels_first = image.shape[0] in {1, 3}
+        if channels_first:
+            image = np.moveaxis(image, 0, -1)
+
+        dsize = int(target_size[1]), int(targets[0])
+        scale_factors = target_size[0] / image.shape[0], target_size[1] / image.shape[1]
+
+        image = cv2.resize(
+            image,
+            dsize=dsize,
+            interpolation=interpolation,
+        )
+
+        sy, sx = scale_factors
+        targets[:, 1:] *= np.array([[sx, sy, sx, sy]])
+
+        if channels_first:
+            image = np.moveaxis(image, 0, -1)
+        return image, targets
 
     def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
         """
