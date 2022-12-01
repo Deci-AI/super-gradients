@@ -85,7 +85,7 @@ class WandBSGLogger(BaseSGLogger):
         if self.resumed:
             wandb_id = self._get_wandb_id()
 
-        run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, **kwargs)
+        run = wandb.init(project=project_name, name=experiment_name, entity=entity, resume=resumed, id=wandb_id, allow_val_change=True, **kwargs)
         if save_code:
             self._save_code()
 
