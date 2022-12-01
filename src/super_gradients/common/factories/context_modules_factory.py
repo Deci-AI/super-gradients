@@ -1,4 +1,4 @@
-from super_gradients.common.factories import BaseFactory
+from super_gradients.common.factories.base_factory import BaseFactory
 import super_gradients.training.models.segmentation_models.context_modules as context_modules
 
 

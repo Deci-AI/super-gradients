@@ -17,7 +17,7 @@ from piptools.scripts.sync import _get_installed_distributions
 
 from torch.utils.data.distributed import DistributedSampler
 
-from super_gradients.common.factories import TypeFactory
+from super_gradients.common.factories.type_factory import TypeFactory
 from super_gradients.training.datasets.samplers import InfiniteSampler, RepeatAugSampler
 
 from super_gradients.common.factories.callbacks_factory import CallbacksFactory
