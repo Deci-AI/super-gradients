@@ -107,5 +107,6 @@ sg_logger_params:
   save_checkpoints_remote: False  # upload checkpoint files to s3
   save_tensorboard_remote: False  # upload tensorboard files to s3
   save_logs_remote: False  # upload log files to s3
+  monitor_system: True  # Monitor and write to tensorboard the system statistics, such as CPU usage, GPU, ...
 
 _convert_: all

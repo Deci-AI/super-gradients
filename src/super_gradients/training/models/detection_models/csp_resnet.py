@@ -4,7 +4,7 @@ from typing import List, Type, Tuple, Union, Optional
 
 import torch
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.factories import ActivationsTypeFactory
+from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from torch import nn, Tensor
 
 from super_gradients.modules import RepVGGBlock, EffectiveSEBlock, ConvBNAct

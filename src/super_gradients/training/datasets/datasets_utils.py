@@ -1,32 +1,30 @@
 import copy
 import os
+import random
+import uuid
 from abc import ABC, abstractmethod
 from multiprocessing import Value, Lock
-import random
 from typing import List, Tuple
+
+import matplotlib.pyplot as plt
 import numpy as np
+import torch
+import torch.distributed as dist
 import torch.nn.functional as F
 import torchvision
 from PIL import Image
-import torch
-import torch.distributed as dist
-
-from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
-
-from super_gradients.common.abstractions.abstract_logger import get_logger
 from deprecate import deprecated
 from matplotlib.patches import Rectangle
 from torchvision.datasets import ImageFolder
-from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from torchvision.transforms import transforms, InterpolationMode, RandomResizedCrop
 from tqdm import tqdm
 
-from super_gradients.training.utils.utils import AverageMeter
+from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
+from super_gradients.training.datasets.auto_augment import rand_augment_transform
 from super_gradients.training.utils.detection_utils import DetectionVisualization, Anchors
-import uuid
 from super_gradients.training.utils.distributed_training_utils import get_local_rank, get_world_size
-
-import matplotlib.pyplot as plt
+from super_gradients.training.utils.utils import AverageMeter
 
 
 def get_mean_and_std_torch(data_dir=None, dataloader=None, num_workers=4, RandomResizeSize=224):
@@ -684,7 +682,8 @@ class DatasetStatisticsTensorboardLogger:
 
         x = np.arange(1, image_size, 1)
         y = np.arange(1, image_size, 1)
-        xx, yy = np.meshgrid(x, y, sparse=False)
+
+        xx, yy = np.meshgrid(x, y, sparse=False, indexing="xy")
         points = np.concatenate([xx.reshape(1, -1), yy.reshape(1, -1)])
 
         color = self._get_score(anchors_boxes, points, image_size)
