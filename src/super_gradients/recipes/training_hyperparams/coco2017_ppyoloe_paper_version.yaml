@@ -25,7 +25,7 @@ optimizer_params:
   nesterov: True
 
 compute_losses_on_valid: False
-static_assigner_end_epoch: ${training_hyperparams.max_epochs}
+static_assigner_end_epoch: 150
 
 ema: True
 ema_params:
@@ -39,12 +39,12 @@ sync_bn: True
 valid_metrics_list:
   - DetectionMetrics:
       score_thres: 0.1
-      top_k_predictions: 100
+      top_k_predictions: 300
       normalize_targets: True
       post_prediction_callback:
         _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
         nms_threshold: 0.7
-        score_threshold: 0.25
+        score_threshold: 0.1
         nms_top_k: 1000
         max_predictions: 300
       num_cls: ${arch_params.num_classes}
