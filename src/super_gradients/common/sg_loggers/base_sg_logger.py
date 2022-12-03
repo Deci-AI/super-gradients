@@ -90,10 +90,7 @@ class BaseSGLogger(AbstractSGLogger):
         if launch_tensorboard:
             self._launch_tensorboard(port=tensorboard_port)
 
-        if monitor_system:
-            self.system_monitor = SystemMonitor.start(tensorboard_writer=self.tensorboard_writer)
-        else:
-            self.system_monitor = None
+        self._init_system_monitor(monitor_system)
 
     @multi_process_safe
     def _launch_tensorboard(self, port):
@@ -102,6 +99,13 @@ class BaseSGLogger(AbstractSGLogger):
     @multi_process_safe
     def _init_tensorboard(self, resumed, tb_files_user_prompt):
         self.tensorboard_writer = sg_trainer_utils.init_summary_writer(self._local_dir, resumed, tb_files_user_prompt)
+
+    @multi_process_safe
+    def _init_system_monitor(self, monitor_system: bool):
+        if monitor_system:
+            self.system_monitor = SystemMonitor.start(tensorboard_writer=self.tensorboard_writer)
+        else:
+            self.system_monitor = None
 
     @multi_process_safe
     def _make_dir(self):
