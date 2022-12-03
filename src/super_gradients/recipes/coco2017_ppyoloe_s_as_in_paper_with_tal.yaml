@@ -75,7 +75,7 @@ multi_gpu: DDP
 num_gpus: 8
 
 experiment_suffix: res_640
-experiment_name: coco2017_ppyoloe_s_as_in_paper_${experiment_suffix}
+experiment_name: coco2017_ppyoloe_s_as_in_paper_with_tal_${experiment_suffix}
 
 ckpt_root_dir:
 
