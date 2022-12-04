@@ -18,7 +18,7 @@ from super_gradients.training.utils.quantization.selective_quantization_utils im
 
 
 def naive_quantize(model: nn.Module):
-    q_util = SelectiveQuantizer(default_quant_modules_calib_method="max", default_per_channel_quant_modules=True)
+    q_util = SelectiveQuantizer(default_quant_modules_calib_method="max", default_per_channel_quant_weights=True)
     q_util.quantize_module(model)
 
     return model
@@ -33,7 +33,7 @@ def selective_quantize(model: nn.Module):
         ),
     }
 
-    sq_util = SelectiveQuantizer(custom_mappings=mappings, default_quant_modules_calib_method="max", default_per_channel_quant_modules=True)
+    sq_util = SelectiveQuantizer(custom_mappings=mappings, default_quant_modules_calib_method="max", default_per_channel_quant_weights=True)
     sq_util.quantize_module(model)
 
     return model

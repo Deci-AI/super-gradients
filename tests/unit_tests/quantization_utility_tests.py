@@ -730,7 +730,7 @@ class QuantizationUtilityTest(unittest.TestCase):
                     input_quant_descriptor=QuantDescriptor(calib_method="max"),
                 ),
             },
-            default_per_channel_quant_modules=True,
+            default_per_channel_quant_weights=True,
         )
 
         sq.quantize_module(resnet_sg, preserve_state_dict=True)
@@ -779,7 +779,7 @@ class QuantizationUtilityTest(unittest.TestCase):
                     input_quant_descriptor=QuantDescriptor(calib_method="max"),
                 ),
             },
-            default_per_channel_quant_modules=True,
+            default_per_channel_quant_weights=True,
         )
 
         resnet_sg: nn.Module = super_gradients.training.models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)

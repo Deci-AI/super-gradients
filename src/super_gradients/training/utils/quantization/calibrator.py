@@ -120,5 +120,9 @@ class QuantizationCalibrator:
                         module.load_calib_amax()
                     else:
                         module.load_calib_amax(**kwargs)
+
+                if hasattr(module, "clip"):
+                    module.init_learn_amax()
+
                 if self.verbose:
                     print(f"{name:40}: {module}")
