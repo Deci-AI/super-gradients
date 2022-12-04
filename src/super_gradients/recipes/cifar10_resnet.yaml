@@ -13,6 +13,7 @@ defaults:
   - dataset_params: cifar10_dataset_params
   - arch_params: resnet18_cifar_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 train_dataloader: cifar10_train
 val_dataloader: cifar10_val
@@ -24,6 +25,8 @@ training_hyperparams:
   resume: ${resume}
 
 
+multi_gpu: DDP
+num_gpus: 3
 
 ckpt_root_dir:
 
