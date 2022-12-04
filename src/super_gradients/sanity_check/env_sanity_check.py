@@ -84,7 +84,7 @@ def verify_installed_libraries() -> List[str]:
 
         if ",<=" in required_version_str:
             upper_limit_version = Version(required_version_str.split(",<=")[1])
-            required_version_str = required_version_str.split(",<=")
+            required_version_str = required_version_str.split(",<=")[0]
             constraint += ",<="
 
         if lib.lower() not in installed_libs_with_version.keys():
