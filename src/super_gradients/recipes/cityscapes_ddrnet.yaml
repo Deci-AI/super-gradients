@@ -41,7 +41,6 @@ defaults:
   - dataset_params: cityscapes_ddrnet_dataset_params
   - checkpoint_params: default_checkpoint_params
   - _self_
-  - _self_
 
 train_dataloader: cityscapes_train
 val_dataloader: cityscapes_val
