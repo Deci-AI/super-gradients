@@ -53,6 +53,7 @@ class BaseSGLogger(AbstractSGLogger):
         :param save_checkpoints_remote: Saves checkpoints in s3.
         :param save_tensorboard_remote: Saves tensorboard in s3.
         :param save_logs_remote: Saves log files in s3.
+        :param monitor_system: Save the system statistics (GPU utilization, CPU, ...) in the tensorboard
         """
         super().__init__()
         self.project_name = project_name
