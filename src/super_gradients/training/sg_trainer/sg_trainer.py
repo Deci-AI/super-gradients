@@ -84,6 +84,7 @@ from super_gradients.training.utils.callbacks import (
 from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
+from omegaconf import OmegaConf
 
 logger = get_logger(__name__)
 
@@ -220,9 +221,15 @@ class Trainer:
             checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
         )
-
+        recipe_logged_cfg = {"recipe_config": OmegaConf.to_container(cfg, resolve=True)}
         # TRAIN
-        res = trainer.train(model=model, train_loader=train_dataloader, valid_loader=val_dataloader, training_params=cfg.training_hyperparams)
+        res = trainer.train(
+            model=model,
+            train_loader=train_dataloader,
+            valid_loader=val_dataloader,
+            training_params=cfg.training_hyperparams,
+            additional_configs_to_log=recipe_logged_cfg,
+        )
 
         return model, res
 
@@ -592,7 +599,14 @@ class Trainer:
             self.arch_params.override(**arch_params.to_dict())
 
     # FIXME - we need to resolve flake8's 'function is too complex' for this function
-    def train(self, model: nn.Module, training_params: dict = None, train_loader: DataLoader = None, valid_loader: DataLoader = None):  # noqa: C901
+    def train(
+        self,
+        model: nn.Module,
+        training_params: dict = None,
+        train_loader: DataLoader = None,
+        valid_loader: DataLoader = None,
+        additional_configs_to_log: Dict = None,
+    ):  # noqa: C901
         """
 
         train - Trains the Model
@@ -601,6 +615,8 @@ class Trainer:
           the data loaders, as dictionary. The phase context will hold the additional items, under an attribute with
           the same name as the key in this dictionary. Then such items can be accessed through phase callbacks.
 
+            :param additional_configs_to_log: Dict, dictionary containing configs that will be added to the training's
+                sg_logger. Format should be {"Config_title_1": {...}, "Config_title_2":{..}}.
             :param model: torch.nn.Module, model to train.
 
             :param train_loader: Dataloader for train set.
@@ -1050,7 +1066,7 @@ class Trainer:
         self.phase_callback_handler = CallbackHandler(callbacks=self.phase_callbacks)
 
         if not self.ddp_silent_mode:
-            self._initialize_sg_logger_objects()
+            self._initialize_sg_logger_objects(additional_configs_to_log)
 
             if self.training_params.dataset_statistics:
                 dataset_statistics_logger = DatasetStatisticsTensorboardLogger(self.sg_logger)
@@ -1545,7 +1561,7 @@ class Trainer:
         """
         self.phase_callbacks.append(MetricsUpdateCallback(phase))
 
-    def _initialize_sg_logger_objects(self):
+    def _initialize_sg_logger_objects(self, additional_configs_to_log: Dict = None):
         """Initialize object that collect, write to disk, monitor and store remotely all training outputs"""
         sg_logger = core_utils.get_param(self.training_params, "sg_logger")
 
@@ -1585,6 +1601,9 @@ class Trainer:
         hyper_param_config = self._get_hyper_param_config()
 
         self.sg_logger.add_config("hyper_params", hyper_param_config)
+        if additional_configs_to_log is not None:
+            for additional_logging_title in additional_configs_to_log.keys():
+                self.sg_logger.add_config(additional_logging_title, additional_configs_to_log[additional_logging_title])
 
         self.sg_logger.flush()
 
