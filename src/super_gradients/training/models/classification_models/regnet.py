@@ -64,7 +64,9 @@ class XBlock(nn.Module):  # From figure 4
                 nn.ReLU(),
                 nn.Conv2d(se_channels, inter_channels, kernel_size=1, bias=True),
                 nn.Sigmoid(),
+                Residual(),
             )
+            self.se_residual = Residual()
         else:
             self.se = None
 
@@ -82,7 +84,7 @@ class XBlock(nn.Module):  # From figure 4
         x1 = self.conv_block_1(x)
         x1 = self.conv_block_2(x1)
         if self.se is not None:
-            x1 = x1 * self.se(x1)
+            x1 = self.se_residual(x1) * self.se(x1)
 
         x1 = self.conv_block_3(x1)
         x2 = self.shortcut(x)
