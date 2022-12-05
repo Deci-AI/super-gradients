@@ -1,0 +1,2 @@
+deci-lab-client==3.1.1
+deci-common==3.5.0

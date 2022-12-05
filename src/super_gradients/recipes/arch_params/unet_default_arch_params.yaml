@@ -1,0 +1,53 @@
+backbone_params:
+  in_channels: 3
+  strides_list: [2, 2, 2, 2, 2]   #  list of stride per stage.
+  width_list: [32, 64, 128, 256, 512]   # list of num channels per stage.
+  num_blocks_list: [2, 3, 3, 2, 2]    # list of num blocks per stage.
+  block_types_list: [REPVGG, REPVGG, REPVGG, REPVGG, REPVGG]   # list of block types per stage. See unet_encoder.DownBlockType for options.
+  is_out_feature_list: [ True, True, True, True, True ]   # list of flags whether stage features should be an output.
+  block_params:
+    anti_alias: True                # RepVGG stage param
+    droppath_prob: 0.               # XBlock stage param
+    bottleneck_ratio: 1.            # XBlock stage param
+    group_width: 16                 # XBlock stage param
+    se_ratio:                       # XBlock stage param
+    steps: 4                        # STDC stage params
+    stdc_downsample_mode: dw_conv   # STDC stage params
+
+
+context_module:
+  ASPP:
+    in_channels: ${last:${backbone_params.width_list}}
+    dilation_list: [2, 4, 6]
+    in_out_ratio: 1.
+    # legacy parameter to support old trained checkpoints that were trained by mistake with extra redundant
+    # biases before batchnorm operators. should be set to `False` for new training processes.
+    use_bias: False
+
+decoder_params:
+  # skip expansion ratio value, before fusing the skip features from the encoder with the decoder features, a projection
+  # convolution is applied upon the encoder features to project the num_channels by skip_expansion.
+  skip_expansion: 0.25
+  decoder_scale: 0.25   # num_channels width ratio between encoder stages and decoder stages.
+  up_block_types: [UP_CAT, UP_CAT, UP_CAT, UP_CAT]    # See unet_decoder.UpBlockType for options.
+  up_block_repeat_list: [ 1, 1, 1, 1]   # num of blocks per decoder stage, the `block` implementation depends on the up-block type.
+  mode: bilinear
+  align_corners: False
+  up_factor: 2
+  is_skip_list: [True, True, True, True]    # List of flags whether to use feature-map from encoder stage as skip connection or not.
+  min_decoder_channels: 1                   # The minimum num_channels of decoder stages. Useful i.e if we want to keep the width above the num of classes.
+
+dropout: 0.
+final_upsample_factor: 2    # Final upsample scale factor after the segmentation head.
+head_upsample_mode: bilinear
+align_corners: False
+head_hidden_channels:   #  num channels before the last classification layer. see `mid_channels` in `SegmentationHead` class.
+
+use_aux_heads: False
+aux_heads_params:
+  use_aux_list: [False, False, True, True, True]    # whether to append to auxiliary head per encoder stage.
+  aux_heads_factor: [2, 4, 8, 16, 32]   # Upsample factor per encoder stage.
+  aux_hidden_channels: [32, 32, 64, 64, 64]   # Hidden num channels before last classification layer, per encoder stage.
+  aux_out_channels: [1, 1, 19, 19, 19]    # Output channels, can be refers as num_classes, of auxiliary head per encoder stage.
+
+_convert_: all

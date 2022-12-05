@@ -19,16 +19,31 @@ except (ModuleNotFoundError, ImportError, NameError):
     pass  # no action or logging - this is normal in most cases
 
 
-WANDB_ID_PREFIX = 'wandb_id.'
-WANDB_INCLUDE_FILE_NAME = '.wandbinclude'
+WANDB_ID_PREFIX = "wandb_id."
+WANDB_INCLUDE_FILE_NAME = ".wandbinclude"
 
 
 class WandBSGLogger(BaseSGLogger):
-
-    def __init__(self, project_name: str, experiment_name: str, storage_location: str, resumed: bool, training_params: dict, checkpoints_dir_path: str,
-                 tb_files_user_prompt: bool = False, launch_tensorboard: bool = False, tensorboard_port: int = None, save_checkpoints_remote: bool = True,
-                 save_tensorboard_remote: bool = True, save_logs_remote: bool = True, entity: Optional[str] = None, api_server: Optional[str] = None,
-                 save_code: bool = False, **kwargs):
+    def __init__(
+        self,
+        project_name: str,
+        experiment_name: str,
+        storage_location: str,
+        resumed: bool,
+        training_params: dict,
+        checkpoints_dir_path: str,
+        tb_files_user_prompt: bool = False,
+        launch_tensorboard: bool = False,
+        tensorboard_port: int = None,
+        save_checkpoints_remote: bool = True,
+        save_tensorboard_remote: bool = True,
+        save_logs_remote: bool = True,
+        entity: Optional[str] = None,
+        api_server: Optional[str] = None,
+        save_code: bool = False,
+        monitor_system: bool = None,
+        **kwargs,
+    ):
         """
 
         :param experiment_name:         Used for logging and loading purposes
@@ -43,15 +58,30 @@ class WandBSGLogger(BaseSGLogger):
         :param save_logs_remote:        Saves log files in s3.
         :param save_code:               Save current code to wandb
         """
-        self.s3_location_available = storage_location.startswith('s3')
-        super().__init__(project_name, experiment_name, storage_location, resumed, training_params,
-                         checkpoints_dir_path, tb_files_user_prompt, launch_tensorboard, tensorboard_port,
-                         self.s3_location_available, self.s3_location_available, self.s3_location_available)
+        if monitor_system is not None:
+            logger.warning("monitor_system not available on WandBSGLogger. To remove this warning, please don't set monitor_system in your logger parameters")
+
+        self.s3_location_available = storage_location.startswith("s3")
+        super().__init__(
+            project_name=project_name,
+            experiment_name=experiment_name,
+            storage_location=storage_location,
+            resumed=resumed,
+            training_params=training_params,
+            checkpoints_dir_path=checkpoints_dir_path,
+            tb_files_user_prompt=tb_files_user_prompt,
+            launch_tensorboard=launch_tensorboard,
+            tensorboard_port=tensorboard_port,
+            save_checkpoints_remote=self.s3_location_available,
+            save_tensorboard_remote=self.s3_location_available,
+            save_logs_remote=self.s3_location_available,
+            monitor_system=False,
+        )
 
         if api_server is not None:
-            if api_server != os.getenv('WANDB_BASE_URL'):
-                logger.warning(f'WANDB_BASE_URL environment parameter not set to {api_server}. Setting the parameter')
-                os.putenv('WANDB_BASE_URL', api_server)
+            if api_server != os.getenv("WANDB_BASE_URL"):
+                logger.warning(f"WANDB_BASE_URL environment parameter not set to {api_server}. Setting the parameter")
+                os.environ["WANDB_BASE_URL"] = api_server
 
         wandb_id = None
         self.resumed = resumed
@@ -87,6 +117,7 @@ class WandBSGLogger(BaseSGLogger):
         base_path, paths, types = self._get_include_paths()
 
         if len(types) > 0:
+
             def func(path):
                 for p in paths:
                     if path.startswith(p):
@@ -120,7 +151,7 @@ class WandBSGLogger(BaseSGLogger):
         wandb.log(data=tag_scalar_dict, step=global_step)
 
     @multi_process_safe
-    def add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], data_format='CHW', global_step: int = 0):
+    def add_image(self, tag: str, image: Union[torch.Tensor, np.array, Image.Image], data_format="CHW", global_step: int = 0):
         super(WandBSGLogger, self).add_image(tag=tag, image=image, data_format=data_format, global_step=global_step)
         if isinstance(image, torch.Tensor):
             image = image.cpu().detach().numpy()
@@ -129,7 +160,7 @@ class WandBSGLogger(BaseSGLogger):
         wandb.log(data={tag: wandb.Image(image, caption=tag)}, step=global_step)
 
     @multi_process_safe
-    def add_images(self, tag: str, images: Union[torch.Tensor, np.array], data_format='NCHW', global_step: int = 0):
+    def add_images(self, tag: str, images: Union[torch.Tensor, np.array], data_format="NCHW", global_step: int = 0):
         super(WandBSGLogger, self).add_images(tag=tag, images=images, data_format=data_format, global_step=global_step)
 
         wandb_images = []
@@ -148,7 +179,7 @@ class WandBSGLogger(BaseSGLogger):
 
         if video.ndim > 4:
             for index, vid in enumerate(video):
-                self.add_video(tag=f'{tag}_{index}', video=vid, global_step=global_step)
+                self.add_video(tag=f"{tag}_{index}", video=vid, global_step=global_step)
         else:
             if isinstance(video, torch.Tensor):
                 video = video.cpu().detach().numpy()
@@ -177,23 +208,23 @@ class WandBSGLogger(BaseSGLogger):
     @multi_process_safe
     def add_file(self, file_name: str = None):
         super().add_file(file_name)
-        wandb.save(glob_str=os.path.join(self._local_dir, file_name), base_path=self._local_dir, policy='now')
+        wandb.save(glob_str=os.path.join(self._local_dir, file_name), base_path=self._local_dir, policy="now")
 
     @multi_process_safe
     def upload(self):
         super().upload()
 
         if self.save_tensorboard_wandb:
-            wandb.save(glob_str=self._get_tensorboard_file_name(), base_path=self._local_dir, policy='now')
+            wandb.save(glob_str=self._get_tensorboard_file_name(), base_path=self._local_dir, policy="now")
 
         if self.save_logs_wandb:
-            wandb.save(glob_str=self.log_file_path, base_path=self._local_dir, policy='now')
+            wandb.save(glob_str=self.log_file_path, base_path=self._local_dir, policy="now")
 
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = 0):
-        name = f'ckpt_{global_step}.pth' if tag is None else tag
-        if not name.endswith('.pth'):
-            name += '.pth'
+        name = f"ckpt_{global_step}.pth" if tag is None else tag
+        if not name.endswith(".pth"):
+            name += ".pth"
 
         path = os.path.join(self._local_dir, name)
         torch.save(state_dict, path)
@@ -201,13 +232,13 @@ class WandBSGLogger(BaseSGLogger):
         if self.save_checkpoints_wandb:
             if self.s3_location_available:
                 self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
-            wandb.save(glob_str=path, base_path=self._local_dir, policy='now')
+            wandb.save(glob_str=path, base_path=self._local_dir, policy="now")
 
     def _get_tensorboard_file_name(self):
         try:
             tb_file_path = self.tensorboard_writer.file_writer.event_writer._file_name
         except RuntimeError:
-            logger.warning('tensorboard file could not be located for ')
+            logger.warning("tensorboard file could not be located for ")
             return None
 
         return tb_file_path
@@ -215,14 +246,14 @@ class WandBSGLogger(BaseSGLogger):
     def _get_wandb_id(self):
         for file in os.listdir(self._local_dir):
             if file.startswith(WANDB_ID_PREFIX):
-                return file.replace(WANDB_ID_PREFIX, '')
+                return file.replace(WANDB_ID_PREFIX, "")
 
     def _set_wandb_id(self, id):
         for file in os.listdir(self._local_dir):
             if file.startswith(WANDB_ID_PREFIX):
                 os.remove(os.path.join(self._local_dir, file))
 
-        os.mknod(os.path.join(self._local_dir, f'{WANDB_ID_PREFIX}{id}'))
+        os.mknod(os.path.join(self._local_dir, f"{WANDB_ID_PREFIX}{id}"))
 
     def add(self, tag: str, obj: Any, global_step: int = None):
         pass
@@ -245,12 +276,12 @@ class WandBSGLogger(BaseSGLogger):
             paths = []
             types = []
             for line in lines:
-                line = line.strip().strip('/n')
+                line = line.strip().strip("/n")
                 if line == "" or line.startswith("#"):
                     continue
 
-                if line.startswith('*.'):
-                    types.append(line.replace('*', ''))
+                if line.startswith("*."):
+                    types.append(line.replace("*", ""))
                 else:
                     paths.append(os.path.join(base_path, line))
             return base_path, paths, types
@@ -267,7 +298,7 @@ class WandBSGLogger(BaseSGLogger):
 
         try:
             cur_dir = os.getcwd()
-            while cur_dir != '/':
+            while cur_dir != "/":
                 if file_name in os.listdir(cur_dir):
                     return os.path.join(cur_dir, file_name)
                 else:

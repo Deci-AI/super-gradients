@@ -8,6 +8,7 @@ from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
 from super_gradients.training.pretrained_models import MODEL_URLS
 from super_gradients.common.environment import environment_config
+
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
 except (ModuleNotFoundError, ImportError, NameError):
@@ -49,10 +50,12 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
     @param external_checkpoint_path: full path to checkpoint file (that might be located outside of super_gradients/checkpoints directory)
     @return:
     """
-    source_ckpt_folder_name = source_ckpt_folder_name or experiment_name
-    ckpt_local_path = external_checkpoint_path or pkg_resources.resource_filename('checkpoints', source_ckpt_folder_name + os.path.sep + ckpt_name)
-
-    return ckpt_local_path
+    if external_checkpoint_path:
+        return external_checkpoint_path
+    else:
+        checkpoints_folder_name = source_ckpt_folder_name or experiment_name
+        checkpoints_dir_path = get_checkpoints_dir_path(checkpoints_folder_name)
+        return os.path.join(checkpoints_dir_path, ckpt_name)
 
 
 def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str):
@@ -65,19 +68,24 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: str
     @return:
     """
     try:
-        net.load_state_dict(state_dict['net'] if 'net' in state_dict.keys() else state_dict, strict=strict)
+        net.load_state_dict(state_dict["net"] if "net" in state_dict.keys() else state_dict, strict=strict)
     except (RuntimeError, ValueError, KeyError) as ex:
-        if strict == 'no_key_matching':
+        if strict == "no_key_matching":
             adapted_state_dict = adapt_state_dict_to_fit_model_layer_names(net.state_dict(), state_dict)
-            net.load_state_dict(adapted_state_dict['net'], strict=True)
+            net.load_state_dict(adapted_state_dict["net"], strict=True)
         else:
             raise_informative_runtime_error(net.state_dict(), state_dict, ex)
 
 
-@explicit_params_validation(validation_type='None')
-def copy_ckpt_to_local_folder(local_ckpt_destination_dir: str, ckpt_filename: str, remote_ckpt_source_dir: str = None,
-                              path_src: str = 'local', overwrite_local_ckpt: bool = False,
-                              load_weights_only: bool = False):
+@explicit_params_validation(validation_type="None")
+def copy_ckpt_to_local_folder(
+    local_ckpt_destination_dir: str,
+    ckpt_filename: str,
+    remote_ckpt_source_dir: str = None,
+    path_src: str = "local",
+    overwrite_local_ckpt: bool = False,
+    load_weights_only: bool = False,
+):
     """
     Copy the checkpoint from any supported source to a local destination path
         :param local_ckpt_destination_dir:  destination where the checkpoint will be saved to
@@ -96,27 +104,31 @@ def copy_ckpt_to_local_folder(local_ckpt_destination_dir: str, ckpt_filename: st
     if not overwrite_local_ckpt:
         # CREATE A TEMP FOLDER TO SAVE THE CHECKPOINT TO
         download_ckpt_destination_dir = tempfile.gettempdir()
-        print('PLEASE NOTICE - YOU ARE IMPORTING A REMOTE CHECKPOINT WITH overwrite_local_checkpoint = False '
-              '-> IT WILL BE REDIRECTED TO A TEMP FOLDER AND DELETED ON MACHINE RESTART')
+        print(
+            "PLEASE NOTICE - YOU ARE IMPORTING A REMOTE CHECKPOINT WITH overwrite_local_checkpoint = False "
+            "-> IT WILL BE REDIRECTED TO A TEMP FOLDER AND DELETED ON MACHINE RESTART"
+        )
     else:
         # SAVE THE CHECKPOINT TO MODEL's FOLDER
-        download_ckpt_destination_dir = pkg_resources.resource_filename('checkpoints', local_ckpt_destination_dir)
+        download_ckpt_destination_dir = pkg_resources.resource_filename("checkpoints", local_ckpt_destination_dir)
 
-    if path_src.startswith('s3'):
+    if path_src.startswith("s3"):
         model_checkpoints_data_interface = ADNNModelRepositoryDataInterfaces(data_connection_location=path_src)
         # DOWNLOAD THE FILE FROM S3 TO THE DESTINATION FOLDER
         ckpt_file_full_local_path = model_checkpoints_data_interface.load_remote_checkpoints_file(
             ckpt_source_remote_dir=remote_ckpt_source_dir,
             ckpt_destination_local_dir=download_ckpt_destination_dir,
             ckpt_file_name=ckpt_filename,
-            overwrite_local_checkpoints_file=overwrite_local_ckpt)
+            overwrite_local_checkpoints_file=overwrite_local_ckpt,
+        )
 
         if not load_weights_only:
             # COPY LOG FILES FROM THE REMOTE DIRECTORY TO THE LOCAL ONE ONLY IF LOADING THE CURRENT MODELs CKPT
-            model_checkpoints_data_interface.load_all_remote_log_files(model_name=remote_ckpt_source_dir,
-                                                                       model_checkpoint_local_dir=download_ckpt_destination_dir)
+            model_checkpoints_data_interface.load_all_remote_log_files(
+                model_name=remote_ckpt_source_dir, model_checkpoint_local_dir=download_ckpt_destination_dir
+            )
 
-    if path_src == 'url':
+    if path_src == "url":
         ckpt_file_full_local_path = download_ckpt_destination_dir + os.path.sep + ckpt_filename
         # DOWNLOAD THE FILE FROM URL TO THE DESTINATION FOLDER
         download_url_to_file(remote_ckpt_source_dir, ckpt_file_full_local_path, progress=True)
@@ -126,7 +138,7 @@ def copy_ckpt_to_local_folder(local_ckpt_destination_dir: str, ckpt_filename: st
 
 def read_ckpt_state_dict(ckpt_path: str, device="cpu"):
     if not os.path.exists(ckpt_path):
-        raise ValueError('Incorrect Checkpoint path')
+        raise ValueError("Incorrect Checkpoint path")
 
     if device == "cuda":
         state_dict = torch.load(ckpt_path)
@@ -136,8 +148,7 @@ def read_ckpt_state_dict(ckpt_path: str, device="cpu"):
     return state_dict
 
 
-def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckpt: dict,
-                                              exclude: list = [], solver: callable = None):
+def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckpt: dict, exclude: list = [], solver: callable = None):
     """
     Given a model state dict and source checkpoints, the method tries to correct the keys in the model_state_dict to fit
     the ckpt in order to properly load the weights into the model. If unsuccessful - returns None
@@ -148,18 +159,17 @@ def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckp
                                         that returns a desired weight for ckpt_val.
         :return: renamed checkpoint dict (if possible)
     """
-    if 'net' in source_ckpt.keys():
-        source_ckpt = source_ckpt['net']
+    if "net" in source_ckpt.keys():
+        source_ckpt = source_ckpt["net"]
     model_state_dict_excluded = {k: v for k, v in model_state_dict.items() if not any(x in k for x in exclude)}
     new_ckpt_dict = {}
     for (ckpt_key, ckpt_val), (model_key, model_val) in zip(source_ckpt.items(), model_state_dict_excluded.items()):
         if solver is not None:
             ckpt_val = solver(ckpt_key, ckpt_val, model_key, model_val)
         if ckpt_val.shape != model_val.shape:
-            raise ValueError(f'ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}'
-                             f' with shape {model_val.shape} in the model')
+            raise ValueError(f"ckpt layer {ckpt_key} with shape {ckpt_val.shape} does not match {model_key}" f" with shape {model_val.shape} in the model")
         new_ckpt_dict[model_key] = ckpt_val
-    return {'net': new_ckpt_dict}
+    return {"net": new_ckpt_dict}
 
 
 def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
@@ -169,18 +179,21 @@ def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
     """
     try:
         new_ckpt_dict = adapt_state_dict_to_fit_model_layer_names(state_dict, checkpoint)
-        temp_file = tempfile.NamedTemporaryFile().name + '.pt'
+        temp_file = tempfile.NamedTemporaryFile().name + ".pt"
         torch.save(new_ckpt_dict, temp_file)
-        exception_msg = f"\n{'=' * 200}\n{str(exception_msg)} \nconvert ckpt via the utils.adapt_state_dict_to_fit_" \
-                        f"model_layer_names method\na converted checkpoint file was saved in the path {temp_file}\n{'=' * 200}"
+        exception_msg = (
+            f"\n{'=' * 200}\n{str(exception_msg)} \nconvert ckpt via the utils.adapt_state_dict_to_fit_"
+            f"model_layer_names method\na converted checkpoint file was saved in the path {temp_file}\n{'=' * 200}"
+        )
     except ValueError as ex:  # IN CASE adapt_state_dict_to_fit_model_layer_names WAS UNSUCCESSFUL
         exception_msg = f"\n{'=' * 200} \nThe checkpoint and model shapes do no fit, e.g.: {ex}\n{'=' * 200}"
     finally:
         raise RuntimeError(exception_msg)
 
 
-def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: torch.nn.Module, strict: str,
-                             load_weights_only: bool, load_ema_as_net: bool = False):
+def load_checkpoint_to_model(
+    ckpt_local_path: str, load_backbone: bool, net: torch.nn.Module, strict: str, load_weights_only: bool, load_ema_as_net: bool = False
+):
     """
     Loads the state dict in ckpt_local_path to net and returns the checkpoint's state dict.
 
@@ -193,20 +206,20 @@ def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: tor
     @return:
     """
     if ckpt_local_path is None or not os.path.exists(ckpt_local_path):
-        error_msg = 'Error - loading Model Checkpoint: Path {} does not exist'.format(ckpt_local_path)
+        error_msg = "Error - loading Model Checkpoint: Path {} does not exist".format(ckpt_local_path)
         raise RuntimeError(error_msg)
 
-    if load_backbone and not hasattr(net, 'backbone'):
+    if load_backbone and not hasattr(net, "backbone"):
         raise ValueError("No backbone attribute in net - Can't load backbone weights")
 
     # LOAD THE LOCAL CHECKPOINT PATH INTO A state_dict OBJECT
     checkpoint = read_ckpt_state_dict(ckpt_path=ckpt_local_path)
 
     if load_ema_as_net:
-        if 'ema_net' not in checkpoint.keys():
+        if "ema_net" not in checkpoint.keys():
             raise ValueError("Can't load ema network- no EMA network stored in checkpoint file")
         else:
-            checkpoint['net'] = checkpoint['ema_net']
+            checkpoint["net"] = checkpoint["ema_net"]
 
     # LOAD THE CHECKPOINTS WEIGHTS TO THE MODEL
     if load_backbone:
@@ -214,9 +227,13 @@ def load_checkpoint_to_model(ckpt_local_path: str, load_backbone: bool, net: tor
     else:
         adaptive_load_state_dict(net, checkpoint, strict)
 
+    message_suffix = " checkpoint." if not load_ema_as_net else " EMA checkpoint."
+    message_model = "model" if not load_backbone else "model's backbone"
+    logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
+
     if load_weights_only or load_backbone:
         # DISCARD ALL THE DATA STORED IN CHECKPOINT OTHER THAN THE WEIGHTS
-        [checkpoint.pop(key) for key in list(checkpoint.keys()) if key != 'net']
+        [checkpoint.pop(key) for key in list(checkpoint.keys()) if key != "net"]
 
     return checkpoint
 
@@ -238,8 +255,11 @@ def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
     Helper method for reshaping old pretrained checkpoint's focus weights to 6x6 conv weights.
     """
 
-    if ckpt_val.shape != model_val.shape and ckpt_key == 'module._backbone._modules_list.0.conv.conv.weight' and \
-            model_key == '_backbone._modules_list.0.conv.weight':
+    if (
+        ckpt_val.shape != model_val.shape
+        and ckpt_key == "module._backbone._modules_list.0.conv.conv.weight"
+        and model_key == "_backbone._modules_list.0.conv.weight"
+    ):
         model_val.data[:, :, ::2, ::2] = ckpt_val.data[:, :3]
         model_val.data[:, :, 1::2, ::2] = ckpt_val.data[:, 3:6]
         model_val.data[:, :, ::2, 1::2] = ckpt_val.data[:, 6:9]
@@ -260,25 +280,25 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     @param pretrained_weights: name for the pretrianed weights (i.e imagenet)
     @return: None
     """
-    model_url_key = architecture + '_' + str(pretrained_weights)
+    model_url_key = architecture + "_" + str(pretrained_weights)
     if model_url_key not in MODEL_URLS.keys():
         raise MissingPretrainedWeightsException(model_url_key)
 
     url = MODEL_URLS[model_url_key]
-    unique_filename = url.split("https://deci-pretrained-models.s3.amazonaws.com/")[1].replace('/', '_').replace(' ', '_')
-    map_location = torch.device('cpu')
+    unique_filename = url.split("https://deci-pretrained-models.s3.amazonaws.com/")[1].replace("/", "_").replace(" ", "_")
+    map_location = torch.device("cpu")
     pretrained_state_dict = load_state_dict_from_url(url=url, map_location=map_location, file_name=unique_filename)
     _load_weights(architecture, model, pretrained_state_dict)
 
 
 def _load_weights(architecture, model, pretrained_state_dict):
-    if 'ema_net' in pretrained_state_dict.keys():
-        pretrained_state_dict['net'] = pretrained_state_dict['ema_net']
+    if "ema_net" in pretrained_state_dict.keys():
+        pretrained_state_dict["net"] = pretrained_state_dict["ema_net"]
     solver = _yolox_ckpt_solver if "yolox" in architecture else None
-    adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(model_state_dict=model.state_dict(),
-                                                                              source_ckpt=pretrained_state_dict,
-                                                                              solver=solver)
-    model.load_state_dict(adapted_pretrained_state_dict['net'], strict=False)
+    adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(
+        model_state_dict=model.state_dict(), source_ckpt=pretrained_state_dict, solver=solver
+    )
+    model.load_state_dict(adapted_pretrained_state_dict["net"], strict=False)
 
 
 def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pretrained_weights: str):
@@ -291,7 +311,7 @@ def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pre
     @return: None
     """
 
-    map_location = torch.device('cpu')
+    map_location = torch.device("cpu")
 
     pretrained_state_dict = torch.load(pretrained_weights, map_location=map_location)
     _load_weights(architecture, model, pretrained_state_dict)

@@ -48,6 +48,7 @@ ________________________________________________________________________________
 # Load model with pretrained weights
 model = models.get("yolox_s", pretrained_weights="coco")
 ```
+#### All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
 
 #### Classification
 <div align="center">
@@ -65,19 +66,15 @@ model = models.get("yolox_s", pretrained_weights="coco")
 </div>
 
 
-
-All Computer Vision Models - Pretrained Checkpoints can be found [here](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
-
-
 ### Easy to train SOTA Models
 
 Easily load and fine-tune production-ready, pre-trained SOTA models that incorporate best practices and validated hyper-parameters for achieving best-in-class accuracy. 
 For more information on how to do it go to [Getting Started](#getting-started)
     
 
-### Plug and play recipes
+#### Plug and play recipes
 ```python
-python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+python -m super_gradients.examples.train_from_recipe_example.train_from_recipe architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 More example on how and why to use recipes can be found in [Recipes](#recipes)
 
@@ -111,20 +108,20 @@ pip install super-gradients
 
 ## What's New
 __________________________________________________________________________________________________________
-* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)  for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
-* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
+* 【17/11/2022】 Integration with ClearML
+* 【06/9/2022】 PP-LiteSeg - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
+* 【07/08/2022】DDRNet23 -  new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with SOTA mIoU scores (~1% above paper)🎯
 * 【27/07/2022】YOLOX models (object detection) - recipes and pre-trained checkpoints.
-* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes/coco_ssd_lite_mobilenet_v2.yaml) and pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) on COCO - Tailored for edge devices! 📱
-* 【07/07/2022】 STDC  - new pre-trained [checkpoints](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md) and [recipes](https://github.com/Deci-AI/super-gradients/blob/master/src/super_gradients/recipes) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
+* 【07/07/2022】SSD Lite MobileNet V2,V1 - Training [recipes](http://bit.ly/3gfLw07) and pre-trained [checkpoints](http://bit.ly/3EGfKD4) on COCO - Tailored for edge devices! 📱
+* 【07/07/2022】 STDC  - new pre-trained [checkpoints](http://bit.ly/3EGfKD4) and [recipes](http://bit.ly/3gfLw07) for Cityscapes with super SOTA mIoU scores (~2.5% above paper)🎯
 
 Check out SG full [release notes](https://github.com/Deci-AI/super-gradients/releases).
 
 ## Coming soon
 __________________________________________________________________________________________________________
-- [ ] PP-LiteSeg recipes for Cityscapes with SOTA mIoU scores (~1.5% above paper)🎯
-- [ ] Single class detectors (recipes, pre-trained checkpoints) for edge devices deployment.
-- [ ] Single class segmentation (recipes, pre-trained checkpoints) for edge devices deployment.
-- [ ] QAT capabilities (Quantization Aware Training).
+- [ ] PP-Yolo-E implementation
+- [ ] Quantization aware training (QAT)
+- [ ] Tools for faster training 
 - [ ] Integration with more professional tools.
 
 
@@ -153,10 +150,10 @@ ________________________________________________________________________________
 The most simple and straightforward way to start training SOTA performance models with SuperGradients reproducible recipes. Just define your dataset path and where you want your checkpoints to be saved and you are good to go from your terminal!
     
 ```bash
-python -m super_gradients.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
+python -m super_gradients.examples.train_from_recipe_example.train_from_recipe --config-name=imagenet_regnetY architecture=regnetY800 dataset_interface.data_dir=<YOUR_Imagenet_LOCAL_PATH> ckpt_root_dir=<CHEKPOINT_DIRECTORY>
 ```
 ### Quickly Load Pre-Trained Weights for Your Desired Model with SOTA Performance
-Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](src/super_gradients/training/Computer_Vision_Models_Pretrained_Checkpoints.md)
+Want to try our pre-trained models on your machine? Import SuperGradients, initialize your Trainer, and load your desired architecture and pre-trained weights from our [SOTA model zoo](http://bit.ly/3EGfKD4)
 
 ```python
 # The pretrained_weights argument will load a pre-trained architecture on the provided dataset
@@ -279,7 +276,10 @@ Learn more about SuperGradients knowledge distillation training with our pre-tra
 
 ### Recipes
 To train a model, it is necessary to configure 4 main components. These components are aggregated into a single "main" recipe `.yaml` file that inherits the aforementioned dataset, architecture, raining and checkpoint params. It is also possible (and recomended for flexibility) to override default settings with custom ones.
-All recipes can be found [here](src/super_gradients/recipes/Training_Recipes.md)
+All recipes can be found [here](http://bit.ly/3gfLw07)
+</br>
+Recipes support out of the box every model, metric or loss that is implemented in SuperGradients, but you can easily extend this to any custom object that you need by "registering it". Check out [this](http://bit.ly/3TQ4iZB) tutorial for more information.
+
   <table class="tfo-notebook-buttons" align="left">
  <td width="500">   
    <a target="_blank" href="https://bit.ly/3UiY5ab"><img src="./docs/assets/SG_img/colab_logo.png" /> How to Use Recipes</a>
@@ -290,38 +290,91 @@ All recipes can be found [here](src/super_gradients/recipes/Training_Recipes.md)
 </table>
  </br></br>
 
+ </br>
+<details>
+  <summary><h3>Using Distributed Data Parallel (DDP) </h3></summary>
 
-### Using DDP
+#### Why use DDP ?
+
+Recent Deep Learning models are growing larger and larger to an extent that training on a single GPU can take weeks.
+In order to train models in a timely fashion, it is necessary to train them with multiple GPUs.
+Using 100s GPUs can reduce training time of a model from a week to less than an hour.
+
+#### How does it work ?
+Each GPU has its own process, which controls a copy of the model and which loads its own mini-batch from disk and sends
+it to its GPU during training. After the forward pass is completed on every GPU, the gradient is reduced across all
+GPUs, yielding to all the GPUs having the same gradient locally. This leads to the model weights to stay synchronized
+across all GPUs after the backward pass.
+
+#### How to use it ?
+You can use SuperGradients to train your model with DDP in just a few lines.
+
+*main.py*
 ```python
-from super_gradients import init_trainer
+from super_gradients import init_trainer, Trainer
 from super_gradients.common import MultiGPUMode
 from super_gradients.training.utils.distributed_training_utils import setup_gpu_mode
 
 # Initialize the environment
 init_trainer()
 
-# Launch DDP on 1 device (node) of 4 GPU's
+# Launch DDP on 4 GPUs'
 setup_gpu_mode(gpu_mode=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
 
-# Define the objects
+# Call the trainer
+Trainer(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, expriment_name=...)
 
-# The trainer will run on DDP without anything else to change
+# Everything you do below will run on 4 gpus
+
+...
+
+Trainer.train(...)
+
 ```
-### Easily change architectures parameters
+
+Finally, you can launch your distributed training with a simple python call.
+```bash
+python main.py
+```
+
+
+Please note that if you work with `torch<1.9.0` (deprecated), you will have to launch your training with either 
+`torch.distributed.launch` or `torchrun`, in which case `nproc_per_node` will overwrite the value  set with `gpu_mode`:
+```bash
+python -m torch.distributed.launch --nproc_per_node=4 main.py
+```
+```bash
+torchrun --nproc_per_node=4 main.py
+```
+
+#### Good to know
+Your total batch size will be (number of gpus x batch size), so you might want to increase your learning rate.
+There is no clear rule, but a rule of thumb seems to be to [linearly increase the learning rate with the number of gpus](https://arxiv.org/pdf/1706.02677.pdf) 
+
+</details>
+
+<details>
+<summary><h3> Easily change architectures parameters </h3></summary>
+
 ```python
 from super_gradients.training import models
 
 # instantiate default pretrained resnet18
-default_resnet18 = models.get(name="resnet18", num_classes=100, pretrained_weights="imagenet")
+default_resnet18 = models.get(model_name="resnet18", num_classes=100, pretrained_weights="imagenet")
 
 # instantiate pretrained resnet18, turning DropPath on with probability 0.5
-droppath_resnet18 = models.get(name="resnet18", arch_params={"droppath_prob": 0.5}, num_classes=100, pretrained_weights="imagenet")
+droppath_resnet18 = models.get(model_name="resnet18", arch_params={"droppath_prob": 0.5}, num_classes=100, pretrained_weights="imagenet")
 
 # instantiate pretrained resnet18, without classifier head. Output will be from the last stage before global pooling
-backbone_resnet18 = models.get(name="resnet18", arch_params={"backbone_mode": True}, pretrained_weights="imagenet")
+backbone_resnet18 = models.get(model_name="resnet18", arch_params={"backbone_mode": True}, pretrained_weights="imagenet")
 ```
 
-### Using phase callbacks
+</details>
+
+<details>
+
+<summary><h3> Using phase callbacks </h3></summary>  
+  
 ```python
 from super_gradients import Trainer
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -344,7 +397,14 @@ trainer = Trainer("experiment_name")
 # define phase_callbacks as part of the training parameters
 train_params = {"phase_callbacks": phase_callbacks}
 ```
-### Integration to Weights and Biases
+
+</details>
+
+<details>
+
+<summary><h3> Integration to Weights and Biases </h3></summary>    
+  
+
 ```python
 from super_gradients import Trainer
 
@@ -362,6 +422,32 @@ train_params = { ... # training parameters
                   } 
                }
 ```
+
+</details>
+
+<details>
+
+<summary><h3> Integration to ClearML </h3></summary>    
+    
+```python
+from super_gradients import Trainer
+
+# create a trainer object, look the declaration for more parameters
+trainer = Trainer("experiment_name")
+
+train_params = { ... # training parameters
+                "sg_logger": "clearml_sg_logger", # ClearML Logger, see class ClearMLSGLogger for details
+                "sg_logger_params": # paramenters that will be passes to __init__ of the logger 
+                  {
+                    "project_name": "project_name", # ClearML project name
+                    "save_checkpoints_remote": True,
+                    "save_tensorboard_remote": True,
+                    "save_logs_remote": True,
+                  } 
+               }
+```
+
+  </details>
 
 
 ## Installation Methods
@@ -418,7 +504,9 @@ pip install git+https://github.com/Deci-AI/super-gradients.git@stable
 ## Implemented Model Architectures 
 __________________________________________________________________________________________________________
 
-Detailed list can be found [here](src/super_gradients/training/models/Implemented%20Model%20Architectures.md) 
+All Computer Vision Models - Pretrained Checkpoints can be found in the [Model Zoo](http://bit.ly/3EGfKD4)
+
+Detailed list can be found [here](http://bit.ly/3GnJwgZ) 
 
 ### Image Classification
   
@@ -522,5 +610,3 @@ Features:
 ֿ
 
 Request free trial [here](https://bit.ly/3qO3icq) 
-
-
