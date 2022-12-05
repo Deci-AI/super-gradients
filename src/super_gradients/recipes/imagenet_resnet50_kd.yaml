@@ -16,6 +16,7 @@ defaults:
   - training_hyperparams: imagenet_resnet50_kd_train_params
   - dataset_params: imagenet_resnet50_kd_dataset_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 train_dataloader: imagenet_train
 val_dataloader: imagenet_val
