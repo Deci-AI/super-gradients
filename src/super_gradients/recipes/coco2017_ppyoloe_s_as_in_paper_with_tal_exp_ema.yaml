@@ -71,6 +71,7 @@ training_hyperparams:
 
   ema: True
   ema_params:
+    decay: 0.9998
     decay_function:
       exp:
         beta: 15
