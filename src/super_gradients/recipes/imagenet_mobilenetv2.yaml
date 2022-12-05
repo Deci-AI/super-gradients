@@ -14,6 +14,7 @@ defaults:
   - dataset_params: imagenet_mobilenetv2_dataset_params
   - arch_params: mobilenet_v2_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 train_dataloader: imagenet_train
 val_dataloader: imagenet_val
