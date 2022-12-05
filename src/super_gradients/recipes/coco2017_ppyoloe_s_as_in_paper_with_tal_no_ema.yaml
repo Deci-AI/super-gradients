@@ -71,6 +71,8 @@ training_hyperparams:
 
   ema: False
 
+  static_assigner_end_epoch: 100
+
 architecture: ppyoloe
 
 multi_gpu: DDP
