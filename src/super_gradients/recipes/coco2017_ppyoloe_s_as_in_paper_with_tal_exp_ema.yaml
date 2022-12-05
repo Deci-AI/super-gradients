@@ -71,9 +71,12 @@ training_hyperparams:
 
   ema: True
   ema_params:
-    decay: 0.9998
     decay_function:
-      constant: null
+      exp:
+        beta: 15
+
+  zero_weight_decay_on_bias_and_bn: True
+  static_assigner_end_epoch: 100
 
 architecture: ppyoloe
 
@@ -81,7 +84,7 @@ multi_gpu: DDP
 num_gpus: 8
 
 experiment_suffix: res_640
-experiment_name: coco2017_ppyoloe_s_as_in_paper_with_tal_${experiment_suffix}
+experiment_name: coco2017_ppyoloe_s_as_in_paper_with_tal_exp_ema_${experiment_suffix}
 
 ckpt_root_dir:
 

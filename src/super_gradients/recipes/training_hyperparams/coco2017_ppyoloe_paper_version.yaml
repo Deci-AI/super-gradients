@@ -27,11 +27,11 @@ optimizer_params:
 compute_losses_on_valid: False
 static_assigner_end_epoch: 150
 
-ema: True
-ema_params:
-  decay: 0.9998
-  decay_function:
-    constant:
+#ema: True
+#ema_params:
+#  decay: 0.9998
+#  decay_function:
+#    constant:
 
 mixed_precision: True
 sync_bn: True
