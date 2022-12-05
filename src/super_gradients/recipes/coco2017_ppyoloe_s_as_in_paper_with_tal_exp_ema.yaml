@@ -75,7 +75,7 @@ training_hyperparams:
       exp:
         beta: 15
 
-  zero_weight_decay_on_bias_and_bn: True
+  zero_weight_decay_on_bias_and_bn: False
   static_assigner_end_epoch: 100
 
 architecture: ppyoloe
