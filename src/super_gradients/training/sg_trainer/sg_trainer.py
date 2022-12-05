@@ -118,7 +118,9 @@ class Trainer:
                                                 pkg_resources.resource_filename('checkpoints', "") exists and will be used.
 
         """
-        if device_config.requested_rank != get_local_rank():
+        if device is not None:
+            raise ValueError
+        if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and device_config.requested_rank != get_local_rank():
             raise DDPNotSetupException()
 
         # SET THE EMPTY PROPERTIES

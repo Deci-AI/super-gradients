@@ -18,7 +18,7 @@ def _get_requested_rank():
         return int(os.getenv("LOCAL_RANK"))
     else:
         parser = argparse.ArgumentParser()
-        parser.add_argument("--local_rank", default=None)
+        parser.add_argument("--local_rank", default=-1)
         args, _ = parser.parse_known_args()
         return args.local_rank
 
