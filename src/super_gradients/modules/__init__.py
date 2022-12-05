@@ -5,6 +5,14 @@ from .conv_bn_act_block import ConvBNAct
 from .repvgg_block import RepVGGBlock
 from .se_blocks import SEBlock, EffectiveSEBlock
 from .skip_connections import Residual, SkipConnection, CrossModelSkipConnection, BackboneInternalSkipConnection, HeadInternalSkipConnection
+from .quantization import (
+    QuantResidual,
+    QuantSkipConnection,
+    QuantCrossModelSkipConnection,
+    QuantBackboneInternalSkipConnection,
+    QuantHeadInternalSkipConnection,
+    QuantBottleneck,
+)
 
 
 def ConvBNReLU(
@@ -71,4 +79,10 @@ __all__ = [
     "CrossModelSkipConnection",
     "BackboneInternalSkipConnection",
     "HeadInternalSkipConnection",
+    "QuantResidual",
+    "QuantSkipConnection",
+    "QuantCrossModelSkipConnection",
+    "QuantBackboneInternalSkipConnection",
+    "QuantHeadInternalSkipConnection",
+    "QuantBottleneck",
 ]
