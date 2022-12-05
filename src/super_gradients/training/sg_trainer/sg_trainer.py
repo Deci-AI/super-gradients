@@ -105,7 +105,7 @@ class Trainer:
         returns the test loss, accuracy and runtime
     """
 
-    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = MultiGPUMode.OFF, ckpt_root_dir: str = None):
+    def __init__(self, experiment_name: str, device: str = None, multi_gpu: Union[MultiGPUMode, str] = None, ckpt_root_dir: str = None):
         """
 
         :param experiment_name:                      Used for logging and loading purposes
@@ -118,8 +118,9 @@ class Trainer:
                                                 pkg_resources.resource_filename('checkpoints', "") exists and will be used.
 
         """
-        if device is not None:
-            raise ValueError
+        if multi_gpu is not None:
+            raise ValueError("TODO: FILL")
+        # TODO: how to handle device ?
         if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and device_config.requested_rank != get_local_rank():
             raise DDPNotSetupException()
 

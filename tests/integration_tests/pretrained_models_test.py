@@ -228,13 +228,13 @@ class PretrainedModelsTest(unittest.TestCase):
         }
 
     def test_pretrained_resnet50_imagenet(self):
-        trainer = Trainer("imagenet_pretrained_resnet50", multi_gpu=MultiGPUMode.OFF)
+        trainer = Trainer("imagenet_pretrained_resnet50")
         model = models.get("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet50"], delta=0.001)
 
     def test_transfer_learning_resnet50_imagenet(self):
-        trainer = Trainer("imagenet_pretrained_resnet50_transfer_learning", multi_gpu=MultiGPUMode.OFF)
+        trainer = Trainer("imagenet_pretrained_resnet50_transfer_learning")
         model = models.get("resnet50", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
@@ -244,14 +244,14 @@ class PretrainedModelsTest(unittest.TestCase):
         )
 
     def test_pretrained_resnet34_imagenet(self):
-        trainer = Trainer("imagenet_pretrained_resnet34", multi_gpu=MultiGPUMode.OFF)
+        trainer = Trainer("imagenet_pretrained_resnet34")
 
         model = models.get("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet34"], delta=0.001)
 
     def test_transfer_learning_resnet34_imagenet(self):
-        trainer = Trainer("imagenet_pretrained_resnet34_transfer_learning", multi_gpu=MultiGPUMode.OFF)
+        trainer = Trainer("imagenet_pretrained_resnet34_transfer_learning")
         model = models.get("resnet34", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
@@ -261,14 +261,14 @@ class PretrainedModelsTest(unittest.TestCase):
         )
 
     def test_pretrained_resnet18_imagenet(self):
-        trainer = Trainer("imagenet_pretrained_resnet18", multi_gpu=MultiGPUMode.OFF)
+        trainer = Trainer("imagenet_pretrained_resnet18")
 
         model = models.get("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params)
         res = trainer.test(model=model, test_loader=self.imagenet_dataset, test_metrics_list=[Accuracy()], metrics_progress_verbose=True)[0].cpu().item()
         self.assertAlmostEqual(res, self.imagenet_pretrained_accuracies["resnet18"], delta=0.001)
 
     def test_transfer_learning_resnet18_imagenet(self):
-        trainer = Trainer("imagenet_pretrained_resnet18_transfer_learning", multi_gpu=MultiGPUMode.OFF)
+        trainer = Trainer("imagenet_pretrained_resnet18_transfer_learning")
         model = models.get("resnet18", arch_params=self.imagenet_pretrained_arch_params["resnet"], **self.imagenet_pretrained_ckpt_params, num_classes=5)
         trainer.train(
             model=model,
