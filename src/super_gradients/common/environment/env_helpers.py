@@ -81,15 +81,18 @@ def init_trainer():
     This function should be the first thing to be called by any code running super_gradients.
     It resolves conflicts between the different tools, packages and environments used and prepares the super_gradients environment.
     """
-    if not environment_config.INIT_TRAINER:
-        register_hydra_resolvers()
+    # if not environment_config.INIT_TRAINER:
+    register_hydra_resolvers()
 
-        # We pop local_rank if it was specified in the args, because it would break
-        args_local_rank = pop_arg("local_rank", default_value=-1)
+    # We pop local_rank if it was specified in the args, because it would break
+    # args_local_rank = pop_arg("local_rank", default_value=-1)
 
-        # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
-        environment_config.DDP_LOCAL_RANK = int(os.getenv("LOCAL_RANK", default=args_local_rank))
-        environment_config.INIT_TRAINER = True
+    # Set local_rank with priority order (env variable > args.local_rank > args.default_value)
+    # environment_config.device_config.requested_rank = int(os.getenv("LOCAL_RANK", default=args_local_rank))
+    # environment_config.device_config.requested_rank = get_requested_rank()
+    pop_arg("local_rank")
+
+    # environment_config.INIT_TRAINER = True
 
 
 def register_hydra_resolvers():
@@ -118,7 +121,7 @@ def pop_arg(arg_name: str, default_value: Any = None) -> Any:
 
 
 def is_distributed() -> bool:
-    return environment_config.DDP_LOCAL_RANK >= 0
+    return environment_config.device_config.requested_rank
 
 
 def is_rank_0() -> bool:
@@ -161,7 +164,7 @@ def multi_process_safe(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if environment_config.DDP_LOCAL_RANK <= 0:
+        if environment_config.device_config.requested_rank <= 0:
             return func(*args, **kwargs)
         else:
             return do_nothing(*args, **kwargs)
