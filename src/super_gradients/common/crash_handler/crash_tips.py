@@ -167,8 +167,27 @@ class DDPNotInitializedTip(CrashTip):
         return [tip]
 
 
+class WrongHydraVersionTip(CrashTip):
+    """Note: I think that this should be caught within the code instead"""
+
+    @classmethod
+    def is_relevant(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType):
+        expected_str = "__init__() got an unexpected keyword argument 'version_base'"
+        return isinstance(exc_value, TypeError) and expected_str == str(exc_value)
+
+    @classmethod
+    def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
+        import hydra
+
+        tip = (
+            f"{fmt_txt(f'hydra=={hydra.__version__}', color='red')} is not supported by SuperGradients. "
+            f"Please run {fmt_txt('pip install hydra-core==1.2.0', color='green')}"
+        )
+        return [tip]
+
+
 # /!\ Only the CrashTips classes listed below will be used !! /!\
-ALL_CRASH_TIPS: List[Type[CrashTip]] = [TorchCudaMissingTip, RecipeFactoryFormatTip, DDPNotInitializedTip]
+ALL_CRASH_TIPS: List[Type[CrashTip]] = [TorchCudaMissingTip, RecipeFactoryFormatTip, DDPNotInitializedTip, WrongHydraVersionTip]
 
 
 def get_relevant_crash_tip_message(exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Union[None, str]:
