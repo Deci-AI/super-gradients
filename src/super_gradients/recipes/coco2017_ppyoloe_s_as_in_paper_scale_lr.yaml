@@ -58,7 +58,7 @@ dataset_params:
 training_hyperparams:
   resume: ${resume}
 
-  initial_lr: 0.04 # Paper used 0.01 with BS of 8, we train with BS 32, but 0.04 causes nan
+  initial_lr: 0.02 # Paper used 0.01 with BS of 8, we train with BS 32, but 0.04 causes nan
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
