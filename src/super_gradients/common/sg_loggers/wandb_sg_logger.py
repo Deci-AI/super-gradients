@@ -41,6 +41,7 @@ class WandBSGLogger(BaseSGLogger):
         entity: Optional[str] = None,
         api_server: Optional[str] = None,
         save_code: bool = False,
+        monitor_system: bool = None,
         **kwargs,
     ):
         """
@@ -57,6 +58,9 @@ class WandBSGLogger(BaseSGLogger):
         :param save_logs_remote:        Saves log files in s3.
         :param save_code:               Save current code to wandb
         """
+        if monitor_system is not None:
+            logger.warning("monitor_system not available on WandBSGLogger. To remove this warning, please don't set monitor_system in your logger parameters")
+
         self.s3_location_available = storage_location.startswith("s3")
         super().__init__(
             project_name=project_name,
