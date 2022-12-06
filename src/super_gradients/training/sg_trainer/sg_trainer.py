@@ -51,7 +51,7 @@ from super_gradients.training.utils.distributed_training_utils import (
     MultiGPUModeAutocastWrapper,
     reduce_results_tuple_for_ddp,
     compute_precise_bn_stats,
-    setup_gpu_mode,
+    setup_device,
     require_gpu_setup,
     get_gpu_mem_utilization,
     get_world_size,
@@ -193,7 +193,7 @@ class Trainer:
         @return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
-        setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -256,7 +256,7 @@ class Trainer:
         :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         """
 
-        setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -1134,7 +1134,7 @@ class Trainer:
 
         first_batch, _ = next(iter(self.train_loader))
         log_main_training_params(
-            gpu_mode=self.multi_gpu,
+            multi_gpu=self.multi_gpu,
             num_gpus=get_world_size(),
             batch_size=len(first_batch),
             batch_accumulate=self.batch_accumulate,
