@@ -36,7 +36,7 @@ static_assigner_end_epoch: 100
 #  decay_function:
 #    constant:
 
-mixed_precision: True
+mixed_precision: False
 sync_bn: True
 
 valid_metrics_list:
