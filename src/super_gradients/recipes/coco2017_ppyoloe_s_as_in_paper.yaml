@@ -69,6 +69,12 @@ training_hyperparams:
     save_tensorboard_remote: True
     save_logs_remote: True
 
+  ema: True
+  ema_params:
+    decay: 0.9998
+    decay_function:
+      constant: null
+
 architecture: ppyoloe
 
 multi_gpu: DDP

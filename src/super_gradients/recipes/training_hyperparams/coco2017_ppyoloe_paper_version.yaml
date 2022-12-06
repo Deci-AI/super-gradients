@@ -2,13 +2,16 @@ defaults:
   - default_train_params
 
 max_epochs: 500
-lr_mode: cosine
-cosine_final_lr_ratio: 0.05
+
+initial_lr:  0.01
+warmup_mode: "linear_step"
+warmup_initial_lr: 0.0001
 lr_warmup_epochs: 5
 
-warmup_initial_lr: 0.0001
-initial_lr:  0.01
-zero_weight_decay_on_bias_and_bn: True
+lr_mode: cosine
+cosine_final_lr_ratio: 0.05
+
+zero_weight_decay_on_bias_and_bn: False
 batch_accumulate: 1
 
 save_ckpt_epoch_list: [285]
@@ -22,10 +25,10 @@ optimizer: SGD
 optimizer_params:
   momentum: 0.9
   weight_decay: 0.0005
-  nesterov: True
+  nesterov: False
 
 compute_losses_on_valid: False
-static_assigner_end_epoch: 150
+static_assigner_end_epoch: 100
 
 #ema: True
 #ema_params:
@@ -44,7 +47,7 @@ valid_metrics_list:
       post_prediction_callback:
         _target_: super_gradients.training.models.detection_models.pp_yolo_e.PPYoloEPostPredictionCallback
         nms_threshold: 0.7
-        score_threshold: 0.1
+        score_threshold: 0.01
         nms_top_k: 1000
         max_predictions: 300
       num_cls: ${arch_params.num_classes}

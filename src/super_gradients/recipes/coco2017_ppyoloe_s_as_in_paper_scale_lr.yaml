@@ -24,8 +24,8 @@
 
 
 defaults:
-  - training_hyperparams: coco2017_ppyoloe_sgd_no_tal_train_params
-  - dataset_params: coco_detection_ppyoloe_no_mosaic_dataset_params
+  - training_hyperparams: coco2017_ppyoloe_paper_version
+  - dataset_params: coco_detection_ppyoloe_no_mosaic_no_mixup_dataset_params
   - arch_params: ppyoloe_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
@@ -46,10 +46,19 @@ resume: False
 
 dataset_params:
   train_dataloader_params:
-    batch_size: 48
+    batch_size: 32
+
+    # Disable pin_memory due to presence of DetectionRandomResizePrePredictionCallback
+    # which makes pinned memory useless as input tensors a new size for each new batch
+    pin_memory: False
+
+  valid_dataloader_params:
+    pin_memory: False
 
 training_hyperparams:
   resume: ${resume}
+
+  initial_lr: 0.04 # Paper used 0.01 with BS of 8, we train with BS 32, but 0.04 causes nan
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
@@ -61,14 +70,18 @@ training_hyperparams:
     save_logs_remote: True
 
   ema: True
+  ema_params:
+    decay: 0.9998
+    decay_function:
+      constant: null
 
 architecture: ppyoloe
 
 multi_gpu: DDP
 num_gpus: 8
 
-experiment_suffix: res${dataset_params.train_dataset_params.input_dim}
-experiment_name: coco2017_ppyoloe_s_ema_no_mosaic_no_tal_pretrained_backbone_imagenet_norm_${experiment_suffix}
+experiment_suffix: res_640
+experiment_name: coco2017_ppyoloe_s_as_in_paper_scale_lr_${experiment_suffix}
 
 ckpt_root_dir:
 
