@@ -10,7 +10,7 @@ from torch import distributed as dist
 from torch.cuda.amp import autocast
 from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
-from torch.distributed.launcher.api.elastic_launch import LaunchConfig, elastic_launch
+from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
 from super_gradients.common.environment.env_helpers import init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
@@ -148,7 +148,7 @@ def get_local_rank():
 
 
 def require_ddp_setup() -> bool:
-    return device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and device_config.requested_rank != get_local_rank()
+    return device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and device_config.assigned_rank != get_local_rank()
 
 
 def is_ddp_subprocess():
@@ -267,7 +267,7 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
 
     if multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
         if is_distributed():
-            initialize_ddp(local_rank=device_config.requested_rank)
+            initialize_ddp(local_rank=device_config.assigned_rank)
         else:
             restart_script_with_ddp(num_gpus=num_gpus)
 

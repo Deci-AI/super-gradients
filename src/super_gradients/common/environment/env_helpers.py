@@ -113,7 +113,7 @@ def pop_arg(arg_name: str, default_value: Any = None) -> Any:
 
 
 def is_distributed() -> bool:
-    return device_config.requested_rank != -1
+    return device_config.assigned_rank != -1
 
 
 def is_launched_using_sg():
@@ -133,7 +133,7 @@ def is_main_process():
     if not is_distributed():  # If no DDP, or DDP launching process
         return True
     elif (
-        device_config.requested_rank == 0 and not is_launched_using_sg()
+        device_config.assigned_rank == 0 and not is_launched_using_sg()
     ):  # If DDP launched using torch.distributed.launch or torchrun, we need to run the check on rank 0
         return True
     else:
@@ -153,7 +153,7 @@ def multi_process_safe(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if device_config.requested_rank <= 0:
+        if device_config.assigned_rank <= 0:
             return func(*args, **kwargs)
         else:
             return do_nothing(*args, **kwargs)

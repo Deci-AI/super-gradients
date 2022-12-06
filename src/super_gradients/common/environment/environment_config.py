@@ -5,6 +5,7 @@ import pkg_resources
 
 __all__ = ["PKG_CHECKPOINTS_DIR", "EXTRA_ARGS", "device_config"]
 
+EXTRA_ARGS = []
 
 try:
     PKG_CHECKPOINTS_DIR = pkg_resources.resource_filename("checkpoints", "")
@@ -13,7 +14,7 @@ except Exception:
     PKG_CHECKPOINTS_DIR = os.path.join(os.getcwd(), "checkpoints")
 
 
-def _get_requested_rank():
+def _get_assigned_rank():
     if os.getenv("LOCAL_RANK") is not None:
         return int(os.getenv("LOCAL_RANK"))
     else:
@@ -23,16 +24,14 @@ def _get_requested_rank():
         return args.local_rank
 
 
-_DDP_REQUESTED_RANK = _get_requested_rank()
-
-EXTRA_ARGS = []
+_DDP_ASSIGNED_RANK = _get_assigned_rank()
 
 
 @dataclasses.dataclass
 class DeviceConfig:
     device: str = None
     multi_gpu: str = None
-    requested_rank: str = dataclasses.field(default=_DDP_REQUESTED_RANK, init=False)
+    assigned_rank: str = dataclasses.field(default=_DDP_ASSIGNED_RANK, init=False)
 
 
 device_config = DeviceConfig()
