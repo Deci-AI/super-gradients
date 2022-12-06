@@ -195,6 +195,10 @@ class Trainer:
         self.train_monitored_values = {}
         self.valid_monitored_values = {}
 
+    @property
+    def device(self) -> str:
+        return device_config.device
+
     @classmethod
     def train_from_config(cls, cfg: Union[DictConfig, dict]) -> Tuple[nn.Module, Tuple]:
         """
@@ -337,7 +341,7 @@ class Trainer:
 
     def _net_to_device(self):
         """
-        Manipulates self.net according to device_config.multi_gpu
+        Manipulates self.net according to device.multi_gpu
         """
         self.net.to(device_config.device)
 
