@@ -651,17 +651,22 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
     :param dataset: torch.utils.data.Dataset to be used instead of passing "name" (i.e for external dataset objects).
     :return: initialized DataLoader.
     """
-    dataset_str = get_param(dataloader_params, "dataset")
-    if dataset_str:
-        if dataset_params is not None:
-            dataset = DatasetsFactory.get({dataset_str: dataset_params})
-        else:
-            dataset = DatasetsFactory.get(dataset_str)
-        _ = dataloader_params.pop("dataset")
-
     if dataset is not None:
         if name or dataset_params:
             raise ValueError("'name' and 'dataset_params' cannot be passed with initialized dataset.")
+
+    dataset_str = get_param(dataloader_params, "dataset")
+
+    if dataset_str:
+        if name or dataset:
+            raise ValueError("'name' and 'datasets' cannot be passed when 'dataset' arg dataloader_params is used as well.")
+        if dataset_params is not None:
+            dataset = DatasetsFactory().get(conf={dataset_str: dataset_params})
+        else:
+            dataset = DatasetsFactory().get(conf=dataset_str)
+        _ = dataloader_params.pop("dataset")
+
+    if dataset is not None:
         dataloader_params = _process_sampler_params(dataloader_params, dataset, {})
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
     elif name not in ALL_DATALOADERS.keys():
