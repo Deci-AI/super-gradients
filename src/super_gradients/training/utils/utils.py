@@ -185,16 +185,16 @@ def get_param(params, name, default_val=None):
     :param default_val: assumed to be the same type as the value searched in the params
     :return:            the found value, or default if not found
     """
-    if isinstance(params, dict):
+    if isinstance(params, Mapping):
         if name in params:
-            if isinstance(default_val, dict):
+            if isinstance(default_val, Mapping):
                 return {**default_val, **params[name]}
             else:
                 return params[name]
         else:
             return default_val
     elif hasattr(params, name):
-        if isinstance(default_val, dict):
+        if isinstance(default_val, Mapping):
             return {**default_val, **getattr(params, name)}
         else:
             return getattr(params, name)
