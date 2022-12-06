@@ -11,6 +11,7 @@ defaults:
   - training_hyperparams: cifar10_resnet_train_params
   - dataset_params: cifar10_dataset_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 arch_params:
   num_classes: 10
