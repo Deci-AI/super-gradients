@@ -650,6 +650,7 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
     :param dataset: torch.utils.data.Dataset to be used instead of passing "name" (i.e for external dataset objects).
     :return: initialized DataLoader.
     """
+    # if 'dataset' in dataloader_params.keys():
 
     if dataset is not None:
         if name or dataset_params:
