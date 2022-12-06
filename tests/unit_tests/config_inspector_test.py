@@ -3,8 +3,13 @@ import unittest
 
 from omegaconf import OmegaConf
 
+from super_gradients.training.models import SgModule
+from super_gradients.training.models.all_architectures import ARCHITECTURES
+
+from super_gradients.training.models.model_factory import get_architecture
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.config_utils import raise_if_unused_params, UnusedConfigParamException, AccessCounterDict, AccessCounterHpmStruct
+from super_gradients.training.utils.sg_trainer_utils import get_callable_param_names
 
 
 class ConfigInspectTest(unittest.TestCase):
@@ -202,3 +207,27 @@ class ConfigInspectTest(unittest.TestCase):
                 "encoder.layers.2.blocks",
             },
         )
+
+    def test_model_architectures(self):
+        for model_name in ARCHITECTURES.keys():
+            architecture_cls, arch_params, pretrained_weights_path, is_remote = get_architecture(model_name, HpmStruct())
+            self.assertIsNotNone(arch_params, msg=model_name)
+
+            if not issubclass(architecture_cls, SgModule):
+                # net = architecture_cls(**arch_params.to_dict(include_schema=False))
+                pass
+            else:
+                # Most of the SG models work with a single params names "arch_params" of type HpmStruct, but a few take **kwargs instead
+                if "arch_params" not in get_callable_param_names(architecture_cls):
+                    # net = architecture_cls(**arch_params.to_dict(include_schema=False))
+                    pass
+                else:
+                    with self.subTest(model_name):
+                        try:
+                            _ = architecture_cls(arch_params=arch_params, num_classes=10)
+                        except Exception:
+                            self.skipTest("Skipping since model cannot be instantiated with YAML configuration")
+                            pass
+
+                        with raise_if_unused_params(arch_params) as tracked_arch_params:
+                            _ = architecture_cls(arch_params=tracked_arch_params, num_classes=10)

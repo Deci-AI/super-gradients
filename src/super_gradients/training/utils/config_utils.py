@@ -2,7 +2,7 @@ import abc
 from collections import defaultdict
 from typing import Mapping, Iterable, Set, Union
 
-__all__ = ["raise_if_unused_params", "warn_if_unused_params"]
+__all__ = ["raise_if_unused_params", "warn_if_unused_params", "UnusedConfigParamException"]
 
 from omegaconf import ListConfig, DictConfig
 
@@ -23,7 +23,6 @@ class AccessCounterMixin:
     and increments access counter for each property.
     """
 
-    _unused_params_action: str
     _access_counter: Mapping[str, int]
     _prefix: str  # Prefix string
 
@@ -64,30 +63,13 @@ class AccessCounterMixin:
         unused_params = self.get_all_params() - self.get_used_params()
         return unused_params
 
-    def __enter__(self):
-        pass
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        unused_params = self.get_unused_params()
-        if len(unused_params):
-            message = f"Detected unused parameters in configuration object that were not consumed by caller: {unused_params}"
-            if self._unused_params_action == "raise":
-                raise UnusedConfigParamException(message)
-            elif self._unused_params_action == "warn":
-                logger.warning(message)
-            elif self._unused_params_action == "ignore":
-                pass
-            else:
-                raise KeyError(f"Encountered unknown action key {self._unused_params_action}")
-
 
 class AccessCounterDict(Mapping, AccessCounterMixin):
-    def __init__(self, config: Mapping, access_counter: Mapping[str, int] = None, prefix: str = "", unused_params_action: str = "raise"):
+    def __init__(self, config: Mapping, access_counter: Mapping[str, int] = None, prefix: str = ""):
         super().__init__()
         self.config = config
         self._access_counter = access_counter or defaultdict(int)
         self._prefix = str(prefix)
-        self._unused_params_action = unused_params_action
 
     def __iter__(self):
         return self.config.__iter__()
@@ -97,12 +79,6 @@ class AccessCounterDict(Mapping, AccessCounterMixin):
 
     def __getitem__(self, item):
         return self.get(item)
-
-    def __repr__(self):
-        return self.config.__repr__()
-
-    def __str__(self):
-        return self.config.__str__()
 
     def __getattr__(self, item):
         value = self.config.__getitem__(item)
@@ -123,12 +99,11 @@ class AccessCounterDict(Mapping, AccessCounterMixin):
 
 
 class AccessCounterHpmStruct(Mapping, AccessCounterMixin):
-    def __init__(self, config: HpmStruct, access_counter: Mapping[str, int] = None, prefix: str = "", unused_params_action: str = "raise"):
+    def __init__(self, config: HpmStruct, access_counter: Mapping[str, int] = None, prefix: str = ""):
         super().__init__()
         self.config = config
         self._access_counter = access_counter or defaultdict(int)
         self._prefix = str(prefix)
-        self._unused_params_action = unused_params_action
 
     def __iter__(self):
         return self.config.__dict__.__iter__()
@@ -136,17 +111,18 @@ class AccessCounterHpmStruct(Mapping, AccessCounterMixin):
     def __len__(self):
         return self.config.__dict__.__len__()
 
-    def __getitem__(self, item):
-        return self.get(item)
-
     def __repr__(self):
         return self.config.__repr__()
 
     def __str__(self):
         return self.config.__str__()
 
+    def __getitem__(self, item):
+        value = self.config.__dict__[item]
+        return self.maybe_wrap_as_counter(value, item)
+
     def __getattr__(self, item):
-        value = self.config.__dict__.__getitem__(item)
+        value = self.config.__dict__[item]
         return self.maybe_wrap_as_counter(value, item)
 
     def get(self, item, default=None):
@@ -167,11 +143,10 @@ class AccessCounterHpmStruct(Mapping, AccessCounterMixin):
 
 
 class AccessCounterList(list, AccessCounterMixin):
-    def __init__(self, config: Iterable, access_counter: Mapping[str, int] = None, prefix: str = "", unused_params_action: str = "raise"):
+    def __init__(self, config: Iterable, access_counter: Mapping[str, int] = None, prefix: str = ""):
         super().__init__(config)
         self._access_counter = access_counter or defaultdict(int)
         self._prefix = str(prefix)
-        self._unused_params_action = unused_params_action
 
     def __iter__(self):
         for index, value in enumerate(super().__iter__()):
@@ -191,27 +166,49 @@ class AccessCounterList(list, AccessCounterMixin):
         return set(keys)
 
 
+class ConfigInspector:
+    def __init__(self, wrapped_config, unused_params_action: str):
+        self.wrapped_config = wrapped_config
+        self.unused_params_action = unused_params_action
+
+    def __enter__(self):
+        return self.wrapped_config
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        unused_params = self.wrapped_config.get_unused_params()
+        if len(unused_params):
+            message = f"Detected unused parameters in configuration object that were not consumed by caller: {unused_params}"
+            if self.unused_params_action == "raise":
+                raise UnusedConfigParamException(message)
+            elif self.unused_params_action == "warn":
+                logger.warning(message)
+            elif self.unused_params_action == "ignore":
+                pass
+            else:
+                raise KeyError(f"Encountered unknown action key {self.unused_params_action}")
+
+
 def raise_if_unused_params(config: Union[HpmStruct, DictConfig, ListConfig, Mapping, list, tuple]):
     if isinstance(config, HpmStruct):
-        cls = AccessCounterHpmStruct
+        wrapper_cls = AccessCounterHpmStruct
     elif isinstance(config, (Mapping, DictConfig)):
-        cls = AccessCounterDict
+        wrapper_cls = AccessCounterDict
     elif isinstance(config, (list, tuple, ListConfig)):
-        cls = AccessCounterList
+        wrapper_cls = AccessCounterList
     else:
-        raise RuntimeError("Unsupported type. Root configuration object must be a mapping or list.")
+        raise RuntimeError(f"Unsupported type. Root configuration object must be a mapping or list. Got type {type(config)}")
 
-    return cls(config, unused_params_action="raise")
+    return ConfigInspector(wrapper_cls(config), unused_params_action="raise")
 
 
 def warn_if_unused_params(config):
     if isinstance(config, HpmStruct):
-        cls = AccessCounterHpmStruct
+        wrapper_cls = AccessCounterHpmStruct
     elif isinstance(config, (Mapping, DictConfig)):
-        cls = AccessCounterDict
+        wrapper_cls = AccessCounterDict
     elif isinstance(config, (list, tuple, ListConfig)):
-        cls = AccessCounterList
+        wrapper_cls = AccessCounterList
     else:
         raise RuntimeError("Unsupported type. Root configuration object must be a mapping or list.")
 
-    return cls(config, unused_params_action="warn")
+    return ConfigInspector(wrapper_cls(config), unused_params_action="warn")
