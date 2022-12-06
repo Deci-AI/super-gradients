@@ -10,8 +10,9 @@ from torch import distributed as dist
 from torch.cuda.amp import autocast
 from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
-from torch.distributed.launcher.api import LaunchConfig, elastic_launch
+from torch.distributed.launcher.api.elastic_launch import LaunchConfig, elastic_launch
 
+from super_gradients.common.environment.env_helpers import init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment.env_helpers import find_free_port, is_distributed
 from super_gradients.common.abstractions.abstract_logger import get_logger, mute_current_process
@@ -207,14 +208,6 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = Non
     :param multi_gpu:    DDP, DP or Off
     :param num_gpus:    Number of GPU's to use.
     """
-    # FIXME: do we even want to behave differently if device_config == "cpu" ? Like what if the user sets it to "cpu" and then changes to "gpu" ?
-    # FIXME: if we behave differently, then the environment won't be setup for DDP...
-
-    if device == "cpu" and multi_gpu in (MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, MultiGPUMode.DATA_PARALLEL):
-        raise ValueError(f"device={device} and multi_gpu={multi_gpu} are not compatible together.")
-
-    from super_gradients.common.environment.env_helpers import init_trainer
-
     init_trainer()
 
     if device == "cpu":
@@ -222,24 +215,22 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = Non
     elif device == "cuda":
         setup_gpu(multi_gpu, num_gpus)
     else:
-        raise ValueError(f"Only valid values for device_config are: 'cpu' and 'cuda'. Received: '{device}'")
+        raise ValueError(f"Only valid values for device are: 'cpu' and 'cuda'. Received: '{device}'")
 
 
 def setup_cpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     """
-    If required, launch ddp subprocesses.
     :param multi_gpu:    DDP, DP or Off
     :param num_gpus:    Number of GPU's to use.
     """
-    if multi_gpu in (MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, MultiGPUMode.DATA_PARALLEL):
-        logger.warning(f"'{multi_gpu}' not available on CPU, so multi_gpu was automatically set to 'MultiGPUMode.OFF'")
-    multi_gpu = MultiGPUMode.OFF
+    if multi_gpu not in (MultiGPUMode.OFF, MultiGPUMode.AUTO):
+        raise ValueError(f"device='cpu' and multi_gpu={multi_gpu} are not compatible together.")
 
     if num_gpus not in (0, None):
-        logger.warning(f"You specified num_gpus={num_gpus} but it has not be 0 on CPU, so num_gpus was automatically set to 0.")
+        raise ValueError(f"device='cpu' and num_gpus={num_gpus} are not compatible together.")
 
     device_config.device = "cpu"
-    device_config.multi_gpu = multi_gpu
+    device_config.multi_gpu = MultiGPUMode.OFF
 
 
 def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
@@ -249,7 +240,7 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     :param num_gpus:    Number of GPU's to use.
     """
     if not torch.cuda.is_available():
-        raise RuntimeError("Cuda device_config not found...")
+        raise RuntimeError("Cuda device not found...")
 
     if num_gpus in (-1, None):
         if multi_gpu in (MultiGPUMode.OFF, MultiGPUMode.DATA_PARALLEL):
@@ -266,11 +257,9 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     # Check that num_gpus is valid for specified multi_gpu
     if multi_gpu in (MultiGPUMode.OFF, MultiGPUMode.DATA_PARALLEL):
         if num_gpus != 1:
-            # TODO: Should we change to a warning, and set num_gpus=1 afterward ?
             raise ValueError(f"You specified num_gpus={num_gpus} but it has not be 1 on when working with multi_gpu={multi_gpu}")
     else:
         if num_gpus > torch.cuda.device_count():
-            # TODO: Should we change to a warning, and set num_gpus=torch.cuda.device_count() afterward ?
             raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
 
     device_config.device = "cuda"
@@ -303,7 +292,6 @@ def initialize_ddp(local_rank: int):
         torch.distributed.init_process_group(backend=backend, init_method="env://")
     torch.cuda.set_device(local_rank)
 
-    assert device_config.requested_rank == get_local_rank()
     if torch.distributed.get_rank() == 0:
         logger.info(f"Training in distributed mode... with {str(torch.distributed.get_world_size())} GPUs")
     device_config.device = "cuda:%d" % local_rank
@@ -313,7 +301,7 @@ def initialize_ddp(local_rank: int):
 def restart_script_with_ddp(num_gpus: int = None):
     """Launch the same script as the one that was launched (i.e. the command used to start the current process is re-used) but on subprocesses (i.e. with DDP).
 
-    :param num_gpus: How many gpu's you want to run the script on. If not specified, every available device_config will be used.
+    :param num_gpus: How many gpu's you want to run the script on. If not specified, every available device will be used.
     """
     ddp_port = find_free_port()
 
@@ -355,7 +343,7 @@ def restart_script_with_ddp(num_gpus: int = None):
 
 
 def get_gpu_mem_utilization():
-    """GPU memory managed by the caching allocator in bytes for a given device_config."""
+    """GPU memory managed by the caching allocator in bytes for a given device."""
 
     # Workaround to work on any torch version
     if hasattr(torch.cuda, "memory_reserved"):
