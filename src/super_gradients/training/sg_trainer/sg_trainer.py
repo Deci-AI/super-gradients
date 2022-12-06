@@ -53,6 +53,7 @@ from super_gradients.training.utils.distributed_training_utils import (
     get_gpu_mem_utilization,
     get_world_size,
     get_local_rank,
+    require_ddp_setup,
     get_device_ids,
     is_ddp_subprocess,
     wait_for_the_master,
@@ -118,10 +119,17 @@ class Trainer:
                                                 pkg_resources.resource_filename('checkpoints', "") exists and will be used.
 
         """
-        if multi_gpu is not None:
-            raise ValueError("TODO: FILL")
-        # TODO: how to handle device ?
-        if device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and device_config.requested_rank != get_local_rank():
+
+        # This should later me removed
+        if device is not None or multi_gpu is not None:
+            raise KeyError(
+                "Parameters 'device' and 'multi_gpu' are not supported anymore to instantiate Trainer, they should instead be passed to setup_device\n"
+                ">>> from super_gradients.training.utils.distributed_training_utils import setup_device'\n"
+                ">>> setup_device(device=..., multi_gpu=..., num_gpus=...)\n"
+                ">>> Trainer(experiment_name=...)"
+            )
+
+        if require_ddp_setup():
             raise DDPNotSetupException()
 
         # SET THE EMPTY PROPERTIES

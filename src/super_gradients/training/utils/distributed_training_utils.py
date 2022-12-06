@@ -146,6 +146,10 @@ def get_local_rank():
     return dist.get_rank() if dist.is_initialized() else 0
 
 
+def require_ddp_setup() -> bool:
+    return device_config.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL and device_config.requested_rank != get_local_rank()
+
+
 def is_ddp_subprocess():
     return torch.distributed.get_rank() > 0 if dist.is_initialized() else False
 
