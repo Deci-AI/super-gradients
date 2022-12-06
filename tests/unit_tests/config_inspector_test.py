@@ -1,18 +1,63 @@
+import copy
 import unittest
 
-from super_gradients.training.utils.config_utils import ConfigInspector, raise_if_unused_params
+from omegaconf import OmegaConf
+
+from super_gradients.training.utils import HpmStruct
+from super_gradients.training.utils.config_utils import raise_if_unused_params, UnusedConfigParamException, AccessCounterDict, AccessCounterHpmStruct
 
 
 class ConfigInspectTest(unittest.TestCase):
     def test_inspector_raise_on_unused_args(self):
         def model_factory(cfg):
-            return 42
+            return cfg["a"] + cfg["b"]
 
-        config = {"unused_param": True}
+        original_config = {"unused_param": True, "a": 1, "b": 2}
 
-        with self.assertRaisesRegex("", ""):
+        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+            config = copy.deepcopy(original_config)
             with raise_if_unused_params(config) as config:
                 _ = model_factory(config)
+
+        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+            config = OmegaConf.create(copy.deepcopy(original_config))
+            with raise_if_unused_params(config) as config:
+                _ = model_factory(config)
+
+        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+            config = HpmStruct(**copy.deepcopy(original_config))
+            with raise_if_unused_params(copy.deepcopy(config)) as config:
+                _ = model_factory(config)
+
+    def test_inspector_raise_on_unused_args_with_modification_of_the_config(self):
+        def model_factory(cfg):
+            cfg["this_is_a_test_property_that_is_set_but_not_used"] = 42
+            cfg["this_is_a_test_property_that_is_set_and_used"] = 39
+            return cfg["a"] + cfg["b"] + cfg["this_is_a_test_property_that_is_set_and_used"]
+
+        original_config = {"unused_param": True, "a": 1, "b": 2}
+
+        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+            config = copy.deepcopy(original_config)
+            with raise_if_unused_params(config) as config:
+                result = model_factory(config)
+                self.assertEqual(result, 42)
+
+            self.assertTrue("this_is_a_test_property_that_is_set_and_used" in config.get_used_params())
+
+        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+            config = OmegaConf.create(copy.deepcopy(original_config))
+            with raise_if_unused_params(config) as config:
+                result = model_factory(config)
+                self.assertEqual(result, 42)
+            self.assertTrue("this_is_a_test_property_that_is_set_and_used" in config.get_used_params())
+
+        with self.assertRaisesRegex(UnusedConfigParamException, "Detected unused parameters in configuration object that were not consumed by caller"):
+            config = HpmStruct(**copy.deepcopy(original_config))
+            with raise_if_unused_params(copy.deepcopy(config)) as config:
+                result = model_factory(config)
+                self.assertEqual(result, 42)
+            self.assertTrue("this_is_a_test_property_that_is_set_and_used" in config.get_used_params())
 
     def test_inspector_with_dict_and_list(self):
         config = {
@@ -31,7 +76,7 @@ class ConfigInspectTest(unittest.TestCase):
             },
         }
 
-        c = ConfigInspector.wrap(config)
+        c = AccessCounterDict(config)
 
         # Simulate parameters usage
         print(c["beta"])
@@ -42,13 +87,109 @@ class ConfigInspectTest(unittest.TestCase):
         print(c["encoder"]["layers"][3]["blocks"])
 
         print("All parameters")
-        print(c.all_params)
+        print(c.get_all_params())
 
         print("Unused parameters")
-        print(c.unused_params)
+        print(c.get_unused_params())
 
         self.assertSetEqual(
-            c.unused_params,
+            c.get_unused_params(),
+            {
+                "lr",
+                "encoder.pretrained",
+                "encoder.backbone",
+                "encoder.layers.0.blocks",
+                "encoder.layers.1",
+                "encoder.layers.1.blocks",
+                "encoder.layers.2",
+                "encoder.layers.2.blocks",
+                "encoder.layers.2.blocks",
+            },
+        )
+
+    def test_inspector_with_omegaconf(self):
+        config = {
+            "beta": 0.73,
+            "lr": 1e-4,
+            "encoder": {
+                "indexes": [1, 2, 3],
+                "pretrained": True,
+                "backbone": "yolov3",
+                "layers": [
+                    {"blocks": 4},
+                    {"blocks": 3},
+                    {"blocks": 6},
+                    {"blocks": 9},
+                ],
+            },
+        }
+        config = OmegaConf.create(config)
+
+        c = AccessCounterDict(config)
+
+        # Simulate parameters usage
+        print(c.beta)
+        print(c.encoder.layers)
+        print(sum(c.encoder.indexes))
+        print(c.encoder.layers[0])
+        print(c.encoder.layers[3].blocks)
+
+        print("All parameters")
+        print(c.get_all_params())
+
+        print("Unused parameters")
+        print(c.get_unused_params())
+
+        self.assertSetEqual(
+            c.get_unused_params(),
+            {
+                "lr",
+                "encoder.pretrained",
+                "encoder.backbone",
+                "encoder.layers.0.blocks",
+                "encoder.layers.1",
+                "encoder.layers.1.blocks",
+                "encoder.layers.2",
+                "encoder.layers.2.blocks",
+                "encoder.layers.2.blocks",
+            },
+        )
+
+    def test_inspector_with_hpm_struct(self):
+        config = {
+            "beta": 0.73,
+            "lr": 1e-4,
+            "encoder": {
+                "indexes": [1, 2, 3],
+                "pretrained": True,
+                "backbone": "yolov3",
+                "layers": [
+                    {"blocks": 4},
+                    {"blocks": 3},
+                    {"blocks": 6},
+                    {"blocks": 9},
+                ],
+            },
+        }
+        config = HpmStruct(**config)
+
+        c = AccessCounterHpmStruct(config)
+
+        # Simulate parameters usage
+        print(c.beta)
+        print(c.encoder.layers)
+        print(sum(c.encoder.indexes))
+        print(c.encoder.layers[0])
+        print(c.encoder.layers[3].blocks)
+
+        print("All parameters")
+        print(c.get_all_params())
+
+        print("Unused parameters")
+        print(c.get_unused_params())
+
+        self.assertSetEqual(
+            c.get_unused_params(),
             {
                 "lr",
                 "encoder.pretrained",
