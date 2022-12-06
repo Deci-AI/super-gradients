@@ -279,7 +279,7 @@ class PPLiteSegBase(SegmentationModule):
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list], stride_ratio: int = 32, **kwargs):
         if not torch_version_is_greater_or_equal(1, 11):
-            raise RuntimeError("PPLiteSeg model is ONNX export for requires torch => 1.11, torch installed: " + str(torch.__version__))
+            raise RuntimeError("PPLiteSeg model ONNX export requires torch => 1.11, torch installed: " + str(torch.__version__))
         super().prep_model_for_conversion(input_size, **kwargs)
         if isinstance(self.encoder.context_module, SPPM):
             self.encoder.context_module.prep_model_for_conversion(input_size=input_size, stride_ratio=stride_ratio)
