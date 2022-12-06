@@ -11,6 +11,7 @@
 defaults:
   - imagenet_mobilenetv3_base
   - arch_params: mobilenet_v3_large_arch_params
+  - _self_
 
 arch_params:
   num_classes: 1000
