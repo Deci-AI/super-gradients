@@ -38,6 +38,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import override_default_params_without_nones
+from super_gradients.common.factories.datasets_factory import DatasetsFactory
 
 logger = get_logger(__name__)
 
@@ -650,7 +651,13 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
     :param dataset: torch.utils.data.Dataset to be used instead of passing "name" (i.e for external dataset objects).
     :return: initialized DataLoader.
     """
-    # if 'dataset' in dataloader_params.keys():
+    dataset_str = get_param(dataloader_params, "dataset")
+    if dataset_str:
+        if dataset_params is not None:
+            dataset = DatasetsFactory.get({dataset_str: dataset_params})
+        else:
+            dataset = DatasetsFactory.get(dataset_str)
+        _ = dataloader_params.pop("dataset")
 
     if dataset is not None:
         if name or dataset_params:

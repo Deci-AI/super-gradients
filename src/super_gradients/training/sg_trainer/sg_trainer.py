@@ -35,7 +35,7 @@ from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import sg_trainer_utils
+from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
@@ -203,12 +203,17 @@ class Trainer:
         trainer = Trainer(**kwargs)
 
         # INSTANTIATE DATA LOADERS
+
         train_dataloader = dataloaders.get(
-            name=cfg.train_dataloader, dataset_params=cfg.dataset_params.train_dataset_params, dataloader_params=cfg.dataset_params.train_dataloader_params
+            name=get_param(cfg, "train_dataloader"),
+            dataset_params=cfg.dataset_params.train_dataset_params,
+            dataloader_params=cfg.dataset_params.train_dataloader_params,
         )
 
         val_dataloader = dataloaders.get(
-            name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
+            name=get_param(cfg, "val_dataloader"),
+            dataset_params=cfg.dataset_params.val_dataset_params,
+            dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
         # BUILD NETWORK
