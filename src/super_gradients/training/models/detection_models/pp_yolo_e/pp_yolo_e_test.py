@@ -28,6 +28,9 @@ def convert_weights_from_padldle_to_torch(state_dict: collections.OrderedDict) -
         torch_value = torch.from_numpy(value.numpy())
         key = key.replace("bn._mean", "bn.running_mean").replace("bn._variance", "bn.running_var").replace("attn.fc", "attn.project")
 
+        # neck.fpn_stages.0.0.convs.spp.conv.conv.weight
+        # neck.fpn_stages.0.0.conv1.seq.conv.bias
+        # neck.fpn_stages.0.0.convs.spp.conv.bn.bias
         key = key.replace("yolo_head", "head")
 
         key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv2.conv.weight", r"stages.\1.blocks.\2.conv2.branch_1x1.conv.weight", key)
@@ -165,15 +168,15 @@ class PPYoloTestCast(unittest.TestCase):
             ),
             neck=dict(
                 in_channels=[256, 512, 1024],
-                out_channels=[1024, 512, 256],
+                out_channels=[768, 384, 192],
                 activation="silu",
                 block_num=3,
                 stage_num=1,
-                spp=False,
+                spp=True,
             ),
             head=dict(
                 num_classes=80,
-                in_channels=[1024, 512, 256],
+                in_channels=[768, 384, 192],
                 fpn_strides=[32, 16, 8],
                 grid_cell_scale=5.0,
                 grid_cell_offset=0.5,

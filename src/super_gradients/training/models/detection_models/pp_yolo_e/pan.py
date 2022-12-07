@@ -27,7 +27,7 @@ class SPP(nn.Module):
             pool = nn.MaxPool2d(kernel_size=size, stride=1, padding=size // 2, ceil_mode=False)
             pools.append(pool)
         self.pool = nn.ModuleList(pools)
-        self.conv = ConvBNAct(mid_channels, out_channels, kernel_size, padding=kernel_size // 2, activation_type=activation_type, stride=1)
+        self.conv = ConvBNAct(mid_channels, out_channels, kernel_size, padding=kernel_size // 2, activation_type=activation_type, stride=1, bias=False)
 
     def forward(self, x: Tensor) -> Tensor:
         outs = [x]

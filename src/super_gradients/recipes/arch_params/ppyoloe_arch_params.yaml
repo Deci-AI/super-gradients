@@ -18,17 +18,17 @@ backbone:
 
 neck:
   in_channels: [256, 512, 1024]
-  out_channels: [1024, 512, 256]
+  out_channels: [768, 384, 192]
   activation: ${arch_params.activation}
   block_num: 3
   stage_num: 1
-  spp: False
+  spp: True
   depth_mult: ${arch_params.depth_mult}
   width_mult: ${arch_params.width_mult}
 
 head:
   num_classes: ${arch_params.num_classes}
-  in_channels: [1024, 512, 256]
+  in_channels: [768, 384, 192]
   width_mult: ${arch_params.width_mult} # scaling factor applied to in_channels
   activation: ${arch_params.activation}
 
