@@ -21,5 +21,7 @@ __all__ = [
     "env_sanity_check",
 ]
 
+__version__ = "3.0.3"
+
 setup_crash_handler()
 env_sanity_check()
