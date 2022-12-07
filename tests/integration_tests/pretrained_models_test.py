@@ -1,32 +1,21 @@
 import unittest
 
+import super_gradients
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import Trainer
-from super_gradients.training.dataloaders import imagenet_val, imagenet_vit_base_val
-from super_gradients.training.dataloaders.dataloaders import (
-    classification_test_dataloader,
-    coco2017_val_yolox,
-    coco2017_val_ssd_lite_mobilenet_v2,
-    detection_test_dataloader,
-    coco_segmentation_val,
-    cityscapes_val,
-    cityscapes_stdc_seg50_val,
-    cityscapes_stdc_seg75_val,
-    segmentation_test_dataloader,
-)
-from super_gradients.training.utils.detection_utils import CrowdDetectionCollateFN
-
-from super_gradients.training.metrics import Accuracy, IoU
-import os
-import shutil
-from super_gradients.training.utils.ssd_utils import SSDPostPredictCallback
-from super_gradients.training.models.detection_models.ssd import DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS
-from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
-from super_gradients.training.metrics import DetectionMetrics
-from super_gradients.training.losses.stdc_loss import STDCLoss
-from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training import models
-import super_gradients
+from super_gradients.training.dataloaders.dataloaders import (
+    detection_test_dataloader,
+    coco2017_val_ppyoloe,
+)
+from super_gradients.training.losses.ddrnet_loss import DDRNetLoss
+from super_gradients.training.losses.stdc_loss import STDCLoss
+from super_gradients.training.metrics import Accuracy, IoU
+from super_gradients.training.metrics import DetectionMetrics
+from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloEPostPredictionCallback
+from super_gradients.training.models.detection_models.ssd import DEFAULT_SSD_LITE_MOBILENET_V2_ARCH_PARAMS
+from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
+from super_gradients.training.utils.ssd_utils import SSDPostPredictCallback
 
 
 class PretrainedModelsTest(unittest.TestCase):
@@ -71,11 +60,11 @@ class PretrainedModelsTest(unittest.TestCase):
             "vit_large": 0.8564,
             "beit_base_patch16_224": 0.85,
         }
-        self.imagenet_dataset = imagenet_val(dataloader_params={"batch_size": 128})
+        # self.imagenet_dataset = imagenet_val(dataloader_params={"batch_size": 128})
 
-        self.imagenet_dataset_05_mean_std = imagenet_vit_base_val(dataloader_params={"batch_size": 128})
+        # self.imagenet_dataset_05_mean_std = imagenet_vit_base_val(dataloader_params={"batch_size": 128})
 
-        self.transfer_classification_dataloader = classification_test_dataloader(image_size=224)
+        # self.transfer_classification_dataloader = classification_test_dataloader(image_size=224)
 
         self.transfer_classification_train_params = {
             "max_epochs": 3,
@@ -95,20 +84,24 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
 
         self.coco_dataset = {
-            "yolox": coco2017_val_yolox(dataloader_params={"collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}),
-            "ssd_mobilenet": coco2017_val_ssd_lite_mobilenet_v2(
-                dataloader_params={"collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}
-            ),
+            # "yolox": coco2017_val_yolox(dataloader_params={"collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}),
+            "ppyoloe": coco2017_val_ppyoloe(),
+            # "ssd_mobilenet": coco2017_val_ssd_lite_mobilenet_v2(
+            #     dataloader_params={"collate_fn": CrowdDetectionCollateFN()}, dataset_params={"with_crowd": True}
+            # ),
         }
 
         self.coco_pretrained_maps = {
             "ssd_lite_mobilenet_v2": 0.2041,
             "coco_ssd_mobilenet_v1": 0.243,
+            # Yolo-X family
             "yolox_s": 0.4047,
             "yolox_m": 0.4640,
             "yolox_l": 0.4925,
             "yolox_n": 0.2677,
             "yolox_t": 0.3718,
+            # PP-Yolo-E family
+            "ppyoloe_s": 0.43,
         }
 
         self.transfer_detection_dataset = detection_test_dataloader()
@@ -149,7 +142,7 @@ class PretrainedModelsTest(unittest.TestCase):
         self.coco_segmentation_subclass_pretrained_arch_params = {"shelfnet34_lw": {"num_classes": 21, "image_size": 512}}
         self.coco_segmentation_subclass_pretrained_ckpt_params = {"pretrained_weights": "coco_segmentation_subclass"}
         self.coco_segmentation_subclass_pretrained_mious = {"shelfnet34_lw": 0.651}
-        self.coco_segmentation_dataset = coco_segmentation_val()
+        # self.coco_segmentation_dataset = coco_segmentation_val()
 
         self.cityscapes_pretrained_models = ["ddrnet_23", "ddrnet_23_slim", "stdc1_seg50", "regseg48"]
         self.cityscapes_pretrained_arch_params = {
@@ -174,12 +167,12 @@ class PretrainedModelsTest(unittest.TestCase):
             "pp_lite_b_seg75": 0.7852,
         }
 
-        self.cityscapes_dataset = cityscapes_val()
+        # self.cityscapes_dataset = cityscapes_val()
 
-        self.cityscapes_dataset_rescaled50 = cityscapes_stdc_seg50_val()
-        self.cityscapes_dataset_rescaled75 = cityscapes_stdc_seg75_val()
+        # self.cityscapes_dataset_rescaled50 = cityscapes_stdc_seg50_val()
+        # self.cityscapes_dataset_rescaled75 = cityscapes_stdc_seg75_val()
 
-        self.transfer_segmentation_dataset = segmentation_test_dataloader(image_size=1024)
+        # self.transfer_segmentation_dataset = segmentation_test_dataloader(image_size=1024)
         self.ddrnet_transfer_segmentation_train_params = {
             "max_epochs": 3,
             "initial_lr": 1e-2,
@@ -843,9 +836,26 @@ class PretrainedModelsTest(unittest.TestCase):
         )
         self.assertAlmostEqual(res, self.cityscapes_pretrained_mious["pp_lite_b_seg75"], delta=0.001)
 
-    def tearDown(self) -> None:
-        if os.path.exists("~/.cache/torch/hub/"):
-            shutil.rmtree("~/.cache/torch/hub/")
+    def test_pretrained_official_ppyoloe_s_coco(self):
+        trainer = Trainer("ppyoloe_s", multi_gpu=MultiGPUMode.OFF)
+
+        model = models.get("ppyoloe_s", **self.coco_pretrained_ckpt_params)
+        res = trainer.test(
+            model=model,
+            test_loader=self.coco_dataset["ppyoloe"],
+            test_metrics_list=[
+                DetectionMetrics(
+                    post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.1, nms_top_k=1000, nms_threshold=0.7, max_predictions=300),
+                    num_cls=80,
+                    normalize_targets=True,
+                )
+            ],
+        )[2]
+        self.assertAlmostEqual(res, self.coco_pretrained_maps["ppyoloe_s"], delta=0.001)
+
+    # def tearDown(self) -> None:
+    #     if os.path.exists("~/.cache/torch/hub/"):
+    #         shutil.rmtree("~/.cache/torch/hub/")
 
 
 if __name__ == "__main__":

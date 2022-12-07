@@ -259,3 +259,4 @@ class Models:
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
     UNET_CUSTOM = "unet_custom"
     PP_YOLOE = "ppyoloe"
+    PP_YOLOE_S = "ppyoloe_s"

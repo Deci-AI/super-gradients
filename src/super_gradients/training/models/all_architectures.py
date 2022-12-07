@@ -13,6 +13,7 @@ from super_gradients.training.models.classification_models.vit import ViTBase, V
 from super_gradients.training.models.detection_models.csp_darknet53 import CSPDarknet53
 from super_gradients.training.models.detection_models.darknet53 import Darknet53
 from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloE
+from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_e import PPYoloE_S
 from super_gradients.training.models.detection_models.ssd import SSDMobileNetV1, SSDLiteMobileNetV2
 from super_gradients.training.models.detection_models.yolox import YoloX_N, YoloX_T, YoloX_S, YoloX_M, YoloX_L, YoloX_X, CustomYoloX
 from super_gradients.training.models.segmentation_models.ddrnet import DDRNet23, DDRNet23Slim, AnyBackBoneDDRNet23
@@ -127,6 +128,7 @@ ARCHITECTURES = {
     Models.CUSTOM_ANYNET: regnet.CustomAnyNet,
     Models.UNET_CUSTOM: UNetCustom,
     Models.PP_YOLOE: PPYoloE,
+    Models.PP_YOLOE_S: PPYoloE_S,
 }
 
 KD_ARCHITECTURES = {Models.KD_MODULE: KDModule}

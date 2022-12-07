@@ -38,3 +38,7 @@ class PPYoloE(SgModule):
         for module in self.modules():
             if isinstance(module, RepVGGBlock):
                 module.prep_model_for_conversion(input_size)
+
+
+class PPYoloE_S(PPYoloE):
+    pass
