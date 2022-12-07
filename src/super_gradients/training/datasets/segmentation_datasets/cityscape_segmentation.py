@@ -54,14 +54,17 @@ class CityscapesDataset(SegmentationDataSet):
             ├── train.lst
             ├── trainval.lst
             └── val.lst
+
+    Example:
+        >> CityscapesDataset(root_dir='.../root_dir', list_file='.../lists/train.lst', labels_csv_path='.../labels.csv')
     """
 
     def __init__(self, root_dir: str, list_file: str, labels_csv_path: str, **kwargs):
         """
-        :param root: root directory to dataset.
-        :param list_file: list file that contains names of images to load, line format: <image_path> <label_path>
+        :param root:            Root directory to dataset.
+        :param list_file:       List file that contains names of images to load, line format: <image_path> <label_path>
         :param labels_csv_path: path to csv file, with labels metadata and mapping.
-        :param kwargs: Any hyper params required for the dataset, i.e img_size, crop_size, cache_images
+        :param kwargs:          Any hyper params required for the dataset, i.e img_size, crop_size, cache_images
         """
 
         self.root_dir = root_dir
