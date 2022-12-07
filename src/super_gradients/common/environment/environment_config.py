@@ -1,14 +1,11 @@
 import dataclasses
 import os
 import argparse
-import pkg_resources
 
-__all__ = ["PKG_CHECKPOINTS_DIR", "EXTRA_ARGS", "device_config"]
-
-EXTRA_ARGS = []
+__all__ = ["PKG_CHECKPOINTS_DIR", "device_config"]
 
 try:
-    PKG_CHECKPOINTS_DIR = pkg_resources.resource_filename("checkpoints", "")
+    pass
 except Exception:
     os.makedirs(os.path.join(os.getcwd(), "checkpoints"), exist_ok=True)
     PKG_CHECKPOINTS_DIR = os.path.join(os.getcwd(), "checkpoints")

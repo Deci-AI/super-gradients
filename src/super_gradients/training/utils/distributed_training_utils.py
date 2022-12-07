@@ -12,9 +12,9 @@ from torch.distributed.elastic.multiprocessing import Std
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
-from super_gradients.common.environment.env_helpers import init_trainer
+from super_gradients.common.environment.ddp_utils import init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
-from super_gradients.common.environment.env_helpers import find_free_port, is_distributed
+from super_gradients.common.environment.ddp_utils import find_free_port, is_distributed
 from super_gradients.common.abstractions.abstract_logger import get_logger, mute_current_process
 from super_gradients.common.environment import environment_config, device_config
 
