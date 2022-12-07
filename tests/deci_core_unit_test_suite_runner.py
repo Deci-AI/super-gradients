@@ -19,6 +19,7 @@ from tests.unit_tests import (
     CallTrainTwiceTest,
     ResumeTrainingTest,
     CallTrainAfterTestTest,
+    CrashTipTest,
 )
 from tests.end_to_end_tests import TestTrainer
 from tests.unit_tests.phase_delegates_test import ContextMethodsTest
@@ -62,6 +63,7 @@ class CoreUnitTestSuiteRunner:
         _add_modules_to_unit_tests_suite - Adds unit tests to the Unit Tests Test Suite
             :return:
         """
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(CrashTipTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(SaveCkptListUnitTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(ZeroWdForBnBiasTest))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestAverageMeter))
