@@ -188,7 +188,22 @@ class ConfigInspector:
                 raise KeyError(f"Encountered unknown action key {self.unused_params_action}")
 
 
-def raise_if_unused_params(config: Union[HpmStruct, DictConfig, ListConfig, Mapping, list, tuple]):
+def raise_if_unused_params(config: Union[HpmStruct, DictConfig, ListConfig, Mapping, list, tuple]) -> ConfigInspector:
+    """
+    A helper function to check whether all confuration parameters were used on given block of code. Motivation to have
+    this check is to ensure there were no typo or outdated configuration parameters.
+    It at least one of config parameters was not used, this function will raise an UnusedConfigParamException exception.
+    Example usage:
+
+    >>> from super_gradients.training.utils import raise_if_unused_params
+    >>>
+    >>> with raise_if_unused_params(some_config) as some_config:
+    >>>    do_something_with_config(some_config)
+    >>>
+
+    :param config: A config to check
+    :return: An instance of ConfigInspector
+    """
     if isinstance(config, HpmStruct):
         wrapper_cls = AccessCounterHpmStruct
     elif isinstance(config, (Mapping, DictConfig)):
@@ -202,6 +217,21 @@ def raise_if_unused_params(config: Union[HpmStruct, DictConfig, ListConfig, Mapp
 
 
 def warn_if_unused_params(config):
+    """
+    A helper function to check whether all confuration parameters were used on given block of code. Motivation to have
+    this check is to ensure there were no typo or outdated configuration parameters.
+    It at least one of config parameters was not used, this function will emit warning.
+    Example usage:
+
+    >>> from super_gradients.training.utils import warn_if_unused_params
+    >>>
+    >>> with warn_if_unused_params(some_config) as some_config:
+    >>>    do_something_with_config(some_config)
+    >>>
+
+    :param config: A config to check
+    :return: An instance of ConfigInspector
+    """
     if isinstance(config, HpmStruct):
         wrapper_cls = AccessCounterHpmStruct
     elif isinstance(config, (Mapping, DictConfig)):
