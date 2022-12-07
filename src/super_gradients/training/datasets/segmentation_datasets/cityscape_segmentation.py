@@ -22,7 +22,7 @@ class CityscapesDataset(SegmentationDataSet):
 
     To run this Dataset you need two folders:
 
-    - Cityscape dataset (download here: https://www.cityscapes-dataset.com/downloads/)
+    - Download cityscape dataset (https://www.cityscapes-dataset.com/downloads/)
 
         root_dir (in recipe default to /data/cityscapes)
             ├─── gtFine
@@ -46,7 +46,7 @@ class CityscapesDataset(SegmentationDataSet):
                     └─── val
                           └── ...
 
-    - Metadata folder (Download here: https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip)
+    - Download metadata folder (https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip)
 
         lists
             ├── labels.csv
@@ -55,8 +55,18 @@ class CityscapesDataset(SegmentationDataSet):
             ├── trainval.lst
             └── val.lst
 
+    - Move Metadata folder to the Cityscape folder
+
+        root_dir (in recipe default to /data/cityscapes)
+            ├─── gtFine
+            │      └── ...
+            ├─── leftImg8bit
+            │      └── ...
+            └─── lists
+                   └── ...
+
     Example:
-        >> CityscapesDataset(root_dir='.../root_dir', list_file='.../lists/train.lst', labels_csv_path='.../labels.csv')
+        >> CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.lst', labels_csv_path='lists/labels.csv')
     """
 
     def __init__(self, root_dir: str, list_file: str, labels_csv_path: str, **kwargs):
