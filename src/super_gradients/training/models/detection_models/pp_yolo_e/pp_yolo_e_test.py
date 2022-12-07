@@ -5,6 +5,7 @@ import unittest
 import numpy as np
 import paddle
 import ppdet
+import requests
 import torch
 from paddle import load as paddle_load
 from ppdet.modeling.backbones import CSPResNet as PPCSPResNet
@@ -12,8 +13,10 @@ from ppdet.modeling.heads import PPYOLOEHead as Paddle_PPYOLOEHead
 from pytorch_toolbelt.utils import count_parameters, describe_outputs
 from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNet
+from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloE
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
+from super_gradients.training.utils import HpmStruct
 from torch import nn
 
 
@@ -24,6 +27,8 @@ def convert_weights_from_padldle_to_torch(state_dict: collections.OrderedDict) -
     for key, value in state_dict.items():
         torch_value = torch.from_numpy(value.numpy())
         key = key.replace("bn._mean", "bn.running_mean").replace("bn._variance", "bn.running_var").replace("attn.fc", "attn.project")
+
+        key = key.replace("yolo_head", "head")
 
         key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv2.conv.weight", r"stages.\1.blocks.\2.conv2.branch_1x1.conv.weight", key)
         key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv2.bn", r"stages.\1.blocks.\2.conv2.branch_1x1.bn", key)
@@ -48,7 +53,27 @@ def convert_weights_from_padldle_to_torch(state_dict: collections.OrderedDict) -
 
 
 class PPYoloTestCast(unittest.TestCase):
+    def download_file_if_needed(self, url):
+        local_filename = url.split("/")[-1]
+        if os.path.exists(local_filename):
+            return
+        # NOTE the stream=True parameter below
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(local_filename, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    # If you have chunk encoded response uncomment if
+                    # and set chunk_size parameter to None.
+                    # if chunk:
+                    f.write(chunk)
+        return local_filename
+
     def test_csp_resnet(self):
+        self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/pretrained/CSPResNetb_s_pretrained.pdparams")
+        self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/pretrained/CSPResNetb_x_pretrained.pdparams")
+        self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/pretrained/CSPResNetb_m_pretrained.pdparams")
+        self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/pretrained/CSPResNetb_l_pretrained.pdparams")
+
         input_np = np.random.standard_normal((4, 3, 640, 512)).astype(np.float32)
 
         common_params = dict(
@@ -86,6 +111,7 @@ class PPYoloTestCast(unittest.TestCase):
             torch_weights = convert_weights_from_padldle_to_torch(paddle_weights)
             torch_path = os.path.splitext(pretrain)[0] + ".pth"
             torch.save(torch_weights, torch_path)
+            print("Saved weights to torch_path")
 
             pt_encoder = CSPResNet(**config, pretrained_weights=torch_path).eval()
 
@@ -118,6 +144,81 @@ class PPYoloTestCast(unittest.TestCase):
             np.testing.assert_allclose(pt_output[0].detach().cpu().numpy(), pp_output[0].numpy(), atol=1e-4, rtol=1e-3)
             np.testing.assert_allclose(pt_output[1].detach().cpu().numpy(), pp_output[1].numpy(), atol=1e-4, rtol=1e-3)
             np.testing.assert_allclose(pt_output[2].detach().cpu().numpy(), pp_output[2].numpy(), atol=1e-4, rtol=1e-3)
+
+    def test_ppyolo_conversion(self):
+        self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/ppyoloe_crn_m_300e_coco.pdparams")
+        self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/ppyoloe_crn_s_400e_coco.pdparams")
+        self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/ppyoloe_crn_l_300e_coco.pdparams")
+        self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/ppyoloe_crn_x_300e_coco.pdparams")
+
+        common_params = dict(
+            num_classes=80,
+            activation="silu",
+            normalization=None,
+            backbone=dict(
+                activation="silu",
+                layers=(3, 6, 6, 3),
+                channels=(64, 128, 256, 512, 1024),
+                return_idx=(1, 2, 3),
+                use_alpha=False,
+                use_large_stem=True,
+            ),
+            neck=dict(
+                in_channels=[256, 512, 1024],
+                out_channels=[1024, 512, 256],
+                activation="silu",
+                block_num=3,
+                stage_num=1,
+                spp=False,
+            ),
+            head=dict(
+                num_classes=80,
+                in_channels=[1024, 512, 256],
+                fpn_strides=[32, 16, 8],
+                grid_cell_scale=5.0,
+                grid_cell_offset=0.5,
+                activation="silu",
+                reg_max=16,  # Number of bins for size prediction
+                eval_size=None,
+                exclude_nms=False,
+                exclude_post_process=False,
+            ),
+        )
+        for config, pretrain in [
+            (
+                dict(depth_mult=0.33, width_mult=0.50, **common_params),
+                "ppyoloe_crn_s_400e_coco.pdparams",
+            ),
+            (
+                dict(depth_mult=0.67, width_mult=0.75, **common_params),
+                "ppyoloe_crn_m_300e_coco.pdparams",
+            ),
+            (
+                dict(depth_mult=1, width_mult=1, **common_params),
+                "ppyoloe_crn_l_300e_coco.pdparams",
+            ),
+            (
+                dict(depth_mult=1.33, width_mult=1.25, **common_params),
+                "ppyoloe_crn_x_300e_coco.pdparams",
+            ),
+        ]:
+            paddle_weights = paddle_load(pretrain)
+
+            torch_weights = convert_weights_from_padldle_to_torch(paddle_weights)
+            torch_path = os.path.splitext(pretrain)[0] + ".pth"
+            torch.save(torch_weights, torch_path)
+            print("Saved weights to torch_path")
+
+            config["backbone"]["width_mult"] = config["width_mult"]
+            config["backbone"]["depth_mult"] = config["depth_mult"]
+
+            config["neck"]["width_mult"] = config["width_mult"]
+            config["neck"]["depth_mult"] = config["depth_mult"]
+
+            config["head"]["width_mult"] = config["width_mult"]
+
+            pt_encoder = PPYoloE(HpmStruct(**config)).eval()
+            pt_encoder.load_state_dict(torch_weights)
 
     def test_csp_neck(self):
         for config, pretrain in [
