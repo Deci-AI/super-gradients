@@ -5,12 +5,15 @@
 #   1. Move to the project root (where you will find the ReadMe and src folder)
 #   2. Run the command:
 #       python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet +experiment_name=cifar10
-
+#
+#   To use equivalent Albumentations transforms pipeline set dataset_params to cifar10_albumentations_dataset_params:
+#     python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet dataset_params=cifar10_albumentations_dataset_params
 defaults:
   - training_hyperparams: cifar10_resnet_train_params
   - dataset_params: cifar10_dataset_params
   - arch_params: resnet18_cifar_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 train_dataloader: cifar10_train
 val_dataloader: cifar10_val
@@ -20,7 +23,6 @@ data_loader_num_workers: 8
 resume: False
 training_hyperparams:
   resume: ${resume}
-
 
 
 ckpt_root_dir:

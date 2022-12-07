@@ -1,9 +1,9 @@
 # SSD MobileNetV2 Detection training on CoCo2017 Dataset:
-# Trained in 320x320 mAP@0.5@0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 320x320 images) ~20.52
-# Checkpoint path: https://deci-pretrained-models.s3.amazonaws.com/ssd_lite_mobilenet_v2_coco_res320_new_coco_filtered_affine_scale_5_15_no_mosaic/ckpt_best.pth
+# Trained in 320x320 mAP@0.5@0.95 (COCO API, confidence 0.001, IoU threshold 0.6, test on 320x320 images) ~20.41
+# Checkpoint path: https://deci-pretrained-models.s3.amazonaws.com/ssd_lite_mobilenet_v2/coco2017/2022-11-28/average_model.pth
 # (trained with stride_16_plus_big)
-# Hardware: 8 NVIDIA RTX 3090
-# Training time: ±17 hours
+# Hardware: 4 NVIDIA RTX 2080Ti
+# Training time: ±35 hours
 #
 
 
@@ -25,6 +25,7 @@ defaults:
   - training_hyperparams: coco2017_ssd_lite_mobilenet_v2_train_params
   - dataset_params: coco_detection_ssd_lite_mobilenet_v2_dataset_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
   - anchors: ssd_anchors
 
 train_dataloader: coco2017_train
@@ -53,7 +54,7 @@ training_hyperparams:
     dboxes: ${dboxes}
 
 multi_gpu: DDP
-num_gpus: 8
+num_gpus: 4
 
 ckpt_root_dir:
 

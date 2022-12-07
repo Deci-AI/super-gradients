@@ -16,6 +16,7 @@ defaults:
   - dataset_params: imagenet_dataset_params
   - arch_params: repvgg_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 arch_params:
   num_classes: 1000

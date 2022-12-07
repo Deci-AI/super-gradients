@@ -1,4 +1,5 @@
 import torch
+from torch.onnx import TrainingMode
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
@@ -13,7 +14,7 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
     _imported_pytorch_quantization_failure = import_err
 
 
-def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple, **kwargs):
+def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, input_shape: tuple, train: bool = False, **kwargs):
     """
     Method for exporting onnx after QAT.
 
@@ -24,17 +25,25 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
     if _imported_pytorch_quantization_failure is not None:
         raise _imported_pytorch_quantization_failure
 
-    model.eval()
-    if hasattr(model, "prep_model_for_conversion"):
-        model.prep_model_for_conversion(**kwargs)
-
     use_fb_fake_quant_state = quant_nn.TensorQuantizer.use_fb_fake_quant
     quant_nn.TensorQuantizer.use_fb_fake_quant = True
 
     # Export ONNX for multiple batch sizes
     logger.info("Creating ONNX file: " + onnx_filename)
     dummy_input = torch.randn(input_shape, device=next(model.parameters()).device)
-    torch.onnx.export(model, dummy_input, onnx_filename, verbose=False, opset_version=13, enable_onnx_checker=False, do_constant_folding=True)
+
+    if train:
+        training_mode = TrainingMode.TRAINING
+        model.train()
+    else:
+        training_mode = TrainingMode.EVAL
+        model.eval()
+        if hasattr(model, "prep_model_for_conversion"):
+            model.prep_model_for_conversion(**kwargs)
+
+    torch.onnx.export(
+        model, dummy_input, onnx_filename, verbose=False, opset_version=13, enable_onnx_checker=False, do_constant_folding=True, training=training_mode
+    )
 
     # Restore functions of quant_nn back as expected
     quant_nn.TensorQuantizer.use_fb_fake_quant = use_fb_fake_quant_state

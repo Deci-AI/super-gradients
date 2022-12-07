@@ -2,6 +2,8 @@
 Implementation of paper: "Rethinking BiSeNet For Real-time Semantic Segmentation", https://arxiv.org/abs/2104.13188
 Based on original implementation: https://github.com/MichaelFan01/STDC-Seg, cloned 23/08/2021, commit 59ff37f
 """
+from typing import Union, List
+from abc import ABC, abstractmethod
 
 import torch
 import torch.nn as nn
@@ -12,8 +14,7 @@ from super_gradients.common.factories.base_factory import BaseFactory
 from super_gradients.training.models import SgModule
 from super_gradients.training.utils import get_param, HpmStruct
 from super_gradients.modules import ConvBNReLU
-from typing import Union, List
-from abc import ABC, abstractmethod
+from super_gradients.training.models.segmentation_models.common import SegmentationHead
 
 
 # default STDC argument as paper.
@@ -377,27 +378,6 @@ class ContextPath(nn.Module):
         if self.use_aux_heads:
             return feat8, feat16_up, feat16, feat32
         return feat8, feat16_up
-
-
-class SegmentationHead(nn.Module):
-    def __init__(self, in_channels: int, mid_channels: int, num_classes: int, dropout: float):
-        super(SegmentationHead, self).__init__()
-        self.seg_head = nn.Sequential(
-            ConvBNReLU(in_channels, mid_channels, kernel_size=3, padding=1, stride=1, bias=False),
-            nn.Dropout(dropout),
-            nn.Conv2d(mid_channels, num_classes, kernel_size=1, bias=False),
-        )
-
-    def forward(self, x):
-        return self.seg_head(x)
-
-    def replace_num_classes(self, num_classes: int):
-        """
-        This method replace the last Conv Classification layer to output a different number of classes.
-        Note that the weights of the new layers are random initiated.
-        """
-        old_cls_conv = self.seg_head[-1]
-        self.seg_head[-1] = nn.Conv2d(old_cls_conv.in_channels, num_classes, kernel_size=1, bias=False)
 
 
 class STDCSegmentationBase(SgModule):

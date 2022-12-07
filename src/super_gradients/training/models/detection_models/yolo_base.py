@@ -4,9 +4,11 @@ from typing import Union, Type, List, Tuple
 import torch
 import torch.nn as nn
 
+from super_gradients.modules import CrossModelSkipConnection
 from super_gradients.training.models.classification_models.regnet import AnyNetX, Stage
 from super_gradients.training.models.detection_models.csp_darknet53 import Conv, GroupedConvBlock, CSPDarknet53, get_yolo_type_params, SPP
 from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.utils import torch_version_is_greater_or_equal
 from super_gradients.training.utils.detection_utils import non_max_suppression, matrix_non_max_suppression, NMS_Type, DetectionPostPredictionCallback, Anchors
 from super_gradients.training.utils.utils import HpmStruct, check_img_size_divisibility, get_param
 
@@ -141,6 +143,7 @@ class DetectX(nn.Module):
         self.reg_preds = nn.ModuleList()
         self.obj_preds = nn.ModuleList()
         self.stems = nn.ModuleList()
+
         ConvBlock = GroupedConvBlock if depthwise else Conv
 
         inter_channels = inter_channels or channels[0]
@@ -201,7 +204,11 @@ class DetectX(nn.Module):
 
     @staticmethod
     def _make_grid(nx=20, ny=20):
-        yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
+        if torch_version_is_greater_or_equal(1, 10):
+            # https://github.com/pytorch/pytorch/issues/50276
+            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)], indexing="ij")
+        else:
+            yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
 
@@ -219,7 +226,10 @@ class AbstractYoloBackbone:
             # PREDICT THE NEXT LAYER'S OUTPUT
             x = layer_module(x)
             # IF INDICATED APPEND THE OUTPUT TO extracted_intermediate_layers O.W. APPEND None
-            extracted_intermediate_layers.append(x) if layer_idx in self._layer_idx_to_extract else extracted_intermediate_layers.append(None)
+            if layer_idx in self._layer_idx_to_extract:
+                extracted_intermediate_layers.append(x)
+            else:
+                extracted_intermediate_layers.append(None)
 
         return extracted_intermediate_layers
 
@@ -330,6 +340,7 @@ class YoloHead(nn.Module):
             )
         )  # 24
 
+        self._shortcuts = nn.ModuleList([CrossModelSkipConnection() for _ in range(len(self._skip_connections_dict.keys()) - 1)])
         self.anchors = anchors
         self.width_mult = width_mult
 
@@ -343,21 +354,31 @@ class YoloHead(nn.Module):
         # INPUT TO HEAD IS THE LAST ELEMENT OF THE BACKBONE'S OUTPUT
         out = intermediate_output[-1]
         # RUN OVER THE MODULE LIST WITHOUT THE FINAL LAYER & START COUNTER FROM THE END OF THE BACKBONE
+        i = 0
         for layer_idx, layer_module in enumerate(self._modules_list[:-1], start=num_layers_in_backbone):
             # IF THE LAYER APPEARS IN THE KEYS IT INSERT THE PRECIOUS OUTPUT AND THE INDICATED SKIP CONNECTIONS
-            out = (
-                layer_module([out, intermediate_output[self._skip_connections_dict[layer_idx][0]]])
-                if layer_idx in self._skip_connections_dict.keys()
-                else layer_module(out)
-            )
+
+            if layer_idx in self._skip_connections_dict.keys():
+                out = layer_module([out, self._shortcuts[i](intermediate_output[self._skip_connections_dict[layer_idx][0]])])
+                i += 1
+            else:
+                out = layer_module(out)
 
             # IF INDICATED APPEND THE OUTPUT TO inter_layer_idx_to_extract O.W. APPEND None
-            intermediate_output.append(out) if layer_idx in self._layer_idx_to_extract else intermediate_output.append(None)
+            if layer_idx in self._layer_idx_to_extract:
+                intermediate_output.append(out)
+            else:
+                intermediate_output.append(None)
 
         # INSERT THE REMAINING LAYERS INTO THE Detect LAYER
         last_idx = len(self._modules_list) + num_layers_in_backbone - 1
+
         return self._modules_list[-1](
-            [intermediate_output[self._skip_connections_dict[last_idx][0]], intermediate_output[self._skip_connections_dict[last_idx][1]], out]
+            [
+                intermediate_output[self._skip_connections_dict[last_idx][0]],
+                intermediate_output[self._skip_connections_dict[last_idx][1]],
+                out,
+            ]
         )
 
 
