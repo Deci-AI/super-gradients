@@ -11,13 +11,14 @@ from paddle import load as paddle_load
 from ppdet.modeling.backbones import CSPResNet as PPCSPResNet
 from ppdet.modeling.heads import PPYOLOEHead as Paddle_PPYOLOEHead
 from pytorch_toolbelt.utils import count_parameters, describe_outputs
+from torch import nn
+
 from super_gradients.training.losses.ppyolo_loss import PPYoloELoss
 from super_gradients.training.models.detection_models.csp_resnet import CSPResNet
 from super_gradients.training.models.detection_models.pp_yolo_e import PPYoloE
 from super_gradients.training.models.detection_models.pp_yolo_e.pan import CustomCSPPAN
 from super_gradients.training.models.detection_models.pp_yolo_e.pp_yolo_head import PPYOLOEHead
 from super_gradients.training.utils import HpmStruct
-from torch import nn
 
 
 def convert_weights_from_padldle_to_torch(state_dict: collections.OrderedDict) -> collections.OrderedDict:
@@ -25,6 +26,10 @@ def convert_weights_from_padldle_to_torch(state_dict: collections.OrderedDict) -
     import re
 
     for key, value in state_dict.items():
+        # Skip proj_conv is it's computed when creating a head
+        if key in {"yolo_head.proj_conv.weight", "yolo_head.anchor_points", "yolo_head.stride_tensor"}:
+            continue
+
         torch_value = torch.from_numpy(value.numpy())
         key = key.replace("bn._mean", "bn.running_mean").replace("bn._variance", "bn.running_var").replace("attn.fc", "attn.project")
 
@@ -35,8 +40,36 @@ def convert_weights_from_padldle_to_torch(state_dict: collections.OrderedDict) -
 
         key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv2.conv.weight", r"stages.\1.blocks.\2.conv2.branch_1x1.conv.weight", key)
         key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv2.bn", r"stages.\1.blocks.\2.conv2.branch_1x1.bn", key)
+
         key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv1.conv.weight", r"stages.\1.blocks.\2.conv2.branch_3x3.conv.weight", key)
         key = re.sub(r"stages\.(\d+)\.blocks.(\d+).conv2.conv1.bn", r"stages.\1.blocks.\2.conv2.branch_3x3.bn", key)
+
+        key = re.sub(r"neck.fpn_stages.(\d+).(\d+).convs.(\d+).conv2.conv2.conv.weight", r"neck.fpn_stages.\1.\2.convs.\3.conv2.branch_1x1.conv.weight", key)
+        key = re.sub(r"neck.fpn_stages.(\d+).(\d+).convs.(\d+).conv2.conv2.bn", r"neck.fpn_stages.\1.\2.convs.\3.conv2.branch_1x1.bn", key)
+
+        key = re.sub(r"neck.fpn_stages.(\d+).(\d+).convs.(\d+).conv2.conv1.conv.weight", r"neck.fpn_stages.\1.\2.convs.\3.conv2.branch_3x3.conv.weight", key)
+        key = re.sub(r"neck.fpn_stages.(\d+).(\d+).convs.(\d+).conv2.conv1.bn", r"neck.fpn_stages.\1.\2.convs.\3.conv2.branch_3x3.bn", key)
+
+        key = re.sub(r"neck.fpn_stages.(\d+).(\d+).convs.spp.conv.conv.weight", r"neck.fpn_stages.\1.\2.convs.spp.conv.seq.conv.weight", key)
+        key = re.sub(r"neck.fpn_stages.(\d+).(\d+).convs.spp.conv.bn", r"neck.fpn_stages.\1.\2.convs.spp.conv.seq.bn", key)
+
+        key = re.sub(r"neck.fpn_routes.(\d+).conv.weight", r"neck.fpn_routes.\1.seq.conv.weight", key)
+        key = re.sub(r"neck.fpn_routes.(\d+).bn", r"neck.fpn_routes.\1.seq.bn", key)
+
+        key = re.sub(r"neck.pan_stages.(\d+).(\d+).convs.(\d+).conv2.conv2.conv.weight", r"neck.pan_stages.\1.\2.convs.\3.conv2.branch_1x1.conv.weight", key)
+        key = re.sub(r"neck.pan_stages.(\d+).(\d+).convs.(\d+).conv2.conv2.bn", r"neck.pan_stages.\1.\2.convs.\3.conv2.branch_1x1.bn", key)
+
+        key = re.sub(r"neck.pan_stages.(\d+).(\d+).convs.(\d+).conv2.conv1.conv.weight", r"neck.pan_stages.\1.\2.convs.\3.conv2.branch_3x3.conv.weight", key)
+        key = re.sub(r"neck.pan_stages.(\d+).(\d+).convs.(\d+).conv2.conv1.bn", r"neck.pan_stages.\1.\2.convs.\3.conv2.branch_3x3.bn", key)
+
+        key = re.sub(r"neck.pan_routes.(\d+).conv.weight", r"neck.pan_routes.\1.seq.conv.weight", key)
+        key = re.sub(r"neck.pan_routes.(\d+).bn", r"neck.pan_routes.\1.seq.bn", key)
+
+        key = re.sub(r"head.stem_cls.(\d+).conv.conv.weight", r"head.stem_cls.\1.conv.seq.conv.weight", key)
+        key = re.sub(r"head.stem_cls.(\d+).conv.bn", r"head.stem_cls.\1.conv.seq.bn", key)
+
+        key = re.sub(r"head.stem_reg.(\d+).conv.conv.weight", r"head.stem_reg.\1.conv.seq.conv.weight", key)
+        key = re.sub(r"head.stem_reg.(\d+).conv.bn", r"head.stem_reg.\1.conv.seq.bn", key)
 
         key = key.replace("conv_down.bn", "conv_down.seq.bn")
         key = key.replace("conv_down.conv", "conv_down.seq.conv")
@@ -149,6 +182,8 @@ class PPYoloTestCast(unittest.TestCase):
             np.testing.assert_allclose(pt_output[2].detach().cpu().numpy(), pp_output[2].numpy(), atol=1e-4, rtol=1e-3)
 
     def test_ppyolo_conversion(self):
+        # example_input = np.random.randn((4,3,512,640))
+
         self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/ppyoloe_crn_m_300e_coco.pdparams")
         self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/ppyoloe_crn_s_400e_coco.pdparams")
         self.download_file_if_needed("https://paddledet.bj.bcebos.com/models/ppyoloe_crn_l_300e_coco.pdparams")
@@ -222,6 +257,7 @@ class PPYoloTestCast(unittest.TestCase):
 
             pt_encoder = PPYoloE(HpmStruct(**config)).eval()
             pt_encoder.load_state_dict(torch_weights)
+            # pt_outputs = pt_encoder(torch.from_numpy(example_input))
 
     def test_csp_neck(self):
         for config, pretrain in [
