@@ -1,39 +1,28 @@
 train_dataset_params:
-  data_dir: /data/coco # root path to coco data
+  data_dir: e:/coco2017 # root path to coco data
   subdir: images/train2017 # sub directory path of data_dir containing the train data.
   json_file: instances_train2017.json # path to coco train json file, data_dir/annotations/train_json_file.
-  input_dim: [640, 640]
+  input_dim: # None, do not resize dataset on load
   cache_dir:
   cache: False
   transforms:
-    - DetectionMosaic:
-        input_dim: ${dataset_params.train_dataset_params.input_dim}
-        prob: 1.
     - DetectionRandomAffine:
-        degrees: 10.                  # rotation degrees, randomly sampled from [-degrees, degrees]
+        degrees: 2.                  # rotation degrees, randomly sampled from [-degrees, degrees]
         translate: 0.1                # image translation fraction
-        scales: [ 0.1, 2 ]              # random rescale range (keeps size by padding/cropping) after mosaic transform.
+        scales: [ 0.1, 3 ]              # random rescale range (keeps size by padding/cropping) after mosaic transform.
         shear: 2.0                    # shear degrees, randomly sampled from [-degrees, degrees]
-        target_size: ${dataset_params.train_dataset_params.input_dim}
+        target_size:
         filter_box_candidates: True   # whether to filter out transformed bboxes by edge size, area ratio, and aspect ratio.
         wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
         area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
         ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
-    - DetectionMixup:
-        input_dim: ${dataset_params.train_dataset_params.input_dim}
-        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
-        prob: 0.5                       # probability to apply per-sample mixup
-        flip_prob: 0.5                  # probability to apply horizontal flip
     - DetectionHSV:
         prob: 1.0                       # probability to apply HSV transform
-        hgain: 5                        # HSV transform hue gain (randomly sampled from [-hgain, hgain])
+        hgain: 10                        # HSV transform hue gain (randomly sampled from [-hgain, hgain])
         sgain: 30                       # HSV transform saturation gain (randomly sampled from [-sgain, sgain])
         vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
     - DetectionHorizontalFlip:
         prob: 0.5                       # probability to apply horizontal flip
-    - DetectionPaddedRescale:
-        input_dim: ${dataset_params.train_dataset_params.input_dim}
-        max_targets: 120
     - DetectionTargetsFormatTransform:
         output_format:
           _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
@@ -57,9 +46,16 @@ train_dataloader_params:
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
   collate_fn: # collate function for trainset
     _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
+    random_resize_sizes: [ 320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768 ]
+    random_resize_modes:
+      - 0 # cv::INTER_NEAREST
+      - 1 # cv::INTER_LINEAR
+      - 2 # cv::INTER_CUBIC
+      - 3 # cv::INTER_AREA
+      - 4 # cv::INTER_LANCZOS4
 
 val_dataset_params:
-  data_dir: /data/coco # root path to coco data
+  data_dir: e:/coco2017 # root path to coco data
   subdir: images/val2017 # sub directory path of data_dir containing the train data.
   json_file: instances_val2017.json # path to coco train json file, data_dir/annotations/train_json_file.
   input_dim: [640, 640]

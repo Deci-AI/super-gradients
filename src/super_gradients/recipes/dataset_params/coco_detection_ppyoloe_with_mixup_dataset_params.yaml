@@ -16,11 +16,6 @@ train_dataset_params:
         wh_thr: 2                     # edge size threshold when filter_box_candidates = True (pixels)
         area_thr: 0.1                 # threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True
         ar_thr: 20                    # aspect ratio threshold when filter_box_candidates = True
-    - DetectionMixup:
-        input_dim: ${dataset_params.train_dataset_params.input_dim}
-        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
-        prob: 0.5                       # probability to apply per-sample mixup
-        flip_prob: 0.5                  # probability to apply horizontal flip
     - DetectionHSV:
         prob: 1.0                       # probability to apply HSV transform
         hgain: 10                        # HSV transform hue gain (randomly sampled from [-hgain, hgain])
@@ -28,6 +23,11 @@ train_dataset_params:
         vgain: 30                       # HSV transform value gain (randomly sampled from [-vgain, vgain])
     - DetectionHorizontalFlip:
         prob: 0.5                       # probability to apply horizontal flip
+    - DetectionMixup:
+        input_dim:
+        mixup_scale: [ 0.5, 1.5 ]         # random rescale range for the additional sample in mixup
+        prob: 0.5                       # probability to apply per-sample mixup
+        flip_prob: 0.5                  # probability to apply horizontal flip
     - DetectionTargetsFormatTransform:
         output_format:
           _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
@@ -51,6 +51,13 @@ train_dataloader_params:
     dotpath: super_gradients.training.datasets.datasets_utils.worker_init_reset_seed
   collate_fn: # collate function for trainset
     _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
+    random_resize_sizes: [ 320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768 ]
+    random_resize_modes:
+      - 0 # cv::INTER_NEAREST
+      - 1 # cv::INTER_LINEAR
+      - 2 # cv::INTER_CUBIC
+      - 3 # cv::INTER_AREA
+      - 4 # cv::INTER_LANCZOS4
 
 val_dataset_params:
   data_dir: /data/coco # root path to coco data
