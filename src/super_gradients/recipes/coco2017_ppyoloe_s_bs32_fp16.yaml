@@ -25,7 +25,7 @@
 
 defaults:
   - training_hyperparams: coco2017_ppyoloe_paper_version
-  - dataset_params: coco_detection_ppyoloe_no_mosaic_no_mixup_dataset_params
+  - dataset_params: coco_detection_ppyoloe_dataset_params
   - arch_params: ppyoloe_s_arch_params
   - checkpoint_params: default_checkpoint_params
   - _self_
@@ -58,8 +58,8 @@ dataset_params:
 training_hyperparams:
   resume: ${resume}
 
-  initial_lr: 0.01 # Paper used 0.01 with BS of 8, we train with 16, but LR 0.02 seems to be too big
-  mixed_precision: False
+  initial_lr: 0.04 # Paper used 0.01 with BS of 8, we train with BS 32
+  mixed_precision: True
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
@@ -81,8 +81,8 @@ architecture: ppyoloe
 multi_gpu: DDP
 num_gpus: 8
 
-experiment_suffix: res_640
-experiment_name: coco2017_ppyoloe_s_as_in_paper_fp32_${experiment_suffix}
+experiment_suffix: 640
+experiment_name: coco2017_ppyoloe_s_bs32_fp16_${experiment_suffix}
 
 ckpt_root_dir:
 
