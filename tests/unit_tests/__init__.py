@@ -1,4 +1,5 @@
 # PACKAGE IMPORTS FOR EXTERNAL USAGE
+from tests.unit_tests.crash_tips_test import CrashTipTest
 from tests.unit_tests.double_training_test import CallTrainTwiceTest
 from tests.unit_tests.factories_test import FactoriesTest
 from tests.unit_tests.optimizer_params_override_test import TrainOptimizerParamsOverride
@@ -22,7 +23,9 @@ from tests.unit_tests.initialize_with_dataloaders_test import InitializeWithData
 from tests.unit_tests.training_params_factory_test import TrainingParamsTest
 from tests.unit_tests.config_inspector_test import ConfigInspectTest
 
+
 __all__ = [
+    "CrashTipTest",
     "ZeroWdForBnBiasTest",
     "SaveCkptListUnitTest",
     "AllArchitecturesTest",

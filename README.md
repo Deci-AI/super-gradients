@@ -313,13 +313,13 @@ You can use SuperGradients to train your model with DDP in just a few lines.
 ```python
 from super_gradients import init_trainer, Trainer
 from super_gradients.common import MultiGPUMode
-from super_gradients.training.utils.distributed_training_utils import setup_gpu_mode
+from super_gradients.training.utils.distributed_training_utils import setup_device
 
 # Initialize the environment
 init_trainer()
 
 # Launch DDP on 4 GPUs'
-setup_gpu_mode(gpu_mode=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
+setup_device(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
 
 # Call the trainer
 Trainer(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, expriment_name=...)
