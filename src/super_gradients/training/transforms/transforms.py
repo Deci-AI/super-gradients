@@ -566,6 +566,8 @@ class DetectionMixup(DetectionTransform):
     def __call__(self, sample: dict):
         if self.enable_mixup and random.random() < self.prob:
             origin_img, origin_labels = sample["image"], sample["target"]
+            target_dim = self.input_dim if self.input_dim is not None else sample["image"].shape[:2]
+
             cp_sample = sample["additional_samples"][0]
             img, cp_labels = cp_sample["image"], cp_sample["target"]
             cp_boxes = cp_labels[:, :4]
@@ -577,11 +579,11 @@ class DetectionMixup(DetectionTransform):
             jit_factor = random.uniform(*self.mixup_scale)
 
             if len(img.shape) == 3:
-                cp_img = np.ones((self.input_dim[0], self.input_dim[1], 3), dtype=np.uint8) * 114
+                cp_img = np.ones((target_dim[0], target_dim[1], 3), dtype=np.uint8) * 114
             else:
-                cp_img = np.ones(self.input_dim, dtype=np.uint8) * 114
+                cp_img = np.ones(target_dim, dtype=np.uint8) * 114
 
-            cp_scale_ratio = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
+            cp_scale_ratio = min(target_dim[0] / img.shape[0], target_dim[1] / img.shape[1])
             resized_img = cv2.resize(
                 img,
                 (int(img.shape[1] * cp_scale_ratio), int(img.shape[0] * cp_scale_ratio)),
