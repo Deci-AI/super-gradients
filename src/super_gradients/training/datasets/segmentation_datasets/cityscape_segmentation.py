@@ -20,7 +20,7 @@ class CityscapesDataset(SegmentationDataSet):
     For more details about the dataset labels format see:
     https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/helpers/labels.py
 
-    To run this Dataset you need two folders:
+    To run this Dataset you need to:
 
     - Download cityscape dataset (https://www.cityscapes-dataset.com/downloads/)
 
