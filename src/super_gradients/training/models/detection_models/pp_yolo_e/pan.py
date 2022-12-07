@@ -42,8 +42,8 @@ class CSPStage(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, n, activation_type: Type[nn.Module], spp: bool):
         super().__init__()
         ch_mid = int(out_channels // 2)
-        self.conv1 = ConvBNAct(in_channels, ch_mid, kernel_size=1, padding=0, activation_type=activation_type, stride=1)
-        self.conv2 = ConvBNAct(in_channels, ch_mid, kernel_size=1, padding=0, activation_type=activation_type, stride=1)
+        self.conv1 = ConvBNAct(in_channels, ch_mid, kernel_size=1, padding=0, activation_type=activation_type, stride=1, bias=False)
+        self.conv2 = ConvBNAct(in_channels, ch_mid, kernel_size=1, padding=0, activation_type=activation_type, stride=1, bias=False)
 
         convs = []
         next_ch_in = ch_mid
@@ -54,7 +54,7 @@ class CSPStage(nn.Module):
             next_ch_in = ch_mid
 
         self.convs = nn.Sequential(collections.OrderedDict(convs))
-        self.conv3 = ConvBNAct(ch_mid * 2, out_channels, kernel_size=1, padding=0, activation_type=activation_type, stride=1)
+        self.conv3 = ConvBNAct(ch_mid * 2, out_channels, kernel_size=1, padding=0, activation_type=activation_type, stride=1, bias=False)
 
     def forward(self, x):
         y1 = self.conv1(x)
@@ -112,14 +112,7 @@ class CustomCSPPAN(nn.Module):
 
             if i < self.num_blocks - 1:
                 fpn_routes.append(
-                    ConvBNAct(
-                        in_channels=ch_out,
-                        out_channels=ch_out // 2,
-                        kernel_size=1,
-                        stride=1,
-                        padding=0,
-                        activation_type=activation,
-                    )
+                    ConvBNAct(in_channels=ch_out, out_channels=ch_out // 2, kernel_size=1, stride=1, padding=0, activation_type=activation, bias=False)
                 )
 
             ch_pre = ch_out
@@ -138,6 +131,7 @@ class CustomCSPPAN(nn.Module):
                     stride=2,
                     padding=1,
                     activation_type=activation,
+                    bias=False,
                 )
             )
 

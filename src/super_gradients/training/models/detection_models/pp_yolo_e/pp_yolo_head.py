@@ -71,7 +71,7 @@ class ESEAttn(nn.Module):
     def __init__(self, feat_channels: int, activation_type: Type[nn.Module]):
         super(ESEAttn, self).__init__()
         self.fc = nn.Conv2d(feat_channels, feat_channels, kernel_size=1)
-        self.conv = ConvBNAct(feat_channels, feat_channels, kernel_size=1, padding=0, stride=1, activation_type=activation_type)
+        self.conv = ConvBNAct(feat_channels, feat_channels, kernel_size=1, padding=0, stride=1, activation_type=activation_type, bias=False)
 
         self._init_weights()
 
@@ -143,7 +143,7 @@ class PPYOLOEHead(nn.Module):
 
         # Do not apply quantization to this tensor
         proj = torch.linspace(0, self.reg_max, self.reg_max + 1).reshape([1, self.reg_max + 1, 1, 1])
-        self.register_buffer("proj_conv", proj)
+        self.register_buffer("proj_conv", proj, persistent=False)
 
         self._init_weights()
 
