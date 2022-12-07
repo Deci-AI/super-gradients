@@ -17,6 +17,7 @@ defaults:
   - dataset_params: imagenet_vit_base_dataset_params
   - arch_params: vit_base_arch_params
   - checkpoint_params: vit_base_imagenet_checkpoint_params
+  - _self_
 
 train_dataloader: imagenet_train
 val_dataloader: imagenet_val
