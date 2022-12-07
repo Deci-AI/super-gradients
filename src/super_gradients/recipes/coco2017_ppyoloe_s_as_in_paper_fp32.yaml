@@ -58,7 +58,8 @@ dataset_params:
 training_hyperparams:
   resume: ${resume}
 
-  initial_lr: 0.01 # Paper used 0.01 with BS of 8, we train with BS 32, but 0.04 causes nan
+  initial_lr: 0.01 # Paper used 0.01 with BS of 8, we train with 16, but LR 0.02 seems to be too big
+  mixed_precision: False
 
   sg_logger: "wandb_sg_logger"
   sg_logger_params:
@@ -81,7 +82,7 @@ multi_gpu: DDP
 num_gpus: 8
 
 experiment_suffix: res_640
-experiment_name: coco2017_ppyoloe_s_as_in_paper_${experiment_suffix}
+experiment_name: coco2017_ppyoloe_s_as_in_paper_fp32_${experiment_suffix}
 
 ckpt_root_dir:
 
