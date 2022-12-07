@@ -22,7 +22,7 @@ class CityscapesDataset(SegmentationDataSet):
 
     To run this Dataset you need two folders:
 
-    - Cityscape dataset (https://www.cityscapes-dataset.com/login/):
+    - Cityscape dataset (download here: https://www.cityscapes-dataset.com/downloads/)
 
         root_dir (in recipe default to /data/cityscapes)
             ├─── gtFine
@@ -46,7 +46,7 @@ class CityscapesDataset(SegmentationDataSet):
                     └─── val
                           └── ...
 
-    - Metadata folder (https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip):
+    - Metadata folder (Download here: https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip)
 
         lists
             ├── labels.csv
@@ -63,7 +63,7 @@ class CityscapesDataset(SegmentationDataSet):
         """
         :param root:            Root directory to dataset.
         :param list_file:       List file that contains names of images to load, line format: <image_path> <label_path>
-        :param labels_csv_path: path to csv file, with labels metadata and mapping.
+        :param labels_csv_path: Path to csv file, with labels metadata and mapping.
         :param kwargs:          Any hyper params required for the dataset, i.e img_size, crop_size, cache_images
         """
 
