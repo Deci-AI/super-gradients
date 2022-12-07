@@ -1,7 +1,7 @@
 import time
 import threading
 
-from super_gradients.common.environment.env_helpers import multi_process_safe
+from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.environment.monitoring import disk, virtual_memory, network, cpu, gpu
 from super_gradients.common.environment.monitoring.utils import average, delta_per_s
 from super_gradients.common.environment.monitoring.data_models import StatAggregator, GPUStatAggregatorIterator

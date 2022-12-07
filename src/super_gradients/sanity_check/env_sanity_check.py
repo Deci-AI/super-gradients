@@ -7,7 +7,7 @@ from pathlib import Path
 from packaging.version import Version
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.environment.env_helpers import is_main_process
+from super_gradients.common.environment.ddp_utils import is_main_process
 
 LIB_CHECK_IMPOSSIBLE_MSG = 'Library check is not supported when super_gradients installed through "git+https://github.com/..." command'
 
