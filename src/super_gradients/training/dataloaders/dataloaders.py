@@ -133,7 +133,7 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
     elif get_param(default_dataloader_params, "sampler") is not None:
         default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
     elif is_dist:
-        default_dataloader_params["sampler"] = {"DistributedSampler": {}}
+        default_dataloader_params["sampler"] = {"DistributedSampler": {"shuffle"}}
         default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
     dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
     if get_param(dataloader_params, "batch_sampler"):
