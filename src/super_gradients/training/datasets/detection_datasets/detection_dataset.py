@@ -272,6 +272,8 @@ class DetectionDataset(Dataset):
         if self.input_dim is not None:
             r = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
             desired_size = (int(img.shape[1] * r), int(img.shape[0] * r))
+        else:
+            desired_size = self.input_dim
 
         resized_img = cv2.resize(src=img, dsize=desired_size, interpolation=cv2.INTER_LINEAR).astype(np.uint8)
         return resized_img
