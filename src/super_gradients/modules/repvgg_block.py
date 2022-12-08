@@ -17,11 +17,11 @@ class RepVGGBlock(nn.Module):
 
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        stride=1,
-        dilation=1,
-        groups=1,
+        in_channels: int,
+        out_channels: int,
+        stride: int = 1,
+        dilation: int = 1,
+        groups: int = 1,
         activation_type: Type[nn.Module] = nn.ReLU,
         activation_kwargs: Union[Mapping[str, Any], None] = None,
         se_type: Type[nn.Module] = nn.Identity,
@@ -69,7 +69,7 @@ class RepVGGBlock(nn.Module):
             dilation=dilation,
             kernel_size=3,
             stride=stride,
-            padding=1,
+            padding=dilation,
             groups=groups,
         )
         self.branch_1x1 = self._conv_bn(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride, padding=0, groups=groups)
