@@ -79,16 +79,18 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
             if not hasattr(dataset, "dataset_params"):
                 dataset.dataset_params = dataset_params
 
-        logger.info("Creating DataLoader")
+        logger.info("======= Creating DataLoader =======")
+        logger.info("======= dataloader_params before _process_dataloader_params =======")
         logger.info(pformat(dataloader_params))
 
         dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
+        logger.info("======= dataloader_params after _process_dataloader_params =======")
+        logger.info(pformat(dataloader_params))
 
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
         dataloader.dataloader_params = dataloader_params
 
-        logger.info("TODO: Remove me after debugging")
-        logger.info("Created DataLoader")
+        logger.info("=======  Created DataLoader ======= ")
         is_dist = super_gradients.is_distributed()
         logger.info(f" Is Distributed: {is_dist}")
         logger.info(f" Length {len(dataloader)} (batches), {len(dataset)} (samples)")
