@@ -81,6 +81,21 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
 
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
         dataloader.dataloader_params = dataloader_params
+
+        logger.info("TODO: Remove me after ")
+        logger.info("Created DataLoader")
+        logger.info(f" Length {len(dataloader)}")
+        if dataloader.sampler is not None:
+            logger.info(f" Sampler {type(dataloader.sampler)}")
+            logger.info(f" Sampler {dataloader.sampler}")
+        if dataloader.batch_sampler is not None:
+            logger.info(f" Batch Sampler {type(dataloader.batch_sampler)}")
+            logger.info(f" Batch Sampler {dataloader.batch_sampler}")
+        if dataloader.collate_fn is not None:
+            logger.info(f" CollateFN {type(dataloader.collate_fn)}")
+            logger.info(f" CollateFN {dataloader.collate_fn}")
+        logger.info("TODO: Remove me after ")
+
         return dataloader
 
 
