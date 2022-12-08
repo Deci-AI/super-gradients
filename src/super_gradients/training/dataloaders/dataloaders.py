@@ -52,7 +52,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
     :param config_name: yaml config filename in recipes (for example coco2017_yolox).
     :param dataset_cls: torch dataset uninitialized class.
     :param train: controls whether to take
-        cfg.dataset_params.train_dataloader_params or cfg.dataset_params.val_dataloader_params as defaults for the dataset constructor
+        cfg.dataset_params.train_dataloader_params or cfg.dataset_params.valid_dataloader_params as defaults for the dataset constructor
      and
         cfg.dataset_params.train_dataset_params or cfg.dataset_params.valid_dataset_params as defaults for DataLoader contructor.
 
@@ -80,34 +80,10 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
             if not hasattr(dataset, "dataset_params"):
                 dataset.dataset_params = dataset_params
 
-        logger.info("======= Creating DataLoader =======")
-        logger.info("======= dataloader_params before _process_dataloader_params =======")
-        logger.info(pformat(dataloader_params))
-
         dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
-        logger.info("======= dataloader_params after _process_dataloader_params =======")
-        logger.info(pformat(dataloader_params))
 
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
         dataloader.dataloader_params = dataloader_params
-
-        logger.info("=======  Created DataLoader ======= ")
-        is_dist = super_gradients.is_distributed()
-        logger.info(f" Is Distributed: {is_dist}")
-        logger.info(f" Length {len(dataloader)} (batches), {len(dataset)} (samples)")
-        logger.info(f" Batch Size {dataloader.batch_size}")
-        if dataloader.sampler is not None:
-            logger.info(f" Sampler {type(dataloader.sampler)}")
-            logger.info(f" Sampler {repr(dataloader.sampler)}")
-            logger.info(f" Is DistributedSampler : {isinstance(dataloader.sampler, DistributedSampler)}")
-        if dataloader.batch_sampler is not None:
-            logger.info(f" Batch Sampler {type(dataloader.batch_sampler)}")
-            logger.info(f" Batch Sampler {repr(dataloader.batch_sampler)}")
-        if dataloader.collate_fn is not None:
-            logger.info(f" CollateFN {type(dataloader.collate_fn)}")
-            logger.info(f" CollateFN {repr(dataloader.collate_fn)}")
-        logger.info("TODO: Remove me after debugging")
-
         return dataloader
 
 
