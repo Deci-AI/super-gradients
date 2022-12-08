@@ -48,8 +48,8 @@ class PascalVOCDetectionDataset(DetectionDataset):
         img_files_folder = os.path.join(self.data_dir, self.images_sub_directory)
         if not Path(img_files_folder).exists():
             raise FileNotFoundError(
-                f"{img_files_folder} not found.\n"
-                f"Please make sure that f{self.data_dir} refers to where PascalVOC dataset was downloaded.\n"
+                f"{img_files_folder} not found...\n"
+                f"Please make sure that f{self.data_dir} points toward your PascalVOC dataset folder.\n"
                 f"If you don't have it locally, you can set PascalVOCDetectionDataset(..., download=True)"
             )
 
