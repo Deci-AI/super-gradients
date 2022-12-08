@@ -46,6 +46,7 @@ class DeciClient:
         self.lab_client = DeciPlatformClient()
         GlobalHydra.instance().clear()
 
+        self.super_gradients_version = None
         try:
             sg_version = pkg_resources.get_distribution("super_gradients").version
             self.super_gradients_version = sg_version if "rc" not in sg_version else DeciClient._DEFAULT_SG_VERSION
