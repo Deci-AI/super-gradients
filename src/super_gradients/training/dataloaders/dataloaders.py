@@ -1,4 +1,6 @@
 import os.path
+from pprint import pformat
+
 import pkg_resources
 from typing import Dict
 
@@ -77,14 +79,19 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
             if not hasattr(dataset, "dataset_params"):
                 dataset.dataset_params = dataset_params
 
+        logger.info("Creating DataLoader")
+        logger.info(pformat(dataloader_params))
+
         dataloader_params = _process_dataloader_params(cfg, dataloader_params, dataset, train)
 
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
         dataloader.dataloader_params = dataloader_params
 
-        logger.info("TODO: Remove me after ")
+        logger.info("TODO: Remove me after debugging")
         logger.info("Created DataLoader")
-        logger.info(f" Length {len(dataloader)}")
+        is_dist = super_gradients.is_distributed()
+        logger.info(f" Is Distributed: {is_dist}")
+        logger.info(f" Length {len(dataloader)} (batches), {len(dataset)} (samples)")
         if dataloader.sampler is not None:
             logger.info(f" Sampler {type(dataloader.sampler)}")
             logger.info(f" Sampler {dataloader.sampler}")
@@ -94,7 +101,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
         if dataloader.collate_fn is not None:
             logger.info(f" CollateFN {type(dataloader.collate_fn)}")
             logger.info(f" CollateFN {dataloader.collate_fn}")
-        logger.info("TODO: Remove me after ")
+        logger.info("TODO: Remove me after debugging")
 
         return dataloader
 
