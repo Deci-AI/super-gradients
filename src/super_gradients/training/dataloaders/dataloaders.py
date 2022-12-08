@@ -124,7 +124,11 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
     default_dataloader_params = cfg.dataset_params.train_dataloader_params if train else cfg.dataset_params.val_dataloader_params
     default_dataloader_params = hydra.utils.instantiate(default_dataloader_params)
     dataloader_params = _process_sampler_params(dataloader_params, dataset, default_dataloader_params)
+    logger.info("dataloader_params")
+    logger.info(pformat(dataloader_params))
 
+    logger.info("default_dataloader_params")
+    logger.info(pformat(default_dataloader_params))
     return dataloader_params
 
 
@@ -138,7 +142,10 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
         default_dataloader_params["sampler"] = {"DistributedSampler": {"shuffle"}}
         default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
     dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
-    if get_param(dataloader_params, "batch_sampler"):
+    if get_param(dataloader_params, "batch_sampler") is not None:
+        logger.info("Enabling batch sampler")
+        logger.info("With params {}", get_param(dataloader_params, "batch_sampler"))
+
         sampler = dataloader_params.pop("sampler")
         batch_size = dataloader_params.pop("batch_size")
         if "drop_last" in dataloader_params:
