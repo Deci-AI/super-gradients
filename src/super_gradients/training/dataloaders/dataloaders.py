@@ -49,7 +49,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
     :param config_name: yaml config filename in recipes (for example coco2017_yolox).
     :param dataset_cls: torch dataset uninitialized class.
     :param train: controls whether to take
-        cfg.dataset_params.train_dataloader_params or cfg.dataset_params.valid_dataloader_params as defaults for the dataset constructor
+        cfg.dataset_params.train_dataloader_params or cfg.dataset_params.val_dataloader_params as defaults for the dataset constructor
      and
         cfg.dataset_params.train_dataset_params or cfg.dataset_params.valid_dataset_params as defaults for DataLoader contructor.
 
