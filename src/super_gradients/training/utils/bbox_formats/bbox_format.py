@@ -1,6 +1,7 @@
 from abc import abstractmethod
-from typing import Tuple, Callable
+from typing import Tuple, Callable, Union
 
+import numpy as np
 from torch import Tensor
 
 __all__ = ["BoundingBoxFormat", "convert_bboxes"]
@@ -35,11 +36,11 @@ class BoundingBoxFormat:
         return self.get_from_xyxy(inplace)(bboxes, image_shape)
 
     @abstractmethod
-    def get_to_xyxy(self, inplace: bool) -> Callable[[Tensor, Tuple[int, int]], Tensor]:
+    def get_to_xyxy(self, inplace: bool) -> Callable[[Union[Tensor, np.ndarray], Tuple[int, int]], Union[Tensor, np.ndarray]]:
         raise NotImplementedError()
 
     @abstractmethod
-    def get_from_xyxy(self, inplace: bool) -> Callable[[Tensor, Tuple[int, int]], Tensor]:
+    def get_from_xyxy(self, inplace: bool) -> Callable[[Union[Tensor, np.ndarray], Tuple[int, int]], Union[Tensor, np.ndarray]]:
         raise NotImplementedError()
 
     def get_num_parameters(self) -> int:
