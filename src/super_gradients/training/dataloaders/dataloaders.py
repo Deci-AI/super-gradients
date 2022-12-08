@@ -92,6 +92,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
         is_dist = super_gradients.is_distributed()
         logger.info(f" Is Distributed: {is_dist}")
         logger.info(f" Length {len(dataloader)} (batches), {len(dataset)} (samples)")
+        logger.info(f" Batch Size {dataloader.batch_size}")
         if dataloader.sampler is not None:
             logger.info(f" Sampler {type(dataloader.sampler)}")
             logger.info(f" Sampler {dataloader.sampler}")
