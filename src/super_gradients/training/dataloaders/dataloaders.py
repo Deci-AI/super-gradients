@@ -110,6 +110,74 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
         return dataloader
 
 
+def get_new_data_loader(dataset_cls, dataset_params, dataloader_params):
+    """
+    :param dataset_cls: torch dataset uninitialized class.
+    :param dataset_params: dataset params that override the yaml configured defaults, then passed to the dataset_cls.__init__.
+    :param dataloader_params: DataLoader params that override the yaml configured defaults, then passed to the DataLoader.__init__
+    :return: DataLoader
+    """
+
+    local_rank = get_local_rank()
+    with wait_for_the_master(local_rank):
+        dataset = dataset_cls(**dataset_params)
+        if not hasattr(dataset, "dataset_params"):
+            dataset.dataset_params = dataset_params
+
+    logger.info("======= Creating DataLoader =======")
+    logger.info("======= dataloader_params before _process_dataloader_params =======")
+    logger.info(pformat(dataloader_params))
+
+    is_dist = super_gradients.is_distributed()
+
+    if get_param(dataloader_params, "sampler") is not None:
+        logger.info("Instantiating sampler from dataloader_params")
+        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+
+    if is_dist:
+        logger.info("Instantiating DistributedSampler as no sampler is set")
+        # default_dataloader_params["sampler"] = {"DistributedSampler": {"shuffle"}}
+        # default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
+
+        # dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
+        pass
+
+    if get_param(dataloader_params, "batch_sampler") is not None:
+        logger.info("Enabling batch sampler")
+        logger.info("With params {}", get_param(dataloader_params, "batch_sampler"))
+
+        sampler = dataloader_params.pop("sampler")
+        batch_size = dataloader_params.pop("batch_size")
+        if "drop_last" in dataloader_params:
+            drop_last = dataloader_params.pop("drop_last")
+        # else:
+        # drop_last = default_dataloader_params["drop_last"]
+        dataloader_params["batch_sampler"] = BatchSampler(sampler=sampler, batch_size=batch_size, drop_last=drop_last)
+        return dataloader_params
+
+    dataloader = DataLoader(dataset=dataset, **dataloader_params)
+    dataloader.dataloader_params = dataloader_params
+
+    logger.info("=======  Created DataLoader ======= ")
+    is_dist = super_gradients.is_distributed()
+    logger.info(f" Is Distributed: {is_dist}")
+    logger.info(f" Length {len(dataloader)} (batches), {len(dataset)} (samples)")
+    logger.info(f" Batch Size {dataloader.batch_size}")
+    if dataloader.sampler is not None:
+        logger.info(f" Sampler {type(dataloader.sampler)}")
+        logger.info(f" Sampler {repr(dataloader.sampler)}")
+        logger.info(f" Is DistributedSampler : {isinstance(dataloader.sampler, DistributedSampler)}")
+    if dataloader.batch_sampler is not None:
+        logger.info(f" Batch Sampler {type(dataloader.batch_sampler)}")
+        logger.info(f" Batch Sampler {repr(dataloader.batch_sampler)}")
+    if dataloader.collate_fn is not None:
+        logger.info(f" CollateFN {type(dataloader.collate_fn)}")
+        logger.info(f" CollateFN {repr(dataloader.collate_fn)}")
+    logger.info("TODO: Remove me after debugging")
+
+    return dataloader
+
+
 def _process_dataset_params(cfg, dataset_params, train):
     default_dataset_params = cfg.dataset_params.train_dataset_params if train else cfg.dataset_params.val_dataset_params
     default_dataset_params = hydra.utils.instantiate(default_dataset_params)
@@ -184,6 +252,22 @@ def coco2017_val(dataset_params: Dict = None, dataloader_params: Dict = None):
         config_name="coco_detection_dataset_params",
         dataset_cls=COCODetectionDataset,
         train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def new_coco2017_train(dataset_params: Dict, dataloader_params: Dict):
+    return get_new_data_loader(
+        dataset_cls=COCODetectionDataset,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def new_coco2017_val(dataset_params: Dict, dataloader_params: Dict):
+    return get_new_data_loader(
+        dataset_cls=COCODetectionDataset,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
     )
@@ -650,6 +734,8 @@ def pascal_voc_detection_val(dataset_params: Dict = None, dataloader_params: Dic
 ALL_DATALOADERS = {
     "coco2017_train": coco2017_train,
     "coco2017_val": coco2017_val,
+    "new_coco2017_train": new_coco2017_train,
+    "new_coco2017_val": new_coco2017_val,
     "coco2017_train_yolox": coco2017_train_yolox,
     "coco2017_val_yolox": coco2017_val_yolox,
     "coco2017_train_ssd_lite_mobilenet_v2": coco2017_train_ssd_lite_mobilenet_v2,

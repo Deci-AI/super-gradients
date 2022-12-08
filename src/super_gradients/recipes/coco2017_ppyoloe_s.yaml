@@ -30,8 +30,8 @@ defaults:
   - checkpoint_params: default_checkpoint_params
   - _self_
 
-train_dataloader: coco2017_train
-val_dataloader: coco2017_val
+train_dataloader: new_coco2017_train
+val_dataloader: new_coco2017_val
 
 arch_params:
   normalization:
