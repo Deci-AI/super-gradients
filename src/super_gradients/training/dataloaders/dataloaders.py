@@ -1,6 +1,8 @@
 import os.path
+from pprint import pformat
+
 import pkg_resources
-from typing import Dict
+from typing import Dict, Mapping
 
 import hydra
 from hydra import compose, initialize_config_dir
@@ -8,7 +10,7 @@ from hydra.core.global_hydra import GlobalHydra
 
 import numpy as np
 import torch
-from torch.utils.data import BatchSampler, DataLoader, TensorDataset
+from torch.utils.data import BatchSampler, DataLoader, TensorDataset, DistributedSampler
 
 import super_gradients
 
@@ -38,6 +40,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import override_default_params_without_nones
+from super_gradients.training.dataloaders.distributed_sampler_wrapper import DistributedSamplerWrapper
 
 logger = get_logger(__name__)
 
@@ -84,6 +87,58 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
         return dataloader
 
 
+def get_new_data_loader(dataset_cls, dataset_params: Mapping, dataloader_params: Mapping) -> DataLoader:
+    """
+    :param dataset_cls: torch dataset uninitialized class.
+    :param dataset_params: dataset params that override the yaml configured defaults, then passed to the dataset_cls.__init__.
+    :param dataloader_params: DataLoader params that override the yaml configured defaults, then passed to the DataLoader.__init__
+    :return: DataLoader
+    """
+
+    is_distributed = super_gradients.is_distributed()
+    local_rank = get_local_rank()
+
+    with wait_for_the_master(local_rank):
+        dataset = dataset_cls(**dataset_params)
+        if not hasattr(dataset, "dataset_params"):
+            dataset.dataset_params = dataset_params
+
+    logger.info(f"Creating DataLoader with params {pformat(dataloader_params)}")
+
+    # Instantiate sampler if it is requested
+    if get_param(dataloader_params, "sampler") is not None:
+        logger.info("Instantiating sampler from dataloader_params")
+        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+        sampler = get_param(dataloader_params, "sampler")
+
+        if is_distributed and not isinstance(sampler, DistributedSampler):
+            logger.info("Wrapping user-defined sampler with DistributedSamplerWrapper")
+            dataloader_params["sampler"] = DistributedSamplerWrapper(sampler)
+    else:
+        # If sampler is not requested but we are in DDP - create DistributedSampler
+        # Important nuance - we must respect shuffle & drop_last from dataloader_params since when the sampler is provided, they has no effect.
+        sampler_shuffle = get_param(dataloader_params, "shuffle", False)
+        sampler_drop_last = get_param(dataloader_params, "drop_last", False)
+
+        logger.info(
+            f"Instantiating DistributedSampler(shuffle={sampler_shuffle}, drop_last={sampler_drop_last}) since we're in DDP and no sampler is provided."
+        )
+        dataloader_params["sampler"] = DistributedSampler(dataset, shuffle=sampler_shuffle, drop_last=sampler_drop_last)
+
+        # Second nuance - we must remove them from dataloader_params as having both sampler & shuffle would trigger an error
+        if "shuffle" in dataloader_params:
+            dataloader_params.pop("shuffle")
+        if "drop_last" in dataloader_params:
+            dataloader_params.pop("drop_last")
+
+    if get_param(dataloader_params, "batch_sampler") is not None:
+        raise NotImplementedError("Specifying batch-sampler is not implemented at the moment")
+
+    dataloader = DataLoader(dataset=dataset, **dataloader_params)
+    dataloader.dataloader_params = dataloader_params
+    return dataloader
+
+
 def _process_dataset_params(cfg, dataset_params, train):
     default_dataset_params = cfg.dataset_params.train_dataset_params if train else cfg.dataset_params.val_dataset_params
     default_dataset_params = hydra.utils.instantiate(default_dataset_params)
@@ -97,22 +152,35 @@ def _process_dataset_params(cfg, dataset_params, train):
 def _process_dataloader_params(cfg, dataloader_params, dataset, train):
     default_dataloader_params = cfg.dataset_params.train_dataloader_params if train else cfg.dataset_params.val_dataloader_params
     default_dataloader_params = hydra.utils.instantiate(default_dataloader_params)
-    dataloader_params = _process_sampler_params(dataloader_params, dataset, default_dataloader_params)
+    logger.info("dataloader_params")
+    logger.info(pformat(dataloader_params))
 
+    logger.info("default_dataloader_params")
+    logger.info(pformat(default_dataloader_params))
+
+    dataloader_params = _process_sampler_params(dataloader_params, dataset, default_dataloader_params)
     return dataloader_params
 
 
 def _process_sampler_params(dataloader_params, dataset, default_dataloader_params):
     is_dist = super_gradients.is_distributed()
+
     if get_param(dataloader_params, "sampler") is not None:
+        logger.info("Instantiating sampler from dataloader_params")
         dataloader_params = _instantiate_sampler(dataset, dataloader_params)
     elif get_param(default_dataloader_params, "sampler") is not None:
+        logger.info("Instantiating sampler from default_dataloader_params")
         default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
     elif is_dist:
-        default_dataloader_params["sampler"] = {"DistributedSampler": {}}
+        logger.info("Instantiating DistributedSampler as no sampler is set")
+        default_dataloader_params["sampler"] = {"DistributedSampler": {"shuffle"}}
         default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
+
     dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
-    if get_param(dataloader_params, "batch_sampler"):
+    if get_param(dataloader_params, "batch_sampler") is not None:
+        logger.info("Enabling batch sampler")
+        logger.info("With params {}", get_param(dataloader_params, "batch_sampler"))
+
         sampler = dataloader_params.pop("sampler")
         batch_size = dataloader_params.pop("batch_size")
         if "drop_last" in dataloader_params:
@@ -145,6 +213,22 @@ def coco2017_val(dataset_params: Dict = None, dataloader_params: Dict = None):
         config_name="coco_detection_dataset_params",
         dataset_cls=COCODetectionDataset,
         train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def new_coco2017_train(dataset_params: Dict, dataloader_params: Dict):
+    return get_new_data_loader(
+        dataset_cls=COCODetectionDataset,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def new_coco2017_val(dataset_params: Dict, dataloader_params: Dict):
+    return get_new_data_loader(
+        dataset_cls=COCODetectionDataset,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
     )
@@ -611,6 +695,8 @@ def pascal_voc_detection_val(dataset_params: Dict = None, dataloader_params: Dic
 ALL_DATALOADERS = {
     "coco2017_train": coco2017_train,
     "coco2017_val": coco2017_val,
+    "new_coco2017_train": new_coco2017_train,
+    "new_coco2017_val": new_coco2017_val,
     "coco2017_train_yolox": coco2017_train_yolox,
     "coco2017_val_yolox": coco2017_val_yolox,
     "coco2017_train_ssd_lite_mobilenet_v2": coco2017_train_ssd_lite_mobilenet_v2,

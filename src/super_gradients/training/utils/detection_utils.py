@@ -708,7 +708,13 @@ class PPYoloECollateFN:
             random_resize_sizes: (rows, cols)
         """
         self.random_resize_sizes = random_resize_sizes
-        self.interpolation_method = random_resize_modes
+        self.random_resize_modes = random_resize_modes
+
+    def __repr__(self):
+        return f"PPYoloECollateFN(random_resize_sizes={self.random_resize_sizes}, random_resize_modes={self.random_resize_modes})"
+
+    def __str__(self):
+        return self.__repr__()
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         if self.random_resize_sizes is not None:
@@ -724,7 +730,7 @@ class PPYoloECollateFN:
 
     def random_resize(self, batch):
         target_size = random.choice(self.random_resize_sizes)
-        interpolation = random.choice(self.interpolation_method)
+        interpolation = random.choice(self.random_resize_modes)
         batch = [self.random_resize_sample(sample, target_size, interpolation) for sample in batch]
         return batch
 

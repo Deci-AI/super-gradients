@@ -52,7 +52,7 @@ dataset_params:
     # which makes pinned memory useless as input tensors a new size for each new batch
     pin_memory: False
 
-  valid_dataloader_params:
+  val_dataloader_params:
     pin_memory: False
 
 training_hyperparams:

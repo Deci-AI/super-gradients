@@ -30,8 +30,8 @@ defaults:
   - checkpoint_params: default_checkpoint_params
   - _self_
 
-train_dataloader: coco2017_train
-val_dataloader: coco2017_val
+train_dataloader: new_coco2017_train
+val_dataloader: new_coco2017_val
 
 arch_params:
   normalization:
@@ -52,7 +52,7 @@ dataset_params:
     # which makes pinned memory useless as input tensors a new size for each new batch
     pin_memory: False
 
-  valid_dataloader_params:
+  val_dataloader_params:
     pin_memory: False
 
 training_hyperparams:

@@ -82,6 +82,11 @@ def verify_installed_libraries() -> List[str]:
 
         lib, required_version_str = requirement.split(constraint)
 
+        if ",<=" in required_version_str:
+            upper_limit_version = Version(required_version_str.split(",<=")[1])
+            required_version_str = required_version_str.split(",<=")[0]
+            constraint += ",<="
+
         if lib.lower() not in installed_libs_with_version.keys():
             errors.append(f"{lib} required but not found")
             continue
@@ -90,6 +95,7 @@ def verify_installed_libraries() -> List[str]:
         installed_version, required_version = Version(installed_version_str), Version(required_version_str)
 
         is_constraint_respected = {
+            ">=,<=": required_version <= installed_version <= upper_limit_version,
             ">=": installed_version >= required_version,
             "~=": (
                 installed_version.major == required_version.major
