@@ -2,7 +2,7 @@ import os.path
 from pprint import pformat
 
 import pkg_resources
-from typing import Dict
+from typing import Dict, Mapping
 
 import hydra
 from hydra import compose, initialize_config_dir
@@ -40,6 +40,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import override_default_params_without_nones
+from super_gradients.training.dataloaders.distributed_sampler_wrapper import DistributedSamplerWrapper
 
 logger = get_logger(__name__)
 
@@ -110,7 +111,7 @@ def get_data_loader(config_name, dataset_cls, train, dataset_params=None, datalo
         return dataloader
 
 
-def get_new_data_loader(dataset_cls, dataset_params, dataloader_params):
+def get_new_data_loader(dataset_cls, dataset_params: Mapping, dataloader_params: Mapping) -> DataLoader:
     """
     :param dataset_cls: torch dataset uninitialized class.
     :param dataset_params: dataset params that override the yaml configured defaults, then passed to the dataset_cls.__init__.
@@ -118,7 +119,9 @@ def get_new_data_loader(dataset_cls, dataset_params, dataloader_params):
     :return: DataLoader
     """
 
+    is_distributed = super_gradients.is_distributed()
     local_rank = get_local_rank()
+
     with wait_for_the_master(local_rank):
         dataset = dataset_cls(**dataset_params)
         if not hasattr(dataset, "dataset_params"):
@@ -128,39 +131,40 @@ def get_new_data_loader(dataset_cls, dataset_params, dataloader_params):
     logger.info("======= dataloader_params before _process_dataloader_params =======")
     logger.info(pformat(dataloader_params))
 
-    is_dist = super_gradients.is_distributed()
-
+    # Instantiate sampler if it is requested
     if get_param(dataloader_params, "sampler") is not None:
         logger.info("Instantiating sampler from dataloader_params")
         dataloader_params = _instantiate_sampler(dataset, dataloader_params)
+        sampler = get_param(dataloader_params, "sampler")
 
-    if is_dist:
-        logger.info("Instantiating DistributedSampler as no sampler is set")
-        # default_dataloader_params["sampler"] = {"DistributedSampler": {"shuffle"}}
-        # default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
+        if is_distributed and not isinstance(sampler, DistributedSampler):
+            logger.info("Wrapping user-defined sampler with DistributedSamplerWrapper")
+            dataloader_params["sampler"] = DistributedSamplerWrapper(sampler)
+    else:
+        # If sampler is not requested but we are in DDP - create DistributedSampler
+        # Important nuance - we must respect shuffle & drop_last from dataloader_params since when the sampler is provided, they has no effect.
+        sampler_shuffle = get_param(dataloader_params, "shuffle", False)
+        sampler_drop_last = get_param(dataloader_params, "drop_last", False)
 
-        # dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
-        pass
+        logger.info(
+            f"Instantiating DistributedSampler(shuffle={sampler_shuffle}, drop_last={sampler_drop_last}) since we're in DDP and no sampler is provided."
+        )
+        dataloader_params["sampler"] = DistributedSampler(dataset, shuffle=sampler_shuffle, drop_last=sampler_drop_last)
+
+        # Second nuance - we must remove them from dataloader_params as having both sampler & shuffle would trigger an error
+        if "shuffle" in dataloader_params:
+            dataloader_params.pop("shuffle")
+        if "drop_last" in dataloader_params:
+            dataloader_params.pop("drop_last")
 
     if get_param(dataloader_params, "batch_sampler") is not None:
-        logger.info("Enabling batch sampler")
-        logger.info("With params {}", get_param(dataloader_params, "batch_sampler"))
-
-        sampler = dataloader_params.pop("sampler")
-        batch_size = dataloader_params.pop("batch_size")
-        if "drop_last" in dataloader_params:
-            drop_last = dataloader_params.pop("drop_last")
-        # else:
-        # drop_last = default_dataloader_params["drop_last"]
-        dataloader_params["batch_sampler"] = BatchSampler(sampler=sampler, batch_size=batch_size, drop_last=drop_last)
-        return dataloader_params
+        raise NotImplementedError("Specifying batch-sampler is not implemented at the moment")
 
     dataloader = DataLoader(dataset=dataset, **dataloader_params)
     dataloader.dataloader_params = dataloader_params
 
     logger.info("=======  Created DataLoader ======= ")
-    is_dist = super_gradients.is_distributed()
-    logger.info(f" Is Distributed: {is_dist}")
+    logger.info(f" Is Distributed: {is_distributed}, local rank: {local_rank}")
     logger.info(f" Length {len(dataloader)} (batches), {len(dataset)} (samples)")
     logger.info(f" Batch Size {dataloader.batch_size}")
     if dataloader.sampler is not None:
