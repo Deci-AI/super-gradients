@@ -103,9 +103,7 @@ def get_new_data_loader(dataset_cls, dataset_params: Mapping, dataloader_params:
         if not hasattr(dataset, "dataset_params"):
             dataset.dataset_params = dataset_params
 
-    logger.info("======= Creating DataLoader =======")
-    logger.info("======= dataloader_params before _process_dataloader_params =======")
-    logger.info(pformat(dataloader_params))
+    logger.info(f"Creating DataLoader with params {pformat(dataloader_params)}")
 
     # Instantiate sampler if it is requested
     if get_param(dataloader_params, "sampler") is not None:
@@ -138,23 +136,6 @@ def get_new_data_loader(dataset_cls, dataset_params: Mapping, dataloader_params:
 
     dataloader = DataLoader(dataset=dataset, **dataloader_params)
     dataloader.dataloader_params = dataloader_params
-
-    logger.info("=======  Created DataLoader ======= ")
-    logger.info(f" Is Distributed: {is_distributed}, local rank: {local_rank}")
-    logger.info(f" Length {len(dataloader)} (batches), {len(dataset)} (samples)")
-    logger.info(f" Batch Size {dataloader.batch_size}")
-    if dataloader.sampler is not None:
-        logger.info(f" Sampler {type(dataloader.sampler)}")
-        logger.info(f" Sampler {repr(dataloader.sampler)}")
-        logger.info(f" Is DistributedSampler : {isinstance(dataloader.sampler, DistributedSampler)}")
-    if dataloader.batch_sampler is not None:
-        logger.info(f" Batch Sampler {type(dataloader.batch_sampler)}")
-        logger.info(f" Batch Sampler {repr(dataloader.batch_sampler)}")
-    if dataloader.collate_fn is not None:
-        logger.info(f" CollateFN {type(dataloader.collate_fn)}")
-        logger.info(f" CollateFN {repr(dataloader.collate_fn)}")
-    logger.info("TODO: Remove me after debugging")
-
     return dataloader
 
 
