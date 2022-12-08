@@ -27,6 +27,9 @@ except (ImportError, NameError):
     client_enabled = False
 
 
+DEFAULT_SG_VERSION = "3.0.2"
+
+
 class DeciClient:
     """
     A client to deci platform and model zoo.
@@ -43,11 +46,12 @@ class DeciClient:
 
         self.lab_client = DeciPlatformClient()
         GlobalHydra.instance().clear()
-        self.super_gradients_version = None
+
         try:
-            self.super_gradients_version = pkg_resources.get_distribution("super_gradients").version
+            sg_version = pkg_resources.get_distribution("super_gradients").version
+            self.super_gradients_version = sg_version if "rc" not in sg_version else DEFAULT_SG_VERSION
         except pkg_resources.DistributionNotFound:
-            self.super_gradients_version = "3.0.2"
+            self.super_gradients_version = DEFAULT_SG_VERSION
 
     def _get_file(self, model_name: str, file_name: str) -> str:
         try:
