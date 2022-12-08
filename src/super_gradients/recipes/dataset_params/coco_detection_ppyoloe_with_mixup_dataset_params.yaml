@@ -41,10 +41,7 @@ train_dataset_params:
 train_dataloader_params:
   batch_size: 16
   num_workers: 8
-  batch_sampler: True
-  sampler:
-    InfiniteSampler:
-      seed: 0
+  shuffle: True
   drop_last: True
   pin_memory: True
   worker_init_fn:
@@ -84,6 +81,7 @@ val_dataloader_params:
   batch_size: 64
   num_workers: 8
   drop_last: False
+  shuffle: False
   pin_memory: True
   collate_fn: # collate function for trainset
     _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
