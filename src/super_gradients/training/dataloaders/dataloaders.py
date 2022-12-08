@@ -263,20 +263,16 @@ def coco2017_val_ssd_lite_mobilenet_v2(dataset_params: Dict = None, dataloader_p
 
 
 def coco2017_train_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict = None):
-    return get_data_loader(
-        config_name="coco_detection_ppyoloe_dataset_params",
+    return get_new_data_loader(
         dataset_cls=COCODetectionDataset,
-        train=True,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
     )
 
 
 def coco2017_val_ppyoloe(dataset_params: Dict = None, dataloader_params: Dict = None):
-    return get_data_loader(
-        config_name="coco_detection_ppyoloe_dataset_params",
+    return get_new_data_loader(
         dataset_cls=COCODetectionDataset,
-        train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,
     )
