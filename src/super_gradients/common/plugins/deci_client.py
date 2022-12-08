@@ -27,14 +27,13 @@ except (ImportError, NameError):
     client_enabled = False
 
 
-DEFAULT_SG_VERSION = "3.0.2"
-
-
 class DeciClient:
     """
     A client to deci platform and model zoo.
     requires credentials for connection
     """
+
+    _DEFAULT_SG_VERSION = "3.0.2"
 
     def __init__(self):
         if not client_enabled:
@@ -49,9 +48,9 @@ class DeciClient:
 
         try:
             sg_version = pkg_resources.get_distribution("super_gradients").version
-            self.super_gradients_version = sg_version if "rc" not in sg_version else DEFAULT_SG_VERSION
+            self.super_gradients_version = sg_version if "rc" not in sg_version else DeciClient._DEFAULT_SG_VERSION
         except pkg_resources.DistributionNotFound:
-            self.super_gradients_version = DEFAULT_SG_VERSION
+            self.super_gradients_version = DeciClient._DEFAULT_SG_VERSION
 
     def _get_file(self, model_name: str, file_name: str) -> str:
         try:
