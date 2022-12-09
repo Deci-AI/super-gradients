@@ -27,7 +27,7 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
         self.coco_pretrained_ckpt_params = {"pretrained_weights": "coco"}
 
         self.coco_pretrained_maps = {
-            "ppyoloe_s": 0.43,
+            "ppyoloe_s": 0.4327,
         }
 
         self.transfer_detection_dataset = detection_test_dataloader()
@@ -53,10 +53,10 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
             test_metrics_list=[
                 DetectionMetrics(
                     score_thres=0.1,
-                    post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01, nms_top_k=1000, nms_threshold=0.7, max_predictions=100),
+                    post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01, nms_top_k=1000, nms_threshold=0.7, max_predictions=300),
                     num_cls=80,
                     normalize_targets=True,
-                    top_k_predictions=100,
+                    top_k_predictions=300,
                 )
             ],
         )
