@@ -696,6 +696,17 @@ class DetectionCollateFN:
         return torch.cat(targets_merged, 0)
 
 
+class CrowdDetectionCollateFN(DetectionCollateFN):
+    """
+    Collate function for Yolox training with additional_batch_items that includes crowd targets
+    """
+
+    def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+        batch = default_collate(data)
+        ims, targets, crowd_targets = batch[0:3]
+        return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
+
+
 class PPYoloECollateFN:
     """
     Collate function for PPYoloE training
@@ -735,7 +746,15 @@ class PPYoloECollateFN:
         return batch
 
     def random_resize_sample(self, sample, target_size, interpolation):
-        image, targets = sample  # TARGETS ARE IN LABEL_CXCYWH
+        if len(sample) == 2:
+            image, targets = sample  # TARGETS ARE IN LABEL_CXCYWH
+            with_crowd = False
+        elif len(sample == 3):
+            image, targets, crowd_targets = sample
+            with_crowd = True
+        else:
+            raise RuntimeError()
+
         channels_first = image.shape[0] in {1, 3}
         if channels_first:
             image = np.moveaxis(image, 0, -1)
@@ -751,6 +770,9 @@ class PPYoloECollateFN:
 
         sy, sx = scale_factors
         targets[:, 1:5] *= np.array([[sx, sy, sx, sy]], dtype=targets.dtype)
+        if with_crowd:
+            crowd_targets[:, 1:5] *= np.array([[sx, sy, sx, sy]], dtype=targets.dtype)
+            return image, targets, crowd_targets
 
         return image, targets
 
@@ -771,14 +793,21 @@ class PPYoloECollateFN:
         return torch.cat(targets_merged, 0)
 
 
-class CrowdDetectionCollateFN(DetectionCollateFN):
+class CrowdDetectionPPYoloECollateFN(PPYoloECollateFN):
     """
     Collate function for Yolox training with additional_batch_items that includes crowd targets
     """
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
+
+        if self.random_resize_sizes is not None:
+            data = self.random_resize(data)
+
         batch = default_collate(data)
-        ims, targets, crowd_targets = batch[0:3]
+        ims, targets, crowd_targets = batch
+        if ims.shape[3] == 3:
+            ims = torch.moveaxis(ims, -1, 1).float()
+
         return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
 
 

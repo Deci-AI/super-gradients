@@ -44,7 +44,7 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
         dataset_params = hydra.utils.instantiate(dataset_params)
 
         test_loader = get_new_data_loader(
-            dataset_cls=COCODetectionDataset, dataset_params=dataset_params["val_dataset_params"], dataloader_params=dataset_params["val_dataloader_params"]
+            dataset_cls=COCODetectionDataset, dataset_params=dataset_params["test_dataset_params"], dataloader_params=dataset_params["test_dataloader_params"]
         )
 
         res = trainer.test(

@@ -82,4 +82,35 @@ val_dataloader_params:
     _target_: super_gradients.training.utils.detection_utils.PPYoloECollateFN
 
 
+
+test_dataset_params:
+  data_dir: /data/coco # root path to coco data
+  subdir: images/val2017 # sub directory path of data_dir containing the train data.
+  json_file: instances_val2017.json # path to coco train json file, data_dir/annotations/train_json_file.
+  input_dim:
+  cache_dir:
+  cache: False
+  transforms:
+  - DetectionRescale:
+      input_dim: [640, 640]
+  - DetectionTargetsFormatTransform:
+      max_targets: 256
+      output_format:
+        _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
+        value: LABEL_CXCYWH
+  tight_box_rotation: False
+  class_inclusion_list:
+  max_num_samples:
+  with_crowd: True
+
+test_dataloader_params:
+  batch_size: 64
+  num_workers: 8
+  drop_last: False
+  shuffle: False
+  pin_memory: True
+  collate_fn: # collate function for test test
+    _target_: super_gradients.training.utils.detection_utils.CrowdDetectionPPYoloECollateFN
+
+
 _convert_: all
