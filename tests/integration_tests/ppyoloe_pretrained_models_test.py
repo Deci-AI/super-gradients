@@ -39,7 +39,7 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
         model = models.get("ppyoloe_s", arch_params=arch_params, **self.coco_pretrained_ckpt_params)
 
         dataset_params = self.get_dataset_params("coco_detection_ppyoloe_dataset_params")
-        # dataset_params.val_dataset_params.data_dir = "/Users/bloodaxe/datasets/coco2017"
+        dataset_params.val_dataset_params.data_dir = "/Users/bloodaxe/datasets/coco2017"
         dataset_params.val_dataloader_params.num_workers = 0
         dataset_params = hydra.utils.instantiate(dataset_params)
 
@@ -52,7 +52,7 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
             test_loader=test_loader,
             test_metrics_list=[
                 DetectionMetrics(
-                    score_thres=0.01,
+                    score_thres=0.1,
                     post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01, nms_top_k=1000, nms_threshold=0.7, max_predictions=300),
                     num_cls=80,
                     normalize_targets=True,
