@@ -114,7 +114,7 @@ def get_new_data_loader(dataset_cls, dataset_params: Mapping, dataloader_params:
         if is_distributed and not isinstance(sampler, DistributedSampler):
             logger.info("Wrapping user-defined sampler with DistributedSamplerWrapper")
             dataloader_params["sampler"] = DistributedSamplerWrapper(sampler)
-    else:
+    elif is_distributed:
         # If sampler is not requested but we are in DDP - create DistributedSampler
         # Important nuance - we must respect shuffle & drop_last from dataloader_params since when the sampler is provided, they has no effect.
         sampler_shuffle = get_param(dataloader_params, "shuffle", False)
