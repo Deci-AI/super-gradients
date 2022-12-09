@@ -1,5 +1,6 @@
 import unittest
-from typing import Mapping
+from pprint import pprint
+from typing import Mapping, Dict
 
 import hydra.utils
 import pkg_resources
@@ -34,14 +35,18 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
     def test_pretrained_official_ppyoloe_s_coco(self):
         trainer = Trainer("ppyoloe_s", multi_gpu=MultiGPUMode.OFF)
 
+        arch_params = self.get_arch_params("ppyoloe_s_arch_params")
+        model = models.get("ppyoloe_s", arch_params=arch_params, **self.coco_pretrained_ckpt_params)
+
         dataset_params = self.get_dataset_params("coco_detection_ppyoloe_dataset_params")
+        dataset_params.val_dataset_params.data_dir = "/Users/bloodaxe/datasets/coco2017"
+        dataset_params.val_dataloader_params.num_workers = 0
         dataset_params = hydra.utils.instantiate(dataset_params)
 
         test_loader = get_new_data_loader(
-            dataset_cls=COCODetectionDataset, dataset_params=dataset_params.val_dataset_params, dataloader_params=dataset_params.val_dataloader_params
+            dataset_cls=COCODetectionDataset, dataset_params=dataset_params["val_dataset_params"], dataloader_params=dataset_params["val_dataloader_params"]
         )
 
-        model = models.get("ppyoloe_s", **self.coco_pretrained_ckpt_params)
         res = trainer.test(
             model=model,
             test_loader=test_loader,
@@ -52,8 +57,12 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
                     normalize_targets=True,
                 )
             ],
-        )[2]
-        self.assertAlmostEqual(res, self.coco_pretrained_maps["ppyoloe_s"], delta=0.001)
+        )
+
+        pprint(res)
+
+        map_score = res[2]
+        self.assertAlmostEqual(map_score, self.coco_pretrained_maps["ppyoloe_s"], delta=0.001)
 
     def get_dataset_params(self, config_name, overriding_params: Mapping = None) -> Mapping:
         """
@@ -68,8 +77,20 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
         GlobalHydra.instance().clear()
         with initialize_config_dir(config_dir=pkg_resources.resource_filename("super_gradients.recipes", "dataset_params/"), version_base="1.2"):
             cfg = compose(config_name=config_name)
-            arch_params = hydra.utils.instantiate(cfg)
-            arch_params.update(**overriding_params)
+            return cfg
+
+    def get_arch_params(self, config_name) -> Dict:
+        """
+        Class for creating arch parameters dictionary, taking defaults from yaml
+         files in src/super_gradients/recipes/arch_params.
+
+        :param overriding_params: Dict, dictionary like object containing entries to override.
+        :param config_name: arch_params yaml config filename in recipes (for example unet_default_arch_params).
+        """
+        GlobalHydra.instance().clear()
+        with initialize_config_dir(config_dir=pkg_resources.resource_filename("super_gradients", "recipes/"), version_base="1.2"):
+            cfg = compose(config_name="coco2017_ppyoloe_s", overrides=[f"arch_params={config_name}"])
+            arch_params = hydra.utils.instantiate(cfg.arch_params)
             return arch_params
 
 

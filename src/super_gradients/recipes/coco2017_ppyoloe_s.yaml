@@ -33,13 +33,8 @@ defaults:
 train_dataloader: new_coco2017_train
 val_dataloader: new_coco2017_val
 
-arch_params:
-  normalization:
-    mean: [ 123.675, 116.28, 103.53 ]
-    std: [ 58.395,  57.12,  57.375 ]
-
-  backbone:
-    pretrained_weights: CSPResNetb_s_pretrained.pth
+#  backbone:
+#    pretrained_weights: CSPResNetb_s_pretrained.pth
 
 load_checkpoint: False
 resume: False

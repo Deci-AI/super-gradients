@@ -161,6 +161,10 @@ def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckp
     """
     if "net" in source_ckpt.keys():
         source_ckpt = source_ckpt["net"]
+
+    return {"net": source_ckpt}
+
+    # TODO: THIS CODE IS BROKEN - WE CANNOT RELY ON ORDER OF ITEMS IN DICT
     model_state_dict_excluded = {k: v for k, v in model_state_dict.items() if not any(x in k for x in exclude)}
     new_ckpt_dict = {}
     for (ckpt_key, ckpt_val), (model_key, model_val) in zip(source_ckpt.items(), model_state_dict_excluded.items()):
@@ -298,7 +302,7 @@ def _load_weights(architecture, model, pretrained_state_dict):
     adapted_pretrained_state_dict = adapt_state_dict_to_fit_model_layer_names(
         model_state_dict=model.state_dict(), source_ckpt=pretrained_state_dict, solver=solver
     )
-    model.load_state_dict(adapted_pretrained_state_dict["net"], strict=False)
+    model.load_state_dict(adapted_pretrained_state_dict["net"], strict=True)
 
 
 def load_pretrained_weights_local(model: torch.nn.Module, architecture: str, pretrained_weights: str):

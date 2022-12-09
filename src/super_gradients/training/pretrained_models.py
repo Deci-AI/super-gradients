@@ -51,7 +51,7 @@ MODEL_URLS = {
     "pp_lite_b_seg50_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_b_seg50/average_model.pth",
     "pp_lite_b_seg75_cityscapes": "https://deci-pretrained-models.s3.amazonaws.com/ppliteseg/cityscapes/pplite_b_seg75/average_model.pth",
     #
-    "ppyoloe_s_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/official_ppyoloe_crn_s_300e_coco.pth",
+    "ppyoloe_s_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/official_ppyoloe_crn_s_400e_coco.pth",
     "ppyoloe_m_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/official_ppyoloe_crn_m_300e_coco.pth",
     "ppyoloe_l_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/official_ppyoloe_crn_l_300e_coco.pth",
     "ppyoloe_x_coco": "https://deci-pretrained-models.s3.amazonaws.com/ppyolo_e/official_ppyoloe_crn_t_300e_coco.pth",
