@@ -56,6 +56,7 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
                     post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01, nms_top_k=1000, nms_threshold=0.7, max_predictions=300),
                     num_cls=80,
                     normalize_targets=True,
+                    top_k_predictions=300,
                 )
             ],
         )
