@@ -285,6 +285,7 @@ class DetectionDataset(Dataset):
 
         img_file = os.path.join(img_path)
         img = cv2.imread(img_file)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if img is None:
             raise FileNotFoundError(f"{img_file} was no found. Please make sure that the dataset was" f"downloaded and that the path is correct")

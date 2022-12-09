@@ -4,11 +4,8 @@ num_classes: 80
 activation: silu
 
 normalization:
-#  mean: [ 123.675, 116.28, 103.53 ]
-#  std: [ 58.395,  57.12,  57.375 ]
-
-  mean: [ 103.53 , 116.28, 123.675]
-  std: [ 57.375,  57.12,  58.395 ]
+  mean: [ 123.675, 116.28, 103.53 ]
+  std: [ 58.395,  57.12,  57.375 ]
 
 backbone:
   layers: [ 3, 6, 6, 3 ]                # Backbone's structure
