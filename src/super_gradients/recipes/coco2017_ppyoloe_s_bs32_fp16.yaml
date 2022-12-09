@@ -30,8 +30,8 @@ defaults:
   - checkpoint_params: default_checkpoint_params
   - _self_
 
-train_dataloader: coco2017_train
-val_dataloader: coco2017_val
+train_dataloader: new_coco2017_train
+val_dataloader: new_coco2017_val
 
 arch_params:
   normalization:
@@ -58,7 +58,9 @@ dataset_params:
 training_hyperparams:
   resume: ${resume}
 
-  initial_lr: 0.04 # Paper used 0.01 with BS of 8, we train with BS 32
+  # Paper used 0.01 with BS of 8, we train with BS 32
+  # Using LR of 0.04 causes instability during training
+  initial_lr: 0.01
   mixed_precision: True
 
   sg_logger: "wandb_sg_logger"
