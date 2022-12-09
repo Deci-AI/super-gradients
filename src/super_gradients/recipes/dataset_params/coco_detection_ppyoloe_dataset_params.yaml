@@ -87,11 +87,11 @@ test_dataset_params:
   data_dir: /data/coco # root path to coco data
   subdir: images/val2017 # sub directory path of data_dir containing the train data.
   json_file: instances_val2017.json # path to coco train json file, data_dir/annotations/train_json_file.
-  input_dim: [640, 640]
+  input_dim:
   cache_dir:
   cache: False
   transforms:
-  - DetectionPaddedRescale:
+  - DetectionRescale:
       input_dim: [640, 640]
   - DetectionTargetsFormatTransform:
       max_targets: 256
