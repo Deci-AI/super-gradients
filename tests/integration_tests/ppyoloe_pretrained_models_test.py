@@ -39,7 +39,7 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
         model = models.get("ppyoloe_s", arch_params=arch_params, **self.coco_pretrained_ckpt_params)
 
         dataset_params = self.get_dataset_params("coco_detection_ppyoloe_dataset_params")
-        dataset_params.val_dataset_params.data_dir = "/Users/bloodaxe/datasets/coco2017"
+        # dataset_params.val_dataset_params.data_dir = "/Users/bloodaxe/datasets/coco2017"
         dataset_params.val_dataloader_params.num_workers = 0
         dataset_params = hydra.utils.instantiate(dataset_params)
 
