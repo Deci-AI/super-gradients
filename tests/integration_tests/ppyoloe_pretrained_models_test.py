@@ -53,10 +53,10 @@ class PPYoloEPretrainedModelsTest(unittest.TestCase):
             test_metrics_list=[
                 DetectionMetrics(
                     score_thres=0.1,
-                    post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01, nms_top_k=1000, nms_threshold=0.7, max_predictions=300),
+                    post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01, nms_top_k=1000, nms_threshold=0.7, max_predictions=100),
                     num_cls=80,
                     normalize_targets=True,
-                    top_k_predictions=300,
+                    top_k_predictions=100,
                 )
             ],
         )
