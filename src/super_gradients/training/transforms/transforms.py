@@ -737,7 +737,7 @@ class DetectionHSV(DetectionTransform):
 
     def __call__(self, sample: dict) -> dict:
         if sample["image"].shape[2] < 3:
-            raise ValueError("HSV transform expects at leaset 3 channels, got: " + str(sample["image"].shape[2]))
+            raise ValueError("HSV transform expects at least 3 channels, got: " + str(sample["image"].shape[2]))
         if sample["image"].shape[2] > 3 and not self._additional_channels_warned:
             logger.warning(
                 "HSV transform received image with "
