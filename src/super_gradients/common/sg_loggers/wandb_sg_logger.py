@@ -9,7 +9,7 @@ import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
-from super_gradients.common.environment.env_helpers import multi_process_safe
+from super_gradients.common.environment.ddp_utils import multi_process_safe
 
 logger = get_logger(__name__)
 

@@ -20,7 +20,7 @@ Example: python evaluate_checkpoint.py --experiment_name=my_experiment_name --ck
 
 """
 from super_gradients import Trainer, init_trainer
-from super_gradients.common.environment.env_helpers import pop_arg
+from super_gradients.common.environment.ddp_utils import pop_arg
 
 
 def main() -> None:
