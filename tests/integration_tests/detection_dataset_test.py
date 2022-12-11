@@ -1,3 +1,4 @@
+import tempfile
 import os
 import unittest
 from typing import Dict, Union, Any
@@ -37,13 +38,10 @@ class DatasetIntegrationTest(unittest.TestCase):
             DetectionTargetsFormatTransform(output_format=DetectionTargetsFormat.XYXY_LABEL),
         ]
 
+        self.test_dir = tempfile.TemporaryDirectory().name
+        PascalVOCDetectionDataset.download(self.test_dir)
         self.pascal_class_inclusion_lists = [["aeroplane", "bicycle"], ["bird", "boat", "bottle", "bus"], ["pottedplant"], ["person"]]
-        self.pascal_base_config = dict(
-            data_dir="/home/louis.dupont/data/pascal_unified_coco_format/",
-            images_sub_directory="images/train2012/",
-            input_dim=(640, 640),
-            transforms=transforms,
-        )
+        self.pascal_base_config = dict(data_dir=self.test_dir, images_sub_directory="images/train2012/", input_dim=(640, 640), transforms=transforms)
 
         self.coco_class_inclusion_lists = [["airplane", "bicycle"], ["bird", "boat", "bottle", "bus"], ["potted plant"], ["person"]]
         self.dataset_coco_base_config = dict(
