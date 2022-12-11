@@ -8,6 +8,7 @@ from super_gradients.training.losses.all_losses import LOSSES
 from super_gradients.modules.detection_modules import ALL_DETECTION_MODULES
 from super_gradients.training.utils.callbacks.all_callbacks import CALLBACKS
 from super_gradients.training.transforms.all_transforms import TRANSFORMS
+from super_gradients.training.datasets.all_datasets import ALL_DATASETS
 
 
 def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
@@ -49,3 +50,4 @@ register_loss = create_register_decorator(registry=LOSSES)
 register_dataloader = create_register_decorator(registry=ALL_DATALOADERS)
 register_callback = create_register_decorator(registry=CALLBACKS)
 register_transform = create_register_decorator(registry=TRANSFORMS)
+register_dataset = create_register_decorator(registry=ALL_DATASETS)
