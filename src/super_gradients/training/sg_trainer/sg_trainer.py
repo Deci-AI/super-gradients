@@ -270,9 +270,14 @@ class Trainer:
             name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
         )
 
-        checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-        checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
-        logger.info(f"Evaluating checkpoint: {checkpoint_path}")
+        if cfg.checkpoint_params.checkpoint_path is None:
+            logger.info(
+                "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
+            )
+            checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
+            cfg.checkpoint_params.checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
+
+        logger.info(f"Evaluating checkpoint: {cfg.checkpoint_params.checkpoint_path}")
 
         # BUILD NETWORK
         model = models.get(
@@ -280,7 +285,7 @@ class Trainer:
             num_classes=cfg.arch_params.num_classes,
             arch_params=cfg.arch_params,
             pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=checkpoint_path,
+            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
         )
 
