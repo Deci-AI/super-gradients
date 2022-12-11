@@ -374,14 +374,16 @@ class DetectionMosaic(DetectionTransform):
         input_dim: (tuple) input dimension.
         prob: (float) probability of applying mosaic.
         enable_mosaic: (bool) whether to apply mosaic at all (regardless of prob) (default=True).
+        border_value: value for filling borders after applying transforms (default=114).
 
     """
 
-    def __init__(self, input_dim: tuple, prob: float = 1.0, enable_mosaic: bool = True):
+    def __init__(self, input_dim: tuple, prob: float = 1.0, enable_mosaic: bool = True, border_value=114):
         super(DetectionMosaic, self).__init__(additional_samples_count=3)
         self.prob = prob
         self.input_dim = input_dim
         self.enable_mosaic = enable_mosaic
+        self.border_value = border_value
 
     def close(self):
         self.additional_samples_count = 0
@@ -410,7 +412,7 @@ class DetectionMosaic(DetectionTransform):
                 # generate output mosaic image
                 (h, w, c) = img.shape[:3]
                 if i_mosaic == 0:
-                    mosaic_img = np.full((input_h * 2, input_w * 2, c), 114, dtype=np.uint8)
+                    mosaic_img = np.full((input_h * 2, input_w * 2, c), self.border_value, dtype=np.uint8)
 
                 # suffix l means large image, while s means small image in mosaic aug.
                 (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(i_mosaic, xc, yc, w, h, input_h, input_w)
@@ -554,15 +556,18 @@ class DetectionMixup(DetectionTransform):
         prob: (float) probability of applying mixup.
         enable_mixup: (bool) whether to apply mixup at all (regardless of prob) (default=True).
         flip_prob: (float) prbability to apply horizontal flip to the additional sample.
+        border_value: value for filling borders after applying transform (default=114).
+
     """
 
-    def __init__(self, input_dim, mixup_scale, prob=1.0, enable_mixup=True, flip_prob=0.5):
+    def __init__(self, input_dim, mixup_scale, prob=1.0, enable_mixup=True, flip_prob=0.5, border_value=114):
         super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
         self.input_dim = input_dim
         self.mixup_scale = mixup_scale
         self.prob = prob
         self.enable_mixup = enable_mixup
         self.flip_prob = flip_prob
+        self.border_value = border_value
 
     def close(self):
         self.additional_samples_count = 0
@@ -582,9 +587,9 @@ class DetectionMixup(DetectionTransform):
             jit_factor = random.uniform(*self.mixup_scale)
 
             if len(img.shape) == 3:
-                cp_img = np.ones((self.input_dim[0], self.input_dim[1], img.shape[2]), dtype=np.uint8) * 114
+                cp_img = np.ones((self.input_dim[0], self.input_dim[1], img.shape[2]), dtype=np.uint8) * self.border_value
             else:
-                cp_img = np.ones(self.input_dim, dtype=np.uint8) * 114
+                cp_img = np.ones(self.input_dim, dtype=np.uint8) * self.border_value
 
             cp_scale_ratio = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
             resized_img = cv2.resize(
@@ -731,6 +736,8 @@ class DetectionHSV(DetectionTransform):
         self._additional_channels_warned = False
 
     def __call__(self, sample: dict) -> dict:
+        if sample["image"].shape[2] < 3:
+            raise ValueError("HSV transform expects at leaset 3 channels, got: " + str(sample["image"].shape[2]))
         if sample["image"].shape[2] > 3 and not self._additional_channels_warned:
             logger.warning(
                 "HSV transform received image with "
