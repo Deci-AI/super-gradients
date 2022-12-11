@@ -102,7 +102,7 @@ class DetectionDataset(Dataset):
 
         self.data_dir = data_dir
         if not Path(data_dir).exists():
-            raise FileNotFoundError(f"Please make sure to download the data in the data directory ({self.data_dir}).")
+            raise FileNotFoundError(f"data_dir={data_dir} not found. Please make sure that data_dir points toward your dataset.")
 
         # Number of images that are avalaible(regardless of ignored images)
         self.n_available_samples = self._setup_data_source()
