@@ -19,24 +19,68 @@ class CityscapesDataset(SegmentationDataSet):
     "Classes that are too rare are excluded from our benchmark, leaving 19 classes for evaluation".
     For more details about the dataset labels format see:
     https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/helpers/labels.py
+
+    To use this Dataset you need to:
+
+    - Download cityscape dataset (https://www.cityscapes-dataset.com/downloads/)
+
+        root_dir (in recipe default to /data/cityscapes)
+            ├─── gtFine
+            │       ├── test
+            │       │     ├── berlin
+            │       │     │   ├── berlin_000000_000019_gtFine_color.png
+            │       │     │   ├── berlin_000000_000019_gtFine_instanceIds.png
+            │       │     │   └── ...
+            │       │     ├── bielefeld
+            │       │     │   └── ...
+            │       │     └── ...
+            │       ├─── train
+            │       │     └── ...
+            │       └─── val
+            │             └── ...
+            └─── leftImg8bit
+                    ├── test
+                    │     └── ...
+                    ├─── train
+                    │     └── ...
+                    └─── val
+                          └── ...
+
+    - Download metadata folder (https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip)
+
+        lists
+            ├── labels.csv
+            ├── test.lst
+            ├── train.lst
+            ├── trainval.lst
+            └── val.lst
+
+    - Move Metadata folder to the Cityscape folder
+
+        root_dir (in recipe default to /data/cityscapes)
+            ├─── gtFine
+            │      └── ...
+            ├─── leftImg8bit
+            │      └── ...
+            └─── lists
+                   └── ...
+
+    Example:
+        >> CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.lst', labels_csv_path='lists/labels.csv')
     """
 
-    def __init__(self,
-                 root_dir: str,
-                 list_file: str,
-                 labels_csv_path: str,
-                 **kwargs):
+    def __init__(self, root_dir: str, list_file: str, labels_csv_path: str, **kwargs):
         """
-        :param root: root directory to dataset.
-        :param list_file: list file that contains names of images to load, line format: <image_path> <label_path>
-        :param labels_csv_path: path to csv file, with labels metadata and mapping.
-        :param kwargs: Any hyper params required for the dataset, i.e img_size, crop_size, cache_images
+        :param root:            Absolute path to root directory of the dataset.
+        :param list_file:       List file that contains names of images to load, line format: <image_path> <label_path>. The path is relative to root.
+        :param labels_csv_path: Path to csv file, with labels metadata and mapping. The path is relative to root.
+        :param kwargs:          Any hyper params required for the dataset, i.e img_size, crop_size, cache_images
         """
 
         self.root_dir = root_dir
         super().__init__(root_dir, list_file=list_file, **kwargs)
         # labels dataframe for labels metadata.
-        self.labels_data = np.recfromcsv(os.path.join(self.root_dir, labels_csv_path), dtype='<i8,U20,<i8,<i8,U12,<i8,?,?,U7', comments='&')
+        self.labels_data = np.recfromcsv(os.path.join(self.root_dir, labels_csv_path), dtype="<i8,U20,<i8,<i8,U12,<i8,?,?,U7", comments="&")
         # map vector to map ground-truth labels to train labels
         self.labels_map = self.labels_data.field("trainid")
         # class names
@@ -52,10 +96,7 @@ class CityscapesDataset(SegmentationDataSet):
         with open(os.path.join(self.root_dir, self.list_file_path)) as f:
             img_list = [line.strip().split() for line in f]
         for image_path, label_path in img_list:
-            self.samples_targets_tuples_list.append((
-                os.path.join(self.root, image_path),
-                os.path.join(self.root, label_path)
-            ))
+            self.samples_targets_tuples_list.append((os.path.join(self.root, image_path), os.path.join(self.root, label_path)))
         super(CityscapesDataset, self)._generate_samples_and_targets()
 
     def target_loader(self, label_path: str) -> Image:
@@ -70,7 +111,7 @@ class CityscapesDataset(SegmentationDataSet):
         label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
         # map ground-truth ids to train ids
         label = self.labels_map[label].astype(np.uint8)
-        return Image.fromarray(label, 'L')
+        return Image.fromarray(label, "L")
 
     def _create_color_palette(self):
         """
