@@ -51,7 +51,7 @@ from super_gradients.training.utils.distributed_training_utils import (
     MultiGPUModeAutocastWrapper,
     reduce_results_tuple_for_ddp,
     compute_precise_bn_stats,
-    setup_gpu_mode,
+    setup_device,
     require_gpu_setup,
     get_gpu_mem_utilization,
     get_world_size,
@@ -193,7 +193,7 @@ class Trainer:
         @return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
-        setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -256,7 +256,7 @@ class Trainer:
         :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         """
 
-        setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -270,9 +270,14 @@ class Trainer:
             name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
         )
 
-        checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-        checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
-        logger.info(f"Evaluating checkpoint: {checkpoint_path}")
+        if cfg.checkpoint_params.checkpoint_path is None:
+            logger.info(
+                "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
+            )
+            checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
+            cfg.checkpoint_params.checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
+
+        logger.info(f"Evaluating checkpoint: {cfg.checkpoint_params.checkpoint_path}")
 
         # BUILD NETWORK
         model = models.get(
@@ -280,7 +285,7 @@ class Trainer:
             num_classes=cfg.arch_params.num_classes,
             arch_params=cfg.arch_params,
             pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=checkpoint_path,
+            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
         )
 
@@ -1134,7 +1139,7 @@ class Trainer:
 
         first_batch, _ = next(iter(self.train_loader))
         log_main_training_params(
-            gpu_mode=self.multi_gpu,
+            multi_gpu=self.multi_gpu,
             num_gpus=get_world_size(),
             batch_size=len(first_batch),
             batch_accumulate=self.batch_accumulate,

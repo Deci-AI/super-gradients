@@ -74,6 +74,6 @@ def load_arch_params(config_name: str) -> DictConfig:
     GlobalHydra.instance().clear()
     sg_recipes_dir = pkg_resources.resource_filename("super_gradients.recipes", "")
     dataset_config = os.path.join("arch_params", config_name)
-    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir)):
+    with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir), version_base="1.2"):
         # config is relative to a module
         return hydra.utils.instantiate(compose(config_name=normalize_path(dataset_config)).arch_params)
