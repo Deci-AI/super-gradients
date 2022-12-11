@@ -24,7 +24,7 @@ from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.environment import env_helpers
+from super_gradients.common.environment import ddp_utils
 from super_gradients.common.abstractions.abstract_logger import get_logger, mute_current_process
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
@@ -35,7 +35,7 @@ from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import sg_trainer_utils
+from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
@@ -81,7 +81,6 @@ from super_gradients.training.utils.callbacks import (
     ContextSgMethods,
     LRCallbackBase,
 )
-from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 from omegaconf import OmegaConf
@@ -203,12 +202,17 @@ class Trainer:
         trainer = Trainer(**kwargs)
 
         # INSTANTIATE DATA LOADERS
+
         train_dataloader = dataloaders.get(
-            name=cfg.train_dataloader, dataset_params=cfg.dataset_params.train_dataset_params, dataloader_params=cfg.dataset_params.train_dataloader_params
+            name=get_param(cfg, "train_dataloader"),
+            dataset_params=cfg.dataset_params.train_dataset_params,
+            dataloader_params=cfg.dataset_params.train_dataloader_params,
         )
 
         val_dataloader = dataloaders.get(
-            name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
+            name=get_param(cfg, "val_dataloader"),
+            dataset_params=cfg.dataset_params.val_dataset_params,
+            dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
         # BUILD NETWORK
@@ -1428,7 +1432,7 @@ class Trainer:
                         logger.warning("\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n")
                 else:
                     if requested_multi_gpu == MultiGPUMode.AUTO:
-                        if env_helpers.is_distributed():
+                        if ddp_utils.is_distributed():
                             requested_multi_gpu = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
                         else:
                             requested_multi_gpu = MultiGPUMode.DATA_PARALLEL
@@ -1451,7 +1455,7 @@ class Trainer:
         batch you specify times the number of GPUs. In the literature there are several "best practices" to set
         learning rates and schedules for large batch sizes.
         """
-        local_rank = environment_config.DDP_LOCAL_RANK
+        local_rank = ddp_utils.DDP_LOCAL_RANK
         if local_rank > 0:
             mute_current_process()
 
