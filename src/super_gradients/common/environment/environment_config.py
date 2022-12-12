@@ -11,6 +11,7 @@ except Exception:
     PKG_CHECKPOINTS_DIR = os.path.join(os.getcwd(), "checkpoints")
 
 
+# TODO: check this
 def _get_assigned_rank():
     if os.getenv("LOCAL_RANK") is not None:
         return int(os.getenv("LOCAL_RANK"))

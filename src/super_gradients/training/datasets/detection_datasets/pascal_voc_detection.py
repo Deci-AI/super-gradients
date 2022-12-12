@@ -45,12 +45,12 @@ class PascalVOCDetectionDataset(DetectionDataset):
 
         :return: List of tuples made of (img_path,target_path)
         """
-        img_files_folder = self.data_dir + self.images_sub_directory
+        img_files_folder = os.path.join(self.data_dir, self.images_sub_directory)
         if not Path(img_files_folder).exists():
             raise FileNotFoundError(
-                f"{self.data_dir} does not include {self.images_sub_directory}. "
-                f"Please make sure that f{self.data_dir} refers to PascalVOC dataset and that "
-                "it was downloaded using PascalVOCDetectionDataSetV2.download()"
+                f"{img_files_folder} not found...\n"
+                f"Please make sure that f{self.data_dir} points toward your PascalVOC dataset folder.\n"
+                f"If you don't have it locally, you can set PascalVOCDetectionDataset(..., download=True)"
             )
 
         img_files = glob.glob(img_files_folder + "*.jpg")

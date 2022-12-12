@@ -25,3 +25,5 @@ __all__ = [
     "UpsampleMode",
     "AutoLoggerConfig",
 ]
+
+setup_crash_handler()
