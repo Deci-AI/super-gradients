@@ -3,6 +3,7 @@ from torch import nn
 
 from .conv_bn_act_block import ConvBNAct
 from .repvgg_block import RepVGGBlock
+from .qarepvgg_block import QARepVGGBlock
 from .se_blocks import SEBlock, EffectiveSEBlock
 from .skip_connections import Residual, SkipConnection, CrossModelSkipConnection, BackboneInternalSkipConnection, HeadInternalSkipConnection
 
@@ -63,6 +64,7 @@ def ConvBNReLU(
 __all__ = [
     "ConvBNAct",
     "RepVGGBlock",
+    "QARepVGGBlock",
     "SEBlock",
     "EffectiveSEBlock",
     "ConvBNReLU",
