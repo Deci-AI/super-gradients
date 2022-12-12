@@ -20,9 +20,9 @@ class CityscapesDataset(SegmentationDataSet):
     For more details about the dataset labels format see:
     https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/helpers/labels.py
 
-    To run this Dataset you need two folders:
+    To use this Dataset you need to:
 
-    - Cityscape dataset (download here: https://www.cityscapes-dataset.com/downloads/)
+    - Download cityscape dataset (https://www.cityscapes-dataset.com/downloads/)
 
         root_dir (in recipe default to /data/cityscapes)
             ├─── gtFine
@@ -46,7 +46,7 @@ class CityscapesDataset(SegmentationDataSet):
                     └─── val
                           └── ...
 
-    - Metadata folder (Download here: https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip)
+    - Download metadata folder (https://deci-pretrained-models.s3.amazonaws.com/cityscape_lists.zip)
 
         lists
             ├── labels.csv
@@ -55,15 +55,25 @@ class CityscapesDataset(SegmentationDataSet):
             ├── trainval.lst
             └── val.lst
 
+    - Move Metadata folder to the Cityscape folder
+
+        root_dir (in recipe default to /data/cityscapes)
+            ├─── gtFine
+            │      └── ...
+            ├─── leftImg8bit
+            │      └── ...
+            └─── lists
+                   └── ...
+
     Example:
-        >> CityscapesDataset(root_dir='.../root_dir', list_file='.../lists/train.lst', labels_csv_path='.../labels.csv')
+        >> CityscapesDataset(root_dir='.../root_dir', list_file='lists/train.lst', labels_csv_path='lists/labels.csv')
     """
 
     def __init__(self, root_dir: str, list_file: str, labels_csv_path: str, **kwargs):
         """
-        :param root:            Root directory to dataset.
-        :param list_file:       List file that contains names of images to load, line format: <image_path> <label_path>
-        :param labels_csv_path: Path to csv file, with labels metadata and mapping.
+        :param root:            Absolute path to root directory of the dataset.
+        :param list_file:       List file that contains names of images to load, line format: <image_path> <label_path>. The path is relative to root.
+        :param labels_csv_path: Path to csv file, with labels metadata and mapping. The path is relative to root.
         :param kwargs:          Any hyper params required for the dataset, i.e img_size, crop_size, cache_images
         """
 

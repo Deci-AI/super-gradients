@@ -21,6 +21,7 @@ from tests.unit_tests.pretrained_models_unit_test import PretrainedModelsUnitTes
 from tests.unit_tests.conv_bn_relu_test import TestConvBnRelu
 from tests.unit_tests.initialize_with_dataloaders_test import InitializeWithDataloadersTest
 from tests.unit_tests.training_params_factory_test import TrainingParamsTest
+from tests.unit_tests.config_inspector_test import ConfigInspectTest
 
 
 __all__ = [
@@ -46,4 +47,5 @@ __all__ = [
     "CallTrainTwiceTest",
     "ResumeTrainingTest",
     "CallTrainAfterTestTest",
+    "ConfigInspectTest",
 ]
