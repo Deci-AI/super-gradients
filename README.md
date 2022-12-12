@@ -309,7 +309,46 @@ across all GPUs after the backward pass.
 #### How to use it ?
 You can use SuperGradients to train your model with DDP in just a few lines.
 
-### Calling functions on a single node
+
+*main.py*
+```python
+from super_gradients import init_trainer, Trainer
+from super_gradients.common import MultiGPUMode
+from super_gradients.training.utils.distributed_training_utils import setup_device
+
+# Initialize the environment
+init_trainer()
+
+# Launch DDP on 4 GPUs'
+setup_device(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
+
+# Call the trainer
+Trainer(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, expriment_name=...)
+
+# Everything you do below will run on 4 gpus
+
+...
+
+Trainer.train(...)
+
+```
+
+Finally, you can launch your distributed training with a simple python call.
+```bash
+python main.py
+```
+
+
+Please note that if you work with `torch<1.9.0` (deprecated), you will have to launch your training with either 
+`torch.distributed.launch` or `torchrun`, in which case `nproc_per_node` will overwrite the value  set with `gpu_mode`:
+```bash
+python -m torch.distributed.launch --nproc_per_node=4 main.py
+```
+```bash
+torchrun --nproc_per_node=4 main.py
+```
+
+#### Calling functions on a single node
 
 It is often in DDP training that we want to executee code on the master rank (i.e rank 0).
 In SG, users code execution is usually done by triggering "Phase Callbacks" (see "Using phase callbacks" section below).
@@ -356,44 +395,6 @@ class Upload3TrainImagesCalbback(PhaseCallback):
 
 Note that ddp_silent_mode can be accessed through SgTrainer.ddp_silent_mode. Hence, it can be used in scripts after calling
 SgTrainer.train() when some part of it should be ran on rank 0 only.
-
-*main.py*
-```python
-from super_gradients import init_trainer, Trainer
-from super_gradients.common import MultiGPUMode
-from super_gradients.training.utils.distributed_training_utils import setup_device
-
-# Initialize the environment
-init_trainer()
-
-# Launch DDP on 4 GPUs'
-setup_device(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, num_gpus=4)
-
-# Call the trainer
-Trainer(multi_gpu=MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, expriment_name=...)
-
-# Everything you do below will run on 4 gpus
-
-...
-
-Trainer.train(...)
-
-```
-
-Finally, you can launch your distributed training with a simple python call.
-```bash
-python main.py
-```
-
-
-Please note that if you work with `torch<1.9.0` (deprecated), you will have to launch your training with either 
-`torch.distributed.launch` or `torchrun`, in which case `nproc_per_node` will overwrite the value  set with `gpu_mode`:
-```bash
-python -m torch.distributed.launch --nproc_per_node=4 main.py
-```
-```bash
-torchrun --nproc_per_node=4 main.py
-```
 
 #### Good to know
 Your total batch size will be (number of gpus x batch size), so you might want to increase your learning rate.
