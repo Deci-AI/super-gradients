@@ -3,6 +3,7 @@ import socket
 from functools import wraps
 
 from super_gradients.common.environment.device_utils import device_config
+from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 
@@ -15,8 +16,7 @@ def init_trainer():
 
     This function should be the first thing to be called by any code running super_gradients.
     """
-    logger.info("You are using init_trainer which is not required anymore.")
-    return
+    register_hydra_resolvers()
 
 
 def is_distributed() -> bool:

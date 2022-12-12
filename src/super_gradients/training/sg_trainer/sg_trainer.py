@@ -34,7 +34,7 @@ from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
-from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
+from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat
 from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import (
@@ -123,10 +123,9 @@ class Trainer:
         # This should later me removed
         if device is not None or multi_gpu is not None:
             raise KeyError(
-                "Parameters 'device' and 'multi_gpu' are not supported anymore to instantiate Trainer, they should instead be passed to setup_device\n"
-                ">>> from super_gradients.training.utils.distributed_training_utils import setup_device'\n"
-                ">>> setup_device(device=..., multi_gpu=..., num_gpus=...)\n"
-                ">>> Trainer(experiment_name=...)"
+                "Trainer does not accept anymore 'device' and 'multi_gpu' as argument. "
+                "Both should instead be passed to "
+                "super_gradients.setup_device(device=..., multi_gpu=..., num_gpus=...)"
             )
 
         if require_ddp_setup():
@@ -213,9 +212,7 @@ class Trainer:
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
-        kwargs = parse_args(cfg, cls.__init__)
-
-        trainer = Trainer(**kwargs)
+        trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
 
         # INSTANTIATE DATA LOADERS
 
@@ -281,9 +278,7 @@ class Trainer:
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
 
-        kwargs = parse_args(cfg, cls.__init__)
-
-        trainer = Trainer(**kwargs)
+        trainer = Trainer(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir)
 
         # INSTANTIATE DATA LOADERS
         val_dataloader = dataloaders.get(
@@ -1160,7 +1155,7 @@ class Trainer:
 
         first_batch, _ = next(iter(self.train_loader))
         log_main_training_params(
-            gpu_mode=device_config.multi_gpu,
+            multi_gpu=device_config.multi_gpu,
             num_gpus=get_world_size(),
             batch_size=len(first_batch),
             batch_accumulate=self.batch_accumulate,

@@ -12,7 +12,6 @@ Main purpose is to demonstrate training in SG with minimal abstraction and maxim
 
 from super_gradients import Trainer
 from super_gradients.training.metrics.classification_metrics import Accuracy, Top5
-from super_gradients.training import MultiGPUMode
 from torch.optim import ASGD
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
 from torch.nn import CrossEntropyLoss
@@ -23,8 +22,8 @@ from torchvision.models import resnet18
 from torch.utils.data import DataLoader
 
 # Define any torch DataLoaders, need at least train & valid loaders
-train_dataset = CIFAR10(root='data/', download=True, train=True, transform=ToTensor())
-valid_dataset = CIFAR10(root='data/', download=True, train=False, transform=ToTensor())
+train_dataset = CIFAR10(root="data/", download=True, train=True, transform=ToTensor())
+valid_dataset = CIFAR10(root="data/", download=True, train=False, transform=ToTensor())
 
 train_loader = DataLoader(train_dataset, shuffle=True, batch_size=16)
 valid_loader = DataLoader(valid_dataset, batch_size=32)
@@ -45,21 +44,24 @@ loss_fn = CrossEntropyLoss()
 # Define phase callbacks
 phase_callbacks = [
     LRSchedulerCallback(scheduler=rop_lr_scheduler, phase=Phase.VALIDATION_EPOCH_END, metric_name="Accuracy"),
-    LRSchedulerCallback(scheduler=step_lr_scheduler, phase=Phase.TRAIN_EPOCH_END)]
+    LRSchedulerCallback(scheduler=step_lr_scheduler, phase=Phase.TRAIN_EPOCH_END),
+]
 
 # Bring everything together with Trainer and start training
-trainer = Trainer("Cifar10_external_objects_example", multi_gpu=MultiGPUMode.OFF)
+trainer = Trainer("Cifar10_external_objects_example")
 
-train_params = {"max_epochs": 300,
-                "phase_callbacks": phase_callbacks,
-                "initial_lr": lr,
-                "loss": loss_fn,
-                "criterion_params": {},
-                'optimizer': optimizer,
-                "train_metrics_list": [Accuracy(), Top5()],
-                "valid_metrics_list": [Accuracy(), Top5()],
-                "metric_to_watch": "Accuracy",
-                "greater_metric_to_watch_is_better": True,
-                "lr_scheduler_step_type": "epoch"}
+train_params = {
+    "max_epochs": 300,
+    "phase_callbacks": phase_callbacks,
+    "initial_lr": lr,
+    "loss": loss_fn,
+    "criterion_params": {},
+    "optimizer": optimizer,
+    "train_metrics_list": [Accuracy(), Top5()],
+    "valid_metrics_list": [Accuracy(), Top5()],
+    "metric_to_watch": "Accuracy",
+    "greater_metric_to_watch_is_better": True,
+    "lr_scheduler_step_type": "epoch",
+}
 
 trainer.train(model=net, training_params=train_params, train_loader=train_loader, valid_loader=valid_loader)

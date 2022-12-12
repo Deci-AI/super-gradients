@@ -198,7 +198,7 @@ def wait_for_the_master(local_rank: int):
 def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     """[DEPRECATED in favor of setup_device] If required, launch ddp subprocesses.
     :param gpu_mode:    DDP, DP or Off
-    :param num_gpus:    Number of GPU's to use.
+    :param num_gpus:    Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
     """
     logger.warning("setup_gpu_mode is now deprecated in favor of setup_device")
     setup_device(multi_gpu=gpu_mode, num_gpus=num_gpus)
@@ -209,7 +209,7 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = Non
     """
     If required, launch ddp subprocesses.
     :param multi_gpu:    DDP, DP or Off
-    :param num_gpus:     Number of GPU's to use.
+    :param num_gpus:     Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
     """
     init_trainer()
 
@@ -240,12 +240,15 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     """
     If required, launch ddp subprocesses.
     :param multi_gpu:    DDP, DP or Off
-    :param num_gpus:     Number of GPU's to use.
+    :param num_gpus:     Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("Cuda device not found...")
 
-    if num_gpus in (-1, None):
+    if num_gpus is None:
+        num_gpus = -1
+
+    if num_gpus == -1:
         if multi_gpu in (MultiGPUMode.OFF, MultiGPUMode.DATA_PARALLEL):
             num_gpus = 1
         elif multi_gpu in (MultiGPUMode.AUTO, MultiGPUMode.DISTRIBUTED_DATA_PARALLEL):
