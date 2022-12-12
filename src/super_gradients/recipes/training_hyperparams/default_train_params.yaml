@@ -99,14 +99,14 @@ qat_params:
   num_calib_batches: 2 # int, number of batches to collect the statistics from.
   percentile: 99.99 # float, percentile value to use when quant_modules_calib_method='percentile'. Discarded when other methods are used (Default=99.99).
 
-sg_logger: base_sg_logger
+sg_logger: wandb_sg_logger
 sg_logger_params:
   tb_files_user_prompt: False # Asks User for Tensorboard Deletion Prompt
   launch_tensorboard: False
   tensorboard_port:
-  save_checkpoints_remote: False  # upload checkpoint files to s3
-  save_tensorboard_remote: False  # upload tensorboard files to s3
-  save_logs_remote: False  # upload log files to s3
-  monitor_system: True  # Monitor and write to tensorboard the system statistics, such as CPU usage, GPU, ...
+  save_checkpoints_remote: True  # upload checkpoint files to s3
+  save_tensorboard_remote: True  # upload tensorboard files to s3
+  save_logs_remote: True  # upload log files to s3
+  monitor_system: False  # Monitor and write to tensorboard the system statistics, such as CPU usage, GPU, ...
 
 _convert_: all

@@ -19,7 +19,7 @@ from super_gradients.common.environment.ddp_utils import find_free_port, is_dist
 
 
 from super_gradients.common.abstractions.abstract_logger import get_logger, mute_current_process
-from super_gradients.common.environment.environment_config import device_config
+from super_gradients.common.environment.device_utils import device_config
 
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.type_factory import TypeFactory
@@ -209,7 +209,7 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = Non
     """
     If required, launch ddp subprocesses.
     :param multi_gpu:    DDP, DP or Off
-    :param num_gpus:    Number of GPU's to use.
+    :param num_gpus:     Number of GPU's to use.
     """
     init_trainer()
 
@@ -224,7 +224,7 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = Non
 def setup_cpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     """
     :param multi_gpu:    DDP, DP or Off
-    :param num_gpus:    Number of GPU's to use.
+    :param num_gpus:     Number of GPU's to use.
     """
     if multi_gpu not in (MultiGPUMode.OFF, MultiGPUMode.AUTO):
         raise ValueError(f"device='cpu' and multi_gpu={multi_gpu} are not compatible together.")
@@ -240,7 +240,7 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     """
     If required, launch ddp subprocesses.
     :param multi_gpu:    DDP, DP or Off
-    :param num_gpus:    Number of GPU's to use.
+    :param num_gpus:     Number of GPU's to use.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("Cuda device not found...")
@@ -270,12 +270,12 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
 
     if multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
         if is_distributed():
-            initialize_ddp(local_rank=device_config.assigned_rank)
+            initialize_ddp()
         else:
             restart_script_with_ddp(num_gpus=num_gpus)
 
 
-def initialize_ddp(local_rank: int):
+def initialize_ddp():
     """
     Initialize Distributed Data Parallel
 
@@ -286,18 +286,18 @@ def initialize_ddp(local_rank: int):
     learning rates and schedules for large batch sizes.
     """
 
-    if local_rank > 0:
+    if device_config.assigned_rank > 0:
         mute_current_process()
 
     logger.info("Distributed training starting...")
     if not torch.distributed.is_initialized():
         backend = "gloo" if os.name == "nt" else "nccl"
         torch.distributed.init_process_group(backend=backend, init_method="env://")
-    torch.cuda.set_device(local_rank)
+    torch.cuda.set_device(device_config.assigned_rank)
 
     if torch.distributed.get_rank() == 0:
         logger.info(f"Training in distributed mode... with {str(torch.distributed.get_world_size())} GPUs")
-    device_config.device = "cuda:%d" % local_rank
+    device_config.device = "cuda:%d" % device_config.assigned_rank
 
 
 @record

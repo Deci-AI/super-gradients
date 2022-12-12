@@ -24,6 +24,9 @@ resume: False
 training_hyperparams:
   resume: ${resume}
 
+multi_gpu: DDP
+num_gpus: 4
+
 
 ckpt_root_dir:
 
