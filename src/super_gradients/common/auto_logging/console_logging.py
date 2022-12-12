@@ -6,7 +6,7 @@ from io import StringIO
 import atexit
 from threading import Lock
 
-from super_gradients.common.environment.env_helpers import multi_process_safe, is_main_process
+from super_gradients.common.environment.ddp_utils import multi_process_safe, is_main_process
 
 
 class BufferWriter:
