@@ -374,14 +374,16 @@ class DetectionMosaic(DetectionTransform):
         input_dim: (tuple) input dimension.
         prob: (float) probability of applying mosaic.
         enable_mosaic: (bool) whether to apply mosaic at all (regardless of prob) (default=True).
+        border_value: value for filling borders after applying transforms (default=114).
 
     """
 
-    def __init__(self, input_dim: tuple, prob: float = 1.0, enable_mosaic: bool = True):
+    def __init__(self, input_dim: tuple, prob: float = 1.0, enable_mosaic: bool = True, border_value=114):
         super(DetectionMosaic, self).__init__(additional_samples_count=3)
         self.prob = prob
         self.input_dim = input_dim
         self.enable_mosaic = enable_mosaic
+        self.border_value = border_value
 
     def close(self):
         self.additional_samples_count = 0
@@ -410,7 +412,7 @@ class DetectionMosaic(DetectionTransform):
                 # generate output mosaic image
                 (h, w, c) = img.shape[:3]
                 if i_mosaic == 0:
-                    mosaic_img = np.full((input_h * 2, input_w * 2, c), 114, dtype=np.uint8)
+                    mosaic_img = np.full((input_h * 2, input_w * 2, c), self.border_value, dtype=np.uint8)
 
                 # suffix l means large image, while s means small image in mosaic aug.
                 (l_x1, l_y1, l_x2, l_y2), (s_x1, s_y1, s_x2, s_y2) = get_mosaic_coordinate(i_mosaic, xc, yc, w, h, input_h, input_w)
@@ -488,10 +490,23 @@ class DetectionRandomAffine(DetectionTransform):
      area_thr:(float) threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True.
       Bounding boxes with such ratio smaller then this value will be filtered out. (default=0.1)
 
+     border_value: value for filling borders after applying transforms (default=114).
+
+
     """
 
     def __init__(
-        self, degrees=10, translate=0.1, scales=0.1, shear=10, target_size=(640, 640), filter_box_candidates: bool = False, wh_thr=2, ar_thr=20, area_thr=0.1
+        self,
+        degrees=10,
+        translate=0.1,
+        scales=0.1,
+        shear=10,
+        target_size=(640, 640),
+        filter_box_candidates: bool = False,
+        wh_thr=2,
+        ar_thr=20,
+        area_thr=0.1,
+        border_value=114,
     ):
         super(DetectionRandomAffine, self).__init__()
         self.degrees = degrees
@@ -504,6 +519,7 @@ class DetectionRandomAffine(DetectionTransform):
         self.wh_thr = wh_thr
         self.ar_thr = ar_thr
         self.area_thr = area_thr
+        self.border_value = border_value
 
     def close(self):
         self.enable = False
@@ -523,6 +539,7 @@ class DetectionRandomAffine(DetectionTransform):
                 wh_thr=self.wh_thr,
                 area_thr=self.area_thr,
                 ar_thr=self.ar_thr,
+                border_value=self.border_value,
             )
             sample["image"] = img
             sample["target"] = target
@@ -539,15 +556,18 @@ class DetectionMixup(DetectionTransform):
         prob: (float) probability of applying mixup.
         enable_mixup: (bool) whether to apply mixup at all (regardless of prob) (default=True).
         flip_prob: (float) prbability to apply horizontal flip to the additional sample.
+        border_value: value for filling borders after applying transform (default=114).
+
     """
 
-    def __init__(self, input_dim, mixup_scale, prob=1.0, enable_mixup=True, flip_prob=0.5):
+    def __init__(self, input_dim, mixup_scale, prob=1.0, enable_mixup=True, flip_prob=0.5, border_value=114):
         super(DetectionMixup, self).__init__(additional_samples_count=1, non_empty_targets=True)
         self.input_dim = input_dim
         self.mixup_scale = mixup_scale
         self.prob = prob
         self.enable_mixup = enable_mixup
         self.flip_prob = flip_prob
+        self.border_value = border_value
 
     def close(self):
         self.additional_samples_count = 0
@@ -567,9 +587,9 @@ class DetectionMixup(DetectionTransform):
             jit_factor = random.uniform(*self.mixup_scale)
 
             if len(img.shape) == 3:
-                cp_img = np.ones((self.input_dim[0], self.input_dim[1], 3), dtype=np.uint8) * 114
+                cp_img = np.ones((self.input_dim[0], self.input_dim[1], img.shape[2]), dtype=np.uint8) * self.border_value
             else:
-                cp_img = np.ones(self.input_dim, dtype=np.uint8) * 114
+                cp_img = np.ones(self.input_dim, dtype=np.uint8) * self.border_value
 
             cp_scale_ratio = min(self.input_dim[0] / img.shape[0], self.input_dim[1] / img.shape[1])
             resized_img = cv2.resize(
@@ -588,7 +608,12 @@ class DetectionMixup(DetectionTransform):
 
             origin_h, origin_w = cp_img.shape[:2]
             target_h, target_w = origin_img.shape[:2]
-            padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w), 3), dtype=np.uint8)
+
+            if len(img.shape) == 3:
+                padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w), img.shape[2]), dtype=np.uint8)
+            else:
+                padded_img = np.zeros((max(origin_h, target_h), max(origin_w, target_w)), dtype=np.uint8)
+
             padded_img[:origin_h, :origin_w] = cp_img
 
             x_offset, y_offset = 0, 0
@@ -690,6 +715,15 @@ class DetectionHorizontalFlip(DetectionTransform):
 class DetectionHSV(DetectionTransform):
     """
     Detection HSV transform.
+
+    Attributes:
+        prob: (float) probability to apply the transform.
+        hgain: (float) hue gain (default=0.5)
+        sgain: (float) saturation gain (default=0.5)
+        vgain: (float) value gain (default=0.5)
+        bgr_channels: (tuple) channel indices of the BGR channels- useful for images with >3 channels,
+         or when BGR channels are in different order. (default=(0,1,2)).
+
     """
 
     def __init__(self, prob: float, hgain: float = 0.5, sgain: float = 0.5, vgain: float = 0.5, bgr_channels=(0, 1, 2)):
@@ -699,8 +733,20 @@ class DetectionHSV(DetectionTransform):
         self.sgain = sgain
         self.vgain = vgain
         self.bgr_channels = bgr_channels
+        self._additional_channels_warned = False
 
     def __call__(self, sample: dict) -> dict:
+        if sample["image"].shape[2] < 3:
+            raise ValueError("HSV transform expects at least 3 channels, got: " + str(sample["image"].shape[2]))
+        if sample["image"].shape[2] > 3 and not self._additional_channels_warned:
+            logger.warning(
+                "HSV transform received image with "
+                + str(sample["image"].shape[2])
+                + " channels. HSV transform will only be applied on channels: "
+                + str(self.bgr_channels)
+                + "."
+            )
+            self._additional_channels_warned = True
         if random.random() < self.prob:
             augment_hsv(sample["image"], self.hgain, self.sgain, self.vgain, self.bgr_channels)
         return sample
@@ -937,6 +983,7 @@ def random_affine(
     wh_thr=2,
     ar_thr=20,
     area_thr=0.1,
+    border_value=114,
 ):
     """
     Performs random affine transform to img, targets
@@ -962,13 +1009,16 @@ def random_affine(
 
     :param area_thr:(float) threshold for area ratio between original image and the transformed one, when when filter_box_candidates = True.
       Bounding boxes with such ratio smaller then this value will be filtered out. (default=0.1)
+
+    :param border_value: value for filling borders after applying transforms (default=114).
+
     :return:            Image and Target with applied random affine
     """
 
     targets_seg = np.zeros((targets.shape[0], 0)) if targets_seg is None else targets_seg
     M, scale = get_affine_matrix(target_size, degrees, translate, scales, shear)
 
-    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=(114, 114, 114))
+    img = cv2.warpAffine(img, M, dsize=target_size, borderValue=border_value)
 
     # Transform label coordinates
     if len(targets) > 0:
