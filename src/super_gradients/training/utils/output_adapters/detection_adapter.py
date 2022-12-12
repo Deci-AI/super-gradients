@@ -26,7 +26,7 @@ class RearrangeNumpyArray:
         :param x: Input tensor of  [..., N] shape
         :return: Output tensor of [..., N[index]] shape
         """
-        raise NotImplementedError
+        pass  # TODO: implement
 
 
 class RearrangeTorchTensor(nn.Module):
@@ -63,10 +63,10 @@ class ConvertNumpyBoundingBoxes:
         from_xyxy: Callable[[np.ndarray, Tuple[int, int]], np.ndarray],
         image_shape: Tuple[int, int],
     ):
-        raise NotImplementedError
+        pass  # TODO: implement
 
     def __call__(self, x: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
-        raise NotImplementedError
+        pass  # TODO: implement
 
 
 class ConvertTorchBoundingBoxes(nn.Module):
