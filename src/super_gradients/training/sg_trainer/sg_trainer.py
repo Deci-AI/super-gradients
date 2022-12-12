@@ -82,7 +82,7 @@ from super_gradients.training.utils.callbacks import (
     ContextSgMethods,
     LRCallbackBase,
 )
-from super_gradients.common.environment.environment_config import device_config
+from super_gradients.common.environment.device_utils import device_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 from omegaconf import OmegaConf
