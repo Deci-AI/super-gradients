@@ -350,8 +350,8 @@ torchrun --nproc_per_node=4 main.py
 
 #### Calling functions on a single node
 
-It is often in DDP training that we want to executee code on the master rank (i.e rank 0).
-In SG, users code execution is usually done by triggering "Phase Callbacks" (see "Using phase callbacks" section below).
+It is often in DDP training that we want to execute code on the master rank (i.e rank 0).
+In SG, users usually execute their own code by triggering "Phase Callbacks" (see "Using phase callbacks" section below).
 One can make sure the desired code will only be ran on rank 0, using ddp_silent_mode or the multi_process_safe decorator.
 For example, consider the simple phase callback below, that uploads the first 3 images of every batch during training to
 the Tensorboard:
