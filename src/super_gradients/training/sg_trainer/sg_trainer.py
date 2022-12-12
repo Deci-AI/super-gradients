@@ -254,7 +254,7 @@ class Trainer:
         return model, res
 
     @classmethod
-    def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
+    def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> Tuple[nn.Module, Tuple]:
         """
         Resume a training that was run using our recipes.
 
@@ -264,10 +264,10 @@ class Trainer:
         logger.info("Resume training using the checkpoint recipe, ignoring the current recipe")
         cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
-        cls.train_from_config(cfg)
+        return cls.train_from_config(cfg)
 
     @classmethod
-    def evaluate_from_recipe(cls, cfg: DictConfig) -> None:
+    def evaluate_from_recipe(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
         """
         Evaluate according to a cfg recipe configuration.
 
@@ -313,10 +313,11 @@ class Trainer:
         val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
 
         valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
-
         results = ["Validate Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
+
+        return model, val_results_tuple
 
     @classmethod
     def evaluate_checkpoint(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
