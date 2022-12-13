@@ -207,7 +207,11 @@ class Trainer:
         @return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
-        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(
+            device=core_utils.get_param(cfg, "device", default_val="cuda"),
+            multi_gpu=core_utils.get_param(cfg, "multi_gpu", default_val=MultiGPUMode.OFF),
+            num_gpus=core_utils.get_param(cfg, "num_gpus"),
+        )
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -273,7 +277,11 @@ class Trainer:
         :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         """
 
-        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(
+            device=core_utils.get_param(cfg, "device", default_val="cuda"),
+            multi_gpu=core_utils.get_param(cfg, "multi_gpu", default_val=MultiGPUMode.OFF),
+            num_gpus=core_utils.get_param(cfg, "num_gpus"),
+        )
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)

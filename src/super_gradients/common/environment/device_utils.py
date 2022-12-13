@@ -24,7 +24,7 @@ def _get_assigned_rank() -> int:
 
 @dataclasses.dataclass
 class DeviceConfig:
-    device: str = None
+    device: str = "cuda"
     multi_gpu: str = None
     assigned_rank: str = dataclasses.field(default=_get_assigned_rank(), init=False)
 

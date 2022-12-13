@@ -215,7 +215,7 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = Non
 
     if device == "cpu":
         setup_cpu(multi_gpu, num_gpus)
-    elif device == "cuda":
+    elif device == "cuda" or device is None:
         setup_gpu(multi_gpu, num_gpus)
     else:
         raise ValueError(f"Only valid values for device are: 'cpu' and 'cuda'. Received: '{device}'")
