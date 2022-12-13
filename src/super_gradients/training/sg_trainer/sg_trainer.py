@@ -208,8 +208,8 @@ class Trainer:
         """
 
         setup_device(
-            device=core_utils.get_param(cfg, "device", default_val="cuda"),
-            multi_gpu=core_utils.get_param(cfg, "multi_gpu", default_val=MultiGPUMode.OFF),
+            device=core_utils.get_param(cfg, "device"),
+            multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
             num_gpus=core_utils.get_param(cfg, "num_gpus"),
         )
 
@@ -278,8 +278,8 @@ class Trainer:
         """
 
         setup_device(
-            device=core_utils.get_param(cfg, "device", default_val="cuda"),
-            multi_gpu=core_utils.get_param(cfg, "multi_gpu", default_val=MultiGPUMode.OFF),
+            device=core_utils.get_param(cfg, "device"),
+            multi_gpu=core_utils.get_param(cfg, "multi_gpu"),
             num_gpus=core_utils.get_param(cfg, "num_gpus"),
         )
 

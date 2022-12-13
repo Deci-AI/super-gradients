@@ -1,7 +1,7 @@
 import sys
 import os
 import itertools
-from typing import List
+from typing import List, Tuple
 from contextlib import contextmanager
 
 import torch
@@ -197,7 +197,7 @@ def wait_for_the_master(local_rank: int):
 
 def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     """[DEPRECATED in favor of setup_device] If required, launch ddp subprocesses.
-    :param gpu_mode:    DDP, DP or Off
+    :param gpu_mode:    DDP, DP, Off or AUTO
     :param num_gpus:    Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
     """
     logger.warning("setup_gpu_mode is now deprecated in favor of setup_device")
@@ -205,10 +205,10 @@ def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = No
 
 
 @resolve_param("multi_gpu", TypeFactory(MultiGPUMode.dict()))
-def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None, device: str = "cuda"):
+def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None, device: str = "cuda"):
     """
     If required, launch ddp subprocesses.
-    :param multi_gpu:    DDP, DP or Off
+    :param multi_gpu:    DDP, DP, Off or AUTO
     :param num_gpus:     Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
     """
     init_trainer()
@@ -221,9 +221,9 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = Non
         raise ValueError(f"Only valid values for device are: 'cpu' and 'cuda'. Received: '{device}'")
 
 
-def setup_cpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
+def setup_cpu(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None):
     """
-    :param multi_gpu:    DDP, DP or Off
+    :param multi_gpu:    DDP, DP, Off or AUTO
     :param num_gpus:     Number of GPU's to use.
     """
     if multi_gpu not in (MultiGPUMode.OFF, MultiGPUMode.AUTO):
@@ -236,37 +236,19 @@ def setup_cpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     device_config.multi_gpu = MultiGPUMode.OFF
 
 
-def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
+def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None):
     """
     If required, launch ddp subprocesses.
-    :param multi_gpu:    DDP, DP or Off
+    :param multi_gpu:    DDP, DP, Off or AUTO
     :param num_gpus:     Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("Cuda device not found...")
 
-    if num_gpus is None:
-        num_gpus = -1
+    if num_gpus == 0:
+        raise ValueError("device='cuda' and num_gpus=0 are not compatible together.")
 
-    if num_gpus == -1:
-        if multi_gpu in (MultiGPUMode.OFF, MultiGPUMode.DATA_PARALLEL):
-            num_gpus = 1
-        elif multi_gpu in (MultiGPUMode.AUTO, MultiGPUMode.DISTRIBUTED_DATA_PARALLEL):
-            num_gpus = torch.cuda.device_count()
-
-    if multi_gpu == MultiGPUMode.AUTO:
-        if num_gpus > 1:
-            multi_gpu = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
-        else:
-            multi_gpu = MultiGPUMode.OFF
-
-    # Check that num_gpus is valid for specified multi_gpu
-    if multi_gpu in (MultiGPUMode.OFF, MultiGPUMode.DATA_PARALLEL):
-        if num_gpus != 1:
-            raise ValueError(f"You specified num_gpus={num_gpus} but it has not be 1 on when working with multi_gpu={multi_gpu}")
-    else:
-        if num_gpus > torch.cuda.device_count():
-            raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
+    multi_gpu, num_gpus = _resolve_gpu_params(multi_gpu=multi_gpu, num_gpus=num_gpus)
 
     device_config.device = "cuda"
     device_config.multi_gpu = multi_gpu
@@ -276,6 +258,47 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
             initialize_ddp()
         else:
             restart_script_with_ddp(num_gpus=num_gpus)
+
+
+def _resolve_gpu_params(multi_gpu: MultiGPUMode, num_gpus: int) -> Tuple[MultiGPUMode, int]:
+    """
+    Resolve the values multi_gpu in (None, MultiGPUMode.AUTO) and num_gpus in (None, -1), and check compatibility between both parameters.
+    :param multi_gpu:    DDP, DP, Off or AUTO
+    :param num_gpus:     Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
+    """
+    # Resolve None
+    if multi_gpu is None:
+        if num_gpus is None:  # When Nothing is specified, just run on single GPU
+            multi_gpu = MultiGPUMode.OFF
+            num_gpus = 1
+        else:
+            multi_gpu = MultiGPUMode.AUTO
+
+    if num_gpus is None:
+        num_gpus = -1
+
+    # Resolve multi_gpu
+    if num_gpus == -1:
+        if multi_gpu in (MultiGPUMode.OFF, MultiGPUMode.DATA_PARALLEL):
+            num_gpus = 1
+        elif multi_gpu in (MultiGPUMode.AUTO, MultiGPUMode.DISTRIBUTED_DATA_PARALLEL):
+            num_gpus = torch.cuda.device_count()
+
+    # Resolve multi_gpu
+    if multi_gpu == MultiGPUMode.AUTO:
+        if num_gpus > 1:
+            multi_gpu = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
+        else:
+            multi_gpu = MultiGPUMode.OFF
+
+    # Check compatibility between num_gpus and multi_gpu
+    if multi_gpu in (MultiGPUMode.OFF, MultiGPUMode.DATA_PARALLEL):
+        if num_gpus != 1:
+            raise ValueError(f"You specified num_gpus={num_gpus} but it has not be 1 on when working with multi_gpu={multi_gpu}")
+    else:
+        if num_gpus > torch.cuda.device_count():
+            raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
+    return multi_gpu, num_gpus
 
 
 def initialize_ddp():
@@ -312,7 +335,7 @@ def restart_script_with_ddp(num_gpus: int = None):
     ddp_port = find_free_port()
 
     # Get the value fom recipe if specified, otherwise take all available devices.
-    num_gpus = num_gpus if num_gpus else torch.cuda.device_count()
+    num_gpus = num_gpus if num_gpus is not None else torch.cuda.device_count()
     if num_gpus > torch.cuda.device_count():
         raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
 
