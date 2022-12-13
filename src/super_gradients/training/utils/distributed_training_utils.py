@@ -218,6 +218,9 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = No
     if not is_launched_using_sg() and is_distributed():
         multi_gpu, num_gpus, device = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, None, "cuda"
 
+    if device == "cuda" and not torch.cuda.is_available():
+        logger.warning("CUDA device is not available on your device... Moving to CPU.")
+
     if device == "cpu":
         setup_cpu(multi_gpu, num_gpus)
     elif device == "cuda" or device is None:
@@ -247,8 +250,6 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None)
     :param multi_gpu:    DDP, DP, Off or AUTO
     :param num_gpus:     Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
     """
-    if not torch.cuda.is_available():
-        raise RuntimeError("Cuda device not found...")
 
     if num_gpus == 0:
         raise ValueError("device='cuda' and num_gpus=0 are not compatible together.")
