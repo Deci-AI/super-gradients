@@ -4,7 +4,7 @@ from functools import wraps
 
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
-from super_gradients.common.environment.argparse_utils import pop_arg
+from super_gradients.common.environment.argparse_utils import pop_local_rank
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 
@@ -18,9 +18,7 @@ def init_trainer():
     This function should be the first thing to be called by any code running super_gradients.
     """
     register_hydra_resolvers()
-    local_rank = pop_arg("local_rank", default_value=-1)
-    if local_rank != -1:
-        logger.info("local_rank was automatically parsed from your config.")
+    pop_local_rank()
 
 
 def is_distributed() -> bool:
