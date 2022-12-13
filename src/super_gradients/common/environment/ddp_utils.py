@@ -5,10 +5,6 @@ from functools import wraps
 from super_gradients.common.environment.device_utils import device_config
 from super_gradients.common.environment.omegaconf_utils import register_hydra_resolvers
 from super_gradients.common.environment.argparse_utils import pop_local_rank
-from super_gradients.common.abstractions.abstract_logger import get_logger
-
-
-logger = get_logger(__name__)
 
 
 def init_trainer():
