@@ -8,7 +8,11 @@ from torchvision import transforms as transforms
 import numpy as np
 import cv2
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy
+from super_gradients.training.utils.output_adapters.detection_adapter import DetectionAdapterNumpy
+
+from super_gradients.training.utils.output_adapters import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from super_gradients.training.utils.bbox_formats import XYXYCoordinateFormat, CXCYWHCoordinateFormat
 
 image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
@@ -764,10 +768,24 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         max_targets: int: max objects in single image, padding target to this size.
     """
 
+    _XYXY_LABEL = ConcatenatedTensorFormat(
+        layout=(
+            BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
+            TensorSliceItem(length=1, name="labels"),
+        )
+    )
+
+    _LABEL_CXCYWH = ConcatenatedTensorFormat(
+        layout=(
+            TensorSliceItem(length=1, name="labels"),
+            BoundingBoxesTensorSliceItem(name="bboxes", format=CXCYWHCoordinateFormat()),
+        )
+    )
+
     def __init__(
         self,
-        input_format: DetectionTargetsFormat = DetectionTargetsFormat.XYXY_LABEL,
-        output_format: DetectionTargetsFormat = DetectionTargetsFormat.LABEL_CXCYWH,
+        input_format: ConcatenatedTensorFormat = _XYXY_LABEL,
+        output_format: ConcatenatedTensorFormat = _LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
         max_targets: int = 120,
     ):
@@ -776,6 +794,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         self.output_format = output_format
         self.min_bbox_edge_size = min_bbox_edge_size
         self.max_targets = max_targets
+        self.adapter = DetectionAdapterNumpy(input_format=input_format, output_format=output_format, image_shape=...)
 
     def __call__(self, sample):
         normalized_input = "NORMALIZED" in self.input_format.value
