@@ -15,7 +15,7 @@ from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 from super_gradients.common.environment.ddp_utils import init_trainer
 from super_gradients.common.data_types.enum import MultiGPUMode
 from super_gradients.common.environment.argparse_utils import EXTRA_ARGS
-from super_gradients.common.environment.ddp_utils import find_free_port, is_distributed
+from super_gradients.common.environment.ddp_utils import find_free_port, is_distributed, is_launched_using_sg
 
 
 from super_gradients.common.abstractions.abstract_logger import get_logger, mute_current_process
@@ -213,6 +213,11 @@ def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = No
     """
     init_trainer()
 
+    # When launching with torch.distributed.launch or torchrun, multi_gpu might not be set to DDP (since we are not using the recipe params)
+    # To avoid any issue we force multi_gpu to be DDP if the current process is ddp subprocess. We also set num_gpus, device to run smoothly.
+    if not is_launched_using_sg() and is_distributed():
+        multi_gpu, num_gpus, device = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL, None, "cuda"
+
     if device == "cpu":
         setup_cpu(multi_gpu, num_gpus)
     elif device == "cuda" or device is None:
@@ -253,11 +258,10 @@ def setup_gpu(multi_gpu: MultiGPUMode = MultiGPUMode.AUTO, num_gpus: int = None)
     device_config.device = "cuda"
     device_config.multi_gpu = multi_gpu
 
-    if multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
-        if is_distributed():
-            initialize_ddp()
-        else:
-            restart_script_with_ddp(num_gpus=num_gpus)
+    if is_distributed():
+        initialize_ddp()
+    elif multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
+        restart_script_with_ddp(num_gpus=num_gpus)
 
 
 def _resolve_gpu_params(multi_gpu: MultiGPUMode, num_gpus: int) -> Tuple[MultiGPUMode, int]:
@@ -266,6 +270,7 @@ def _resolve_gpu_params(multi_gpu: MultiGPUMode, num_gpus: int) -> Tuple[MultiGP
     :param multi_gpu:    DDP, DP, Off or AUTO
     :param num_gpus:     Number of GPU's to use. When None, use all available devices on DDP or only one device on DP/OFF.
     """
+
     # Resolve None
     if multi_gpu is None:
         if num_gpus is None:  # When Nothing is specified, just run on single GPU
