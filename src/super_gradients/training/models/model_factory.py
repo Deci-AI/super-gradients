@@ -71,7 +71,11 @@ def get_architecture(model_name: str, arch_params: HpmStruct, download_required_
 
 
 def instantiate_model(
-    model_name: str, arch_params: dict, num_classes: int, pretrained_weights: str = None, download_required_code: bool = True
+    model_name: str,
+    arch_params: dict,
+    num_classes: int,
+    pretrained_weights: str = None,
+    download_required_code: bool = True,
 ) -> torch.nn.Module:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
@@ -139,6 +143,7 @@ def get(
     pretrained_weights: str = None,
     load_backbone: bool = False,
     download_required_code: bool = True,
+    checkpoint_num_classes: int = None,
 ) -> SgModule:
     """
     :param model_name:          Defines the model's architecture from models/ALL_ARCHITECTURES
@@ -153,11 +158,19 @@ def get(
     :param load_backbone:       Load the provided checkpoint to model.backbone instead of model.
     :param download_required_code: if model is not found in SG and is downloaded from a remote client, overriding this parameter with False
                                     will prevent additional code from being downloaded. This affects only models from remote client.
+    :param checkpoint_num_classes:  num_classes of checkpoint_path, when checkpoint_path is not None. Used when num_classes != checkpoint_num_class.
+        In this case, the module will be initialized with checkpoint_num_class, then checkpoint_path weights will be loaded, and finaly
+        replace_head(new_num_classes=num_classes) is called (useful when wanting to perform transfer learning, from a user's checkpoint rather
+         then one of the weights offered in SG model zoo). Ignored when checkpoint_path=None (default=None).
+
 
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
     """
 
-    net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights, download_required_code)
+    if checkpoint_num_classes and checkpoint_path:
+        net = instantiate_model(model_name, arch_params, checkpoint_num_classes, pretrained_weights, download_required_code)
+    else:
+        net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights, download_required_code)
 
     if load_backbone and not checkpoint_path:
         raise ValueError("Please set checkpoint_path when load_backbone=True")
@@ -172,4 +185,5 @@ def get(
             load_weights_only=True,
             load_ema_as_net=load_ema_as_net,
         )
+
     return net
