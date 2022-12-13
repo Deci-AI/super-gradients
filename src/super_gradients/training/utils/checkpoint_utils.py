@@ -4,7 +4,6 @@ import pkg_resources
 
 import torch
 
-
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.common import explicit_params_validation, ADNNModelRepositoryDataInterfaces
 from super_gradients.training.pretrained_models import MODEL_URLS
