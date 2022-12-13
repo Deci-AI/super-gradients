@@ -7,7 +7,7 @@ lr_mode: cosine
 cosine_final_lr_ratio: 0
 lr_warmup_epochs: 1
 warmup_initial_lr: 0
-warmup_mode: linear_step
+warmup_mode: linear_epoch_step
 ema: False
 loss: cross_entropy
 clip_grad_norm: 1

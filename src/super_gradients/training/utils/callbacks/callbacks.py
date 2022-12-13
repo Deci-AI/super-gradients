@@ -377,16 +377,16 @@ class LRCallbackBase(PhaseCallback):
                 param_group["lr"] = self.lr
 
 
-class WarmupLRCallback(LRCallbackBase):
+class EpochStepWarmupLRCallback(LRCallbackBase):
     """
-    LR scheduling callback for linear step warmup.
-    LR climbs from warmup_initial_lr with even steps to initial lr. When warmup_initial_lr is None- LR climb starts from
+    LR scheduling callback for linear step warmup. This scheduler uses a whole epoch as single step.
+    LR climbs from warmup_initial_lr with even steps to initial lr. When warmup_initial_lr is None - LR climb starts from
      initial_lr/(1+warmup_epochs).
 
     """
 
     def __init__(self, **kwargs):
-        super(WarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
+        super(EpochStepWarmupLRCallback, self).__init__(Phase.TRAIN_EPOCH_START, **kwargs)
         self.warmup_initial_lr = self.training_params.warmup_initial_lr or self.initial_lr / (self.training_params.lr_warmup_epochs + 1)
         self.warmup_step_size = (self.initial_lr - self.warmup_initial_lr) / self.training_params.lr_warmup_epochs
 
@@ -396,6 +396,60 @@ class WarmupLRCallback(LRCallbackBase):
 
     def is_lr_scheduling_enabled(self, context):
         return self.training_params.lr_warmup_epochs >= context.epoch
+
+
+class BatchStepLinearWarmupLRCallback(LRCallbackBase):
+    """
+    LR scheduling callback for linear step warmup on each batch step.
+    LR climbs from warmup_initial_lr with to initial lr.
+
+    """
+
+    def __init__(self, warmup_initial_lr: float, initial_lr: float, lr_warmup_epochs: int, train_loader_len: int, lr_warmup_steps: int = None, **kwargs):
+        """
+
+        :param warmup_initial_lr: Starting learning rate
+        :param initial_lr: Target learning rate after warmup
+        :param lr_warmup_epochs: Number of epochs to perform warmup. For fixed number of steps use lr_warmup_steps argument.
+        :param train_loader_len: Length of train data loader
+        :param lr_warmup_steps: Optional. If passed, will use fixed number of warmup steps to warmup LR. Default is None.
+        :param kwargs:
+        """
+        if lr_warmup_epochs is None and lr_warmup_steps is None:
+            raise RuntimeError("Either lr_warmup_epochs or lr_warmup_steps argument must be passed to LinearWarmupLRCallback. Both arguments are None")
+
+        if lr_warmup_epochs is not None and lr_warmup_steps is not None:
+            logger.warning(
+                f"Both lr_warmup_epochs and lr_warmup_steps arguments are passed to LinearWarmupLRCallback. "
+                f"A lr_warmup_steps({lr_warmup_steps}) will overtake. "
+                f"To remove this warning please remove either `lr_warmup_steps` or `lr_warmup_epochs` from your config file."
+            )
+
+        if lr_warmup_steps is None:
+            lr_warmup_steps = int(train_loader_len * lr_warmup_epochs)
+
+        super(BatchStepLinearWarmupLRCallback, self).__init__(Phase.TRAIN_BATCH_STEP, initial_lr=initial_lr, train_loader_len=train_loader_len, **kwargs)
+
+        learning_rates = np.linspace(start=warmup_initial_lr, stop=initial_lr, num=train_loader_len * lr_warmup_epochs, endpoint=True)
+
+        logger.info(
+            f"Instantiating LinearWarmupLRCallback. "
+            f"Warmup scaling LR from {warmup_initial_lr:e} to {initial_lr:e} across {lr_warmup_steps} steps / {lr_warmup_steps} / {train_loader_len} epoch(s))."
+        )
+
+        self.learning_rates = learning_rates
+        self.train_loader_len = train_loader_len
+        self.lr_warmup_steps = lr_warmup_steps
+
+    def perform_scheduling(self, context):
+        global_training_step = context.batch_idx + context.epoch * self.train_loader_len
+        self.lr = self.learning_rates[global_training_step]
+        self.update_lr(context.optimizer, context.epoch, None)
+        logger.debug(f"Setting learning rate to for {self.lr:e} at warmup step {global_training_step}")
+
+    def is_lr_scheduling_enabled(self, context):
+        global_training_step = context.batch_idx + context.epoch * self.train_loader_len
+        return global_training_step <= self.lr_warmup_steps
 
 
 class StepLRCallback(LRCallbackBase):
