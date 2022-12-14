@@ -50,6 +50,10 @@ class ConcatenatedTensorFormat(DetectionOutputFormat):
         bbox_items = [x for x in self.layout.values() if isinstance(x, BoundingBoxesTensorSliceItem)]
         return bbox_items[0]
 
+    @property
+    def bboxes_location(self) -> Tuple[int, int]:
+        return self.locations[self.bboxes_format.name]
+
     def __init__(self, layout: Union[List[TensorSliceItem], Tuple[TensorSliceItem, ...]]):
         bbox_items = [x for x in layout if isinstance(x, BoundingBoxesTensorSliceItem)]
         if len(bbox_items) != 1:
@@ -76,3 +80,30 @@ class ConcatenatedTensorFormat(DetectionOutputFormat):
 
     def __repr__(self):
         return str(self.layout)
+
+    def apply_on_bbox(self, fn, concatenated_tensor):
+        """Map inplace!"""  # Fixme: maybe call this apply ?
+        location = slice(*self.bboxes_location)
+        result = fn(concatenated_tensor[..., location])
+        concatenated_tensor[..., location] = result
+        return concatenated_tensor
+
+    def apply_on_layout(self, layout_name: str, fn, concatenated_tensor):
+        """Map inplace!"""  # Fixme: maybe call this apply ?
+        location = slice(*self.locations[layout_name])
+        result = fn(concatenated_tensor[..., location])
+        concatenated_tensor[..., location] = result
+        return concatenated_tensor
+
+    def filter_on_layout(self, layout_name: str, fn, concatenated_tensor):
+        location = slice(*self.locations[layout_name])
+        mask = fn(concatenated_tensor[..., location])
+        concatenated_tensor = concatenated_tensor[mask]
+        return concatenated_tensor
+
+
+# import numpy as np
+# def apply_to_location(function: Callable, tensor: Tensor, location: Tuple[int, int]):
+#     location = slice(location[0], location[1])
+#     tensor[..., location] = function(tensor[..., location])
+#     return tensor

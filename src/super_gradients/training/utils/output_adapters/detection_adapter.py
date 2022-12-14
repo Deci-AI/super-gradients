@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch import nn, Tensor
 
-from super_gradients.training.utils.bbox_formats import BoundingBoxFormat
+from super_gradients.training.utils.bbox_formats import convert_bboxes
 from super_gradients.training.utils.output_adapters.formats import ConcatenatedTensorFormat
 
 __all__ = ["DetectionOutputAdapter"]
@@ -26,7 +26,7 @@ class RearrangeNumpyArray:
         :param x: Input tensor of  [..., N] shape
         :return: Output tensor of [..., N[index]] shape
         """
-        pass  # TODO: implement
+        return x[..., self.indexes]
 
 
 class RearrangeTorchTensor(nn.Module):
@@ -69,44 +69,91 @@ class ConvertNumpyBoundingBoxes:
         pass  # TODO: implement
 
 
-class ConvertTorchBoundingBoxes(nn.Module):
-    to_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor]
-    from_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor]
-
-    def __init__(
-        self,
-        location: Tuple[int, int],
-        to_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor],
-        from_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor],
-        image_shape: Tuple[int, int],
-    ):
-        super().__init__()
-        self.to_xyxy = torch.jit.annotate(Callable[[Tensor, Tuple[int, int]], Tensor], to_xyxy)
-        self.from_xyxy = torch.jit.annotate(Callable[[Tensor, Tuple[int, int]], Tensor], from_xyxy)
-        self.image_shape = image_shape
-        self.location = location
-
-    def forward(self, x: Tensor) -> Tensor:
-        """
-
-        :param x:
-        :param image_shape:
-        :return:
-        """
-        location = slice(self.location[0], self.location[1])
-        bboxes = x[..., location]
-        xyxy = self.to_xyxy(bboxes, self.image_shape)
-        x[..., location] = self.from_xyxy(xyxy, self.image_shape)
-        return x
+# def apply_fn_to_layout(format: ConcatenatedTensorFormat, layout_name: str, function, concatenated_tensor):
+#     location = format.locations[layout_name]
+#     location = slice(location[0], location[1])
+#     concatenated_tensor[..., location] = function(concatenated_tensor[..., location])
+#     return concatenated_tensor
+#
+#
+# def apply_fn_to_bbox(tensor_format: ConcatenatedTensorFormat, function: Callable, concatenated_tensor: Tensor):
+#     """Apply the input function inplace"""
+#     location = slice(tensor_format.bboxes_location[0], tensor_format.bboxes_location[1])
+#     concatenated_tensor[..., location] = function(concatenated_tensor[..., location])
+#     return concatenated_tensor
+#
+#
+# def apply_to_location(function: Callable, tensor: Tensor, location: Tuple[int, int]):
+#     location = slice(location[0], location[1])
+#     tensor[..., location] = function(tensor[..., location])
+#     return tensor
 
 
-def get_last_dim(tensor: Union[np.ndarray, Tensor]) -> int:
-    if isinstance(tensor, Tensor):
-        return tensor.size(-1)
-    elif isinstance(tensor, np.ndarray):
-        return tensor.shape[-1]
-    else:
-        raise TypeError(f"Only torch.Tensor and np.ndarray are supported. Got {type(tensor)}")
+# class ConvertTorchBoundingBoxes(nn.Module):
+#     to_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor]
+#     from_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor]
+#
+#     def __init__(
+#         self,
+#         location: Tuple[int, int],
+#         to_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor],
+#         from_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor],
+#         image_shape: Tuple[int, int],
+#     ):
+#         super().__init__()
+#         self.to_xyxy = torch.jit.annotate(Callable[[Tensor, Tuple[int, int]], Tensor], to_xyxy)
+#         self.from_xyxy = torch.jit.annotate(Callable[[Tensor, Tuple[int, int]], Tensor], from_xyxy)
+#         self.image_shape = image_shape
+#         self.location = location
+#
+#     def bbox_function(self, bboxes: Tensor) -> Tensor:
+#         return self.from_xyxy(self.to_xyxy(bboxes, self.image_shape), self.image_shape)
+#
+#     def forward(self, x: Tensor) -> Tensor:
+#         """
+#
+#         :param x:
+#         :param image_shape:
+#         :return:
+#         """
+#         location = slice(self.location[0], self.location[1])
+#         bboxes = x[..., location]
+#         xyxy = self.to_xyxy(bboxes, self.image_shape)
+#         x[..., location] = self.from_xyxy(xyxy, self.image_shape)
+#         return x
+
+# class ConvertNumpyBoundingBoxes(nn.Module):
+#     to_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor]
+#     from_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor]
+#
+#     def __init__(
+#         self,
+#         location: Tuple[int, int],
+#         to_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor],
+#         from_xyxy: Callable[[Tensor, Tuple[int, int]], Tensor],
+#         image_shape: Tuple[int, int],
+#     ):
+#         super().__init__()
+#         self.to_xyxy = Callable[[Tensor, Tuple[int, int]], Tensor], to_xyxy)
+#         self.from_xyxy = Callable[[Tensor, Tuple[int, int]], Tensor], from_xyxy)
+#         self.image_shape = image_shape
+#         self.location = location
+#
+#     def bbox_function(self, bboxes: Tensor) -> Tensor:
+#         return self.from_xyxy(self.to_xyxy(bboxes, self.image_shape), self.image_shape)
+#
+#     def forward(self, x: Tensor) -> Tensor:
+#         """
+#
+#         :param x:
+#         :param image_shape:
+#         :return:
+#         """
+#         location = slice(self.location[0], self.location[1])
+#         bboxes = x[..., location]
+#         xyxy = self.to_xyxy(bboxes, self.image_shape)
+#         x[..., location] = self.from_xyxy(xyxy, self.image_shape)
+#         return x
 
 
 class DetectionAdapter(ABC):
@@ -124,26 +171,21 @@ class DetectionAdapter(ABC):
                             If you're not using normalized coordinates you can set this to None
         """
         super().__init__()
-        self.rearrange_outputs, rearranged_format = self.get_rearrange_outputs_module(input_format, output_format)
+        self.rearrange_outputs, self.rearranged_format = self.get_rearrange_outputs_module(input_format, output_format)
 
-        self.format_conversion = self.get_format_conversion_module(
-            location=rearranged_format.locations[rearranged_format.bboxes_format.name],
-            input_bbox_format=rearranged_format.bboxes_format.format,
-            output_bbox_format=output_format.bboxes_format.format,
-            image_shape=image_shape,
-        )
         self.input_format = input_format
         self.output_format = output_format
+        self.image_shape = image_shape
         self.input_length = input_format.num_channels
 
     def __call__(self, predictions: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
-        if get_last_dim(predictions) != self.input_length:
+        if predictions.shape[-1] != self.input_length:
             raise RuntimeError(
-                f"Number of channels in last dimension of input tensor ({get_last_dim(predictions)}) must be "
+                f"Number of channels in last dimension of input tensor ({predictions.shape[-1]}) must be "
                 f"equal to {self.input_length} as defined by input format."
             )
         predictions = self.rearrange_outputs(predictions)
-        predictions = self.format_conversion(predictions)
+        predictions = self.convert_bboxes_format(predictions=predictions, source_format=self.input_format, target_format=self.output_format)
         return predictions
 
     def get_rearrange_outputs_module(
@@ -180,11 +222,19 @@ class DetectionAdapter(ABC):
     def _get_rearrange_outputs_module_from_indexes(self, indexes) -> Union[RearrangeNumpyArray, RearrangeTorchTensor]:
         raise NotImplementedError
 
-    @abstractmethod
-    def get_format_conversion_module(
-        self, location: Tuple[int, int], input_bbox_format: BoundingBoxFormat, output_bbox_format: BoundingBoxFormat, image_shape: Union[Tuple[int, int], None]
-    ) -> Union[ConvertNumpyBoundingBoxes, ConvertTorchBoundingBoxes]:
-        raise NotImplementedError
+    def convert_bboxes_format(self, predictions, source_format: ConcatenatedTensorFormat, target_format: ConcatenatedTensorFormat):
+        def _format_bboxes(bboxes):
+            source_bboxes_format = source_format.bboxes_format.format
+            target_bboxes_format = target_format.bboxes_format.format
+            return convert_bboxes(
+                source_format=source_bboxes_format,
+                target_format=target_bboxes_format,
+                bboxes=bboxes,
+                inplace=False,
+                image_shape=self.image_shape,
+            )
+
+        return source_format.apply_on_bbox(fn=_format_bboxes, concatenated_tensor=predictions)
 
 
 class DetectionAdapterNumpy(DetectionAdapter):
@@ -206,16 +256,6 @@ class DetectionAdapterNumpy(DetectionAdapter):
     def _get_rearrange_outputs_module_from_indexes(self, indexes: List) -> RearrangeNumpyArray:
         return RearrangeNumpyArray(indexes=np.array(indexes).astype(np.long))
 
-    def get_format_conversion_module(
-        self, location: Tuple[int, int], input_bbox_format: BoundingBoxFormat, output_bbox_format: BoundingBoxFormat, image_shape: Union[Tuple[int, int], None]
-    ) -> ConvertNumpyBoundingBoxes:
-        return ConvertNumpyBoundingBoxes(
-            location=location,
-            to_xyxy=input_bbox_format.get_to_xyxy(False),
-            from_xyxy=output_bbox_format.get_from_xyxy(True),
-            image_shape=image_shape,
-        )
-
 
 class DetectionAdapterTorch(DetectionAdapter):
     def __init__(
@@ -235,16 +275,6 @@ class DetectionAdapterTorch(DetectionAdapter):
 
     def _get_rearrange_outputs_module_from_indexes(self, indexes: List) -> RearrangeTorchTensor:
         return RearrangeTorchTensor(indexes=torch.tensor(indexes).long())
-
-    def get_format_conversion_module(
-        self, location: Tuple[int, int], input_bbox_format: BoundingBoxFormat, output_bbox_format: BoundingBoxFormat, image_shape: Union[Tuple[int, int], None]
-    ) -> ConvertTorchBoundingBoxes:
-        return ConvertTorchBoundingBoxes(
-            location=location,
-            to_xyxy=input_bbox_format.get_to_xyxy(False),
-            from_xyxy=output_bbox_format.get_from_xyxy(True),
-            image_shape=image_shape,
-        )
 
 
 class DetectionOutputAdapter(nn.Module):

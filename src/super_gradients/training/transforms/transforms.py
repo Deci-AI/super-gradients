@@ -8,7 +8,7 @@ from torchvision import transforms as transforms
 import numpy as np
 import cv2
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy
+from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
 from super_gradients.training.utils.output_adapters.detection_adapter import DetectionAdapterNumpy
 
 from super_gradients.training.utils.output_adapters import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
@@ -794,7 +794,62 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         self.output_format = output_format
         self.min_bbox_edge_size = min_bbox_edge_size
         self.max_targets = max_targets
-        self.adapter = DetectionAdapterNumpy(input_format=input_format, output_format=output_format, image_shape=...)
+
+    def __call__(self, sample):
+        image_shape = sample["image"].shape[1:]
+        w, h = image_shape  # NOT NORMALIZED
+
+        # TODO: Test to move this to __init__ with an input_shape. Risk to have different image_shape and to change the results though...
+        convert_format = DetectionAdapterNumpy(input_format=self.input_format, output_format=self.output_format, image_shape=image_shape)
+        min_bbox_edge_size = self.min_bbox_edge_size / max(w, h) if self.output_format.bboxes_format.format.normalized else self.min_bbox_edge_size
+
+        def _format_target(targets: np.ndarray):
+            # INPUT FORMAT -> OUTPUT FORMAT
+            targets = convert_format(targets)
+
+            # FILTER SMALL
+            def _is_too_small(bbox: np.ndarray) -> np.ndarray:
+                return np.minimum(bbox[:, 2], bbox[:, 3]) > min_bbox_edge_size
+
+            targets = self.output_format.filter_on_layout(layout_name="bboxes", fn=_is_too_small, concatenated_tensor=targets)
+
+            # PAD
+            padded_targets = np.zeros((self.max_targets, targets.shape[-1]))
+            padded_targets[range(len(targets))[: self.max_targets]] = targets[: self.max_targets]
+            padded_targets = np.ascontiguousarray(padded_targets, dtype=np.float32)
+
+            return padded_targets
+
+        sample["target"] = _format_target(sample["target"])
+        if "crowd_targets" in sample.keys():
+            sample["crowd_target"] = _format_target(sample["crowd_target"])
+        return sample
+
+
+class DetectionTargetsFormatTransformOld(DetectionTransform):
+    """
+    Detection targets format transform
+
+    Converts targets in input_format to output_format.
+    Attributes:
+        input_format: DetectionTargetsFormat: input target format
+        output_format: DetectionTargetsFormat: output target format
+        min_bbox_edge_size: int: bboxes with edge size lower then this values will be removed.
+        max_targets: int: max objects in single image, padding target to this size.
+    """
+
+    def __init__(
+        self,
+        input_format: DetectionTargetsFormat = DetectionTargetsFormat.XYXY_LABEL,
+        output_format: DetectionTargetsFormat = DetectionTargetsFormat.LABEL_CXCYWH,
+        min_bbox_edge_size: float = 1,
+        max_targets: int = 120,
+    ):
+        super(DetectionTargetsFormatTransformOld, self).__init__()
+        self.input_format = input_format
+        self.output_format = output_format
+        self.min_bbox_edge_size = min_bbox_edge_size
+        self.max_targets = max_targets
 
     def __call__(self, sample):
         normalized_input = "NORMALIZED" in self.input_format.value
