@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>super_gradients.training.datasets.segmentation_datasets.segmentation_dataset &mdash; SuperGradients 1.0 documentation</title>
+  <title>super_gradients.training.datasets.segmentation_datasets.segmentation_dataset &mdash; SuperGradients 3.0.3 documentation</title>
       <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -14,7 +15,9 @@
         <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
         <script src="../../../../../_static/jquery.js"></script>
         <script src="../../../../../_static/underscore.js"></script>
+        <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../../../_static/doctools.js"></script>
+        <script src="../../../../../_static/sphinx_highlight.js"></script>
     <script src="../../../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../../search.html" /> 
@@ -35,30 +38,29 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#supergradients">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html">Version 3 is out! Notebooks have been updated!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#build-with-supergradients">Build with SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#quick-installation">Quick Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#what-s-new">What’s New</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#coming-soon">Coming soon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#table-of-content">Table of Content</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#getting-started">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#advanced-features">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#installation-methods">Installation Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#implemented-model-architectures">Implemented Model Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#citation">Citation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#community">Community</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#deci-platform">Deci Platform</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<p class="caption" role="heading"><span class="caption-text">Technical Documentation</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.common.html">Common package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.training.html">Training package</a></li>
-</ul>
-<p class="caption"><span class="caption-text">User Guide</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html">What is SuperGradients?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#training-parameters">Training Parameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#network-architectures">Network Architectures</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -87,71 +89,44 @@
              
   <h1>Source code for super_gradients.training.datasets.segmentation_datasets.segmentation_dataset</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span>
+
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torchvision.transforms</span> <span class="k">as</span> <span class="nn">transform</span>
 <span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
 
 <span class="kn">from</span> <span class="nn">super_gradients.common.decorators.factory_decorator</span> <span class="kn">import</span> <span class="n">resolve_param</span>
 <span class="kn">from</span> <span class="nn">super_gradients.common.factories.transforms_factory</span> <span class="kn">import</span> <span class="n">TransformsFactory</span>
 <span class="kn">from</span> <span class="nn">super_gradients.training.datasets.sg_dataset</span> <span class="kn">import</span> <span class="n">DirectoryDataSet</span><span class="p">,</span> <span class="n">ListDataset</span>
-<span class="kn">from</span> <span class="nn">super_gradients.training.transforms.transforms</span> <span class="kn">import</span> <span class="n">RandomFlip</span><span class="p">,</span> <span class="n">Rescale</span><span class="p">,</span> <span class="n">RandomRescale</span><span class="p">,</span> <span class="n">RandomRotate</span><span class="p">,</span> \
-    <span class="n">CropImageAndMask</span><span class="p">,</span> <span class="n">RandomGaussianBlur</span><span class="p">,</span> <span class="n">PadShortToCropSize</span>
 
 
-<div class="viewcode-block" id="SegmentationDataSet"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.segmentation_datasets.html#super_gradients.training.datasets.SegmentationDataSet">[docs]</a><span class="k">class</span> <span class="nc">SegmentationDataSet</span><span class="p">(</span><span class="n">DirectoryDataSet</span><span class="p">,</span> <span class="n">ListDataset</span><span class="p">):</span>
+<div class="viewcode-block" id="SegmentationDataSet"><a class="viewcode-back" href="../../../../../super_gradients.training.html#super_gradients.training.datasets.SegmentationDataSet">[docs]</a><span class="k">class</span> <span class="nc">SegmentationDataSet</span><span class="p">(</span><span class="n">DirectoryDataSet</span><span class="p">,</span> <span class="n">ListDataset</span><span class="p">):</span>
 
-    <span class="nd">@resolve_param</span><span class="p">(</span><span class="s1">&#39;image_mask_transforms&#39;</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">TransformsFactory</span><span class="p">())</span>
-    <span class="nd">@resolve_param</span><span class="p">(</span><span class="s1">&#39;image_mask_transforms_aug&#39;</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">TransformsFactory</span><span class="p">())</span>
+    <span class="nd">@resolve_param</span><span class="p">(</span><span class="s1">&#39;transforms&#39;</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">TransformsFactory</span><span class="p">())</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">list_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">samples_sub_directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">targets_sub_directory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                 <span class="n">img_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">608</span><span class="p">,</span> <span class="n">crop_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">augment</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-                 <span class="n">dataset_hyper_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                 <span class="n">cache_labels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">cache_images</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">sample_loader</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                 <span class="n">target_loader</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">collate_fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">target_extension</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;.png&#39;</span><span class="p">,</span>
-                 <span class="n">image_mask_transforms</span><span class="p">:</span> <span class="n">transform</span><span class="o">.</span><span class="n">Compose</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">image_mask_transforms_aug</span><span class="p">:</span> <span class="n">transform</span><span class="o">.</span><span class="n">Compose</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+                 <span class="n">cache_labels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">cache_images</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">collate_fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">target_extension</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;.png&#39;</span><span class="p">,</span>
+                 <span class="n">transforms</span><span class="p">:</span> <span class="n">Iterable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        SegmentationDataSet</span>
-<span class="sd">                                * Please use self.augment == True only for training</span>
-
 <span class="sd">            :param root:                        Root folder of the Data Set</span>
 <span class="sd">            :param list_file:                   Path to the file with the samples list</span>
 <span class="sd">            :param samples_sub_directory:       name of the samples sub-directory</span>
 <span class="sd">            :param targets_sub_directory:       name of the targets sub-directory</span>
-<span class="sd">            :param img_size:                    Image size of the Model that uses this Data Set</span>
-<span class="sd">            :param crop_size:                   The size of the cropped image</span>
-<span class="sd">            :param batch_size:                  Batch Size of the Model that uses this Data Set</span>
-<span class="sd">            :param augment:                     True / False flag to allow Augmentation</span>
-<span class="sd">            :param dataset_hyper_params:        Any hyper params required for the data set</span>
 <span class="sd">            :param cache_labels:                &quot;Caches&quot; the labels -&gt; Pre-Loads to memory as a list</span>
 <span class="sd">            :param cache_images:                &quot;Caches&quot; the images -&gt; Pre-Loads to memory as a list</span>
-<span class="sd">            :param sample_loader:               A function that specifies how to load a sample</span>
-<span class="sd">            :param target_loader:               A function that specifies how to load a target</span>
 <span class="sd">            :param collate_fn:                  collate_fn func to process batches for the Data Loader</span>
-<span class="sd">            :param target_extension:            file extension of the targets (defualt is .png for PASCAL VOC 2012)</span>
-<span class="sd">            :param image_mask_transforms        transforms to be applied on image and mask when augment=False</span>
-<span class="sd">            :param image_mask_transforms_aug    transforms to be applied on image and mask when augment=True</span>
+<span class="sd">            :param target_extension:            file extension of the targets (default is .png for PASCAL VOC 2012)</span>
+<span class="sd">            :param transforms:                  transforms to be applied on image and mask</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">samples_sub_directory</span> <span class="o">=</span> <span class="n">samples_sub_directory</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">targets_sub_directory</span> <span class="o">=</span> <span class="n">targets_sub_directory</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_hyperparams</span> <span class="o">=</span> <span class="n">dataset_hyper_params</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache_labels</span> <span class="o">=</span> <span class="n">cache_labels</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache_images</span> <span class="o">=</span> <span class="n">cache_images</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">=</span> <span class="n">img_size</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span> <span class="o">=</span> <span class="n">crop_size</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">augment</span> <span class="o">=</span> <span class="n">augment</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">batch_index</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">total_batches_num</span> <span class="o">=</span> <span class="kc">None</span>
-
-        <span class="c1"># ENABLES USING CUSTOM SAMPLE/TARGET LOADERS</span>
-        <span class="k">if</span> <span class="n">sample_loader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sample_loader</span> <span class="o">=</span> <span class="n">sample_loader</span>
-        <span class="k">if</span> <span class="n">target_loader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span> <span class="o">=</span> <span class="n">target_loader</span>
 
         <span class="c1"># CREATE A DIRECTORY DATASET OR A LIST DATASET BASED ON THE list_file INPUT VARIABLE</span>
         <span class="k">if</span> <span class="n">list_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -165,26 +140,8 @@
                                       <span class="n">sample_loader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_loader</span><span class="p">,</span> <span class="n">sample_transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_transform</span><span class="p">,</span>
                                       <span class="n">target_loader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_loader</span><span class="p">,</span> <span class="n">target_transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">target_transform</span><span class="p">,</span>
                                       <span class="n">collate_fn</span><span class="o">=</span><span class="n">collate_fn</span><span class="p">)</span>
-        <span class="c1"># DEFAULT TRANSFORMS</span>
-        <span class="c1"># FIXME - Rescale before RandomRescale is kept for legacy support, consider removing it like most implementation</span>
-        <span class="c1">#  papers regimes.</span>
-        <span class="n">default_image_mask_transforms_aug</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span><span class="n">RandomFlip</span><span class="p">(),</span>
-                                                               <span class="n">Rescale</span><span class="p">(</span><span class="n">short_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">),</span>
-                                                               <span class="n">RandomRescale</span><span class="p">(</span><span class="n">scales</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)),</span>
-                                                               <span class="n">RandomRotate</span><span class="p">(),</span>
-                                                               <span class="n">PadShortToCropSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">),</span>
-                                                               <span class="n">CropImageAndMask</span><span class="p">(</span><span class="n">crop_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">,</span>
-                                                                                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;random&quot;</span><span class="p">),</span>
-                                                               <span class="n">RandomGaussianBlur</span><span class="p">()])</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">image_mask_transforms_aug</span> <span class="o">=</span> <span class="n">image_mask_transforms_aug</span> <span class="ow">or</span> <span class="n">default_image_mask_transforms_aug</span>
-        <span class="c1"># FIXME: CROP SIZE CANNOT BE PASSED WHEN LIST</span>
-        <span class="k">if</span> <span class="n">image_mask_transforms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">image_mask_transforms</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span><span class="n">Rescale</span><span class="p">(</span><span class="n">short_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">),</span>
-                                                       <span class="n">CropImageAndMask</span><span class="p">(</span><span class="n">crop_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
-                                                       <span class="p">])</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">image_mask_transforms</span> <span class="o">=</span> <span class="n">image_mask_transforms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">Compose</span><span class="p">(</span><span class="n">transforms</span> <span class="k">if</span> <span class="n">transforms</span> <span class="k">else</span> <span class="p">[])</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
         <span class="n">sample_path</span><span class="p">,</span> <span class="n">target_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples_targets_tuples_list</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
@@ -206,7 +163,7 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_transform</span><span class="p">(</span><span class="n">sample</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_transform</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
 
-<div class="viewcode-block" id="SegmentationDataSet.sample_loader"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.segmentation_datasets.html#super_gradients.training.datasets.SegmentationDataSet.sample_loader">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="SegmentationDataSet.sample_loader"><a class="viewcode-back" href="../../../../../super_gradients.training.html#super_gradients.training.datasets.SegmentationDataSet.sample_loader">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">sample_loader</span><span class="p">(</span><span class="n">sample_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Image</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        sample_loader - Loads a dataset image from path using PIL</span>
@@ -216,7 +173,7 @@
         <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">sample_path</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s1">&#39;RGB&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">image</span></div>
 
-<div class="viewcode-block" id="SegmentationDataSet.sample_transform"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.segmentation_datasets.html#super_gradients.training.datasets.SegmentationDataSet.sample_transform">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="SegmentationDataSet.sample_transform"><a class="viewcode-back" href="../../../../../super_gradients.training.html#super_gradients.training.datasets.SegmentationDataSet.sample_transform">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">sample_transform</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        sample_transform - Transforms the sample image</span>
@@ -230,7 +187,7 @@
 
         <span class="k">return</span> <span class="n">sample_transform</span><span class="p">(</span><span class="n">image</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SegmentationDataSet.target_loader"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.segmentation_datasets.html#super_gradients.training.datasets.SegmentationDataSet.target_loader">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="SegmentationDataSet.target_loader"><a class="viewcode-back" href="../../../../../super_gradients.training.html#super_gradients.training.datasets.SegmentationDataSet.target_loader">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">target_loader</span><span class="p">(</span><span class="n">target_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Image</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        target_loader</span>
@@ -240,7 +197,7 @@
         <span class="n">target</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">target_path</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">target</span></div>
 
-<div class="viewcode-block" id="SegmentationDataSet.target_transform"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.segmentation_datasets.html#super_gradients.training.datasets.SegmentationDataSet.target_transform">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="SegmentationDataSet.target_transform"><a class="viewcode-back" href="../../../../../super_gradients.training.html#super_gradients.training.datasets.SegmentationDataSet.target_transform">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">target_transform</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        target_transform - Transforms the sample image</span>
@@ -257,9 +214,6 @@
         <span class="c1"># IF THE DERIVED CLASS DID NOT IMPLEMENT AN EXPLICIT _generate_samples_and_targets CHILD METHOD</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples_targets_tuples_list</span><span class="p">:</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_generate_samples_and_targets</span><span class="p">()</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">batch_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">total_batches_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="c1"># EXTRACT THE LABELS FROM THE TUPLES LIST</span>
         <span class="n">image_files</span><span class="p">,</span> <span class="n">label_files</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">samples_targets_tuples_list</span><span class="p">))</span>
@@ -309,66 +263,13 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">label_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">label_files</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">image_indices_to_remove</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">image_indices_to_remove</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_calculate_short_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        _calculate_crop</span>
-<span class="sd">        :param img:</span>
-<span class="sd">        :return:</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment</span><span class="p">:</span>
-            <span class="c1"># RANDOM SCALE (SHORT EDGE FROM 480 TO 720)</span>
-            <span class="n">short_size</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span> <span class="o">*</span> <span class="mf">2.0</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">short_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span>
-
-        <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span>
-        <span class="k">if</span> <span class="n">w</span> <span class="o">&gt;</span> <span class="n">h</span><span class="p">:</span>
-            <span class="n">oh</span> <span class="o">=</span> <span class="n">short_size</span>
-            <span class="n">ow</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">w</span> <span class="o">*</span> <span class="n">oh</span> <span class="o">/</span> <span class="n">h</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">ow</span> <span class="o">=</span> <span class="n">short_size</span>
-            <span class="n">oh</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="n">ow</span> <span class="o">/</span> <span class="n">w</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">oh</span><span class="p">,</span> <span class="n">ow</span><span class="p">,</span> <span class="n">short_size</span>
-
-    <span class="k">def</span> <span class="nf">_get_center_crop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        :param w:</span>
-<span class="sd">        :param h:</span>
-<span class="sd">        :return:</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># CENTER CROP</span>
-        <span class="n">x1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">((</span><span class="n">w</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span>
-        <span class="n">y1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">((</span><span class="n">h</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment</span><span class="p">:</span>
-            <span class="c1"># RANDOM CROP CROP_SIZE</span>
-            <span class="n">x1</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">w</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">)</span>
-            <span class="n">y1</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">h</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_size</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span>
-
     <span class="k">def</span> <span class="nf">_transform_image_and_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        _transform -  Transforms the input (image, mask) in the following order:</span>
-<span class="sd">                                1. FLIP (if augment==true)</span>
-<span class="sd">                                2. RESIZE</span>
-<span class="sd">                                3. ROTATE (if augment==true)</span>
-<span class="sd">                                4. CROP</span>
-<span class="sd">                                5. GAUSSIAN BLUR (if augment==true)</span>
-
-<span class="sd">                            * Please use self.augment == True only for training</span>
-
 <span class="sd">            :param image:           The input image</span>
 <span class="sd">            :param mask:            The input mask</span>
 <span class="sd">            :return:                The transformed image, mask</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment</span><span class="p">:</span>
-            <span class="n">transformed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_mask_transforms_aug</span><span class="p">({</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span> <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">mask</span><span class="p">})</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">transformed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_mask_transforms</span><span class="p">({</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span> <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">mask</span><span class="p">})</span>
-
+        <span class="n">transformed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span><span class="p">({</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span> <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">mask</span><span class="p">})</span>
         <span class="k">return</span> <span class="n">transformed</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">],</span> <span class="n">transformed</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span></div>
 </pre></div>
 

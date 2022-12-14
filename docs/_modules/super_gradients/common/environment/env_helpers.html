@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>super_gradients.common.environment.env_helpers &mdash; SuperGradients 1.0 documentation</title>
+  <title>super_gradients.common.environment.env_helpers &mdash; SuperGradients 3.0.3 documentation</title>
       <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -14,7 +15,9 @@
         <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
         <script src="../../../../_static/jquery.js"></script>
         <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
     <script src="../../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" /> 
@@ -35,30 +38,29 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#supergradients">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Version 3 is out! Notebooks have been updated!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#build-with-supergradients">Build with SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#quick-installation">Quick Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#what-s-new">What’s New</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#coming-soon">Coming soon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#table-of-content">Table of Content</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#getting-started">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#advanced-features">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#installation-methods">Installation Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#implemented-model-architectures">Implemented Model Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#citation">Citation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#community">Community</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#deci-platform">Deci Platform</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<p class="caption" role="heading"><span class="caption-text">Technical Documentation</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
-</ul>
-<p class="caption"><span class="caption-text">User Guide</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html">What is SuperGradients?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#training-parameters">Training Parameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#network-architectures">Network Architectures</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -87,38 +89,56 @@
              
   <h1>Source code for super_gradients.common.environment.env_helpers</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">importlib</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">socket</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">OmegaConf</span>
 
 <span class="kn">from</span> <span class="nn">super_gradients.common.environment</span> <span class="kn">import</span> <span class="n">environment_config</span>
 
 
-<div class="viewcode-block" id="TerminalColours"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.TerminalColours">[docs]</a><span class="k">class</span> <span class="nc">TerminalColours</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">TerminalColours</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Usage: https://stackoverflow.com/questions/287871/how-to-print-colored-text-in-python?page=1&amp;tab=votes#tab-top</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">HEADER</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[95m&#39;</span>
-    <span class="n">OKBLUE</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[94m&#39;</span>
-    <span class="n">OKCYAN</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[96m&#39;</span>
-    <span class="n">OKGREEN</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[92m&#39;</span>
-    <span class="n">WARNING</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[93m&#39;</span>
-    <span class="n">FAIL</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[91m&#39;</span>
-    <span class="n">ENDC</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span>
-    <span class="n">BOLD</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[1m&#39;</span>
-    <span class="n">UNDERLINE</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[4m&#39;</span></div>
+
+    <span class="n">HEADER</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[95m&quot;</span>
+    <span class="n">OKBLUE</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[94m&quot;</span>
+    <span class="n">OKCYAN</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[96m&quot;</span>
+    <span class="n">OKGREEN</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[92m&quot;</span>
+    <span class="n">WARNING</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[93m&quot;</span>
+    <span class="n">FAIL</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[91m&quot;</span>
+    <span class="n">ENDC</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[0m&quot;</span>
+    <span class="n">BOLD</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[1m&quot;</span>
+    <span class="n">UNDERLINE</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[4m&quot;</span>
 
 
-<div class="viewcode-block" id="ColouredTextFormatter"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.ColouredTextFormatter">[docs]</a><span class="k">class</span> <span class="nc">ColouredTextFormatter</span><span class="p">:</span>
-<div class="viewcode-block" id="ColouredTextFormatter.print_coloured_text"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.ColouredTextFormatter.print_coloured_text">[docs]</a>    <span class="nd">@staticmethod</span>
+<span class="k">class</span> <span class="nc">ColouredTextFormatter</span><span class="p">:</span>
+    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">print_coloured_text</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">colour</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Prints a text with colour ascii characters.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">colour</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">TerminalColours</span><span class="o">.</span><span class="n">ENDC</span><span class="p">]))</span></div></div>
+        <span class="k">return</span> <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">colour</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">TerminalColours</span><span class="o">.</span><span class="n">ENDC</span><span class="p">]))</span>
 
 
-<div class="viewcode-block" id="get_environ_as_type"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.get_environ_as_type">[docs]</a><span class="k">def</span> <span class="nf">get_environ_as_type</span><span class="p">(</span><span class="n">environment_variable_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cast_to_type</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">get_cls</span><span class="p">(</span><span class="n">cls_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A resolver for Hydra/OmegaConf to allow getting a class instead on an instance.</span>
+<span class="sd">    usage:</span>
+<span class="sd">    class_of_optimizer: ${class:torch.optim.Adam}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">module</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cls_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">cls_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">module</span><span class="p">],</span> <span class="n">name</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_environ_as_type</span><span class="p">(</span><span class="n">environment_variable_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cast_to_type</span><span class="p">:</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">object</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tries to get an environment variable and cast it into a requested type.</span>
 <span class="sd">    :return: cast_to_type object, or None if failed.</span>
@@ -131,41 +151,101 @@
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s1">&#39;Failed to cast environment variable </span><span class="si">{</span><span class="n">environment_variable_name</span><span class="si">}</span><span class="s1"> to type </span><span class="si">{</span><span class="n">cast_to_type</span><span class="si">}</span><span class="s1">: the value </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1"> is not a valid </span><span class="si">{</span><span class="n">cast_to_type</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-    <span class="k">return</span></div>
+                <span class="sa">f</span><span class="s2">&quot;Failed to cast environment variable </span><span class="si">{</span><span class="n">environment_variable_name</span><span class="si">}</span><span class="s2"> to type </span><span class="si">{</span><span class="n">cast_to_type</span><span class="si">}</span><span class="s2">: the value </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2"> is not a valid </span><span class="si">{</span><span class="n">cast_to_type</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+    <span class="k">return</span>
 
 
-<div class="viewcode-block" id="init_trainer"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.init_trainer">[docs]</a><span class="k">def</span> <span class="nf">init_trainer</span><span class="p">():</span>
+<span class="k">def</span> <span class="nf">hydra_output_dir_resolver</span><span class="p">(</span><span class="n">ckpt_root_dir</span><span class="p">,</span> <span class="n">experiment_name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">ckpt_root_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">output_dir_path</span> <span class="o">=</span> <span class="n">environment_config</span><span class="o">.</span><span class="n">PKG_CHECKPOINTS_DIR</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span> <span class="o">+</span> <span class="n">experiment_name</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">output_dir_path</span> <span class="o">=</span> <span class="n">ckpt_root_dir</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span> <span class="o">+</span> <span class="n">experiment_name</span>
+    <span class="k">return</span> <span class="n">output_dir_path</span>
+
+
+<div class="viewcode-block" id="init_trainer"><a class="viewcode-back" href="../../../../super_gradients.common.html#super_gradients.common.init_trainer">[docs]</a><span class="k">def</span> <span class="nf">init_trainer</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    a function to initialize the super_gradients environment. This function should be the first thing to be called</span>
-<span class="sd">    by any code running super_gradients. It resolves conflicts between the different tools, packages and environments used</span>
-<span class="sd">    and prepares the super_gradients environment.</span>
+<span class="sd">    Initialize the super_gradients environment.</span>
+
+<span class="sd">    This function should be the first thing to be called by any code running super_gradients.</span>
+<span class="sd">    It resolves conflicts between the different tools, packages and environments used and prepares the super_gradients environment.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">environment_config</span><span class="o">.</span><span class="n">INIT_TRAINER</span><span class="p">:</span>
+        <span class="n">register_hydra_resolvers</span><span class="p">()</span>
+
+        <span class="c1"># We pop local_rank if it was specified in the args, because it would break</span>
+        <span class="n">args_local_rank</span> <span class="o">=</span> <span class="n">pop_arg</span><span class="p">(</span><span class="s2">&quot;local_rank&quot;</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Set local_rank with priority order (env variable &gt; args.local_rank &gt; args.default_value)</span>
+        <span class="n">environment_config</span><span class="o">.</span><span class="n">DDP_LOCAL_RANK</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;LOCAL_RANK&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">args_local_rank</span><span class="p">))</span>
+        <span class="n">environment_config</span><span class="o">.</span><span class="n">INIT_TRAINER</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<span class="k">def</span> <span class="nf">register_hydra_resolvers</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Register all the hydra resolvers required for the super-gradients recipes.&quot;&quot;&quot;</span>
+    <span class="n">OmegaConf</span><span class="o">.</span><span class="n">register_new_resolver</span><span class="p">(</span><span class="s2">&quot;hydra_output_dir&quot;</span><span class="p">,</span> <span class="n">hydra_output_dir_resolver</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">OmegaConf</span><span class="o">.</span><span class="n">register_new_resolver</span><span class="p">(</span><span class="s2">&quot;class&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">get_cls</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">OmegaConf</span><span class="o">.</span><span class="n">register_new_resolver</span><span class="p">(</span><span class="s2">&quot;add&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">OmegaConf</span><span class="o">.</span><span class="n">register_new_resolver</span><span class="p">(</span><span class="s2">&quot;cond&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">boolean</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="k">if</span> <span class="n">boolean</span> <span class="k">else</span> <span class="n">y</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">OmegaConf</span><span class="o">.</span><span class="n">register_new_resolver</span><span class="p">(</span><span class="s2">&quot;getitem&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">container</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">container</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># get item from a container (list, dict...)</span>
+    <span class="n">OmegaConf</span><span class="o">.</span><span class="n">register_new_resolver</span><span class="p">(</span><span class="s2">&quot;first&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">lst</span><span class="p">:</span> <span class="n">lst</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># get the first item from a list</span>
+    <span class="n">OmegaConf</span><span class="o">.</span><span class="n">register_new_resolver</span><span class="p">(</span><span class="s2">&quot;last&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">lst</span><span class="p">:</span> <span class="n">lst</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># get the last item from a list</span>
+
+
+<span class="k">def</span> <span class="nf">pop_arg</span><span class="p">(</span><span class="n">arg_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default_value</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Get the specified args and remove them from argv&quot;&quot;&quot;</span>
 
     <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
-    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--local_rank&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># used by DDP</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--</span><span class="si">{</span><span class="n">arg_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default_value</span><span class="p">)</span>
     <span class="n">args</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>
 
-    <span class="c1"># remove any flags starting with --local_rank from the argv list</span>
-    <span class="n">to_remove</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;--local_rank&#39;</span><span class="p">),</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">))</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">to_remove</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">to_remove</span><span class="p">:</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-
-    <span class="n">environment_config</span><span class="o">.</span><span class="n">DDP_LOCAL_RANK</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">local_rank</span></div>
+    <span class="c1"># Remove the ddp args to not have a conflict with the use of hydra</span>
+    <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--</span><span class="si">{</span><span class="n">arg_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">):</span>
+        <span class="n">environment_config</span><span class="o">.</span><span class="n">EXTRA_ARGS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="n">arg_name</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="is_distributed"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.is_distributed">[docs]</a><span class="k">def</span> <span class="nf">is_distributed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="is_distributed"><a class="viewcode-back" href="../../../../super_gradients.common.html#super_gradients.common.is_distributed">[docs]</a><span class="k">def</span> <span class="nf">is_distributed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">environment_config</span><span class="o">.</span><span class="n">DDP_LOCAL_RANK</span> <span class="o">&gt;=</span> <span class="mi">0</span></div>
 
 
-<div class="viewcode-block" id="multi_process_safe"><a class="viewcode-back" href="../../../../super_gradients.common.environment.html#super_gradients.common.multi_process_safe">[docs]</a><span class="k">def</span> <span class="nf">multi_process_safe</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">is_rank_0</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Check if the node was launched with torch.distributed.launch and if the node is of rank 0&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;LOCAL_RANK&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">is_launched_using_sg</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Check if the current process is a subprocess launched using SG restart_script_with_ddp&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TORCHELASTIC_RUN_ID&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;sg_initiated&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">is_main_process</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Check if current process is considered as the main process (i.e. is responsible for sanity check, atexit upload, ...).</span>
+<span class="sd">    The definition ensures that 1 and only 1 process follows this condition, regardless of how the run was started.</span>
+
+<span class="sd">    The rule is as follow:</span>
+<span class="sd">        - If not DDP: main process is current process</span>
+<span class="sd">        - If DDP launched using SuperGradients: main process is the launching process (rank=-1)</span>
+<span class="sd">        - If DDP launched with torch: main process is rank 0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_distributed</span><span class="p">():</span>  <span class="c1"># If no DDP, or DDP launching process</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="n">is_rank_0</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_launched_using_sg</span><span class="p">():</span>  <span class="c1"># If DDP launched using torch.distributed.launch or torchrun, we need to run the check on rank 0</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+
+<span class="k">def</span> <span class="nf">multi_process_safe</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A decorator for making sure a function runs only in main process.</span>
 <span class="sd">    If not in DDP mode (local_rank = -1), the function will run.</span>
 <span class="sd">    If in DDP mode, the function will run only in the main process (local_rank = 0)</span>
 <span class="sd">    This works only for functions with no return value</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">do_nothing</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">pass</span>
 
@@ -176,7 +256,18 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">do_nothing</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">wrapper</span></div>
+    <span class="k">return</span> <span class="n">wrapper</span>
+
+
+<span class="k">def</span> <span class="nf">find_free_port</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Find an available port of current machine/node.</span>
+<span class="sd">    Note: there is still a chance the port could be taken by other processes.&quot;&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span> <span class="k">as</span> <span class="n">sock</span><span class="p">:</span>
+        <span class="c1"># Binding to port 0 will cause the OS to find an available port for us</span>
+        <span class="n">sock</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">_ip</span><span class="p">,</span> <span class="n">port</span> <span class="o">=</span> <span class="n">sock</span><span class="o">.</span><span class="n">getsockname</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">port</span>
 </pre></div>
 
            </div>

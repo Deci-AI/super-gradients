@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contribution Guidelines &mdash; SuperGradients 1.0 documentation</title>
+  <title>Contribution Guidelines &mdash; SuperGradients 3.0.3 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -15,7 +15,9 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" /> 
@@ -36,30 +38,29 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
-<li class="toctree-l1"><a class="reference internal" href="welcome.html#supergradients">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html">Version 3 is out! Notebooks have been updated!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#build-with-supergradients">Build with SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#quick-installation">Quick Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#what-s-new">What’s New</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#coming-soon">Coming soon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#table-of-content">Table of Content</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#getting-started">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#advanced-features">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#installation-methods">Installation Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#implemented-model-architectures">Implemented Model Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#citation">Citation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#community">Community</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="welcome.html#deci-platform">Deci Platform</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<p class="caption" role="heading"><span class="caption-text">Technical Documentation</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="super_gradients.common.html">Common package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="super_gradients.training.html">Training package</a></li>
-</ul>
-<p class="caption"><span class="caption-text">User Guide</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html">What is SuperGradients?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#training-parameters">Training Parameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#dataset-parameters">Dataset Parameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#network-architectures">Network Architectures</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#pretrained-models">Pretrained Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -86,8 +87,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="contribution-guidelines">
-<h1>Contribution Guidelines<a class="headerlink" href="#contribution-guidelines" title="Permalink to this headline"></a></h1>
+  <div class="section" id="contribution-guidelines">
+<h1>Contribution Guidelines<a class="headerlink" href="#contribution-guidelines" title="Permalink to this heading"></a></h1>
 <p>We appreciate all contributions. If you are planning to contribute back bug-fixes, please do so without any further discussion. If you plan to contribute new features, utility functions or extensions, please first open an issue and discuss the feature with us.</p>
 <p>Here are a few more things to know:</p>
 <ul class="simple">
@@ -95,8 +96,8 @@
 <li><p><span class="xref myst">Jupyter Notebooks Contribution</span></p></li>
 <li><p><span class="xref myst">Code Style Guidelines</span></p></li>
 </ul>
-<section id="how-to-contribute">
-<h2>How to Contribute<a class="headerlink" href="#how-to-contribute" title="Permalink to this headline"></a></h2>
+<div class="section" id="how-to-contribute">
+<h2>How to Contribute<a class="headerlink" href="#how-to-contribute" title="Permalink to this heading"></a></h2>
 <p>Here is a simple guideline to get you started with your first contribution</p>
 <ol class="arabic simple">
 <li><p>Use <a class="reference external" href="https://github.com/Deci-AI/super-gradients/issues">issues</a> to discuss the suggested changes. Create an issue describing changes if necessary and add labels to ease orientation.</p></li>
@@ -130,9 +131,9 @@
 <ol class="arabic simple" start="7">
 <li><p>Create a pull request against <b>master</b> branch.</p></li>
 </ol>
-</section>
-<section id="jupyter-notebooks-contribution">
-<h2>Jupyter Notebooks Contribution<a class="headerlink" href="#jupyter-notebooks-contribution" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="jupyter-notebooks-contribution">
+<h2>Jupyter Notebooks Contribution<a class="headerlink" href="#jupyter-notebooks-contribution" title="Permalink to this heading"></a></h2>
 <p>Pulling updates from remote might cause merge conflicts with jupyter notebooks. The tool <a class="reference external" href="https://nbdime.readthedocs.io/en/latest/">nbdime</a> might solve this.</p>
 <ul class="simple">
 <li><p>Installing nbdime</p></li>
@@ -146,9 +147,9 @@
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nbdiff</span> <span class="n">notebook_1</span><span class="o">.</span><span class="n">ipynb</span> <span class="n">notebook_2</span><span class="o">.</span><span class="n">ipynb</span>
 </pre></div>
 </div>
-</section>
-<section id="code-style-guidelines">
-<h2>Code Style Guidelines<a class="headerlink" href="#code-style-guidelines" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="code-style-guidelines">
+<h2>Code Style Guidelines<a class="headerlink" href="#code-style-guidelines" title="Permalink to this heading"></a></h2>
 <p>We are working hard to make sure all the code in this repository is readable, maintainable and testable.
 We follow the Google docstring guidelines outlined on this <a class="reference external" href="https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings">styleguide</a> page. For example:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="k">def</span> <span class="nf">python_function</span><span class="p">(</span><span class="n">first_argument</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">second_argument</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -167,9 +168,9 @@ We follow the Google docstring guidelines outlined on this <a class="reference e
 <span class="sd">      &quot;&quot;&quot;</span>
 </pre></div>
 </div>
-</section>
-<section id="documentation">
-<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this heading"></a></h2>
 <p>We use  GitHub Pages for technical documentation hosting on https://deci-ai.github.io/super-gradients/welcome.html <br>
 To generate the docs based on the current work tree, run: <br>
 <code>./scripts/generate_docs.sh</code> <br><br>
@@ -177,8 +178,8 @@ And the documentation will automatically update, based on <code>documentation/</
 The new documentation HTML will be generated to <code>docs/</code>. <br>
 Once <code>docs/</code> is committed and pushed, GitHub Pages will use it.<br>
 The step of documentation update is currently manual.</p>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>
