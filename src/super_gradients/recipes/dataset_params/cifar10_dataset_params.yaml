@@ -8,8 +8,8 @@ train_dataset_params:
   train: True
   transforms:
     - RandomCrop:
-        size: 32
-        padding: 4
+      size: 32
+      padding: 4
     - RandomHorizontalFlip
     - ToTensor
     - Normalize:
