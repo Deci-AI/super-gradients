@@ -1,14 +1,14 @@
 from torch import nn
 from super_gradients.training.models.sg_module import SgModule
+from super_gradients.training.utils import get_param
 
 
 def create_conv_module(in_channels, out_channels, kernel_size=3, stride=1):
     padding = (kernel_size - 1) // 2
     nn_sequential_module = nn.Sequential()
-    nn_sequential_module.add_module('Conv2d', nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size,
-                                                        stride=stride, padding=padding, bias=False))
-    nn_sequential_module.add_module('BatchNorm2d', nn.BatchNorm2d(out_channels))
-    nn_sequential_module.add_module('LeakyRelu', nn.LeakyReLU())
+    nn_sequential_module.add_module("Conv2d", nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=False))
+    nn_sequential_module.add_module("BatchNorm2d", nn.BatchNorm2d(out_channels))
+    nn_sequential_module.add_module("LeakyRelu", nn.LeakyReLU())
 
     return nn_sequential_module
 
@@ -72,19 +72,19 @@ class Darknet53(Darknet53Base):
         super(Darknet53, self).__init__()
 
         # IN ORDER TO ALLOW PASSING PARAMETERS WITH ARCH_PARAMS BUT NOT BREAK YOLOV3 INTEGRATION
-        self.backbone_mode = arch_params.backbone_mode if hasattr(arch_params, 'backbone_mode') else backbone_mode
-        self.num_classes = arch_params.num_classes if hasattr(arch_params, 'num_classes') else num_classes
+        self.backbone_mode = get_param(arch_params, "backbone_mode", backbone_mode)
+        self.num_classes = get_param(arch_params, "num_classes", num_classes)
 
         if not self.backbone_mode:
             # IF NOT USED AS A BACKEND BUT AS A CLASSIFIER WE ADD THE CLASSIFICATION LAYERS
             if self.num_classes is not None:
                 nn_sequential_block = nn.Sequential()
-                nn_sequential_block.add_module('global_avg_pool', nn.AdaptiveAvgPool2d((1, 1)))
-                nn_sequential_block.add_module('view', ViewModule(1024))
-                nn_sequential_block.add_module('fc', nn.Linear(1024, self.num_classes))
+                nn_sequential_block.add_module("global_avg_pool", nn.AdaptiveAvgPool2d((1, 1)))
+                nn_sequential_block.add_module("view", ViewModule(1024))
+                nn_sequential_block.add_module("fc", nn.Linear(1024, self.num_classes))
                 self.modules_list.append(nn_sequential_block)
             else:
-                raise ValueError('num_classes must be specified to use Darknet53 as a classifier')
+                raise ValueError("num_classes must be specified to use Darknet53 as a classifier")
 
     def get_modules_list(self):
         return self.modules_list

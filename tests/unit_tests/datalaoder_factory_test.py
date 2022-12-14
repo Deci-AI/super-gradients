@@ -2,6 +2,7 @@ import unittest
 
 from torch.utils.data import DataLoader, TensorDataset
 
+from super_gradients.common.registry.registry import register_dataset
 from super_gradients.training.dataloaders.dataloaders import (
     classification_test_dataloader,
     detection_test_dataloader,
@@ -52,6 +53,16 @@ from super_gradients.training.datasets import (
     Cifar10,
     Cifar100,
 )
+import torch
+import numpy as np
+
+
+@register_dataset("FixedLenDataset")
+class FixedLenDataset(TensorDataset):
+    def __init__(self):
+        images = torch.Tensor(np.zeros((10, 3, 32, 32)))
+        ground_truth = torch.LongTensor(np.zeros((10)))
+        super(FixedLenDataset, self).__init__(images, ground_truth)
 
 
 class DataLoaderFactoryTest(unittest.TestCase):
@@ -245,6 +256,10 @@ class DataLoaderFactoryTest(unittest.TestCase):
         dataset = Cifar10(root="./data/cifar10", train=False, download=True)
         dl = get(dataset=dataset, dataloader_params={"batch_size": 256, "num_workers": 8, "drop_last": False, "pin_memory": True})
         self.assertTrue(isinstance(dl, DataLoader))
+
+    def test_get_with_registered_dataset(self):
+        dl = get(dataloader_params={"dataset": "FixedLenDataset", "batch_size": 256, "num_workers": 8, "drop_last": False, "pin_memory": True})
+        self.assertTrue(isinstance(dl.dataset, FixedLenDataset))
 
 
 if __name__ == "__main__":
