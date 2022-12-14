@@ -18,5 +18,7 @@ cd .. && sphinx-build -b html documentation/source docs && \
  cp -r documentation/assets docs/ && \
  echo "Successfully generated docs"
 
+touch docs/.nojekyll
+
 # Starting an http server, mimicking github pages root directory (static HTML serving from docs/)
 #cd docs && python -m http.server 8080
