@@ -11,12 +11,13 @@ import torch
 from PIL import Image
 from super_gradients.common import ADNNModelRepositoryDataInterfaces
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.auto_logging import AutoLoggerConfig, ConsoleSink
 from super_gradients.common.environment.ddp_utils import multi_process_safe
 from super_gradients.common.sg_loggers.abstract_sg_logger import AbstractSGLogger
 from super_gradients.training.params import TrainingParams
 from super_gradients.training.utils import sg_trainer_utils
 from super_gradients.common.environment.monitoring import SystemMonitor
+from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
+from super_gradients.common.auto_logging.console_logging import ConsoleSink
 
 logger = get_logger(__name__)
 

@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>super_gradients.training.datasets.detection_datasets.coco_detection &mdash; SuperGradients 1.0 documentation</title>
+  <title>super_gradients.training.datasets.detection_datasets.coco_detection &mdash; SuperGradients 3.0.3 documentation</title>
       <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../../../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -14,7 +15,9 @@
         <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
         <script src="../../../../../_static/jquery.js"></script>
         <script src="../../../../../_static/underscore.js"></script>
+        <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../../../_static/doctools.js"></script>
+        <script src="../../../../../_static/sphinx_highlight.js"></script>
     <script src="../../../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../../search.html" /> 
@@ -35,30 +38,29 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#supergradients">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html">Version 3 is out! Notebooks have been updated!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#build-with-supergradients">Build with SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#quick-installation">Quick Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#what-s-new">What’s New</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#coming-soon">Coming soon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#table-of-content">Table of Content</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#getting-started">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#advanced-features">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#installation-methods">Installation Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#implemented-model-architectures">Implemented Model Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#citation">Citation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#community">Community</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../welcome.html#deci-platform">Deci Platform</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<p class="caption" role="heading"><span class="caption-text">Technical Documentation</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.common.html">Common package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../super_gradients.training.html">Training package</a></li>
-</ul>
-<p class="caption"><span class="caption-text">User Guide</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html">What is SuperGradients?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#training-parameters">Training Parameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#network-architectures">Network Architectures</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#pretrained-models">Pretrained Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -87,106 +89,97 @@
              
   <h1>Source code for super_gradients.training.datasets.detection_datasets.coco_detection</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">pycocotools.coco</span> <span class="kn">import</span> <span class="n">COCO</span>
-<span class="kn">from</span> <span class="nn">super_gradients.common.abstractions.abstract_logger</span> <span class="kn">import</span> <span class="n">get_logger</span>
-<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">import</span> <span class="nn">random</span>
 <span class="kn">import</span> <span class="nn">cv2</span>
+
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
-<span class="kn">from</span> <span class="nn">multiprocessing.pool</span> <span class="kn">import</span> <span class="n">ThreadPool</span>
+<span class="kn">from</span> <span class="nn">pycocotools.coco</span> <span class="kn">import</span> <span class="n">COCO</span>
+
+<span class="kn">from</span> <span class="nn">super_gradients.common.abstractions.abstract_logger</span> <span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.datasets.detection_datasets.detection_dataset</span> <span class="kn">import</span> <span class="n">DetectionDataset</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.detection_utils</span> <span class="kn">import</span> <span class="n">DetectionTargetsFormat</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.datasets.datasets_conf</span> <span class="kn">import</span> <span class="n">COCO_DETECTION_CLASSES_LIST</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="COCODetectionDataset"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.COCODetectionDataset">[docs]</a><span class="k">class</span> <span class="nc">COCODetectionDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Detection dataset COCO implementation&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="COCODetectionDataset"><a class="viewcode-back" href="../../../../../super_gradients.training.html#super_gradients.training.datasets.COCODetectionDataset">[docs]</a><span class="k">class</span> <span class="nc">COCODetectionDataset</span><span class="p">(</span><span class="n">DetectionDataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dataset for COCO object detection.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">img_size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
-            <span class="n">data_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">json_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;instances_train2017.json&quot;</span><span class="p">,</span>
-            <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;images/train2017&quot;</span><span class="p">,</span>
-            <span class="n">cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-            <span class="n">cache_dir_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">tight_box_rotation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-            <span class="n">transforms</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[],</span>
-            <span class="n">with_crowd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">json_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;instances_train2017.json&quot;</span><span class="p">,</span>
+        <span class="n">subdir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;images/train2017&quot;</span><span class="p">,</span>
+        <span class="n">tight_box_rotation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">with_crowd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        :param img_size: tuple, Image size (when loaded, before transforms)</span>
-<span class="sd">        :param data_dir: str, root path to coco data.</span>
-<span class="sd">        :param json_file: str, path to coco json file, that resides in data_dir/annotations/json_file.</span>
-<span class="sd">        :param name: str, sub directory of data_dir containing the data.</span>
-<span class="sd">        :param cache: bool, whether to cache images</span>
-<span class="sd">        :param cache_dir_path: str, path to a directory that will be used for caching (with memmap).</span>
-<span class="sd">        :param tight_box_rotation: bool, whether to use of segmentation maps convex hull</span>
-<span class="sd">         as target_seg (see load_sample docs).</span>
-<span class="sd">        :param transforms: list of transforms to apply sequentially on sample in __getitem__</span>
+<span class="sd">        :param json_file:           Name of the coco json file, that resides in data_dir/annotations/json_file.</span>
+<span class="sd">        :param subdir:              Sub directory of data_dir containing the data.</span>
+<span class="sd">        :param tight_box_rotation:  bool, whether to use of segmentation maps convex hull as target_seg</span>
+<span class="sd">                                    (check get_sample docs).</span>
 <span class="sd">        :param with_crowd: Add the crowd groundtruths to __getitem__</span>
+
+<span class="sd">        kwargs:</span>
+<span class="sd">            all_classes_list: all classes list, default is COCO_DETECTION_CLASSES_LIST.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">=</span> <span class="n">data_dir</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">img_size</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">=</span> <span class="n">data_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subdir</span> <span class="o">=</span> <span class="n">subdir</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">json_file</span> <span class="o">=</span> <span class="n">json_file</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tight_box_rotation</span> <span class="o">=</span> <span class="n">tight_box_rotation</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">with_crowd</span> <span class="o">=</span> <span class="n">with_crowd</span>
 
+        <span class="n">target_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;target&quot;</span><span class="p">,</span> <span class="s2">&quot;crowd_target&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_crowd</span> <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;target&quot;</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;target_fields&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_fields</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;output_fields&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">target_fields</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;original_target_format&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">DetectionTargetsFormat</span><span class="o">.</span><span class="n">XYXY_LABEL</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;all_classes_list&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;all_classes_list&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">COCO_DETECTION_CLASSES_LIST</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_setup_data_source</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Initialize img_and_target_path_list and warn if label file is missing</span>
+
+<span class="sd">        :return: List of tuples made of (img_path,target_path)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coco</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_coco</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">class_ids</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">getCatIds</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">([</span><span class="n">category</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">loadCats</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">class_ids</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_id_to_coco_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">getImgIds</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_id_to_coco_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init_coco</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">COCO</span><span class="p">:</span>
         <span class="n">annotation_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="s2">&quot;annotations&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">json_file</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">annotation_file_path</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Could not find annotation file under &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">annotation_file_path</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">coco</span> <span class="o">=</span> <span class="n">COCO</span><span class="p">(</span><span class="n">annotation_file_path</span><span class="p">)</span>  <span class="c1"># duplicate</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tight_box_rotation</span> <span class="o">=</span> <span class="n">tight_box_rotation</span>
-        <span class="n">remove_useless_info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tight_box_rotation</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">getImgIds</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">class_ids</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">getCatIds</span><span class="p">())</span>
-        <span class="n">cats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">loadCats</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">getCatIds</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_classes</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cats</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_coco_annotations</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">cache</span><span class="p">:</span>  <span class="c1"># cache after merged</span>
-            <span class="k">if</span> <span class="n">cache_dir_path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cache_dir_path</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must pass valid path through cache_dir_path when caching. Got &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">cache_dir_path</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cache_dir_path</span> <span class="o">=</span> <span class="n">cache_dir_path</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_cache_images</span><span class="p">()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span> <span class="o">=</span> <span class="n">transforms</span>
+        <span class="n">coco</span> <span class="o">=</span> <span class="n">COCO</span><span class="p">(</span><span class="n">annotation_file_path</span><span class="p">)</span>
+        <span class="n">remove_useless_info</span><span class="p">(</span><span class="n">coco</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tight_box_rotation</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coco</span>
 
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
-        <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_sample</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
-        <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_transforms</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_crowd</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;target&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;crowd_target&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;info&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;target&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;info&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_load_coco_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_anno_from_ids</span><span class="p">(</span><span class="n">_ids</span><span class="p">)</span> <span class="k">for</span> <span class="n">_ids</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Loading annotations&quot;</span><span class="p">)]</span>
-
-    <span class="k">def</span> <span class="nf">_load_anno_from_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_load_annotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load relevant information of a specific image</span>
+<span class="sd">        Load relevant information of a specific image.</span>
 
-<span class="sd">        :param id_: image id</span>
-<span class="sd">        :return res:            Target Bboxes (detection)</span>
-<span class="sd">        :return res_crowd:      Crowd target Bboxes (detection)</span>
-<span class="sd">        :return res_seg:        Segmentation</span>
-<span class="sd">        :return img_info:       Image (height, width)</span>
-<span class="sd">        :return resized_info:   Resides image (height, width)</span>
-<span class="sd">        :return img_path:       Path to the associated image</span>
+<span class="sd">        :param sample_id:               Sample_id in the dataset</span>
+<span class="sd">        :return target:                 Target Bboxes (detection) in XYXY_LABEL format</span>
+<span class="sd">        :return crowd_target:           Crowd target Bboxes (detection) in XYXY_LABEL format</span>
+<span class="sd">        :return target_segmentation:    Segmentation</span>
+<span class="sd">        :return initial_img_shape:      Image (height, width)</span>
+<span class="sd">        :return resized_img_shape:      Resides image (height, width)</span>
+<span class="sd">        :return img_path:               Path to the associated image</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">im_ann</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">loadImgs</span><span class="p">(</span><span class="n">id_</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">width</span> <span class="o">=</span> <span class="n">im_ann</span><span class="p">[</span><span class="s2">&quot;width&quot;</span><span class="p">]</span>
-        <span class="n">height</span> <span class="o">=</span> <span class="n">im_ann</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span>
-        <span class="n">anno_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">getAnnIds</span><span class="p">(</span><span class="n">imgIds</span><span class="o">=</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">id_</span><span class="p">)])</span>
-        <span class="n">annotations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">loadAnns</span><span class="p">(</span><span class="n">anno_ids</span><span class="p">)</span>
+
+        <span class="n">img_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_id_to_coco_id</span><span class="p">[</span><span class="n">sample_id</span><span class="p">]</span>
+
+        <span class="n">img_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">loadImgs</span><span class="p">(</span><span class="n">img_id</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">img_metadata</span><span class="p">[</span><span class="s2">&quot;width&quot;</span><span class="p">]</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="n">img_metadata</span><span class="p">[</span><span class="s2">&quot;height&quot;</span><span class="p">]</span>
+
+        <span class="n">img_annotation_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">getAnnIds</span><span class="p">(</span><span class="n">imgIds</span><span class="o">=</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">img_id</span><span class="p">)])</span>
+        <span class="n">img_annotations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">loadAnns</span><span class="p">(</span><span class="n">img_annotation_ids</span><span class="p">)</span>
 
         <span class="n">cleaned_annotations</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="n">annotations</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="n">img_annotations</span><span class="p">:</span>
             <span class="n">x1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;bbox&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
             <span class="n">y1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;bbox&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]))</span>
             <span class="n">x2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">((</span><span class="n">width</span><span class="p">,</span> <span class="n">x1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;bbox&quot;</span><span class="p">][</span><span class="mi">2</span><span class="p">]))))</span>
@@ -197,14 +190,14 @@
 
         <span class="n">non_crowd_annotations</span> <span class="o">=</span> <span class="p">[</span><span class="n">annotation</span> <span class="k">for</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="n">cleaned_annotations</span> <span class="k">if</span> <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;iscrowd&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
 
-        <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">non_crowd_annotations</span><span class="p">),</span> <span class="mi">5</span><span class="p">))</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">non_crowd_annotations</span><span class="p">),</span> <span class="mi">5</span><span class="p">))</span>
         <span class="n">num_seg_values</span> <span class="o">=</span> <span class="mi">98</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tight_box_rotation</span> <span class="k">else</span> <span class="mi">0</span>
-        <span class="n">res_seg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">non_crowd_annotations</span><span class="p">),</span> <span class="n">num_seg_values</span><span class="p">))</span>
-        <span class="n">res_seg</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">target_segmentation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">non_crowd_annotations</span><span class="p">),</span> <span class="n">num_seg_values</span><span class="p">))</span>
+        <span class="n">target_segmentation</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">non_crowd_annotations</span><span class="p">):</span>
             <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_ids</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;category_id&quot;</span><span class="p">])</span>
-            <span class="n">res</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;clean_bbox&quot;</span><span class="p">]</span>
-            <span class="n">res</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+            <span class="n">target</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;clean_bbox&quot;</span><span class="p">]</span>
+            <span class="n">target</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tight_box_rotation</span><span class="p">:</span>
                 <span class="n">seg_points</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">annotation</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;segmentation&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">i</span><span class="p">]</span>
                 <span class="k">if</span> <span class="n">seg_points</span><span class="p">:</span>
@@ -212,181 +205,41 @@
                     <span class="n">seg_points_convex</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">convexHull</span><span class="p">(</span><span class="n">seg_points_c</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">seg_points_convex</span> <span class="o">=</span> <span class="p">[]</span>
-                <span class="n">res_seg</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">seg_points_convex</span><span class="p">)]</span> <span class="o">=</span> <span class="n">seg_points_convex</span>
+                <span class="n">target_segmentation</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">seg_points_convex</span><span class="p">)]</span> <span class="o">=</span> <span class="n">seg_points_convex</span>
 
         <span class="n">crowd_annotations</span> <span class="o">=</span> <span class="p">[</span><span class="n">annotation</span> <span class="k">for</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="n">cleaned_annotations</span> <span class="k">if</span> <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;iscrowd&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
 
-        <span class="n">res_crowd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">crowd_annotations</span><span class="p">),</span> <span class="mi">5</span><span class="p">))</span>
+        <span class="n">crowd_target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">crowd_annotations</span><span class="p">),</span> <span class="mi">5</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">crowd_annotations</span><span class="p">):</span>
             <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_ids</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;category_id&quot;</span><span class="p">])</span>
-            <span class="n">res_crowd</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;clean_bbox&quot;</span><span class="p">]</span>
-            <span class="n">res_crowd</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+            <span class="n">crowd_target</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;clean_bbox&quot;</span><span class="p">]</span>
+            <span class="n">crowd_target</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
 
         <span class="n">r</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">height</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">width</span><span class="p">)</span>
-        <span class="n">res</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">*=</span> <span class="n">r</span>
-        <span class="n">res_crowd</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">*=</span> <span class="n">r</span>
-        <span class="n">res_seg</span> <span class="o">*=</span> <span class="n">r</span>
+        <span class="n">target</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">*=</span> <span class="n">r</span>
+        <span class="n">crowd_target</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">*=</span> <span class="n">r</span>
+        <span class="n">target_segmentation</span> <span class="o">*=</span> <span class="n">r</span>
 
-        <span class="n">img_info</span> <span class="o">=</span> <span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-        <span class="n">resized_info</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">height</span> <span class="o">*</span> <span class="n">r</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">width</span> <span class="o">*</span> <span class="n">r</span><span class="p">))</span>
+        <span class="n">initial_img_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+        <span class="n">resized_img_shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">height</span> <span class="o">*</span> <span class="n">r</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">width</span> <span class="o">*</span> <span class="n">r</span><span class="p">))</span>
 
-        <span class="n">file_name</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">im_ann</span><span class="p">[</span><span class="s2">&quot;file_name&quot;</span><span class="p">]</span>
-            <span class="k">if</span> <span class="s2">&quot;file_name&quot;</span> <span class="ow">in</span> <span class="n">im_ann</span>
-            <span class="k">else</span> <span class="s2">&quot;</span><span class="si">{:012}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.jpg&quot;</span>
-        <span class="p">)</span>
-        <span class="n">img_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">res</span><span class="p">,</span> <span class="n">res_crowd</span><span class="p">,</span> <span class="n">res_seg</span><span class="p">,</span> <span class="n">img_info</span><span class="p">,</span> <span class="n">resized_info</span><span class="p">,</span> <span class="n">img_path</span>
+        <span class="n">file_name</span> <span class="o">=</span> <span class="n">img_metadata</span><span class="p">[</span><span class="s2">&quot;file_name&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;file_name&quot;</span> <span class="ow">in</span> <span class="n">img_metadata</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">{:012}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">img_id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.jpg&quot;</span>
+        <span class="n">img_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subdir</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+        <span class="n">img_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_id_to_coco_id</span><span class="p">[</span><span class="n">sample_id</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_cache_images</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">********************************************************************************</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="s2">&quot;You are using cached images in RAM to accelerate training.</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="s2">&quot;This requires large system RAM.</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="s2">&quot;Make sure you have 200G+ RAM and 136G available disk space for training COCO.</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="s2">&quot;********************************************************************************</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
-        <span class="n">max_h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">max_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">cache_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_dir_path</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;img_resized_cache_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">.array&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cache_file</span><span class="p">):</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Caching images for the first time. This might take about 20 minutes for COCO&quot;</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span>
-                <span class="n">cache_file</span><span class="p">,</span>
-                <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">),</span> <span class="n">max_h</span><span class="p">,</span> <span class="n">max_w</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span>
-                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w+&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-
-            <span class="n">NUM_THREADs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
-            <span class="n">loaded_images</span> <span class="o">=</span> <span class="n">ThreadPool</span><span class="p">(</span><span class="n">NUM_THREADs</span><span class="p">)</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span>
-                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_resized_img</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
-                <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">)),</span>
-            <span class="p">)</span>
-            <span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">loaded_images</span><span class="p">),</span> <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">))</span>
-            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">out</span> <span class="ow">in</span> <span class="n">pbar</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span><span class="p">[</span><span class="n">k</span><span class="p">][:</span> <span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:</span> <span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-            <span class="n">pbar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">&quot;You are using cached imgs! Make sure your dataset is not changed!!</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;Everytime the self.input_size is changed in your exp file, you need to delete</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot;the cached data and re-generate them.</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading cached imgs...&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span>
-            <span class="n">cache_file</span><span class="p">,</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">),</span> <span class="n">max_h</span><span class="p">,</span> <span class="n">max_w</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span>
-            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r+&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-<div class="viewcode-block" id="COCODetectionDataset.load_resized_img"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.COCODetectionDataset.load_resized_img">[docs]</a>    <span class="k">def</span> <span class="nf">load_resized_img</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Loads image at index, and resizes it to self.input_dim</span>
-
-<span class="sd">        :param index: index to load the image from</span>
-<span class="sd">        :return: resized_img</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_image</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-        <span class="n">r</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">resized_img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
-            <span class="n">img</span><span class="p">,</span>
-            <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">r</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">r</span><span class="p">)),</span>
-            <span class="n">interpolation</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">INTER_LINEAR</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">resized_img</span></div>
-
-<div class="viewcode-block" id="COCODetectionDataset.load_sample"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.COCODetectionDataset.load_sample">[docs]</a>    <span class="k">def</span> <span class="nf">load_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Loads sample at self.ids[index] as dictionary that holds:</span>
-<span class="sd">            &quot;image&quot;: Image resized to self.input_dim</span>
-<span class="sd">            &quot;target&quot;: Detection ground truth, np.array shaped (num_targets, 5), format is [class,x1,y1,x2,y2] with</span>
-<span class="sd">                image coordinates.</span>
-<span class="sd">            &quot;target_seg&quot;: Segmentation map convex hull derived detection target.</span>
-<span class="sd">            &quot;info&quot;: Original shape (height,width).</span>
-<span class="sd">            &quot;id&quot;: COCO image id</span>
-
-<span class="sd">        :param index: Sample index</span>
-<span class="sd">        :return: sample as described above</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">id_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-        <span class="n">res</span><span class="p">,</span> <span class="n">res_crowd</span><span class="p">,</span> <span class="n">res_seg</span><span class="p">,</span> <span class="n">img_info</span><span class="p">,</span> <span class="n">resized_info</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">pad_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-            <span class="n">img</span> <span class="o">=</span> <span class="n">pad_img</span><span class="p">[:</span> <span class="n">resized_info</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">:</span> <span class="n">resized_info</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_resized_img</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-
-        <span class="n">sample</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">img</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">:</span> <span class="n">res</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="s2">&quot;target_seg&quot;</span><span class="p">:</span> <span class="n">res_seg</span><span class="p">,</span> <span class="s2">&quot;info&quot;</span><span class="p">:</span> <span class="n">img_info</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">id_</span><span class="p">])}</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_crowd</span><span class="p">:</span>
-            <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;crowd_target&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_crowd</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">sample</span></div>
-
-<div class="viewcode-block" id="COCODetectionDataset.load_image"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.COCODetectionDataset.load_image">[docs]</a>    <span class="k">def</span> <span class="nf">load_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Loads image at index with its original resolution</span>
-<span class="sd">        :param index: index in self.annotations</span>
-<span class="sd">        :return: image (np.array)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">file_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="mi">5</span><span class="p">]</span>
-
-        <span class="n">img_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
-
-        <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">img_file</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">img</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-
-        <span class="k">return</span> <span class="n">img</span></div>
-
-    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgs</span>
-
-    <span class="k">def</span> <span class="nf">_load_anno</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">_get_random_non_empty_target_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">target</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">target</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">idx</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_anno</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">idx</span>
-
-    <span class="k">def</span> <span class="nf">_load_random_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">non_empty_targets_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="n">inds</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_get_random_non_empty_target_idx</span><span class="p">()</span> <span class="k">if</span> <span class="n">non_empty_targets_only</span> <span class="k">else</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">count</span><span class="p">)]</span>
-        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">load_sample</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">inds</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">_load_additional_inputs_for_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">transform</span><span class="p">):</span>
-        <span class="n">additional_samples_count</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">additional_samples_count</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span>
-                                                                                 <span class="s2">&quot;additional_samples_count&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
-        <span class="n">non_empty_targets</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">non_empty_targets</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="s2">&quot;non_empty_targets&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span>
-        <span class="n">additional_samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_random_samples</span><span class="p">(</span><span class="n">additional_samples_count</span><span class="p">,</span> <span class="n">non_empty_targets</span><span class="p">)</span>
-        <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;additional_samples&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">additional_samples</span>
-
-<div class="viewcode-block" id="COCODetectionDataset.apply_transforms"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.COCODetectionDataset.apply_transforms">[docs]</a>    <span class="k">def</span> <span class="nf">apply_transforms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Applies self.transforms sequentially to sample</span>
-
-<span class="sd">        If a transforms has the attribute &#39;additional_samples_count&#39;, additional samples will be loaded and stored in</span>
-<span class="sd">         sample[&quot;additional_samples&quot;] prior to applying it. Combining with the attribute &quot;non_empty_targets&quot; will load</span>
-<span class="sd">         only additional samples with objects in them.</span>
-
-<span class="sd">        :param sample: Sample to apply the transforms on to (loaded with self.load_sample)</span>
-<span class="sd">        :return: Transformed sample</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">transform</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">transforms</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_load_additional_inputs_for_transform</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
-            <span class="n">sample</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">sample</span></div></div>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;target&quot;</span><span class="p">:</span> <span class="n">target</span><span class="p">,</span>
+            <span class="s2">&quot;crowd_target&quot;</span><span class="p">:</span> <span class="n">crowd_target</span><span class="p">,</span>
+            <span class="s2">&quot;target_segmentation&quot;</span><span class="p">:</span> <span class="n">target_segmentation</span><span class="p">,</span>
+            <span class="s2">&quot;initial_img_shape&quot;</span><span class="p">:</span> <span class="n">initial_img_shape</span><span class="p">,</span>
+            <span class="s2">&quot;resized_img_shape&quot;</span><span class="p">:</span> <span class="n">resized_img_shape</span><span class="p">,</span>
+            <span class="s2">&quot;img_path&quot;</span><span class="p">:</span> <span class="n">img_path</span><span class="p">,</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">img_id</span><span class="p">]),</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">annotation</span></div>
 
 
-<div class="viewcode-block" id="remove_useless_info"><a class="viewcode-back" href="../../../../../super_gradients.training.datasets.detection_datasets.html#super_gradients.training.datasets.remove_useless_info">[docs]</a><span class="k">def</span> <span class="nf">remove_useless_info</span><span class="p">(</span><span class="n">coco</span><span class="p">,</span> <span class="n">use_seg_info</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">remove_useless_info</span><span class="p">(</span><span class="n">coco</span><span class="p">,</span> <span class="n">use_seg_info</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Remove useless info in coco dataset. COCO object is modified inplace.</span>
 <span class="sd">    This function is mainly used for saving memory (save about 30% mem).</span>
@@ -402,7 +255,7 @@
             <span class="n">img</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;flickr_url&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;annotations&quot;</span> <span class="ow">in</span> <span class="n">coco</span><span class="o">.</span><span class="n">dataset</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">use_seg_info</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">anno</span> <span class="ow">in</span> <span class="n">coco</span><span class="o">.</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;annotations&quot;</span><span class="p">]:</span>
-                <span class="n">anno</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;segmentation&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+                <span class="n">anno</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;segmentation&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 </pre></div>
 
            </div>
