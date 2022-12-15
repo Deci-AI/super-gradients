@@ -7,12 +7,12 @@ from super_gradients.training.utils.output_adapters.formats import ConcatenatedT
 
 
 def apply_on_bboxes(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_format: ConcatenatedTensorFormat) -> Union[np.ndarray, Tensor]:
-    """Map inplace!"""
+    """Apply inplace a function only on the bboxes of a concatenated tensor."""
     return apply_on_layout(fn=fn, tensor=tensor, tensor_format=tensor_format, layout_name=tensor_format.bboxes_format.name)
 
 
 def apply_on_layout(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_format: ConcatenatedTensorFormat, layout_name: str) -> Union[np.ndarray, Tensor]:
-    """Map inplace!"""
+    """Apply inplace a function only on a specific layout of a concatenated tensor."""
     location = slice(*iter(tensor_format.locations[layout_name]))
     result = fn(tensor[..., location])
     tensor[..., location] = result
@@ -20,10 +20,12 @@ def apply_on_layout(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_form
 
 
 def filter_on_bboxes(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_format: ConcatenatedTensorFormat) -> Union[np.ndarray, Tensor]:
+    """Filter the tensor according to a condition on the bboxes."""
     return filter_on_layout(fn=fn, tensor=tensor, tensor_format=tensor_format, layout_name=tensor_format.bboxes_format.name)
 
 
 def filter_on_layout(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_format: ConcatenatedTensorFormat, layout_name: str) -> Union[np.ndarray, Tensor]:
+    """Filter the tensor according to a condition on a specific layout."""
     location = slice(*tensor_format.locations[layout_name])
     mask = fn(tensor[..., location])
     tensor = tensor[mask]
@@ -31,6 +33,7 @@ def filter_on_layout(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_for
 
 
 def get_permutation_indexes(input_format: ConcatenatedTensorFormat, output_format: ConcatenatedTensorFormat) -> List[Union[np.ndarray, Tensor]]:
+    """Compute the permutations required to change the format layout order."""
     output_indexes = []
     for output_name, output_spec in output_format.layout.items():
         if output_name not in input_format.layout:
