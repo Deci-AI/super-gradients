@@ -15,7 +15,7 @@ class BoundingBoxFormat:
     all combinations of conversion xyxy, xywh, cxcywh, yxyx <-> xyxy, xywh, cxcywh, yxyx.
     """
 
-    def to_xyxy(self, bboxes, image_shape: Tuple[int, int], inplace: bool):
+    def to_xyxy(self, bboxes: Union[Tensor, np.ndarray], image_shape: Tuple[int, int], inplace: bool) -> Union[Tensor, np.ndarray]:
         """
         Convert input boxes to XYXY format
         :param bboxes: Input bounding boxes [..., 4]
@@ -25,7 +25,7 @@ class BoundingBoxFormat:
         """
         return self.get_to_xyxy(inplace)(bboxes, image_shape)
 
-    def from_xyxy(self, bboxes, image_shape: Tuple[int, int], inplace: bool):
+    def from_xyxy(self, bboxes: Union[Tensor, np.ndarray], image_shape: Tuple[int, int], inplace: bool) -> Union[Tensor, np.ndarray]:
         """
         Convert XYXY boxes to target bboxes format
         :param bboxes: Input bounding boxes [..., 4] in XYXY format
@@ -47,7 +47,9 @@ class BoundingBoxFormat:
         return 4
 
 
-def convert_bboxes(bboxes, image_shape: Tuple[int, int], source_format: BoundingBoxFormat, target_format: BoundingBoxFormat, inplace: bool):
+def convert_bboxes(
+    bboxes: Union[Tensor, np.ndarray], image_shape: Tuple[int, int], source_format: BoundingBoxFormat, target_format: BoundingBoxFormat, inplace: bool
+) -> Union[Tensor, np.ndarray]:
     """
     Convert bboxes from source to target format
     :param bboxes: Tensor of shape (..., 4) with input bounding boxes

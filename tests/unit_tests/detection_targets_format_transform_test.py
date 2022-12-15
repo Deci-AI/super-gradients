@@ -55,7 +55,7 @@ class DetectionTargetsTransformTest(unittest.TestCase):
 
         transform = DetectionTargetsFormatTransform(max_targets=1, input_format=XYXY_LABEL, output_format=LABEL_XYXY)
         t_output = transform(sample)["target"]
-        self.assertTrue(np.allclose(output, t_output, atol=0.0000001))
+        self.assertTrue(np.allclose(output, t_output, atol=1e-6))
 
     def test_xyxy_2_normalized_xyxy(self):
         input = np.array([[10, 20, 30, 40, 50]], dtype=np.float32)
@@ -65,7 +65,7 @@ class DetectionTargetsTransformTest(unittest.TestCase):
 
         transform = DetectionTargetsFormatTransform(max_targets=1, input_format=LABEL_XYXY, output_format=LABEL_NORMALIZED_XYXY)
         t_output = transform(sample)["target"]
-        self.assertTrue(np.allclose(output, t_output, atol=0.0000001))
+        self.assertTrue(np.allclose(output, t_output, atol=1e-6))
 
     def test_xyxy_2_cxcywh(self):
         input = np.array([[10, 20, 30, 40, 50]], dtype=np.float32)
@@ -75,7 +75,7 @@ class DetectionTargetsTransformTest(unittest.TestCase):
 
         transform = DetectionTargetsFormatTransform(max_targets=1, input_format=LABEL_XYXY, output_format=LABEL_CXCYWH)
         t_output = transform(sample)["target"]
-        self.assertTrue(np.allclose(output, t_output, atol=0.0000001))
+        self.assertTrue(np.allclose(output, t_output, atol=1e-6))
 
     def test_xyxy_2_normalized_cxcywh(self):
         input = np.array([[10, 20, 30, 40, 50]], dtype=np.float32)
@@ -85,7 +85,7 @@ class DetectionTargetsTransformTest(unittest.TestCase):
 
         transform = DetectionTargetsFormatTransform(max_targets=1, input_format=LABEL_XYXY, output_format=LABEL_NORMALIZED_CXCYWH)
         t_output = transform(sample)["target"]
-        self.assertTrue(np.allclose(output, t_output, atol=0.0000001))
+        self.assertTrue(np.allclose(output, t_output, atol=1e-6))
 
     def test_normalized_xyxy_2_cxcywh(self):
         _, h, w = self.image.shape
@@ -95,7 +95,7 @@ class DetectionTargetsTransformTest(unittest.TestCase):
 
         transform = DetectionTargetsFormatTransform(max_targets=1, input_format=LABEL_NORMALIZED_XYXY, output_format=LABEL_CXCYWH)
         t_output = transform(sample)["target"]
-        self.assertTrue(np.allclose(output, t_output, atol=0.0000001))
+        self.assertTrue(np.allclose(output, t_output, atol=1e-6))
 
     def test_normalized_xyxy_2_normalized_cxcywh(self):
         _, h, w = self.image.shape
@@ -105,7 +105,7 @@ class DetectionTargetsTransformTest(unittest.TestCase):
 
         transform = DetectionTargetsFormatTransform(max_targets=1, input_format=LABEL_NORMALIZED_XYXY, output_format=LABEL_NORMALIZED_CXCYWH)
         t_output = transform(sample)["target"]
-        self.assertTrue(np.allclose(output, t_output, atol=0.0000001))
+        self.assertTrue(np.allclose(output, t_output, atol=1e-6))
 
     def test_cxcywh_2_xyxy(self):
         output = np.array([[10, 20, 30, 40, 50]], dtype=np.float32)
@@ -114,7 +114,7 @@ class DetectionTargetsTransformTest(unittest.TestCase):
 
         transform = DetectionTargetsFormatTransform(max_targets=1, input_format=LABEL_CXCYWH, output_format=LABEL_XYXY)
         t_output = transform(sample)["target"]
-        self.assertTrue(np.allclose(output, t_output, atol=0.0000001))
+        self.assertTrue(np.allclose(output, t_output, atol=1e-6))
 
     def test_cxcywh_2_normalized_xyxy(self):
         _, h, w = self.image.shape
@@ -124,7 +124,7 @@ class DetectionTargetsTransformTest(unittest.TestCase):
 
         transform = DetectionTargetsFormatTransform(max_targets=1, input_format=LABEL_CXCYWH, output_format=LABEL_NORMALIZED_XYXY)
         t_output = transform(sample)["target"]
-        self.assertTrue(np.allclose(output, t_output, atol=0.0000001))
+        self.assertTrue(np.allclose(output, t_output, atol=1e-6))
 
     def test_normalized_cxcywh_2_xyxy(self):
         _, h, w = self.image.shape
@@ -134,7 +134,7 @@ class DetectionTargetsTransformTest(unittest.TestCase):
 
         transform = DetectionTargetsFormatTransform(max_targets=1, input_format=LABEL_NORMALIZED_CXCYWH, output_format=LABEL_XYXY)
         t_output = transform(sample)["target"]
-        self.assertTrue(np.allclose(output, t_output, atol=0.0000001))
+        self.assertTrue(np.allclose(output, t_output, atol=1e-6))
 
     def test_normalized_cxcywh_2_normalized_xyxy(self):
         _, h, w = self.image.shape
@@ -144,7 +144,7 @@ class DetectionTargetsTransformTest(unittest.TestCase):
 
         transform = DetectionTargetsFormatTransform(max_targets=1, input_format=LABEL_NORMALIZED_CXCYWH, output_format=LABEL_NORMALIZED_XYXY)
         t_output = transform(sample)["target"]
-        self.assertTrue(np.allclose(output, t_output, atol=0.0000001))
+        self.assertTrue(np.allclose(output, t_output, atol=1e-6))
 
 
 if __name__ == "__main__":

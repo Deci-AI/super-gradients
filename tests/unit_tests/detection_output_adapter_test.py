@@ -119,7 +119,7 @@ class TestDetectionOutputAdapter(unittest.TestCase):
 
             with tempfile.TemporaryDirectory() as tmpdirname:
                 adapter_fname = os.path.join(tmpdirname, "adapter.onnx")
-                torch.onnx.export(adapter, inp, f=adapter_fname, input_names=["predictions"], output_names=["output_predictions"])
+                torch.onnx.export(adapter, inp, f=adapter_fname, input_names=["predictions"], output_names=["output_predictions"], opset_version=11)
 
                 onnx_model = onnx.load(adapter_fname)
                 onnx.checker.check_model(onnx_model)
