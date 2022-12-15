@@ -56,6 +56,7 @@ class QARepVGGBlock(nn.Module):
         build_residual_branches: bool = True,
         use_residual_connection: bool = True,
         use_alpha: bool = False,
+        use_1x1_bias: bool = True,
     ):
         """
 
@@ -71,6 +72,7 @@ class QARepVGGBlock(nn.Module):
         :param build_residual_branches: Whether to initialize block with already fused parameters (for deployment)
         :param use_residual_connection: Whether to add input x to the output (Enabled in RepVGG, disabled in PP-Yolo)
         :param use_alpha: If True, enables additional learnable weighting parameter for 1x1 branch (PP-Yolo-E Plus)
+        :param use_1x1_bias: If True, enables bias in the 1x1 convolution, authors don't mention it specifically
         """
         super().__init__()
 
@@ -90,19 +92,27 @@ class QARepVGGBlock(nn.Module):
         self.se_kwargs = se_kwargs
         self.use_residual_connection = use_residual_connection
         self.use_alpha = use_alpha
+        self.use_1x1_bias = use_1x1_bias
 
         self.nonlinearity = activation_type(**activation_kwargs)
         self.se = se_type(**se_kwargs)
 
-        self.branch_3x3 = self._conv_bn(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            dilation=dilation,
-            kernel_size=3,
-            stride=stride,
-            padding=dilation,
-            groups=groups,
+        self.branch_3x3 = nn.Sequential()
+        self.branch_3x3.add_module(
+            "conv",
+            nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=3,
+                stride=stride,
+                padding=dilation,
+                groups=groups,
+                bias=False,
+                dilation=dilation,
+            ),
         )
+        self.branch_3x3.add_module("bn", nn.BatchNorm2d(num_features=out_channels))
+
         self.branch_1x1 = nn.Conv2d(
             in_channels=in_channels,
             out_channels=out_channels,
@@ -110,15 +120,17 @@ class QARepVGGBlock(nn.Module):
             stride=stride,
             padding=0,
             groups=groups,
-            bias=True,  # authors don't mention it specifically, it seems that it should be here
+            bias=use_1x1_bias,
         )
 
         if use_residual_connection and out_channels == in_channels and stride == 1:
             self.identity = Residual()
+
             input_dim = self.in_channels // self.groups
-            self.id_tensor = torch.zeros((self.in_channels, input_dim, 3, 3), dtype=torch.float32, device=self.branch_1x1.weight.device)
+            self.id_tensor = torch.zeros((self.in_channels, input_dim, 3, 3))
             for i in range(self.in_channels):
-                self.id_tensor[i, i % input_dim, 1, 1] = 1
+                self.id_tensor[i, i % input_dim, 1, 1] = 1.0
+            self.id_tensor = self.id_tensor.to(dtype=self.branch_1x1.weight.dtype, device=self.branch_1x1.weight.device)
         else:
             self.identity = None
 
@@ -153,11 +165,23 @@ class QARepVGGBlock(nn.Module):
         """
         Fuses the 3x3, 1x1 and identity branches into a single 3x3 conv layer
         """
-        kernel3x3, bias3x3 = self._fuse_branch(self.branch_3x3)  # legit fusion
-        kernel1x1, bias1x1 = self._fuse_branch(self.branch_1x1)  # only extract weight and bias from Conv2d
-        kernelid, biasid = self._fuse_branch(self.identity)  # get id_tensor and 0
+        kernel3x3, bias3x3 = self._fuse_bn_tensor(
+            self.branch_3x3.conv.weight,
+            0,
+            self.branch_3x3.bn.running_mean,
+            self.branch_3x3.bn.running_var,
+            self.branch_3x3.bn.weight,
+            self.branch_3x3.bn.bias,
+            self.branch_3x3.bn.eps,
+        )
 
-        eq_kernel_3x3 = kernel3x3 + self.alpha * self._pad_1x1_to_3x3_tensor(kernel1x1) + kernelid
+        kernel1x1 = self._pad_1x1_to_3x3_tensor(self.branch_1x1.weight)
+        bias1x1 = self.branch_1x1.bias if self.branch_1x1.bias is not None else 0
+
+        kernelid = self.id_tensor if self.identity is not None else 0
+        biasid = 0
+
+        eq_kernel_3x3 = kernel3x3 + self.alpha * kernel1x1 + kernelid
         eq_bias_3x3 = bias3x3 + self.alpha * bias1x1 + biasid
 
         return eq_kernel_3x3, eq_bias_3x3
@@ -183,71 +207,8 @@ class QARepVGGBlock(nn.Module):
 
         return kernel * A_, bias * A + b
 
-    def _fuse_branch(self, branch):
-        if branch is None:
-            return 0, 0
-
-        if isinstance(branch, nn.Sequential):  # our BN(3x3) branch
-            return self._fuse_bn_tensor(
-                branch.conv.weight,
-                0,
-                branch.bn.running_mean,
-                branch.bn.running_var,
-                branch.bn.weight,
-                branch.bn.bias,
-                branch.bn.eps,
-            )
-
-        if isinstance(branch, nn.Conv2d):  # our 1x1 branch
-            if branch.bias is not None:
-                return branch.weight, branch.bias
-            else:
-                return branch.weight, 0
-
-        if isinstance(branch, Residual):  # our identity branch
-            return self.id_tensor, 0
-
-        raise ValueError("Unknown branch")
-
     def prepare_for_deploy(self):
-        """Fuse everything into Conv-Act-SE, non-trainable, parameters detached"""
-        self.fuse_block_residual_branches()
-
-    def prepare_for_qat(self):
-        """Fuse branches into a single kernel, leave batchnorm unfused, leave parameters differentiable"""
-        if self.qat_mode:
-            return
-
-        if self.deploy_mode:
-            raise RuntimeError("QARepVGGBlock can't be converted to QAT mode from deploy mode")
-
-        kernel, bias = self._get_equivalent_kernel_bias_for_branches()
-        self.rbr_reparam = nn.Conv2d(
-            in_channels=self.branch_3x3.conv.in_channels,
-            out_channels=self.branch_3x3.conv.out_channels,
-            kernel_size=self.branch_3x3.conv.kernel_size,
-            stride=self.branch_3x3.conv.stride,
-            padding=self.branch_3x3.conv.padding,
-            dilation=self.branch_3x3.conv.dilation,
-            groups=self.branch_3x3.conv.groups,
-            bias=True,
-        )
-        self.rbr_reparam.weight.data = kernel
-        self.rbr_reparam.bias.data = bias
-
-        self.__delattr__("branch_3x3")
-        self.__delattr__("branch_1x1")
-        if hasattr(self, "identity"):
-            self.__delattr__("identity")
-        if hasattr(self, "alpha"):
-            self.__delattr__("alpha")
-        if hasattr(self, "id_tensor"):
-            self.__delattr__("id_tensor")
-
-        self.qat_mode = True
-
-    def fuse_block_residual_branches(self):
-        """
+        """Fuse everything into Conv-Act-SE, non-trainable, parameters detached
         converts a qarepvgg block from training model (with branches) to deployment mode (vgg like model)
         :return:
         :rtype:
@@ -277,38 +238,58 @@ class QARepVGGBlock(nn.Module):
         if hasattr(self, "post_bn"):
             self.__delattr__("post_bn")
 
-        self.deploy_mode = True
         self.qat_mode = False
+        self.deploy_mode = True
 
-    @staticmethod
-    def _conv_bn(in_channels, out_channels, kernel_size, stride, padding, groups=1, dilation=1):
-        result = nn.Sequential()
-        result.add_module(
-            "conv",
-            nn.Conv2d(
-                in_channels=in_channels,
-                out_channels=out_channels,
-                kernel_size=kernel_size,
-                stride=stride,
-                padding=padding,
-                groups=groups,
-                bias=False,
-                dilation=dilation,
-            ),
+    def prepare_for_qat(self):
+        """Fuse branches into a single kernel, leave post_bn unfused, leave parameters differentiable"""
+        if self.qat_mode:
+            return
+
+        if self.deploy_mode:
+            # TODO: we actually can, all we need to do is insert the properly initialized post_bn back
+            # init is not trivial, so not implemented for now
+            raise NotImplementedError("QARepVGGBlock can't be converted to QAT mode from deploy mode")
+
+        kernel, bias = self._get_equivalent_kernel_bias_for_branches()
+        self.rbr_reparam = nn.Conv2d(
+            in_channels=self.branch_3x3.conv.in_channels,
+            out_channels=self.branch_3x3.conv.out_channels,
+            kernel_size=self.branch_3x3.conv.kernel_size,
+            stride=self.branch_3x3.conv.stride,
+            padding=self.branch_3x3.conv.padding,
+            dilation=self.branch_3x3.conv.dilation,
+            groups=self.branch_3x3.conv.groups,
+            bias=True,
         )
-        result.add_module("bn", nn.BatchNorm2d(num_features=out_channels))
-        return result
+        self.rbr_reparam.weight.data = kernel
+        self.rbr_reparam.bias.data = bias
+
+        self.__delattr__("branch_3x3")
+        self.__delattr__("branch_1x1")
+        if hasattr(self, "identity"):
+            self.__delattr__("identity")
+        if hasattr(self, "alpha"):
+            self.__delattr__("alpha")
+        if hasattr(self, "id_tensor"):
+            self.__delattr__("id_tensor")
+
+        self.qat_mode = True
+        self.deploy_mode = False
+
+    def fuse_block_residual_branches(self):
+        self.prepare_for_deploy()
 
 
 if __name__ == "__main__":
     random_input = torch.randn([32, 3, 64, 64], dtype=torch.float32)
 
-    block = QARepVGGBlock(3, 3)
+    block = QARepVGGBlock(3, 3, use_1x1_bias=False)
 
     block.train()
 
     # collect BN statistics
-    for i in range(10):
+    for _ in range(10):
         block(torch.randn([32, 3, 64, 64], dtype=torch.float32))
 
     block.eval()
@@ -317,8 +298,8 @@ if __name__ == "__main__":
 
     block.prepare_for_qat()
     x_after = block(random_input)
-    print((x_before - x_after).sum())  # original RepVGG block has 0.001-0.03 with this use case
+    print((x_before - x_after).abs().sum())  # original RepVGG block has 0.001-0.03 with this use case
 
     block.prepare_for_deploy()
     x_after = block(random_input)
-    print((x_before - x_after).sum())
+    print((x_before - x_after).abs().sum())
