@@ -3,7 +3,7 @@ import logging
 import logging.config
 from typing import Union
 
-from super_gradients.common.auto_logging import AutoLoggerConfig
+from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
 
 
 def get_logger(logger_name: str, log_level: Union[str, None] = None) -> logging.Logger:

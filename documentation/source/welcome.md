@@ -11,7 +11,6 @@ ______________________________________________________________________
   <p align="center">
   <a href="https://www.supergradients.com/">Website</a> •
   <a href="#why-use-supergradients">Why Use SG?</a> •
-  <a href="https://deci-ai.github.io/super-gradients/user_guide.html#introducing-the-supergradients-library">User Guide</a> •
   <a href="https://deci-ai.github.io/super-gradients/super_gradients.common.html">Docs</a> •
   <a href="#getting-started">Getting Started Notebooks</a> •
   <a href="#transfer-learning">Transfer Learning</a> •  
@@ -513,4 +512,3 @@ Features:
 - Deci supports all common frameworks and Hardware, from Intel CPUs to Nvidia's GPUs and Jetsons.
 
 Sign up for Deci Platform for free [here](https://console.deci.ai/) 
-

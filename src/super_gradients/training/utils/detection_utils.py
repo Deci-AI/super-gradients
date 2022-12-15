@@ -1059,7 +1059,7 @@ def compute_detection_metrics_per_cls(
     sort_ind = torch.argsort(preds_scores.to(dtype), descending=True)
     tps = tps[sort_ind, :]
     fps = fps[sort_ind, :]
-    preds_scores = preds_scores[sort_ind]
+    preds_scores = preds_scores[sort_ind].contiguous()
 
     # Rolling sum over the tensor
     rolling_tps = torch.cumsum(tps, axis=0, dtype=torch.float)
@@ -1094,7 +1094,7 @@ def compute_detection_metrics_per_cls(
     # We want the index i so that: rolling_recalls[i-1] < recall_thresholds[k] <= rolling_recalls[i]
     # Note:  when recall_thresholds[k] > max(rolling_recalls), i = len(rolling_recalls)
     # Note2: we work with transpose (.T) to apply torch.searchsorted on first dim instead of the last one
-    recall_threshold_idx = torch.searchsorted(rolling_recalls.T, recall_thresholds, right=False).T
+    recall_threshold_idx = torch.searchsorted(rolling_recalls.T.contiguous(), recall_thresholds, right=False).T
 
     # When recall_thresholds[k] > max(rolling_recalls), rolling_precisions[i] is not defined, and we want precision = 0
     rolling_precisions = torch.cat((rolling_precisions, torch.zeros(1, nb_iou_thrs, device=device)), dim=0)
