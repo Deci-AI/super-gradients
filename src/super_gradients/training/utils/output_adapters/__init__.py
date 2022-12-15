@@ -1,4 +1,4 @@
 from .formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
-from .detection_adapter import DetectionOutputAdapter
+from .detection_adapter import DetectionFormatAdapter, DetectionOutputAdapter
 
-__all__ = ["DetectionOutputAdapter", "TensorSliceItem", "ConcatenatedTensorFormat", "BoundingBoxesTensorSliceItem"]
+__all__ = ["DetectionFormatAdapter", "DetectionOutputAdapter", "TensorSliceItem", "ConcatenatedTensorFormat", "BoundingBoxesTensorSliceItem"]

@@ -9,9 +9,9 @@ import numpy as np
 import cv2
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
-from super_gradients.training.utils.output_adapters.detection_adapter import DetectionAdapterNumpy
 
-from super_gradients.training.utils.output_adapters import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from super_gradients.training.utils.output_adapters import DetectionFormatAdapter, ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from super_gradients.training.utils.output_adapters.formats_utils import filter_on_bboxes
 from super_gradients.training.utils.bbox_formats import XYXYCoordinateFormat, CXCYWHCoordinateFormat
 
 image_resample = Image.BILINEAR
@@ -800,18 +800,18 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         w, h = image_shape  # NOT NORMALIZED
 
         # TODO: Test to move this to __init__ with an input_shape. Risk to have different image_shape and to change the results though...
-        convert_format = DetectionAdapterNumpy(input_format=self.input_format, output_format=self.output_format, image_shape=image_shape)
-        min_bbox_edge_size = self.min_bbox_edge_size / max(w, h) if self.output_format.bboxes_format.format.normalized else self.min_bbox_edge_size
+        convert_format = DetectionFormatAdapter(input_format=self.input_format, output_format=self.output_format, image_shape=image_shape)
+        min_bbox_edge_size = self.min_bbox_edge_size / max(image_shape) if self.output_format.bboxes_format.format.normalized else self.min_bbox_edge_size
 
         def _format_target(targets: np.ndarray):
             # INPUT FORMAT -> OUTPUT FORMAT
             targets = convert_format(targets)
 
             # FILTER SMALL
-            def _is_too_small(bbox: np.ndarray) -> np.ndarray:
-                return np.minimum(bbox[:, 2], bbox[:, 3]) > min_bbox_edge_size
+            def _is_too_small(bboxes: np.ndarray) -> np.ndarray:
+                return np.minimum(bboxes[:, 2], bboxes[:, 3]) > min_bbox_edge_size
 
-            targets = self.output_format.filter_on_layout(layout_name="bboxes", fn=_is_too_small, concatenated_tensor=targets)
+            targets = filter_on_bboxes(fn=_is_too_small, tensor=targets, tensor_format=self.output_format)
 
             # PAD
             padded_targets = np.zeros((self.max_targets, targets.shape[-1]))
