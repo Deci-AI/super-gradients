@@ -29,7 +29,7 @@ class TypeFactory(AbstractFactory):
 
            If provided value is already a class type, the value will be returned as is.
         """
-        if isinstance(conf, str):
+        if isinstance(conf, str) or isinstance(conf, bool):
             if conf in self.type_dict:
                 return self.type_dict[conf]
             else:
