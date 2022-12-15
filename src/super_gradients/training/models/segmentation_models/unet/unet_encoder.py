@@ -140,7 +140,7 @@ class QARepVGGStage(BackboneStage):
             blocks.append(AntiAliasDownsample(in_channels, stride))
             stride = 1
         # RepVGG blocks
-        blocks.extend([QARepVGGBlock(in_channels, out_channels, stride=stride), *[RepVGGBlock(out_channels, out_channels) for _ in range(num_blocks - 1)]])
+        blocks.extend([QARepVGGBlock(in_channels, out_channels, stride=stride), *[QARepVGGBlock(out_channels, out_channels) for _ in range(num_blocks - 1)]])
         return nn.Sequential(*blocks)
 
 
