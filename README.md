@@ -10,8 +10,7 @@ ______________________________________________________________________
   
   <p align="center">
   <a href="https://www.supergradients.com/">Website</a> •
-  <a href="https://deci-ai.github.io/super-gradients/user_guide.html#introducing-the-supergradients-library">User Guide</a> •
-  <a href="https://deci-ai.github.io/super-gradients/super_gradients.common.html">Docs</a> •
+  <a href="https://deci-ai.github.io/super-gradients/welcome.html">Docs</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#implemented-model-architectures">Pretrained Models</a> •
   <a href="#community">Community</a> •
@@ -29,8 +28,6 @@ ______________________________________________________________________
   <a href="https://deci-ai.github.io/super-gradients/welcome.html"><img src="https://img.shields.io/badge/docs-sphinx-brightgreen" />
 </p>    
 </div>
-
-[](https://deci-ai.github.io/super-gradients/user_guide.html#introducing-the-supergradients-library)
 
 ## Build with SuperGradients
 __________________________________________________________________________________________________________
@@ -309,6 +306,7 @@ across all GPUs after the backward pass.
 #### How to use it ?
 You can use SuperGradients to train your model with DDP in just a few lines.
 
+
 *main.py*
 ```python
 from super_gradients import init_trainer, Trainer
@@ -346,6 +344,54 @@ python -m torch.distributed.launch --nproc_per_node=4 main.py
 ```bash
 torchrun --nproc_per_node=4 main.py
 ```
+
+#### Calling functions on a single node
+
+It is often in DDP training that we want to execute code on the master rank (i.e rank 0).
+In SG, users usually execute their own code by triggering "Phase Callbacks" (see "Using phase callbacks" section below).
+One can make sure the desired code will only be ran on rank 0, using ddp_silent_mode or the multi_process_safe decorator.
+For example, consider the simple phase callback below, that uploads the first 3 images of every batch during training to
+the Tensorboard:
+
+```python
+from super_gradients.training.utils.callbacks import PhaseCallback, PhaseContext, Phase
+from super_gradients.common.environment.env_helpers import multi_process_safe
+
+class Upload3TrainImagesCalbback(PhaseCallback):
+    def __init__(
+        self,
+    ):
+        super().__init__(phase=Phase.TRAIN_BATCH_END)
+    
+    @multi_process_safe
+    def __call__(self, context: PhaseContext):
+        batch_imgs = context.inputs.cpu().detach().numpy()
+        tag = "batch_" + str(context.batch_idx) + "_images"
+        context.sg_logger.add_images(tag=tag, images=batch_imgs[: 3], global_step=context.epoch)
+
+```
+The @multi_process_safe decorator ensures that the callback will only be triggered by rank 0. Alternatively, this can also
+be done by the SG trainer boolean attribute (which the phase context has access to), ddp_silent_mode, which is set to False
+iff the current process rank is zero (even after the process group has been killed):
+```python
+from super_gradients.training.utils.callbacks import PhaseCallback, PhaseContext, Phase
+
+class Upload3TrainImagesCalbback(PhaseCallback):
+    def __init__(
+        self,
+    ):
+        super().__init__(phase=Phase.TRAIN_BATCH_END)
+
+    def __call__(self, context: PhaseContext):
+        if not context.ddp_silent_mode:
+            batch_imgs = context.inputs.cpu().detach().numpy()
+            tag = "batch_" + str(context.batch_idx) + "_images"
+            context.sg_logger.add_images(tag=tag, images=batch_imgs[: 3], global_step=context.epoch)
+
+```
+
+Note that ddp_silent_mode can be accessed through SgTrainer.ddp_silent_mode. Hence, it can be used in scripts after calling
+SgTrainer.train() when some part of it should be ran on rank 0 only.
 
 #### Good to know
 Your total batch size will be (number of gpus x batch size), so you might want to increase your learning rate.
