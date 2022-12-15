@@ -61,7 +61,7 @@ class SSDLoss(_Loss):
         * L_l1 = [SmoothL1Loss for all positives]
     """
 
-    def __init__(self, dboxes: DefaultBoxes, alpha: float = 1.0, iou_thresh: float = 0.5, neg_pos_ratio: float = 3.):
+    def __init__(self, dboxes: DefaultBoxes, alpha: float = 1.0, iou_thresh: float = 0.5, neg_pos_ratio: float = 3.0):
         """
         :param dboxes:          model anchors, shape [Num Grid Cells * Num anchors x 4]
         :param alpha:           a weighting factor between classification and regression loss
@@ -93,7 +93,13 @@ class SSDLoss(_Loss):
         convert bbox locations into relative locations (relative to the dboxes)
         :param loc a tensor of shape [batch, 4, num_boxes]
         """
-        gxy = ((loc[:, :2, :] - self.dboxes[:, :2, :]) / self.dboxes[:, 2:, ]) / self.scale_xy
+        gxy = (
+            (loc[:, :2, :] - self.dboxes[:, :2, :])
+            / self.dboxes[
+                :,
+                2:,
+            ]
+        ) / self.scale_xy
         gwh = (loc[:, 2:, :] / self.dboxes[:, 2:, :]).log() / self.scale_wh
         return torch.cat((gxy, gwh), dim=1).contiguous()
 
@@ -133,7 +139,7 @@ class SSDLoss(_Loss):
             # 2. is higher than any IoU, so it is guaranteed to pass any IoU threshold
             # which ensures that the pairs selected for each target will be included in the mask below
             # while the threshold will only affect other grid cell anchors that aren't pre-assigned to any target
-            best_target_per_cell[best_cell_per_target_index] = 2.
+            best_target_per_cell[best_cell_per_target_index] = 2.0
 
             mask = best_target_per_cell > self.iou_thresh
             each_cell_target_locations[:, mask] = target_boxes[best_target_per_cell_index[mask]].T
@@ -144,9 +150,9 @@ class SSDLoss(_Loss):
     def forward(self, predictions: Tuple, targets):
         """
         Compute the loss
-            :param predictions - predictions tensor coming from the network,
+            :param predictions - tensor tensor coming from the network,
             tuple with shapes ([Batch Size, 4, num_dboxes], [Batch Size, num_classes + 1, num_dboxes])
-            were predictions have logprobs for background and other classes
+            were tensor have logprobs for background and other classes
             :param targets - targets for the batch. [num targets, 6] (index in batch, label, x,y,w,h)
         """
         if isinstance(predictions, tuple) and isinstance(predictions[1], tuple):

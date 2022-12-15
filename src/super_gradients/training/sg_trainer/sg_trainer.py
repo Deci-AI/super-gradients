@@ -98,7 +98,7 @@ class Trainer:
         the main function used for the training, h.p. updating, logging etc.
 
     predict(idx : int)
-        returns the predictions and label of the current inputs
+        returns the tensor and label of the current inputs
 
     test(epoch : int, idx : int, save : bool):
         returns the test loss, accuracy and runtime

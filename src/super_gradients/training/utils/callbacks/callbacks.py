@@ -601,7 +601,7 @@ class PhaseContextTestCallback(PhaseCallback):
 
 class DetectionVisualizationCallback(PhaseCallback):
     """
-    A callback that adds a visualization of a batch of detection predictions to context.sg_logger
+    A callback that adds a visualization of a batch of detection tensor to context.sg_logger
     Attributes:
         freq: frequency (in epochs) to perform this callback.
         batch_idx: batch index to perform visualization for.
@@ -639,7 +639,7 @@ class DetectionVisualizationCallback(PhaseCallback):
 
 class BinarySegmentationVisualizationCallback(PhaseCallback):
     """
-    A callback that adds a visualization of a batch of segmentation predictions to context.sg_logger
+    A callback that adds a visualization of a batch of segmentation tensor to context.sg_logger
     Attributes:
         freq: frequency (in epochs) to perform this callback.
         batch_idx: batch index to perform visualization for.

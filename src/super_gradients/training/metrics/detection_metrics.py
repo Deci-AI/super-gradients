@@ -26,7 +26,7 @@ class DetectionMetrics(Metric):
          iou_thresholds:    IoU threshold to compute the mAP (default=torch.linspace(0.5, 0.95, 10)).
          recall_thresholds: Recall threshold to compute the mAP (default=torch.linspace(0, 1, 101)).
          score_threshold:   Score threshold to compute Recall, Precision and F1 (default=0.1)
-         top_k_predictions: Number of predictions per class used to compute metrics, ordered by confidence score
+         top_k_predictions: Number of tensor per class used to compute metrics, ordered by confidence score
                             (default=100)
 
          dist_sync_on_step: Synchronize metric state across processes at each ``forward()``
@@ -81,7 +81,7 @@ class DetectionMetrics(Metric):
 
     def update(self, preds, target: torch.Tensor, device: str, inputs: torch.tensor, crowd_targets: Optional[torch.Tensor] = None):
         """
-        Apply NMS and match all the predictions and targets of a given batch, and update the metric state accordingly.
+        Apply NMS and match all the tensor and targets of a given batch, and update the metric state accordingly.
 
         :param preds :        Raw output of the model, the format might change from one model to another, but has to fit
                                 the input format of the post_prediction_callback

@@ -20,15 +20,15 @@ def accuracy(output, target, topk=(1,)):
     maxk = max(topk)
     batch_size = target.size(0)
 
-    # Get the top k predictions
+    # Get the top k tensor
     _, pred = output.topk(maxk, 1, True, True)
     pred = pred.t()
-    # Count the number of correct predictions only for the highest k
+    # Count the number of correct tensor only for the highest k
     correct = pred.eq(target.view(1, -1).expand_as(pred))
 
     res = []
     for k in topk:
-        # Count the number of correct prediction for the different K (the top predictions) values
+        # Count the number of correct prediction for the different K (the top tensor) values
         correct_k = correct[:k].reshape(-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size).item())
     return res
@@ -60,10 +60,10 @@ class Top5(Metric):
         # Get the maximal value of the accuracy measurment and the batch size
         batch_size = target.size(0)
 
-        # Get the top k predictions
+        # Get the top k tensor
         _, pred = preds.topk(5, 1, True, True)
         pred = pred.t()
-        # Count the number of correct predictions only for the highest 5
+        # Count the number of correct tensor only for the highest 5
         correct = pred.eq(target.view(1, -1).expand_as(pred))
         correct5 = correct[:5].reshape(-1).float().sum(0)
         self.correct += correct5

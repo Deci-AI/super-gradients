@@ -119,14 +119,14 @@ class TestDetectionOutputAdapter(unittest.TestCase):
 
             with tempfile.TemporaryDirectory() as tmpdirname:
                 adapter_fname = os.path.join(tmpdirname, "adapter.onnx")
-                torch.onnx.export(adapter, inp, f=adapter_fname, input_names=["predictions"], output_names=["output_predictions"])
+                torch.onnx.export(adapter, inp, f=adapter_fname, input_names=["tensor"], output_names=["output_predictions"])
 
                 onnx_model = onnx.load(adapter_fname)
                 onnx.checker.check_model(onnx_model)
 
                 ort_sess = ort.InferenceSession(adapter_fname)
 
-                actual_output = ort_sess.run(None, {"predictions": inp.numpy()})[0]
+                actual_output = ort_sess.run(None, {"tensor": inp.numpy()})[0]
 
             np.testing.assert_allclose(actual_output, expected_output)
 

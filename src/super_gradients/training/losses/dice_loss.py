@@ -14,15 +14,16 @@ class DiceLoss(AbstarctSegmentationStructureLoss):
     Compute average Dice loss between two tensors, It can support both multi-classes and binary tasks.
     Defined in the paper: "V-Net: Fully Convolutional Neural Networks for Volumetric Medical Image Segmentation"
     """
+
     def _calc_numerator_denominator(self, labels_one_hot, predict):
         """
         Calculate dice metric's numerator and denominator.
 
         :param labels_one_hot: target in one hot format.   shape: [BS, num_classes, img_width, img_height]
-        :param predict: predictions tensor.                shape: [BS, num_classes, img_width, img_height]
+        :param predict: tensor tensor.                shape: [BS, num_classes, img_width, img_height]
         :return:
-            numerator = intersection between predictions and target. shape: [BS, num_classes, img_width, img_height]
-            denominator = sum of predictions and target areas.       shape: [BS, num_classes, img_width, img_height]
+            numerator = intersection between tensor and target. shape: [BS, num_classes, img_width, img_height]
+            denominator = sum of tensor and target areas.       shape: [BS, num_classes, img_width, img_height]
         """
         numerator = labels_one_hot * predict
         denominator = labels_one_hot + predict
@@ -33,10 +34,10 @@ class DiceLoss(AbstarctSegmentationStructureLoss):
         Calculate dice loss.
         All tensors are of shape [BS] if self.reduce_over_batches else [num_classes].
 
-        :param numerator: intersection between predictions and target.
+        :param numerator: intersection between tensor and target.
         :param denominator: total number of pixels of prediction and target.
         """
-        loss = 1. - ((2. * numerator + self.smooth) / (denominator + self.eps + self.smooth))
+        loss = 1.0 - ((2.0 * numerator + self.smooth) / (denominator + self.eps + self.smooth))
         return loss
 
 
@@ -45,12 +46,10 @@ class BinaryDiceLoss(DiceLoss):
     Compute Dice Loss for binary class tasks (1 class only).
     Except target to be a binary map with 0 and 1 values.
     """
-    def __init__(self,
-                 apply_sigmoid: bool = True,
-                 smooth: float = 1.,
-                 eps: float = 1e-5):
+
+    def __init__(self, apply_sigmoid: bool = True, smooth: float = 1.0, eps: float = 1e-5):
         """
-        :param apply_sigmoid: Whether to apply sigmoid to the predictions.
+        :param apply_sigmoid: Whether to apply sigmoid to the tensor.
         :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the dice
             coefficient is to 1, which can be used as a regularization effect.
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
@@ -77,16 +76,18 @@ class GeneralizedDiceLoss(DiceLoss):
         eps (float): default value is 1e-17, must be a very small value, because weighted `intersection` and
         `denominator` are very small after multiplication with `1 / counts ** 2`
     """
-    def __init__(self,
-                 apply_softmax: bool = True,
-                 ignore_index: int = None,
-                 smooth: float = 0.0,
-                 eps: float = 1e-17,
-                 reduce_over_batches: bool = False,
-                 reduction: Union[LossReduction, str] = "mean"
-                 ):
+
+    def __init__(
+        self,
+        apply_softmax: bool = True,
+        ignore_index: int = None,
+        smooth: float = 0.0,
+        eps: float = 1e-17,
+        reduce_over_batches: bool = False,
+        reduction: Union[LossReduction, str] = "mean",
+    ):
         """
-        :param apply_softmax: Whether to apply softmax to the predictions.
+        :param apply_softmax: Whether to apply softmax to the tensor.
         :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the dice
             coefficient is to 1, which can be used as a regularization effect.
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
@@ -99,6 +100,13 @@ class GeneralizedDiceLoss(DiceLoss):
             `sum`: the output will be summed.
             Default: `mean`
         """
-        super().__init__(apply_softmax=apply_softmax, ignore_index=ignore_index, smooth=smooth, eps=eps,
-                         reduce_over_batches=reduce_over_batches, generalized_metric=True, weight=None,
-                         reduction=reduction)
+        super().__init__(
+            apply_softmax=apply_softmax,
+            ignore_index=ignore_index,
+            smooth=smooth,
+            eps=eps,
+            reduce_over_batches=reduce_over_batches,
+            generalized_metric=True,
+            weight=None,
+            reduction=reduction,
+        )

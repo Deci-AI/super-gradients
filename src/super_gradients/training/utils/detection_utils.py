@@ -25,6 +25,7 @@ class DetectionTargetsFormat(Enum):
     For example:
     LABEL_NORMALIZED_XYXY means [class_idx,x1,y1,x2,y2]
     """
+
     LABEL_XYXY = "LABEL_XYXY"
     XYXY_LABEL = "XYXY_LABEL"
     LABEL_NORMALIZED_XYXY = "LABEL_NORMALIZED_XYXY"
@@ -88,8 +89,7 @@ def _iou(CIoU: bool, DIoU: bool, GIoU: bool, b1_x1, b1_x2, b1_y1, b1_y2, b2_x1, 
     DO NOT CALL THIS FUNCTIONS DIRECTLY - use one of the functions mentioned above
     """
     # Intersection area
-    intersection_area = (torch.min(b1_x2, b2_x2) - torch.max(b1_x1, b2_x1)).clamp(0) * \
-                        (torch.min(b1_y2, b2_y2) - torch.max(b1_y1, b2_y1)).clamp(0)
+    intersection_area = (torch.min(b1_x2, b2_x2) - torch.max(b1_x1, b2_x1)).clamp(0) * (torch.min(b1_y2, b2_y2) - torch.max(b1_y1, b2_y1)).clamp(0)
     # Union Area
     w1, h1 = b1_x2 - b1_x1, b1_y2 - b1_y1
     w2, h2 = b2_x2 - b2_x1, b2_y2 - b2_y1
@@ -105,16 +105,16 @@ def _iou(CIoU: bool, DIoU: bool, GIoU: bool, b1_x1, b1_x2, b1_y1, b1_y2, b2_x1, 
         # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
         if DIoU or CIoU:
             # convex diagonal squared
-            c2 = cw ** 2 + ch ** 2 + eps
+            c2 = cw**2 + ch**2 + eps
             # centerpoint distance squared
             rho2 = ((b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2 + (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2) / 4
             if DIoU:
                 iou -= rho2 / c2  # DIoU
             elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
-                v = (4 / math.pi ** 2) * torch.pow(torch.atan(w2 / h2) - torch.atan(w1 / h1), 2)
+                v = (4 / math.pi**2) * torch.pow(torch.atan(w2 / h2) - torch.atan(w1 / h1), 2)
                 with torch.no_grad():
                     alpha = v / ((1 + eps) - iou + v)
-                iou -= (rho2 / c2 + v * alpha)  # CIoU
+                iou -= rho2 / c2 + v * alpha  # CIoU
     return iou
 
 
@@ -159,8 +159,7 @@ def calc_bbox_iou_matrix(pred: torch.Tensor):
     b2_x2 = b1_x2.transpose(2, 1)
     b2_y1 = b1_y1.transpose(2, 1)
     b2_y2 = b1_y2.transpose(2, 1)
-    intersection_area = (torch.min(b1_x2, b2_x2) - torch.max(b1_x1, b2_x1)).clamp(0) * \
-                        (torch.min(b1_y2, b2_y2) - torch.max(b1_y1, b2_y1)).clamp(0)
+    intersection_area = (torch.min(b1_x2, b2_x2) - torch.max(b1_x1, b2_x1)).clamp(0) * (torch.min(b1_y2, b2_y2) - torch.max(b1_y1, b2_y1)).clamp(0)
     # Union Area
     w1, h1 = b1_x2 - b1_x1, b1_y2 - b1_y1
     w2, h2 = b2_x2 - b2_x1, b2_y2 - b2_y1
@@ -177,7 +176,6 @@ def change_bbox_bounds_for_image_size(boxes, img_shape):
 
 
 class DetectionPostPredictionCallback(ABC, nn.Module):
-
     def __init__(self) -> None:
         super().__init__()
 
@@ -234,8 +232,7 @@ def box_iou(box1, box2):
     return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
 
 
-def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6,
-                        multi_label_per_box: bool = True, with_confidence: bool = False):
+def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label_per_box: bool = True, with_confidence: bool = False):
     """
     Performs Non-Maximum Suppression (NMS) on inference results
         :param prediction: raw model prediction
@@ -285,8 +282,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6,
     return output
 
 
-def matrix_non_max_suppression(pred, conf_thres: float = 0.1, kernel: str = 'gaussian',
-                               sigma: float = 3.0, max_num_of_detections: int = 500):
+def matrix_non_max_suppression(pred, conf_thres: float = 0.1, kernel: str = "gaussian", sigma: float = 3.0, max_num_of_detections: int = 500):
     """Performs Matrix Non-Maximum Suppression (NMS) on inference results
         https://arxiv.org/pdf/1912.04488.pdf
         :param pred: raw model prediction (in test mode) - a Tensor of shape [batch, num_predictions, 85]
@@ -326,9 +322,9 @@ def matrix_non_max_suppression(pred, conf_thres: float = 0.1, kernel: str = 'gau
     ious_cmax, _ = ious.max(1)
     ious_cmax = ious_cmax.unsqueeze(2).repeat(1, 1, max_num_of_detections)
 
-    if kernel == 'gaussian':
-        decay_matrix = torch.exp(-1 * sigma * (ious ** 2))
-        compensate_matrix = torch.exp(-1 * sigma * (ious_cmax ** 2))
+    if kernel == "gaussian":
+        decay_matrix = torch.exp(-1 * sigma * (ious**2))
+        compensate_matrix = torch.exp(-1 * sigma * (ious_cmax**2))
         decay, _ = (decay_matrix / compensate_matrix).min(dim=1)
     else:
         decay = (1 - ious) / (1 - ious_cmax)
@@ -345,8 +341,9 @@ class NMS_Type(str, Enum):
     """
     Type of non max suppression algorithm that can be used for post processing detection
     """
-    ITERATIVE = 'iterative'
-    MATRIX = 'matrix'
+
+    ITERATIVE = "iterative"
+    MATRIX = "matrix"
 
 
 def undo_image_preprocessing(im_tensor: torch.Tensor) -> np.ndarray:
@@ -356,7 +353,7 @@ def undo_image_preprocessing(im_tensor: torch.Tensor) -> np.ndarray:
     """
     im_np = im_tensor.cpu().numpy()
     im_np = im_np[:, ::-1, :, :].transpose(0, 2, 3, 1)
-    im_np *= 255.
+    im_np *= 255.0
     return np.ascontiguousarray(im_np, dtype=np.uint8)
 
 
@@ -366,14 +363,24 @@ class DetectionVisualization:
         """
         Generate a unique BGR color for each class
         """
-        cmap = plt.cm.get_cmap('gist_rainbow', num_classes)
+        cmap = plt.cm.get_cmap("gist_rainbow", num_classes)
         colors = [cmap(i, bytes=True)[:3][::-1] for i in range(num_classes)]
         return [tuple(int(v) for v in c) for c in colors]
 
     @staticmethod
-    def _draw_box_title(color_mapping: List[Tuple[int]], class_names: List[str], box_thickness: int,
-                        image_np: np.ndarray, x1: int, y1: int, x2: int, y2: int, class_id: int,
-                        pred_conf: float = None, is_target: bool = False):
+    def _draw_box_title(
+        color_mapping: List[Tuple[int]],
+        class_names: List[str],
+        box_thickness: int,
+        image_np: np.ndarray,
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int,
+        class_id: int,
+        pred_conf: float = None,
+        is_target: bool = False,
+    ):
         color = color_mapping[class_id]
         class_name = class_names[class_id]
 
@@ -384,35 +391,43 @@ class DetectionVisualization:
         text_color = (255, 255, 255)  # white
 
         if is_target:
-            title = f'[GT] {class_name}'
+            title = f"[GT] {class_name}"
         if not is_target:
             title = f'[Pred] {class_name}  {str(round(pred_conf, 2)) if pred_conf is not None else ""}'
 
         image_np = cv2.rectangle(image_np, (x1, y1 - 15), (x1 + len(title) * 10, y1), color, cv2.FILLED)
-        image_np = cv2.putText(image_np, title, (x1, y1 - box_thickness), 2, .5, text_color, 1, lineType=cv2.LINE_AA)
+        image_np = cv2.putText(image_np, title, (x1, y1 - box_thickness), 2, 0.5, text_color, 1, lineType=cv2.LINE_AA)
 
         return image_np
 
     @staticmethod
-    def _visualize_image(image_np: np.ndarray, pred_boxes: np.ndarray, target_boxes: np.ndarray,
-                         class_names: List[str], box_thickness: int, gt_alpha: float, image_scale: float,
-                         checkpoint_dir: str, image_name: str):
+    def _visualize_image(
+        image_np: np.ndarray,
+        pred_boxes: np.ndarray,
+        target_boxes: np.ndarray,
+        class_names: List[str],
+        box_thickness: int,
+        gt_alpha: float,
+        image_scale: float,
+        checkpoint_dir: str,
+        image_name: str,
+    ):
         image_np = cv2.resize(image_np, (0, 0), fx=image_scale, fy=image_scale, interpolation=cv2.INTER_NEAREST)
         color_mapping = DetectionVisualization._generate_color_mapping(len(class_names))
 
-        # Draw predictions
+        # Draw tensor
         pred_boxes[:, :4] *= image_scale
         for box in pred_boxes:
-            image_np = DetectionVisualization._draw_box_title(color_mapping, class_names, box_thickness,
-                                                              image_np, *box[:4].astype(int),
-                                                              class_id=int(box[5]), pred_conf=box[4])
+            image_np = DetectionVisualization._draw_box_title(
+                color_mapping, class_names, box_thickness, image_np, *box[:4].astype(int), class_id=int(box[5]), pred_conf=box[4]
+            )
 
         # Draw ground truths
         target_boxes_image = np.zeros_like(image_np, np.uint8)
         for box in target_boxes:
-            target_boxes_image = DetectionVisualization._draw_box_title(color_mapping, class_names, box_thickness,
-                                                                        target_boxes_image, *box[2:],
-                                                                        class_id=box[1], is_target=True)
+            target_boxes_image = DetectionVisualization._draw_box_title(
+                color_mapping, class_names, box_thickness, target_boxes_image, *box[2:], class_id=box[1], is_target=True
+            )
 
         # Transparent overlay of ground truth boxes
         mask = target_boxes_image.astype(bool)
@@ -422,7 +437,7 @@ class DetectionVisualization:
             return image_np
         else:
             pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
-            cv2.imwrite(os.path.join(checkpoint_dir, str(image_name) + '.jpg'), image_np)
+            cv2.imwrite(os.path.join(checkpoint_dir, str(image_name) + ".jpg"), image_np)
 
     @staticmethod
     def _scaled_ccwh_to_xyxy(target_boxes: np.ndarray, h: int, w: int, image_scale: float) -> np.ndarray:
@@ -450,10 +465,18 @@ class DetectionVisualization:
         return target_boxes
 
     @staticmethod
-    def visualize_batch(image_tensor: torch.Tensor, pred_boxes: List[torch.Tensor], target_boxes: torch.Tensor,
-                        batch_name: Union[int, str], class_names: List[str], checkpoint_dir: str = None,
-                        undo_preprocessing_func: Callable[[torch.Tensor], np.ndarray] = undo_image_preprocessing,
-                        box_thickness: int = 2, image_scale: float = 1., gt_alpha: float = .4):
+    def visualize_batch(
+        image_tensor: torch.Tensor,
+        pred_boxes: List[torch.Tensor],
+        target_boxes: torch.Tensor,
+        batch_name: Union[int, str],
+        class_names: List[str],
+        checkpoint_dir: str = None,
+        undo_preprocessing_func: Callable[[torch.Tensor], np.ndarray] = undo_image_preprocessing,
+        box_thickness: int = 2,
+        image_scale: float = 1.0,
+        gt_alpha: float = 0.4,
+    ):
         """
         A helper function to visualize detections predicted by a network:
         saves images into a given path with a name that is {batch_name}_{imade_idx_in_the_batch}.jpg, one batch per call.
@@ -483,17 +506,17 @@ class DetectionVisualization:
                                         0 for invisible, 1 for fully opaque
         """
         image_np = undo_preprocessing_func(image_tensor.detach())
-        targets = DetectionVisualization._scaled_ccwh_to_xyxy(target_boxes.detach().cpu().numpy(), *image_np.shape[1:3],
-                                                              image_scale)
+        targets = DetectionVisualization._scaled_ccwh_to_xyxy(target_boxes.detach().cpu().numpy(), *image_np.shape[1:3], image_scale)
 
         out_images = []
         for i in range(image_np.shape[0]):
             preds = pred_boxes[i].detach().cpu().numpy() if pred_boxes[i] is not None else np.empty((0, 6))
             targets_cur = targets[targets[:, 0] == i]
 
-            image_name = '_'.join([str(batch_name), str(i)])
-            res_image = DetectionVisualization._visualize_image(image_np[i], preds, targets_cur, class_names, box_thickness, gt_alpha, image_scale,
-                                                                checkpoint_dir, image_name)
+            image_name = "_".join([str(batch_name), str(i)])
+            res_image = DetectionVisualization._visualize_image(
+                image_np[i], preds, targets_cur, class_names, box_thickness, gt_alpha, image_scale, checkpoint_dir, image_name
+            )
             if res_image is not None:
                 out_images.append(res_image)
 
@@ -531,14 +554,14 @@ class Anchors(nn.Module):
     def _check_all_lists(anchors: list) -> bool:
         for a in anchors:
             if not isinstance(a, (list, ListConfig)):
-                raise RuntimeError('All objects of anchors_list must be lists')
+                raise RuntimeError("All objects of anchors_list must be lists")
 
     @staticmethod
     def _check_all_len_equal_and_even(anchors: list) -> bool:
         len_of_first = len(anchors[0])
         for a in anchors:
             if len(a) % 2 == 1 or len(a) != len_of_first:
-                raise RuntimeError('All objects of anchors_list must be of the same even length')
+                raise RuntimeError("All objects of anchors_list must be of the same even length")
 
     @property
     def stride(self) -> nn.Parameter:
@@ -644,6 +667,7 @@ class DetectionCollateFN:
     """
     Collate function for Yolox training
     """
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         batch = default_collate(data)
         ims, targets = batch[0:2]
@@ -653,7 +677,7 @@ class DetectionCollateFN:
         nlabel = (targets.sum(dim=2) > 0).sum(dim=1)  # number of label per image
         targets_merged = []
         for i in range(targets.shape[0]):
-            targets_im = targets[i, :nlabel[i]]
+            targets_im = targets[i, : nlabel[i]]
             batch_column = targets.new_ones((targets_im.shape[0], 1)) * i
             targets_merged.append(torch.cat((batch_column, targets_im), 1))
         return torch.cat(targets_merged, 0)
@@ -663,6 +687,7 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
     """
     Collate function for Yolox training with additional_batch_items that includes crowd targets
     """
+
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
         batch = default_collate(data)
         ims, targets, crowd_targets = batch[0:3]
@@ -674,7 +699,7 @@ def compute_box_area(box: torch.Tensor) -> torch.Tensor:
          :param box: One or many boxes, shape = (4, ?), each box in format (x1, y1, x2, y2)
     Returns:
         Area of every box, shape = (1, ?)
-     """
+    """
     # box = 4xn
     return (box[2] - box[0]) * (box[3] - box[1])
 
@@ -693,8 +718,7 @@ def crowd_ioa(det_box: torch.Tensor, crowd_box: torch.Tensor) -> torch.Tensor:
     det_area = compute_box_area(det_box.T)
 
     # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
-    inter = (torch.min(det_box[:, None, 2:], crowd_box[:, 2:]) - torch.max(det_box[:, None, :2], crowd_box[:, :2])) \
-        .clamp(0).prod(2)
+    inter = (torch.min(det_box[:, None, 2:], crowd_box[:, 2:]) - torch.max(det_box[:, None, :2], crowd_box[:, :2])).clamp(0).prod(2)
     return inter / det_area[:, None]  # crowd_ioa = inter / det_area
 
 
@@ -711,7 +735,7 @@ def compute_detection_matching(
     return_on_cpu: bool = True,
 ) -> List[Tuple]:
     """
-    Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score.
+    Match tensor (NMS output) and the targets (ground truth) with respect to IoU and confidence score.
     :param output:          list (of length batch_size) of Tensors of shape (num_predictions, 6)
                             format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
     :param targets:         targets for all images of shape (total_num_targets, 6)
@@ -722,7 +746,7 @@ def compute_detection_matching(
     :param device:          Device
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-    :param top_k:           Number of predictions to keep per class, ordered by confidence score
+    :param top_k:           Number of tensor to keep per class, ordered by confidence score
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
     :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
 
@@ -758,7 +782,7 @@ def compute_detection_matching(
             device=device,
             iou_thresholds=iou_thresholds,
             top_k=top_k,
-            return_on_cpu=return_on_cpu
+            return_on_cpu=return_on_cpu,
         )
         batch_metrics.append(img_matching_tensors)
 
@@ -766,19 +790,19 @@ def compute_detection_matching(
 
 
 def compute_img_detection_matching(
-        preds: torch.Tensor,
-        targets: torch.Tensor,
-        crowd_targets: torch.Tensor,
-        height: int,
-        width: int,
-        iou_thresholds: torch.Tensor,
-        device: str,
-        denormalize_targets: bool,
-        top_k: int = 100,
-        return_on_cpu: bool = True
+    preds: torch.Tensor,
+    targets: torch.Tensor,
+    crowd_targets: torch.Tensor,
+    height: int,
+    width: int,
+    iou_thresholds: torch.Tensor,
+    device: str,
+    denormalize_targets: bool,
+    top_k: int = 100,
+    return_on_cpu: bool = True,
 ) -> Tuple:
     """
-    Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score
+    Match tensor (NMS output) and the targets (ground truth) with respect to IoU and confidence score
     for a given image.
     :param preds:           Tensor of shape (num_img_predictions, 6)
                             format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
@@ -790,7 +814,7 @@ def compute_img_detection_matching(
     :param device:
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-    :param top_k:           Number of predictions to keep per class, ordered by confidence score
+    :param top_k:           Number of tensor to keep per class, ordered by confidence score
     :param device:          Device
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
     :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
@@ -824,7 +848,7 @@ def compute_img_detection_matching(
     targets_cls, targets_box = targets[:, 0], targets[:, 1:5]
     crowd_targets_cls, crowd_target_box = crowd_targets[:, 0], crowd_targets[:, 1:5]
 
-    # Ignore all but the predictions that were top_k for their class
+    # Ignore all but the tensor that were top_k for their class
     preds_idx_to_use = get_top_k_idx_per_cls(preds_scores, preds_cls, top_k)
     preds_to_ignore[:, :] = True
     preds_to_ignore[preds_idx_to_use] = False
@@ -851,7 +875,7 @@ def compute_img_detection_matching(
 
         # Fill IoU values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
         # Filling with 0 is equivalent to ignore these values since with want IoU > iou_threshold > 0
-        cls_mismatch = (preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1))
+        cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != targets_cls.view(1, -1)
         iou[cls_mismatch] = 0
 
         # The matching priority is first detection confidence and then IoU value.
@@ -883,7 +907,7 @@ def compute_img_detection_matching(
             if targets_matched.all():
                 break
 
-    # Crowd targets can be matched with many predictions.
+    # Crowd targets can be matched with many tensor.
     # Therefore, for every prediction we just need to check if it has IoA large enough with any crowd target.
     if len(crowd_targets) > 0:
 
@@ -892,7 +916,7 @@ def compute_img_detection_matching(
 
         # Fill IoA values at index (i, j) with 0 when the prediction (i) and target(j) are of different class
         # Filling with 0 is equivalent to ignore these values since with want IoA > threshold > 0
-        cls_mismatch = (preds_cls[preds_idx_to_use].view(-1, 1) != crowd_targets_cls.view(1, -1))
+        cls_mismatch = preds_cls[preds_idx_to_use].view(-1, 1) != crowd_targets_cls.view(1, -1)
         ioa[cls_mismatch] = 0
 
         # For each prediction, we keep it's highest score with any crowd target (of same class)
@@ -901,7 +925,7 @@ def compute_img_detection_matching(
 
         # If a prediction has IoA higher than threshold (with any target of same class), then there is a match
         # shape = (n_preds_to_use x iou_thresholds)
-        is_matching_with_crowd = (best_ioa.view(-1, 1) > iou_thresholds.view(1, -1))
+        is_matching_with_crowd = best_ioa.view(-1, 1) > iou_thresholds.view(1, -1)
 
         preds_to_ignore[preds_idx_to_use] = torch.logical_or(preds_to_ignore[preds_idx_to_use], is_matching_with_crowd)
 
@@ -916,16 +940,16 @@ def compute_img_detection_matching(
 
 
 def get_top_k_idx_per_cls(preds_scores: torch.Tensor, preds_cls: torch.Tensor, top_k: int):
-    """Get the indexes of all the top k predictions for every class
+    """Get the indexes of all the top k tensor for every class
 
     :param preds_scores:   The confidence scores, vector of shape (n_pred)
     :param preds_cls:      The predicted class, vector of shape (n_pred)
-    :param top_k:          Number of predictions to keep per class, ordered by confidence score
+    :param top_k:          Number of tensor to keep per class, ordered by confidence score
 
-    :return top_k_idx:     Indexes of the top k predictions. length <= (k * n_unique_class)
+    :return top_k_idx:     Indexes of the top k tensor. length <= (k * n_unique_class)
     """
     n_unique_cls = torch.max(preds_cls)
-    mask = (preds_cls.view(-1, 1) == torch.arange(n_unique_cls + 1, device=preds_scores.device).view(1, -1))
+    mask = preds_cls.view(-1, 1) == torch.arange(n_unique_cls + 1, device=preds_scores.device).view(1, -1)
     preds_scores_per_cls = preds_scores.view(-1, 1) * mask
 
     sorted_scores_per_cls, sorting_idx = preds_scores_per_cls.sort(0, descending=True)
@@ -984,7 +1008,7 @@ def compute_detection_metrics(
             n_targets=cls_targets_idx.sum(),
             recall_thresholds=recall_thresholds,
             score_threshold=score_threshold,
-            device=device
+            device=device,
         )
         ap[cls_i, :] = cls_ap
         precision[cls_i, :] = cls_precision
@@ -996,13 +1020,13 @@ def compute_detection_metrics(
 
 
 def compute_detection_metrics_per_cls(
-        preds_matched: torch.Tensor,
-        preds_to_ignore: torch.Tensor,
-        preds_scores: torch.Tensor,
-        n_targets: int,
-        recall_thresholds: torch.Tensor,
-        score_threshold: float,
-        device: str,
+    preds_matched: torch.Tensor,
+    preds_to_ignore: torch.Tensor,
+    preds_scores: torch.Tensor,
+    n_targets: int,
+    recall_thresholds: torch.Tensor,
+    score_threshold: float,
+    device: str,
 ):
     """
     Compute the list of precision, recall and MaP of a given class for every recall IoU threshold.
@@ -1037,7 +1061,7 @@ def compute_detection_metrics_per_cls(
     fps = fps[sort_ind, :]
     preds_scores = preds_scores[sort_ind]
 
-    # Rolling sum over the predictions
+    # Rolling sum over the tensor
     rolling_tps = torch.cumsum(tps, axis=0, dtype=torch.float)
     rolling_fps = torch.cumsum(fps, axis=0, dtype=torch.float)
 
