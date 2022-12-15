@@ -39,7 +39,7 @@ class IoULossTest(unittest.TestCase):
         self._assertion_iou_torch_values(expected_iou_loss, iou_loss)
 
     def test_iou_binary(self):
-        # all tensor are 0.6
+        # all predictions are 0.6
         predictions = torch.ones((1, 1, self.img_size, self.img_size)) * 0.6
         target = self._get_default_target_zeroes_tensor()
         # half target with label 0, the other half with 1.

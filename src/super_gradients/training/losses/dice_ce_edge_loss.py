@@ -78,12 +78,12 @@ class DiceCEEdgeLoss(_Loss):
 
     def forward(self, preds: Tuple[torch.Tensor], target: torch.Tensor):
         """
-        :param preds: Model output tensor, must be in the followed format:
+        :param preds: Model output predictions, must be in the followed format:
          [Main-feats, Aux-feats[0], ..., Aux-feats[num_auxs-1], Detail-feats[0], ..., Detail-feats[num_details-1]
         """
         assert (
             len(preds) == self.num_aux_heads + self.num_detail_heads + 1
-        ), f"Wrong num of tensor tensors, expected {self.num_aux_heads + self.num_detail_heads + 1} found {len(preds)}"
+        ), f"Wrong num of predictions tensors, expected {self.num_aux_heads + self.num_detail_heads + 1} found {len(preds)}"
 
         edge_target = target_to_binary_edge(
             target, num_classes=self.num_classes, kernel_size=self.edge_kernel, ignore_index=self.ignore_index, flatten_channels=True

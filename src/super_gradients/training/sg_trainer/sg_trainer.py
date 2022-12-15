@@ -98,7 +98,7 @@ class Trainer:
         the main function used for the training, h.p. updating, logging etc.
 
     predict(idx : int)
-        returns the tensor and label of the current inputs
+        returns the predictions and label of the current inputs
 
     test(epoch : int, idx : int, save : bool):
         returns the test loss, accuracy and runtime
@@ -192,10 +192,16 @@ class Trainer:
         @return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
-        # setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
+
+        kwargs = parse_args(cfg, cls.__init__)
+
+        trainer = Trainer(**kwargs)
+
+        # INSTANTIATE DATA LOADERS
 
         train_dataloader = dataloaders.get(
             name=get_param(cfg, "train_dataloader"),
@@ -208,11 +214,6 @@ class Trainer:
             dataset_params=cfg.dataset_params.val_dataset_params,
             dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
-        kwargs = parse_args(cfg, cls.__init__)
-
-        trainer = Trainer(**kwargs)
-
-        # INSTANTIATE DATA LOADERS
 
         # BUILD NETWORK
         model = models.get(

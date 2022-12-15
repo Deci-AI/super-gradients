@@ -20,10 +20,10 @@ class DiceLoss(AbstarctSegmentationStructureLoss):
         Calculate dice metric's numerator and denominator.
 
         :param labels_one_hot: target in one hot format.   shape: [BS, num_classes, img_width, img_height]
-        :param predict: tensor tensor.                shape: [BS, num_classes, img_width, img_height]
+        :param predict: predictions tensor.                shape: [BS, num_classes, img_width, img_height]
         :return:
-            numerator = intersection between tensor and target. shape: [BS, num_classes, img_width, img_height]
-            denominator = sum of tensor and target areas.       shape: [BS, num_classes, img_width, img_height]
+            numerator = intersection between predictions and target. shape: [BS, num_classes, img_width, img_height]
+            denominator = sum of predictions and target areas.       shape: [BS, num_classes, img_width, img_height]
         """
         numerator = labels_one_hot * predict
         denominator = labels_one_hot + predict
@@ -34,7 +34,7 @@ class DiceLoss(AbstarctSegmentationStructureLoss):
         Calculate dice loss.
         All tensors are of shape [BS] if self.reduce_over_batches else [num_classes].
 
-        :param numerator: intersection between tensor and target.
+        :param numerator: intersection between predictions and target.
         :param denominator: total number of pixels of prediction and target.
         """
         loss = 1.0 - ((2.0 * numerator + self.smooth) / (denominator + self.eps + self.smooth))
@@ -49,7 +49,7 @@ class BinaryDiceLoss(DiceLoss):
 
     def __init__(self, apply_sigmoid: bool = True, smooth: float = 1.0, eps: float = 1e-5):
         """
-        :param apply_sigmoid: Whether to apply sigmoid to the tensor.
+        :param apply_sigmoid: Whether to apply sigmoid to the predictions.
         :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the dice
             coefficient is to 1, which can be used as a regularization effect.
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895
@@ -87,7 +87,7 @@ class GeneralizedDiceLoss(DiceLoss):
         reduction: Union[LossReduction, str] = "mean",
     ):
         """
-        :param apply_softmax: Whether to apply softmax to the tensor.
+        :param apply_softmax: Whether to apply softmax to the predictions.
         :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the dice
             coefficient is to 1, which can be used as a regularization effect.
             As mentioned in: https://github.com/pytorch/pytorch/issues/1249#issuecomment-337999895

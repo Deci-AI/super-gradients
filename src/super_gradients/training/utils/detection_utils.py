@@ -415,7 +415,7 @@ class DetectionVisualization:
         image_np = cv2.resize(image_np, (0, 0), fx=image_scale, fy=image_scale, interpolation=cv2.INTER_NEAREST)
         color_mapping = DetectionVisualization._generate_color_mapping(len(class_names))
 
-        # Draw tensor
+        # Draw predictions
         pred_boxes[:, :4] *= image_scale
         for box in pred_boxes:
             image_np = DetectionVisualization._draw_box_title(
@@ -735,7 +735,7 @@ def compute_detection_matching(
     return_on_cpu: bool = True,
 ) -> List[Tuple]:
     """
-    Match tensor (NMS output) and the targets (ground truth) with respect to IoU and confidence score.
+    Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score.
     :param output:          list (of length batch_size) of Tensors of shape (num_predictions, 6)
                             format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
     :param targets:         targets for all images of shape (total_num_targets, 6)
@@ -746,7 +746,7 @@ def compute_detection_matching(
     :param device:          Device
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-    :param top_k:           Number of tensor to keep per class, ordered by confidence score
+    :param top_k:           Number of predictions to keep per class, ordered by confidence score
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
     :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
 
@@ -802,7 +802,7 @@ def compute_img_detection_matching(
     return_on_cpu: bool = True,
 ) -> Tuple:
     """
-    Match tensor (NMS output) and the targets (ground truth) with respect to IoU and confidence score
+    Match predictions (NMS output) and the targets (ground truth) with respect to IoU and confidence score
     for a given image.
     :param preds:           Tensor of shape (num_img_predictions, 6)
                             format:     (x1, y1, x2, y2, confidence, class_label) where x1,y1,x2,y2 are according to image size
@@ -814,7 +814,7 @@ def compute_img_detection_matching(
     :param device:
     :param crowd_targets:   crowd targets for all images of shape (total_num_crowd_targets, 6)
                             format:     (index, x, y, w, h, label) where x,y,w,h are in range [0,1]
-    :param top_k:           Number of tensor to keep per class, ordered by confidence score
+    :param top_k:           Number of predictions to keep per class, ordered by confidence score
     :param device:          Device
     :param denormalize_targets: If True, denormalize the targets and crowd_targets
     :param return_on_cpu:   If True, the output will be returned on "CPU", otherwise it will be returned on "device"
@@ -848,7 +848,7 @@ def compute_img_detection_matching(
     targets_cls, targets_box = targets[:, 0], targets[:, 1:5]
     crowd_targets_cls, crowd_target_box = crowd_targets[:, 0], crowd_targets[:, 1:5]
 
-    # Ignore all but the tensor that were top_k for their class
+    # Ignore all but the predictions that were top_k for their class
     preds_idx_to_use = get_top_k_idx_per_cls(preds_scores, preds_cls, top_k)
     preds_to_ignore[:, :] = True
     preds_to_ignore[preds_idx_to_use] = False
@@ -907,7 +907,7 @@ def compute_img_detection_matching(
             if targets_matched.all():
                 break
 
-    # Crowd targets can be matched with many tensor.
+    # Crowd targets can be matched with many predictions.
     # Therefore, for every prediction we just need to check if it has IoA large enough with any crowd target.
     if len(crowd_targets) > 0:
 
@@ -940,13 +940,13 @@ def compute_img_detection_matching(
 
 
 def get_top_k_idx_per_cls(preds_scores: torch.Tensor, preds_cls: torch.Tensor, top_k: int):
-    """Get the indexes of all the top k tensor for every class
+    """Get the indexes of all the top k predictions for every class
 
     :param preds_scores:   The confidence scores, vector of shape (n_pred)
     :param preds_cls:      The predicted class, vector of shape (n_pred)
-    :param top_k:          Number of tensor to keep per class, ordered by confidence score
+    :param top_k:          Number of predictions to keep per class, ordered by confidence score
 
-    :return top_k_idx:     Indexes of the top k tensor. length <= (k * n_unique_class)
+    :return top_k_idx:     Indexes of the top k predictions. length <= (k * n_unique_class)
     """
     n_unique_cls = torch.max(preds_cls)
     mask = preds_cls.view(-1, 1) == torch.arange(n_unique_cls + 1, device=preds_scores.device).view(1, -1)
@@ -1061,7 +1061,7 @@ def compute_detection_metrics_per_cls(
     fps = fps[sort_ind, :]
     preds_scores = preds_scores[sort_ind].contiguous()
 
-    # Rolling sum over the tensor
+    # Rolling sum over the predictions
     rolling_tps = torch.cumsum(tps, axis=0, dtype=torch.float)
     rolling_fps = torch.cumsum(fps, axis=0, dtype=torch.float)
 

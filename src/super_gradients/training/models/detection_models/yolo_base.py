@@ -34,7 +34,7 @@ DEFAULT_YOLO_ARCH_PARAMS = {
     "scaled_backbone_width": True,
     "fuse_conv_and_bn": False,  # Fuse sequential Conv + B.N layers into a single one
     "add_nms": False,  # Add the NMS module to the computational graph
-    "nms_conf": 0.25,  # When add_nms is True during NMS tensor with confidence lower than this will be discarded
+    "nms_conf": 0.25,  # When add_nms is True during NMS predictions with confidence lower than this will be discarded
     "nms_iou": 0.45,  # When add_nms is True IoU threshold for NMS algorithm
     # (with smaller value more boxed will be considered "the same" and removed)
     "yolo_type": "yoloX",  # Type of yolo to build: 'yoloX' is only supported currently
