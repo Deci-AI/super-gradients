@@ -10,8 +10,7 @@ ______________________________________________________________________
   
   <p align="center">
   <a href="https://www.supergradients.com/">Website</a> •
-  <a href="https://deci-ai.github.io/super-gradients/user_guide.html#introducing-the-supergradients-library">User Guide</a> •
-  <a href="https://deci-ai.github.io/super-gradients/super_gradients.common.html">Docs</a> •
+  <a href="https://deci-ai.github.io/super-gradients/welcome.html">Docs</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#implemented-model-architectures">Pretrained Models</a> •
   <a href="#community">Community</a> •
@@ -29,8 +28,6 @@ ______________________________________________________________________
   <a href="https://deci-ai.github.io/super-gradients/welcome.html"><img src="https://img.shields.io/badge/docs-sphinx-brightgreen" />
 </p>    
 </div>
-
-[](https://deci-ai.github.io/super-gradients/user_guide.html#introducing-the-supergradients-library)
 
 ## Build with SuperGradients
 __________________________________________________________________________________________________________
