@@ -15,15 +15,18 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
     """
     Abstract computation of structure loss between two tensors, It can support both multi-classes and binary tasks.
     """
-    def __init__(self,
-                 apply_softmax: bool = True,
-                 ignore_index: int = None,
-                 smooth: float = 1.,
-                 eps: float = 1e-5,
-                 reduce_over_batches: bool = False,
-                 generalized_metric: bool = False,
-                 weight: Optional[torch.Tensor] = None,
-                 reduction: Union[LossReduction, str] = "mean"):
+
+    def __init__(
+        self,
+        apply_softmax: bool = True,
+        ignore_index: int = None,
+        smooth: float = 1.0,
+        eps: float = 1e-5,
+        reduce_over_batches: bool = False,
+        generalized_metric: bool = False,
+        weight: Optional[torch.Tensor] = None,
+        reduction: Union[LossReduction, str] = "mean",
+    ):
         """
         :param apply_softmax: Whether to apply softmax to the predictions.
         :param smooth: laplace smoothing, also known as additive smoothing. The larger smooth value is, closer the metric
@@ -51,8 +54,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
         if self.generalized_metric:
             assert self.weight is None, "Cannot use structured Loss with weight classes and generalized normalization"
             if self.eps > 1e-12:
-                logger.warning("When using GeneralizedLoss, it is recommended to use eps below 1e-12, to not affect"
-                               "small values normalized terms.")
+                logger.warning("When using GeneralizedLoss, it is recommended to use eps below 1e-12, to not affect" "small values normalized terms.")
             if self.smooth != 0:
                 logger.warning("When using GeneralizedLoss, it is recommended to set smooth value as 0.")
 
@@ -78,15 +80,17 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
         # target to one hot format
         if target.size() == predict.size():
             labels_one_hot = target
-        elif target.dim() == 3:       # if target tensor is in class indexes format.
-            if predict.size(1) == 1 and self.ignore_index is None:    # if one class prediction task
+        elif target.dim() == 3:  # if target tensor is in class indexes format.
+            if predict.size(1) == 1 and self.ignore_index is None:  # if one class prediction task
                 labels_one_hot = target.unsqueeze(1)
             else:
                 labels_one_hot = to_one_hot(target, num_classes=predict.shape[1], ignore_index=self.ignore_index)
         else:
-            raise AssertionError(f"Mismatch of target shape: {target.size()} and prediction shape: {predict.size()},"
-                                 f" target must be [NxWxH] tensor for to_one_hot conversion"
-                                 f" or to have the same num of channels like prediction tensor")
+            raise AssertionError(
+                f"Mismatch of target shape: {target.size()} and prediction shape: {predict.size()},"
+                f" target must be [NxWxH] tensor for to_one_hot conversion"
+                f" or to have the same num of channels like prediction tensor"
+            )
 
         reduce_spatial_dims = list(range(2, len(predict.shape)))
         reduce_dims = [1] + reduce_spatial_dims if self.reduce_over_batches else [0] + reduce_spatial_dims
@@ -105,7 +109,7 @@ class AbstarctSegmentationStructureLoss(_Loss, ABC):
         denominator = torch.sum(denominator, dim=reduce_dims)
 
         if self.generalized_metric:
-            weights = 1. / (torch.sum(labels_one_hot, dim=reduce_dims) ** 2)
+            weights = 1.0 / (torch.sum(labels_one_hot, dim=reduce_dims) ** 2)
             # if some classes are not in batch, weights will be inf.
             infs = torch.isinf(weights)
             weights[infs] = 0.0

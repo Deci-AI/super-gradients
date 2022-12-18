@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.training.dataloaders.dataloaders &mdash; SuperGradients 3.0.3 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Welcome To SuperGradients</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Version 3 is out! Notebooks have been updated!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#build-with-supergradients">Build with SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#quick-installation">Quick Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#what-s-new">What’s New</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#coming-soon">Coming soon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#table-of-content">Table of Content</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#getting-started">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#advanced-features">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#installation-methods">Installation Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#implemented-model-architectures">Implemented Model Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#citation">Citation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#community">Community</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#deci-platform">Deci Platform</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>super_gradients.training.dataloaders.dataloaders</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for super_gradients.training.dataloaders.dataloaders</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">pkg_resources</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+
+<span class="kn">import</span> <span class="nn">hydra</span>
+<span class="kn">from</span> <span class="nn">hydra</span> <span class="kn">import</span> <span class="n">compose</span><span class="p">,</span> <span class="n">initialize_config_dir</span>
+<span class="kn">from</span> <span class="nn">hydra.core.global_hydra</span> <span class="kn">import</span> <span class="n">GlobalHydra</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">BatchSampler</span><span class="p">,</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">TensorDataset</span>
+
+<span class="kn">import</span> <span class="nn">super_gradients</span>
+
+<span class="kn">from</span> <span class="nn">super_gradients.training.datasets.detection_datasets.pascal_voc_detection</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PascalVOCUnifiedDetectionTrainDataset</span><span class="p">,</span>
+    <span class="n">PascalVOCDetectionDataset</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils</span> <span class="kn">import</span> <span class="n">get_param</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.hydra_utils</span> <span class="kn">import</span> <span class="n">normalize_path</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.datasets</span> <span class="kn">import</span> <span class="n">ImageNetDataset</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.datasets.detection_datasets</span> <span class="kn">import</span> <span class="n">COCODetectionDataset</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.datasets.classification_datasets.cifar</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Cifar10</span><span class="p">,</span>
+    <span class="n">Cifar100</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.datasets.segmentation_datasets</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CityscapesDataset</span><span class="p">,</span>
+    <span class="n">CoCoSegmentationDataSet</span><span class="p">,</span>
+    <span class="n">PascalVOC2012SegmentationDataSet</span><span class="p">,</span>
+    <span class="n">PascalVOCAndAUGUnifiedDataset</span><span class="p">,</span>
+    <span class="n">SuperviselyPersonsDataset</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.factories.samplers_factory</span> <span class="kn">import</span> <span class="n">SamplersFactory</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.distributed_training_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">wait_for_the_master</span><span class="p">,</span>
+    <span class="n">get_local_rank</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.abstractions.abstract_logger</span> <span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.utils</span> <span class="kn">import</span> <span class="n">override_default_params_without_nones</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_data_loader"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.get_data_loader">[docs]</a><span class="k">def</span> <span class="nf">get_data_loader</span><span class="p">(</span><span class="n">config_name</span><span class="p">,</span> <span class="n">dataset_cls</span><span class="p">,</span> <span class="n">train</span><span class="p">,</span> <span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class for creating dataloaders for taking defaults from yaml files in src/super_gradients/recipes.</span>
+
+<span class="sd">    :param config_name: yaml config filename in recipes (for example coco2017_yolox).</span>
+<span class="sd">    :param dataset_cls: torch dataset uninitialized class.</span>
+<span class="sd">    :param train: controls whether to take</span>
+<span class="sd">        cfg.dataset_params.train_dataloader_params or cfg.dataset_params.valid_dataloader_params as defaults for the dataset constructor</span>
+<span class="sd">     and</span>
+<span class="sd">        cfg.dataset_params.train_dataset_params or cfg.dataset_params.valid_dataset_params as defaults for DataLoader contructor.</span>
+
+<span class="sd">    :param dataset_params: dataset params that override the yaml configured defaults, then passed to the dataset_cls.__init__.</span>
+<span class="sd">    :param dataloader_params: DataLoader params that override the yaml configured defaults, then passed to the DataLoader.__init__</span>
+<span class="sd">    :return: DataLoader</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dataloader_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dataloader_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">dataset_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dataset_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+    <span class="n">GlobalHydra</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+    <span class="n">sg_recipes_dir</span> <span class="o">=</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_filename</span><span class="p">(</span><span class="s2">&quot;super_gradients.recipes&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">dataset_config</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;dataset_params&quot;</span><span class="p">,</span> <span class="n">config_name</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">initialize_config_dir</span><span class="p">(</span><span class="n">config_dir</span><span class="o">=</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">sg_recipes_dir</span><span class="p">),</span> <span class="n">version_base</span><span class="o">=</span><span class="s2">&quot;1.2&quot;</span><span class="p">):</span>
+        <span class="c1"># config is relative to a module</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">compose</span><span class="p">(</span><span class="n">config_name</span><span class="o">=</span><span class="n">normalize_path</span><span class="p">(</span><span class="n">dataset_config</span><span class="p">))</span>
+
+        <span class="n">dataset_params</span> <span class="o">=</span> <span class="n">_process_dataset_params</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">dataset_params</span><span class="p">,</span> <span class="n">train</span><span class="p">)</span>
+
+        <span class="n">local_rank</span> <span class="o">=</span> <span class="n">get_local_rank</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">wait_for_the_master</span><span class="p">(</span><span class="n">local_rank</span><span class="p">):</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset_cls</span><span class="p">(</span><span class="o">**</span><span class="n">dataset_params</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;dataset_params&quot;</span><span class="p">):</span>
+                <span class="n">dataset</span><span class="o">.</span><span class="n">dataset_params</span> <span class="o">=</span> <span class="n">dataset_params</span>
+
+        <span class="n">dataloader_params</span> <span class="o">=</span> <span class="n">_process_dataloader_params</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">train</span><span class="p">)</span>
+
+        <span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">dataloader_params</span><span class="p">)</span>
+        <span class="n">dataloader</span><span class="o">.</span><span class="n">dataloader_params</span> <span class="o">=</span> <span class="n">dataloader_params</span>
+        <span class="k">return</span> <span class="n">dataloader</span></div>
+
+
+<span class="k">def</span> <span class="nf">_process_dataset_params</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">dataset_params</span><span class="p">,</span> <span class="n">train</span><span class="p">):</span>
+    <span class="n">default_dataset_params</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">dataset_params</span><span class="o">.</span><span class="n">train_dataset_params</span> <span class="k">if</span> <span class="n">train</span> <span class="k">else</span> <span class="n">cfg</span><span class="o">.</span><span class="n">dataset_params</span><span class="o">.</span><span class="n">val_dataset_params</span>
+    <span class="n">default_dataset_params</span> <span class="o">=</span> <span class="n">hydra</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">default_dataset_params</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">default_dataset_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dataset_params</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="n">dataset_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dataset_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">return</span> <span class="n">dataset_params</span>
+
+
+<span class="k">def</span> <span class="nf">_process_dataloader_params</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">train</span><span class="p">):</span>
+    <span class="n">default_dataloader_params</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">dataset_params</span><span class="o">.</span><span class="n">train_dataloader_params</span> <span class="k">if</span> <span class="n">train</span> <span class="k">else</span> <span class="n">cfg</span><span class="o">.</span><span class="n">dataset_params</span><span class="o">.</span><span class="n">val_dataloader_params</span>
+    <span class="n">default_dataloader_params</span> <span class="o">=</span> <span class="n">hydra</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">default_dataloader_params</span><span class="p">)</span>
+    <span class="n">dataloader_params</span> <span class="o">=</span> <span class="n">_process_sampler_params</span><span class="p">(</span><span class="n">dataloader_params</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">default_dataloader_params</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dataloader_params</span>
+
+
+<span class="k">def</span> <span class="nf">_process_sampler_params</span><span class="p">(</span><span class="n">dataloader_params</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">default_dataloader_params</span><span class="p">):</span>
+    <span class="n">is_dist</span> <span class="o">=</span> <span class="n">super_gradients</span><span class="o">.</span><span class="n">is_distributed</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">get_param</span><span class="p">(</span><span class="n">dataloader_params</span><span class="p">,</span> <span class="s2">&quot;sampler&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dataloader_params</span> <span class="o">=</span> <span class="n">_instantiate_sampler</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">get_param</span><span class="p">(</span><span class="n">default_dataloader_params</span><span class="p">,</span> <span class="s2">&quot;sampler&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">default_dataloader_params</span> <span class="o">=</span> <span class="n">_instantiate_sampler</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">default_dataloader_params</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">is_dist</span><span class="p">:</span>
+        <span class="n">default_dataloader_params</span><span class="p">[</span><span class="s2">&quot;sampler&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;DistributedSampler&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+        <span class="n">default_dataloader_params</span> <span class="o">=</span> <span class="n">_instantiate_sampler</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">default_dataloader_params</span><span class="p">)</span>
+    <span class="n">dataloader_params</span> <span class="o">=</span> <span class="n">override_default_params_without_nones</span><span class="p">(</span><span class="n">dataloader_params</span><span class="p">,</span> <span class="n">default_dataloader_params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">get_param</span><span class="p">(</span><span class="n">dataloader_params</span><span class="p">,</span> <span class="s2">&quot;batch_sampler&quot;</span><span class="p">):</span>
+        <span class="n">sampler</span> <span class="o">=</span> <span class="n">dataloader_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;sampler&quot;</span><span class="p">)</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">dataloader_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;batch_size&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;drop_last&quot;</span> <span class="ow">in</span> <span class="n">dataloader_params</span><span class="p">:</span>
+            <span class="n">drop_last</span> <span class="o">=</span> <span class="n">dataloader_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;drop_last&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">drop_last</span> <span class="o">=</span> <span class="n">default_dataloader_params</span><span class="p">[</span><span class="s2">&quot;drop_last&quot;</span><span class="p">]</span>
+        <span class="n">dataloader_params</span><span class="p">[</span><span class="s2">&quot;batch_sampler&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">BatchSampler</span><span class="p">(</span><span class="n">sampler</span><span class="o">=</span><span class="n">sampler</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">drop_last</span><span class="o">=</span><span class="n">drop_last</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dataloader_params</span>
+
+
+<span class="k">def</span> <span class="nf">_instantiate_sampler</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">):</span>
+    <span class="n">sampler_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dataloader_params</span><span class="p">[</span><span class="s2">&quot;sampler&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dataloader_params</span><span class="p">[</span><span class="s2">&quot;sampler&quot;</span><span class="p">][</span><span class="n">sampler_name</span><span class="p">][</span><span class="s2">&quot;dataset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset</span>
+    <span class="n">dataloader_params</span><span class="p">[</span><span class="s2">&quot;sampler&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SamplersFactory</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dataloader_params</span><span class="p">[</span><span class="s2">&quot;sampler&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">dataloader_params</span>
+
+
+<div class="viewcode-block" id="coco2017_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.coco2017_train">[docs]</a><span class="k">def</span> <span class="nf">coco2017_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;coco_detection_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">COCODetectionDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="coco2017_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.coco2017_val">[docs]</a><span class="k">def</span> <span class="nf">coco2017_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;coco_detection_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">COCODetectionDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="coco2017_train_yolox"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.coco2017_train_yolox">[docs]</a><span class="k">def</span> <span class="nf">coco2017_train_yolox</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">coco2017_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="coco2017_val_yolox"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.coco2017_val_yolox">[docs]</a><span class="k">def</span> <span class="nf">coco2017_val_yolox</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">coco2017_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="coco2017_train_ssd_lite_mobilenet_v2"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.coco2017_train_ssd_lite_mobilenet_v2">[docs]</a><span class="k">def</span> <span class="nf">coco2017_train_ssd_lite_mobilenet_v2</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;coco_detection_ssd_lite_mobilenet_v2_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">COCODetectionDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="coco2017_val_ssd_lite_mobilenet_v2"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.coco2017_val_ssd_lite_mobilenet_v2">[docs]</a><span class="k">def</span> <span class="nf">coco2017_val_ssd_lite_mobilenet_v2</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;coco_detection_ssd_lite_mobilenet_v2_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">COCODetectionDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_train">[docs]</a><span class="k">def</span> <span class="nf">imagenet_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_dataset_params&quot;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="n">config_name</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">ImageNetDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_val">[docs]</a><span class="k">def</span> <span class="nf">imagenet_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_dataset_params&quot;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="n">config_name</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">ImageNetDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_efficientnet_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_efficientnet_train">[docs]</a><span class="k">def</span> <span class="nf">imagenet_efficientnet_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_train</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_efficientnet_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_efficientnet_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_efficientnet_val">[docs]</a><span class="k">def</span> <span class="nf">imagenet_efficientnet_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_val</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_efficientnet_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_mobilenetv2_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_mobilenetv2_train">[docs]</a><span class="k">def</span> <span class="nf">imagenet_mobilenetv2_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_train</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_mobilenetv2_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_mobilenetv2_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_mobilenetv2_val">[docs]</a><span class="k">def</span> <span class="nf">imagenet_mobilenetv2_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_val</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_mobilenetv2_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_mobilenetv3_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_mobilenetv3_train">[docs]</a><span class="k">def</span> <span class="nf">imagenet_mobilenetv3_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_train</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_mobilenetv3_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_mobilenetv3_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_mobilenetv3_val">[docs]</a><span class="k">def</span> <span class="nf">imagenet_mobilenetv3_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_val</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_mobilenetv3_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_regnetY_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_regnetY_train">[docs]</a><span class="k">def</span> <span class="nf">imagenet_regnetY_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">,</span> <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_regnetY_dataset_params&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_regnetY_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_regnetY_val">[docs]</a><span class="k">def</span> <span class="nf">imagenet_regnetY_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">,</span> <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_regnetY_dataset_params&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_resnet50_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_resnet50_train">[docs]</a><span class="k">def</span> <span class="nf">imagenet_resnet50_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_train</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_resnet50_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_resnet50_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_resnet50_val">[docs]</a><span class="k">def</span> <span class="nf">imagenet_resnet50_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_val</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_resnet50_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_resnet50_kd_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_resnet50_kd_train">[docs]</a><span class="k">def</span> <span class="nf">imagenet_resnet50_kd_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_train</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_resnet50_kd_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_resnet50_kd_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_resnet50_kd_val">[docs]</a><span class="k">def</span> <span class="nf">imagenet_resnet50_kd_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_val</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_resnet50_kd_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_vit_base_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_vit_base_train">[docs]</a><span class="k">def</span> <span class="nf">imagenet_vit_base_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_train</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_vit_base_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="imagenet_vit_base_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.imagenet_vit_base_val">[docs]</a><span class="k">def</span> <span class="nf">imagenet_vit_base_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">imagenet_val</span><span class="p">(</span>
+        <span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="p">,</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;imagenet_vit_base_dataset_params&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="tiny_imagenet_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.tiny_imagenet_train">[docs]</a><span class="k">def</span> <span class="nf">tiny_imagenet_train</span><span class="p">(</span>
+    <span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;tiny_imagenet_dataset_params&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="n">config_name</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">ImageNetDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="tiny_imagenet_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.tiny_imagenet_val">[docs]</a><span class="k">def</span> <span class="nf">tiny_imagenet_val</span><span class="p">(</span>
+    <span class="n">dataset_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dataloader_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;tiny_imagenet_dataset_params&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="n">config_name</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">ImageNetDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cifar10_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cifar10_train">[docs]</a><span class="k">def</span> <span class="nf">cifar10_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cifar10_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">Cifar10</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cifar10_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cifar10_val">[docs]</a><span class="k">def</span> <span class="nf">cifar10_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cifar10_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">Cifar10</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cifar100_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cifar100_train">[docs]</a><span class="k">def</span> <span class="nf">cifar100_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cifar100_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">Cifar100</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cifar100_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cifar100_val">[docs]</a><span class="k">def</span> <span class="nf">cifar100_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cifar100_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">Cifar100</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">classification_test_dataloader</span><span class="p">(</span><span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span> <span class="n">dataset_size</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataLoader</span><span class="p">:</span>
+    <span class="n">dataset_size</span> <span class="o">=</span> <span class="n">dataset_size</span> <span class="ow">or</span> <span class="n">batch_size</span>
+    <span class="n">images</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dataset_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">image_size</span><span class="p">,</span> <span class="n">image_size</span><span class="p">)))</span>
+    <span class="n">ground_truth</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dataset_size</span><span class="p">)))</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TensorDataset</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">detection_test_dataloader</span><span class="p">(</span><span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">320</span><span class="p">,</span> <span class="n">dataset_size</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataLoader</span><span class="p">:</span>
+    <span class="n">dataset_size</span> <span class="o">=</span> <span class="n">dataset_size</span> <span class="ow">or</span> <span class="n">batch_size</span>
+    <span class="n">images</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dataset_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">image_size</span><span class="p">,</span> <span class="n">image_size</span><span class="p">)))</span>
+    <span class="n">ground_truth</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dataset_size</span><span class="p">,</span> <span class="mi">6</span><span class="p">)))</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TensorDataset</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">segmentation_test_dataloader</span><span class="p">(</span><span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">image_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span> <span class="n">dataset_size</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataLoader</span><span class="p">:</span>
+    <span class="n">dataset_size</span> <span class="o">=</span> <span class="n">dataset_size</span> <span class="ow">or</span> <span class="n">batch_size</span>
+    <span class="n">images</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dataset_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">image_size</span><span class="p">,</span> <span class="n">image_size</span><span class="p">)))</span>
+    <span class="n">ground_truth</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">dataset_size</span><span class="p">,</span> <span class="n">image_size</span><span class="p">,</span> <span class="n">image_size</span><span class="p">)))</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TensorDataset</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="cityscapes_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cityscapes_train">[docs]</a><span class="k">def</span> <span class="nf">cityscapes_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cityscapes_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CityscapesDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cityscapes_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cityscapes_val">[docs]</a><span class="k">def</span> <span class="nf">cityscapes_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cityscapes_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CityscapesDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cityscapes_stdc_seg50_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cityscapes_stdc_seg50_train">[docs]</a><span class="k">def</span> <span class="nf">cityscapes_stdc_seg50_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cityscapes_stdc_seg50_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CityscapesDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cityscapes_stdc_seg50_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cityscapes_stdc_seg50_val">[docs]</a><span class="k">def</span> <span class="nf">cityscapes_stdc_seg50_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cityscapes_stdc_seg50_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CityscapesDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cityscapes_stdc_seg75_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cityscapes_stdc_seg75_train">[docs]</a><span class="k">def</span> <span class="nf">cityscapes_stdc_seg75_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cityscapes_stdc_seg75_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CityscapesDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cityscapes_stdc_seg75_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cityscapes_stdc_seg75_val">[docs]</a><span class="k">def</span> <span class="nf">cityscapes_stdc_seg75_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cityscapes_stdc_seg75_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CityscapesDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cityscapes_regseg48_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cityscapes_regseg48_train">[docs]</a><span class="k">def</span> <span class="nf">cityscapes_regseg48_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cityscapes_regseg48_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CityscapesDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cityscapes_regseg48_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cityscapes_regseg48_val">[docs]</a><span class="k">def</span> <span class="nf">cityscapes_regseg48_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cityscapes_regseg48_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CityscapesDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cityscapes_ddrnet_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cityscapes_ddrnet_train">[docs]</a><span class="k">def</span> <span class="nf">cityscapes_ddrnet_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cityscapes_ddrnet_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CityscapesDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cityscapes_ddrnet_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.cityscapes_ddrnet_val">[docs]</a><span class="k">def</span> <span class="nf">cityscapes_ddrnet_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;cityscapes_ddrnet_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CityscapesDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="coco_segmentation_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.coco_segmentation_train">[docs]</a><span class="k">def</span> <span class="nf">coco_segmentation_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;coco_segmentation_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CoCoSegmentationDataSet</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="coco_segmentation_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.coco_segmentation_val">[docs]</a><span class="k">def</span> <span class="nf">coco_segmentation_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;coco_segmentation_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">CoCoSegmentationDataSet</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="pascal_aug_segmentation_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.pascal_aug_segmentation_train">[docs]</a><span class="k">def</span> <span class="nf">pascal_aug_segmentation_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;pascal_aug_segmentation_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">PascalVOCAndAUGUnifiedDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="pascal_aug_segmentation_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.pascal_aug_segmentation_val">[docs]</a><span class="k">def</span> <span class="nf">pascal_aug_segmentation_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">pascal_voc_segmentation_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="pascal_voc_segmentation_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.pascal_voc_segmentation_train">[docs]</a><span class="k">def</span> <span class="nf">pascal_voc_segmentation_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;pascal_voc_segmentation_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">PascalVOC2012SegmentationDataSet</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="pascal_voc_segmentation_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.pascal_voc_segmentation_val">[docs]</a><span class="k">def</span> <span class="nf">pascal_voc_segmentation_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;pascal_voc_segmentation_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">PascalVOC2012SegmentationDataSet</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="supervisely_persons_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.supervisely_persons_train">[docs]</a><span class="k">def</span> <span class="nf">supervisely_persons_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;supervisely_persons_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">SuperviselyPersonsDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="supervisely_persons_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.supervisely_persons_val">[docs]</a><span class="k">def</span> <span class="nf">supervisely_persons_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;supervisely_persons_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">SuperviselyPersonsDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="pascal_voc_detection_train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.pascal_voc_detection_train">[docs]</a><span class="k">def</span> <span class="nf">pascal_voc_detection_train</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;pascal_voc_detection_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">PascalVOCUnifiedDetectionTrainDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="pascal_voc_detection_val"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.pascal_voc_detection_val">[docs]</a><span class="k">def</span> <span class="nf">pascal_voc_detection_val</span><span class="p">(</span><span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">get_data_loader</span><span class="p">(</span>
+        <span class="n">config_name</span><span class="o">=</span><span class="s2">&quot;pascal_voc_detection_dataset_params&quot;</span><span class="p">,</span>
+        <span class="n">dataset_cls</span><span class="o">=</span><span class="n">PascalVOCDetectionDataset</span><span class="p">,</span>
+        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span>
+        <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<span class="n">ALL_DATALOADERS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;coco2017_train&quot;</span><span class="p">:</span> <span class="n">coco2017_train</span><span class="p">,</span>
+    <span class="s2">&quot;coco2017_val&quot;</span><span class="p">:</span> <span class="n">coco2017_val</span><span class="p">,</span>
+    <span class="s2">&quot;coco2017_train_yolox&quot;</span><span class="p">:</span> <span class="n">coco2017_train_yolox</span><span class="p">,</span>
+    <span class="s2">&quot;coco2017_val_yolox&quot;</span><span class="p">:</span> <span class="n">coco2017_val_yolox</span><span class="p">,</span>
+    <span class="s2">&quot;coco2017_train_ssd_lite_mobilenet_v2&quot;</span><span class="p">:</span> <span class="n">coco2017_train_ssd_lite_mobilenet_v2</span><span class="p">,</span>
+    <span class="s2">&quot;coco2017_val_ssd_lite_mobilenet_v2&quot;</span><span class="p">:</span> <span class="n">coco2017_val_ssd_lite_mobilenet_v2</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_train&quot;</span><span class="p">:</span> <span class="n">imagenet_train</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_val&quot;</span><span class="p">:</span> <span class="n">imagenet_val</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_efficientnet_train&quot;</span><span class="p">:</span> <span class="n">imagenet_efficientnet_train</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_efficientnet_val&quot;</span><span class="p">:</span> <span class="n">imagenet_efficientnet_val</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_mobilenetv2_train&quot;</span><span class="p">:</span> <span class="n">imagenet_mobilenetv2_train</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_mobilenetv2_val&quot;</span><span class="p">:</span> <span class="n">imagenet_mobilenetv2_val</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_mobilenetv3_train&quot;</span><span class="p">:</span> <span class="n">imagenet_mobilenetv3_train</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_mobilenetv3_val&quot;</span><span class="p">:</span> <span class="n">imagenet_mobilenetv3_val</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_regnetY_train&quot;</span><span class="p">:</span> <span class="n">imagenet_regnetY_train</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_regnetY_val&quot;</span><span class="p">:</span> <span class="n">imagenet_regnetY_val</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_resnet50_train&quot;</span><span class="p">:</span> <span class="n">imagenet_resnet50_train</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_resnet50_val&quot;</span><span class="p">:</span> <span class="n">imagenet_resnet50_val</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_resnet50_kd_train&quot;</span><span class="p">:</span> <span class="n">imagenet_resnet50_kd_train</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_resnet50_kd_val&quot;</span><span class="p">:</span> <span class="n">imagenet_resnet50_kd_val</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_vit_base_train&quot;</span><span class="p">:</span> <span class="n">imagenet_vit_base_train</span><span class="p">,</span>
+    <span class="s2">&quot;imagenet_vit_base_val&quot;</span><span class="p">:</span> <span class="n">imagenet_vit_base_val</span><span class="p">,</span>
+    <span class="s2">&quot;tiny_imagenet_train&quot;</span><span class="p">:</span> <span class="n">tiny_imagenet_train</span><span class="p">,</span>
+    <span class="s2">&quot;tiny_imagenet_val&quot;</span><span class="p">:</span> <span class="n">tiny_imagenet_val</span><span class="p">,</span>
+    <span class="s2">&quot;cifar10_train&quot;</span><span class="p">:</span> <span class="n">cifar10_train</span><span class="p">,</span>
+    <span class="s2">&quot;cifar10_val&quot;</span><span class="p">:</span> <span class="n">cifar10_val</span><span class="p">,</span>
+    <span class="s2">&quot;cifar100_train&quot;</span><span class="p">:</span> <span class="n">cifar100_train</span><span class="p">,</span>
+    <span class="s2">&quot;cifar100_val&quot;</span><span class="p">:</span> <span class="n">cifar100_val</span><span class="p">,</span>
+    <span class="s2">&quot;cityscapes_train&quot;</span><span class="p">:</span> <span class="n">cityscapes_train</span><span class="p">,</span>
+    <span class="s2">&quot;cityscapes_val&quot;</span><span class="p">:</span> <span class="n">cityscapes_val</span><span class="p">,</span>
+    <span class="s2">&quot;cityscapes_stdc_seg50_train&quot;</span><span class="p">:</span> <span class="n">cityscapes_stdc_seg50_train</span><span class="p">,</span>
+    <span class="s2">&quot;cityscapes_stdc_seg50_val&quot;</span><span class="p">:</span> <span class="n">cityscapes_stdc_seg50_val</span><span class="p">,</span>
+    <span class="s2">&quot;cityscapes_stdc_seg75_train&quot;</span><span class="p">:</span> <span class="n">cityscapes_stdc_seg75_train</span><span class="p">,</span>
+    <span class="s2">&quot;cityscapes_stdc_seg75_val&quot;</span><span class="p">:</span> <span class="n">cityscapes_stdc_seg75_val</span><span class="p">,</span>
+    <span class="s2">&quot;cityscapes_regseg48_train&quot;</span><span class="p">:</span> <span class="n">cityscapes_regseg48_train</span><span class="p">,</span>
+    <span class="s2">&quot;cityscapes_regseg48_val&quot;</span><span class="p">:</span> <span class="n">cityscapes_regseg48_val</span><span class="p">,</span>
+    <span class="s2">&quot;cityscapes_ddrnet_train&quot;</span><span class="p">:</span> <span class="n">cityscapes_ddrnet_train</span><span class="p">,</span>
+    <span class="s2">&quot;cityscapes_ddrnet_val&quot;</span><span class="p">:</span> <span class="n">cityscapes_ddrnet_val</span><span class="p">,</span>
+    <span class="s2">&quot;coco_segmentation_train&quot;</span><span class="p">:</span> <span class="n">coco_segmentation_train</span><span class="p">,</span>
+    <span class="s2">&quot;coco_segmentation_val&quot;</span><span class="p">:</span> <span class="n">coco_segmentation_val</span><span class="p">,</span>
+    <span class="s2">&quot;pascal_aug_segmentation_train&quot;</span><span class="p">:</span> <span class="n">pascal_aug_segmentation_train</span><span class="p">,</span>
+    <span class="s2">&quot;pascal_aug_segmentation_val&quot;</span><span class="p">:</span> <span class="n">pascal_aug_segmentation_val</span><span class="p">,</span>
+    <span class="s2">&quot;pascal_voc_segmentation_train&quot;</span><span class="p">:</span> <span class="n">pascal_voc_segmentation_train</span><span class="p">,</span>
+    <span class="s2">&quot;pascal_voc_segmentation_val&quot;</span><span class="p">:</span> <span class="n">pascal_voc_segmentation_val</span><span class="p">,</span>
+    <span class="s2">&quot;supervisely_persons_train&quot;</span><span class="p">:</span> <span class="n">supervisely_persons_train</span><span class="p">,</span>
+    <span class="s2">&quot;supervisely_persons_val&quot;</span><span class="p">:</span> <span class="n">supervisely_persons_val</span><span class="p">,</span>
+    <span class="s2">&quot;pascal_voc_detection_train&quot;</span><span class="p">:</span> <span class="n">pascal_voc_detection_train</span><span class="p">,</span>
+    <span class="s2">&quot;pascal_voc_detection_val&quot;</span><span class="p">:</span> <span class="n">pascal_voc_detection_val</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="get"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.dataloaders.get">[docs]</a><span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataset_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataLoader</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get DataLoader of the recipe-configured dataset defined by name in ALL_DATALOADERS.</span>
+
+<span class="sd">    :param name: dataset name in ALL_DATALOADERS.</span>
+<span class="sd">    :param dataset_params: dataset params that override the yaml configured defaults, then passed to the dataset_cls.__init__.</span>
+<span class="sd">    :param dataloader_params: DataLoader params that override the yaml configured defaults, then passed to the DataLoader.__init__</span>
+<span class="sd">    :param dataset: torch.utils.data.Dataset to be used instead of passing &quot;name&quot; (i.e for external dataset objects).</span>
+<span class="sd">    :return: initialized DataLoader.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">dataset_params</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;name&#39; and &#39;dataset_params&#39; cannot be passed with initialized dataset.&quot;</span><span class="p">)</span>
+        <span class="n">dataloader_params</span> <span class="o">=</span> <span class="n">_process_sampler_params</span><span class="p">(</span><span class="n">dataloader_params</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">dataloader_params</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ALL_DATALOADERS</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported dataloader: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dataloader_cls</span> <span class="o">=</span> <span class="n">ALL_DATALOADERS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">dataloader</span> <span class="o">=</span> <span class="n">dataloader_cls</span><span class="p">(</span><span class="n">dataset_params</span><span class="o">=</span><span class="n">dataset_params</span><span class="p">,</span> <span class="n">dataloader_params</span><span class="o">=</span><span class="n">dataloader_params</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dataloader</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
