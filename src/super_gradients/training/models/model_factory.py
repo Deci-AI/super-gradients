@@ -71,11 +71,7 @@ def get_architecture(model_name: str, arch_params: HpmStruct, download_required_
 
 
 def instantiate_model(
-    model_name: str,
-    arch_params: dict,
-    num_classes: int,
-    pretrained_weights: str = None,
-    download_required_code: bool = True,
+    model_name: str, arch_params: dict, num_classes: int, pretrained_weights: str = None, download_required_code: bool = True
 ) -> torch.nn.Module:
     """
     Instantiates nn.Module according to architecture and arch_params, and handles pretrained weights and the required
@@ -166,6 +162,7 @@ def get(
 
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
     """
+    checkpoint_num_classes = checkpoint_num_classes or num_classes
 
     if checkpoint_num_classes and checkpoint_path:
         net = instantiate_model(model_name, arch_params, checkpoint_num_classes, pretrained_weights, download_required_code)
@@ -185,5 +182,7 @@ def get(
             load_weights_only=True,
             load_ema_as_net=load_ema_as_net,
         )
+    if checkpoint_num_classes != num_classes:
+        net.replace_head(new_num_classes=num_classes)
 
     return net
