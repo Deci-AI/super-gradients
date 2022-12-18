@@ -154,17 +154,17 @@ def get(
     :param load_backbone:       Load the provided checkpoint to model.backbone instead of model.
     :param download_required_code: if model is not found in SG and is downloaded from a remote client, overriding this parameter with False
                                     will prevent additional code from being downloaded. This affects only models from remote client.
-    :param checkpoint_num_classes:  num_classes of checkpoint_path, when checkpoint_path is not None. Used when num_classes != checkpoint_num_class.
-        In this case, the module will be initialized with checkpoint_num_class, then checkpoint_path weights will be loaded, and finaly
-        replace_head(new_num_classes=num_classes) is called (useful when wanting to perform transfer learning, from a user's checkpoint rather
-         then one of the weights offered in SG model zoo). Ignored when checkpoint_path=None (default=None).
+    :param checkpoint_num_classes:  num_classes of checkpoint_path/ pretrained_weights, when checkpoint_path is not None.
+     Used when num_classes != checkpoint_num_class. In this case, the module will be initialized with checkpoint_num_class, then weights will be loaded. Finaly
+        replace_head(new_num_classes=num_classes) is called (useful when wanting to perform transfer learning, from a checkpoint outside of
+         then ones offered in SG model zoo).
 
 
     NOTE: Passing pretrained_weights and checkpoint_path is ill-defined and will raise an error.
     """
     checkpoint_num_classes = checkpoint_num_classes or num_classes
 
-    if checkpoint_num_classes and checkpoint_path:
+    if checkpoint_num_classes:
         net = instantiate_model(model_name, arch_params, checkpoint_num_classes, pretrained_weights, download_required_code)
     else:
         net = instantiate_model(model_name, arch_params, num_classes, pretrained_weights, download_required_code)
