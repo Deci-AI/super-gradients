@@ -104,6 +104,18 @@ jobs:
       - store_artifacts:
           path: ~/sg_logs
 
+  integration_test:
+    description: "running integration test on the code"
+    machine: true
+    resource_class: deci-ai/research-standard
+    steps:
+        - checkout
+        - run:
+           name: integration test
+           #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
+           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.2 python3 -c 'print("it works!")'
+
+
 
   release_candidate:
     parameters:
@@ -227,6 +239,7 @@ workflows:
           requires:
             - deci-common/persist_version_info
             - deci-common/codeartifact_login
+      - integration_test
       - release_candidate: # happens on merge
           py_version: "3.7"
           requires:
