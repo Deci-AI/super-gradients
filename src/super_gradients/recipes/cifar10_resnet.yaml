@@ -13,6 +13,7 @@ defaults:
   - dataset_params: cifar10_dataset_params
   - arch_params: resnet18_cifar_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 train_dataloader: cifar10_train
 val_dataloader: cifar10_val
@@ -22,7 +23,6 @@ data_loader_num_workers: 8
 resume: False
 training_hyperparams:
   resume: ${resume}
-
 
 
 ckpt_root_dir:

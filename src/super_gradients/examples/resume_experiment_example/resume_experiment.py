@@ -4,7 +4,7 @@ Example code for resuming SuperGradient's recipes.
 General use: python resume_experiment.py --experiment_name=<PREVIOUSLY-RUN-EXPERIMENT>
 """
 from super_gradients import Trainer, init_trainer
-from super_gradients.common.environment.env_helpers import pop_arg
+from super_gradients.common.environment.ddp_utils import pop_arg
 
 
 def main() -> None:

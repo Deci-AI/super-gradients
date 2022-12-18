@@ -11,9 +11,10 @@ from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 
 from super_gradients.common.data_types.enum import MultiGPUMode
-from super_gradients.common.environment.env_helpers import find_free_port, is_distributed
+from super_gradients.common.environment.argparse_utils import EXTRA_ARGS
+from super_gradients.common.environment.ddp_utils import find_free_port, is_distributed
 from super_gradients.common.abstractions.abstract_logger import get_logger
-from super_gradients.common.environment import environment_config
+
 
 logger = get_logger(__name__)
 
@@ -170,24 +171,33 @@ def wait_for_the_master(local_rank: int):
             dist.barrier()
 
 
-def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
+def setup_device(multi_gpu: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
     """
     If required, launch ddp subprocesses.
-    :param gpu_mode:    DDP, DP or Off
+    :param multi_gpu:   DDP, DP or Off
     :param num_gpus:    Number of GPU's to use.
     """
-    if gpu_mode == MultiGPUMode.AUTO and torch.cuda.device_count() > 1:
-        gpu_mode = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
-    if require_gpu_setup(gpu_mode):
+    if multi_gpu == MultiGPUMode.AUTO and torch.cuda.device_count() > 1:
+        multi_gpu = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
+    if require_gpu_setup(multi_gpu):
         num_gpus = num_gpus or torch.cuda.device_count()
         if num_gpus > torch.cuda.device_count():
             raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
         restart_script_with_ddp(num_gpus)
 
 
-def require_gpu_setup(gpu_mode: MultiGPUMode) -> bool:
+def setup_gpu_mode(gpu_mode: MultiGPUMode = MultiGPUMode.OFF, num_gpus: int = None):
+    """If required, launch ddp subprocesses (deprecated).
+    :param gpu_mode:    DDP, DP or Off
+    :param num_gpus:    Number of GPU's to use.
+    """
+    logger.warning("setup_gpu_mode is now deprecated in favor of setup_device. This will be removed in next version")
+    setup_device(multi_gpu=gpu_mode, num_gpus=num_gpus)
+
+
+def require_gpu_setup(multi_gpu: MultiGPUMode) -> bool:
     """Check if the environment requires a setup in order to work with DDP."""
-    return (gpu_mode == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL) and (not is_distributed())
+    return (multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL) and (not is_distributed())
 
 
 @record
@@ -229,7 +239,7 @@ def restart_script_with_ddp(num_gpus: int = None):
         metrics_cfg={},
     )
 
-    elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv, *environment_config.EXTRA_ARGS)
+    elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv, *EXTRA_ARGS)
 
     # The code below should actually never be reached as the process will be in a loop inside elastic_launch until any subprocess crashes.
     sys.exit("Main process finished")
