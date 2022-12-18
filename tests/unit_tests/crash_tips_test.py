@@ -2,8 +2,14 @@ import sys
 import unittest
 import dataclasses
 from typing import Type
-from super_gradients.common.crash_handler import get_relevant_crash_tip_message
-from super_gradients.common.crash_handler.crash_tips import CrashTip, TorchCudaMissingTip, RecipeFactoryFormatTip, DDPNotInitializedTip
+from super_gradients.common.crash_handler.crash_tips import (
+    get_relevant_crash_tip_message,
+    CrashTip,
+    TorchCudaMissingTip,
+    RecipeFactoryFormatTip,
+    DDPNotInitializedTip,
+    WrongHydraVersionTip,
+)
 
 
 @dataclasses.dataclass
@@ -35,6 +41,10 @@ class CrashTipTest(unittest.TestCase):
             DocumentedException(
                 exc_value=RuntimeError("Default process group has not been initialized, please make sure to call init_process_group."),
                 expected_crash_tip=DDPNotInitializedTip,
+            ),
+            DocumentedException(
+                exc_value=TypeError("__init__() got an unexpected keyword argument 'version_base'"),
+                expected_crash_tip=WrongHydraVersionTip,
             ),
         ]
 

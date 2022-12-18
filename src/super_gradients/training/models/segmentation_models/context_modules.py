@@ -72,6 +72,10 @@ class SPPM(AbstractContextModule):
         input_size = [x / stride_ratio for x in input_size[-2:]]
         for branch in self.branches:
             global_pool: nn.AdaptiveAvgPool2d = branch[0]
+            # If not a global average pooling skip this. The module might be already converted to average pooling
+            # modules.
+            if not isinstance(global_pool, nn.AdaptiveAvgPool2d):
+                continue
             out_size = global_pool.output_size
             out_size = out_size if isinstance(out_size, (tuple, list)) else (out_size, out_size)
             kernel_size = [int(i / o) for i, o in zip(input_size, out_size)]

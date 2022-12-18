@@ -9,7 +9,7 @@ import torch
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
 from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
-from super_gradients.common.environment.env_helpers import multi_process_safe
+from super_gradients.common.environment.ddp_utils import multi_process_safe
 
 logger = get_logger(__name__)
 
@@ -37,6 +37,7 @@ class ClearMLSGLogger(BaseSGLogger):
         save_checkpoints_remote: bool = True,
         save_tensorboard_remote: bool = True,
         save_logs_remote: bool = True,
+        monitor_system: bool = None,
     ):
         """
         :param project_name: ClearML project name that can include many experiments
@@ -54,6 +55,9 @@ class ClearMLSGLogger(BaseSGLogger):
         :param save_tensorboard_remote: Saves tensorboard in ClearML server.
         :param save_logs_remote: Saves log files in ClearML server.
         """
+        if monitor_system is not None:
+            logger.warning("monitor_system not available on ClearMLSGLogger. To remove this warning, please don't set monitor_system in your logger parameters")
+
         self.s3_location_available = storage_location.startswith("s3")
         super().__init__(
             project_name=project_name,

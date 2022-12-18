@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 from typing import Union, List
-
 from super_gradients.modules import ConvBNReLU
 from super_gradients.training.utils.module_utils import make_upsample_module
 from super_gradients.common import UpsampleMode
-from super_gradients.training.models.segmentation_models.stdc import SegmentationHead, AbstractSTDCBackbone, STDC1Backbone, STDC2Backbone
+from super_gradients.training.models.segmentation_models.stdc import AbstractSTDCBackbone, STDC1Backbone, STDC2Backbone
+from super_gradients.training.models.segmentation_models.common import SegmentationHead
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
-from super_gradients.training.utils import HpmStruct, get_param
+from super_gradients.training.utils import HpmStruct, get_param, torch_version_is_greater_or_equal
 from super_gradients.training.models.segmentation_models.context_modules import SPPM
 
 
@@ -279,6 +279,8 @@ class PPLiteSegBase(SegmentationModule):
         return multiply_lr_params.items(), no_multiply_params.items()
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list], stride_ratio: int = 32, **kwargs):
+        if not torch_version_is_greater_or_equal(1, 11):
+            raise RuntimeError("PPLiteSeg model ONNX export requires torch => 1.11, torch installed: " + str(torch.__version__))
         super().prep_model_for_conversion(input_size, **kwargs)
         if isinstance(self.encoder.context_module, SPPM):
             self.encoder.context_module.prep_model_for_conversion(input_size=input_size, stride_ratio=stride_ratio)

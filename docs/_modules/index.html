@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Overview: module code &mdash; SuperGradients 1.0 documentation</title>
+  <title>Overview: module code &mdash; SuperGradients 3.0.3 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -14,7 +15,9 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -35,30 +38,29 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Welcome To SuperGradients</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Welcome To SuperGradients</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../welcome.html">Fill our 4-question quick survey! We will raffle free SuperGradients swag between those who will participate -&gt; Fill Survey</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../welcome.html#supergradients">SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html">Version 3 is out! Notebooks have been updated!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#build-with-supergradients">Build with SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#quick-installation">Quick Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#what-s-new">What’s New</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#coming-soon">Coming soon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#table-of-content">Table of Content</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#getting-started">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#advanced-features">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#installation-methods">Installation Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#implemented-model-architectures">Implemented Model Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#citation">Citation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#community">Community</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../welcome.html#deci-platform">Deci Platform</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Technical Documentation</span></p>
+<p class="caption" role="heading"><span class="caption-text">Technical Documentation</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../super_gradients.common.html">Common package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../super_gradients.training.html">Training package</a></li>
-</ul>
-<p class="caption"><span class="caption-text">User Guide</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html">What is SuperGradients?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#introducing-the-supergradients-library">Introducing the SuperGradients library</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#integrating-your-training-code-complete-walkthrough">Integrating Your Training Code - Complete Walkthrough</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#training-parameters">Training Parameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#logs-and-checkpoints">Logs and Checkpoints</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#dataset-parameters">Dataset Parameters</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#network-architectures">Network Architectures</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#pretrained-models">Pretrained Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#how-to-reproduce-our-training-recipes">How To Reproduce Our Training Recipes</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#professional-tools-integration">Professional Tools Integration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide.html#supergradients-faq">SuperGradients FAQ</a></li>
 </ul>
 
         </div>
@@ -85,10 +87,10 @@
            <div itemprop="articleBody">
              
   <h1>All modules for which code is available</h1>
-<ul><li><a href="super_gradients/common/abstractions/abstract_logger.html">super_gradients.common.abstractions.abstract_logger</a></li>
-<li><a href="super_gradients/common/auto_logging/auto_logger.html">super_gradients.common.auto_logging.auto_logger</a></li>
+<ul><li><a href="super_gradients/common/auto_logging/auto_logger.html">super_gradients.common.auto_logging.auto_logger</a></li>
+<li><a href="super_gradients/common/auto_logging/console_logging.html">super_gradients.common.auto_logging.console_logging</a></li>
 <li><a href="super_gradients/common/aws_connection/aws_connector.html">super_gradients.common.aws_connection.aws_connector</a></li>
-<li><a href="super_gradients/common/aws_connection/aws_secrets_manager_connector.html">super_gradients.common.aws_connection.aws_secrets_manager_connector</a></li>
+<li><a href="super_gradients/common/crash_handler/crash_handler.html">super_gradients.common.crash_handler.crash_handler</a></li>
 <li><a href="super_gradients/common/data_connection/s3_connector.html">super_gradients.common.data_connection.s3_connector</a></li>
 <li><a href="super_gradients/common/data_interface/adnn_model_repository_data_interface.html">super_gradients.common.data_interface.adnn_model_repository_data_interface</a></li>
 <li><a href="super_gradients/common/data_interface/dataset_data_interface.html">super_gradients.common.data_interface.dataset_data_interface</a></li>
@@ -96,37 +98,29 @@
 <li><a href="super_gradients/common/data_types/enum/evaluation_type.html">super_gradients.common.data_types.enum.evaluation_type</a></li>
 <li><a href="super_gradients/common/data_types/enum/multi_gpu_mode.html">super_gradients.common.data_types.enum.multi_gpu_mode</a></li>
 <li><a href="super_gradients/common/data_types/enum/strict_load.html">super_gradients.common.data_types.enum.strict_load</a></li>
-<li><a href="super_gradients/common/decorators/deci_logger.html">super_gradients.common.decorators.deci_logger</a></li>
+<li><a href="super_gradients/common/data_types/enum/upsample_mode.html">super_gradients.common.data_types.enum.upsample_mode</a></li>
 <li><a href="super_gradients/common/decorators/explicit_params_validator.html">super_gradients.common.decorators.explicit_params_validator</a></li>
 <li><a href="super_gradients/common/decorators/singleton.html">super_gradients.common.decorators.singleton</a></li>
 <li><a href="super_gradients/common/environment/env_helpers.html">super_gradients.common.environment.env_helpers</a></li>
-<li><a href="super_gradients/training/datasets/all_datasets.html">super_gradients.training.datasets.all_datasets</a></li>
-<li><a href="super_gradients/training/datasets/auto_augment.html">super_gradients.training.datasets.auto_augment</a></li>
+<li><a href="super_gradients/common/object_names.html">super_gradients.common.object_names</a></li>
+<li><a href="super_gradients/training/dataloaders/dataloaders.html">super_gradients.training.dataloaders.dataloaders</a></li>
+<li><a href="super_gradients/training/datasets/classification_datasets/cifar.html">super_gradients.training.datasets.classification_datasets.cifar</a></li>
+<li><a href="super_gradients/training/datasets/classification_datasets/imagenet_dataset.html">super_gradients.training.datasets.classification_datasets.imagenet_dataset</a></li>
 <li><a href="super_gradients/training/datasets/data_augmentation.html">super_gradients.training.datasets.data_augmentation</a></li>
-<li><a href="super_gradients/training/datasets/dataset_interfaces/dataset_interface.html">super_gradients.training.datasets.dataset_interfaces.dataset_interface</a></li>
-<li><a href="super_gradients/training/datasets/datasets_utils.html">super_gradients.training.datasets.datasets_utils</a></li>
 <li><a href="super_gradients/training/datasets/detection_datasets/coco_detection.html">super_gradients.training.datasets.detection_datasets.coco_detection</a></li>
 <li><a href="super_gradients/training/datasets/detection_datasets/detection_dataset.html">super_gradients.training.datasets.detection_datasets.detection_dataset</a></li>
 <li><a href="super_gradients/training/datasets/detection_datasets/pascal_voc_detection.html">super_gradients.training.datasets.detection_datasets.pascal_voc_detection</a></li>
-<li><a href="super_gradients/training/datasets/mixup.html">super_gradients.training.datasets.mixup</a></li>
-<li><a href="super_gradients/training/datasets/segmentation_datasets/cityscape_segmentation.html">super_gradients.training.datasets.segmentation_datasets.cityscape_segmentation</a></li>
 <li><a href="super_gradients/training/datasets/segmentation_datasets/coco_segmentation.html">super_gradients.training.datasets.segmentation_datasets.coco_segmentation</a></li>
-<li><a href="super_gradients/training/datasets/segmentation_datasets/pascal_aug_segmentation.html">super_gradients.training.datasets.segmentation_datasets.pascal_aug_segmentation</a></li>
 <li><a href="super_gradients/training/datasets/segmentation_datasets/pascal_voc_segmentation.html">super_gradients.training.datasets.segmentation_datasets.pascal_voc_segmentation</a></li>
 <li><a href="super_gradients/training/datasets/segmentation_datasets/segmentation_dataset.html">super_gradients.training.datasets.segmentation_datasets.segmentation_dataset</a></li>
 <li><a href="super_gradients/training/datasets/segmentation_datasets/supervisely_persons_segmentation.html">super_gradients.training.datasets.segmentation_datasets.supervisely_persons_segmentation</a></li>
 <li><a href="super_gradients/training/datasets/sg_dataset.html">super_gradients.training.datasets.sg_dataset</a></li>
-<li><a href="super_gradients/training/exceptions/dataset_exceptions.html">super_gradients.training.exceptions.dataset_exceptions</a></li>
-<li><a href="super_gradients/training/exceptions/sg_model_exceptions.html">super_gradients.training.exceptions.sg_model_exceptions</a></li>
-<li><a href="super_gradients/training/kd_model/kd_model.html">super_gradients.training.kd_model.kd_model</a></li>
-<li><a href="super_gradients/training/legacy/utils.html">super_gradients.training.legacy.utils</a></li>
+<li><a href="super_gradients/training/kd_trainer/kd_trainer.html">super_gradients.training.kd_trainer.kd_trainer</a></li>
 <li><a href="super_gradients/training/losses/bce_dice_loss.html">super_gradients.training.losses.bce_dice_loss</a></li>
-<li><a href="super_gradients/training/losses/ddrnet_loss.html">super_gradients.training.losses.ddrnet_loss</a></li>
 <li><a href="super_gradients/training/losses/dice_ce_edge_loss.html">super_gradients.training.losses.dice_ce_edge_loss</a></li>
 <li><a href="super_gradients/training/losses/focal_loss.html">super_gradients.training.losses.focal_loss</a></li>
 <li><a href="super_gradients/training/losses/kd_losses.html">super_gradients.training.losses.kd_losses</a></li>
 <li><a href="super_gradients/training/losses/label_smoothing_cross_entropy_loss.html">super_gradients.training.losses.label_smoothing_cross_entropy_loss</a></li>
-<li><a href="super_gradients/training/losses/ohem_ce_loss.html">super_gradients.training.losses.ohem_ce_loss</a></li>
 <li><a href="super_gradients/training/losses/r_squared_loss.html">super_gradients.training.losses.r_squared_loss</a></li>
 <li><a href="super_gradients/training/losses/shelfnet_ohem_loss.html">super_gradients.training.losses.shelfnet_ohem_loss</a></li>
 <li><a href="super_gradients/training/losses/shelfnet_semantic_encoding_loss.html">super_gradients.training.losses.shelfnet_semantic_encoding_loss</a></li>
@@ -134,26 +128,13 @@
 <li><a href="super_gradients/training/losses/yolox_loss.html">super_gradients.training.losses.yolox_loss</a></li>
 <li><a href="super_gradients/training/metrics/classification_metrics.html">super_gradients.training.metrics.classification_metrics</a></li>
 <li><a href="super_gradients/training/metrics/detection_metrics.html">super_gradients.training.metrics.detection_metrics</a></li>
-<li><a href="super_gradients/training/metrics/metric_utils.html">super_gradients.training.metrics.metric_utils</a></li>
 <li><a href="super_gradients/training/metrics/segmentation_metrics.html">super_gradients.training.metrics.segmentation_metrics</a></li>
-<li><a href="super_gradients/training/models/sg_module.html">super_gradients.training.models.sg_module</a></li>
-<li><a href="super_gradients/training/sg_model/sg_model.html">super_gradients.training.sg_model.sg_model</a></li>
-<li><a href="super_gradients/training/utils/callbacks.html">super_gradients.training.utils.callbacks</a></li>
+<li><a href="super_gradients/training/sg_trainer/sg_trainer.html">super_gradients.training.sg_trainer.sg_trainer</a></li>
+<li><a href="super_gradients/training/training_hyperparams/training_hyperparams.html">super_gradients.training.training_hyperparams.training_hyperparams</a></li>
+<li><a href="super_gradients/training/transforms/transforms.html">super_gradients.training.transforms.transforms</a></li>
 <li><a href="super_gradients/training/utils/checkpoint_utils.html">super_gradients.training.utils.checkpoint_utils</a></li>
-<li><a href="super_gradients/training/utils/detection_utils.html">super_gradients.training.utils.detection_utils</a></li>
-<li><a href="super_gradients/training/utils/distributed_training_utils.html">super_gradients.training.utils.distributed_training_utils</a></li>
-<li><a href="super_gradients/training/utils/early_stopping.html">super_gradients.training.utils.early_stopping</a></li>
-<li><a href="super_gradients/training/utils/ema.html">super_gradients.training.utils.ema</a></li>
-<li><a href="super_gradients/training/utils/export_utils.html">super_gradients.training.utils.export_utils</a></li>
-<li><a href="super_gradients/training/utils/module_utils.html">super_gradients.training.utils.module_utils</a></li>
-<li><a href="super_gradients/training/utils/optimizer_utils.html">super_gradients.training.utils.optimizer_utils</a></li>
-<li><a href="super_gradients/training/utils/optimizers/rmsprop_tf.html">super_gradients.training.utils.optimizers.rmsprop_tf</a></li>
-<li><a href="super_gradients/training/utils/regularization_utils.html">super_gradients.training.utils.regularization_utils</a></li>
-<li><a href="super_gradients/training/utils/segmentation_utils.html">super_gradients.training.utils.segmentation_utils</a></li>
-<li><a href="super_gradients/training/utils/sg_model_utils.html">super_gradients.training.utils.sg_model_utils</a></li>
-<li><a href="super_gradients/training/utils/ssd_utils.html">super_gradients.training.utils.ssd_utils</a></li>
 <li><a href="super_gradients/training/utils/utils.html">super_gradients.training.utils.utils</a></li>
-<li><a href="super_gradients/training/utils/weight_averaging_utils.html">super_gradients.training.utils.weight_averaging_utils</a></li>
+<li><a href="super_gradients/training/utils/version_utils.html">super_gradients.training.utils.version_utils</a></li>
 </ul>
 
            </div>

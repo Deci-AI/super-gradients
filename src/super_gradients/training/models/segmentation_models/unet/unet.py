@@ -5,25 +5,12 @@ from super_gradients.training.utils import HpmStruct, get_param
 from super_gradients.training import models
 from super_gradients.training.models.segmentation_models.segmentation_module import SegmentationModule
 from super_gradients.training.utils.module_utils import make_upsample_module, UpsampleMode, fuse_repvgg_blocks_residual_branches
-from super_gradients.modules import ConvBNReLU
 from super_gradients.training.models.segmentation_models.unet.unet_encoder import UNetBackboneBase, Encoder
 from super_gradients.training.models.segmentation_models.context_modules import AbstractContextModule
 from super_gradients.training.models.segmentation_models.unet.unet_decoder import Decoder
 from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.context_modules_factory import ContextModulesFactory
-
-
-class SegmentationHead(nn.Module):
-    def __init__(self, in_channels: int, mid_channels: int, num_classes: int, dropout: float):
-        super().__init__()
-        self.seg_head = nn.Sequential(
-            ConvBNReLU(in_channels, mid_channels, kernel_size=3, padding=1, stride=1, bias=False),
-            nn.Dropout(dropout),
-            nn.Conv2d(mid_channels, num_classes, kernel_size=1, bias=False),
-        )
-
-    def forward(self, x):
-        return self.seg_head(x)
+from super_gradients.training.models.segmentation_models.common import SegmentationHead
 
 
 class UNetBase(SegmentationModule):
@@ -198,6 +185,11 @@ class UNetBase(SegmentationModule):
             self.seg_head.add_module("sigmoid", nn.Sigmoid())
         if append_softmax:
             self.seg_head.add_module("softmax", nn.Softmax(dim=1))
+
+    def replace_head(self, new_num_classes: int, **kwargs):
+        for module in self.modules():
+            if isinstance(module, SegmentationHead):
+                module.replace_num_classes(new_num_classes)
 
 
 class UNetCustom(UNetBase):

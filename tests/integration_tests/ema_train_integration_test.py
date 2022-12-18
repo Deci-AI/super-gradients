@@ -10,7 +10,6 @@ def do_nothing():
 
 
 class CallWrapper:
-
     def __init__(self, f, check_before=do_nothing):
         self.f = f
         self.check_before = check_before
@@ -21,10 +20,8 @@ class CallWrapper:
 
 
 class EMAIntegrationTest(unittest.TestCase):
-
     def _init_model(self) -> None:
-        self.trainer = Trainer("resnet18_cifar_ema_test",
-                               device='cpu', multi_gpu=MultiGPUMode.OFF)
+        self.trainer = Trainer("resnet18_cifar_ema_test", device="cpu", multi_gpu=MultiGPUMode.OFF)
         self.model = models.get("resnet18_cifar", arch_params={"num_classes": 5})
 
     @classmethod
@@ -38,21 +35,24 @@ class EMAIntegrationTest(unittest.TestCase):
         self._train({"exp_activation": False})
 
     def _train(self, ema_params):
-        training_params = {"max_epochs": 4,
-                           "lr_updates": [4],
-                           "lr_mode": "step",
-                           "lr_decay_factor": 0.1,
-                           "lr_warmup_epochs": 0,
-                           "initial_lr": 0.1,
-                           "loss": "cross_entropy",
-                           "optimizer": "SGD",
-                           "criterion_params": {},
-                           "ema": True,
-                           "ema_params": ema_params,
-                           "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
-                           "train_metrics_list": [Accuracy(), Top5()], "valid_metrics_list": [Accuracy(), Top5()],
-                           "metric_to_watch": "Accuracy",
-                           "greater_metric_to_watch_is_better": True}
+        training_params = {
+            "max_epochs": 4,
+            "lr_updates": [4],
+            "lr_mode": "step",
+            "lr_decay_factor": 0.1,
+            "lr_warmup_epochs": 0,
+            "initial_lr": 0.1,
+            "loss": "cross_entropy",
+            "optimizer": "SGD",
+            "criterion_params": {},
+            "ema": True,
+            "ema_params": ema_params,
+            "optimizer_params": {"weight_decay": 1e-4, "momentum": 0.9},
+            "train_metrics_list": [Accuracy(), Top5()],
+            "valid_metrics_list": [Accuracy(), Top5()],
+            "metric_to_watch": "Accuracy",
+            "greater_metric_to_watch_is_better": True,
+        }
 
         def before_test():
             self.assertEqual(self.trainer.net, self.trainer.ema_model.ema)
@@ -63,12 +63,12 @@ class EMAIntegrationTest(unittest.TestCase):
         self.trainer.test = CallWrapper(self.trainer.test, check_before=before_test)
         self.trainer._train_epoch = CallWrapper(self.trainer._train_epoch, check_before=before_train_epoch)
 
-        self.trainer.train(model=self.model, training_params=training_params,
-                           train_loader=classification_test_dataloader(),
-                           valid_loader=classification_test_dataloader())
+        self.trainer.train(
+            model=self.model, training_params=training_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader()
+        )
 
         self.assertIsNotNone(self.trainer.ema_model)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
