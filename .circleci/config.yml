@@ -118,7 +118,7 @@ jobs:
       - run:
          name: making sure we have docker permmissions 
          command: |
-            sudo groupadd docker
+            sudo groupadd docker | exit 0
             sudo usermod -aG docker $USER
             newgrp docker 
       - deci-common/build_docker_image:
