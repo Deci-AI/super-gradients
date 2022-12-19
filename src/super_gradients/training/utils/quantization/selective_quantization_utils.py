@@ -54,9 +54,11 @@ def register_quantized_module(
 
 class SelectiveQuantizer:
     """
-    :param custom_mappings:                     custom mappings that extend the default mappings with extra behaviour
-    :param default_quant_modules_calib_method:  default calibration method (default='percentile')
-    :param default_per_channel_quant_weights:   whether quant modules should be per channel (default=False)
+    :param custom_mappings:                             custom mappings that extend the default mappings with extra behaviour
+    :param default_per_channel_quant_weights:           whether quant module weights should be per channel (default=True)
+    :param default_quant_modules_calib_method_weights:  default calibration method for weights (default='max')
+    :param default_quant_modules_calib_method_inputs:   default calibration method for inputs (default='percentile')
+    :param default_learn_amax:                          EXPERIMENTAL! whether quant modules should have learnable amax (default=False)
     """
 
     if _imported_pytorch_quantization_failure is not None:
