@@ -4,7 +4,7 @@ parameters:
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
-    default: "10.2.0"
+    default: "10.3.0"
 #    default: "dev:alpha"
 
 orbs:
@@ -116,6 +116,7 @@ jobs:
           default: ${CIRCLE_BRANCH}
     docker:
        - image: cimg/base:stable-20.04
+    resource_class: small
     steps:
      - checkout
      - setup_remote_docker:
@@ -125,7 +126,8 @@ jobs:
            dockerfile: scripts/Dockerfile
            repository_name: << parameters.repo_name >>
            image_tag: "${CIRCLE_BRANCH}"
-           build_args: 'VERSION=<< parameters.version >> --compress'
+           build_args: 'VERSION=<< parameters.version >>'
+           extra_flags: ' --compress'
      - deci-common/push_docker_image_aws_dev:
            repository_name: << parameters.repo_name >>
            image_tag: "${CIRCLE_BRANCH}"
