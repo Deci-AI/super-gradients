@@ -20,6 +20,7 @@ __all__ = [
 
 logger = get_logger(__name__)
 try:
+    # flake8 respects only the first occurence of __all__ defined in the module's root
     from .quantization import QuantBottleneck  # noqa: F401
     from .quantization import QuantResidual  # noqa: F401
     from .quantization import QuantSkipConnection  # noqa: F401
