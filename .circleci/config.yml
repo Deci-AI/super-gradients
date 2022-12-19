@@ -240,7 +240,6 @@ workflows:
             - deci-common/persist_version_info
             - deci-common/codeartifact_login
       - integration_test:
-          name: "mock of integration test"
           requires:
             - "build3.7"
       - release_candidate: # happens on merge
