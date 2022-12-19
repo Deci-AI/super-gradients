@@ -265,7 +265,7 @@ workflows:
             - deci-common/persist_version_info
             - deci-common/codeartifact_login
       - aws-ecr/build-and-push-image:
-          assume-web-identity: true
+          assume-web-identity: false
           checkout: true
           create-repo: false
           executor: aws-ecr/default
