@@ -274,7 +274,7 @@ workflows:
           path: scripts
           public-registry: false
           push-image: true
-          registry-id: ${AWS_DEV_ACCOUNT_ID}
+          registry-id: AWS_DEV_ACCOUNT_ID
           region: ${AWS_DEFAULT_REGION}
           new-profile-name: deci-dev
           profile-name: deci-dev
