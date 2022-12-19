@@ -113,7 +113,7 @@ jobs:
         - run:
            name: integration test
            #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
-           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.2 python3 -c 'print("it works!")'
+           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:${CIRCLE_TAG} python3 -c 'print("it works!")'
 
 
 
@@ -241,7 +241,9 @@ workflows:
           requires:
             - deci-common/persist_version_info
             - deci-common/codeartifact_login
-      - integration_test
+      - integration_test:
+           requires:
+             - "build3.7"
       - release_candidate: # happens on merge
           py_version: "3.7"
           requires:
