@@ -412,7 +412,7 @@ class QuantizationUtilityTest(unittest.TestCase):
         module = MyModel()
 
         # TEST
-        q_util = SelectiveQuantizer(default_quant_modules_calib_method="max")
+        q_util = SelectiveQuantizer(default_quant_modules_calib_method_inputs="max", default_quant_modules_calib_method_weights="max")
         q_util.quantize_module(module)
 
         x = torch.rand(1, 3, 32, 32)
@@ -787,8 +787,15 @@ class QuantizationUtilityTest(unittest.TestCase):
 
         # PYTORCH-QUANTIZATION
         quant_desc_input = QuantDescriptor(calib_method="histogram")
+        quant_desc_weights = QuantDescriptor(calib_method="max", axis=0)
+
         quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
+        quant_nn.QuantConv2d.set_default_quant_desc_weight(quant_desc_weights)
+
         quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
+        quant_nn.QuantLinear.set_default_quant_desc_weight(quant_desc_weights)
+
+        quant_nn.QuantAdaptiveAvgPool2d.set_default_quant_desc_input(QuantDescriptor(calib_method="histogram"))
 
         quant_modules.initialize()
         resnet_pyquant: nn.Module = super_gradients.training.models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)
