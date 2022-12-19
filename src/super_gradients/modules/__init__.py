@@ -38,7 +38,7 @@ try:
     ]
 
 except (ImportError, NameError, ModuleNotFoundError) as import_err:
-    logger.warning(f"Failed to import pytorch_quantization: {import_err}")
+    logger.debug(f"Failed to import pytorch_quantization: {import_err}")
     quant_extensions = None
 
 
