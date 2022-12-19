@@ -97,18 +97,55 @@ jobs:
             coverage run --source=super_gradients -m unittest tests/deci_core_unit_test_suite_runner.py
             coverage report
             coverage html  # open htmlcov/index.html in a browser
-      - deci-common/build_docker_image:
-          image_tag: ${CIRCLE_TAG}
-          build_args: "VERSION=${CIRCLE_TAG}"
-          dockerfile: "scripts/Dockerfile"
-          repository_name: "deciai/super-gradients"
       - store_artifacts:
           path: htmlcov
 
       - store_artifacts:
           path: ~/sg_logs
       
+  docker_build:
+    description: "building the docker"
+    machine: true 
+    resource_class: deci-ai/research-standard
+    steps:
+     - deci-common/build_docker_image:
+          image_tag: ${CIRCLE_TAG}
+          build_args: "VERSION=${CIRCLE_TAG}"
+          dockerfile: "scripts/Dockerfile"
+          repository_name: "deciai/super-gradients"
+     - docker_export:
+          name: Archive Docker image
+          command: docker save -o image.tar deciai/super-gradients:${CIRCLE_TAG} 
+     - persist_to_workspace:
+          root: .
+          paths:
+            - ./image.tar
 
+
+  dockerhub_push_release_candidate:
+    description: "pushing the docker"
+    machine: true 
+    resource_class: deci-ai/research-standard
+    steps:
+       - attach_workspace:
+          at: /tmp/workspace
+       - run:
+          name: Load archived Docker image
+          command: docker load -i /tmp/workspace/image.tar
+       - run:
+           name: Push container to DockerHub
+           command: |
+                  # Ensure we're not logged into to any other docker repo
+                  docker logout
+                  
+                  # DockerHub Login
+                  docker login -u $DECI_DOCKER_USER -p $DECI_DOCKER_TOKEN
+                  
+                  # Push with version tag
+                  IMAGE_NAME=deciai/super-gradients
+                  echo "Pushing to DockerHub: $IMAGE_NAME:$CIRCLE_TAG"
+                  docker push $IMAGE_NAME:$CIRCLE_TAG
+    
 
   integration_test:
     description: "running integration test on the code"
@@ -247,12 +284,19 @@ workflows:
           requires:
             - deci-common/persist_version_info
             - deci-common/codeartifact_login
+      - build_docker
       - integration_test:
            requires:
              - "build3.7"
+             - "build_docker"
       - release_candidate: # happens on merge
           py_version: "3.7"
           requires:
             - "build3.7"
+            - "integration_test"
+          <<: *release_candidate_filter
+      - dockerhub_push_release_candidate: # happens on merge
+          requires:
+            - "build_docker"
             - "integration_test"
           <<: *release_candidate_filter
