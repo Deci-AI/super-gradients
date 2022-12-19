@@ -123,7 +123,7 @@ jobs:
          name: making sure we have docker permmissions 
          command: |
             sudo usermod -aG docker circleci
-            newgrp docker 
+            newgrp docker || exit 0
       - deci-common/build_docker_image:
           image_tag: << parameters.version >>
           build_args: VERSION=${CIRCLE_BRANCH}
