@@ -113,7 +113,7 @@ jobs:
           build_args: "VERSION=${CIRCLE_TAG}"
           dockerfile: "scripts/Dockerfile"
           repository_name: "deciai/super-gradients"
-     - docker_export:
+     - run:
           name: Archive Docker image
           command: docker save -o image.tar deciai/super-gradients:${CIRCLE_TAG} 
      - persist_to_workspace:
@@ -122,7 +122,7 @@ jobs:
             - ./image.tar
 
 
-  dockerhub_push_release_candidate:
+  dockerhub_push:
     description: "pushing the docker"
     machine: true 
     resource_class: deci-ai/research-standard
@@ -256,6 +256,8 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
+      - docker_build:
+        <<: *release_tag_filter
       - release_version:
           py_version: "3.7"
           requires:
@@ -270,6 +272,10 @@ workflows:
           context:
             - pypi-public
           <<: *release_tag_filter
+      - dockerhub_push: # happens on merge
+          requires:
+            - "docker_build"
+          <<: *release_candidate_filter
 
   build_and_deploy:
     jobs:
@@ -284,19 +290,15 @@ workflows:
           requires:
             - deci-common/persist_version_info
             - deci-common/codeartifact_login
-      - build_docker
+      - docker_build
       - integration_test:
            requires:
              - "build3.7"
-             - "build_docker"
+             - "docker_build"
       - release_candidate: # happens on merge
           py_version: "3.7"
           requires:
             - "build3.7"
             - "integration_test"
           <<: *release_candidate_filter
-      - dockerhub_push_release_candidate: # happens on merge
-          requires:
-            - "build_docker"
-            - "integration_test"
-          <<: *release_candidate_filter
+
