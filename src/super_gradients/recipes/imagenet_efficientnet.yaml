@@ -13,6 +13,7 @@ defaults:
   - dataset_params: imagenet_efficientnet_dataset_params
   - arch_params: efficientnet_b0_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 arch_params:
   num_classes: 1000

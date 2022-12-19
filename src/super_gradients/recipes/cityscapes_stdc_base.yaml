@@ -4,6 +4,7 @@ defaults:
   - training_hyperparams: cityscapes_default_train_params
   - dataset_params: cityscapes_dataset_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 train_dataloader: cityscapes_train
 val_dataloader: cityscapes_val

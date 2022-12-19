@@ -24,7 +24,7 @@ from super_gradients.common.factories.callbacks_factory import CallbacksFactory
 from super_gradients.common.data_types.enum import MultiGPUMode, StrictLoad, EvaluationType
 from super_gradients.training.models.all_architectures import ARCHITECTURES
 from super_gradients.common.decorators.factory_decorator import resolve_param
-from super_gradients.common.environment import env_helpers
+from super_gradients.common.environment import ddp_utils
 from super_gradients.common.abstractions.abstract_logger import get_logger, mute_current_process
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.losses_factory import LossesFactory
@@ -35,7 +35,7 @@ from super_gradients.common.sg_loggers.base_sg_logger import BaseSGLogger
 from super_gradients.training import utils as core_utils, models, dataloaders
 from super_gradients.training.models import SgModule
 from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
-from super_gradients.training.utils import sg_trainer_utils
+from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
 from super_gradients.training.losses import LOSSES
@@ -51,7 +51,7 @@ from super_gradients.training.utils.distributed_training_utils import (
     MultiGPUModeAutocastWrapper,
     reduce_results_tuple_for_ddp,
     compute_precise_bn_stats,
-    setup_gpu_mode,
+    setup_device,
     require_gpu_setup,
     get_gpu_mem_utilization,
     get_world_size,
@@ -81,7 +81,6 @@ from super_gradients.training.utils.callbacks import (
     ContextSgMethods,
     LRCallbackBase,
 )
-from super_gradients.common.environment import environment_config
 from super_gradients.training.utils import HpmStruct
 from super_gradients.training.utils.hydra_utils import load_experiment_cfg, add_params_to_cfg
 from omegaconf import OmegaConf
@@ -193,7 +192,7 @@ class Trainer:
         @return: the model and the output of trainer.train(...) (i.e results tuple)
         """
 
-        setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -203,12 +202,17 @@ class Trainer:
         trainer = Trainer(**kwargs)
 
         # INSTANTIATE DATA LOADERS
+
         train_dataloader = dataloaders.get(
-            name=cfg.train_dataloader, dataset_params=cfg.dataset_params.train_dataset_params, dataloader_params=cfg.dataset_params.train_dataloader_params
+            name=get_param(cfg, "train_dataloader"),
+            dataset_params=cfg.dataset_params.train_dataset_params,
+            dataloader_params=cfg.dataset_params.train_dataloader_params,
         )
 
         val_dataloader = dataloaders.get(
-            name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
+            name=get_param(cfg, "val_dataloader"),
+            dataset_params=cfg.dataset_params.val_dataset_params,
+            dataloader_params=cfg.dataset_params.val_dataloader_params,
         )
 
         # BUILD NETWORK
@@ -234,7 +238,7 @@ class Trainer:
         return model, res
 
     @classmethod
-    def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> None:
+    def resume_experiment(cls, experiment_name: str, ckpt_root_dir: str = None) -> Tuple[nn.Module, Tuple]:
         """
         Resume a training that was run using our recipes.
 
@@ -244,10 +248,10 @@ class Trainer:
         logger.info("Resume training using the checkpoint recipe, ignoring the current recipe")
         cfg = load_experiment_cfg(experiment_name, ckpt_root_dir)
         add_params_to_cfg(cfg, params=["training_hyperparams.resume=True"])
-        cls.train_from_config(cfg)
+        return cls.train_from_config(cfg)
 
     @classmethod
-    def evaluate_from_recipe(cls, cfg: DictConfig) -> None:
+    def evaluate_from_recipe(cls, cfg: DictConfig) -> Tuple[nn.Module, Tuple]:
         """
         Evaluate according to a cfg recipe configuration.
 
@@ -256,7 +260,7 @@ class Trainer:
         :param cfg: The parsed DictConfig from yaml recipe files or a dictionary
         """
 
-        setup_gpu_mode(gpu_mode=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
+        setup_device(multi_gpu=core_utils.get_param(cfg, "multi_gpu", MultiGPUMode.OFF), num_gpus=core_utils.get_param(cfg, "num_gpus"))
 
         # INSTANTIATE ALL OBJECTS IN CFG
         cfg = hydra.utils.instantiate(cfg)
@@ -270,9 +274,14 @@ class Trainer:
             name=cfg.val_dataloader, dataset_params=cfg.dataset_params.val_dataset_params, dataloader_params=cfg.dataset_params.val_dataloader_params
         )
 
-        checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
-        checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
-        logger.info(f"Evaluating checkpoint: {checkpoint_path}")
+        if cfg.checkpoint_params.checkpoint_path is None:
+            logger.info(
+                "checkpoint_params.checkpoint_path was not provided, " "so the recipe will be evaluated using checkpoints_dir/training_hyperparams.ckpt_name"
+            )
+            checkpoints_dir = Path(get_checkpoints_dir_path(experiment_name=cfg.experiment_name, ckpt_root_dir=cfg.ckpt_root_dir))
+            cfg.checkpoint_params.checkpoint_path = str(checkpoints_dir / cfg.training_hyperparams.ckpt_name)
+
+        logger.info(f"Evaluating checkpoint: {cfg.checkpoint_params.checkpoint_path}")
 
         # BUILD NETWORK
         model = models.get(
@@ -280,7 +289,7 @@ class Trainer:
             num_classes=cfg.arch_params.num_classes,
             arch_params=cfg.arch_params,
             pretrained_weights=cfg.checkpoint_params.pretrained_weights,
-            checkpoint_path=checkpoint_path,
+            checkpoint_path=cfg.checkpoint_params.checkpoint_path,
             load_backbone=cfg.checkpoint_params.load_backbone,
         )
 
@@ -288,10 +297,11 @@ class Trainer:
         val_results_tuple = trainer.test(model=model, test_loader=val_dataloader, test_metrics_list=cfg.training_hyperparams.valid_metrics_list)
 
         valid_metrics_dict = get_metrics_dict(val_results_tuple, trainer.test_metrics, trainer.loss_logging_items_names)
-
         results = ["Validate Results"]
         results += [f"   - {metric:10}: {value}" for metric, value in valid_metrics_dict.items()]
         logger.info("\n".join(results))
+
+        return model, val_results_tuple
 
     @classmethod
     def evaluate_checkpoint(cls, experiment_name: str, ckpt_name: str = "ckpt_latest.pth", ckpt_root_dir: str = None) -> None:
@@ -1134,7 +1144,7 @@ class Trainer:
 
         first_batch, _ = next(iter(self.train_loader))
         log_main_training_params(
-            gpu_mode=self.multi_gpu,
+            multi_gpu=self.multi_gpu,
             num_gpus=get_world_size(),
             batch_size=len(first_batch),
             batch_accumulate=self.batch_accumulate,
@@ -1423,7 +1433,7 @@ class Trainer:
                         logger.warning("\n[WARNING] - Tried running on multiple GPU but only a single GPU is available\n")
                 else:
                     if requested_multi_gpu == MultiGPUMode.AUTO:
-                        if env_helpers.is_distributed():
+                        if ddp_utils.is_distributed():
                             requested_multi_gpu = MultiGPUMode.DISTRIBUTED_DATA_PARALLEL
                         else:
                             requested_multi_gpu = MultiGPUMode.DATA_PARALLEL
@@ -1446,7 +1456,7 @@ class Trainer:
         batch you specify times the number of GPUs. In the literature there are several "best practices" to set
         learning rates and schedules for large batch sizes.
         """
-        local_rank = environment_config.DDP_LOCAL_RANK
+        local_rank = ddp_utils.DDP_LOCAL_RANK
         if local_rank > 0:
             mute_current_process()
 

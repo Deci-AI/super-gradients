@@ -17,6 +17,7 @@ defaults:
   - dataset_params: imagenet_resnet50_dataset_params
   - arch_params: resnet50_arch_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
 
 arch_params:
   droppath_prob: 0.05

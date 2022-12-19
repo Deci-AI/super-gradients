@@ -4,7 +4,7 @@ from super_gradients.common.decorators import explicit_params_validation, single
 from super_gradients.common.aws_connection import AWSConnector
 from super_gradients.common.data_connection import S3Connector
 from super_gradients.common.data_interface import DatasetDataInterface, ADNNModelRepositoryDataInterfaces
-from super_gradients.common.environment.env_helpers import init_trainer, is_distributed
+from super_gradients.common.environment.ddp_utils import init_trainer, is_distributed
 from super_gradients.common.data_types import StrictLoad, DeepLearningTask, EvaluationType, MultiGPUMode, UpsampleMode
 from super_gradients.common.auto_logging.auto_logger import AutoLoggerConfig
 
@@ -25,3 +25,5 @@ __all__ = [
     "UpsampleMode",
     "AutoLoggerConfig",
 ]
+
+setup_crash_handler()

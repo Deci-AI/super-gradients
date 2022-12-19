@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.training.kd_trainer.kd_trainer &mdash; SuperGradients 3.0.3 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Welcome To SuperGradients</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html">Version 3 is out! Notebooks have been updated!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#build-with-supergradients">Build with SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#quick-installation">Quick Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#what-s-new">What’s New</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#coming-soon">Coming soon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#table-of-content">Table of Content</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#getting-started">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#advanced-features">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#installation-methods">Installation Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#implemented-model-architectures">Implemented Model Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#citation">Citation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#community">Community</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../welcome.html#deci-platform">Deci Platform</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../super_gradients.training.html">Training package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>super_gradients.training.kd_trainer.kd_trainer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for super_gradients.training.kd_trainer.kd_trainer</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">hydra</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span>
+<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+
+<span class="kn">from</span> <span class="nn">super_gradients.common</span> <span class="kn">import</span> <span class="n">MultiGPUMode</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.dataloaders</span> <span class="kn">import</span> <span class="n">dataloaders</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.models</span> <span class="kn">import</span> <span class="n">SgModule</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.models.all_architectures</span> <span class="kn">import</span> <span class="n">KD_ARCHITECTURES</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.models.kd_modules.kd_module</span> <span class="kn">import</span> <span class="n">KDModule</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.sg_trainer</span> <span class="kn">import</span> <span class="n">Trainer</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">super_gradients.common.abstractions.abstract_logger</span> <span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training</span> <span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">core_utils</span><span class="p">,</span> <span class="n">models</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.pretrained_models</span> <span class="kn">import</span> <span class="n">PRETRAINED_NUM_CLASSES</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils</span> <span class="kn">import</span> <span class="n">get_param</span><span class="p">,</span> <span class="n">HpmStruct</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.checkpoint_utils</span> <span class="kn">import</span> <span class="n">read_ckpt_state_dict</span><span class="p">,</span> \
+    <span class="n">load_checkpoint_to_model</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.exceptions.kd_trainer_exceptions</span> <span class="kn">import</span> <span class="n">ArchitectureKwargsException</span><span class="p">,</span> \
+    <span class="n">UnsupportedKDArchitectureException</span><span class="p">,</span> <span class="n">InconsistentParamsException</span><span class="p">,</span> <span class="n">UnsupportedKDModelArgException</span><span class="p">,</span> \
+    <span class="n">TeacherKnowledgeException</span><span class="p">,</span> <span class="n">UndefinedNumClassesException</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.callbacks</span> <span class="kn">import</span> <span class="n">KDModelMetricsUpdateCallback</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.ema</span> <span class="kn">import</span> <span class="n">KDModelEMA</span>
+<span class="kn">from</span> <span class="nn">super_gradients.training.utils.sg_trainer_utils</span> <span class="kn">import</span> <span class="n">parse_args</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="KDTrainer"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.KDTrainer">[docs]</a><span class="k">class</span> <span class="nc">KDTrainer</span><span class="p">(</span><span class="n">Trainer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiment_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">multi_gpu</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">MultiGPUMode</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">MultiGPUMode</span><span class="o">.</span><span class="n">OFF</span><span class="p">,</span>
+                 <span class="n">ckpt_root_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">experiment_name</span><span class="o">=</span><span class="n">experiment_name</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">multi_gpu</span><span class="o">=</span><span class="n">multi_gpu</span><span class="p">,</span> <span class="n">ckpt_root_dir</span><span class="o">=</span><span class="n">ckpt_root_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">student_architecture</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">teacher_architecture</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">student_arch_params</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">teacher_arch_params</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="KDTrainer.train_from_config"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.KDTrainer.train_from_config">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">train_from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">DictConfig</span><span class="p">,</span> <span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Trains according to cfg recipe configuration.</span>
+
+<span class="sd">        @param cfg: The parsed DictConfig from yaml recipe files</span>
+<span class="sd">        @return: output of kd_trainer.train(...) (i.e results tuple)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># INSTANTIATE ALL OBJECTS IN CFG</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">hydra</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+
+        <span class="n">trainer</span> <span class="o">=</span> <span class="n">KDTrainer</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># INSTANTIATE DATA LOADERS</span>
+        <span class="n">train_dataloader</span> <span class="o">=</span> <span class="n">dataloaders</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">train_dataloader</span><span class="p">,</span>
+                                           <span class="n">dataset_params</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">dataset_params</span><span class="o">.</span><span class="n">train_dataset_params</span><span class="p">,</span>
+                                           <span class="n">dataloader_params</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">dataset_params</span><span class="o">.</span><span class="n">train_dataloader_params</span><span class="p">)</span>
+
+        <span class="n">val_dataloader</span> <span class="o">=</span> <span class="n">dataloaders</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">val_dataloader</span><span class="p">,</span>
+                                         <span class="n">dataset_params</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">dataset_params</span><span class="o">.</span><span class="n">val_dataset_params</span><span class="p">,</span>
+                                         <span class="n">dataloader_params</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">dataset_params</span><span class="o">.</span><span class="n">val_dataloader_params</span><span class="p">)</span>
+
+        <span class="n">student</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">student_architecture</span><span class="p">,</span> <span class="n">arch_params</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">student_arch_params</span><span class="p">,</span>
+                             <span class="n">strict_load</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">student_checkpoint_params</span><span class="o">.</span><span class="n">strict_load</span><span class="p">,</span>
+                             <span class="n">pretrained_weights</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">student_checkpoint_params</span><span class="o">.</span><span class="n">pretrained_weights</span><span class="p">,</span>
+                             <span class="n">checkpoint_path</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">student_checkpoint_params</span><span class="o">.</span><span class="n">checkpoint_path</span><span class="p">,</span>
+                             <span class="n">load_backbone</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">student_checkpoint_params</span><span class="o">.</span><span class="n">load_backbone</span><span class="p">)</span>
+
+        <span class="n">teacher</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">teacher_architecture</span><span class="p">,</span> <span class="n">arch_params</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">teacher_arch_params</span><span class="p">,</span>
+                             <span class="n">strict_load</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">teacher_checkpoint_params</span><span class="o">.</span><span class="n">strict_load</span><span class="p">,</span>
+                             <span class="n">pretrained_weights</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">teacher_checkpoint_params</span><span class="o">.</span><span class="n">pretrained_weights</span><span class="p">,</span>
+                             <span class="n">checkpoint_path</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">teacher_checkpoint_params</span><span class="o">.</span><span class="n">checkpoint_path</span><span class="p">,</span>
+                             <span class="n">load_backbone</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">teacher_checkpoint_params</span><span class="o">.</span><span class="n">load_backbone</span><span class="p">)</span>
+
+        <span class="c1"># TRAIN</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">training_params</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">training_hyperparams</span><span class="p">,</span> <span class="n">student</span><span class="o">=</span><span class="n">student</span><span class="p">,</span> <span class="n">teacher</span><span class="o">=</span><span class="n">teacher</span><span class="p">,</span>
+                      <span class="n">kd_architecture</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">architecture</span><span class="p">,</span> <span class="n">kd_arch_params</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">arch_params</span><span class="p">,</span>
+                      <span class="n">run_teacher_on_eval</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">run_teacher_on_eval</span><span class="p">,</span>
+                      <span class="n">train_loader</span><span class="o">=</span><span class="n">train_dataloader</span><span class="p">,</span> <span class="n">valid_loader</span><span class="o">=</span><span class="n">val_dataloader</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_validate_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arch_params</span><span class="p">,</span> <span class="n">architecture</span><span class="p">,</span> <span class="n">checkpoint_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">student_architecture</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="s2">&quot;student_architecture&quot;</span><span class="p">)</span>
+        <span class="n">teacher_architecture</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="s2">&quot;teacher_architecture&quot;</span><span class="p">)</span>
+        <span class="n">student_arch_params</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="s2">&quot;student_arch_params&quot;</span><span class="p">)</span>
+        <span class="n">teacher_arch_params</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="s2">&quot;teacher_arch_params&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">get_param</span><span class="p">(</span><span class="n">checkpoint_params</span><span class="p">,</span> <span class="s1">&#39;pretrained_weights&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnsupportedKDModelArgException</span><span class="p">(</span><span class="s2">&quot;pretrained_weights&quot;</span><span class="p">,</span> <span class="s2">&quot;checkpoint_params&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">architecture</span><span class="p">,</span> <span class="n">KDModule</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">student_architecture</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">teacher_architecture</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ArchitectureKwargsException</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">architecture</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">KD_ARCHITECTURES</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="n">UnsupportedKDArchitectureException</span><span class="p">(</span><span class="n">architecture</span><span class="p">)</span>
+
+        <span class="c1"># DERIVE NUMBER OF CLASSES FROM DATASET INTERFACE IF NOT SPECIFIED OR ARCH PARAMS FOR TEACHER AND STUDENT</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_num_classes</span><span class="p">(</span><span class="n">student_arch_params</span><span class="p">,</span> <span class="n">teacher_arch_params</span><span class="p">)</span>
+
+        <span class="n">arch_params</span><span class="p">[</span><span class="s1">&#39;num_classes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">student_arch_params</span><span class="p">[</span><span class="s1">&#39;num_classes&#39;</span><span class="p">]</span>
+
+        <span class="c1"># MAKE SURE TEACHER&#39;S PRETRAINED NUM CLASSES EQUALS TO THE ONES BELONGING TO STUDENT AS WE CAN&#39;T REPLACE</span>
+        <span class="c1"># THE TEACHER&#39;S HEAD</span>
+        <span class="n">teacher_pretrained_weights</span> <span class="o">=</span> <span class="n">core_utils</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">checkpoint_params</span><span class="p">,</span> <span class="s1">&#39;teacher_pretrained_weights&#39;</span><span class="p">,</span>
+                                                          <span class="n">default_val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">teacher_pretrained_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">teacher_pretrained_num_classes</span> <span class="o">=</span> <span class="n">PRETRAINED_NUM_CLASSES</span><span class="p">[</span><span class="n">teacher_pretrained_weights</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">teacher_pretrained_num_classes</span> <span class="o">!=</span> <span class="n">teacher_arch_params</span><span class="p">[</span><span class="s1">&#39;num_classes&#39;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="n">InconsistentParamsException</span><span class="p">(</span><span class="s2">&quot;Pretrained dataset number of classes&quot;</span><span class="p">,</span> <span class="s2">&quot;teacher&#39;s arch params&quot;</span><span class="p">,</span>
+                                                  <span class="s2">&quot;number of classes&quot;</span><span class="p">,</span> <span class="s2">&quot;student&#39;s number of classes&quot;</span><span class="p">)</span>
+
+        <span class="n">teacher_checkpoint_path</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">checkpoint_params</span><span class="p">,</span> <span class="s2">&quot;teacher_checkpoint_path&quot;</span><span class="p">)</span>
+        <span class="n">load_kd_model_checkpoint</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">checkpoint_params</span><span class="p">,</span> <span class="s2">&quot;load_checkpoint&quot;</span><span class="p">)</span>
+
+        <span class="c1"># CHECK THAT TEACHER NETWORK HOLDS KNOWLEDGE FOR THE STUDENT TO LEARN FROM OR THAT WE ARE LOADING AN ENTIRE KD</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">teacher_pretrained_weights</span> <span class="ow">or</span> <span class="n">teacher_checkpoint_path</span> <span class="ow">or</span> <span class="n">load_kd_model_checkpoint</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">teacher_architecture</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">TeacherKnowledgeException</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_validate_num_classes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">student_arch_params</span><span class="p">,</span> <span class="n">teacher_arch_params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks validity of num_classes for num_classes (i.e existence and consistency between subnets)</span>
+
+<span class="sd">        :param student_arch_params: (dict) Architecture H.P. e.g.: block, num_blocks, num_classes, etc for student</span>
+<span class="sd">        :param teacher_arch_params: (dict) Architecture H.P. e.g.: block, num_blocks, num_classes, etc for teacher</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_subnet_num_classes</span><span class="p">(</span><span class="n">student_arch_params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_subnet_num_classes</span><span class="p">(</span><span class="n">teacher_arch_params</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">teacher_arch_params</span><span class="p">[</span><span class="s1">&#39;num_classes&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">student_arch_params</span><span class="p">[</span><span class="s1">&#39;num_classes&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">InconsistentParamsException</span><span class="p">(</span><span class="s2">&quot;num_classes&quot;</span><span class="p">,</span> <span class="s2">&quot;student_arch_params&quot;</span><span class="p">,</span> <span class="s2">&quot;num_classes&quot;</span><span class="p">,</span>
+                                              <span class="s2">&quot;teacher_arch_params&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_subnet_num_classes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subnet_arch_params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Derives num_classes in student_arch_params/teacher_arch_params from dataset interface or raises an error</span>
+<span class="sd">         when none is given</span>
+
+<span class="sd">        :param subnet_arch_params: Arch params for student/teacher</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="s1">&#39;num_classes&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">subnet_arch_params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_interface</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UndefinedNumClassesException</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">subnet_arch_params</span><span class="p">[</span><span class="s1">&#39;num_classes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_instantiate_net</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">architecture</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">KDModule</span><span class="p">,</span> <span class="n">KDModule</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">arch_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+                         <span class="n">checkpoint_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Instantiates kd_module according to architecture and arch_params, handles pretrained weights for the student</span>
+<span class="sd">         and teacher networks, and the required module manipulation (i.e head replacement) for the teacher network.</span>
+
+<span class="sd">        :param architecture: String, KDModule or uninstantiated KDModule class describing the netowrks architecture.</span>
+<span class="sd">        :param arch_params: Architecture&#39;s parameters passed to networks c&#39;tor.</span>
+<span class="sd">        :param checkpoint_params: checkpoint loading related parameters dictionary with &#39;pretrained_weights&#39; key,</span>
+<span class="sd">            s.t it&#39;s value is a string describing the dataset of the pretrained weights (for example &quot;imagenent&quot;).</span>
+
+<span class="sd">        :return: instantiated netowrk i.e KDModule, architecture_class (will be none when architecture is not str)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">student_architecture</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="s2">&quot;student_architecture&quot;</span><span class="p">)</span>
+        <span class="n">teacher_architecture</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="s2">&quot;teacher_architecture&quot;</span><span class="p">)</span>
+        <span class="n">student_arch_params</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="s2">&quot;student_arch_params&quot;</span><span class="p">)</span>
+        <span class="n">teacher_arch_params</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="s2">&quot;teacher_arch_params&quot;</span><span class="p">)</span>
+        <span class="n">student_arch_params</span> <span class="o">=</span> <span class="n">core_utils</span><span class="o">.</span><span class="n">HpmStruct</span><span class="p">(</span><span class="o">**</span><span class="n">student_arch_params</span><span class="p">)</span>
+        <span class="n">teacher_arch_params</span> <span class="o">=</span> <span class="n">core_utils</span><span class="o">.</span><span class="n">HpmStruct</span><span class="p">(</span><span class="o">**</span><span class="n">teacher_arch_params</span><span class="p">)</span>
+        <span class="n">student_pretrained_weights</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">checkpoint_params</span><span class="p">,</span> <span class="s1">&#39;student_pretrained_weights&#39;</span><span class="p">)</span>
+        <span class="n">teacher_pretrained_weights</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">checkpoint_params</span><span class="p">,</span> <span class="s1">&#39;teacher_pretrained_weights&#39;</span><span class="p">)</span>
+
+        <span class="n">student</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_instantiate_net</span><span class="p">(</span><span class="n">student_architecture</span><span class="p">,</span> <span class="n">student_arch_params</span><span class="p">,</span>
+                                           <span class="p">{</span><span class="s2">&quot;pretrained_weights&quot;</span><span class="p">:</span> <span class="n">student_pretrained_weights</span><span class="p">})</span>
+        <span class="n">teacher</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_instantiate_net</span><span class="p">(</span><span class="n">teacher_architecture</span><span class="p">,</span> <span class="n">teacher_arch_params</span><span class="p">,</span>
+                                           <span class="p">{</span><span class="s2">&quot;pretrained_weights&quot;</span><span class="p">:</span> <span class="n">teacher_pretrained_weights</span><span class="p">})</span>
+
+        <span class="n">run_teacher_on_eval</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="s2">&quot;run_teacher_on_eval&quot;</span><span class="p">,</span> <span class="n">default_val</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_kd_net</span><span class="p">(</span><span class="n">arch_params</span><span class="p">,</span> <span class="n">architecture</span><span class="p">,</span> <span class="n">run_teacher_on_eval</span><span class="p">,</span> <span class="n">student</span><span class="p">,</span> <span class="n">teacher</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_instantiate_kd_net</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arch_params</span><span class="p">,</span> <span class="n">architecture</span><span class="p">,</span> <span class="n">run_teacher_on_eval</span><span class="p">,</span> <span class="n">student</span><span class="p">,</span> <span class="n">teacher</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">architecture</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">architecture_cls</span> <span class="o">=</span> <span class="n">KD_ARCHITECTURES</span><span class="p">[</span><span class="n">architecture</span><span class="p">]</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">architecture_cls</span><span class="p">(</span><span class="n">arch_params</span><span class="o">=</span><span class="n">arch_params</span><span class="p">,</span> <span class="n">student</span><span class="o">=</span><span class="n">student</span><span class="p">,</span> <span class="n">teacher</span><span class="o">=</span><span class="n">teacher</span><span class="p">,</span>
+                                   <span class="n">run_teacher_on_eval</span><span class="o">=</span><span class="n">run_teacher_on_eval</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">architecture</span><span class="p">,</span> <span class="n">KDModule</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">architecture</span><span class="p">(</span><span class="n">arch_params</span><span class="o">=</span><span class="n">arch_params</span><span class="p">,</span> <span class="n">student</span><span class="o">=</span><span class="n">student</span><span class="p">,</span> <span class="n">teacher</span><span class="o">=</span><span class="n">teacher</span><span class="p">,</span>
+                               <span class="n">run_teacher_on_eval</span><span class="o">=</span><span class="n">run_teacher_on_eval</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">architecture</span>
+        <span class="k">return</span> <span class="n">net</span>
+
+    <span class="k">def</span> <span class="nf">_load_checkpoint_to_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes teacher weights with teacher_checkpoint_path if needed, then handles checkpoint loading for</span>
+<span class="sd">         the entire KD network following the same logic as in Trainer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">teacher_checkpoint_path</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_params</span><span class="p">,</span> <span class="s2">&quot;teacher_checkpoint_path&quot;</span><span class="p">)</span>
+        <span class="n">teacher_net</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">teacher</span>
+
+        <span class="k">if</span> <span class="n">teacher_checkpoint_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="c1">#  WARN THAT TEACHER_CKPT WILL OVERRIDE TEACHER&#39;S PRETRAINED WEIGHTS</span>
+            <span class="n">teacher_pretrained_weights</span> <span class="o">=</span> <span class="n">get_param</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_params</span><span class="p">,</span> <span class="s2">&quot;teacher_pretrained_weights&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">teacher_pretrained_weights</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="n">teacher_checkpoint_path</span> <span class="o">+</span> <span class="s2">&quot; checkpoint is &quot;</span>
+                                              <span class="s2">&quot;overriding &quot;</span> <span class="o">+</span> <span class="n">teacher_pretrained_weights</span> <span class="o">+</span> <span class="s2">&quot; for teacher model&quot;</span><span class="p">)</span>
+
+            <span class="c1"># ALWAYS LOAD ITS EMA IF IT EXISTS</span>
+            <span class="n">load_teachers_ema</span> <span class="o">=</span> <span class="s1">&#39;ema_net&#39;</span> <span class="ow">in</span> <span class="n">read_ckpt_state_dict</span><span class="p">(</span><span class="n">teacher_checkpoint_path</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="n">load_checkpoint_to_model</span><span class="p">(</span><span class="n">ckpt_local_path</span><span class="o">=</span><span class="n">teacher_checkpoint_path</span><span class="p">,</span>
+                                     <span class="n">load_backbone</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                     <span class="n">net</span><span class="o">=</span><span class="n">teacher_net</span><span class="p">,</span>
+                                     <span class="n">strict</span><span class="o">=</span><span class="s1">&#39;no_key_matching&#39;</span><span class="p">,</span>
+                                     <span class="n">load_weights_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                     <span class="n">load_ema_as_net</span><span class="o">=</span><span class="n">load_teachers_ema</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">KDTrainer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_load_checkpoint_to_model</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_add_metrics_update_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">phase</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds KDModelMetricsUpdateCallback to be fired at phase</span>
+
+<span class="sd">        :param phase: Phase for the metrics callback to be fired at</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phase_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">KDModelMetricsUpdateCallback</span><span class="p">(</span><span class="n">phase</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_get_hyper_param_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a training hyper param config for logging with additional KD related hyper params.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hyper_param_config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_hyper_param_config</span><span class="p">()</span>
+        <span class="n">hyper_param_config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;student_architecture&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">student_architecture</span><span class="p">,</span>
+                                   <span class="s2">&quot;teacher_architecture&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">teacher_architecture</span><span class="p">,</span>
+                                   <span class="s2">&quot;student_arch_params&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">student_arch_params</span><span class="p">,</span>
+                                   <span class="s2">&quot;teacher_arch_params&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">teacher_arch_params</span>
+                                   <span class="p">})</span>
+        <span class="k">return</span> <span class="n">hyper_param_config</span>
+
+    <span class="k">def</span> <span class="nf">_instantiate_ema_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9999</span><span class="p">,</span> <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+                               <span class="n">exp_activation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KDModelEMA</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Instantiate KD ema model for KDModule.</span>
+
+<span class="sd">        If the model is of class KDModule, the instance will be adapted to work on knowledge distillation.</span>
+<span class="sd">        :param decay:           the maximum decay value. as the training process advances, the decay will climb towards</span>
+<span class="sd">                                this value until the EMA_t+1 = EMA_t * decay + TRAINING_MODEL * (1- decay)</span>
+<span class="sd">        :param beta:            the exponent coefficient. The higher the beta, the sooner in the training the decay will</span>
+<span class="sd">                                saturate to its final value. beta=15 is ~40% of the training process.</span>
+<span class="sd">        :param exp_activation:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">KDModelEMA</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">,</span> <span class="n">decay</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">exp_activation</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_save_best_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Overrides parent best_ckpt saving to modify the state dict so that we only save the student.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+            <span class="n">best_net</span> <span class="o">=</span> <span class="n">core_utils</span><span class="o">.</span><span class="n">WrappedModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema_model</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">student</span><span class="p">)</span>
+            <span class="n">state</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;ema_net&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">best_net</span> <span class="o">=</span> <span class="n">core_utils</span><span class="o">.</span><span class="n">WrappedModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">student</span><span class="p">)</span>
+
+        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;net&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_net</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sg_logger</span><span class="o">.</span><span class="n">add_checkpoint</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ckpt_best_name</span><span class="p">,</span> <span class="n">state_dict</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">epoch</span><span class="p">)</span>
+
+<div class="viewcode-block" id="KDTrainer.train"><a class="viewcode-back" href="../../../../super_gradients.training.html#super_gradients.training.KDTrainer.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">KDModule</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">training_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(),</span> <span class="n">student</span><span class="p">:</span> <span class="n">SgModule</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="n">teacher</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">kd_architecture</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">KDModule</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;kd_module&#39;</span><span class="p">,</span>
+              <span class="n">kd_arch_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(),</span> <span class="n">run_teacher_on_eval</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">:</span> <span class="n">DataLoader</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="n">valid_loader</span><span class="p">:</span> <span class="n">DataLoader</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Trains the student network (wrapped in KDModule network).</span>
+
+<span class="sd">        :param model: KDModule, network to train. When none is given will initialize KDModule according to kd_architecture,</span>
+<span class="sd">            student and teacher (default=None)</span>
+<span class="sd">        :param training_params: dict, Same as in Trainer.train()</span>
+<span class="sd">        :param student: SgModule - the student trainer</span>
+<span class="sd">        :param teacher: torch.nn.Module- the teacher trainer</span>
+<span class="sd">        :param kd_architecture: KDModule architecture to use, currently only &#39;kd_module&#39; is supported (default=&#39;kd_module&#39;).</span>
+<span class="sd">        :param kd_arch_params: architecture params to pas to kd_architecture constructor.</span>
+<span class="sd">        :param run_teacher_on_eval: bool- whether to run self.teacher at eval mode regardless of self.train(mode)</span>
+<span class="sd">        :param train_loader: Dataloader for train set.</span>
+<span class="sd">        :param valid_loader: Dataloader for validation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kd_net</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="ow">or</span> <span class="n">model</span>
+        <span class="k">if</span> <span class="n">kd_net</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">student</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">teacher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must pass student and teacher models or net (KDModule).&quot;</span><span class="p">)</span>
+            <span class="n">kd_net</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_kd_net</span><span class="p">(</span><span class="n">arch_params</span><span class="o">=</span><span class="n">HpmStruct</span><span class="p">(</span><span class="o">**</span><span class="n">kd_arch_params</span><span class="p">),</span>
+                                              <span class="n">architecture</span><span class="o">=</span><span class="n">kd_architecture</span><span class="p">,</span>
+                                              <span class="n">run_teacher_on_eval</span><span class="o">=</span><span class="n">run_teacher_on_eval</span><span class="p">,</span>
+                                              <span class="n">student</span><span class="o">=</span><span class="n">student</span><span class="p">,</span>
+                                              <span class="n">teacher</span><span class="o">=</span><span class="n">teacher</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">KDTrainer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">kd_net</span><span class="p">,</span> <span class="n">training_params</span><span class="o">=</span><span class="n">training_params</span><span class="p">,</span>
+                                     <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span> <span class="n">valid_loader</span><span class="o">=</span><span class="n">valid_loader</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

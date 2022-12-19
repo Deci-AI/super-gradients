@@ -1,0 +1,69 @@
+# The purpose of the example below is to demonstrate the use of registry for external objects for training.
+# - We train mobilenet_v2 on a user dataset which is not defined in ALL_DATASETS using the dataloader registry.
+# - We leverage predefined configs from cifar_10 training recipe in our repo.
+#
+# In order for the registry to work, we must trigger the registry of the user's objects by importing their module at
+#   the top of the training script. Hence, we created a similar script to our classic train_from_recipe but with the imports
+#   on top. Once imported, all the registry decorated objects will be resolved (i.e user_mnist_train will be resolved
+#   to the dataloader of our user's)
+
+defaults:
+  - training_hyperparams: cifar10_resnet_train_params
+  - dataset_params: cifar10_dataset_params
+  - checkpoint_params: default_checkpoint_params
+  - _self_
+
+arch_params:
+  num_classes: 10
+  in_channels: 1
+
+dataset_params:
+  train_dataset_params:
+    root: ./data/mnist
+    train: True
+    transforms:
+      - RandomHorizontalFlip
+      - ToTensor
+    target_transform: null
+    download: True
+
+  train_dataloader_params:
+    dataset: MnistDataset
+    batch_size: 256
+    num_workers: 8
+    drop_last: False
+    pin_memory: True
+
+  val_dataset_params:
+    root: ./data/mnist
+    train: False
+    transforms:
+      - ToTensor
+    target_transform: null
+    download: True
+
+  val_dataloader_params:
+    dataset: MnistDataset
+    batch_size: 512
+    num_workers: 8
+    drop_last: False
+    pin_memory: True
+
+resume: False
+training_hyperparams:
+  resume: ${resume}
+  max_epochs: 3
+
+
+ckpt_root_dir:
+
+architecture: mobilenet_v2
+
+experiment_name: mobilenet_v2_mnist
+
+
+# THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
+hydra:
+  run:
+    # Set the output directory (i.e. where .hydra folder that logs all the input params will be generated)
+    dir: ${hydra_output_dir:${ckpt_root_dir}, ${experiment_name}}

@@ -25,6 +25,7 @@ defaults:
   - training_hyperparams: coco2017_ssd_lite_mobilenet_v2_train_params
   - dataset_params: coco_detection_ssd_lite_mobilenet_v2_dataset_params
   - checkpoint_params: default_checkpoint_params
+  - _self_
   - anchors: ssd_anchors
 
 train_dataloader: coco2017_train
