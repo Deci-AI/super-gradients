@@ -116,14 +116,8 @@ jobs:
     steps:
       - checkout
       - run:
-         name: making sure we have docker group 
-         command: |
-            sudo groupadd docker || exit 0
-      - run:
-         name: making sure we have docker permmissions 
-         command: |
-            sudo usermod -aG docker circleci
-            newgrp docker || exit 0
+         name: making sure we have docker permmissions #ugly but working solution
+         command: sudo chmod 666 /var/run/docker.sock
       - deci-common/build_docker_image:
           image_tag: << parameters.version >>
           build_args: VERSION=${CIRCLE_BRANCH}
