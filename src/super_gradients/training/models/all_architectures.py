@@ -22,7 +22,7 @@ from super_gradients.training.models.segmentation_models.stdc import STDC1Classi
 from super_gradients.training.models.kd_modules.kd_module import KDModule
 from super_gradients.training.models.classification_models.beit import BeitBasePatch16_224, BeitLargePatch16_224
 from super_gradients.training.models.segmentation_models.ppliteseg import PPLiteSegT, PPLiteSegB
-from super_gradients.training.models.segmentation_models.unet import UNetCustom
+from super_gradients.training.models.segmentation_models.unet import UNetCustom, UnetClassification
 from super_gradients.common.object_names import Models
 
 ARCHITECTURES = {
@@ -125,6 +125,7 @@ ARCHITECTURES = {
     Models.PP_LITE_B_SEG75: PPLiteSegB,
     Models.CUSTOM_ANYNET: regnet.CustomAnyNet,
     Models.UNET_CUSTOM: UNetCustom,
+    Models.UNET_CUSTOM_CLS: UnetClassification,
 }
 
 KD_ARCHITECTURES = {Models.KD_MODULE: KDModule}
