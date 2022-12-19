@@ -126,6 +126,9 @@ def _process_sampler_params(dataloader_params, dataset, default_dataloader_param
 
 def _instantiate_sampler(dataset, dataloader_params):
     sampler_name = list(dataloader_params["sampler"].keys())[0]
+    if "shuffle" in dataloader_params.keys():
+        # SHUFFLE IS MUTUALLY EXCLUSIVE WITH SAMPLER ARG IN DATALOADER INIT
+        dataloader_params["sampler"][sampler_name]["shuffle"] = dataloader_params.pop("shuffle")
     dataloader_params["sampler"][sampler_name]["dataset"] = dataset
     dataloader_params["sampler"] = SamplersFactory().get(dataloader_params["sampler"])
     return dataloader_params
