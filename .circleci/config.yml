@@ -195,7 +195,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: install requirements
+          name: install requirements and run recipe tests
           command: |
             << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
             source << parameters.sg_new_env_name >>/bin/activate
@@ -203,13 +203,9 @@ jobs:
             python -m pip install --upgrade setuptools
             python -m pip install wheel
             python -m pip install -r requirements.txt
-
-
-
-      - run:
-          name: cifar_10_sanity
-          command: |
             python -m tests/recipe_training_tests/cifar10_recipe_sanity_test.py
+
+
 workflows:
   release:
     jobs:
