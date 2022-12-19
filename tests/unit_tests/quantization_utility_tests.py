@@ -754,8 +754,9 @@ class QuantizationUtilityTest(unittest.TestCase):
             torch.testing.assert_close(y_sg, y_pyquant)
 
     def test_sg_resnet_sg_vanilla_quantization_matches_pytorch_quantization(self):
-
         # SG SELECTIVE QUANTIZATION
+        from super_gradients.training.models.classification_models.resnet import Bottleneck
+
         sq = SelectiveQuantizer(
             custom_mappings={
                 torch.nn.Conv2d: QuantizedMetadata(
@@ -781,6 +782,10 @@ class QuantizationUtilityTest(unittest.TestCase):
             },
             default_per_channel_quant_weights=True,
         )
+
+        # SG registers non-naive QuantBottleneck that will have different behaviour, pop it for testing purposes
+        if Bottleneck in sq.mapping_instructions:
+            sq.mapping_instructions.pop(Bottleneck)
 
         resnet_sg: nn.Module = super_gradients.training.models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)
         sq.quantize_module(resnet_sg, preserve_state_dict=True)
