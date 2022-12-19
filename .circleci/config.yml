@@ -104,27 +104,40 @@ jobs:
           path: ~/sg_logs
       
   docker_build:
+    parameters:
+        version:
+          type: string
+          default: latest
+    environment: 
+      IMAGE_TAG: << parameters.version >>
     description: "building the docker"
     machine: true 
     resource_class: deci-ai/research-standard
     steps:
-     - deci-common/build_docker_image:
-          image_tag: ${CIRCLE_TAG}
-          build_args: "VERSION=${CIRCLE_TAG}"
+      - deci-common/build_docker_image:
+          image_tag: << parameters.version >>
+          build_args: VERSION=${CIRCLE_BRANCH}
           dockerfile: "scripts/Dockerfile"
           repository_name: "deciai/super-gradients"
-     - run:
+      - run:
           name: Archive Docker image
-          command: docker save -o image.tar deciai/super-gradients:${CIRCLE_TAG} 
-     - persist_to_workspace:
-          root: .
-          paths:
-            - ./image.tar
+          command: docker save -o image.tar deciai/super-gradients:${IMAGE_TAG} 
+      - persist_to_workspace:
+           root: .
+           paths:
+             - ./image.tar
 
 
   dockerhub_push:
     description: "pushing the docker"
-    machine: false
+    parameters:
+        version:
+          type: string
+    environment: 
+      IMAGE_TAG: << parameters.version >>
+      IMAGE_NAME: deciai/super-gradients
+    docker:
+      - image: circleci/buildpack-deps:stretch
     resource_class: small
     steps:
        - attach_workspace:
@@ -142,13 +155,19 @@ jobs:
                   docker login -u $DECI_DOCKER_USER -p $DECI_DOCKER_TOKEN
                   
                   # Push with version tag
-                  IMAGE_NAME=deciai/super-gradients
-                  echo "Pushing to DockerHub: $IMAGE_NAME:$CIRCLE_TAG"
+                  
+                  echo "Pushing to DockerHub: $IMAGE_NAME:$IMAGE_TAG"
                   docker push $IMAGE_NAME:$CIRCLE_TAG
     
 
   integration_test:
     description: "running integration test on the code"
+    parameters:
+        version:
+          type: string
+          default: latest
+    environment: 
+      IMAGE_TAG: << parameters.version >>
     machine: true 
     resource_class: deci-ai/research-standard
     steps:
@@ -156,7 +175,7 @@ jobs:
         - run:
            name: integration test
            #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
-           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:${CIRCLE_TAG} python3 -c 'print("it works!")'
+           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:${IMAGE_TAG} python3 -c 'print("it works!")'
 
 
 
@@ -257,6 +276,7 @@ workflows:
             - login_to_codeartifact_release
           <<: *release_tag_filter
       - docker_build:
+         version: $CIRCLE_TAG
          requires:
             - "release_version"
          <<: *release_tag_filter
@@ -275,6 +295,7 @@ workflows:
             - pypi-public
           <<: *release_tag_filter
       - dockerhub_push: # happens on merge
+          version: $CIRCLE_TAG
           requires:
             - "docker_build"
             - "release_version"
