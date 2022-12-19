@@ -114,8 +114,9 @@ jobs:
     docker:
        - image: cimg/base:stable-20.04
     steps:
+     - checkout
      - deci-common/container_image_build:
-           dockerfile: ./scripts/Dockerfile
+           dockerfile: scripts/Dockerfile
            repository_name: << parameters.repo_name >>
            image_tag: "${CIRCLE_BRANCH}"
            build_args: '--compress'
