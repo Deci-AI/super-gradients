@@ -116,10 +116,13 @@ jobs:
     steps:
       - checkout
       - run:
-         name: making sure we have docker permmissions 
+         name: making sure we have docker group 
          command: |
             sudo groupadd docker || exit 0
-            sudo usermod -aG docker $USER
+      - run:
+         name: making sure we have docker permmissions 
+         command: |
+            sudo usermod -aG docker circleci
             newgrp docker 
       - deci-common/build_docker_image:
           image_tag: << parameters.version >>
