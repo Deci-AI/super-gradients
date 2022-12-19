@@ -203,7 +203,7 @@ jobs:
             python -m pip install --upgrade setuptools
             python -m pip install wheel
             python -m pip install -r requirements.txt
-            export PYTHONPATH=/home/circleci/super_gradients/src:/home/circleci/super_gradients/
+            pip install git+https://github.com/Deci-AI/super-gradients.git@${CIRCLE_BRANCH}
             python tests/recipe_training_tests/cifar10_recipe_sanity_test.py
 
 workflows:
