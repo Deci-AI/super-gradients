@@ -121,7 +121,7 @@ jobs:
     machine: true 
     resource_class: deci-ai/research-standard
     steps:
-        - checkout
+        - deci-common/ecr_login_dev
         - run:
            name: integration test
            #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
