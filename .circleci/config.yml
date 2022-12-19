@@ -205,6 +205,11 @@ jobs:
             python -m pip install -r requirements.txt
 
 
+
+      - run:
+          name: cifar_10_sanity
+          command: |
+            python -m tests/recipe_training_tests/cifar10_recipe_sanity_test.py
 workflows:
   release:
     jobs:
