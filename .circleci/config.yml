@@ -115,6 +115,9 @@ jobs:
        - image: cimg/base:stable-20.04
     steps:
      - checkout
+     - setup_remote_docker:
+          version: 20.10.7
+          docker_layer_caching: true
      - deci-common/container_image_build:
            dockerfile: scripts/Dockerfile
            repository_name: << parameters.repo_name >>
