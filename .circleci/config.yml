@@ -274,7 +274,10 @@ workflows:
           path: scripts
           public-registry: false
           push-image: true
+          registry-id: ${AWS_DEV_ACCOUNT_ID}
           region: ${AWS_DEFAULT_REGION}
+          new-profile-name: deci-dev
+          profile-name: deci-dev
           repo: deci/super-gradients
           repo-scan-on-push: true
           role-arn: ${AWS_DEV_ROLE}
