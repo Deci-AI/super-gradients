@@ -276,7 +276,7 @@ workflows:
           push-image: true
           region: ${AWS_DEFAULT_REGION}
           repo: deci/super-gradients
-          repo-scan-on-push: false
+          repo-scan-on-push: true
           role-arn: ${AWS_DEV_ROLE}
           set-repo-policy: false
           skip-when-tags-exist: false
