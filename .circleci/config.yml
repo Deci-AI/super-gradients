@@ -118,7 +118,7 @@ jobs:
            working_directory: scripts
            repository_name: << parameters.repo_name >>
            image_tag: "${CIRCLE_BRANCH}"
-           build_args: '--compress'
+           #build_args: '--compress'
      - deci-common/push_docker_image_aws_dev:
            repository_name: << parameters.repo_name >>
            image_tag: "${CIRCLE_BRANCH}"
