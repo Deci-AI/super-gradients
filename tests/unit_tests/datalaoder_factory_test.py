@@ -46,12 +46,12 @@ from super_gradients.training.dataloaders.dataloaders import (
 from super_gradients.training.datasets import (
     COCODetectionDataset,
     ImageNetDataset,
-    PascalAUG2012SegmentationDataSet,
     PascalVOC2012SegmentationDataSet,
     SuperviselyPersonsDataset,
     PascalVOCDetectionDataset,
     Cifar10,
     Cifar100,
+    PascalVOCAndAUGUnifiedDataset,
 )
 import torch
 import numpy as np
@@ -227,13 +227,13 @@ class DataLoaderFactoryTest(unittest.TestCase):
     def test_pascal_aug_segmentation_train_creation(self):
         dl = pascal_aug_segmentation_train()
         self.assertTrue(isinstance(dl, DataLoader))
-        self.assertTrue(isinstance(dl.dataset, PascalAUG2012SegmentationDataSet))
+        self.assertTrue(isinstance(dl.dataset, PascalVOCAndAUGUnifiedDataset))
         self.assertTrue(isinstance(dl.sampler, RandomSampler))
 
     def test_pascal_aug_segmentation_val_creation(self):
         dl = pascal_aug_segmentation_val()
         self.assertTrue(isinstance(dl, DataLoader))
-        self.assertTrue(isinstance(dl.dataset, PascalAUG2012SegmentationDataSet))
+        self.assertTrue(isinstance(dl.dataset, PascalVOCAndAUGUnifiedDataset))
 
     def test_pascal_voc_segmentation_train_creation(self):
         dl = pascal_voc_segmentation_train()
