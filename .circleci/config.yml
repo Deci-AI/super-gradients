@@ -124,8 +124,8 @@ jobs:
 
   dockerhub_push:
     description: "pushing the docker"
-    machine: true 
-    resource_class: deci-ai/research-standard
+    machine: false
+    resource_class: small
     steps:
        - attach_workspace:
           at: /tmp/workspace
@@ -257,7 +257,9 @@ workflows:
             - login_to_codeartifact_release
           <<: *release_tag_filter
       - docker_build:
-        <<: *release_tag_filter
+         requires:
+            - "release_version"
+         <<: *release_tag_filter
       - release_version:
           py_version: "3.7"
           requires:
@@ -275,6 +277,7 @@ workflows:
       - dockerhub_push: # happens on merge
           requires:
             - "docker_build"
+            - "release_version"
           <<: *release_candidate_filter
 
   build_and_deploy:
