@@ -9,6 +9,8 @@ parameters:
 
 orbs:
   deci-common: deci-ai/circleci-common-orb@<< pipeline.parameters.orb_version >>
+  aws-ecr: circleci/aws-ecr@8.2.1
+  docker: circleci/docker@2.2.0
 
 # This filter operates on SemVer2 tags only
 release_tag_filter: &release_tag_filter
@@ -103,66 +105,6 @@ jobs:
       - store_artifacts:
           path: ~/sg_logs
       
-  docker_build:
-    parameters:
-        version:
-          type: string
-          default: latest
-    environment: 
-      IMAGE_TAG: << parameters.version >>
-    description: "building the docker"
-    machine: true 
-    resource_class: deci-ai/research-standard
-    steps:
-      - checkout
-      - run:
-         name: making sure we have docker permmissions #ugly but working solution
-         command: sudo chmod 666 /var/run/docker.sock
-      - deci-common/build_docker_image:
-          image_tag: << parameters.version >>
-          build_args: VERSION=${CIRCLE_BRANCH}
-          dockerfile: "scripts/Dockerfile"
-          repository_name: "deciai/super-gradients"
-      - run:
-          name: Archive Docker image
-          command: docker save -o image.tar deciai/super-gradients:${IMAGE_TAG} 
-      - persist_to_workspace:
-           root: .
-           paths:
-             - ./image.tar
-
-
-  dockerhub_push:
-    description: "pushing the docker"
-    parameters:
-        version:
-          type: string
-    environment: 
-      IMAGE_TAG: << parameters.version >>
-      IMAGE_NAME: deciai/super-gradients
-    docker:
-      - image: circleci/buildpack-deps:stretch
-    resource_class: small
-    steps:
-       - attach_workspace:
-          at: /tmp/workspace
-       - run:
-          name: Load archived Docker image
-          command: docker load -i /tmp/workspace/image.tar
-       - run:
-           name: Push container to DockerHub
-           command: |
-                  # Ensure we're not logged into to any other docker repo
-                  docker logout
-                  
-                  # DockerHub Login
-                  docker login -u $DECI_DOCKER_USER -p $DECI_DOCKER_TOKEN
-                  
-                  # Push with version tag
-                  
-                  echo "Pushing to DockerHub: $IMAGE_NAME:$IMAGE_TAG"
-                  docker push $IMAGE_NAME:$CIRCLE_TAG
-    
 
   integration_test:
     description: "running integration test on the code"
@@ -170,8 +112,12 @@ jobs:
         version:
           type: string
           default: latest
+        image_repo:
+          type: string
+          default: deciai/super-gradients
     environment: 
       IMAGE_TAG: << parameters.version >>
+      IMAGE_REPO: << parameters.image_repo >>
     machine: true 
     resource_class: deci-ai/research-standard
     steps:
@@ -179,7 +125,7 @@ jobs:
         - run:
            name: integration test
            #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
-           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:${IMAGE_TAG} python3 -c 'print("it works!")'
+           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data ${IMAGE_REPO}:${IMAGE_TAG} python3 -c 'print("it works!")'
 
 
 
@@ -279,11 +225,6 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
-      - docker_build:
-         version: $CIRCLE_TAG
-         requires:
-            - "release_version"
-         <<: *release_tag_filter
       - release_version:
           py_version: "3.7"
           requires:
@@ -298,10 +239,15 @@ workflows:
           context:
             - pypi-public
           <<: *release_tag_filter
-      - dockerhub_push: # happens on merge
-          version: $CIRCLE_TAG
+      - docker/publish:
+          image: deciai/super-gradients
+          remote-docker-version: 20.10.12
+          update-description: true
+          use-buildkit: true
+          use-remote-docker: true
+          use-docker-credentials-store: true
+          tag: latest,${CIRCLE_TAG}
           requires:
-            - "docker_build"
             - "release_version"
           <<: *release_candidate_filter
 
@@ -318,11 +264,29 @@ workflows:
           requires:
             - deci-common/persist_version_info
             - deci-common/codeartifact_login
-      - docker_build
+      - aws-ecr/build-and-push-image:
+          assume-web-identity: true
+          checkout: true
+          create-repo: false
+          executor: aws-ecr/default
+          extra-build-args: '--compress'
+          no-output-timeout: 20m
+          path: scripts
+          public-registry: false
+          push-image: true
+          region: AWS_DEFAULT_REGION
+          repo: deci/super-gradients
+          repo-scan-on-push: false
+          role-arn: ${AWS_DEV_ROLE}
+          set-repo-policy: false
+          skip-when-tags-exist: false
+          tag: ${CIRCLE_BRANCH}
       - integration_test:
+           image_repo: deci/super-gradients
+           version: ${CIRCLE_BRANCH}
            requires:
              - "build3.7"
-             - "docker_build"
+             - "aws-ecr/build-and-push-image"
       - release_candidate: # happens on merge
           py_version: "3.7"
           requires:
