@@ -4,7 +4,7 @@ parameters:
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
-    default: "4.1.3"
+    default: "10.2.0"
 #    default: "dev:alpha"
 
 orbs:
@@ -105,6 +105,26 @@ jobs:
       - store_artifacts:
           path: ~/sg_logs
       
+  build_and_publish_beta:
+    description : "building the temp image and pushing to dev ecr"
+    parameters:
+       repo_name:
+         type: string
+         default: deci/super-gradients
+    docker:
+       - image: cimg/base:stable-20.04
+    steps:
+     - deci-common/build_docker_image:
+           working_directory: scripts
+           repository_name: << parameters.repo_name >>
+           image_tag: "${CIRCLE_BRANCH}"
+           build_args: '--compress'
+     - deci-common/push_docker_image_aws_dev:
+           repository_name: << parameters.repo_name >>
+           image_tag: "${CIRCLE_BRANCH}"
+           additional_tags: "latest"
+
+
 
   integration_test:
     description: "running integration test on the code"
@@ -253,8 +273,7 @@ workflows:
 
   build_and_deploy:
     jobs:
-      - deci-common/persist_version_info:
-          branch: << pipeline.git.branch >>
+      - deci-common/persist_version_info
       - deci-common/codeartifact_login:
           repo_name: "deci-packages"
       - build:
@@ -264,32 +283,13 @@ workflows:
           requires:
             - deci-common/persist_version_info
             - deci-common/codeartifact_login
-      - aws-ecr/build-and-push-image:
-          assume-web-identity: false
-          checkout: true
-          create-repo: false
-          executor: aws-ecr/default
-          extra-build-args: '--compress'
-          no-output-timeout: 20m
-          path: scripts
-          public-registry: false
-          push-image: true
-          registry-id: AWS_DEV_ACCOUNT_ID
-          region: ${AWS_DEFAULT_REGION}
-          new-profile-name: deci-dev
-          profile-name: deci-dev
-          repo: deci/super-gradients
-          repo-scan-on-push: true
-          role-arn: ${AWS_DEV_ROLE}
-          set-repo-policy: false
-          skip-when-tags-exist: false
-          tag: ${CIRCLE_BRANCH}
+      - build_and_publish_beta
       - integration_test:
-           image_repo: deci/super-gradients
-           version: ${CIRCLE_BRANCH}
-           requires:
-             - "build3.7"
-             - "aws-ecr/build-and-push-image"
+          image_repo: deci/super-gradients
+          version: ${CIRCLE_BRANCH}
+          requires:
+            - "build3.7"
+            - "build_and_publish_beta"
       - release_candidate: # happens on merge
           py_version: "3.7"
           requires:
