@@ -18,7 +18,12 @@ from super_gradients.training.utils.quantization.selective_quantization_utils im
 
 
 def naive_quantize(model: nn.Module):
-    q_util = SelectiveQuantizer(default_quant_modules_calib_method="max", default_per_channel_quant_weights=True)
+    q_util = SelectiveQuantizer(
+        default_quant_modules_calib_method_weights="max",
+        default_quant_modules_calib_method_inputs="percentile",
+        default_per_channel_quant_weights=True,
+        default_learn_amax=False,
+    )
     q_util.quantize_module(model)
 
     return model
@@ -33,7 +38,13 @@ def selective_quantize(model: nn.Module):
         ),
     }
 
-    sq_util = SelectiveQuantizer(custom_mappings=mappings, default_quant_modules_calib_method="max", default_per_channel_quant_weights=True)
+    sq_util = SelectiveQuantizer(
+        custom_mappings=mappings,
+        default_quant_modules_calib_method_weights="max",
+        default_quant_modules_calib_method_inputs="percentile",
+        default_per_channel_quant_weights=True,
+        default_learn_amax=False,
+    )
     sq_util.quantize_module(model)
 
     return model
@@ -91,8 +102,8 @@ if __name__ == "__main__":
     model = models[args.model_name]().cuda()
 
     if args.calibrate:
-        calibrator = QuantizationCalibrator(verbose=False)
-        calibrator.calibrate_model(model, method="max", calib_data_loader=train_dataloader, num_calib_batches=1024 // args.batch or 1)
+        calibrator = QuantizationCalibrator(verbose=True)
+        calibrator.calibrate_model(model, method="percentile", calib_data_loader=train_dataloader, num_calib_batches=1024 // args.batch or 1)
 
     trainer.train(model=model, training_params=train_params, train_loader=train_dataloader, valid_loader=val_dataloader)
 
