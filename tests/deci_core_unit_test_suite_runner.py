@@ -22,6 +22,7 @@ from tests.unit_tests import (
     CrashTipTest,
 )
 from tests.end_to_end_tests import TestTrainer
+from tests.unit_tests.detection_dataset_test import DetectionDatasetTest
 from tests.unit_tests.local_ckpt_head_replacement_test import LocalCkptHeadReplacementTest
 from tests.unit_tests.phase_delegates_test import ContextMethodsTest
 from tests.unit_tests.quantization_utility_tests import QuantizationUtilityTest
@@ -111,6 +112,7 @@ class CoreUnitTestSuiteRunner:
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestDetectionOutputAdapter))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(TestRepVGGBlock))
         self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(LocalCkptHeadReplacementTest))
+        self.unit_tests_suite.addTest(self.test_loader.loadTestsFromModule(DetectionDatasetTest))
 
     def _add_modules_to_end_to_end_tests_suite(self):
         """
