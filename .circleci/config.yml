@@ -274,7 +274,7 @@ workflows:
           path: scripts
           public-registry: false
           push-image: true
-          region: AWS_DEFAULT_REGION
+          region: ${AWS_DEFAULT_REGION}
           repo: deci/super-gradients
           repo-scan-on-push: false
           role-arn: ${AWS_DEV_ROLE}
