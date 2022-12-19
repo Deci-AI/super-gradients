@@ -114,6 +114,7 @@ jobs:
     machine: true 
     resource_class: deci-ai/research-standard
     steps:
+      - checkout
       - deci-common/build_docker_image:
           image_tag: << parameters.version >>
           build_args: VERSION=${CIRCLE_BRANCH}
