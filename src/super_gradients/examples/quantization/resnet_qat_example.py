@@ -4,16 +4,17 @@ from torch import nn
 
 import super_gradients
 from super_gradients import Trainer
+from super_gradients.modules.quantization.resnet_bottleneck import QuantBottleneck as sg_QuantizedBottleneck
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import models as sg_models
 from super_gradients.training.dataloaders import imagenet_train, imagenet_val
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training.metrics.metric_utils import get_metrics_dict
+from super_gradients.training.models.classification_models.resnet import Bottleneck
 from super_gradients.training.models.classification_models.resnet import Bottleneck as sg_Bottleneck
 from super_gradients.training.utils.quantization.calibrator import QuantizationCalibrator
 from super_gradients.training.utils.quantization.core import QuantizedMetadata
 from super_gradients.training.utils.quantization.export import export_quantized_module_to_onnx
-from super_gradients.modules.quantization.resnet_bottleneck import QuantBottleneck as sg_QuantizedBottleneck
 from super_gradients.training.utils.quantization.selective_quantization_utils import SelectiveQuantizer
 
 
@@ -24,6 +25,9 @@ def naive_quantize(model: nn.Module):
         default_per_channel_quant_weights=True,
         default_learn_amax=False,
     )
+    # SG already registers non-naive QuantBottleneck as in selective_quantize() down there, pop it for the sake of example
+    if Bottleneck in q_util.mapping_instructions:
+        q_util.mapping_instructions.pop(Bottleneck)
     q_util.quantize_module(model)
 
     return model
