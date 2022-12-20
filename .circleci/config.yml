@@ -151,7 +151,7 @@ jobs:
         - run:
            name: integration test
            #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
-           command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data << parameters.image_repo >>:<< parameters.version >> python3 -c 'print("it works!")'
+           command: docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data << parameters.image_repo >>:<< parameters.version >> python3 -c 'print("it works!")'
 
 
 
@@ -292,7 +292,7 @@ workflows:
       - build_and_publish_beta:
           version: ${CIRCLE_BRANCH}
       - integration_test:
-          image_repo: 307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients
+          image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
           version: ${CIRCLE_BRANCH}
           requires:
             - "build3.7"
