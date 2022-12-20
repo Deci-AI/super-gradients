@@ -2,6 +2,8 @@ from typing import Type, Union, Mapping, Any
 
 import torch
 from torch import nn
+
+from super_gradients.modules import RepVGGBlock
 from super_gradients.modules.skip_connections import Residual
 
 
@@ -279,6 +281,16 @@ class QARepVGGBlock(nn.Module):
 
     def fuse_block_residual_branches(self):
         self.prepare_for_deploy()
+
+    def from_repvgg(self, repvgg_block: RepVGGBlock):
+        # src.conv3x3 -> self.conv3x3
+        # src.bn3x3 -> self.bn3x3
+
+        # src.conv1x1+src.bn1x1 -> self.conv1x1
+
+        # fuse(src.ncb) -> self.conv1x1
+        # fuse conv1x1, bn1x1
+        raise NotImplementedError
 
 
 if __name__ == "__main__":
