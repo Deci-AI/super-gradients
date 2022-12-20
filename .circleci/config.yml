@@ -205,7 +205,7 @@ jobs:
             python -m pip install -r requirements.txt
             pip install git+https://github.com/Deci-AI/super-gradients.git@${CIRCLE_BRANCH}
             export HYDRA_FULL_ERROR=1
-            python tests/recipe_training_tests/recipe_sanity_test.py --config-name=cifar10_resnet experiment_name=cifar10_resnet_sanity training_hyperparams.max_epochs=3 +goal_metric_val=0.9
+            python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar10_resnet_sanity training_hyperparams.max_epochs=3
 
       - run:
           name: Remove new environment when failed
