@@ -151,7 +151,7 @@ jobs:
         - run:
            name: integration test
            #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
-           command: docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data << parameters.image_repo >>:<< parameters.version >> python3 -c 'print("it works!")'
+           command: docker run --rm -it --shm-size=2gb --gpus all -v ${PWD}:/SG -v /data:/data << parameters.image_repo >>:<< parameters.version >> python3 -c 'print("it works!")'
 
 
 
