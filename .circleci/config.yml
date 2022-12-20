@@ -206,6 +206,11 @@ jobs:
             pip install git+https://github.com/Deci-AI/super-gradients.git@${CIRCLE_BRANCH}
             python /tests/recipe_training_tests/recipe_sanity_test.py --config-name=cifar10_resnet experiment_name=cifar10_resnet_sanity training_hyperparams.max_epochs=3 +goal_metric_val=0.9
 
+      - run:
+          name: Remove new environment when failed
+          command: "rm -r << parameters.sg_new_env_name >>"
+          when: on_fail
+
 
 workflows:
   release:
