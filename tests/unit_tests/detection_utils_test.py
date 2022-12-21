@@ -61,7 +61,6 @@ class TestDetectionUtils(unittest.TestCase):
             for i, (imgs, targets) in enumerate(self.valid_loader):
                 if i > 5:
                     break
-                # batch_i, (imgs, targets) = 0, next(iter(valid_loader))
                 imgs = core_utils.tensor_container_to_device(imgs, self.device)
                 targets = core_utils.tensor_container_to_device(targets, self.device)
                 output = self.model(imgs)
