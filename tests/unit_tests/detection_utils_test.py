@@ -14,7 +14,6 @@ from super_gradients.training.utils.detection_utils import DetectionVisualizatio
 from tests.core_test_utils import is_data_available
 
 
-@skip_if(not is_data_available())
 class TestDetectionUtils(unittest.TestCase):
     def setUp(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -22,6 +21,7 @@ class TestDetectionUtils(unittest.TestCase):
         self.model.eval()
         self.valid_loader = coco2017_val(dataloader_params={"batch_size": 16})
 
+    @skip_if(not is_data_available())
     def test_visualization(self):
 
         trainer = Trainer("visualization_test", device=self.device)
@@ -43,6 +43,7 @@ class TestDetectionUtils(unittest.TestCase):
             self.assertTrue(os.path.exists(img_path))
             os.remove(img_path)
 
+    @skip_if(not is_data_available())
     def test_detection_metrics(self):
         metrics = [
             DetectionMetrics(num_cls=80, post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True),
