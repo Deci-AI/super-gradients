@@ -135,7 +135,7 @@ jobs:
 
 
 
-  integration_test:
+  testing_supergtradients_docker_image:
     description: "running integration test on the code"
     parameters:
         version:
@@ -291,16 +291,18 @@ workflows:
             - deci-common/codeartifact_login
       - build_and_publish_beta:
           version: ${CIRCLE_BRANCH}
-      - integration_test:
+          <<: *release_candidate_filter
+      - testing_supergtradients_docker_image:
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
           version: ${CIRCLE_BRANCH}
           requires:
             - "build3.7"
             - "build_and_publish_beta"
+          <<: *release_candidate_filter
       - release_candidate: # happens on merge
           py_version: "3.7"
           requires:
             - "build3.7"
-            - "integration_test"
+            - "testing_supergtradients_docker_image"
           <<: *release_candidate_filter
 
