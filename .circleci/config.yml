@@ -105,7 +105,7 @@ jobs:
       - store_artifacts:
           path: ~/sg_logs
       
-  build_and_publish_rc:
+  build_and_publish_beta:
     description : "building the temp image and pushing to dev ecr"
     parameters:
        repo_name:
@@ -113,7 +113,7 @@ jobs:
          default: deci/super-gradients
        version:
           type: string
-          default: ${CIRCLE_TAG}
+          default: ${CIRCLE_TAG}-beta
     docker:
        - image: cimg/base:stable-20.04
     resource_class: small
@@ -133,12 +133,32 @@ jobs:
            image_tag: "<< parameters.version >>"
            additional_tags: "latest"
 
+  retag_beta_to_rc_docker:
+   description: in the event of seccssesful test promote beta to RC
+   parameters:
+     image_repo:
+          type: string
+          default: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
+     image_tag:
+       type: string
+     new_image_tag:
+       type: string
+   docker:
+       - image: cimg/base:stable-20.04
+   resource_class: small
+   steps:
+     - deci-common/ecr_login_dev
+     - run:
+           name: retag docker
+           command: |
+              MANIFEST=\$(aws ecr batch-get-image --repository-name << parameters.image_repo >> --image-ids imageTag=<< parameters.image_tag >> --query 'images[].imageManifest' --output text)
+              aws ecr put-image --repository-name << parameters.image_repo >> --image-tag << parameters.new_image_tag >> --image-manifest "\$MANIFEST"
 
 
   testing_supergradients_docker_image:
     description: "running integration test on the code"
     parameters:
-        version:
+        image_tag:
           type: string
           default: latest
         image_repo:
@@ -154,7 +174,7 @@ jobs:
         # - run:
         #    name: integration test
         #    #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
-        #    command: docker run --rm -it --shm-size=2gb --gpus all -v ${PWD}:/SG -v /data:/data << parameters.image_repo >>:<< parameters.version >> python3 -c 'print("it works!")'
+        #    command: docker run --rm -it --shm-size=2gb --gpus all -v ${PWD}:/SG -v /data:/data << parameters.image_repo >>:<< parameters.image_tag >> python3 -c 'print("it works!")'
         -  run:
              command: echo Hello world
 
@@ -293,13 +313,17 @@ workflows:
 
   SG_docker:
      jobs:
-       - build_and_publish_rc:
+       - build_and_publish_beta:
            <<: *release_candidate_filter
        - testing_supergradients_docker_image:
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
+          image_tag: ${CIRCLE_TAG}-beta
           requires:
-            - "build_and_publish_rc"
+            - "build_and_publish_beta"
           <<: *release_candidate_filter
+       - retag_beta_to_rc_docker:
+            new_image_tag: ${CIRCLE_TAG}rc${CIRCLE_BUILD_NUM}
+            image_tag: ${CIRCLE_TAG}-beta
        - hold:
            type: approval
            <<: *release_tag_filter
