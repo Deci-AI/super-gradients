@@ -1,7 +1,8 @@
-FROM nvidia/cuda:11.3.1-devel-ubuntu20.04
+ARG TAG=11.3.1-devel-ubuntu20.04
+FROM nvidia/cuda:${TAG}
 
 LABEL maintainer "DECI.AI <services@deci.ai>"
-ARG VERSION=stable
+ARG VERSION
 ARG DEBIAN_FRONTEND=noninteractive
 RUN mkdir /SG
 
