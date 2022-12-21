@@ -1,7 +1,7 @@
 FROM nvidia/cuda:11.3.1-devel-ubuntu20.04
 
 LABEL maintainer "DECI.AI <services@deci.ai>"
-ARG VERSION=master
+ARG VERSION=stable
 ARG DEBIAN_FRONTEND=noninteractive
 RUN mkdir /SG
 
