@@ -3,6 +3,7 @@ import unittest
 
 import numpy as np
 import torch.cuda
+from tensorflow.python.framework.test_util import skip_if
 
 from super_gradients.training import Trainer, utils as core_utils, models
 from super_gradients.training.dataloaders.dataloaders import coco2017_val
@@ -10,8 +11,10 @@ from super_gradients.training.datasets.datasets_conf import COCO_DETECTION_CLASS
 from super_gradients.training.metrics import DetectionMetrics, DetectionMetrics_050
 from super_gradients.training.models.detection_models.yolo_base import YoloPostPredictionCallback
 from super_gradients.training.utils.detection_utils import DetectionVisualization
+from tests.core_test_utils import is_data_available
 
 
+@skip_if(not is_data_available())
 class TestDetectionUtils(unittest.TestCase):
     def setUp(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
