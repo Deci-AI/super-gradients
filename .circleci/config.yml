@@ -144,15 +144,15 @@ jobs:
      new_image_tag:
        type: string
    docker:
-       - image: cimg/base:stable-20.04
+       - image: cimg/aws
    resource_class: small
    steps:
      - deci-common/ecr_login_dev
      - run:
            name: retag docker
            command: |
-              MANIFEST=\$(aws ecr batch-get-image --repository-name << parameters.image_repo >> --image-ids imageTag=<< parameters.image_tag >> --query 'images[].imageManifest' --output text)
-              aws ecr put-image --repository-name << parameters.image_repo >> --image-tag << parameters.new_image_tag >> --image-manifest "\$MANIFEST"
+              MANIFEST=$(aws ecr batch-get-image --repository-name << parameters.image_repo >> --image-ids imageTag=<< parameters.image_tag >> --query 'images[].imageManifest' --output text)
+              aws ecr put-image --repository-name << parameters.image_repo >> --image-tag << parameters.new_image_tag >> --image-manifest "$MANIFEST"
 
 
   testing_supergradients_docker_image:
