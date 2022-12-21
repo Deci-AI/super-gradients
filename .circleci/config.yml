@@ -144,7 +144,7 @@ jobs:
      new_image_tag:
        type: string
    docker:
-       - image: cimg/aws
+       - image: cimg/aws:2022.11.1
    resource_class: small
    steps:
      - deci-common/ecr_login_dev
@@ -324,6 +324,9 @@ workflows:
        - retag_beta_to_rc_docker:
             new_image_tag: ${CIRCLE_TAG}rc${CIRCLE_BUILD_NUM}
             image_tag: ${CIRCLE_TAG}-beta
+            requires:
+              - "testing_supergradients_docker_image"
+            <<: *release_candidate_filter
        - hold:
            type: approval
            <<: *release_tag_filter
