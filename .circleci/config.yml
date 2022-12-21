@@ -105,7 +105,7 @@ jobs:
       - store_artifacts:
           path: ~/sg_logs
       
-  build_and_publish_beta:
+  build_and_publish_rc:
     description : "building the temp image and pushing to dev ecr"
     parameters:
        repo_name:
@@ -135,7 +135,7 @@ jobs:
 
 
 
-  testing_supergtradients_docker_image:
+  testing_supergradients_docker_image:
     description: "running integration test on the code"
     parameters:
         version:
@@ -144,14 +144,19 @@ jobs:
         image_repo:
           type: string
           default: deciai/super-gradients
-    machine: true 
-    resource_class: deci-ai/research-standard
+    #reserved for testing when will be done      
+    #machine: true 
+    #resource_class: deci-ai/research-standard
+    docker:
+      - image: cimg/base
     steps:
-        - deci-common/ecr_login_dev
-        - run:
-           name: integration test
-           #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
-           command: docker run --rm -it --shm-size=2gb --gpus all -v ${PWD}:/SG -v /data:/data << parameters.image_repo >>:<< parameters.version >> python3 -c 'print("it works!")'
+        # - deci-common/ecr_login_dev
+        # - run:
+        #    name: integration test
+        #    #command: sudo docker run -it -e ENVIRONMENT_NAME=production -v ${PWD}:/SG -v /data:/data deciai/super-gradients:3.0.0 python3 ./tests/integration_tests/pretrained_models_test.py
+        #    command: docker run --rm -it --shm-size=2gb --gpus all -v ${PWD}:/SG -v /data:/data << parameters.image_repo >>:<< parameters.version >> python3 -c 'print("it works!")'
+        -  run:
+             command: echo Hello world
 
 
 
@@ -288,13 +293,15 @@ workflows:
 
   SG_docker:
      jobs:
-       - build_and_publish_beta:
-          <<: *release_candidate_filter
-       - testing_supergtradients_docker_image:
+       - build_and_publish_rc:
+           <<: *release_candidate_filter
+       - testing_supergradients_docker_image:
           image_repo: '307629990626.dkr.ecr.us-east-1.amazonaws.com/deci/super-gradients'
           requires:
-            - "build_and_publish_beta"
+            - "build_and_publish_rc"
           <<: *release_candidate_filter
+       - hold:
+           type: approval
        - docker/publish:
           image: deciai/super-gradients
           remote-docker-version: 20.10.12
@@ -305,8 +312,9 @@ workflows:
           tag: latest,${CIRCLE_TAG}
           extra_build_args: '--build-arg VERSION=${CIRCLE_TAG} --compress'
           requires:
-            - "testing_supergtradients_docker_image"
-          <<: *release_candidate_filter
+            - "testing_supergradients_docker_image"
+            - "hold"
+          <<: *release_tag_filter
        - docker/publish:
           image: deciai/super-gradients
           remote-docker-version: 20.10.12
@@ -317,5 +325,6 @@ workflows:
           tag: ${CIRCLE_TAG}-runtime
           extra_build_args: '--build-arg VERSION=${CIRCLE_TAG} --build-arg TAG=11.3.1-runtime-ubuntu20.04  --compress'
           requires:
-            - "testing_supergtradients_docker_image"
-          <<: *release_candidate_filter
+            - "testing_supergradients_docker_image"
+            - "hold"
+          <<: *release_tag_filter
