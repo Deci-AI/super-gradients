@@ -3,7 +3,6 @@ import unittest
 
 import numpy as np
 import torch.cuda
-from tensorflow.python.framework.test_util import skip_if
 
 from super_gradients.training import Trainer, utils as core_utils, models
 from super_gradients.training.dataloaders.dataloaders import coco2017_val
@@ -21,7 +20,7 @@ class TestDetectionUtils(unittest.TestCase):
         self.model.eval()
         self.valid_loader = coco2017_val(dataloader_params={"batch_size": 16})
 
-    @skip_if(not is_data_available())
+    @unittest.skipIf(not is_data_available())
     def test_visualization(self):
 
         trainer = Trainer("visualization_test", device=self.device)
@@ -43,7 +42,7 @@ class TestDetectionUtils(unittest.TestCase):
             self.assertTrue(os.path.exists(img_path))
             os.remove(img_path)
 
-    @skip_if(not is_data_available())
+    @unittest.skipIf(not is_data_available())
     def test_detection_metrics(self):
         metrics = [
             DetectionMetrics(num_cls=80, post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True),
