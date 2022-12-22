@@ -206,12 +206,18 @@ class SelectiveQuantizer:
 
         # COPY STATE DICT IF NEEDED
         if preserve_state_dict:
-            if self.default_learn_amax:  # quant state dict will now have additional parameters for clip and strict loading will fail
-                logger.warning(
-                    "Instantiating quant module in non-strict mode leaving Clip parameters non-initilaized. Use QuantizationCalibrator to initialize them. "
-                )
+            # quant state dict may have additional parameters for Clip and strict loading will fail
+            # if we find at least one Clip module in q_instance, disable strict loading and hope for the best
+            strict_load = True
+            for k in q_instance.state_dict().keys():
+                if "clip.clip_value_max" in k or "clip.clip_value_min" in k:
+                    strict_load = False
+                    logger.debug(
+                        "Instantiating quant module in non-strict mode leaving Clip parameters non-initilaized. Use QuantizationCalibrator to initialize them."
+                    )
+                    break
 
-            q_instance.load_state_dict(float_module.state_dict(), strict=not self.default_learn_amax)
+            q_instance.load_state_dict(float_module.state_dict(), strict=strict_load)
 
         return q_instance
 
