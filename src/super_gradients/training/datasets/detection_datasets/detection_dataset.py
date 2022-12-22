@@ -1,3 +1,4 @@
+import collections
 import os
 from typing import List, Dict, Union, Any, Optional, Tuple
 from multiprocessing.pool import ThreadPool
@@ -16,7 +17,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.training.utils.detection_utils import get_cls_posx_in_target, DetectionTargetsFormat
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.transforms.transforms import DetectionTransform, DetectionTargetsFormatTransform
-from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException
+from super_gradients.training.exceptions.dataset_exceptions import EmptyDatasetException, DatasetValidationException
 from super_gradients.common.factories.list_factory import ListFactory
 from super_gradients.common.factories.transforms_factory import TransformsFactory
 
@@ -89,7 +90,9 @@ class DetectionDataset(Dataset):
         :param cache_dir:              Path to the directory where cached images will be stored in an optimized format.
         :param transforms:              List of transforms to apply sequentially on sample.
         :param all_classes_list:        All the class names.
-        :param class_inclusion_list:    If not None,every class not included will be ignored.
+        :param class_inclusion_list:    If not None, define the subset of classes to be included as targets.
+                                        Classes not in this list will excluded from training.
+                                        Thus, number of classes in model must be adjusted accordingly.
         :param ignore_empty_annotations:        If True and class_inclusion_list not None, images without any target
                                                 will be ignored.
         :param target_fields:                   List of the fields target fields. This has to include regular target,
@@ -104,7 +107,7 @@ class DetectionDataset(Dataset):
         if not Path(data_dir).exists():
             raise FileNotFoundError(f"data_dir={data_dir} not found. Please make sure that data_dir points toward your dataset.")
 
-        # Number of images that are avalaible(regardless of ignored images)
+        # Number of images that are available (regardless of ignored images)
         self.n_available_samples = self._setup_data_source()
         if not isinstance(self.n_available_samples, int) or self.n_available_samples < 1:
             raise ValueError(f"_setup_data_source() should return the number of available samples but got {self.n_available_samples}")
@@ -113,12 +116,18 @@ class DetectionDataset(Dataset):
         self.original_target_format = original_target_format
         self.max_num_samples = max_num_samples
 
+        if len(all_classes_list) != len(set(all_classes_list)):
+            raise DatasetValidationException(f"all_classes_list contains duplicate class names: {collections.Counter(all_classes_list)}")
+
+        if class_inclusion_list is not None and len(class_inclusion_list) != len(set(class_inclusion_list)):
+            raise DatasetValidationException(f"class_inclusion_list contains duplicate class names: {collections.Counter(class_inclusion_list)}")
+
         self.all_classes_list = all_classes_list
         self.class_inclusion_list = class_inclusion_list
         self.classes = self.class_inclusion_list or self.all_classes_list
         if len(set(self.classes) - set(all_classes_list)) > 0:
             wrong_classes = set(self.classes) - set(all_classes_list)
-            raise ValueError(f"class_inclusion_list includes classes that are not in all_classes_list: {wrong_classes}")
+            raise DatasetValidationException(f"class_inclusion_list includes classes that are not in all_classes_list: {wrong_classes}")
 
         self.ignore_empty_annotations = ignore_empty_annotations
         self.target_fields = target_fields or ["target"]

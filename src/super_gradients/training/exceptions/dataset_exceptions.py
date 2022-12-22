@@ -1,5 +1,12 @@
+class DatasetValidationException(Exception):
+    pass
 
-class IllegalDatasetParameterException(Exception):
+
+class ParameterMismatchException(DatasetValidationException):
+    pass
+
+
+class IllegalDatasetParameterException(DatasetValidationException):
     """
     Exception raised illegal dataset param.
 
@@ -12,7 +19,7 @@ class IllegalDatasetParameterException(Exception):
         super().__init__(self.message)
 
 
-class EmptyDatasetException(Exception):
+class EmptyDatasetException(DatasetValidationException):
     """
     Exception raised when a dataset does not have any image for a specific config
 
@@ -33,8 +40,10 @@ class UnsupportedBatchItemsFormat(ValueError):
     """
 
     def __init__(self):
-        self.message = "Batch items returned by the data loader expected format: \n" \
-                       "1. torch.Tensor or tuple, s.t inputs = batch_items[0], targets = batch_items[1] and len(" \
-                       "batch_items) = 2 \n" \
-                       "2. tuple: (inputs, targets, additional_batch_items)"
+        self.message = (
+            "Batch items returned by the data loader expected format: \n"
+            "1. torch.Tensor or tuple, s.t inputs = batch_items[0], targets = batch_items[1] and len("
+            "batch_items) = 2 \n"
+            "2. tuple: (inputs, targets, additional_batch_items)"
+        )
         super().__init__(self.message)

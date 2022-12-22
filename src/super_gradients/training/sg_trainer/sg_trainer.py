@@ -1144,11 +1144,13 @@ class Trainer:
         )
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
-        first_batch, _ = next(iter(self.train_loader))
+        first_batch = next(iter(self.train_loader))
+        inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_batch)
+
         log_main_training_params(
             multi_gpu=self.multi_gpu,
             num_gpus=get_world_size(),
-            batch_size=len(first_batch),
+            batch_size=len(inputs),
             batch_accumulate=self.batch_accumulate,
             len_train_set=len(self.train_loader.dataset),
         )
