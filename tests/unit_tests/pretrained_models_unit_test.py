@@ -21,12 +21,12 @@ class PretrainedModelsUnitTest(unittest.TestCase):
 
     def test_pretrained_regnetY800_imagenet(self):
         trainer = Trainer("imagenet_pretrained_regnetY800_unit_test", multi_gpu=MultiGPUMode.OFF)
-        model = models.get("regnetY800", pretrained_weights="imagenet")
+        model = models.get(Models.REGNETY800, pretrained_weights="imagenet")
         trainer.test(model=model, test_loader=classification_test_dataloader(), test_metrics_list=[Accuracy()], metrics_progress_verbose=True)
 
     def test_pretrained_repvgg_a0_imagenet(self):
         trainer = Trainer("imagenet_pretrained_repvgg_a0_unit_test", multi_gpu=MultiGPUMode.OFF)
-        model = models.get("repvgg_a0", pretrained_weights="imagenet", arch_params={"build_residual_branches": True})
+        model = models.get(Models.REPVGG_A0, pretrained_weights="imagenet", arch_params={"build_residual_branches": True})
         trainer.test(model=model, test_loader=classification_test_dataloader(), test_metrics_list=[Accuracy()], metrics_progress_verbose=True)
 
     def tearDown(self) -> None:

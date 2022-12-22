@@ -4,6 +4,7 @@ from torch import nn
 
 import super_gradients
 from super_gradients import Trainer
+from super_gradients.common.object_names import Models
 from super_gradients.training import MultiGPUMode
 from super_gradients.training import models as sg_models
 from super_gradients.training.dataloaders import imagenet_train, imagenet_val
@@ -40,7 +41,7 @@ def selective_quantize(model: nn.Module):
 
 
 def sg_vanilla_resnet50():
-    return sg_models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)
+    return sg_models.get(Models.RESNET50, pretrained_weights="imagenet", num_classes=1000)
 
 
 def sg_naive_qdq_resnet50():

@@ -3,6 +3,8 @@ import torch
 import torchvision
 from torch import nn
 
+from super_gradients.common.object_names import Models
+
 try:
     import super_gradients
     from pytorch_quantization import nn as quant_nn
@@ -782,7 +784,7 @@ class QuantizationUtilityTest(unittest.TestCase):
             default_per_channel_quant_modules=True,
         )
 
-        resnet_sg: nn.Module = super_gradients.training.models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)
+        resnet_sg: nn.Module = super_gradients.training.models.get(Models.RESNET50, pretrained_weights="imagenet", num_classes=1000)
         sq.quantize_module(resnet_sg, preserve_state_dict=True)
 
         # PYTORCH-QUANTIZATION
@@ -791,7 +793,7 @@ class QuantizationUtilityTest(unittest.TestCase):
         quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
 
         quant_modules.initialize()
-        resnet_pyquant: nn.Module = super_gradients.training.models.get("resnet50", pretrained_weights="imagenet", num_classes=1000)
+        resnet_pyquant: nn.Module = super_gradients.training.models.get(Models.RESNET50, pretrained_weights="imagenet", num_classes=1000)
 
         quant_modules.deactivate()
 

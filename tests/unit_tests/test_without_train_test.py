@@ -33,14 +33,14 @@ class TestWithoutTrainTest(unittest.TestCase):
     @staticmethod
     def get_detection_trainer(name=""):
         trainer = Trainer(name, multi_gpu=MultiGPUMode.OFF)
-        model = models.get("yolox_s", num_classes=5)
+        model = models.get(Models.YOLOX_S, num_classes=5)
         return trainer, model
 
     @staticmethod
     def get_segmentation_trainer(name=""):
         shelfnet_lw_arch_params = {"num_classes": 5}
         trainer = Trainer(name)
-        model = models.get("shelfnet34_lw", arch_params=shelfnet_lw_arch_params)
+        model = models.get(Models.SHELFNET34_LW, arch_params=shelfnet_lw_arch_params)
         return trainer, model
 
     def test_test_without_train(self):
