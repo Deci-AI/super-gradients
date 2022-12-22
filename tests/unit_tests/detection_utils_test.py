@@ -18,16 +18,16 @@ class TestDetectionUtils(unittest.TestCase):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = models.get("yolox_n", pretrained_weights="coco").to(self.device)
         self.model.eval()
-        self.valid_loader = coco2017_val(dataloader_params={"batch_size": 16})
 
     @unittest.skipIf(not is_data_available(), "run only when /data is available")
     def test_visualization(self):
 
+        valid_loader = coco2017_val(dataloader_params={"batch_size": 16})
         trainer = Trainer("visualization_test", device=self.device)
         post_prediction_callback = YoloPostPredictionCallback()
 
         # Simulate one iteration of validation subset
-        batch_i, (imgs, targets) = 0, next(iter(self.valid_loader))
+        batch_i, (imgs, targets) = 0, next(iter(valid_loader))
         imgs = core_utils.tensor_container_to_device(imgs, self.device)
         targets = core_utils.tensor_container_to_device(targets, self.device)
         output = self.model(imgs)
@@ -44,6 +44,9 @@ class TestDetectionUtils(unittest.TestCase):
 
     @unittest.skipIf(not is_data_available(), "run only when /data is available")
     def test_detection_metrics(self):
+
+        valid_loader = coco2017_val(dataloader_params={"batch_size": 16})
+
         metrics = [
             DetectionMetrics(num_cls=80, post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True),
             DetectionMetrics_050(num_cls=80, post_prediction_callback=YoloPostPredictionCallback(), normalize_targets=True),
@@ -58,7 +61,7 @@ class TestDetectionUtils(unittest.TestCase):
 
         for met, ref_val in zip(metrics, ref_values):
             met.reset()
-            for i, (imgs, targets) in enumerate(self.valid_loader):
+            for i, (imgs, targets) in enumerate(valid_loader):
                 if i > 5:
                     break
                 imgs = core_utils.tensor_container_to_device(imgs, self.device)
