@@ -199,13 +199,11 @@ jobs:
           command: |
             << parameters.sg_new_env_python_version >> -m venv << parameters.sg_new_env_name >>
             source << parameters.sg_new_env_name >>/bin/activate
-            python --version
-            python -m pip install --upgrade setuptools
-            python -m pip install wheel
-            python -m pip install -r requirements.txt
-            pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
-            pip install git+https://github.com/Deci-AI/super-gradients.git@${CIRCLE_BRANCH}
-            python src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar10_resnet_sanity training_hyperparams.max_epochs=3
+            python3.8 -m pip install --upgrade setuptools pip wheel
+            python3.8 -m pip install -r requirements.txt
+            python3.8 -m pip install git+https://github.com/Deci-AI/super-gradients.git@${CIRCLE_BRANCH}
+            python3.8 -m pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
+            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar10_resnet_sanity training_hyperparams.max_epochs=3
 
       - run:
           name: Remove new environment when failed
