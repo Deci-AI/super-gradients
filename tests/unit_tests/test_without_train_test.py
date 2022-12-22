@@ -2,6 +2,7 @@ import shutil
 import unittest
 import os
 from super_gradients import Trainer
+from super_gradients.common.object_names import Models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader, detection_test_dataloader, segmentation_test_dataloader
 from super_gradients.training.metrics import Accuracy, Top5
 from super_gradients.training import MultiGPUMode, models
@@ -26,7 +27,7 @@ class TestWithoutTrainTest(unittest.TestCase):
     @staticmethod
     def get_classification_trainer(name=""):
         trainer = Trainer(name)
-        model = models.get("resnet18", num_classes=5)
+        model = models.get(Models.RESNET18, num_classes=5)
         return trainer, model
 
     @staticmethod
