@@ -954,6 +954,8 @@ class Trainer:
             training_params = dict()
         self.train_loader = train_loader or self.train_loader
         self.valid_loader = valid_loader or self.valid_loader
+        if len(self.train_loader.dataset) % self.train_loader.batch_size != 0 and not self.train_loader.drop_last:
+            logger.warning("Train dataset size % batch_size != 0 and drop_last=False, this might result in smaller " "last batch.")
         self._set_dataset_params()
 
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
