@@ -27,11 +27,12 @@ except (ImportError, NameError, ModuleNotFoundError) as import_err:
 
 
 class QuantizationCalibrator:
-    def __init__(self, verbose: bool = True) -> None:
+    def __init__(self, torch_hist: bool = True, verbose: bool = True) -> None:
         if _imported_pytorch_quantization_failure is not None:
             raise _imported_pytorch_quantization_failure
         super().__init__()
         self.verbose = verbose
+        self.torch_hist = torch_hist
 
     def calibrate_model(
         self,
@@ -98,8 +99,8 @@ class QuantizationCalibrator:
         for name, module in model.named_modules():
             if isinstance(module, quant_nn.TensorQuantizer):
                 if module._calibrator is not None:
-                    module.enable_quant()
                     module.disable_calib()
+                    module.enable_quant()
                 else:
                     module.enable()
 
@@ -107,6 +108,8 @@ class QuantizationCalibrator:
         for name, module in model.named_modules():
             if isinstance(module, quant_nn.TensorQuantizer):
                 if module._calibrator is not None:
+                    if isinstance(module._calibrator, calib.HistogramCalibrator):
+                        module._calibrator._torch_hist = self.torch_hist  # TensorQuantizer does not expose it as API
                     module.disable_quant()
                     module.enable_calib()
                 else:
@@ -120,5 +123,9 @@ class QuantizationCalibrator:
                         module.load_calib_amax()
                     else:
                         module.load_calib_amax(**kwargs)
+
+                if hasattr(module, "clip"):
+                    module.init_learn_amax()
+
                 if self.verbose:
                     print(f"{name:40}: {module}")

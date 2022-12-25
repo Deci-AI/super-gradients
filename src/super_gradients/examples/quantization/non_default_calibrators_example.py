@@ -16,7 +16,12 @@ def non_default_calibrators_example():
     module = MyModel()
 
     # Initialize the quantization utility, with different calibrators, and quantize the module
-    q_util = SelectiveQuantizer(default_quant_modules_calib_method="percentile", default_per_channel_quant_modules=False)
+    q_util = SelectiveQuantizer(
+        default_quant_modules_calib_method_weights="percentile",
+        default_quant_modules_calib_method_inputs="entropy",
+        default_per_channel_quant_weights=False,
+        default_learn_amax=False,
+    )
     q_util.quantize_module(module)
 
     print(module)  # You should expect to see QuantConv2d, with Histogram calibrators
