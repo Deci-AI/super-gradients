@@ -51,7 +51,7 @@ training_hyperparams:
 architecture: yolox_s
 
 multi_gpu: DDP
-num_gpus: 8
+num_gpus: 4
 
 experiment_suffix: res${dataset_params.train_dataset_params.input_dim}
 experiment_name: ${architecture}_coco2017_${experiment_suffix}
