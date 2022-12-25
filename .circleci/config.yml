@@ -203,6 +203,7 @@ jobs:
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install git+https://github.com/Deci-AI/super-gradients.git@${CIRCLE_BRANCH}
             python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
+            export NCCL_DEBUG=INFO
             python3.8 -m torch.distributed.launch --nproc_per_node=4 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar10_resnet_sanity training_hyperparams.max_epochs=2
 
       - run:
