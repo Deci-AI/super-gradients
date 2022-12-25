@@ -38,7 +38,7 @@ class DetectionMetrics(Metric):
     def __init__(
         self,
         num_cls: int,
-        post_prediction_callback: DetectionPostPredictionCallback = None,
+        post_prediction_callback: DetectionPostPredictionCallback,
         normalize_targets: bool = False,
         iou_thres: Union[IouThreshold, float] = IouThreshold.MAP_05_TO_095,
         recall_thres: torch.Tensor = None,

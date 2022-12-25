@@ -1052,7 +1052,7 @@ def compute_detection_metrics_per_cls(
     fps = torch.logical_and(torch.logical_not(preds_matched), torch.logical_not(preds_to_ignore))
 
     if len(tps) == 0:
-        return 0, 0, torch.zeros(nb_iou_thrs, device=device)
+        return torch.zeros(nb_iou_thrs, device=device), 0, 0
 
     # Sort by decreasing score
     dtype = torch.uint8 if preds_scores.is_cuda and preds_scores.dtype is torch.bool else preds_scores.dtype

@@ -251,3 +251,4 @@ class Models:
     PP_LITE_B_SEG50 = "pp_lite_b_seg50"
     PP_LITE_B_SEG75 = "pp_lite_b_seg75"
     UNET_CUSTOM = "unet_custom"
+    UNET_CUSTOM_CLS = "unet_custom_cls"
