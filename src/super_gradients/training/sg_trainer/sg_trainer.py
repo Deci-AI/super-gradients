@@ -954,6 +954,8 @@ class Trainer:
             training_params = dict()
         self.train_loader = train_loader or self.train_loader
         self.valid_loader = valid_loader or self.valid_loader
+        if len(self.train_loader.dataset) % self.train_loader.batch_size != 0 and not self.train_loader.drop_last:
+            logger.warning("Train dataset size % batch_size != 0 and drop_last=False, this might result in smaller " "last batch.")
         self._set_dataset_params()
 
         if self.multi_gpu == MultiGPUMode.DISTRIBUTED_DATA_PARALLEL:
@@ -1142,11 +1144,13 @@ class Trainer:
         )
         self.phase_callback_handler(Phase.PRE_TRAINING, context)
 
-        first_batch, _ = next(iter(self.train_loader))
+        first_batch = next(iter(self.train_loader))
+        inputs, _, _ = sg_trainer_utils.unpack_batch_items(first_batch)
+
         log_main_training_params(
             multi_gpu=self.multi_gpu,
             num_gpus=get_world_size(),
-            batch_size=len(first_batch),
+            batch_size=len(inputs),
             batch_accumulate=self.batch_accumulate,
             len_train_set=len(self.train_loader.dataset),
         )
