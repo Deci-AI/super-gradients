@@ -96,7 +96,7 @@ class DetectionFormatAdapter:
                 f"Number of channels in last dimension of input tensor ({tensor.shape[-1]}) must be "
                 f"equal to {self.input_length} as defined by input format."
             )
-        tensor = tensor[..., self.permutation_indexes]
+        tensor = tensor[:, self.permutation_indexes]
         tensor = apply_on_bboxes(fn=self._convert_bbox, tensor=tensor, tensor_format=self.input_format)
         return tensor
 

@@ -797,7 +797,6 @@ class DetectionTargetsFormatTransform(DetectionTransform):
 
     def __call__(self, sample):
         image_shape = sample["image"].shape[1:]
-        w, h = image_shape  # NOT NORMALIZED
 
         # TODO: Test to move this to __init__ with an input_shape. Risk to have different image_shape and to change the results though...
         convert_format = DetectionFormatAdapter(input_format=self.input_format, output_format=self.output_format, image_shape=image_shape)

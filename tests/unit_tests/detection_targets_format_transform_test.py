@@ -3,44 +3,12 @@ import unittest
 
 from super_gradients.training.transforms.transforms import DetectionTargetsFormatTransform
 
-from super_gradients.training.utils.output_adapters import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
-from super_gradients.training.utils.bbox_formats import (
-    XYXYCoordinateFormat,
-    CXCYWHCoordinateFormat,
-    NormalizedCXCYWHCoordinateFormat,
-    NormalizedXYXYCoordinateFormat,
-)
-
-
-XYXY_LABEL = ConcatenatedTensorFormat(
-    layout=(
-        BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
-        TensorSliceItem(length=1, name="labels"),
-    )
-)
-LABEL_XYXY = ConcatenatedTensorFormat(
-    layout=(
-        TensorSliceItem(length=1, name="labels"),
-        BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
-    )
-)
-LABEL_NORMALIZED_XYXY = ConcatenatedTensorFormat(
-    layout=(
-        TensorSliceItem(length=1, name="labels"),
-        BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedXYXYCoordinateFormat()),
-    )
-)
-LABEL_CXCYWH = ConcatenatedTensorFormat(
-    layout=(
-        TensorSliceItem(length=1, name="labels"),
-        BoundingBoxesTensorSliceItem(name="bboxes", format=CXCYWHCoordinateFormat()),
-    )
-)
-LABEL_NORMALIZED_CXCYWH = ConcatenatedTensorFormat(
-    layout=(
-        TensorSliceItem(length=1, name="labels"),
-        BoundingBoxesTensorSliceItem(name="bboxes", format=NormalizedCXCYWHCoordinateFormat()),
-    )
+from super_gradients.training.utils.output_adapters.default_formats import (
+    XYXY_LABEL,
+    LABEL_XYXY,
+    LABEL_CXCYWH,
+    LABEL_NORMALIZED_XYXY,
+    LABEL_NORMALIZED_CXCYWH,
 )
 
 

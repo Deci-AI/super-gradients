@@ -36,11 +36,11 @@ train_dataset_params:
         max_targets: 120
     - DetectionTargetsFormatTransform:
         output_format:
-          _target_: super_gradients.training.utils.detection_utils.DetectionTargetsFormat # targets format
-          value: LABEL_CXCYWH
+          _target_: super_gradients.training.utils.output_adapters.default_formats.get_default_format # targets format
+          format_name: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples:
+  max_num_samples: 640
   with_crowd: False
 
 train_dataloader_params:
@@ -75,7 +75,7 @@ val_dataset_params:
         value: LABEL_CXCYWH
   tight_box_rotation: False
   class_inclusion_list:
-  max_num_samples:
+  max_num_samples: 640
   with_crowd: False
 
 val_dataloader_params:
