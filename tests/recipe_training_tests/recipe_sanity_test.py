@@ -1,3 +1,5 @@
+import shutil
+
 from coverage.annotate import os
 from omegaconf import DictConfig
 import hydra
@@ -18,6 +20,7 @@ def _assert_recipe_metric(experiment_name: str, metric_value: float, delta: floa
     metric_val_reached = sd["acc"].cpu().item()
     diff = abs(metric_val_reached - metric_value)
     _print_test_result(delta, diff, metric_val_reached, metric_value)
+    _tear_down(ckpt_dir)
     if diff <= delta:
         exit(0)
     else:
@@ -29,6 +32,12 @@ def _print_test_result(delta, diff, metric_val_reached, metric_value):
     logger.info(
         "Goal metric value: " + str(metric_value) + ", metric value reached: " + str(metric_val_reached) + ",diff: " + str(diff) + ", delta: " + str(delta)
     )
+
+
+@multi_process_safe
+def _tear_down(ckpt_dir):
+    if os.path.exists(ckpt_dir):
+        shutil.rmtree(ckpt_dir)
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name="cifar10_resnet", version_base="1.2")
