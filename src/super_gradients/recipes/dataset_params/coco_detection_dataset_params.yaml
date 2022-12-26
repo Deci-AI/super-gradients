@@ -44,6 +44,7 @@ train_dataset_params:
   with_crowd: False
 
 train_dataloader_params:
+  shuffle: True
   batch_size: 16
   num_workers: 8
   batch_sampler: True
