@@ -32,6 +32,7 @@ train_dataset_params:
   download: True
 
 train_dataloader_params:
+  shuffle: True
   batch_size: 256
   num_workers: 8
   drop_last: False

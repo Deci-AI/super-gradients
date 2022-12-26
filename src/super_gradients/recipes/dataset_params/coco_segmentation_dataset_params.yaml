@@ -43,6 +43,7 @@ val_dataset_params:
         mode: center
 
 train_dataloader_params:
+  shuffle: True
   batch_size: 8
   num_workers: 8
   drop_last: True                 # drop the last incomplete batch, if dataset size is not divisible by the batch size

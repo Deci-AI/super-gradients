@@ -1,4 +1,5 @@
 import asyncio
+import os.path
 
 
 def async_test_runner(async_io_co_routine):
@@ -13,3 +14,7 @@ def async_test_runner(async_io_co_routine):
         return loop.run_until_complete(async_io_co_routine(*args, **kwargs))
 
     return wrapper
+
+
+def is_data_available(sub_dir: str = ""):
+    return os.path.exists(f"/data/{sub_dir}")

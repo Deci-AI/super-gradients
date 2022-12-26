@@ -30,6 +30,7 @@ val_dataset_params:
         w: 320
 
 train_dataloader_params:
+  shuffle: True
   batch_size: 8
   drop_last: True
 
