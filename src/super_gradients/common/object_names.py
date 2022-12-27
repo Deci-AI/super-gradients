@@ -254,7 +254,7 @@ class Models:
     UNET_CUSTOM_CLS = "unet_custom_cls"
 
 
-class DetectionFormats:
+class ConcatenatedTensorFormats:
     XYXY_LABEL = "XYXY_LABEL"
     XYWH_LABEL = "XYWH_LABEL"
     CXCYWH_LABEL = "CXCYWH_LABEL"
