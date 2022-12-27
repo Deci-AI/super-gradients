@@ -22,6 +22,9 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
         sd = torch.load(os.path.join(ckpt_dir, "ckpt_best.pth"))
         metric_val_reached = sd["acc"].cpu().item()
         diff = abs(metric_val_reached - metric_value)
+        print(
+            "Goal metric value: " + str(metric_value) + ", metric value reached: " + str(metric_val_reached) + ",diff: " + str(diff) + ", delta: " + str(delta)
+        )
         return diff <= delta
 
     @classmethod
