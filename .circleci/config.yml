@@ -203,7 +203,7 @@ jobs:
             python3.8 -m pip install -r requirements.txt
             python3.8 -m pip install git+https://github.com/Deci-AI/super-gradients.git@${CIRCLE_BRANCH}
             python3.8 -m pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
-            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar10_resnet_accuracy_test training_hyperparams.max_epochs=10 training_hyperparams.average_best_models=False +multi_gpu=DDP +num_gpus=4
+            python3.8 src/super_gradients/examples/train_from_recipe_example/train_from_recipe.py --config-name=cifar10_resnet experiment_name=cifar10_resnet_accuracy_test training_hyperparams.max_epochs=100 training_hyperparams.average_best_models=False +multi_gpu=DDP +num_gpus=4
             coverage run --source=super_gradients -m unittest tests/deci_core_recipe_test_suite_runner.py
 
 
