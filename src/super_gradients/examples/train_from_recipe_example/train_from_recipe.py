@@ -20,6 +20,7 @@ def main(cfg: DictConfig) -> None:
 def run():
     init_trainer()
     main()
+    exit(0)
 
 
 if __name__ == "__main__":
