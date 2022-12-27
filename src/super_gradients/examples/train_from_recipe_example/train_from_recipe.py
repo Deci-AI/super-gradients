@@ -11,13 +11,9 @@ import pkg_resources
 
 from super_gradients import Trainer, init_trainer
 import torch
-import os
 
 torch.use_deterministic_algorithms(True)
 torch.backends.cudnn.benchmark = False
-
-# https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
-os.environ["CUBLAS_WORKSPACE_CONFIG"] = "16:8"
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
