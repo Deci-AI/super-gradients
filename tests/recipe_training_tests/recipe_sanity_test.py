@@ -37,7 +37,7 @@ def _print_test_result(delta, diff, metric_val_reached, metric_value):
 @multi_process_safe
 def _tear_down(ckpt_dir):
     if os.path.exists(ckpt_dir):
-        shutil.rmtree(ckpt_dir)
+        shutil.rmtree(ckpt_dir, ignore_errors=True)
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), config_name="cifar10_resnet", version_base="1.2")
@@ -46,6 +46,7 @@ def main(cfg: DictConfig) -> None:
     experiment_name = cfg["experiment_name"]
     delta = cfg["delta"]
     Trainer.train_from_config(cfg)
+    logger.info("Local rank:" + str(get_local_rank()))
     with wait_for_the_master(get_local_rank()):
         _assert_recipe_metric(experiment_name, goal_metric_val, delta)
 
