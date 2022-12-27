@@ -12,7 +12,7 @@ import pkg_resources
 from super_gradients import Trainer, init_trainer
 import torch
 
-torch.use_deterministic_algorithms()
+torch.use_deterministic_algorithms(True)
 torch.backends.cudnn.benchmark = False
 
 
