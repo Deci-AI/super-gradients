@@ -10,12 +10,15 @@ import hydra
 import pkg_resources
 
 from super_gradients import Trainer, init_trainer
+import torch
+
+torch.use_deterministic_algorithms()
+torch.backends.cudnn.benchmark = False
 
 
 @hydra.main(config_path=pkg_resources.resource_filename("super_gradients.recipes", ""), version_base="1.2")
 def main(cfg: DictConfig) -> None:
     Trainer.train_from_config(cfg)
-    exit(0)
 
 
 def run():
