@@ -8,6 +8,8 @@ from torchvision import transforms as transforms
 import numpy as np
 import cv2
 from super_gradients.common.abstractions.abstract_logger import get_logger
+from super_gradients.common.decorators.factory_decorator import resolve_param
+from super_gradients.common.factories.data_formats_factory import DataFormatFactory
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy, DetectionTargetsFormat
 
 from super_gradients.training.utils.output_adapters import DetectionFormatAdapter, ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
@@ -782,6 +784,8 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         )
     )
 
+    @resolve_param("input_format", DataFormatFactory())
+    @resolve_param("output_format", DataFormatFactory())
     def __init__(
         self,
         input_format: ConcatenatedTensorFormat = _XYXY_LABEL,
@@ -820,7 +824,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
             return padded_targets
 
         sample["target"] = _format_target(sample["target"])
-        if "crowd_targets" in sample.keys():
+        if "crowd_target" in sample.keys():
             sample["crowd_target"] = _format_target(sample["crowd_target"])
         return sample
 

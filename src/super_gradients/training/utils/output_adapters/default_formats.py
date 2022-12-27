@@ -1,3 +1,4 @@
+from typing import Dict
 from super_gradients.common.object_names import DetectionFormats
 from super_gradients.training.utils.output_adapters import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
 from super_gradients.training.utils.bbox_formats import (
@@ -83,11 +84,11 @@ LABEL_NORMALIZED_CXCYWH = ConcatenatedTensorFormat(
 )
 
 
-def get_default_format(format_name: str) -> ConcatenatedTensorFormat:
-    return DEFAULT_DETECTION_FORMATS[format_name]
+def get_default_data_format(format_name: str) -> ConcatenatedTensorFormat:
+    return DEFAULT_DATA_FORMATS[format_name]
 
 
-DEFAULT_DETECTION_FORMATS = {
+DEFAULT_DATA_FORMATS: Dict[str, ConcatenatedTensorFormat] = {
     DetectionFormats.XYXY_LABEL: XYXY_LABEL,
     DetectionFormats.XYWH_LABEL: XYWH_LABEL,
     DetectionFormats.CXCYWH_LABEL: CXCYWH_LABEL,
