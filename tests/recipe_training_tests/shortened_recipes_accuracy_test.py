@@ -12,7 +12,7 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
         cls.experiment_names = ["shortened_cifar10_resnet_accuracy_test", "shortened_coco2017_yolox_n_map_test", "shortened_cityscapes_regseg48_iou_test"]
 
     def test_shortened_cifar10_resnet_accuracy(self):
-        self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cifar10_resnet_accuracy_test", metric_value=0.9167, delta=0.02))
+        self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cifar10_resnet_accuracy_test", metric_value=0.9167, delta=0.05))
 
     def test_shortened_coco2017_yolox_n_map(self):
         self.assertTrue(self._reached_goal_metric(experiment_name="shortened_coco2017_yolox_n_map_test", metric_value=0.044, delta=0.02))
