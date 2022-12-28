@@ -22,7 +22,6 @@ from super_gradients.training.transforms.transforms import (
     DetectionMixup,
     DetectionHSV,
     DetectionHorizontalFlip,
-    DetectionTargetsFormat,
     DetectionPaddedRescale,
     DetectionTargetsFormatTransform,
 )
@@ -81,7 +80,6 @@ TRANSFORMS = {
     Transforms.DetectionHSV: DetectionHSV,
     Transforms.DetectionHorizontalFlip: DetectionHorizontalFlip,
     Transforms.DetectionPaddedRescale: DetectionPaddedRescale,
-    Transforms.DetectionTargetsFormat: DetectionTargetsFormat,
     Transforms.DetectionTargetsFormatTransform: DetectionTargetsFormatTransform,
     Transforms.RandomResizedCropAndInterpolation: RandomResizedCropAndInterpolation,
     Transforms.RandAugmentTransform: rand_augment_transform,

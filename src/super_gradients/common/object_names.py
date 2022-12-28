@@ -50,7 +50,6 @@ class Transforms:
     DetectionHSV = "DetectionHSV"
     DetectionHorizontalFlip = "DetectionHorizontalFlip"
     DetectionPaddedRescale = "DetectionPaddedRescale"
-    DetectionTargetsFormat = "DetectionTargetsFormat"
     DetectionTargetsFormatTransform = "DetectionTargetsFormatTransform"
     RandomResizedCropAndInterpolation = "RandomResizedCropAndInterpolation"
     RandAugmentTransform = "RandAugmentTransform"

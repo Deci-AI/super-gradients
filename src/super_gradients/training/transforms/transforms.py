@@ -788,6 +788,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
     @resolve_param("output_format", ConcatenatedTensorFormatFactory())
     def __init__(
         self,
+        image_shape,
         input_format: ConcatenatedTensorFormat = _XYXY_LABEL,
         output_format: ConcatenatedTensorFormat = _LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
@@ -799,20 +800,17 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         self.min_bbox_edge_size = min_bbox_edge_size
         self.max_targets = max_targets
 
+        self.convert_format = DetectionFormatAdapter(input_format=self.input_format, output_format=self.output_format, image_shape=image_shape)
+        self.min_bbox_edge_size = self.min_bbox_edge_size / max(image_shape) if self.output_format.bboxes_format.format.normalized else self.min_bbox_edge_size
+
     def __call__(self, sample):
-        image_shape = sample["image"].shape[1:]
-
-        # TODO: Test to move this to __init__ with an input_shape. Risk to have different image_shape and to change the results though...
-        convert_format = DetectionFormatAdapter(input_format=self.input_format, output_format=self.output_format, image_shape=image_shape)
-        min_bbox_edge_size = self.min_bbox_edge_size / max(image_shape) if self.output_format.bboxes_format.format.normalized else self.min_bbox_edge_size
-
         def _format_target(targets: np.ndarray):
             # INPUT FORMAT -> OUTPUT FORMAT
-            targets = convert_format(targets)
+            targets = self.convert_format(targets)
 
             # FILTER SMALL
             def _is_too_small(bboxes: np.ndarray) -> np.ndarray:
-                return np.minimum(bboxes[:, 2], bboxes[:, 3]) > min_bbox_edge_size
+                return np.minimum(bboxes[:, 2], bboxes[:, 3]) > self.min_bbox_edge_size
 
             targets = filter_on_bboxes(fn=_is_too_small, tensor=targets, tensor_format=self.output_format)
 
