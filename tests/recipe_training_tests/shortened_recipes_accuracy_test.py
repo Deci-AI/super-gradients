@@ -15,10 +15,10 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
         self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cifar10_resnet_accuracy_test", metric_value=0.9167, delta=0.02))
 
     def test_shortened_coco2017_yolox_n_map(self):
-        self.assertTrue(self._reached_goal_metric(experiment_name="coco2017_yolox_n_accuracy_test", metric_value=0.044, delta=0.02))
+        self.assertTrue(self._reached_goal_metric(experiment_name="shortened_coco2017_yolox_n_map_test", metric_value=0.044, delta=0.02))
 
     def test_shortened_cityscapes_regseg48_iou(self):
-        self.assertTrue(self._reached_goal_metric(experiment_name="cityscapes_regseg48_accuracy_test", metric_value=0.263, delta=0.05))
+        self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cityscapes_regseg48_iou_test", metric_value=0.263, delta=0.05))
 
     @classmethod
     def _reached_goal_metric(cls, experiment_name: str, metric_value: float, delta: float):
