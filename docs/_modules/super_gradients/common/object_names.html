@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>super_gradients.common.object_names &mdash; SuperGradients 3.0.3 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> SuperGradients
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Welcome To SuperGradients</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html">Version 3 is out! Notebooks have been updated!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#build-with-supergradients">Build with SuperGradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#quick-installation">Quick Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#what-s-new">What’s New</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#coming-soon">Coming soon</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#table-of-content">Table of Content</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#getting-started">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#advanced-features">Advanced Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#installation-methods">Installation Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#implemented-model-architectures">Implemented Model Architectures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#contributing">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#citation">Citation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#community">Community</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#license">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../welcome.html#deci-platform">Deci Platform</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Technical Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../super_gradients.common.html">Common package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../super_gradients.training.html">Training package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SuperGradients</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>super_gradients.common.object_names</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for super_gradients.common.object_names</h1><div class="highlight"><pre>
+<div class="viewcode-block" id="Losses"><a class="viewcode-back" href="../../../super_gradients.training.html#super_gradients.training.losses.Losses">[docs]</a><span></span><span class="k">class</span> <span class="nc">Losses</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Static class holding all the supported loss names&quot;&quot;&quot;</span>
+
+    <span class="n">CROSS_ENTROPY</span> <span class="o">=</span> <span class="s2">&quot;cross_entropy&quot;</span>
+    <span class="n">MSE</span> <span class="o">=</span> <span class="s2">&quot;mse&quot;</span>
+    <span class="n">R_SQUARED_LOSS</span> <span class="o">=</span> <span class="s2">&quot;r_squared_loss&quot;</span>
+    <span class="n">SHELFNET_OHEM_LOSS</span> <span class="o">=</span> <span class="s2">&quot;shelfnet_ohem_loss&quot;</span>
+    <span class="n">SHELFNET_SE_LOSS</span> <span class="o">=</span> <span class="s2">&quot;shelfnet_se_loss&quot;</span>
+    <span class="n">YOLOX_LOSS</span> <span class="o">=</span> <span class="s2">&quot;yolox_loss&quot;</span>
+    <span class="n">YOLOX_FAST_LOSS</span> <span class="o">=</span> <span class="s2">&quot;yolox_fast_loss&quot;</span>
+    <span class="n">SSD_LOSS</span> <span class="o">=</span> <span class="s2">&quot;ssd_loss&quot;</span>
+    <span class="n">STDC_LOSS</span> <span class="o">=</span> <span class="s2">&quot;stdc_loss&quot;</span>
+    <span class="n">BCE_DICE_LOSS</span> <span class="o">=</span> <span class="s2">&quot;bce_dice_loss&quot;</span>
+    <span class="n">KD_LOSS</span> <span class="o">=</span> <span class="s2">&quot;kd_loss&quot;</span>
+    <span class="n">DICE_CE_EDGE_LOSS</span> <span class="o">=</span> <span class="s2">&quot;dice_ce_edge_loss&quot;</span></div>
+
+
+<div class="viewcode-block" id="Metrics"><a class="viewcode-back" href="../../../super_gradients.training.html#super_gradients.training.losses.Metrics">[docs]</a><span class="k">class</span> <span class="nc">Metrics</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Static class holding all the supported metric names&quot;&quot;&quot;</span>
+
+    <span class="n">ACCURACY</span> <span class="o">=</span> <span class="s2">&quot;Accuracy&quot;</span>
+    <span class="n">TOP5</span> <span class="o">=</span> <span class="s2">&quot;Top5&quot;</span>
+    <span class="n">DETECTION_METRICS</span> <span class="o">=</span> <span class="s2">&quot;DetectionMetrics&quot;</span>
+    <span class="n">DETECTION_METRICS_050_095</span> <span class="o">=</span> <span class="s2">&quot;DetectionMetrics_050_095&quot;</span>
+    <span class="n">DETECTION_METRICS_050</span> <span class="o">=</span> <span class="s2">&quot;DetectionMetrics_050&quot;</span>
+    <span class="n">DETECTION_METRICS_075</span> <span class="o">=</span> <span class="s2">&quot;DetectionMetrics_075&quot;</span>
+    <span class="n">IOU</span> <span class="o">=</span> <span class="s2">&quot;IoU&quot;</span>
+    <span class="n">BINARY_IOU</span> <span class="o">=</span> <span class="s2">&quot;BinaryIOU&quot;</span>
+    <span class="n">DICE</span> <span class="o">=</span> <span class="s2">&quot;Dice&quot;</span>
+    <span class="n">BINARY_DICE</span> <span class="o">=</span> <span class="s2">&quot;BinaryDice&quot;</span>
+    <span class="n">PIXEL_ACCURACY</span> <span class="o">=</span> <span class="s2">&quot;PixelAccuracy&quot;</span></div>
+
+
+<div class="viewcode-block" id="Transforms"><a class="viewcode-back" href="../../../super_gradients.training.html#super_gradients.training.losses.Transforms">[docs]</a><span class="k">class</span> <span class="nc">Transforms</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Static class holding all the supported transform names&quot;&quot;&quot;</span>
+
+    <span class="c1"># From SG</span>
+    <span class="n">SegRandomFlip</span> <span class="o">=</span> <span class="s2">&quot;SegRandomFlip&quot;</span>
+    <span class="n">SegResize</span> <span class="o">=</span> <span class="s2">&quot;SegResize&quot;</span>
+    <span class="n">SegRescale</span> <span class="o">=</span> <span class="s2">&quot;SegRescale&quot;</span>
+    <span class="n">SegRandomRescale</span> <span class="o">=</span> <span class="s2">&quot;SegRandomRescale&quot;</span>
+    <span class="n">SegRandomRotate</span> <span class="o">=</span> <span class="s2">&quot;SegRandomRotate&quot;</span>
+    <span class="n">SegCropImageAndMask</span> <span class="o">=</span> <span class="s2">&quot;SegCropImageAndMask&quot;</span>
+    <span class="n">SegRandomGaussianBlur</span> <span class="o">=</span> <span class="s2">&quot;SegRandomGaussianBlur&quot;</span>
+    <span class="n">SegPadShortToCropSize</span> <span class="o">=</span> <span class="s2">&quot;SegPadShortToCropSize&quot;</span>
+    <span class="n">SegColorJitter</span> <span class="o">=</span> <span class="s2">&quot;SegColorJitter&quot;</span>
+    <span class="n">DetectionMosaic</span> <span class="o">=</span> <span class="s2">&quot;DetectionMosaic&quot;</span>
+    <span class="n">DetectionRandomAffine</span> <span class="o">=</span> <span class="s2">&quot;DetectionRandomAffine&quot;</span>
+    <span class="n">DetectionMixup</span> <span class="o">=</span> <span class="s2">&quot;DetectionMixup&quot;</span>
+    <span class="n">DetectionHSV</span> <span class="o">=</span> <span class="s2">&quot;DetectionHSV&quot;</span>
+    <span class="n">DetectionHorizontalFlip</span> <span class="o">=</span> <span class="s2">&quot;DetectionHorizontalFlip&quot;</span>
+    <span class="n">DetectionPaddedRescale</span> <span class="o">=</span> <span class="s2">&quot;DetectionPaddedRescale&quot;</span>
+    <span class="n">DetectionTargetsFormat</span> <span class="o">=</span> <span class="s2">&quot;DetectionTargetsFormat&quot;</span>
+    <span class="n">DetectionTargetsFormatTransform</span> <span class="o">=</span> <span class="s2">&quot;DetectionTargetsFormatTransform&quot;</span>
+    <span class="n">RandomResizedCropAndInterpolation</span> <span class="o">=</span> <span class="s2">&quot;RandomResizedCropAndInterpolation&quot;</span>
+    <span class="n">RandAugmentTransform</span> <span class="o">=</span> <span class="s2">&quot;RandAugmentTransform&quot;</span>
+    <span class="n">Lighting</span> <span class="o">=</span> <span class="s2">&quot;Lighting&quot;</span>
+    <span class="n">RandomErase</span> <span class="o">=</span> <span class="s2">&quot;RandomErase&quot;</span>
+
+    <span class="c1"># From torch</span>
+    <span class="n">Compose</span> <span class="o">=</span> <span class="s2">&quot;Compose&quot;</span>
+    <span class="n">ToTensor</span> <span class="o">=</span> <span class="s2">&quot;ToTensor&quot;</span>
+    <span class="n">PILToTensor</span> <span class="o">=</span> <span class="s2">&quot;PILToTensor&quot;</span>
+    <span class="n">ConvertImageDtype</span> <span class="o">=</span> <span class="s2">&quot;ConvertImageDtype&quot;</span>
+    <span class="n">ToPILImage</span> <span class="o">=</span> <span class="s2">&quot;ToPILImage&quot;</span>
+    <span class="n">Normalize</span> <span class="o">=</span> <span class="s2">&quot;Normalize&quot;</span>
+    <span class="n">Resize</span> <span class="o">=</span> <span class="s2">&quot;Resize&quot;</span>
+    <span class="n">CenterCrop</span> <span class="o">=</span> <span class="s2">&quot;CenterCrop&quot;</span>
+    <span class="n">Pad</span> <span class="o">=</span> <span class="s2">&quot;Pad&quot;</span>
+    <span class="n">Lambda</span> <span class="o">=</span> <span class="s2">&quot;Lambda&quot;</span>
+    <span class="n">RandomApply</span> <span class="o">=</span> <span class="s2">&quot;RandomApply&quot;</span>
+    <span class="n">RandomChoice</span> <span class="o">=</span> <span class="s2">&quot;RandomChoice&quot;</span>
+    <span class="n">RandomOrder</span> <span class="o">=</span> <span class="s2">&quot;RandomOrder&quot;</span>
+    <span class="n">RandomCrop</span> <span class="o">=</span> <span class="s2">&quot;RandomCrop&quot;</span>
+    <span class="n">RandomHorizontalFlip</span> <span class="o">=</span> <span class="s2">&quot;RandomHorizontalFlip&quot;</span>
+    <span class="n">RandomVerticalFlip</span> <span class="o">=</span> <span class="s2">&quot;RandomVerticalFlip&quot;</span>
+    <span class="n">RandomResizedCrop</span> <span class="o">=</span> <span class="s2">&quot;RandomResizedCrop&quot;</span>
+    <span class="n">FiveCrop</span> <span class="o">=</span> <span class="s2">&quot;FiveCrop&quot;</span>
+    <span class="n">TenCrop</span> <span class="o">=</span> <span class="s2">&quot;TenCrop&quot;</span>
+    <span class="n">LinearTransformation</span> <span class="o">=</span> <span class="s2">&quot;LinearTransformation&quot;</span>
+    <span class="n">ColorJitter</span> <span class="o">=</span> <span class="s2">&quot;ColorJitter&quot;</span>
+    <span class="n">RandomRotation</span> <span class="o">=</span> <span class="s2">&quot;RandomRotation&quot;</span>
+    <span class="n">RandomAffine</span> <span class="o">=</span> <span class="s2">&quot;RandomAffine&quot;</span>
+    <span class="n">Grayscale</span> <span class="o">=</span> <span class="s2">&quot;Grayscale&quot;</span>
+    <span class="n">RandomGrayscale</span> <span class="o">=</span> <span class="s2">&quot;RandomGrayscale&quot;</span>
+    <span class="n">RandomPerspective</span> <span class="o">=</span> <span class="s2">&quot;RandomPerspective&quot;</span>
+    <span class="n">RandomErasing</span> <span class="o">=</span> <span class="s2">&quot;RandomErasing&quot;</span>
+    <span class="n">GaussianBlur</span> <span class="o">=</span> <span class="s2">&quot;GaussianBlur&quot;</span>
+    <span class="n">InterpolationMode</span> <span class="o">=</span> <span class="s2">&quot;InterpolationMode&quot;</span>
+    <span class="n">RandomInvert</span> <span class="o">=</span> <span class="s2">&quot;RandomInvert&quot;</span>
+    <span class="n">RandomPosterize</span> <span class="o">=</span> <span class="s2">&quot;RandomPosterize&quot;</span>
+    <span class="n">RandomSolarize</span> <span class="o">=</span> <span class="s2">&quot;RandomSolarize&quot;</span>
+    <span class="n">RandomAdjustSharpness</span> <span class="o">=</span> <span class="s2">&quot;RandomAdjustSharpness&quot;</span>
+    <span class="n">RandomAutocontrast</span> <span class="o">=</span> <span class="s2">&quot;RandomAutocontrast&quot;</span>
+    <span class="n">RandomEqualize</span> <span class="o">=</span> <span class="s2">&quot;RandomEqualize&quot;</span></div>
+
+
+<span class="k">class</span> <span class="nc">Optimizers</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Static class holding all the supported optimizer names&quot;&quot;&quot;</span>
+
+    <span class="n">SGD</span> <span class="o">=</span> <span class="s2">&quot;SGD&quot;</span>
+    <span class="n">ADAM</span> <span class="o">=</span> <span class="s2">&quot;Adam&quot;</span>
+    <span class="n">RMS_PROP</span> <span class="o">=</span> <span class="s2">&quot;RMSprop&quot;</span>
+    <span class="n">RMS_PROP_TF</span> <span class="o">=</span> <span class="s2">&quot;RMSpropTF&quot;</span>
+    <span class="n">LAMB</span> <span class="o">=</span> <span class="s2">&quot;Lamb&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">Callbacks</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Static class holding all the supported callback names&quot;&quot;&quot;</span>
+
+    <span class="n">DECI_LAB_UPLOAD</span> <span class="o">=</span> <span class="s2">&quot;DeciLabUploadCallback&quot;</span>
+    <span class="n">LR_CALLBACK_BASE</span> <span class="o">=</span> <span class="s2">&quot;LRCallbackBase&quot;</span>
+    <span class="n">LR_SCHEDULER</span> <span class="o">=</span> <span class="s2">&quot;LRSchedulerCallback&quot;</span>
+    <span class="n">METRICS_UPDATE</span> <span class="o">=</span> <span class="s2">&quot;MetricsUpdateCallback&quot;</span>
+    <span class="n">MODEL_CONVERSION_CHECK</span> <span class="o">=</span> <span class="s2">&quot;ModelConversionCheckCallback&quot;</span>
+    <span class="n">EARLY_STOP</span> <span class="o">=</span> <span class="s2">&quot;EarlyStop&quot;</span>
+    <span class="n">DETECTION_MULTISCALE_PREPREDICTION</span> <span class="o">=</span> <span class="s2">&quot;DetectionMultiscalePrePredictionCallback&quot;</span>
+    <span class="n">YOLOX_TRAINING_STAGE_SWITCH</span> <span class="o">=</span> <span class="s2">&quot;YoloXTrainingStageSwitchCallback&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">LRSchedulers</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Static class to hold all the supported LR Scheduler names&quot;&quot;&quot;</span>
+
+    <span class="n">STEP</span> <span class="o">=</span> <span class="s2">&quot;step&quot;</span>
+    <span class="n">POLY</span> <span class="o">=</span> <span class="s2">&quot;poly&quot;</span>
+    <span class="n">COSINE</span> <span class="o">=</span> <span class="s2">&quot;cosine&quot;</span>
+    <span class="n">EXP</span> <span class="o">=</span> <span class="s2">&quot;exp&quot;</span>
+    <span class="n">FUNCTION</span> <span class="o">=</span> <span class="s2">&quot;function&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">LRWarmups</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Static class to hold all the supported LR Warmup names&quot;&quot;&quot;</span>
+
+    <span class="n">LINEAR_STEP</span> <span class="o">=</span> <span class="s2">&quot;linear_step&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">Samplers</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Static class to hold all the supported Samplers names&quot;&quot;&quot;</span>
+
+    <span class="n">INFINITE</span> <span class="o">=</span> <span class="s2">&quot;InfiniteSampler&quot;</span>
+    <span class="n">REPEAT_AUG</span> <span class="o">=</span> <span class="s2">&quot;RepeatAugSampler&quot;</span>
+    <span class="n">DISTRIBUTED</span> <span class="o">=</span> <span class="s2">&quot;DistributedSampler&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">ContextModules</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Static class to hold all the segmentation context module names&quot;&quot;&quot;</span>
+
+    <span class="n">ASPP</span> <span class="o">=</span> <span class="s2">&quot;ASPP&quot;</span>
+    <span class="n">SPPM</span> <span class="o">=</span> <span class="s2">&quot;SPPM&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">Models</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Static class to hold all the available model names&quot;&quot;&quot;</span>
+
+    <span class="n">RESNET18</span> <span class="o">=</span> <span class="s2">&quot;resnet18&quot;</span>
+    <span class="n">RESNET34</span> <span class="o">=</span> <span class="s2">&quot;resnet34&quot;</span>
+    <span class="n">RESNET50_3343</span> <span class="o">=</span> <span class="s2">&quot;resnet50_3343&quot;</span>
+    <span class="n">RESNET50</span> <span class="o">=</span> <span class="s2">&quot;resnet50&quot;</span>
+    <span class="n">RESNET101</span> <span class="o">=</span> <span class="s2">&quot;resnet101&quot;</span>
+    <span class="n">RESNET152</span> <span class="o">=</span> <span class="s2">&quot;resnet152&quot;</span>
+    <span class="n">RESNET18_CIFAR</span> <span class="o">=</span> <span class="s2">&quot;resnet18_cifar&quot;</span>
+    <span class="n">CUSTOM_RESNET</span> <span class="o">=</span> <span class="s2">&quot;custom_resnet&quot;</span>
+    <span class="n">CUSTOM_RESNET50</span> <span class="o">=</span> <span class="s2">&quot;custom_resnet50&quot;</span>
+    <span class="n">CUSTOM_RESNET_CIFAR</span> <span class="o">=</span> <span class="s2">&quot;custom_resnet_cifar&quot;</span>
+    <span class="n">CUSTOM_RESNET50_CIFAR</span> <span class="o">=</span> <span class="s2">&quot;custom_resnet50_cifar&quot;</span>
+    <span class="n">MOBILENET_V2</span> <span class="o">=</span> <span class="s2">&quot;mobilenet_v2&quot;</span>
+    <span class="n">MOBILE_NET_V2_135</span> <span class="o">=</span> <span class="s2">&quot;mobile_net_v2_135&quot;</span>
+    <span class="n">CUSTOM_MOBILENET_V2</span> <span class="o">=</span> <span class="s2">&quot;custom_mobilenet_v2&quot;</span>
+    <span class="n">MOBILENET_V3_LARGE</span> <span class="o">=</span> <span class="s2">&quot;mobilenet_v3_large&quot;</span>
+    <span class="n">MOBILENET_V3_SMALL</span> <span class="o">=</span> <span class="s2">&quot;mobilenet_v3_small&quot;</span>
+    <span class="n">MOBILENET_V3_CUSTOM</span> <span class="o">=</span> <span class="s2">&quot;mobilenet_v3_custom&quot;</span>
+    <span class="n">CUSTOM_DENSENET</span> <span class="o">=</span> <span class="s2">&quot;custom_densenet&quot;</span>
+    <span class="n">DENSENET121</span> <span class="o">=</span> <span class="s2">&quot;densenet121&quot;</span>
+    <span class="n">DENSENET161</span> <span class="o">=</span> <span class="s2">&quot;densenet161&quot;</span>
+    <span class="n">DENSENET169</span> <span class="o">=</span> <span class="s2">&quot;densenet169&quot;</span>
+    <span class="n">DENSENET201</span> <span class="o">=</span> <span class="s2">&quot;densenet201&quot;</span>
+    <span class="n">SHELFNET18_LW</span> <span class="o">=</span> <span class="s2">&quot;shelfnet18_lw&quot;</span>
+    <span class="n">SHELFNET34_LW</span> <span class="o">=</span> <span class="s2">&quot;shelfnet34_lw&quot;</span>
+    <span class="n">SHELFNET50_3343</span> <span class="o">=</span> <span class="s2">&quot;shelfnet50_3343&quot;</span>
+    <span class="n">SHELFNET50</span> <span class="o">=</span> <span class="s2">&quot;shelfnet50&quot;</span>
+    <span class="n">SHELFNET101</span> <span class="o">=</span> <span class="s2">&quot;shelfnet101&quot;</span>
+    <span class="n">SHUFFLENET_V2_X0_5</span> <span class="o">=</span> <span class="s2">&quot;shufflenet_v2_x0_5&quot;</span>
+    <span class="n">SHUFFLENET_V2_X1_0</span> <span class="o">=</span> <span class="s2">&quot;shufflenet_v2_x1_0&quot;</span>
+    <span class="n">SHUFFLENET_V2_X1_5</span> <span class="o">=</span> <span class="s2">&quot;shufflenet_v2_x1_5&quot;</span>
+    <span class="n">SHUFFLENET_V2_X2_0</span> <span class="o">=</span> <span class="s2">&quot;shufflenet_v2_x2_0&quot;</span>
+    <span class="n">SHUFFLENET_V2_CUSTOM5</span> <span class="o">=</span> <span class="s2">&quot;shufflenet_v2_custom5&quot;</span>
+    <span class="n">DARKNET53</span> <span class="o">=</span> <span class="s2">&quot;darknet53&quot;</span>
+    <span class="n">CSP_DARKNET53</span> <span class="o">=</span> <span class="s2">&quot;csp_darknet53&quot;</span>
+    <span class="n">RESNEXT50</span> <span class="o">=</span> <span class="s2">&quot;resnext50&quot;</span>
+    <span class="n">RESNEXT101</span> <span class="o">=</span> <span class="s2">&quot;resnext101&quot;</span>
+    <span class="n">GOOGLENET_V1</span> <span class="o">=</span> <span class="s2">&quot;googlenet_v1&quot;</span>
+    <span class="n">EFFICIENTNET_B0</span> <span class="o">=</span> <span class="s2">&quot;efficientnet_b0&quot;</span>
+    <span class="n">EFFICIENTNET_B1</span> <span class="o">=</span> <span class="s2">&quot;efficientnet_b1&quot;</span>
+    <span class="n">EFFICIENTNET_B2</span> <span class="o">=</span> <span class="s2">&quot;efficientnet_b2&quot;</span>
+    <span class="n">EFFICIENTNET_B3</span> <span class="o">=</span> <span class="s2">&quot;efficientnet_b3&quot;</span>
+    <span class="n">EFFICIENTNET_B4</span> <span class="o">=</span> <span class="s2">&quot;efficientnet_b4&quot;</span>
+    <span class="n">EFFICIENTNET_B5</span> <span class="o">=</span> <span class="s2">&quot;efficientnet_b5&quot;</span>
+    <span class="n">EFFICIENTNET_B6</span> <span class="o">=</span> <span class="s2">&quot;efficientnet_b6&quot;</span>
+    <span class="n">EFFICIENTNET_B7</span> <span class="o">=</span> <span class="s2">&quot;efficientnet_b7&quot;</span>
+    <span class="n">EFFICIENTNET_B8</span> <span class="o">=</span> <span class="s2">&quot;efficientnet_b8&quot;</span>
+    <span class="n">EFFICIENTNET_L2</span> <span class="o">=</span> <span class="s2">&quot;efficientnet_l2&quot;</span>
+    <span class="n">CUSTOMIZEDEFFICIENTNET</span> <span class="o">=</span> <span class="s2">&quot;CustomizedEfficientnet&quot;</span>
+    <span class="n">REGNETY200</span> <span class="o">=</span> <span class="s2">&quot;regnetY200&quot;</span>
+    <span class="n">REGNETY400</span> <span class="o">=</span> <span class="s2">&quot;regnetY400&quot;</span>
+    <span class="n">REGNETY600</span> <span class="o">=</span> <span class="s2">&quot;regnetY600&quot;</span>
+    <span class="n">REGNETY800</span> <span class="o">=</span> <span class="s2">&quot;regnetY800&quot;</span>
+    <span class="n">CUSTOM_REGNET</span> <span class="o">=</span> <span class="s2">&quot;custom_regnet&quot;</span>
+    <span class="n">CUSTOM_ANYNET</span> <span class="o">=</span> <span class="s2">&quot;custom_anynet&quot;</span>
+    <span class="n">NAS_REGNET</span> <span class="o">=</span> <span class="s2">&quot;nas_regnet&quot;</span>
+    <span class="n">YOLOX_N</span> <span class="o">=</span> <span class="s2">&quot;yolox_n&quot;</span>
+    <span class="n">YOLOX_T</span> <span class="o">=</span> <span class="s2">&quot;yolox_t&quot;</span>
+    <span class="n">YOLOX_S</span> <span class="o">=</span> <span class="s2">&quot;yolox_s&quot;</span>
+    <span class="n">YOLOX_M</span> <span class="o">=</span> <span class="s2">&quot;yolox_m&quot;</span>
+    <span class="n">YOLOX_L</span> <span class="o">=</span> <span class="s2">&quot;yolox_l&quot;</span>
+    <span class="n">YOLOX_X</span> <span class="o">=</span> <span class="s2">&quot;yolox_x&quot;</span>
+    <span class="n">CUSTOM_YOLO_X</span> <span class="o">=</span> <span class="s2">&quot;custom_yolox&quot;</span>
+    <span class="n">SSD_MOBILENET_V1</span> <span class="o">=</span> <span class="s2">&quot;ssd_mobilenet_v1&quot;</span>
+    <span class="n">SSD_LITE_MOBILENET_V2</span> <span class="o">=</span> <span class="s2">&quot;ssd_lite_mobilenet_v2&quot;</span>
+    <span class="n">REPVGG_A0</span> <span class="o">=</span> <span class="s2">&quot;repvgg_a0&quot;</span>
+    <span class="n">REPVGG_A1</span> <span class="o">=</span> <span class="s2">&quot;repvgg_a1&quot;</span>
+    <span class="n">REPVGG_A2</span> <span class="o">=</span> <span class="s2">&quot;repvgg_a2&quot;</span>
+    <span class="n">REPVGG_B0</span> <span class="o">=</span> <span class="s2">&quot;repvgg_b0&quot;</span>
+    <span class="n">REPVGG_B1</span> <span class="o">=</span> <span class="s2">&quot;repvgg_b1&quot;</span>
+    <span class="n">REPVGG_B2</span> <span class="o">=</span> <span class="s2">&quot;repvgg_b2&quot;</span>
+    <span class="n">REPVGG_B3</span> <span class="o">=</span> <span class="s2">&quot;repvgg_b3&quot;</span>
+    <span class="n">REPVGG_D2SE</span> <span class="o">=</span> <span class="s2">&quot;repvgg_d2se&quot;</span>
+    <span class="n">REPVGG_CUSTOM</span> <span class="o">=</span> <span class="s2">&quot;repvgg_custom&quot;</span>
+    <span class="n">DDRNET_23</span> <span class="o">=</span> <span class="s2">&quot;ddrnet_23&quot;</span>
+    <span class="n">DDRNET_23_SLIM</span> <span class="o">=</span> <span class="s2">&quot;ddrnet_23_slim&quot;</span>
+    <span class="n">CUSTOM_DDRNET_23</span> <span class="o">=</span> <span class="s2">&quot;custom_ddrnet_23&quot;</span>
+    <span class="n">STDC1_CLASSIFICATION</span> <span class="o">=</span> <span class="s2">&quot;stdc1_classification&quot;</span>
+    <span class="n">STDC2_CLASSIFICATION</span> <span class="o">=</span> <span class="s2">&quot;stdc2_classification&quot;</span>
+    <span class="n">STDC1_SEG</span> <span class="o">=</span> <span class="s2">&quot;stdc1_seg&quot;</span>
+    <span class="n">STDC1_SEG50</span> <span class="o">=</span> <span class="s2">&quot;stdc1_seg50&quot;</span>
+    <span class="n">STDC1_SEG75</span> <span class="o">=</span> <span class="s2">&quot;stdc1_seg75&quot;</span>
+    <span class="n">STDC2_SEG</span> <span class="o">=</span> <span class="s2">&quot;stdc2_seg&quot;</span>
+    <span class="n">STDC2_SEG50</span> <span class="o">=</span> <span class="s2">&quot;stdc2_seg50&quot;</span>
+    <span class="n">STDC2_SEG75</span> <span class="o">=</span> <span class="s2">&quot;stdc2_seg75&quot;</span>
+    <span class="n">CUSTOM_STDC</span> <span class="o">=</span> <span class="s2">&quot;custom_stdc&quot;</span>
+    <span class="n">REGSEG48</span> <span class="o">=</span> <span class="s2">&quot;regseg48&quot;</span>
+    <span class="n">KD_MODULE</span> <span class="o">=</span> <span class="s2">&quot;kd_module&quot;</span>
+    <span class="n">VIT_BASE</span> <span class="o">=</span> <span class="s2">&quot;vit_base&quot;</span>
+    <span class="n">VIT_LARGE</span> <span class="o">=</span> <span class="s2">&quot;vit_large&quot;</span>
+    <span class="n">VIT_HUGE</span> <span class="o">=</span> <span class="s2">&quot;vit_huge&quot;</span>
+    <span class="n">BEIT_BASE_PATCH16_224</span> <span class="o">=</span> <span class="s2">&quot;beit_base_patch16_224&quot;</span>
+    <span class="n">BEIT_LARGE_PATCH16_224</span> <span class="o">=</span> <span class="s2">&quot;beit_large_patch16_224&quot;</span>
+    <span class="n">PP_LITE_T_SEG</span> <span class="o">=</span> <span class="s2">&quot;pp_lite_t_seg&quot;</span>
+    <span class="n">PP_LITE_T_SEG50</span> <span class="o">=</span> <span class="s2">&quot;pp_lite_t_seg50&quot;</span>
+    <span class="n">PP_LITE_T_SEG75</span> <span class="o">=</span> <span class="s2">&quot;pp_lite_t_seg75&quot;</span>
+    <span class="n">PP_LITE_B_SEG</span> <span class="o">=</span> <span class="s2">&quot;pp_lite_b_seg&quot;</span>
+    <span class="n">PP_LITE_B_SEG50</span> <span class="o">=</span> <span class="s2">&quot;pp_lite_b_seg50&quot;</span>
+    <span class="n">PP_LITE_B_SEG75</span> <span class="o">=</span> <span class="s2">&quot;pp_lite_b_seg75&quot;</span>
+    <span class="n">UNET_CUSTOM</span> <span class="o">=</span> <span class="s2">&quot;unet_custom&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, SuperGradients team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

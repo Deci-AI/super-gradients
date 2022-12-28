@@ -38,6 +38,7 @@ from super_gradients.training.utils.distributed_training_utils import (
 )
 from super_gradients.common.abstractions.abstract_logger import get_logger
 from super_gradients.training.utils.utils import override_default_params_without_nones
+from super_gradients.common.factories.datasets_factory import DatasetsFactory
 
 logger = get_logger(__name__)
 
@@ -104,27 +105,28 @@ def _process_dataloader_params(cfg, dataloader_params, dataset, train):
 
 def _process_sampler_params(dataloader_params, dataset, default_dataloader_params):
     is_dist = super_gradients.is_distributed()
+    dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
     if get_param(dataloader_params, "sampler") is not None:
         dataloader_params = _instantiate_sampler(dataset, dataloader_params)
-    elif get_param(default_dataloader_params, "sampler") is not None:
-        default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
     elif is_dist:
-        default_dataloader_params["sampler"] = {"DistributedSampler": {}}
-        default_dataloader_params = _instantiate_sampler(dataset, default_dataloader_params)
-    dataloader_params = override_default_params_without_nones(dataloader_params, default_dataloader_params)
+        dataloader_params["sampler"] = {"DistributedSampler": {}}
+        dataloader_params = _instantiate_sampler(dataset, dataloader_params)
     if get_param(dataloader_params, "batch_sampler"):
         sampler = dataloader_params.pop("sampler")
         batch_size = dataloader_params.pop("batch_size")
         if "drop_last" in dataloader_params:
             drop_last = dataloader_params.pop("drop_last")
         else:
-            drop_last = default_dataloader_params["drop_last"]
+            drop_last = dataloader_params["drop_last"]
         dataloader_params["batch_sampler"] = BatchSampler(sampler=sampler, batch_size=batch_size, drop_last=drop_last)
     return dataloader_params
 
 
 def _instantiate_sampler(dataset, dataloader_params):
     sampler_name = list(dataloader_params["sampler"].keys())[0]
+    if "shuffle" in dataloader_params.keys():
+        # SHUFFLE IS MUTUALLY EXCLUSIVE WITH SAMPLER ARG IN DATALOADER INIT
+        dataloader_params["sampler"][sampler_name]["shuffle"] = dataloader_params.pop("shuffle")
     dataloader_params["sampler"][sampler_name]["dataset"] = dataset
     dataloader_params["sampler"] = SamplersFactory().get(dataloader_params["sampler"])
     return dataloader_params
@@ -650,10 +652,22 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
     :param dataset: torch.utils.data.Dataset to be used instead of passing "name" (i.e for external dataset objects).
     :return: initialized DataLoader.
     """
-
     if dataset is not None:
         if name or dataset_params:
             raise ValueError("'name' and 'dataset_params' cannot be passed with initialized dataset.")
+
+    dataset_str = get_param(dataloader_params, "dataset")
+
+    if dataset_str:
+        if name or dataset:
+            raise ValueError("'name' and 'datasets' cannot be passed when 'dataset' arg dataloader_params is used as well.")
+        if dataset_params is not None:
+            dataset = DatasetsFactory().get(conf={dataset_str: dataset_params})
+        else:
+            dataset = DatasetsFactory().get(conf=dataset_str)
+        _ = dataloader_params.pop("dataset")
+
+    if dataset is not None:
         dataloader_params = _process_sampler_params(dataloader_params, dataset, {})
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
     elif name not in ALL_DATALOADERS.keys():

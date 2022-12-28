@@ -6,6 +6,11 @@
 #   the top of the training script. Hence, we created a similar script to our classic train_from_recipe but with the imports
 #   on top. Once imported, all the registry decorated objects will be resolved (i.e user_mnist_train will be resolved
 #   to the dataloader of our user's)
+#
+# Differently from user_recipe_mnist_example, here we demonstrate how to use train_from_recipe, without the need to implement a DataLoader class for registry.
+# Instead- we work straight with the user defined datasets, which is the simpler option when one does not need their own DataLoader implementation.
+# We do so by Dropping the train_datalaoder, valid_dataloader fields from the recipe's config, while specifying the dataset arg in
+#   train_dataloader_params, valid_dataloader_params.
 
 defaults:
   - training_hyperparams: cifar10_resnet_train_params
@@ -28,6 +33,7 @@ dataset_params:
     download: True
 
   train_dataloader_params:
+    dataset: Mnist
     batch_size: 256
     num_workers: 8
     drop_last: False
@@ -58,9 +64,6 @@ ckpt_root_dir:
 architecture: mobilenet_v2
 
 experiment_name: mobilenet_v2_mnist
-
-train_dataloader: user_mnist_train
-val_dataloader: user_mnist_val
 
 
 # THE FOLLOWING PARAMS ARE DIRECTLY USED BY HYDRA
