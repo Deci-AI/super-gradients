@@ -232,10 +232,13 @@ workflows:
             - deci-common/persist_version_info
             - login_to_codeartifact_release
           <<: *release_tag_filter
+      - recipe_tests:
+          <<: *release_tag_filter
       - release_version:
           py_version: "3.7"
           requires:
             - "build3.7"
+            - recipe_tests
           <<: *release_tag_filter
       - deci-common/pip_upload_package_from_codeartifact_to_global_pypi:
           package_name: "super-gradients"
@@ -254,7 +257,6 @@ workflows:
       - deci-common/codeartifact_login:
           repo_name: "deci-packages"
 
-      - recipe_tests
       - build:
           name: "build3.7"
           py_version: "3.7"
