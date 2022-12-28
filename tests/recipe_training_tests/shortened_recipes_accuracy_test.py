@@ -9,15 +9,13 @@ import torch
 class ShortenedRecipesAccuracyTests(unittest.TestCase):
     @classmethod
     def setUp(cls):
-        cls.experiment_names = ["cifar10_resnet_accuracy_test", "coco2017_yolox_n_accuracy_test", "cityscapes_regseg48_accuracy_test"]
-
-        cls.goal_metrics = {"cifar10_resnet_accuracy_test": 0.89, "coco2017_yolox_n_accuracy_test": 0.044, "cityscapes_regseg48_accuracy_test": 0.263}
+        cls.experiment_names = ["shortened_cifar10_resnet_accuracy_test", "shortened_coco2017_yolox_n_map_test", "shortened_cityscapes_regseg48_iou_test"]
 
     def test_shortened_cifar10_resnet_accuracy(self):
-        self.assertTrue(self._reached_goal_metric(experiment_name="cifar10_resnet_accuracy_test", metric_value=0.9167, delta=0.02))
+        self.assertTrue(self._reached_goal_metric(experiment_name="shortened_cifar10_resnet_accuracy_test", metric_value=0.9167, delta=0.02))
 
     def test_shortened_coco2017_yolox_n_map(self):
-        self.assertTrue(self._reached_goal_metric(experiment_name="coco2017_yolox_n_accuracy_test", metric_value=0.044, delta=0.01))
+        self.assertTrue(self._reached_goal_metric(experiment_name="coco2017_yolox_n_accuracy_test", metric_value=0.044, delta=0.02))
 
     def test_shortened_cityscapes_regseg48_iou(self):
         self.assertTrue(self._reached_goal_metric(experiment_name="cityscapes_regseg48_accuracy_test", metric_value=0.263, delta=0.05))
