@@ -59,7 +59,7 @@ class DiceCEEdgeLoss(_Loss):
             self.binary_dice = BinaryDiceLoss(apply_sigmoid=True)
 
         self.ce_edge = MaskAttentionLoss(criterion=nn.CrossEntropyLoss(reduction="none", ignore_index=ignore_index), loss_weights=ce_edge_weights)
-        self.dice_loss = DiceLoss(apply_softmax=True, ignore_index=ignore_index)
+        self.dice_loss = DiceLoss(apply_softmax=True, ignore_index=None if ignore_index < 0 else ignore_index)
 
     @property
     def component_names(self):
