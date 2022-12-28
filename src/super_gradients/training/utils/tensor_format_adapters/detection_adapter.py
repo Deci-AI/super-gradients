@@ -6,8 +6,7 @@ import torch
 from torch import nn, Tensor
 
 from super_gradients.training.utils.bbox_formats import BoundingBoxFormat, convert_bboxes
-from super_gradients.training.utils.output_adapters.formats import ConcatenatedTensorFormat
-from super_gradients.training.utils.output_adapters.formats_utils import apply_on_bboxes, get_permutation_indexes
+from super_gradients.training.utils.tensor_format_adapters.formats import ConcatenatedTensorFormat, apply_on_bboxes, get_permutation_indexes
 
 __all__ = ["DetectionFormatAdapter", "DetectionOutputAdapter"]
 
@@ -77,6 +76,7 @@ class DetectionFormatAdapter:
         image_shape: Union[Tuple[int, int], None],
     ):
         """
+        Adapter class that converts concatenated tensors from input format to output format.
 
         :param input_format: Format definition of the inputs
         :param output_format: Format definition of the outputs
@@ -115,7 +115,7 @@ class DetectionOutputAdapter(nn.Module):
     Adapter class for converting model's predictions for object detection to a desired format.
     This adapter supports torch.jit tracing & scripting & onnx conversion.
 
-    >>> from super_gradients.training.utils.output_adapters.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+    >>> from super_gradients.training.utils.tensor_format_adapters.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
     >>> from super_gradients.training.utils.bbox_formats import XYXYCoordinateFormat, NormalizedXYWHCoordinateFormat
     >>>
     >>> class CustomDetectionHead(nn.Module):

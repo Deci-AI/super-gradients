@@ -8,7 +8,12 @@ import onnxruntime as ort
 import torch.jit
 
 from super_gradients.training.utils.bbox_formats import NormalizedXYWHCoordinateFormat, CXCYWHCoordinateFormat, YXYXCoordinateFormat
-from super_gradients.training.utils.output_adapters import DetectionOutputAdapter, ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from super_gradients.training.utils.tensor_format_adapters import (
+    DetectionOutputAdapter,
+    ConcatenatedTensorFormat,
+    BoundingBoxesTensorSliceItem,
+    TensorSliceItem,
+)
 
 NORMALIZED_XYWH_SCORES_LABELS = ConcatenatedTensorFormat(
     layout=(
