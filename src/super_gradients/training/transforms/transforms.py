@@ -12,9 +12,9 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy
 
-from super_gradients.training.utils.tensor_format_adapters import DetectionFormatAdapter, ConcatenatedTensorFormat
-from super_gradients.training.utils.tensor_format_adapters.formats_utils import filter_on_bboxes
-from super_gradients.training.utils.tensor_format_adapters.default_formats import XYXY_LABEL, LABEL_CXCYWH
+from super_gradients.training.utils.tensor_formats import ConcatenatedTensorFormatConverter, ConcatenatedTensorFormat
+from super_gradients.training.utils.tensor_formats.formats import filter_on_bboxes
+from super_gradients.training.utils.tensor_formats.default_formats import XYXY_LABEL, LABEL_CXCYWH
 
 image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
@@ -786,7 +786,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         self.min_bbox_edge_size = min_bbox_edge_size
         self.max_targets = max_targets
 
-        self.convert_format = DetectionFormatAdapter(input_format=self.input_format, output_format=self.output_format, image_shape=image_shape)
+        self.convert_format = ConcatenatedTensorFormatConverter(input_format=self.input_format, output_format=self.output_format, image_shape=image_shape)
         self.min_bbox_edge_size = self.min_bbox_edge_size / max(image_shape) if self.output_format.bboxes_format.format.normalized else self.min_bbox_edge_size
 
     def __call__(self, sample):

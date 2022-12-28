@@ -4,10 +4,10 @@ from typing import Tuple, Union, List, Mapping, Callable
 import numpy as np
 from torch import Tensor
 
-from super_gradients.training.utils.bbox_formats import BoundingBoxFormat
+from super_gradients.training.utils.tensor_formats.bbox_formats import BoundingBoxFormat
 
 
-class DetectionOutputFormat:
+class DetectionTensorFormat:
     pass
 
 
@@ -34,7 +34,7 @@ class BoundingBoxesTensorSliceItem(TensorSliceItem):
         return f"name={self.name} length={self.length} format={self.format}"
 
 
-class ConcatenatedTensorFormat(DetectionOutputFormat):
+class ConcatenatedTensorFormat(DetectionTensorFormat):
     """
     Define the output format that return a single tensor of shape [N,M] (N - number of detections,
     M - sum of bbox attributes) that is a concatenated from bbox coordinates and other fields.

@@ -1,6 +1,6 @@
 from super_gradients.common.object_names import ConcatenatedTensorFormats
-from super_gradients.training.utils.tensor_format_adapters import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
-from super_gradients.training.utils.bbox_formats import (
+from super_gradients.training.utils.tensor_formats.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from super_gradients.training.utils.tensor_formats.bbox_formats import (
     XYXYCoordinateFormat,
     XYWHCoordinateFormat,
     CXCYWHCoordinateFormat,

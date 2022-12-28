@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from super_gradients.training.utils.bbox_formats.bbox_format import (
+from super_gradients.training.utils.tensor_formats.bbox_formats.bbox_format import (
     BoundingBoxFormat,
 )
 
