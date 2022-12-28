@@ -12,9 +12,9 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.data_formats_factory import ConcatenatedTensorFormatFactory
 from super_gradients.training.utils.detection_utils import get_mosaic_coordinate, adjust_box_anns, xyxy2cxcywh, cxcywh2xyxy
 
-from super_gradients.training.utils.output_adapters import DetectionFormatAdapter, ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+from super_gradients.training.utils.output_adapters import DetectionFormatAdapter, ConcatenatedTensorFormat
 from super_gradients.training.utils.output_adapters.formats_utils import filter_on_bboxes
-from super_gradients.training.utils.bbox_formats import XYXYCoordinateFormat, CXCYWHCoordinateFormat
+from super_gradients.training.utils.output_adapters.default_formats import XYXY_LABEL, LABEL_CXCYWH
 
 image_resample = Image.BILINEAR
 mask_resample = Image.NEAREST
@@ -770,27 +770,13 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         max_targets: int: max objects in single image, padding target to this size.
     """
 
-    _XYXY_LABEL = ConcatenatedTensorFormat(
-        layout=(
-            BoundingBoxesTensorSliceItem(name="bboxes", format=XYXYCoordinateFormat()),
-            TensorSliceItem(length=1, name="labels"),
-        )
-    )
-
-    _LABEL_CXCYWH = ConcatenatedTensorFormat(
-        layout=(
-            TensorSliceItem(length=1, name="labels"),
-            BoundingBoxesTensorSliceItem(name="bboxes", format=CXCYWHCoordinateFormat()),
-        )
-    )
-
     @resolve_param("input_format", ConcatenatedTensorFormatFactory())
     @resolve_param("output_format", ConcatenatedTensorFormatFactory())
     def __init__(
         self,
         image_shape,
-        input_format: ConcatenatedTensorFormat = _XYXY_LABEL,
-        output_format: ConcatenatedTensorFormat = _LABEL_CXCYWH,
+        input_format: ConcatenatedTensorFormat = XYXY_LABEL,
+        output_format: ConcatenatedTensorFormat = LABEL_CXCYWH,
         min_bbox_edge_size: float = 1,
         max_targets: int = 120,
     ):
