@@ -7,8 +7,7 @@ fill_values:
 fill_value: ${choose:${dataset_params.config_version},${dataset_params.fill_values}}
 
 train_dataset_params:
-#  root_dir: /data/mapillary-vistas-dataset_public_v2.0
-  root_dir: /home/lior.kadoch/data/mapillary-vistas-dataset_public_v2.0_resize_2048_long
+  root_dir: /data/mapillary-vistas-dataset_public_v2.0
   config_file: config_v${..config_version}.json
   samples_sub_directory: training/images
   targets_sub_directory: training/v${..config_version}/labels
@@ -38,8 +37,7 @@ train_dataset_params:
         mode: random
 
 val_dataset_params:
-#  root_dir: /data/mapillary-vistas-dataset_public_v2.0
-  root_dir: /home/lior.kadoch/data/mapillary-vistas-dataset_public_v2.0_resize_2048_long
+  root_dir: /data/mapillary-vistas-dataset_public_v2.0
   config_file: config_v${..config_version}.json
   samples_sub_directory: validation/images
   targets_sub_directory: validation/v${..config_version}/labels
