@@ -4,7 +4,7 @@ parameters:
   orb_version:
     type: string
     description: Deci ai ORB version https://circleci.com/developer/orbs/orb/deci-ai/circleci-common-orb
-    default: "4.1.3"
+    default: "10.3.0"
 #    default: "dev:alpha"
 
 orbs:
@@ -218,8 +218,7 @@ workflows:
 
   build_and_deploy:
     jobs:
-      - deci-common/persist_version_info:
-          branch: << pipeline.git.branch >>
+      - deci-common/persist_version_info
       - deci-common/codeartifact_login:
           repo_name: "deci-packages"
       - build:

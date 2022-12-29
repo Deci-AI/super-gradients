@@ -38,7 +38,7 @@ class DetectionMetrics(Metric):
     def __init__(
         self,
         num_cls: int,
-        post_prediction_callback: DetectionPostPredictionCallback = None,
+        post_prediction_callback: DetectionPostPredictionCallback,
         normalize_targets: bool = False,
         iou_thres: Union[IouThreshold, float] = IouThreshold.MAP_05_TO_095,
         recall_thres: torch.Tensor = None,
@@ -134,8 +134,9 @@ class DetectionMetrics(Metric):
                 device="cpu" if self.accumulate_on_cpu else self.device,
             )
 
-            # Precision, recall and f1 are computed for smallest IoU threshold (usually 0.5), averaged over classes
-            mean_precision, mean_recall, mean_f1 = precision[:, 0].mean(), recall[:, 0].mean(), f1[:, 0].mean()
+            # Precision, recall and f1 are computed for IoU threshold range, averaged over classes
+            # results before version 3.0.4 (Dec 11 2022) were computed only for smallest value (i.e IoU 0.5 if metric is @0.5:0.95)
+            mean_precision, mean_recall, mean_f1 = precision.mean(), recall.mean(), f1.mean()
 
             # MaP is averaged over IoU thresholds and over classes
             mean_ap = ap.mean()

@@ -8,15 +8,17 @@ from super_gradients.training.losses.mask_loss import MaskAttentionLoss
 
 
 class DiceCEEdgeLoss(_Loss):
-    def __init__(self,
-                 num_classes: int,
-                 num_aux_heads: int = 2,
-                 num_detail_heads: int = 1,
-                 weights: Union[tuple, list] = (1, 1, 1, 1),
-                 dice_ce_weights: Union[tuple, list] = (1, 1),
-                 ignore_index: int = -100,
-                 edge_kernel: int = 3,
-                 ce_edge_weights: Union[tuple, list] = (.5, .5)):
+    def __init__(
+        self,
+        num_classes: int,
+        num_aux_heads: int = 2,
+        num_detail_heads: int = 1,
+        weights: Union[tuple, list] = (1, 1, 1, 1),
+        dice_ce_weights: Union[tuple, list] = (1, 1),
+        ignore_index: int = -100,
+        edge_kernel: int = 3,
+        ce_edge_weights: Union[tuple, list] = (0.5, 0.5),
+    ):
         """
         Total loss is computed as follows:
                 Loss-cls-edge = λ1 * CE + λ2 * M * CE , where [λ1, λ2] are ce_edge_weights.
@@ -38,8 +40,7 @@ class DiceCEEdgeLoss(_Loss):
         """
         super().__init__()
         # Check that arguments are valid.
-        assert len(weights) == num_aux_heads + num_detail_heads + 1,\
-            "Lambda loss weights must be in same size as loss items."
+        assert len(weights) == num_aux_heads + num_detail_heads + 1, "Lambda loss weights must be in same size as loss items."
         assert len(dice_ce_weights) == 2, f"dice_ce_weights must an iterable with size 2, found: {len(dice_ce_weights)}"
         assert len(ce_edge_weights) == 2, f"dice_ce_weights must an iterable with size 2, found: {len(ce_edge_weights)}"
 
@@ -57,11 +58,8 @@ class DiceCEEdgeLoss(_Loss):
             self.bce = nn.BCEWithLogitsLoss()
             self.binary_dice = BinaryDiceLoss(apply_sigmoid=True)
 
-        self.ce_edge = MaskAttentionLoss(
-            criterion=nn.CrossEntropyLoss(reduction="none", ignore_index=ignore_index),
-            loss_weights=ce_edge_weights
-        )
-        self.dice_loss = DiceLoss(apply_softmax=True, ignore_index=ignore_index)
+        self.ce_edge = MaskAttentionLoss(criterion=nn.CrossEntropyLoss(reduction="none", ignore_index=ignore_index), loss_weights=ce_edge_weights)
+        self.dice_loss = DiceLoss(apply_softmax=True, ignore_index=None if ignore_index < 0 else ignore_index)
 
     @property
     def component_names(self):
@@ -83,11 +81,13 @@ class DiceCEEdgeLoss(_Loss):
         :param preds: Model output predictions, must be in the followed format:
          [Main-feats, Aux-feats[0], ..., Aux-feats[num_auxs-1], Detail-feats[0], ..., Detail-feats[num_details-1]
         """
-        assert len(preds) == self.num_aux_heads + self.num_detail_heads + 1,\
-            f"Wrong num of predictions tensors, expected {self.num_aux_heads + self.num_detail_heads + 1} found {len(preds)}"
+        assert (
+            len(preds) == self.num_aux_heads + self.num_detail_heads + 1
+        ), f"Wrong num of predictions tensors, expected {self.num_aux_heads + self.num_detail_heads + 1} found {len(preds)}"
 
-        edge_target = target_to_binary_edge(target, num_classes=self.num_classes, kernel_size=self.edge_kernel,
-                                            ignore_index=self.ignore_index, flatten_channels=True)
+        edge_target = target_to_binary_edge(
+            target, num_classes=self.num_classes, kernel_size=self.edge_kernel, ignore_index=self.ignore_index, flatten_channels=True
+        )
         losses = []
         total_loss = 0
         # Main and auxiliaries feature maps losses

@@ -27,6 +27,7 @@ val_dataset_params:
         std: ${dataset_params.img_std}
 
 train_dataloader_params:
+  shuffle: True
   batch_size: 64
   num_workers: 8
   drop_last: False
