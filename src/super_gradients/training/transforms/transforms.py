@@ -782,13 +782,9 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         super(DetectionTargetsFormatTransform, self).__init__()
         self.input_format = input_format
         self.output_format = output_format
-        self.min_bbox_edge_size = min_bbox_edge_size
         self.max_targets = max_targets
-
-        self.convert_targets_format = ConcatenatedTensorFormatConverter(
-            input_format=self.input_format, output_format=self.output_format, image_shape=image_shape
-        )
-        self.min_bbox_edge_size = self.min_bbox_edge_size / max(image_shape) if self.output_format.bboxes_format.format.normalized else self.min_bbox_edge_size
+        self.min_bbox_edge_size = min_bbox_edge_size / max(image_shape) if output_format.bboxes_format.format.normalized else min_bbox_edge_size
+        self.targets_format_converter = ConcatenatedTensorFormatConverter(input_format=input_format, output_format=output_format, image_shape=image_shape)
 
     def __call__(self, sample: dict) -> dict:
         sample["target"] = self.apply_on_targets(sample["target"])
@@ -796,14 +792,14 @@ class DetectionTargetsFormatTransform(DetectionTransform):
             sample["crowd_target"] = self.apply_on_targets(sample["crowd_target"])
         return sample
 
-    def apply_on_targets(self, targets: np.ndarray):
+    def apply_on_targets(self, targets: np.ndarray) -> np.ndarray:
         """Convert targets in input_format to output_format, filter small bboxes and pad targets"""
-        targets = self.convert_targets_format(targets)
+        targets = self.targets_format_converter(targets)
         targets = self.filter_small_bboxes(targets)
         targets = self.pad_targets(targets)
         return targets
 
-    def filter_small_bboxes(self, targets: np.ndarray):
+    def filter_small_bboxes(self, targets: np.ndarray) -> np.ndarray:
         """Filter bboxes smaller than specified threshold."""
 
         def _is_big_enough(bboxes: np.ndarray) -> np.ndarray:
@@ -812,7 +808,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
         targets = filter_on_bboxes(fn=_is_big_enough, tensor=targets, tensor_format=self.output_format)
         return targets
 
-    def pad_targets(self, targets: np.ndarray):
+    def pad_targets(self, targets: np.ndarray) -> np.ndarray:
         """Pad targets."""
         padded_targets = np.zeros((self.max_targets, targets.shape[-1]))
         padded_targets[range(len(targets))[: self.max_targets]] = targets[: self.max_targets]
