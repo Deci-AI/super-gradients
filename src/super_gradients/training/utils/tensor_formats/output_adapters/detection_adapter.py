@@ -5,7 +5,7 @@ import torch
 from torch import nn, Tensor
 
 from super_gradients.training.utils.tensor_formats.bbox_formats import BoundingBoxFormat
-from super_gradients.training.utils.tensor_formats.output_adapters.formats import ConcatenatedTensorFormat
+from super_gradients.training.utils.tensor_formats.formats import ConcatenatedTensorFormat
 
 __all__ = ["DetectionOutputAdapter"]
 
