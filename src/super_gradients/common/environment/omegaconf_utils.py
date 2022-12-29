@@ -33,8 +33,7 @@ def register_hydra_resolvers():
     OmegaConf.register_new_resolver("class", lambda *args: get_cls(*args), replace=True)
     OmegaConf.register_new_resolver("add", lambda *args: sum(args), replace=True)
     OmegaConf.register_new_resolver("cond", lambda boolean, x, y: x if boolean else y, replace=True)
-    OmegaConf.register_new_resolver("getitem", lambda container, key: container[key],
-                                    replace=True)  # get item from a container (list, dict...)
+    OmegaConf.register_new_resolver("getitem", lambda container, key: container[key], replace=True)  # get item from a container (list, dict...)
     OmegaConf.register_new_resolver("first", lambda lst: lst[0], replace=True)  # get the first item from a list
     OmegaConf.register_new_resolver("last", lambda lst: lst[-1], replace=True)  # get the last item from a list
     OmegaConf.register_new_resolver("choose", lambda key, options: options[key], replace=True)
