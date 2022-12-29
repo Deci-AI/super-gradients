@@ -33,7 +33,7 @@ from super_gradients.training.utils.tensor_formats.bbox_formats.normalized_xywh 
 )
 from super_gradients.training.utils.tensor_formats.bbox_formats.xywh import xyxy_to_xywh, xywh_to_xyxy, xywh_to_xyxy_inplace, xyxy_to_xywh_inplace
 from super_gradients.training.utils.tensor_formats.bbox_formats import xyxy_to_yxyx, xyxy_to_yxyx_inplace
-from super_gradients.training.utils.tensor_formats.output_format_adapter import ConvertBoundingBoxes
+from super_gradients.training.utils.tensor_formats.output_adapters import ConvertBoundingBoxes
 
 
 class BBoxFormatsTest(unittest.TestCase):

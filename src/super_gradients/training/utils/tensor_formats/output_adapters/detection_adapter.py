@@ -5,7 +5,7 @@ import torch
 from torch import nn, Tensor
 
 from super_gradients.training.utils.tensor_formats.bbox_formats import BoundingBoxFormat
-from super_gradients.training.utils.tensor_formats.formats import ConcatenatedTensorFormat
+from super_gradients.training.utils.tensor_formats.output_adapters.formats import ConcatenatedTensorFormat
 
 __all__ = ["DetectionOutputAdapter"]
 
@@ -72,7 +72,7 @@ class DetectionOutputAdapter(nn.Module):
     Adapter class for converting model's predictions for object detection to a desired format.
     This adapter supports torch.jit tracing & scripting & onnx conversion.
 
-    >>> from super_gradients.training.utils.tensor_formats.formats import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
+    >>> from super_gradients.training.utils.tensor_formats.output_adapters import ConcatenatedTensorFormat, BoundingBoxesTensorSliceItem, TensorSliceItem
     >>> from super_gradients.training.utils.tensor_formats.bbox_formats import XYXYCoordinateFormat, NormalizedXYWHCoordinateFormat
     >>>
     >>> class CustomDetectionHead(nn.Module):
@@ -122,7 +122,6 @@ class DetectionOutputAdapter(nn.Module):
     >>>
     >>> yolox = nn.Sequential(yolox, output_adapter)
     >>>
-
     """
 
     def __init__(self, input_format: ConcatenatedTensorFormat, output_format: ConcatenatedTensorFormat, image_shape: Union[Tuple[int, int], None]):
