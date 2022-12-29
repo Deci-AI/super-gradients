@@ -81,26 +81,69 @@ class ConcatenatedTensorFormat(DetectionTensorFormat):
         return str(self.layout)
 
 
-def apply_on_bboxes(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_format: ConcatenatedTensorFormat) -> Union[np.ndarray, Tensor]:
-    """Apply inplace a function only on the bboxes of a concatenated tensor."""
+def apply_on_bboxes(
+    fn: Callable[[Union[np.ndarray, Tensor]], Union[np.ndarray, Tensor]],
+    tensor: Union[np.ndarray, Tensor],
+    tensor_format: ConcatenatedTensorFormat,
+) -> Union[np.ndarray, Tensor]:
+    """Apply inplace a function only on the bboxes of a concatenated tensor.
+
+    :param fn:              Function to apply on the bboxes.
+    :param tensor:          Concatenated tensor that include - among other - the bboxes.
+    :param tensor_format:   Format of the tensor, required to know the indexes of the bboxes.
+    :return:                Tensor, after applying INPLACE the fn on the bboxes
+    """
     return apply_on_layout(fn=fn, tensor=tensor, tensor_format=tensor_format, layout_name=tensor_format.bboxes_format.name)
 
 
-def apply_on_layout(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_format: ConcatenatedTensorFormat, layout_name: str) -> Union[np.ndarray, Tensor]:
-    """Apply inplace a function only on a specific layout of a concatenated tensor."""
+def apply_on_layout(
+    fn: Callable[[Union[np.ndarray, Tensor]], Union[np.ndarray, Tensor]],
+    tensor: Union[np.ndarray, Tensor],
+    tensor_format: ConcatenatedTensorFormat,
+    layout_name: str,
+) -> Union[np.ndarray, Tensor]:
+    """Apply inplace a function only on a specific layout of a concatenated tensor.
+    :param fn:              Function to apply on the bboxes.
+    :param tensor:          Concatenated tensor that include - among other - the layout of interest.
+    :param tensor_format:   Format of the tensor, required to know the indexes of the layout.
+    :param layout_name:     Name of the layout of interest. It has to be defined in the tensor_format.
+    :return:                Tensor, after applying INPLACE the fn on the layout
+    """
     location = slice(*iter(tensor_format.locations[layout_name]))
     result = fn(tensor[..., location])
     tensor[..., location] = result
     return tensor
 
 
-def filter_on_bboxes(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_format: ConcatenatedTensorFormat) -> Union[np.ndarray, Tensor]:
-    """Filter the tensor according to a condition on the bboxes."""
+def filter_on_bboxes(
+    fn: Callable[[Union[np.ndarray, Tensor]], Union[np.ndarray, Tensor]],
+    tensor: Union[np.ndarray, Tensor],
+    tensor_format: ConcatenatedTensorFormat,
+) -> Union[np.ndarray, Tensor]:
+    """Filter the tensor according to a condition on the bboxes.
+
+    :param fn:              Function to filter the bboxes (keep only True elements).
+    :param tensor:          Concatenated tensor that include - among other - the bboxes.
+    :param tensor_format:   Format of the tensor, required to know the indexes of the bboxes.
+    :return:                Tensor, after applying INPLACE the fn on the bboxes
+    """
     return filter_on_layout(fn=fn, tensor=tensor, tensor_format=tensor_format, layout_name=tensor_format.bboxes_format.name)
 
 
-def filter_on_layout(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_format: ConcatenatedTensorFormat, layout_name: str) -> Union[np.ndarray, Tensor]:
-    """Filter the tensor according to a condition on a specific layout."""
+def filter_on_layout(
+    fn: Callable[[Union[np.ndarray, Tensor]], Union[np.ndarray, Tensor]],
+    tensor: Union[np.ndarray, Tensor],
+    tensor_format: ConcatenatedTensorFormat,
+    layout_name: str,
+) -> Union[np.ndarray, Tensor]:
+    """Filter the tensor according to a condition on a specific layout.
+
+    :param fn:              Function to filter the bboxes (keep only True elements).
+    :param tensor:          Concatenated tensor that include - among other - the layout of interest.
+    :param tensor_format:   Format of the tensor, required to know the indexes of the layout.
+    :param layout_name:     Name of the layout of interest. It has to be defined in the tensor_format.
+    :return:                Tensor, after filtering the bboxes according to fn.
+    """
     location = slice(*tensor_format.locations[layout_name])
     mask = fn(tensor[..., location])
     tensor = tensor[mask]
@@ -108,7 +151,12 @@ def filter_on_layout(fn: Callable, tensor: Union[np.ndarray, Tensor], tensor_for
 
 
 def get_permutation_indexes(input_format: ConcatenatedTensorFormat, output_format: ConcatenatedTensorFormat) -> List[int]:
-    """Compute the permutations required to change the format layout order."""
+    """Compute the permutations required to change the format layout order.
+
+    :param input_format:    Input format to transform from
+    :param output_format:   Output format to transform to
+    :return: Permutation indexes to go from input to output format.
+    """
     output_indexes = []
     for output_name, output_spec in output_format.layout.items():
         if output_name not in input_format.layout:
