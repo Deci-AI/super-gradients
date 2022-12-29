@@ -242,7 +242,7 @@ def restart_script_with_ddp(num_gpus: int = None):
     elastic_launch(config=config, entrypoint=sys.executable)(*sys.argv, *EXTRA_ARGS)
 
     # The code below should actually never be reached as the process will be in a loop inside elastic_launch until any subprocess crashes.
-    sys.exit("Main process finished")
+    sys.exit(0)
 
 
 def get_gpu_mem_utilization():
