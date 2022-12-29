@@ -20,6 +20,6 @@ __all__ = [
     "env_sanity_check",
 ]
 
-__version__ = "3.0.3"
+__version__ = "3.0.5"
 
 env_sanity_check()
