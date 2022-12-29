@@ -8,8 +8,8 @@ import onnxruntime as ort
 import torch.jit
 
 from super_gradients.training.utils.tensor_formats.bbox_formats import NormalizedXYWHCoordinateFormat, CXCYWHCoordinateFormat, YXYXCoordinateFormat
+from super_gradients.training.utils.tensor_formats.output_format_adapter import DetectionOutputAdapter
 from super_gradients.training.utils.tensor_formats.formats import (
-    DetectionOutputAdapter,
     ConcatenatedTensorFormat,
     BoundingBoxesTensorSliceItem,
     TensorSliceItem,

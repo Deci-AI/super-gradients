@@ -7,7 +7,7 @@ from torch import nn, Tensor
 from super_gradients.training.utils.tensor_formats.bbox_formats import BoundingBoxFormat
 from super_gradients.training.utils.tensor_formats.formats import ConcatenatedTensorFormat
 
-__all__ = ["DetectionOutputFormatAdapter"]
+__all__ = ["DetectionOutputAdapter"]
 
 
 class RearrangeOutput(nn.Module):
@@ -67,7 +67,7 @@ class ConvertBoundingBoxes(nn.Module):
         return x
 
 
-class DetectionOutputFormatAdapter(nn.Module):
+class DetectionOutputAdapter(nn.Module):
     """
     Adapter class for converting model's predictions for object detection to a desired format.
     This adapter supports torch.jit tracing & scripting & onnx conversion.
@@ -114,7 +114,7 @@ class DetectionOutputFormatAdapter(nn.Module):
     >>> )
     >>>
     >>> # Now we can construct output adapter and attach it to the model
-    >>> output_adapter = DetectionOutputFormatAdapter(yolox,
+    >>> output_adapter = DetectionOutputAdapter(yolox,
     >>>     input_format=yolox.head.format,
     >>>     output_format=output_format,
     >>>     image_shape=(640, 640)
