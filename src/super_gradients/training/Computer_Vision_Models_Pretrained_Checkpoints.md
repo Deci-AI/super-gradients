@@ -1,6 +1,16 @@
 
 ## Computer Vision Models - Pretrained Checkpoints
 
+You can load any of our models in 2 lines of code.
+
+```python
+from super_gradients.training import models
+model = models.get("yolox_s", pretrained_weights="coco")
+```
+
+All the available models are listed in the column `Model name`.
+
+
 ### Pretrained Classification PyTorch Checkpoints
 
 
