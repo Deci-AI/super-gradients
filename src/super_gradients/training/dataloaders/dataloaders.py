@@ -29,7 +29,8 @@ from super_gradients.training.datasets.segmentation_datasets import (
     CoCoSegmentationDataSet,
     PascalVOC2012SegmentationDataSet,
     PascalVOCAndAUGUnifiedDataset,
-    SuperviselyPersonsDataset, MapillaryDataset,
+    SuperviselyPersonsDataset,
+    MapillaryDataset,
 )
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import (
@@ -651,6 +652,8 @@ ALL_DATALOADERS = {
     "cityscapes_ddrnet_val": cityscapes_ddrnet_val,
     "coco_segmentation_train": coco_segmentation_train,
     "coco_segmentation_val": coco_segmentation_val,
+    "mapillary_train": mapillary_train,
+    "mapillary_val": mapillary_val,
     "pascal_aug_segmentation_train": pascal_aug_segmentation_train,
     "pascal_aug_segmentation_val": pascal_aug_segmentation_val,
     "pascal_voc_segmentation_train": pascal_voc_segmentation_train,

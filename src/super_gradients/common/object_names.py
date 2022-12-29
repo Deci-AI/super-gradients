@@ -43,6 +43,7 @@ class Transforms:
     SegCropImageAndMask = "SegCropImageAndMask"
     SegRandomGaussianBlur = "SegRandomGaussianBlur"
     SegPadShortToCropSize = "SegPadShortToCropSize"
+    SegPadToDivisible = "SegPadToDivisible"
     SegColorJitter = "SegColorJitter"
     DetectionMosaic = "DetectionMosaic"
     DetectionRandomAffine = "DetectionRandomAffine"

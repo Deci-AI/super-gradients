@@ -6,7 +6,6 @@ import inspect
 
 from super_gradients.common.abstractions.abstract_logger import get_logger
 
-
 from super_gradients.training.transforms.transforms import (
     SegRandomFlip,
     SegRescale,
@@ -15,6 +14,7 @@ from super_gradients.training.transforms.transforms import (
     SegCropImageAndMask,
     SegRandomGaussianBlur,
     SegPadShortToCropSize,
+    SegPadToDivisible,
     SegResize,
     SegColorJitter,
     DetectionMosaic,
@@ -64,7 +64,6 @@ from torchvision.transforms import (
     RandomEqualize,
 )
 
-
 TRANSFORMS = {
     Transforms.SegRandomFlip: SegRandomFlip,
     Transforms.SegResize: SegResize,
@@ -74,6 +73,7 @@ TRANSFORMS = {
     Transforms.SegCropImageAndMask: SegCropImageAndMask,
     Transforms.SegRandomGaussianBlur: SegRandomGaussianBlur,
     Transforms.SegPadShortToCropSize: SegPadShortToCropSize,
+    Transforms.SegPadToDivisible: SegPadToDivisible,
     Transforms.SegColorJitter: SegColorJitter,
     Transforms.DetectionMosaic: DetectionMosaic,
     Transforms.DetectionRandomAffine: DetectionRandomAffine,

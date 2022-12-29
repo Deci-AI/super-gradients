@@ -1,18 +1,17 @@
 config_version: '1.2'
 
 fill_values:
-  '1.2':
-    _target_: super_gradients.training.datasets.segmentation_datasets.mapillary.MapillaryDataset.IGNORE_LABEL_V1_2
-  '2.0':
-    _target_: super_gradients.training.datasets.segmentation_datasets.mapillary.MapillaryDataset.IGNORE_LABEL_V2_0
+  '1.2': 65
+  '2.0': 123
 
-fill_value: ${choose:${config_version},${fill_values}}
+fill_value: ${choose:${dataset_params.config_version},${dataset_params.fill_values}}
 
 train_dataset_params:
-  root: /data/mapillary-vistas-dataset_public_v2.0
-  config_file: config_v${..version}.json
+#  root_dir: /data/mapillary-vistas-dataset_public_v2.0
+  root_dir: /home/lior.kadoch/data/mapillary-vistas-dataset_public_v2.0_resize_2048_long
+  config_file: config_v${..config_version}.json
   samples_sub_directory: training/images
-  targets_sub_directory: training/v${..version}/labels
+  targets_sub_directory: training/v${..config_version}/labels
   cache_labels: False
   cache_images: False
   transforms:
@@ -32,26 +31,27 @@ train_dataset_params:
 
     - SegPadShortToCropSize:
         crop_size: 1024
-        fill_mask: ${..fill_value}
+        fill_mask: ${dataset_params.fill_value}
 
     - SegCropImageAndMask:
         crop_size: 1024
         mode: random
 
 val_dataset_params:
-  root: /data/mapillary-vistas-dataset_public_v2.0
-  config_file: config_v${..version}.json
+#  root_dir: /data/mapillary-vistas-dataset_public_v2.0
+  root_dir: /home/lior.kadoch/data/mapillary-vistas-dataset_public_v2.0_resize_2048_long
+  config_file: config_v${..config_version}.json
   samples_sub_directory: validation/images
-  targets_sub_directory: validation/v${..version}/labels
+  targets_sub_directory: validation/v${..config_version}/labels
   cache_labels: False
   cache_images: False
   transforms:
     - SegRescale:
         long_size: 2048
 
-    - SegToDivisible:
+    - SegPadToDivisible:
         divisible_value: 32
-        fill_mask: ${..fill_value}
+        fill_mask: ${dataset_params.fill_value}
 
     - SegCropImageAndMask:
         crop_size: 512

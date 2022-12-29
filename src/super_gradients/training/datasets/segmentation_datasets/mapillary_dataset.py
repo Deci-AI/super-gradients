@@ -17,7 +17,7 @@ class MapillaryDataset(SegmentationDataSet):
          semantic understanding of street scenes. In CVPR, 2017."
          https://openaccess.thecvf.com/content_ICCV_2017/papers/Neuhold_The_Mapillary_Vistas_ICCV_2017_paper.pdf
     Official site:
-        https://www.mapillary.com/
+        https://www.mapillary.com/ (register for free, then download Vistas dataset)
     """
 
     """
@@ -47,27 +47,34 @@ class MapillaryDataset(SegmentationDataSet):
     IGNORE_LABEL_V1_2 = 65
     IGNORE_LABEL_V2_0 = 123
 
-    def __init__(self,
-                 root_dir: str,
-                 config_file: str,
-                 samples_sub_directory: str,
-                 targets_sub_directory: str,
-                 sample_extension: str = ".jpg",
-                 target_extension: str = ".png",
-                 **kwargs):
+    def __init__(
+        self,
+        root_dir: str,
+        config_file: str,
+        samples_sub_directory: str,
+        targets_sub_directory: str,
+        sample_extension: str = ".jpg",
+        target_extension: str = ".png",
+        **kwargs,
+    ):
         self.samples_sub_directory = samples_sub_directory
         self.targets_sub_directory = targets_sub_directory
         self.target_extension = target_extension
         self.sample_extension = sample_extension
         # FIXME - Must pass list_file, due to double inheritance error when using DirectoryDataset. See the bug report
-        super().__init__(root=root_dir, samples_sub_directory=samples_sub_directory,
-                         targets_sub_directory=targets_sub_directory, list_file="", target_extension=target_extension,
-                         **kwargs)
+        super().__init__(
+            root=root_dir,
+            samples_sub_directory=samples_sub_directory,
+            targets_sub_directory=targets_sub_directory,
+            list_file="",
+            target_extension=target_extension,
+            **kwargs,
+        )
 
         # read in config file
-        with open(os.path.join(self.root, config_file)) as f:
+        with open(os.path.join(self.root, config_file), "r") as f:
             config = json.load(f)
-        self.labels = config['labels']
+        self.labels = config["labels"]
         self.label_colors = [label["color"] for label in self.labels]
         self.label_names = [label["readable"].replace(" ", "_") for label in self.labels]
         # Ignore labels is called `Unlabeled` in config files
@@ -83,8 +90,7 @@ class MapillaryDataset(SegmentationDataSet):
         sample_names = [n for n in os.listdir(samples_dir) if n.endswith(self.sample_extension)]
         label_names = [n for n in os.listdir(labels_dir) if n.endswith(self.target_extension)]
 
-        assert len(sample_names) == len(label_names), f"Number of samples: {len(sample_names)}," \
-                                                      f" doesn't match the number of labels {len(label_names)}"
+        assert len(sample_names) == len(label_names), f"Number of samples: {len(sample_names)}," f" doesn't match the number of labels {len(label_names)}"
 
         for sample_name in sample_names:
             label_path = os.path.join(labels_dir, sample_name.replace(self.sample_extension, self.target_extension))
@@ -93,8 +99,7 @@ class MapillaryDataset(SegmentationDataSet):
             if os.path.exists(sample_path) and os.path.exists(label_path):
                 self.samples_targets_tuples_list.append((sample_path, label_path))
             else:
-                raise AssertionError(f"Sample and/or target file(s) not found or in illegal format "
-                                     f"(sample path: {sample_path}, target path: {label_path})")
+                raise AssertionError(f"Sample and/or target file(s) not found or in illegal format " f"(sample path: {sample_path}, target path: {label_path})")
 
     def apply_color_map(self, target: Image) -> np.array:
         """
