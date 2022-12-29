@@ -17,7 +17,18 @@ class ConcatenatedTensorFormatConverter:
         image_shape: Union[Tuple[int, int], None],
     ):
         """
-        Adapter class that converts concatenated tensors from input format to output format.
+        Converts concatenated tensors from input format to output format.
+
+        Example:
+            >>> from super_gradients.training.utils.tensor_formats.default_formats import LABEL_CXCYWH, LABEL_NORMALIZED_XYXY
+            >>>
+            >>> h, w = 100, 200
+            >>> input_target = np.array([[10, 20 / w, 30 / h, 40 / w, 50 / h]], dtype=np.float32)
+            >>> expected_output_target = np.array([[10, 30, 40, 20, 20]], dtype=np.float32)
+            >>>
+            >>> transform = ConcatenatedTensorFormatConverter(input_format=LABEL_NORMALIZED_XYXY, output_format=LABEL_CXCYWH, image_shape=(h, w))
+            >>>
+            >>> assert np.allclose(transform(input_target), expected_output_target, atol=1e-6)
 
         :param input_format: Format definition of the inputs
         :param output_format: Format definition of the outputs
