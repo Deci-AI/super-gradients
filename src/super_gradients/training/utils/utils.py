@@ -8,7 +8,7 @@ import os
 from jsonschema import validate
 import tarfile
 from PIL import Image, ExifTags
-
+import re
 import torch
 import torch.nn as nn
 
@@ -168,6 +168,31 @@ def tensor_container_to_device(obj: Union[torch.Tensor, tuple, list, dict], devi
         return obj
 
 
+def _fuzzy_keys(params: Mapping):
+    return [_fuzzy_str(s) for s in params.keys()]
+
+
+def _fuzzy_str(s):
+    return re.sub(r"[^\w]", "", s).replace("_", "").lower()
+
+
+def _get_fuzzy_attr_map(params):
+    return {_fuzzy_str(a): a for a in params.__dir__()}
+
+
+def _has_fuzzy_attr(params, name):
+    return _fuzzy_str(name) in _get_fuzzy_attr_map(params)
+
+
+def _get_fuzzy_mapping_param(name, params):
+    fuzzy_params = {_fuzzy_str(key): params[key] for key in params.keys()}
+    return fuzzy_params[_fuzzy_str(name)]
+
+
+def _get_fuzzy_attr(params, name):
+    return getattr(params, _get_fuzzy_attr_map(params)[_fuzzy_str(name)])
+
+
 def get_param(params, name, default_val=None):
     """
     Retrieves a param from a parameter object/dict. If the parameter does not exist, will return default_val.
@@ -187,19 +212,24 @@ def get_param(params, name, default_val=None):
     """
     if isinstance(params, Mapping):
         if name in params:
-            if isinstance(default_val, Mapping):
-                return {**default_val, **params[name]}
-            else:
-                return params[name]
+            param_val = params[name]
+
+        elif _fuzzy_str(name) in _fuzzy_keys(params):
+            param_val = _get_fuzzy_mapping_param(name, params)
+
         else:
-            return default_val
+            param_val = default_val
     elif hasattr(params, name):
-        if isinstance(default_val, Mapping):
-            return {**default_val, **getattr(params, name)}
-        else:
-            return getattr(params, name)
+        param_val = getattr(params, name)
+    elif _has_fuzzy_attr(params, name):
+        param_val = _get_fuzzy_attr(params, name)
     else:
-        return default_val
+        param_val = default_val
+
+    if isinstance(default_val, Mapping):
+        return {**default_val, **param_val}
+    else:
+        return param_val
 
 
 def static_vars(**kwargs):
