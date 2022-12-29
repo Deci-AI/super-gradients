@@ -10,7 +10,8 @@ class HydraResolversTest(unittest.TestCase):
         register_hydra_resolvers()
 
     def test_add(self):
-        conf = OmegaConf.create({"a": 1, "b": 2, "c": 3, "a_plus_b": "${add: ${a},${b}}", "a_plus_b_plus_c": "${add: ${a}, ${b}, ${c}}"})
+        conf = OmegaConf.create(
+            {"a": 1, "b": 2, "c": 3, "a_plus_b": "${add: ${a},${b}}", "a_plus_b_plus_c": "${add: ${a}, ${b}, ${c}}"})
         assert conf["a_plus_b"] == 3
         assert conf["a_plus_b_plus_c"] == 6
 
@@ -40,3 +41,19 @@ class HydraResolversTest(unittest.TestCase):
 
         conf["boolean"] = False
         assert conf["result"] == "blue_pill"
+
+    def test_choose(self):
+        conf = OmegaConf.create(
+            {
+                "key": 'A',
+                "options": {
+                    "A": 1,
+                    "B": 2,
+                },
+                "result": "${choose:${key}, ${options}}",
+            }
+        )
+        assert conf["result"] == 1
+
+        conf["key"] = 'B'
+        assert conf["result"] == 2

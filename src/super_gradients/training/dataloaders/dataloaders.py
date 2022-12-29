@@ -29,7 +29,7 @@ from super_gradients.training.datasets.segmentation_datasets import (
     CoCoSegmentationDataSet,
     PascalVOC2012SegmentationDataSet,
     PascalVOCAndAUGUnifiedDataset,
-    SuperviselyPersonsDataset,
+    SuperviselyPersonsDataset, MapillaryDataset,
 )
 from super_gradients.common.factories.samplers_factory import SamplersFactory
 from super_gradients.training.utils.distributed_training_utils import (
@@ -564,6 +564,26 @@ def supervisely_persons_val(dataset_params: Dict = None, dataloader_params: Dict
     return get_data_loader(
         config_name="supervisely_persons_dataset_params",
         dataset_cls=SuperviselyPersonsDataset,
+        train=False,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def mapillary_train(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="mapillary_dataset_params",
+        dataset_cls=MapillaryDataset,
+        train=True,
+        dataset_params=dataset_params,
+        dataloader_params=dataloader_params,
+    )
+
+
+def mapillary_val(dataset_params: Dict = None, dataloader_params: Dict = None):
+    return get_data_loader(
+        config_name="mapillary_dataset_params",
+        dataset_cls=MapillaryDataset,
         train=False,
         dataset_params=dataset_params,
         dataloader_params=dataloader_params,

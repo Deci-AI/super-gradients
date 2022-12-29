@@ -8,6 +8,7 @@ from super_gradients.training.datasets.segmentation_datasets import (
     CityscapesDataset,
     SuperviselyPersonsDataset,
     PascalVOCAndAUGUnifiedDataset,
+    MapillaryDataset,
 )
 
 ALL_DATASETS = {
@@ -22,6 +23,7 @@ ALL_DATASETS = {
     "PascalAUG2012SegmentationDataSet": PascalAUG2012SegmentationDataSet,
     "PascalVOC2012SegmentationDataSet": PascalVOC2012SegmentationDataSet,
     "CityscapesDataset": CityscapesDataset,
+    "MapillaryDataset": MapillaryDataset,
     "SuperviselyPersonsDataset": SuperviselyPersonsDataset,
     "PascalVOCAndAUGUnifiedDataset": PascalVOCAndAUGUnifiedDataset,
 }
