@@ -28,6 +28,7 @@ class ConcatenatedTensorFormatConverter:
             >>>
             >>> transform = ConcatenatedTensorFormatConverter(input_format=LABEL_NORMALIZED_XYXY, output_format=LABEL_CXCYWH, image_shape=(h, w))
             >>>
+            >>> # np.float32 approximation of multiplication/division can lead to uncertainty of up to 1e-7 in precision
             >>> assert np.allclose(transform(input_target), expected_output_target, atol=1e-6)
 
         :param input_format: Format definition of the inputs
