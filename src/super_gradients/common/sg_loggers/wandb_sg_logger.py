@@ -141,7 +141,7 @@ class WandBSGLogger(BaseSGLogger):
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
         super(WandBSGLogger, self).add_config(tag=tag, config=config)
-        wandb.config.update(config, allow_val_change=self.resumed)
+        wandb.config.update({tag: config}, allow_val_change=self.resumed)
 
     @multi_process_safe
     def add_scalar(self, tag: str, scalar_value: float, global_step: int = 0):
