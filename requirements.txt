@@ -33,3 +33,4 @@ wheel>=0.38.0
 pygments>=2.7.4
 stringcase>=1.2.0
 numpy<=1.23
+rapidfuzz
