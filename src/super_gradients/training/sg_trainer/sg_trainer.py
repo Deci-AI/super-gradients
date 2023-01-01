@@ -38,7 +38,6 @@ from super_gradients.training.pretrained_models import PRETRAINED_NUM_CLASSES
 from super_gradients.training.utils import sg_trainer_utils, get_param
 from super_gradients.training.utils.sg_trainer_utils import MonitoredValue, parse_args, log_main_training_params
 from super_gradients.training.exceptions.sg_trainer_exceptions import UnsupportedOptimizerFormat, GPUModeNotSetupError
-from super_gradients.training.losses import LOSSES
 from super_gradients.training.metrics.metric_utils import (
     get_metrics_titles,
     get_metrics_results_tuple,
@@ -997,8 +996,7 @@ class Trainer:
 
         # Allowing loading instantiated loss or string
         if isinstance(self.training_params.loss, str):
-            criterion_cls = LOSSES[self.training_params.loss]
-            self.criterion = criterion_cls(**self.training_params.criterion_params)
+            self.criterion = LossesFactory().get({self.training_params.loss: self.training_params.criterion_params})
 
         elif isinstance(self.training_params.loss, Mapping):
             self.criterion = LossesFactory().get(self.training_params.loss)
