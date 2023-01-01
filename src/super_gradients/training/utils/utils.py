@@ -2,7 +2,7 @@ import math
 import time
 from functools import lru_cache
 from pathlib import Path
-from typing import Mapping, Optional, Tuple, Union, List, Dict
+from typing import Mapping, Optional, Tuple, Union, List, Dict, Any
 from zipfile import ZipFile
 import os
 from jsonschema import validate
@@ -168,29 +168,51 @@ def tensor_container_to_device(obj: Union[torch.Tensor, tuple, list, dict], devi
         return obj
 
 
-def _fuzzy_keys(params: Mapping):
-    return [_fuzzy_str(s) for s in params.keys()]
+def fuzzy_keys(params: Mapping) -> List[str]:
+    """
+    Returns params.key() removing leading and trailing white space, lower-casing and dropping symbols.
+    :param params: Mapping, the mapping containing the keys to be returned.
+    :return: List[str], list of keys as discussed above.
+    """
+    return [fuzzy_str(s) for s in params.keys()]
 
 
-def _fuzzy_str(s):
+def fuzzy_str(s: str):
+    """
+    Returns s removing leading and trailing white space, lower-casing and drops
+    :param s: str, string to apply the manipulation discussed above.
+    :return: str, s after the manipulation discussed above.
+    """
     return re.sub(r"[^\w]", "", s).replace("_", "").lower()
 
 
 def _get_fuzzy_attr_map(params):
-    return {_fuzzy_str(a): a for a in params.__dir__()}
+    return {fuzzy_str(a): a for a in params.__dir__()}
 
 
 def _has_fuzzy_attr(params, name):
-    return _fuzzy_str(name) in _get_fuzzy_attr_map(params)
+    return fuzzy_str(name) in _get_fuzzy_attr_map(params)
 
 
-def _get_fuzzy_mapping_param(name, params):
-    fuzzy_params = {_fuzzy_str(key): params[key] for key in params.keys()}
-    return fuzzy_params[_fuzzy_str(name)]
+def get_fuzzy_mapping_param(name: str, params: Mapping):
+    """
+    Returns parameter value, with key=name with no sensitivity to lowercase, uppercase and symbols.
+    :param name: str, the key in params which is fuzzy-matched and retruned.
+    :param params: Mapping, the mapping containing param.
+    :return:
+    """
+    fuzzy_params = {fuzzy_str(key): params[key] for key in params.keys()}
+    return fuzzy_params[fuzzy_str(name)]
 
 
-def _get_fuzzy_attr(params, name):
-    return getattr(params, _get_fuzzy_attr_map(params)[_fuzzy_str(name)])
+def get_fuzzy_attr(params: Any, name: str):
+    """
+    Returns attribute (same functionality as getattr), but non sensitive to symbols, uppercase and lowercase.
+    :param params: Any, any object which wed looking for the attribute name in.
+    :param name: str, the attribute of param to be returned.
+    :return: Any, the attribute value or None when not fuzzy matching of the attribute is found
+    """
+    return getattr(params, _get_fuzzy_attr_map(params)[fuzzy_str(name)])
 
 
 def fuzzy_idx_in_list(name: str, lst: List[str]) -> int:
@@ -200,7 +222,7 @@ def fuzzy_idx_in_list(name: str, lst: List[str]) -> int:
     :param lst: List[str], the list as described above.
     :return: int, index of name in lst in the matter discussed above.
     """
-    return [_fuzzy_str(x) for x in lst].index(_fuzzy_str(name))
+    return [fuzzy_str(x) for x in lst].index(fuzzy_str(name))
 
 
 def get_param(params, name, default_val=None):
@@ -226,15 +248,15 @@ def get_param(params, name, default_val=None):
         if name in params:
             param_val = params[name]
 
-        elif _fuzzy_str(name) in _fuzzy_keys(params):
-            param_val = _get_fuzzy_mapping_param(name, params)
+        elif fuzzy_str(name) in fuzzy_keys(params):
+            param_val = get_fuzzy_mapping_param(name, params)
 
         else:
             param_val = default_val
     elif hasattr(params, name):
         param_val = getattr(params, name)
     elif _has_fuzzy_attr(params, name):
-        param_val = _get_fuzzy_attr(params, name)
+        param_val = get_fuzzy_attr(params, name)
     else:
         param_val = default_val
 
