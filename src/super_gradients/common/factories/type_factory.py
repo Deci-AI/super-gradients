@@ -2,6 +2,7 @@ from typing import Dict, Union, Type
 from enum import Enum
 import importlib
 
+from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
 from super_gradients.common.factories.base_factory import AbstractFactory
 from super_gradients.training.utils import get_param
 
@@ -43,9 +44,12 @@ class TypeFactory(AbstractFactory):
                     class_type = lib.__dict__[module]
                     return class_type
                 except RuntimeError:
-                    raise RuntimeError(
-                        f"Unknown object type: {conf} in configuration. valid types are: {self.type_dict.keys()} or a class "
-                        "type available in the env (or the form 'package_name.sub_package.MyClass'"
+                    raise UnknownTypeException(
+                        unknown_type=conf,
+                        choices=list(self.type_dict.keys()),
+                        message=f"Unknown object type: {conf} in configuration. valid types are: {self.type_dict.keys()} or a class "
+                        "type available in the env (or the form "
+                        "'package_name.sub_package.MyClass' ",
                     )
         else:
             return conf

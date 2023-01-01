@@ -7,6 +7,7 @@ from super_gradients.common.decorators.factory_decorator import resolve_param
 from super_gradients.common.factories.activations_type_factory import ActivationsTypeFactory
 from super_gradients.training import models
 from super_gradients.training.dataloaders.dataloaders import classification_test_dataloader
+from super_gradients.training.losses import LabelSmoothingCrossEntropyLoss
 from super_gradients.training.metrics import Accuracy, Top5
 from torch import nn
 
@@ -62,6 +63,7 @@ class FactoriesTest(unittest.TestCase):
         self.assertIsInstance(trainer.train_metrics.Accuracy, Accuracy)
         self.assertIsInstance(trainer.valid_metrics.Top5, Top5)
         self.assertIsInstance(trainer.optimizer, torch.optim.Adam)
+        self.assertIsInstance(trainer.criterion, LabelSmoothingCrossEntropyLoss)
 
     def test_activations_factory(self):
         class DummyModel(nn.Module):
