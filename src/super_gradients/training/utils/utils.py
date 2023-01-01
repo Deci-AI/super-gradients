@@ -193,27 +193,29 @@ def _get_fuzzy_attr(params, name):
     return getattr(params, _get_fuzzy_attr_map(params)[_fuzzy_str(name)])
 
 
-def fuzzy_idx_in_list(name: str, lst: List[str]):
+def fuzzy_idx_in_list(name: str, lst: List[str]) -> int:
     """
     Returns the index of name in lst, with non sensitivity to symbols, uppercase and lowercase.
-    :param name:
-    :param lst:
-    :return:
+    :param name: str, the name to be searched in lst.
+    :param lst: List[str], the list as described above.
+    :return: int, index of name in lst in the matter discussed above.
     """
     return [_fuzzy_str(x) for x in lst].index(_fuzzy_str(name))
 
 
 def get_param(params, name, default_val=None):
     """
-    Retrieves a param from a parameter object/dict. If the parameter does not exist, will return default_val.
+    Retrieves a param from a parameter object/dict . If the parameter does not exist, will return default_val.
     In case the default_val is of type dictionary, and a value is found in the params - the function
     will return the default value dictionary with internal values overridden by the found value
+    IMPORTANT: Not sensitive to lowercase, uppercase and symbols.
 
     i.e.
     default_opt_params = {'lr':0.1, 'momentum':0.99, 'alpha':0.001}
     training_params = {'optimizer_params': {'lr':0.0001}, 'batch': 32 .... }
-    get_param(training_params, name='optimizer_params', default_val=default_opt_params)
+    get_param(training_params, name='OptimizerParams', default_val=default_opt_params)
     will return {'lr':0.0001, 'momentum':0.99, 'alpha':0.001}
+
 
     :param params:      an object (typically HpmStruct) or a dict holding the params
     :param name:        name of the searched parameter
