@@ -15,7 +15,7 @@ class UnknownTypeException(Exception):
         if isinstance(unknown_type, str):
             choice, score, _ = process.extractOne(unknown_type, choices, scorer=fuzz.WRatio)
             if score > 70:
-                err_msg_tip = "\n Did you mean: " + str(process.extractOne(unknown_type, choices, scorer=fuzz.WRatio)[0]) + "?"
+                err_msg_tip = f"\n Did you mean: {choice}?"
         else:
             err_msg_tip = ""
         self.message = message + err_msg_tip
