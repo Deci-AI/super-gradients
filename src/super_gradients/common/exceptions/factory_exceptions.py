@@ -13,7 +13,9 @@ class UnknownTypeException(Exception):
     def __init__(self, unknown_type: str, choices: List, message: str = None):
         message = message or f"Unknown object type: {unknown_type} in configuration. valid types are: {choices}"
         if isinstance(unknown_type, str):
-            err_msg_tip = "\n Did you mean: " + str(process.extractOne(unknown_type, choices, scorer=fuzz.WRatio)[0]) + "?"
+            choice, score, _ = process.extractOne(unknown_type, choices, scorer=fuzz.WRatio)
+            if score > 70:
+                err_msg_tip = "\n Did you mean: " + str(process.extractOne(unknown_type, choices, scorer=fuzz.WRatio)[0]) + "?"
         else:
             err_msg_tip = ""
         self.message = message + err_msg_tip
