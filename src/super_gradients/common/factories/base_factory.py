@@ -46,7 +46,7 @@ class BaseFactory(AbstractFactory):
             if conf in self.type_dict:
                 return self.type_dict[conf]()
             elif _fuzzy_str(conf) in _fuzzy_keys(self.type_dict):
-                return _get_fuzzy_mapping_param(conf, self.type_dict)
+                return _get_fuzzy_mapping_param(conf, self.type_dict)()
             else:
                 raise UnknownTypeException(conf, list(self.type_dict.keys()))
         elif isinstance(conf, Mapping):
@@ -62,7 +62,7 @@ class BaseFactory(AbstractFactory):
             if _type in self.type_dict:
                 return self.type_dict[_type](**_params)
             elif _fuzzy_str(_type) in _fuzzy_keys(self.type_dict):
-                return _get_fuzzy_mapping_param(conf, self.type_dict)(**_params)
+                return _get_fuzzy_mapping_param(_type, self.type_dict)(**_params)
             else:
                 raise UnknownTypeException(_type, list(self.type_dict.keys()))
         else:

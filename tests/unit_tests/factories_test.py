@@ -40,7 +40,7 @@ class FactoriesTest(unittest.TestCase):
 
     def test_training_with_factories_with_typos(self):
         trainer = Trainer("test_train_with_factories_with_typos")
-        net = models.get("resnet18__", num_classes=5)
+        net = models.get("Resnet___18", num_classes=5)
         train_params = {
             "max_epochs": 2,
             "lr_updates": [1],
@@ -51,9 +51,9 @@ class FactoriesTest(unittest.TestCase):
             "loss": "crossEnt_ropy",
             "optimizer": "AdAm_",  # use an optimizer by factory
             "criterion_params": {},
-            "train_metrics_list": ["Accuracy", "Top5"],  # use a metric by factory
-            "valid_metrics_list": ["Accuracy", "Top5"],  # use a metric by factory
-            "metric_to_watch": "Accuracy",
+            "train_metrics_list": ["accur_acy", "Top_5"],  # use a metric by factory
+            "valid_metrics_list": ["aCCuracy", "Top5"],  # use a metric by factory
+            "metric_to_watch": "Accurac_Y",
             "greater_metric_to_watch_is_better": True,
         }
 

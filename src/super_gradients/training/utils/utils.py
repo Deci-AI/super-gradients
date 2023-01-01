@@ -193,6 +193,16 @@ def _get_fuzzy_attr(params, name):
     return getattr(params, _get_fuzzy_attr_map(params)[_fuzzy_str(name)])
 
 
+def fuzzy_idx_in_list(name: str, lst: List[str]):
+    """
+    Returns the index of name in lst, with non sensitivity to symbols, uppercase and lowercase.
+    :param name:
+    :param lst:
+    :return:
+    """
+    return [_fuzzy_str(x) for x in lst].index(_fuzzy_str(name))
+
+
 def get_param(params, name, default_val=None):
     """
     Retrieves a param from a parameter object/dict. If the parameter does not exist, will return default_val.
