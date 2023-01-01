@@ -1,6 +1,6 @@
 from typing import Union, Mapping, Dict
 
-from super_gradients.training.exceptions.general_exceptions import UnknownTypeException
+from super_gradients.common.exceptions.factory_exceptions import UnknownTypeException
 from super_gradients.training.utils.utils import _fuzzy_str, _fuzzy_keys, _get_fuzzy_mapping_param
 
 
