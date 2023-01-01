@@ -3,6 +3,7 @@ from enum import Enum
 import importlib
 
 from super_gradients.common.factories.base_factory import AbstractFactory
+from super_gradients.training.utils import get_param
 
 
 class TypeFactory(AbstractFactory):
@@ -32,6 +33,8 @@ class TypeFactory(AbstractFactory):
         if isinstance(conf, str) or isinstance(conf, bool):
             if conf in self.type_dict:
                 return self.type_dict[conf]
+            elif isinstance(conf, str) and get_param(self.type_dict, conf) is not None:
+                return get_param(self.type_dict, conf)
             else:
                 try:
                     lib = ".".join(conf.split(".")[:-1])
